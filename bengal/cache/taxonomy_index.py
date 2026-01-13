@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 from bengal.cache.compression import load_auto, save_compressed
 from bengal.utils.logger import get_logger
 

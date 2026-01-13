@@ -30,7 +30,7 @@ from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
 
-from bengal.utils.progress import ProgressReporter
+from bengal.protocols import ProgressReporter
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector

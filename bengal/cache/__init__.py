@@ -72,7 +72,7 @@ from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.cache_store import CacheStore
-    from bengal.cache.cacheable import Cacheable
+    from bengal.protocols import Cacheable
     from bengal.cache.compression import (
         COMPRESSION_LEVEL,
         load_compressed,

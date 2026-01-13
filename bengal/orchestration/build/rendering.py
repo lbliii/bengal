@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
     from bengal.utils.profile import BuildProfile
-    from bengal.utils.progress import ProgressReporter
+    from bengal.protocols import ProgressReporter
 
 
 def _get_top_bottleneck(total_render_ms: float) -> str | None:

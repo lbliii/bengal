@@ -43,9 +43,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
-from bengal.utils.progress import ProgressReporter
 
 if TYPE_CHECKING:
+    from bengal.protocols import ProgressReporter
     from bengal.cache import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site

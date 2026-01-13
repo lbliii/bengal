@@ -32,8 +32,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.errors import ErrorAggregator, extract_error_context
+from bengal.protocols import ProgressReporter
 from bengal.utils.logger import get_logger
-from bengal.utils.progress import ProgressReporter
 from bengal.utils.url_strategy import URLStrategy
 from bengal.utils.workers import WorkloadType, get_optimal_workers
 

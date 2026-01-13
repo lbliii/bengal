@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING
 
 from tree_sitter import Language, Parser, Query, QueryCursor
 
-from bengal.rendering.highlighting.protocol import HighlightBackend
+from bengal.protocols import HighlightService as HighlightBackend
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:

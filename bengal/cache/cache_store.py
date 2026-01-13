@@ -60,7 +60,7 @@ import json
 from pathlib import Path
 from typing import Any, TypeVar
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

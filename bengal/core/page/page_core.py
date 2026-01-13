@@ -112,7 +112,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

@@ -30,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
