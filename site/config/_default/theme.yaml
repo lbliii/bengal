@@ -9,22 +9,6 @@ theme:
   default_appearance: "dark"     # Options: "light", "dark", "system"
   default_palette: "snow-lynx"   # Warm teal + cream (light), ice blue (dark)
 
-# Header Layout
-# =============
-# Controls header appearance and behavior
-header:
-  nav_position: center   # "left" (after logo) or "center" (centered in header)
-  sticky: true           # Whether header stays fixed at top
-  # autohide: false      # Hide on scroll down (requires sticky: true)
-
-  # Syntax Highlighting
-  # ===================
-  # Controls how code blocks are styled.
-  # See: rosettes/rosettes/themes/ for available palettes.
-  syntax_highlighting:
-    theme: "auto"                 # "auto" inherits from default_palette
-    css_class_style: "semantic"   # "semantic" (.syntax-function) or "pygments" (.nf)
-
   # Feature Flags
   # =============
   # Declaratively enable/disable theme UI components.
@@ -66,6 +50,22 @@ header:
   # Tag Display Limits
   max_tags_display: 10           # Maximum tags before "+N more" indicator
   popular_tags_count: 20         # Number of tags in popular tags widget
+
+# Header Layout
+# =============
+# Controls header appearance and behavior
+header:
+  nav_position: center   # "left" (after logo) or "center" (centered in header)
+  sticky: true           # Whether header stays fixed at top
+  # autohide: false      # Hide on scroll down (requires sticky: true)
+
+  # Syntax Highlighting
+  # ===================
+  # Controls how code blocks are styled.
+  # See: rosettes/rosettes/themes/ for available palettes.
+  syntax_highlighting:
+    theme: "auto"                 # "auto" inherits from default_palette
+    css_class_style: "semantic"   # "semantic" (.syntax-function) or "pygments" (.nf)
 
 # Available Palettes:
 # "" (default), "snow-lynx", "brown-bengal", "silver-bengal",
