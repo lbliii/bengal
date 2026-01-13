@@ -12,8 +12,8 @@ from bengal.rendering.parsers.patitas import (
     render_ast,
     set_render_config,
 )
-from bengal.rendering.parsers.patitas.lexer import Lexer
-from bengal.rendering.parsers.patitas.parser import Parser
+from patitas.lexer import Lexer
+from patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 from bengal.rendering.parsers.patitas.wrapper import PatitasParser
 

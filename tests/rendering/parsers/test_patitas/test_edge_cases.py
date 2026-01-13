@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas.nodes import (
+from patitas.nodes import (
     FootnoteDef,
     FootnoteRef,
     List,

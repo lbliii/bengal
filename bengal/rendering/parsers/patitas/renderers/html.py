@@ -25,7 +25,8 @@ from html import escape as html_escape
 from html import unescape as html_unescape
 from typing import TYPE_CHECKING, Any, Literal
 
-from bengal.rendering.parsers.patitas.nodes import (
+# Import nodes from external patitas package
+from patitas.nodes import (
     Block,
     BlockQuote,
     CodeSpan,
@@ -56,9 +57,10 @@ from bengal.rendering.parsers.patitas.nodes import (
     Text,
     ThematicBreak,
 )
+from patitas.stringbuilder import StringBuilder
+
 from bengal.rendering.parsers.patitas.accumulator import get_metadata
 from bengal.rendering.parsers.patitas.render_config import RenderConfig, get_render_config
-from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
     from bengal.directives.cache import DirectiveCache

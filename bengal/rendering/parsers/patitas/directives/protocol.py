@@ -30,9 +30,9 @@ from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
     from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
-    from bengal.rendering.parsers.patitas.location import SourceLocation
-    from bengal.rendering.parsers.patitas.nodes import Block, Directive
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.location import SourceLocation
+    from patitas.nodes import Block, Directive
+    from patitas.stringbuilder import StringBuilder
 
 
 @runtime_checkable

@@ -55,12 +55,12 @@ from bengal.rendering.parsers.patitas.directives.contracts import (
     DirectiveContract,
 )
 from bengal.rendering.parsers.patitas.directives.options import StyledOptions
-from bengal.rendering.parsers.patitas.nodes import Directive
+from patitas.nodes import Directive
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.location import SourceLocation
-    from bengal.rendering.parsers.patitas.nodes import Block
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.location import SourceLocation
+    from patitas.nodes import Block
+    from patitas.stringbuilder import StringBuilder
 
 
 @dataclass(frozen=True, slots=True)
@@ -379,7 +379,7 @@ class StepsDirective:
         Returns:
             Rendered HTML string
         """
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.stringbuilder import StringBuilder
 
         sb = StringBuilder()
         step_num = start
@@ -437,7 +437,7 @@ class StepsDirective:
         Returns:
             Rendered HTML string
         """
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.stringbuilder import StringBuilder
 
         if render_child_directive:
             sb = StringBuilder()
@@ -450,8 +450,8 @@ class StepsDirective:
 
     def _simple_render_children(self, children: tuple) -> str:
         """Simple fallback renderer for step content."""
-        from bengal.rendering.parsers.patitas.nodes import Paragraph
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.nodes import Paragraph
+        from patitas.stringbuilder import StringBuilder
 
         sb = StringBuilder()
         for child in children:

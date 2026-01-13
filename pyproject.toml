@@ -33,6 +33,7 @@ dependencies = [
     "jinja2>=3.1.0",
     "rosettes>=0.1.0",
     "kida-templates>=0.1.1",                   # Kida template engine (AST-native, free-threading ready)
+    "patitas>=0.1.0",                          # Modern Markdown parser (CommonMark, free-threading ready)
     "markupsafe>=3.0.0",                       # HTML escaping and safe string handling
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",

@@ -15,11 +15,11 @@ from __future__ import annotations
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.rendering.parsers.patitas.nodes import Role
+from patitas.nodes import Role
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.location import SourceLocation
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.location import SourceLocation
+    from patitas.stringbuilder import StringBuilder
 
 
 class RefRole:

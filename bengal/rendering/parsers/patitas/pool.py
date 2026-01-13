@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, Iterator
 
 if TYPE_CHECKING:
     from bengal.directives.cache import DirectiveCache
-    from bengal.rendering.parsers.patitas.parser import Parser
+    from patitas.parser import Parser
     from bengal.rendering.parsers.patitas.protocols import LexerDelegate
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
@@ -92,23 +92,22 @@ class ParserPool:
         Usage:
             with ParserPool.acquire(content) as parser:
                 ast = parser.parse()
+                
+        Note:
+            Parser pooling is disabled when using external patitas package.
+            External Parser doesn't support _reinit(), so we always create new instances.
         """
-        from bengal.rendering.parsers.patitas.parser import Parser
+        from patitas.parser import Parser
 
-        pool = cls._get_pool()
-
-        if pool:
-            parser = pool.pop()
-            parser._reinit(source, source_file)
-        else:
-            parser = Parser(source, source_file)
+        # NOTE: Parser pooling disabled - external patitas Parser doesn't have _reinit()
+        # Always create new parser instance
+        parser = Parser(source, source_file)
 
         try:
             yield parser
         finally:
-            # Return to pool if not full
-            if len(pool) < cls._max_pool_size:
-                pool.append(parser)
+            # Don't return to pool - external Parser can't be reinitialized
+            pass
 
     @classmethod
     def clear(cls) -> None:

@@ -42,12 +42,12 @@ from typing import TYPE_CHECKING, ClassVar
 
 from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
 from bengal.rendering.parsers.patitas.directives.options import AdmonitionOptions
-from bengal.rendering.parsers.patitas.nodes import Directive
+from patitas.nodes import Directive
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.location import SourceLocation
-    from bengal.rendering.parsers.patitas.nodes import Block
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.location import SourceLocation
+    from patitas.nodes import Block
+    from patitas.stringbuilder import StringBuilder
 
 
 # All supported admonition types (matches Bengal)

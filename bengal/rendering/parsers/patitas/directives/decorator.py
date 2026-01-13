@@ -24,8 +24,8 @@ from typing import TYPE_CHECKING, TypeVar, overload
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
     from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
-    from bengal.rendering.parsers.patitas.nodes import Directive
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.nodes import Directive
+    from patitas.stringbuilder import StringBuilder
 
 TOptions = TypeVar("TOptions", bound="DirectiveOptions")
 TClass = TypeVar("TClass", bound=type)
@@ -83,7 +83,7 @@ def directive(
         
     """
     from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
-    from bengal.rendering.parsers.patitas.nodes import Directive
+    from patitas.nodes import Directive
 
     if not names:
         msg = "At least one directive name must be provided"

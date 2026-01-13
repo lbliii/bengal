@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from bengal.rendering.parsers.patitas.nodes import Directive
+    from patitas.nodes import Directive
 
 
 @dataclass(frozen=True, slots=True)

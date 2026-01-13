@@ -25,7 +25,7 @@ from bengal.rendering.parsers.patitas import (
     request_context,
     try_get_request_context,
 )
-from bengal.rendering.parsers.patitas.parser import Parser
+from patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
 

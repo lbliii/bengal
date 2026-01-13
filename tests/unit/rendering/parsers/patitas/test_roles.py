@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from bengal.rendering.parsers.patitas import parse, parse_to_ast
-from bengal.rendering.parsers.patitas.nodes import Paragraph, Role, Text
+from patitas.nodes import Paragraph, Role, Text
 from bengal.rendering.parsers.patitas.roles import (
     RoleRegistryBuilder,
     create_default_registry,
@@ -101,7 +101,7 @@ class TestRoleHandlers:
     def test_ref_role_simple(self) -> None:
         """Ref role with simple target."""
         handler = RefRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
+        from patitas.location import SourceLocation
 
         loc = SourceLocation(1, 1)
         role = handler.parse("ref", "target-id", loc)
@@ -113,7 +113,7 @@ class TestRoleHandlers:
     def test_ref_role_with_text(self) -> None:
         """Ref role with explicit display text."""
         handler = RefRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
+        from patitas.location import SourceLocation
 
         loc = SourceLocation(1, 1)
         role = handler.parse("ref", "Display Text <target-id>", loc)
@@ -124,8 +124,8 @@ class TestRoleHandlers:
     def test_kbd_role(self) -> None:
         """Kbd role renders key shortcuts."""
         handler = KbdRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
 
         loc = SourceLocation(1, 1)
         role = handler.parse("kbd", "Ctrl+C", loc)
@@ -141,7 +141,7 @@ class TestRoleHandlers:
     def test_abbr_role(self) -> None:
         """Abbr role parses abbreviation and expansion."""
         handler = AbbrRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
+        from patitas.location import SourceLocation
 
         loc = SourceLocation(1, 1)
         role = handler.parse("abbr", "HTML (HyperText Markup Language)", loc)
@@ -152,8 +152,8 @@ class TestRoleHandlers:
     def test_math_role(self) -> None:
         """Math role preserves content."""
         handler = MathRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
 
         loc = SourceLocation(1, 1)
         role = handler.parse("math", "E = mc^2", loc)
@@ -168,8 +168,8 @@ class TestRoleHandlers:
     def test_sub_role(self) -> None:
         """Sub role renders subscript."""
         handler = SubRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
 
         loc = SourceLocation(1, 1)
         role = handler.parse("sub", "2", loc)
@@ -184,8 +184,8 @@ class TestRoleHandlers:
     def test_sup_role(self) -> None:
         """Sup role renders superscript."""
         handler = SupRole()
-        from bengal.rendering.parsers.patitas.location import SourceLocation
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
 
         loc = SourceLocation(1, 1)
         role = handler.parse("sup", "2", loc)

@@ -25,9 +25,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.location import SourceLocation
-    from bengal.rendering.parsers.patitas.nodes import Role
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+    from patitas.location import SourceLocation
+    from patitas.nodes import Role
+    from patitas.stringbuilder import StringBuilder
 
 
 @runtime_checkable

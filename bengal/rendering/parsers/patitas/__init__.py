@@ -51,32 +51,9 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Literal
 
-from bengal.rendering.parsers.patitas.accumulator import (
-    RenderMetadata,
-    get_metadata,
-    metadata_context,
-    reset_metadata,
-    set_metadata,
-)
-from bengal.rendering.parsers.patitas.config import (
-    ParseConfig,
-    get_parse_config,
-    parse_config_context,
-    reset_parse_config,
-    set_parse_config,
-)
-from bengal.rendering.parsers.patitas.location import SourceLocation
-from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
-from bengal.rendering.parsers.patitas.request_context import (
-    RequestContext,
-    RequestContextError,
-    get_request_context,
-    request_context,
-    reset_request_context,
-    set_request_context,
-    try_get_request_context,
-)
-from bengal.rendering.parsers.patitas.nodes import (
+# Core types from external patitas package (nodes, location, tokens, stringbuilder)
+from patitas import SourceLocation
+from patitas.nodes import (
     Block,
     BlockQuote,
     CodeSpan,
@@ -101,6 +78,7 @@ from bengal.rendering.parsers.patitas.nodes import (
     Node,
     Paragraph,
     Role,
+    SoftBreak,
     Strikethrough,
     Strong,
     Table,
@@ -109,6 +87,34 @@ from bengal.rendering.parsers.patitas.nodes import (
     Text,
     ThematicBreak,
 )
+from patitas.stringbuilder import StringBuilder
+from patitas.tokens import Token, TokenType
+
+# Bengal-specific extensions (not in external patitas)
+from bengal.rendering.parsers.patitas.accumulator import (
+    RenderMetadata,
+    get_metadata,
+    metadata_context,
+    reset_metadata,
+    set_metadata,
+)
+from bengal.rendering.parsers.patitas.config import (
+    ParseConfig,
+    get_parse_config,
+    parse_config_context,
+    reset_parse_config,
+    set_parse_config,
+)
+from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
+from bengal.rendering.parsers.patitas.request_context import (
+    RequestContext,
+    RequestContextError,
+    get_request_context,
+    request_context,
+    reset_request_context,
+    set_request_context,
+    try_get_request_context,
+)
 from bengal.rendering.parsers.patitas.render_config import (
     RenderConfig,
     get_render_config,
@@ -116,11 +122,9 @@ from bengal.rendering.parsers.patitas.render_config import (
     reset_render_config,
     set_render_config,
 )
-from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
-from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.parser import Parser
+    from patitas.parser import Parser
     from bengal.rendering.parsers.patitas.protocols import LexerDelegate
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
@@ -305,7 +309,7 @@ def parse_to_ast(
 
     Uses ContextVar pattern for configuration. Plugins are set via ParseConfig.
     """
-    from .parser import Parser
+    from patitas.parser import Parser
 
     # Build config from plugins
     config = ParseConfig(
@@ -513,7 +517,7 @@ class Markdown:
 
         Uses ContextVar pattern - sets config before creating parser.
         """
-        from bengal.rendering.parsers.patitas.parser import Parser
+        from patitas.parser import Parser
 
         config = self._get_parse_config(text_transformer)
         parse_token = set_parse_config(config)

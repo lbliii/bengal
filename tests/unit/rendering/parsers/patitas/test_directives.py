@@ -14,7 +14,7 @@ from bengal.rendering.parsers.patitas.directives import (
 from bengal.rendering.parsers.patitas.directives.builtins import (
     AdmonitionDirective,
 )
-from bengal.rendering.parsers.patitas.nodes import Directive
+from patitas.nodes import Directive
 
 
 class TestDirectiveParsing:
@@ -50,7 +50,7 @@ This is a warning.
         """Parse directive with options."""
         from bengal.rendering.parsers.patitas import ParseConfig, parse_config_context
         from bengal.rendering.parsers.patitas.directives import create_default_registry
-        from bengal.rendering.parsers.patitas.parser import Parser
+        from patitas.parser import Parser
 
         source = """
 :::{note}
@@ -137,7 +137,7 @@ This is inside a code block.
         stripped = source.strip()
         ast = parse_to_ast(stripped)
         # Should be a fenced code block, not a directive
-        from bengal.rendering.parsers.patitas.nodes import FencedCode
+        from patitas.nodes import FencedCode
 
         assert len(ast) == 1
         assert isinstance(ast[0], FencedCode)
@@ -208,7 +208,7 @@ class TestDirectiveContracts:
     def test_requires_children(self) -> None:
         """Contract requires_children validation."""
         from bengal.rendering.parsers.patitas.directives.contracts import TAB_SET_CONTRACT
-        from bengal.rendering.parsers.patitas.location import SourceLocation
+        from patitas.location import SourceLocation
 
         loc = SourceLocation(1, 1)
 
@@ -300,7 +300,7 @@ Content here.
             parse_config_context,
             render_config_context,
         )
-        from bengal.rendering.parsers.patitas.parser import Parser
+        from patitas.parser import Parser
         from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
         registry = create_default_registry()

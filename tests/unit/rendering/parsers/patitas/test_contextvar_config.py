@@ -24,7 +24,7 @@ from bengal.rendering.parsers.patitas import (
     set_parse_config,
     set_render_config,
 )
-from bengal.rendering.parsers.patitas.parser import Parser
+from patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
 
@@ -283,7 +283,7 @@ class TestSubParserInheritance:
             parser = Parser("| A | B |\n|---|---|\n| 1 | 2 |")
             ast = parser.parse()
             # Should have parsed a table
-            from bengal.rendering.parsers.patitas.nodes import Table
+            from patitas.nodes import Table
 
             assert any(isinstance(block, Table) for block in ast)
 
@@ -293,7 +293,7 @@ class TestSubParserInheritance:
             parser = Parser("| A | B |\n|---|---|\n| 1 | 2 |")
             ast = parser.parse()
             # Should NOT have parsed a table
-            from bengal.rendering.parsers.patitas.nodes import Table
+            from patitas.nodes import Table
 
             assert not any(isinstance(block, Table) for block in ast)
 

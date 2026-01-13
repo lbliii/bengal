@@ -20,7 +20,7 @@ from typing import Any
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.patitas import create_markdown, parse_to_ast
-from bengal.rendering.parsers.patitas.nodes import Block
+from patitas.nodes import Block
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)

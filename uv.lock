@@ -134,6 +134,7 @@ dependencies = [
     { name = "kida-templates" },
     { name = "markupsafe" },
     { name = "mistune" },
+    { name = "patitas" },
     { name = "pillow" },
     { name = "psutil" },
     { name = "python-frontmatter" },
@@ -239,6 +240,7 @@ requires-dist = [
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "markupsafe", specifier = ">=3.0.0" },
     { name = "mistune", specifier = ">=3.0.0" },
+    { name = "patitas", specifier = ">=0.1.0" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pillow", marker = "extra == 'avif'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
@@ -775,6 +777,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ca/bc/f35b8446f4531a7cb215605d100cd88b7ac6f44ab3fc94870c120ab3adbf/pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712", size = 51043, upload-time = "2023-12-10T22:30:45Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08", size = 31191, upload-time = "2023-12-10T22:30:43.14Z" },
+]
+
+[[package]]
+name = "patitas"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/af/79f9d9ff91e90681fe3918049cc5a06087ff3696198a8263d43306676133/patitas-0.1.0.tar.gz", hash = "sha256:02ba2989fc6b672233c580d673023481a3290e097a4cf9531caa2ed39a4969ad", size = 150170, upload-time = "2026-01-13T17:53:22.497Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a2/81/1b39376b61978ec5a75d6c2bd13b17bfe1c5c72f883500f1d83cab783139/patitas-0.1.0-py3-none-any.whl", hash = "sha256:24e43e96a22f2f34041f153d06d44da975ad44d840deb47567ae8f08fff91f74", size = 183841, upload-time = "2026-01-13T17:53:20.861Z" },
 ]
 
 [[package]]
