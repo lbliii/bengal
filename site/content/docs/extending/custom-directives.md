@@ -299,6 +299,38 @@ def test_alert_directive_render():
     assert "<p>Test content</p>" in html
 ```
 
+**Testing with Parser Integration** (using ContextVar configuration):
+
+```python
+from bengal.rendering.parsers.patitas import (
+    ParseConfig, RenderConfig,
+    parse_config_context, render_config_context,
+)
+from bengal.rendering.parsers.patitas.parser import Parser
+from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.rendering.parsers.patitas.directives import create_default_registry
+
+def test_directive_full_integration():
+    registry = create_default_registry()
+    source = """
+:::{note}
+This is a note.
+:::
+"""
+    # Parse with directive registry
+    with parse_config_context(ParseConfig(directive_registry=registry)):
+        parser = Parser(source.strip())
+        ast = parser.parse()
+
+    # Render with directive registry
+    with render_config_context(RenderConfig(directive_registry=registry)):
+        renderer = HtmlRenderer()
+        html = renderer.render(ast)
+
+    assert "admonition" in html
+    assert "note" in html
+```
+
 For built-in directives, use `get_directive()` to retrieve registered classes:
 
 ```python

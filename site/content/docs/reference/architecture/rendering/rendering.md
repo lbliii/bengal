@@ -73,6 +73,7 @@ Patitas is the default markdown engine (thread-safe, O(n) guaranteed). Mistune i
 - **Directives**: `:::{note}` syntax for rich components
 - **TOC Extraction**: Auto-generates table of contents
 - **Thread-Safe**: Designed for Python 3.14+ free-threaded builds
+- **ContextVar Configuration**: Thread-local config via `ParseConfig` and `RenderConfig`
 :::
 
 :::{tab-item} Templates

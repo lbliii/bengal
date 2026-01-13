@@ -100,6 +100,27 @@ class CustomMarkdownParser(BaseMarkdownParser):
 # (requires modification of bengal/rendering/parsers/__init__.py)
 ```
 
+**Using Patitas Low-Level API** (with ContextVar configuration):
+
+```python
+from bengal.rendering.parsers.patitas import (
+    ParseConfig, RenderConfig,
+    parse_config_context, render_config_context,
+)
+from bengal.rendering.parsers.patitas.parser import Parser
+from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+
+# Configure and parse
+with parse_config_context(ParseConfig(tables_enabled=True, math_enabled=True)):
+    parser = Parser(source)
+    ast = parser.parse()
+
+# Configure and render
+with render_config_context(RenderConfig(highlight=True)):
+    renderer = HtmlRenderer(source)
+    html = renderer.render(ast)
+```
+
 > **Note**: Custom parser registration currently requires modifying core code. A plugin-based registration system is planned for v0.4.0.
 
 ## 3. Custom Template Engines

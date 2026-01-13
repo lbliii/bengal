@@ -107,8 +107,9 @@ class TestModuleAPI:
 
     def test_render_ast_function(self):
         """render_ast() function works."""
-        ast = parse_to_ast("# Hello")
-        html = render_ast(ast)
+        source = "# Hello"
+        ast = parse_to_ast(source)
+        html = render_ast(ast, source)  # source required for ZCLH
         assert "<h1" in html
 
     def test_create_markdown_function(self):
@@ -143,8 +144,9 @@ class TestMarkdownClass:
     def test_markdown_render_ast(self):
         """Markdown.render_ast method."""
         md = create_markdown()
-        ast = md.parse_to_ast("# Hello")
-        html = md.render_ast(ast)
+        source = "# Hello"
+        ast = md.parse_to_ast(source)
+        html = md.render_ast(ast, source)  # source required for ZCLH
         assert "<h1" in html
 
 

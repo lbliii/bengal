@@ -199,6 +199,35 @@ The CommonMark delimiter stack algorithm has worst-case O(d²) for pathological 
 | Parse | Single-threaded (instance state) |
 | AST | **Immutable** (frozen dataclasses) |
 | Share AST | **Thread-safe** |
+| Configuration | **Thread-local via ContextVar** |
+
+### ContextVar Configuration (RFC: rfc-contextvar-config-implementation)
+
+Parser and HtmlRenderer use ContextVar for thread-safe configuration:
+
+```python
+from bengal.rendering.parsers.patitas import (
+    ParseConfig, RenderConfig,
+    parse_config_context, render_config_context,
+)
+from bengal.rendering.parsers.patitas.parser import Parser
+from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+
+# Configuration via context manager (recommended)
+with parse_config_context(ParseConfig(tables_enabled=True)):
+    parser = Parser(source)
+    ast = parser.parse()
+
+with render_config_context(RenderConfig(highlight=True)):
+    renderer = HtmlRenderer(source)
+    html = renderer.render(ast)
+```
+
+**Benefits:**
+- **Thread isolation**: Each thread has independent config (no race conditions)
+- **50% slot reduction**: Parser 18→9 slots, HtmlRenderer 14→7 slots
+- **~1.65x faster instantiation**: Less attribute copying per instance
+- **Proper nesting**: Token-based reset supports nested config contexts
 
 ---
 
