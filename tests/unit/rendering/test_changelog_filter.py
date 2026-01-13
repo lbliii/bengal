@@ -226,12 +226,38 @@ class TestReleaseViewFromData:
 class TestReleaseViewFromPage:
     """Tests for ReleaseView.from_page()."""
 
-    def test_extracts_from_page(self):
-        """Page attributes are extracted correctly."""
+    def test_version_from_metadata(self):
+        """Explicit version in metadata takes priority."""
+        page = MockPage("Bengal Release", source_path="content/releases/0.1.8.md")
+        page.metadata = {"version": "custom-1.0"}
+        view = ReleaseView.from_page(page)
+        assert view.version == "custom-1.0"
+
+    def test_version_from_filename(self):
+        """Version extracted from filename when not in metadata."""
+        page = MockPage("Bengal 0.1.8", source_path="content/releases/0.1.8.md")
+        view = ReleaseView.from_page(page)
+        assert view.version == "0.1.8"
+
+    def test_version_from_title(self):
+        """Version extracted from title when filename not versioned."""
+        page = MockPage("Bengal 0.1.8", source_path="content/releases/latest.md")
+        view = ReleaseView.from_page(page)
+        assert view.version == "0.1.8"
+
+    def test_version_priority_order(self):
+        """Test version extraction priority: metadata > filename > title."""
+        # Metadata wins even if filename has different version
+        page = MockPage("Bengal 0.1.0", source_path="content/releases/0.1.5.md")
+        page.metadata = {"version": "1.0.0"}
+        view = ReleaseView.from_page(page)
+        assert view.version == "1.0.0"
+
+    def test_date_extraction(self):
+        """Date is extracted from page."""
         page = MockPage("Bengal 1.0.0", datetime(2025, 10, 13))
         page.metadata = {"description": "Initial release"}
         view = ReleaseView.from_page(page)
-        assert view.version == "Bengal 1.0.0"
         assert view.date == datetime(2025, 10, 13)
         assert view.summary == "Initial release"
 
@@ -240,3 +266,10 @@ class TestReleaseViewFromPage:
         page = MockPage("Draft", None)
         view = ReleaseView.from_page(page)
         assert view.date is None
+
+    def test_index_page_skipped_for_version(self):
+        """_index.md filename is not used as version."""
+        page = MockPage("Releases", source_path="content/releases/_index.md")
+        view = ReleaseView.from_page(page)
+        # Should use title since _index is not a version
+        assert view.version == "Releases"
