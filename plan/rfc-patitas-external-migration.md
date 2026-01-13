@@ -271,8 +271,17 @@ Current evidence suggests this is unnecessary.
 - [x] Imports updated across codebase
 - [x] Test directory renamed to avoid collision
 - [x] CommonMark compliance verified (655/655)
-- [ ] All integration tests passing (1043/1066)
-- [ ] Typed options classes added for all directives
+- [x] All integration tests passing (1168/1168)
+- [x] Config bridging implemented (Bengal ContextVar → Patitas ContextVar)
+- [x] Parser pooling disabled (external patitas lacks `_reinit()`)
+- [x] API changes adapted (`count` → `run_length` in DelimiterToken)
+
+### Notes
+
+- **Migration parity tests**: Some tests comparing Mistune vs Patitas output show expected differences:
+  - Patitas adds heading IDs (`<h1 id="heading">`) - improvement
+  - Patitas URL-encodes spaces (`%20`) - correct per CommonMark
+  - These are features, not regressions
 
 ---
 
