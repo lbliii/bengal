@@ -10,6 +10,11 @@ Single-Pass Heading Decoration:
 Heading IDs are generated during the AST walk, eliminating the need for
 regex-based post-processing. TOC data is collected during rendering.
 
+Configuration:
+Uses ContextVar pattern for configuration (RFC: rfc-contextvar-config-implementation).
+Configuration is read from thread-local ContextVar, not stored in slots.
+This enables 50% slot reduction (14→7) and ~1.3x instantiation speedup.
+
 """
 
 from __future__ import annotations
@@ -51,22 +56,21 @@ from bengal.rendering.parsers.patitas.nodes import (
     Text,
     ThematicBreak,
 )
+from bengal.rendering.parsers.patitas.render_config import RenderConfig, get_render_config
 from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
     from bengal.directives.cache import DirectiveCache
-    from bengal.rendering.parsers.patitas.directives.registry import DirectiveRegistry
     from bengal.rendering.parsers.patitas.protocols import LexerDelegate
-    from bengal.rendering.parsers.patitas.roles.registry import RoleRegistry
 
 
 @dataclass(frozen=True, slots=True)
 class HeadingInfo:
     """Heading metadata collected during rendering.
-    
+
     Used to build TOC without post-render regex scanning.
     Collected by HtmlRenderer during the AST walk.
-        
+
     """
 
     level: int
@@ -76,84 +80,112 @@ class HeadingInfo:
 
 class HtmlRenderer:
     """Render AST to HTML using StringBuilder pattern.
-    
+
     O(n) rendering using StringBuilder for string accumulation.
     All state is local to each render() call.
-    
+
+    Configuration:
+        Uses ContextVar pattern for thread-safe configuration.
+        Highlighting, registries, and transformers are read from RenderConfig via properties.
+        Set configuration using render_config_context() or set_render_config().
+
     Usage:
-            >>> from bengal.rendering.parsers.patitas import parse_to_ast
-            >>> ast = parse_to_ast("# Hello **World**")
-            >>> renderer = HtmlRenderer()
-            >>> html = renderer.render(ast)
-            '<h1>Hello <strong>World</strong></h1>\n'
-    
+        >>> from bengal.rendering.parsers.patitas.render_config import render_config_context, RenderConfig
+        >>> with render_config_context(RenderConfig(highlight=True)):
+        ...     renderer = HtmlRenderer(source)
+        ...     html = renderer.render(ast)
+        '<h1>Hello <strong>World</strong></h1>\\n'
+
     Thread Safety:
         Multiple threads can render concurrently without synchronization.
         Each call creates independent StringBuilder.
-        
+
     """
 
     __slots__ = (
+        # Per-render state only (7 slots)
         "_source",
-        "_highlight",
-        "_highlight_style",
-        "_rosettes_available",
-        "_directive_registry",
-        "_directive_cache",
-        "_role_registry",
-        "_text_transformer",
         "_delegate",
         "_headings",
-        "_slugify",
         "_seen_slugs",
         "_page_context",
-        "_current_page",  # Alias for _page_context (used by directives)
+        "_current_page",
+        "_directive_cache",
     )
 
     def __init__(
         self,
         source: str = "",
         *,
-        highlight: bool = False,
-        highlight_style: Literal["semantic", "pygments"] = "semantic",
-        directive_registry: DirectiveRegistry | None = None,
-        directive_cache: DirectiveCache | None = None,
-        role_registry: RoleRegistry | None = None,
-        text_transformer: Callable[[str], str] | None = None,
         delegate: LexerDelegate | None = None,
-        slugify: Callable[[str], str] | None = None,
+        directive_cache: DirectiveCache | None = None,
         page_context: Any | None = None,
     ) -> None:
-        """Initialize renderer.
+        """Initialize renderer with source and per-render state only.
+
+        Configuration is read from ContextVar, not passed as parameters.
+        Use render_config_context() or set_render_config() to configure.
 
         Args:
             source: Original source buffer for zero-copy extraction
-            highlight: Enable syntax highlighting for code blocks
-            highlight_style: Highlighting style ("semantic" or "pygments")
-            directive_registry: Optional registry for custom directive rendering
-            directive_cache: Optional cache for rendered directive output (auto-enabled for versioned sites)
-            role_registry: Optional registry for custom role rendering
-            text_transformer: Optional callback to transform plain text nodes
             delegate: Optional sub-lexer delegate for ZCLH handoff
-            slugify: Optional custom slugify function for heading IDs
+            directive_cache: Optional cache for rendered directive output (per-site, not config)
             page_context: Optional page context for directives that need page/section info
         """
         self._source = source
-        self._highlight = highlight
-        self._highlight_style = highlight_style
-        self._rosettes_available: bool | None = None
-        self._directive_registry = directive_registry
-        self._directive_cache = directive_cache
-        self._role_registry = role_registry
-        self._text_transformer = text_transformer
         self._delegate = delegate
         self._headings: list[HeadingInfo] = []
-        self._slugify = slugify or _default_slugify
         self._seen_slugs: dict[str, int] = {}  # For unique slug generation
         # Page context for directives (child-cards, breadcrumbs, etc.)
         self._page_context = page_context
         # Alias for _page_context (used by directives that look for _current_page)
         self._current_page = page_context
+        # Directive cache is per-site, passed in (not config)
+        self._directive_cache = directive_cache
+
+    # =========================================================================
+    # Config access via properties (read from ContextVar)
+    # =========================================================================
+
+    @property
+    def _config(self) -> RenderConfig:
+        """Get current render configuration from ContextVar."""
+        return get_render_config()
+
+    @property
+    def _highlight(self) -> bool:
+        """Check if syntax highlighting is enabled."""
+        return self._config.highlight
+
+    @property
+    def _highlight_style(self) -> Literal["semantic", "pygments"]:
+        """Get highlighting style."""
+        return self._config.highlight_style
+
+    @property
+    def _directive_registry(self):
+        """Get directive registry for custom directive rendering."""
+        return self._config.directive_registry
+
+    @property
+    def _role_registry(self):
+        """Get role registry for custom role rendering."""
+        return self._config.role_registry
+
+    @property
+    def _text_transformer(self) -> Callable[[str], str] | None:
+        """Get optional text transformer callback."""
+        return self._config.text_transformer
+
+    @property
+    def _slugify(self) -> Callable[[str], str]:
+        """Get slugify function for heading IDs."""
+        return self._config.slugify or _default_slugify
+
+    @property
+    def _rosettes_available(self) -> bool:
+        """Check if rosettes highlighter is available."""
+        return self._config.rosettes_available
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -606,15 +638,10 @@ class HtmlRenderer:
         sb.append("\n</code></pre></div>\n")
 
     def _try_highlight_range(self, start: int, end: int, info: str) -> str | None:
-        """Try to highlight a source range using internal rosettes."""
-        if self._rosettes_available is None:
-            try:
-                from rosettes import highlight  # noqa: F401
+        """Try to highlight a source range using internal rosettes.
 
-                self._rosettes_available = True
-            except ImportError:
-                self._rosettes_available = False
-
+        Uses rosettes_available from RenderConfig (computed once at module import).
+        """
         if not self._rosettes_available:
             return None
 

@@ -28,6 +28,7 @@ Bengal is a static site generator that produces HTML, CSS, and JavaScript from M
 |---------|-------------|
 | **Language** | Python 3.14+ |
 | **Templates** | [[ext:kida:|Kida]] (Jinja2-compatible, 1.81x faster concurrent) |
+| **Template Maturity** | 80+ native functions (Math, Collections, SEO, etc.) fully implemented |
 | **Content Types** | Docs, blog, pages (mixed) |
 | **Incremental Builds** | Yes |
 | **Free-Threading (GIL=0)** | Yes (Kida is GIL-independent) |

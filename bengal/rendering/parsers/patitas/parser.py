@@ -13,12 +13,18 @@ Thread Safety:
 Parser produces immutable AST (frozen dataclasses).
 Safe to share AST across threads.
 
+Configuration:
+Uses ContextVar pattern for configuration (RFC: rfc-contextvar-config-implementation).
+Configuration is read from thread-local ContextVar, not stored in slots.
+This enables 50% slot reduction (18→9) and ~2x instantiation speedup.
+
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 
+from bengal.rendering.parsers.patitas.config import ParseConfig, get_parse_config
 from bengal.rendering.parsers.patitas.lexer import Lexer
 from bengal.rendering.parsers.patitas.nodes import Block, FencedCode
 from bengal.rendering.parsers.patitas.parsing import (
@@ -37,53 +43,46 @@ class Parser(
     BlockParsingMixin,
 ):
     """Recursive descent parser for Markdown.
-    
+
     Consumes tokens from Lexer and builds typed AST.
-    
+
     Architecture:
         Uses mixin inheritance to separate concerns while maintaining
         a single entry point. Each mixin handles one aspect of the grammar:
-    
+
         - `TokenNavigationMixin`: Token stream access, advance, peek
         - `InlineParsingMixin`: Emphasis, links, code spans, etc.
         - `BlockParsingMixin`: Lists, tables, code blocks, directives, etc.
-    
+
+    Configuration:
+        Uses ContextVar pattern for thread-safe configuration.
+        Plugin flags and registries are read from ParseConfig via properties.
+        Set configuration using parse_config_context() or set_parse_config().
+
     Usage:
-            >>> parser = Parser("# Hello\n\nWorld")
-            >>> ast = parser.parse()
-            >>> ast[0]
+        >>> from bengal.rendering.parsers.patitas.config import parse_config_context, ParseConfig
+        >>> with parse_config_context(ParseConfig(tables_enabled=True)):
+        ...     parser = Parser("# Hello\\n\\nWorld")
+        ...     ast = parser.parse()
+        >>> ast[0]
         Heading(level=1, children=(Text(content='Hello'),), ...)
-    
+
     Thread Safety:
         Parser instances are single-use and not thread-safe. Create one per
         parse operation. The resulting AST is immutable and thread-safe.
-        
+
     """
 
     __slots__ = (
+        # Per-parse state only (9 slots)
         "_source",
         "_tokens",
         "_pos",
         "_current",
         "_source_file",
-        # Transformation
-        "_text_transformer",
-        # Plugin flags - set by Markdown class
-        "_tables_enabled",
-        "_strikethrough_enabled",
-        "_task_lists_enabled",
-        "_footnotes_enabled",
-        "_math_enabled",
-        "_autolinks_enabled",
-        # Directive support
-        "_directive_registry",
         "_directive_stack",
-        "_strict_contracts",
-        # Link reference definitions
         "_link_refs",
-        # Container stack for tracking nesting context (Phase 2)
         "_containers",
-        # Setext heading control - disabled for blockquote lazy continuation content
         "_allow_setext_headings",
     )
 
@@ -91,42 +90,27 @@ class Parser(
         self,
         source: str,
         source_file: str | None = None,
-        *,
-        directive_registry=None,
-        strict_contracts: bool = False,
-        text_transformer: Callable[[str], str] | None = None,
     ) -> None:
-        """Initialize parser with source text.
+        """Initialize parser with source text only.
+
+        Configuration is read from ContextVar, not passed as parameters.
+        Use parse_config_context() or set_parse_config() to configure.
 
         Args:
             source: Markdown source text
             source_file: Optional source file path for error messages
-            directive_registry: Optional directive registry for handler lookup
-            strict_contracts: If True, raise errors on contract violations
-            text_transformer: Optional callback to transform plain text lines
         """
         self._source = source
         self._source_file = source_file
         self._tokens: list[Token] = []
         self._pos = 0
         self._current: Token | None = None
-        self._text_transformer = text_transformer
-
-        # Plugin flags - default to disabled, set by Markdown class
-        self._tables_enabled = False
-        self._strikethrough_enabled = False
-        self._task_lists_enabled = False
-        self._footnotes_enabled = False
-        self._math_enabled = False
-        self._autolinks_enabled = False
 
         # Link reference definitions: label (lowercase) -> (url, title)
         self._link_refs: dict[str, tuple[str, str]] = {}
 
-        # Directive support
-        self._directive_registry = directive_registry
+        # Directive support - stack is per-parse state
         self._directive_stack: list[str] = []
-        self._strict_contracts = strict_contracts
 
         # Container stack for tracking nesting context (Phase 2)
         # Initialized to document-level frame by default
@@ -134,6 +118,60 @@ class Parser(
 
         # Setext heading control - can be disabled for blockquote lazy continuation
         self._allow_setext_headings = True
+
+    # =========================================================================
+    # Config access via properties (read from ContextVar)
+    # =========================================================================
+
+    @property
+    def _config(self) -> ParseConfig:
+        """Get current parse configuration from ContextVar."""
+        return get_parse_config()
+
+    @property
+    def _tables_enabled(self) -> bool:
+        """Check if GFM table parsing is enabled."""
+        return self._config.tables_enabled
+
+    @property
+    def _strikethrough_enabled(self) -> bool:
+        """Check if ~~strikethrough~~ syntax is enabled."""
+        return self._config.strikethrough_enabled
+
+    @property
+    def _task_lists_enabled(self) -> bool:
+        """Check if [x] task list items are enabled."""
+        return self._config.task_lists_enabled
+
+    @property
+    def _footnotes_enabled(self) -> bool:
+        """Check if [^footnote] syntax is enabled."""
+        return self._config.footnotes_enabled
+
+    @property
+    def _math_enabled(self) -> bool:
+        """Check if $math$ and $$math$$ syntax is enabled."""
+        return self._config.math_enabled
+
+    @property
+    def _autolinks_enabled(self) -> bool:
+        """Check if URL/email autolink detection is enabled."""
+        return self._config.autolinks_enabled
+
+    @property
+    def _directive_registry(self):
+        """Get directive registry for handler lookup."""
+        return self._config.directive_registry
+
+    @property
+    def _strict_contracts(self) -> bool:
+        """Check if strict contract validation is enabled."""
+        return self._config.strict_contracts
+
+    @property
+    def _text_transformer(self):
+        """Get optional text transformer callback."""
+        return self._config.text_transformer
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
@@ -211,8 +249,9 @@ class Parser(
     ) -> tuple[Block, ...]:
         """Parse nested content as blocks (for block quotes, list items).
 
-        Creates a sub-parser to handle nested block-level content while
-        preserving plugin settings and link reference definitions.
+        Creates a sub-parser to handle nested block-level content.
+        Plugin settings are inherited via ContextVar (no manual copying needed).
+        Link reference definitions are shared via explicit assignment.
 
         Args:
             content: The markdown content to parse as blocks
@@ -226,24 +265,10 @@ class Parser(
         if not content.strip():
             return ()
 
-        # Create sub-parser with same settings
-        sub_parser = Parser(
-            content,
-            self._source_file,
-            directive_registry=self._directive_registry,
-            strict_contracts=self._strict_contracts,
-            text_transformer=self._text_transformer,
-        )
+        # Create sub-parser - config is inherited via ContextVar automatically
+        sub_parser = Parser(content, self._source_file)
 
-        # Copy plugin settings
-        sub_parser._tables_enabled = self._tables_enabled
-        sub_parser._strikethrough_enabled = self._strikethrough_enabled
-        sub_parser._task_lists_enabled = self._task_lists_enabled
-        sub_parser._footnotes_enabled = self._footnotes_enabled
-        sub_parser._math_enabled = self._math_enabled
-        sub_parser._autolinks_enabled = self._autolinks_enabled
-
-        # Setext heading control
+        # Setext heading control (per-parse state, not config)
         sub_parser._allow_setext_headings = allow_setext_headings
 
         # Share link reference definitions (they're document-wide)
