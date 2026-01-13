@@ -1,9 +1,9 @@
 """
 Tests for changelog view filters.
 
-Tests the domain-aware `releases` filter that intelligently handles sorting:
-- Page-driven mode: Preserves order (trusts ChangelogStrategy)
-- Data-driven mode: Sorts by date (newest first)
+Tests the `releases` filter with simple, predictable defaults:
+- Always sorts newest-first by default (what users expect)
+- Opt-out with releases(false) for custom ordering
 """
 
 from datetime import date, datetime
@@ -13,7 +13,7 @@ import pytest
 from bengal.rendering.template_functions.changelog import (
     ReleaseView,
     _normalize_date,
-    _sort_releases_by_date,
+    _sort_releases,
     releases_filter,
 )
 
@@ -45,8 +45,8 @@ class TestNormalizeDate:
         assert _normalize_date("not-a-date") is None
 
 
-class TestSortReleasesByDate:
-    """Tests for _sort_releases_by_date helper."""
+class TestSortReleases:
+    """Tests for _sort_releases helper."""
 
     def test_sorts_newest_first(self):
         """Releases are sorted by date, newest first."""
@@ -55,7 +55,18 @@ class TestSortReleasesByDate:
             ReleaseView("0.1.2", "", datetime(2026, 1, 12), "", "", "", (), (), (), (), (), (), (), False, ()),
             ReleaseView("0.1.1", "", datetime(2025, 12, 1), "", "", "", (), (), (), (), (), (), (), False, ()),
         ]
-        sorted_releases = _sort_releases_by_date(releases)
+        sorted_releases = _sort_releases(releases)
+        assert [r.version for r in sorted_releases] == ["0.1.2", "0.1.1", "0.1.0"]
+
+    def test_same_day_sorted_by_version(self):
+        """Same-day releases are sorted by version descending."""
+        releases = [
+            ReleaseView("0.1.0", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
+            ReleaseView("0.1.2", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
+            ReleaseView("0.1.1", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
+        ]
+        sorted_releases = _sort_releases(releases)
+        # Same day, sorted by version descending
         assert [r.version for r in sorted_releases] == ["0.1.2", "0.1.1", "0.1.0"]
 
     def test_none_dates_at_end(self):
@@ -65,7 +76,7 @@ class TestSortReleasesByDate:
             ReleaseView("draft", "", None, "", "", "", (), (), (), (), (), (), (), False, ()),
             ReleaseView("0.1.1", "", datetime(2026, 1, 12), "", "", "", (), (), (), (), (), (), (), False, ()),
         ]
-        sorted_releases = _sort_releases_by_date(releases)
+        sorted_releases = _sort_releases(releases)
         assert [r.version for r in sorted_releases] == ["0.1.1", "0.1.0", "draft"]
 
 
@@ -82,8 +93,8 @@ class MockPage:
 class TestReleasesFilter:
     """Tests for the main releases_filter function."""
 
-    def test_data_driven_auto_sorts(self):
-        """Data-driven mode (dicts) auto-sorts by date, newest first."""
+    def test_default_sorts_newest_first(self):
+        """By default, releases are sorted newest first."""
         data = [
             {"version": "0.1.0", "date": "2025-10-13"},
             {"version": "0.1.2", "date": "2026-01-12"},
@@ -92,65 +103,49 @@ class TestReleasesFilter:
         releases = releases_filter(data)
         assert [r.version for r in releases] == ["0.1.2", "0.1.1", "0.1.0"]
 
-    def test_page_driven_preserves_order(self):
-        """Page-driven mode (pages) preserves input order."""
-        # Simulating ChangelogStrategy pre-sorted order (newest first)
-        pages = [
-            MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
-            MockPage("Bengal 0.1.1", datetime(2025, 12, 1)),
-            MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
-        ]
-        releases = releases_filter(pages)
-        # Order should be preserved (not re-sorted)
-        assert [r.version for r in releases] == [
-            "Bengal 0.1.2",
-            "Bengal 0.1.1",
-            "Bengal 0.1.0",
-        ]
-
-    def test_page_driven_wrong_order_not_fixed(self):
-        """Page-driven mode does NOT auto-correct wrong order (trusts strategy)."""
-        # Simulating wrong order (oldest first - file system order)
+    def test_pages_also_sorted_by_default(self):
+        """Pages are also sorted by default (predictable behavior)."""
+        # Input in wrong order (oldest first)
         pages = [
             MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
             MockPage("Bengal 0.1.1", datetime(2025, 12, 1)),
             MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
         ]
         releases = releases_filter(pages)
-        # Order preserved (even if wrong) - trust the strategy
+        # Should be sorted newest first
         assert [r.version for r in releases] == [
-            "Bengal 0.1.0",
-            "Bengal 0.1.1",
             "Bengal 0.1.2",
+            "Bengal 0.1.1",
+            "Bengal 0.1.0",
         ]
 
-    def test_sort_true_forces_sorting(self):
-        """sort=True forces sorting even on page-driven mode."""
-        pages = [
-            MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
-            MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
-        ]
-        releases = releases_filter(pages, sort=True)
-        # Forced sorting should fix the order
-        assert [r.version for r in releases] == ["Bengal 0.1.2", "Bengal 0.1.0"]
-
-    def test_sort_false_preserves_order(self):
-        """sort=False preserves order even on data-driven mode."""
+    def test_sorted_false_preserves_order(self):
+        """sorted=False preserves input order for custom sorting."""
         data = [
             {"version": "0.1.0", "date": "2025-10-13"},
             {"version": "0.1.2", "date": "2026-01-12"},
         ]
-        releases = releases_filter(data, sort=False)
-        # Forced no-sorting should preserve input order
+        releases = releases_filter(data, sorted=False)
+        # Input order preserved
         assert [r.version for r in releases] == ["0.1.0", "0.1.2"]
+
+    def test_sorted_false_pages(self):
+        """sorted=False works with pages too."""
+        pages = [
+            MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
+            MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
+        ]
+        releases = releases_filter(pages, sorted=False)
+        # Input order preserved
+        assert [r.version for r in releases] == ["Bengal 0.1.0", "Bengal 0.1.2"]
 
     def test_empty_source(self):
         """Empty source returns empty list."""
         assert releases_filter([]) == []
         assert releases_filter(None) == []
 
-    def test_mixed_none_dates_data_driven(self):
-        """Data-driven mode handles None dates correctly."""
+    def test_none_dates_at_end(self):
+        """Releases with None dates are placed at the end."""
         data = [
             {"version": "0.1.0", "date": "2025-10-13"},
             {"version": "draft", "date": None},

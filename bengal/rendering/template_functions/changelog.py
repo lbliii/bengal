@@ -5,25 +5,23 @@ Provides normalized ReleaseView dataclass and `releases` filter to unify
 data-driven (changelog.yaml) and page-driven (individual markdown files)
 changelog modes.
 
-Architecture:
-    The `releases` filter is domain-aware and handles sorting intelligently:
+Design Principle:
+    **Simple, predictable defaults.** The `releases` filter always sorts
+    by date (newest first) by default. This "just works" for the 99% case
+    and matches what users expect from changelog pages.
     
-    - **Page-driven mode**: Pages are pre-sorted by ChangelogStrategy, so the
-      filter preserves input order (trusts the content type strategy pattern).
-    - **Data-driven mode**: YAML data has no pre-sorting, so the filter applies
-      date-descending sort by default (newest first).
-    
-    This design respects Bengal's content type strategy architecture while
-    providing sensible defaults for raw data usage.
+    For custom ordering, use `releases(false)` to preserve input order.
 
 Example:
+    {# Standard usage - newest first, no thinking required #}
     {% for rel in pages | releases %}
       <h2>{{ rel.version }}</h2>
       <span>{{ rel.date }}</span>
-      {% if rel.added %}
-        <h3>✨ Added</h3>
-        <ul>{% for item in rel.added %}<li>{{ item }}</li>{% end %}</ul>
-      {% end %}
+    {% end %}
+    
+    {# Custom order - explicit opt-out #}
+    {% for rel in pages | releases(false) | sort_by('version') %}
+      ...
     {% end %}
 """
 
@@ -280,9 +278,12 @@ def _to_tuple(value: Any) -> tuple[str, ...]:
         return ()
 
 
-def _sort_releases_by_date(releases: list[ReleaseView]) -> list[ReleaseView]:
+def _sort_releases(releases: list[ReleaseView]) -> list[ReleaseView]:
     """
-    Sort releases by date (newest first) with None-safe handling.
+    Sort releases by date (newest first), then version (descending).
+    
+    Matches ChangelogStrategy's sorting logic so results are consistent
+    whether releases come from pages or YAML data.
     
     None dates are placed at the end to keep dated releases prominent.
     """
@@ -290,85 +291,60 @@ def _sort_releases_by_date(releases: list[ReleaseView]) -> list[ReleaseView]:
     with_date = [r for r in releases if r.date is not None]
     without_date = [r for r in releases if r.date is None]
     
-    # Sort dated releases (newest first)
-    sorted_with_date = sorted(with_date, key=lambda r: r.date, reverse=True)
+    # Sort dated releases: by date desc, then version desc (matches ChangelogStrategy)
+    sorted_with_date = sorted(
+        with_date,
+        key=lambda r: (r.date, r.version),
+        reverse=True,
+    )
     
-    # Undated releases go at the end
-    return sorted_with_date + without_date
+    # Undated releases go at the end, sorted by version desc
+    sorted_without_date = sorted(without_date, key=lambda r: r.version, reverse=True)
+    
+    return sorted_with_date + sorted_without_date
 
 
-def releases_filter(source: Any, sort: bool | None = None) -> list[ReleaseView]:
+def releases_filter(source: Any, sorted: bool = True) -> list[ReleaseView]:
     """
-    Convert releases from data or pages to normalized ReleaseView objects.
+    Convert releases to normalized ReleaseView objects, sorted newest-first.
     
-    Intelligently handles sorting based on source type:
-    
-    - **Page-driven** (Pages from section): Preserves input order because pages
-      are pre-sorted by ChangelogStrategy. This respects Bengal's content type
-      strategy architecture.
-    - **Data-driven** (dicts from YAML): Sorts by date (newest first) because
-      raw data has no pre-sorting.
+    By default, releases are **always sorted** by date (newest first), then
+    by version for same-day releases. This provides predictable, ergonomic
+    behavior for both theme developers and content writers.
     
     Args:
-        source: List of release dicts or Page objects
-        sort: Override auto-detection. True forces sorting, False preserves order,
-              None (default) auto-detects based on source type.
+        source: List of release dicts (from YAML) or Page objects (from section)
+        sorted: Sort by date newest-first (default: True). Set to False to
+                preserve input order for custom sorting.
     
     Returns:
-        List of ReleaseView objects, sorted appropriately
+        List of ReleaseView objects, sorted newest-first by default
     
-    Example (page-driven - order preserved from ChangelogStrategy):
+    Example (standard usage - newest first):
         {% for rel in pages | releases %}
-          {{ rel.version }}
+          {{ rel.version }} - {{ rel.date }}
         {% end %}
     
-    Example (data-driven - sorted newest first):
-        {% for rel in changelog_data.releases | releases %}
-          {{ rel.version }}
-        {% end %}
-    
-    Example (force sorting on pages):
-        {% for rel in pages | releases(true) %}
-          {{ rel.version }}
-        {% end %}
+    Example (preserve input order for custom sorting):
+        {% let custom_order = pages | releases(false) | sort_by('version') %}
         
     """
     if not source:
         return []
 
     result = []
-    is_data_driven = False
-    
     for item in source:
         try:
             if isinstance(item, dict):
-                # Data-driven mode (from YAML)
-                is_data_driven = True
                 result.append(ReleaseView.from_data(item))
             else:
-                # Page-driven mode (from section pages)
                 result.append(ReleaseView.from_page(item))
         except Exception as e:
-            # Log and skip items that can't be converted
             logger.debug("release_conversion_failed", error=str(e))
             continue
 
-    # Determine if we should sort
-    should_sort = sort if sort is not None else is_data_driven
-    
-    if should_sort:
-        result = _sort_releases_by_date(result)
-        logger.debug(
-            "releases_sorted",
-            count=len(result),
-            mode="data-driven" if is_data_driven else "forced",
-        )
-    else:
-        logger.debug(
-            "releases_order_preserved",
-            count=len(result),
-            reason="page-driven (ChangelogStrategy pre-sorted)",
-        )
+    if sorted:
+        result = _sort_releases(result)
 
     return result
 
