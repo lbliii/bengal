@@ -240,7 +240,7 @@ requires-dist = [
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "markupsafe", specifier = ">=3.0.0" },
     { name = "mistune", specifier = ">=3.0.0" },
-    { name = "patitas", specifier = ">=0.1.0" },
+    { name = "patitas", specifier = ">=0.1.1" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pillow", marker = "extra == 'avif'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
@@ -781,11 +781,11 @@ wheels = [
 
 [[package]]
 name = "patitas"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ca/af/79f9d9ff91e90681fe3918049cc5a06087ff3696198a8263d43306676133/patitas-0.1.0.tar.gz", hash = "sha256:02ba2989fc6b672233c580d673023481a3290e097a4cf9531caa2ed39a4969ad", size = 150170, upload-time = "2026-01-13T17:53:22.497Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/c5/79b5580e4fee50affdf78a854efb736f4a5de4873563511fd82825d99a4c/patitas-0.1.1.tar.gz", hash = "sha256:32705ecd5ab99e269dcb8c0ae32d09efd68852f5e8ea340c816e1e27e0d30b65", size = 152186, upload-time = "2026-01-13T20:14:53.817Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/81/1b39376b61978ec5a75d6c2bd13b17bfe1c5c72f883500f1d83cab783139/patitas-0.1.0-py3-none-any.whl", hash = "sha256:24e43e96a22f2f34041f153d06d44da975ad44d840deb47567ae8f08fff91f74", size = 183841, upload-time = "2026-01-13T17:53:20.861Z" },
+    { url = "https://files.pythonhosted.org/packages/93/09/033a643b15c43c873dcfd0f4813937f3c7932dea5db3fa5035992e03c830/patitas-0.1.1-py3-none-any.whl", hash = "sha256:a9f30d6b4dfbff6454ed5dd41da7cf13c87dd1caba7236fbe0c02924cd5c568b", size = 184473, upload-time = "2026-01-13T20:14:51.987Z" },
 ]
 
 [[package]]
