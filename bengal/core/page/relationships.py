@@ -5,16 +5,17 @@ This mixin provides methods for checking relationships between pages
 and sections, enabling template logic for conditional rendering.
 
 Key Methods:
-    - eq(): Check if two pages are equal (same source_path)
-    - in_section(): Check if page belongs to a given section
-    - is_ancestor(): Check if this page is an ancestor of another
-    - is_descendant(): Check if this page is a descendant of another
+- eq(): Check if two pages are equal (same source_path)
+- in_section(): Check if page belongs to a given section
+- is_ancestor(): Check if this page is an ancestor of another
+- is_descendant(): Check if this page is a descendant of another
 
 Related Modules:
-    - bengal.core.section: Section class for hierarchy relationships
+- bengal.core.section: Section class for hierarchy relationships
 
 See Also:
-    - bengal/core/page/__init__.py: Page class that uses this mixin
+- bengal/core/page/__init__.py: Page class that uses this mixin
+
 """
 
 from __future__ import annotations
@@ -32,11 +33,12 @@ if TYPE_CHECKING:
 class PageRelationshipsMixin:
     """
     Mixin providing relationship checking for pages.
-
+    
     This mixin handles:
     - Page equality checking
     - Section membership
     - Ancestor/descendant relationships
+        
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into

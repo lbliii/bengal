@@ -6,38 +6,39 @@ to enable skipping full content parsing for unchanged pages. Metadata is loaded
 from cache, with full content loaded lazily via PageProxy when accessed.
 
 Key Types:
-    PageMetadata: Type alias for PageCore - the cacheable page metadata.
-        Contains all fields needed for navigation, filtering, and display
-        without loading full page content.
+PageMetadata: Type alias for PageCore - the cacheable page metadata.
+    Contains all fields needed for navigation, filtering, and display
+    without loading full page content.
 
-    PageDiscoveryCacheEntry: Cache entry wrapper with validity tracking.
-        Includes metadata, cache timestamp, and validity flag.
+PageDiscoveryCacheEntry: Cache entry wrapper with validity tracking.
+    Includes metadata, cache timestamp, and validity flag.
 
-    PageDiscoveryCache: Main cache class for storing/loading page metadata.
-        Handles persistence, validation, and invalidation.
+PageDiscoveryCache: Main cache class for storing/loading page metadata.
+    Handles persistence, validation, and invalidation.
 
 Architecture:
-    - Metadata: source_path → PageMetadata (minimal navigation data)
-    - Lazy Loading: Full content via PageProxy when needed
-    - Storage: .bengal/page_metadata.json (JSON format)
-    - Validation: File hash comparison to detect stale entries
+- Metadata: source_path → PageMetadata (minimal navigation data)
+- Lazy Loading: Full content via PageProxy when needed
+- Storage: .bengal/page_metadata.json (JSON format)
+- Validation: File hash comparison to detect stale entries
 
 Performance Impact:
-    - Skip parsing: ~80ms saved per 100 unchanged pages
-    - Memory efficient: Only metadata in memory until content accessed
-    - Incremental: Only changed pages fully parsed
+- Skip parsing: ~80ms saved per 100 unchanged pages
+- Memory efficient: Only metadata in memory until content accessed
+- Incremental: Only changed pages fully parsed
 
 Caching Flow:
-    1. Discovery phase checks cache for existing metadata
-    2. If valid (hash matches), use cached PageMetadata
-    3. If invalid/missing, parse file and cache new metadata
-    4. Templates access metadata directly (fast)
-    5. Content accessed lazily via PageProxy (when needed)
+1. Discovery phase checks cache for existing metadata
+2. If valid (hash matches), use cached PageMetadata
+3. If invalid/missing, parse file and cache new metadata
+4. Templates access metadata directly (fast)
+5. Content accessed lazily via PageProxy (when needed)
 
 Related:
-    - bengal.core.page.page_core: PageCore (= PageMetadata) definition
-    - bengal.core.page.proxy: PageProxy for lazy loading
-    - bengal.orchestration.incremental: Uses this cache for builds
+- bengal.core.page.page_core: PageCore (= PageMetadata) definition
+- bengal.core.page.proxy: PageProxy for lazy loading
+- bengal.orchestration.incremental: Uses this cache for builds
+
 """
 
 from __future__ import annotations
@@ -90,13 +91,13 @@ class PageDiscoveryCacheEntry:
 class PageDiscoveryCache:
     """
     Persistent cache for page metadata enabling lazy page loading.
-
+    
     Purpose:
     - Store page metadata (title, date, tags, section, slug)
     - Enable incremental discovery (only load changed pages)
     - Support lazy loading of full page content on demand
     - Validate cache entries to detect stale data
-
+    
     Cache Format (JSON):
     {
         "pages": {
@@ -104,15 +105,16 @@ class PageDiscoveryCache:
                 "metadata": {
                     "source_path": "content/index.md",
                     "title": "Home",
-                    ...
+                        ...
                 },
                 "cached_at": "2025-10-16T12:00:00",
                 "is_valid": true
             }
         }
     }
-
+    
     Note: If cache format changes, load will fail and cache rebuilds automatically.
+        
     """
 
     CACHE_FILE = ".bengal/page_metadata.json"

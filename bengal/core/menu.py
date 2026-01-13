@@ -7,31 +7,32 @@ localization. Menus are built during content discovery and cached for
 template access.
 
 Public API:
-    MenuItem: Single menu item with URL, name, weight, and optional children
-    MenuBuilder: Constructs hierarchical menus from various sources
+MenuItem: Single menu item with URL, name, weight, and optional children
+MenuBuilder: Constructs hierarchical menus from various sources
 
 Key Concepts:
-    Menu Sources: Menus can be populated from:
-        - Config files (bengal.toml [[menu]] entries)
-        - Page frontmatter (menu: {main: {weight: 5}})
-        - Section structure (auto-generated from content hierarchy)
+Menu Sources: Menus can be populated from:
+    - Config files (bengal.toml [[menu]] entries)
+    - Page frontmatter (menu: {main: {weight: 5}})
+    - Section structure (auto-generated from content hierarchy)
 
-    Hierarchical Menus: Items support parent-child relationships via the
-        `parent` field. MenuBuilder.build_hierarchy() constructs the tree.
+Hierarchical Menus: Items support parent-child relationships via the
+    `parent` field. MenuBuilder.build_hierarchy() constructs the tree.
 
-    Active State: MenuItem.mark_active() sets `active` for matching URLs
-        and `active_trail` for ancestors of active items.
+Active State: MenuItem.mark_active() sets `active` for matching URLs
+    and `active_trail` for ancestors of active items.
 
-    Weight Sorting: Items sorted by weight (ascending) then by name.
-        Lower weights appear first in navigation.
+Weight Sorting: Items sorted by weight (ascending) then by name.
+    Lower weights appear first in navigation.
 
-    Deduplication: MenuBuilder tracks seen identifiers, URLs, and names
-        to prevent duplicate items from multiple sources.
+Deduplication: MenuBuilder tracks seen identifiers, URLs, and names
+    to prevent duplicate items from multiple sources.
 
 Related Packages:
-    bengal.orchestration.menu: Menu building orchestration
-    bengal.core.site: Site container that holds menus
-    bengal.rendering.template_functions.navigation: Template access to menus
+bengal.orchestration.menu: Menu building orchestration
+bengal.core.site: Site container that holds menus
+bengal.rendering.template_functions.navigation: Template access to menus
+
 """
 
 from __future__ import annotations
@@ -51,16 +52,16 @@ from bengal.errors import BengalContentError, ErrorCode
 class MenuItem:
     """
     Represents a single menu item with optional hierarchy.
-
+    
     Menu items form hierarchical navigation structures with parent-child
     relationships. Items can be marked as active based on current page URL,
     and support weight-based sorting for display order.
-
+    
     Creation:
         Config file: Explicit menu definitions in bengal.toml
         Page frontmatter: Pages register themselves via menu metadata
         Section structure: Auto-generated from section hierarchy
-
+    
     Attributes:
         name: Display name for the menu item
         url: URL path for the menu item
@@ -71,26 +72,27 @@ class MenuItem:
         children: Child menu items (populated during menu building)
         active: Whether this item matches the current page URL
         active_trail: Whether this item is in the active path (has active child)
-
+    
     Performance:
         Children are sorted lazily via sort_children() rather than on every
         add_child() call. This changes complexity from O(n × k log k) to
         O(n + k log k) for menu building with n inserts and k children.
-
+    
     Relationships:
         - Used by: MenuBuilder for menu construction
         - Used by: MenuOrchestrator for menu building
         - Used in: Templates via site.menu for navigation rendering
-
+    
     Examples:
         # From config
         menu_item = MenuItem(name="Home", url="/", weight=1)
-
+    
         # From page frontmatter
         menu_item = MenuItem(name=page.title, url=page.href, weight=page.metadata.get("weight", 0))
-
+    
         # With icon
         menu_item = MenuItem(name="API Reference", url="/api/", icon="book")
+        
     """
 
     name: str
@@ -282,22 +284,22 @@ class MenuItem:
 class MenuBuilder:
     """
     Builds hierarchical menu structures from various sources.
-
+    
     Constructs menu hierarchies from config definitions, page frontmatter, and
     section structure. Handles deduplication, cycle detection, and hierarchy
     building with parent-child relationships.
-
+    
     Creation:
         Direct instantiation: MenuBuilder()
             - Created by MenuOrchestrator for menu building
             - Fresh instance created for each menu build
-
+    
     Attributes:
         items: List of MenuItem objects (flat list before hierarchy building)
         _seen_identifiers: Set of seen identifiers for deduplication
         _seen_urls: Set of seen URLs for deduplication
         _seen_names: Set of seen names for deduplication
-
+    
     Behavior Notes:
         - Identifiers: Each MenuItem has an identifier (slug from name by default).
           Parent references use identifiers.
@@ -305,17 +307,18 @@ class MenuBuilder:
           ValueError when a cycle is found. Consumers should surface this early as
           a configuration error.
         - Deduplication: Automatically prevents duplicate items by identifier, URL, and name.
-
+    
     Relationships:
         - Uses: MenuItem for menu item representation
         - Used by: MenuOrchestrator for menu building
         - Used in: Menu building during content discovery phase
-
+    
     Examples:
         builder = MenuBuilder()
         builder.add_from_config(menu_config)
         builder.add_from_page(page, "main", page.metadata.get("menu", {}))
         menu_items = builder.build_hierarchy()
+        
     """
 
     def __init__(self, diagnostics: DiagnosticsSink | None = None) -> None:

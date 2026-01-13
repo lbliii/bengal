@@ -15,14 +15,15 @@ import pytest
 
 def wait_for_port(port: int, host: str = "localhost", timeout: float = 5.0) -> None:
     """Wait until a port is listening or timeout.
-
+    
     Args:
         port: Port number to check
         host: Hostname to check (default: localhost)
         timeout: Maximum seconds to wait
-
+    
     Raises:
         TimeoutError: If port not listening after timeout
+        
     """
     start = time.time()
     while time.time() - start < timeout:
@@ -37,20 +38,21 @@ def wait_for_port(port: int, host: str = "localhost", timeout: float = 5.0) -> N
 @pytest.fixture
 def http_server():
     """Ephemeral HTTP server for testing links/assets.
-
+    
     Usage:
         def test_external_links(http_server, tmp_path):
             # Create some test files
             fixtures = tmp_path / "fixtures"
             fixtures.mkdir()
             (fixtures / "test.html").write_text("<h1>Test</h1>")
-
+    
             # Start server
             base_url = http_server.start(fixtures)
-
+    
             # Use in tests
             assert base_url.startswith("http://localhost:")
             # ... build site with links to base_url ...
+        
     """
 
     class TestHTTPServer:

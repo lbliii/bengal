@@ -6,19 +6,19 @@ self-hosted Google Fonts. It enables sites to serve fonts locally without
 external requests, improving privacy and performance.
 
 Components:
-    FontHelper: Main interface for processing font configuration
-    GoogleFontsDownloader: Downloads .woff2 files from Google Fonts API
-    FontCSSGenerator: Generates @font-face CSS with CSS custom properties
-    FontVariant: Data class representing a specific font weight/style
+FontHelper: Main interface for processing font configuration
+GoogleFontsDownloader: Downloads .woff2 files from Google Fonts API
+FontCSSGenerator: Generates @font-face CSS with CSS custom properties
+FontVariant: Data class representing a specific font weight/style
 
 Workflow:
-    1. Parse [fonts] configuration from bengal.toml
-    2. Download font files via Google Fonts CSS API
-    3. Generate fonts.css with @font-face rules
-    4. Optionally rewrite URLs for fingerprinted assets
+1. Parse [fonts] configuration from bengal.toml
+2. Download font files via Google Fonts CSS API
+3. Generate fonts.css with @font-face rules
+4. Optionally rewrite URLs for fingerprinted assets
 
 Configuration:
-    Fonts are configured in bengal.toml using simple string or dict format:
+Fonts are configured in bengal.toml using simple string or dict format:
 
     ```toml
     [fonts]
@@ -34,19 +34,20 @@ Configuration:
     ```
 
 Output:
-    - Font files: assets/fonts/{family}-{weight}.woff2
-    - CSS file: assets/fonts.css (with @font-face rules and CSS variables)
+- Font files: assets/fonts/{family}-{weight}.woff2
+- CSS file: assets/fonts.css (with @font-face rules and CSS variables)
 
 Example:
     >>> from bengal.fonts import FontHelper
     >>> helper = FontHelper({"primary": "Inter:400,700"})
     >>> css_path = helper.process(Path("output/assets"))
     >>> print(css_path)
-    output/assets/fonts.css
+output/assets/fonts.css
 
 Related:
-    - bengal/orchestration/asset_orchestrator.py: Asset processing integration
-    - bengal/postprocess/fingerprint.py: URL rewriting for fingerprinted fonts
+- bengal/orchestration/asset_orchestrator.py: Asset processing integration
+- bengal/postprocess/fingerprint.py: URL rewriting for fingerprinted fonts
+
 """
 
 from __future__ import annotations
@@ -64,17 +65,17 @@ def rewrite_font_urls_with_fingerprints(
 ) -> bool:
     """
     Rewrite font URLs in fonts.css to use fingerprinted filenames.
-
+    
     After asset fingerprinting, font files have content-hashed names for
     cache busting (e.g., ``fonts/outfit-400.6c18d579.woff2``). This function
     updates the generated fonts.css to reference these fingerprinted names
     instead of the original filenames.
-
+    
     Args:
         fonts_css_path: Absolute path to fonts.css in output directory.
         asset_manifest: Asset manifest dict with 'assets' key mapping
             logical paths to fingerprinted output paths. Expected structure::
-
+    
                 {
                     "assets": {
                         "fonts/outfit-400.woff2": {
@@ -82,16 +83,17 @@ def rewrite_font_urls_with_fingerprints(
                         }
                     }
                 }
-
+    
     Returns:
         True if fonts.css was modified, False if no changes were needed
         (file doesn't exist, no font assets in manifest, or URLs already match).
-
+    
     Example:
-        >>> manifest = {"assets": {"fonts/inter-400.woff2": {"output_path": "assets/fonts/inter-400.abc123.woff2"}}}
-        >>> updated = rewrite_font_urls_with_fingerprints(Path("public/assets/fonts.css"), manifest)
-        >>> print(updated)
+            >>> manifest = {"assets": {"fonts/inter-400.woff2": {"output_path": "assets/fonts/inter-400.abc123.woff2"}}}
+            >>> updated = rewrite_font_urls_with_fingerprints(Path("public/assets/fonts.css"), manifest)
+            >>> print(updated)
         True
+        
     """
     if not fonts_css_path.exists():
         return False
@@ -136,29 +138,30 @@ def rewrite_font_urls_with_fingerprints(
 class FontHelper:
     """
     Main interface for font processing in Bengal.
-
+    
     Coordinates font downloading and CSS generation based on the ``[fonts]``
     configuration section in bengal.toml. Handles caching to avoid redundant
     downloads and writes.
-
+    
     Attributes:
         config: Font configuration dictionary from bengal.toml.
         downloader: GoogleFontsDownloader instance for fetching font files.
         generator: FontCSSGenerator instance for creating @font-face CSS.
-
+    
     Example:
-        >>> config = {
-        ...     "primary": "Inter:400,600,700",
-        ...     "heading": "Playfair Display:700"
-        ... }
-        >>> helper = FontHelper(config)
-        >>> css_path = helper.process(Path("output/assets"))
-        >>> print(css_path)
+            >>> config = {
+            ...     "primary": "Inter:400,600,700",
+            ...     "heading": "Playfair Display:700"
+            ... }
+            >>> helper = FontHelper(config)
+            >>> css_path = helper.process(Path("output/assets"))
+            >>> print(css_path)
         output/assets/fonts.css
-
+    
     See Also:
         GoogleFontsDownloader: Font file downloading.
         FontCSSGenerator: CSS generation.
+        
     """
 
     def __init__(self, font_config: dict[str, Any]) -> None:

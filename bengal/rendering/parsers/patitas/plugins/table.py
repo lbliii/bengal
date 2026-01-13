@@ -4,26 +4,27 @@ Adds support for GitHub-Flavored Markdown tables.
 
 Usage:
     >>> md = create_markdown(plugins=["table"])
-    >>> md("| A | B |\\n|---|---|\\n| 1 | 2 |")
+    >>> md("| A | B |\n|---|---|\n| 1 | 2 |")
     '<table><thead><tr><th>A</th><th>B</th></tr></thead>...'
 
 Syntax:
-    | Header 1 | Header 2 |
-    |----------|----------|
-    | Cell 1   | Cell 2   |
+| Header 1 | Header 2 |
+|----------|----------|
+| Cell 1   | Cell 2   |
 
-    Alignment:
-    | Left | Center | Right |
-    |:-----|:------:|------:|
-    | L    |   C    |     R |
+Alignment:
+| Left | Center | Right |
+|:-----|:------:|------:|
+| L    |   C    |     R |
 
 Features:
-    - Column alignment via :--- :--: ---:
-    - Inline markdown in cells
-    - Pipes can be escaped with \\|
+- Column alignment via :--- :--: ---:
+- Inline markdown in cells
+- Pipes can be escaped with \|
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -41,9 +42,10 @@ if TYPE_CHECKING:
 @register_plugin("table")
 class TablePlugin:
     """Plugin adding GFM table support.
-
+    
     Tables are detected at the block level when a line starts with |
     and is followed by a delimiter row (|---|---|).
+        
     """
 
     @property

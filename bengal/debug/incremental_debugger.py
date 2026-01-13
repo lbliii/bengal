@@ -7,17 +7,17 @@ without apparent cause), validating cache consistency, and simulating
 the impact of changes before making them.
 
 Key Features:
-    - explain_rebuild(): Detailed analysis of why a page was rebuilt
-    - find_phantom_rebuilds(): Detect pages rebuilding without tracked changes
-    - validate_cache_consistency(): Check cache integrity and find orphans
-    - simulate_change(): Preview what would rebuild if a file changed
-    - analyze(): Comprehensive incremental build health report
+- explain_rebuild(): Detailed analysis of why a page was rebuilt
+- find_phantom_rebuilds(): Detect pages rebuilding without tracked changes
+- validate_cache_consistency(): Check cache integrity and find orphans
+- simulate_change(): Preview what would rebuild if a file changed
+- analyze(): Comprehensive incremental build health report
 
 Architecture:
-    Registered as "incremental" in DebugRegistry. Works with BuildCache
-    to inspect file fingerprints, dependencies, and cache entries.
-    Optionally accepts a rebuild_log from the last build to detect
-    phantom rebuilds.
+Registered as "incremental" in DebugRegistry. Works with BuildCache
+to inspect file fingerprints, dependencies, and cache entries.
+Optionally accepts a rebuild_log from the last build to detect
+phantom rebuilds.
 
 Example:
     >>> from bengal.debug import IncrementalBuildDebugger
@@ -30,13 +30,14 @@ Example:
     >>> print(f"{len(affected)} pages would rebuild")
 
 Related Modules:
-    - bengal.cache.build_cache: Cache storage and fingerprinting
-    - bengal.cache.dependency_tracker: Dependency graph construction
-    - bengal.orchestration.incremental: Incremental build coordination
-    - bengal.debug.base: Debug tool infrastructure
+- bengal.cache.build_cache: Cache storage and fingerprinting
+- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.orchestration.incremental: Incremental build coordination
+- bengal.debug.base: Debug tool infrastructure
 
 See Also:
-    - bengal/cli/commands/debug.py: CLI integration
+- bengal/cli/commands/debug.py: CLI integration
+
 """
 
 from __future__ import annotations
@@ -57,10 +58,10 @@ if TYPE_CHECKING:
 class RebuildReason(Enum):
     """
     Reasons why a page might be rebuilt during incremental builds.
-
+    
     Used to categorize and explain what triggered a page rebuild.
     A page may have multiple reasons (e.g., both content and template changed).
-
+    
     Values:
         CONTENT_CHANGED: The page's source content file was modified.
         TEMPLATE_CHANGED: A template in the page's template chain changed.
@@ -73,11 +74,12 @@ class RebuildReason(Enum):
         CACHE_INVALID: Cache entry exists but is corrupted/invalid.
         FORCED: Rebuild was explicitly requested (--force flag).
         UNKNOWN: No tracked dependency changed (phantom rebuild).
-
+    
     Example:
-        >>> reason = RebuildReason.TEMPLATE_CHANGED
-        >>> print(reason.description)
+            >>> reason = RebuildReason.TEMPLATE_CHANGED
+            >>> print(reason.description)
         Template file was modified
+        
     """
 
     CONTENT_CHANGED = "content_changed"
@@ -119,10 +121,10 @@ class RebuildReason(Enum):
 class RebuildExplanation:
     """
     Detailed explanation of why a page was rebuilt.
-
+    
     Provides comprehensive information about what triggered a rebuild,
     including the chain of dependencies that led to the rebuild.
-
+    
     Attributes:
         page_path: Path to the page that was rebuilt
         reasons: List of reasons why the page was rebuilt
@@ -131,6 +133,7 @@ class RebuildExplanation:
         timestamps: Relevant timestamps (content mtime, cache time, etc.)
         dependency_chain: Chain of dependencies that triggered rebuild
         suggestions: Suggestions for optimization if applicable
+        
     """
 
     page_path: str
@@ -201,23 +204,24 @@ class RebuildExplanation:
 class PhantomRebuild:
     """
     A page that rebuilds without apparent cause.
-
+    
     Phantom rebuilds are pages that rebuild even though none of their
     known dependencies changed. These indicate missing dependency tracking,
     cache issues, or untracked global state affecting the build.
-
+    
     Attributes:
         page_path: Path to the page experiencing phantom rebuilds.
         rebuild_count: Number of times this page has phantom rebuilt.
         last_rebuild: Timestamp of the most recent phantom rebuild.
         suspected_causes: Possible causes identified by analysis.
         investigation_notes: Additional notes from investigation.
-
+    
     Example:
-        >>> phantom = PhantomRebuild(
-        ...     page_path="content/posts/my-post.md",
-        ...     suspected_causes=["Missing template dependency tracking"],
-        ... )
+            >>> phantom = PhantomRebuild(
+            ...     page_path="content/posts/my-post.md",
+            ...     suspected_causes=["Missing template dependency tracking"],
+            ... )
+        
     """
 
     page_path: str
@@ -231,10 +235,10 @@ class PhantomRebuild:
 class CacheConsistencyReport:
     """
     Report on cache consistency and integrity.
-
+    
     Aggregates the results of cache validation, identifying orphaned
     entries, missing entries, and overall cache health.
-
+    
     Attributes:
         total_entries: Total number of entries in the cache.
         valid_entries: Entries that pass validation (file exists, valid format).
@@ -242,16 +246,17 @@ class CacheConsistencyReport:
         orphaned_entries: Cache entries for files that no longer exist on disk.
         missing_entries: Content files that exist but aren't in the cache.
         issues: Specific issues found during validation.
-
+    
     Example:
-        >>> report = CacheConsistencyReport(
-        ...     total_entries=100,
-        ...     valid_entries=95,
-        ...     invalid_entries=5,
-        ...     orphaned_entries=["content/deleted-post.md"],
-        ... )
-        >>> print(f"Cache health: {report.health_score:.1f}%")
+            >>> report = CacheConsistencyReport(
+            ...     total_entries=100,
+            ...     valid_entries=95,
+            ...     invalid_entries=5,
+            ...     orphaned_entries=["content/deleted-post.md"],
+            ... )
+            >>> print(f"Cache health: {report.health_score:.1f}%")
         Cache health: 95.0%
+        
     """
 
     total_entries: int = 0
@@ -278,19 +283,20 @@ class CacheConsistencyReport:
 class IncrementalBuildDebugger(DebugTool):
     """
     Debug tool for incremental build issues.
-
+    
     Helps diagnose why pages rebuild, find phantom rebuilds, and
     validate cache consistency.
-
+    
     Creation:
         Direct instantiation or via DebugRegistry:
             debugger = IncrementalBuildDebugger(site=site, cache=cache)
             debugger = DebugRegistry.create("incremental", site=site, cache=cache)
-
+    
     Example:
-        >>> debugger = IncrementalBuildDebugger(site=site, cache=cache)
-        >>> explanation = debugger.explain_rebuild("content/posts/my-post.md")
-        >>> print(explanation.format_detailed())
+            >>> debugger = IncrementalBuildDebugger(site=site, cache=cache)
+            >>> explanation = debugger.explain_rebuild("content/posts/my-post.md")
+            >>> print(explanation.format_detailed())
+        
     """
 
     name = "incremental"

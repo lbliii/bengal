@@ -6,22 +6,22 @@ health checks. Fixes are categorized by safety level to prevent unintended
 modifications.
 
 Safety Levels:
-    SAFE: Can be applied automatically (reversible, no side effects)
-    CONFIRM: Requires user confirmation (may have side effects)
-    UNSAFE: Requires manual review (complex changes)
+SAFE: Can be applied automatically (reversible, no side effects)
+CONFIRM: Requires user confirmation (may have side effects)
+UNSAFE: Requires manual review (complex changes)
 
 Supported Fixes:
-    - Directive fence nesting: Adjusts fence depths for proper nesting hierarchy
-    - Link fixes: (Future) Typo detection and moved page reference updates
+- Directive fence nesting: Adjusts fence depths for proper nesting hierarchy
+- Link fixes: (Future) Typo detection and moved page reference updates
 
 Architecture:
-    AutoFixer analyzes HealthReport results and generates FixAction objects.
-    Each FixAction contains a callable that applies the fix. Fixes are designed
-    to be atomic and file-local to minimize risk.
+AutoFixer analyzes HealthReport results and generates FixAction objects.
+Each FixAction contains a callable that applies the fix. Fixes are designed
+to be atomic and file-local to minimize risk.
 
 Related:
-    - bengal.health.report: HealthReport consumed by AutoFixer
-    - bengal.health.validators.directives: Produces directive issues
+- bengal.health.report: HealthReport consumed by AutoFixer
+- bengal.health.validators.directives: Produces directive issues
 
 Example:
     >>> from bengal.health.autofix import AutoFixer, FixSafety
@@ -30,6 +30,7 @@ Example:
     >>> safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]
     >>> results = fixer.apply_fixes(safe_fixes)
     >>> print(f"Applied {results['applied']} fixes")
+
 """
 
 from __future__ import annotations
@@ -49,16 +50,17 @@ logger = get_logger(__name__)
 class FixSafety(Enum):
     """
     Safety classification for auto-fix actions.
-
+    
     Determines how fixes are applied:
         SAFE: Apply automatically (reversible, file-local, no side effects)
         CONFIRM: Prompt user before applying (may affect multiple files)
         UNSAFE: Require manual review (complex structural changes)
-
+    
     Usage:
         Use FixSafety.SAFE for well-tested, atomic fixes like fence depth
         adjustments. Use CONFIRM for fixes that modify cross-references.
         Use UNSAFE for experimental or risky fixes.
+        
     """
 
     SAFE = "safe"
@@ -70,11 +72,11 @@ class FixSafety(Enum):
 class FixAction:
     """
     Single auto-fix action with metadata and application logic.
-
+    
     FixAction encapsulates what needs to be fixed, where, and how. The apply
     callable performs the actual fix when invoked. Fixes are designed to be
     atomic and file-local to minimize risk.
-
+    
     Attributes:
         description: Human-readable summary of the fix
         file_path: Absolute path to file requiring modification
@@ -83,18 +85,19 @@ class FixAction:
         safety: FixSafety level determining application policy
         apply: Callable returning True on success, False on failure
         check_result: Original CheckResult that triggered this fix suggestion
-
+    
     Example:
-        >>> fix = FixAction(
-        ...     description="Fix fence nesting in cards.md (3 directives)",
-        ...     file_path=Path("/site/content/cards.md"),
-        ...     line_number=24,
-        ...     fix_type="directive_fence",
-        ...     safety=FixSafety.SAFE,
-        ...     apply=lambda: True,
-        ... )
-        >>> if fix.can_apply():
-        ...     fix.apply()
+            >>> fix = FixAction(
+            ...     description="Fix fence nesting in cards.md (3 directives)",
+            ...     file_path=Path("/site/content/cards.md"),
+            ...     line_number=24,
+            ...     fix_type="directive_fence",
+            ...     safety=FixSafety.SAFE,
+            ...     apply=lambda: True,
+            ... )
+            >>> if fix.can_apply():
+            ...     fix.apply()
+        
     """
 
     description: str
@@ -118,36 +121,37 @@ class FixAction:
 class AutoFixer:
     """
     Framework for automated fixes of health check issues.
-
+    
     AutoFixer analyzes HealthReport results, identifies fixable issues, and
     generates FixAction objects. Currently supports directive fence nesting
     fixes with hierarchical depth calculation.
-
+    
     Supported Fix Types:
         directive_fence: Adjusts fence depths for proper MyST directive nesting
         link_update: (Future) Fix broken internal links, update moved pages
-
+    
     Design Principles:
         - Fixes are atomic and file-local (no cross-file dependencies)
         - Safety levels prevent accidental destructive changes
         - Full hierarchy analysis ensures child/parent consistency
         - Fixes are reversible via version control
-
+    
     Attributes:
         report: HealthReport to analyze for fixable issues
         site_root: Absolute path to site root (required)
         fixes: List of suggested FixAction objects (populated by suggest_fixes)
-
+    
     Example:
-        >>> fixer = AutoFixer(report, site_root=site.root_path)
-        >>> fixes = fixer.suggest_fixes()
-        >>> safe = [f for f in fixes if f.safety == FixSafety.SAFE]
-        >>> results = fixer.apply_fixes(safe)
-        >>> print(f"Applied {results['applied']} fixes")
-
+            >>> fixer = AutoFixer(report, site_root=site.root_path)
+            >>> fixes = fixer.suggest_fixes()
+            >>> safe = [f for f in fixes if f.safety == FixSafety.SAFE]
+            >>> results = fixer.apply_fixes(safe)
+            >>> print(f"Applied {results['applied']} fixes")
+    
     See Also:
         - bengal.health.report.HealthReport: Input report format
         - bengal.health.validators.directives: Produces directive issues
+        
     """
 
     def __init__(self, report: HealthReport, site_root: Path):

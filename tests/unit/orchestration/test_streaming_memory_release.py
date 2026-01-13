@@ -25,8 +25,9 @@ import pytest
 class MockPage:
     """
     Mock page with cache attributes matching bengal.core.page.Page.
-
+    
     Includes all cache attributes that should be cleared for memory optimization.
+        
     """
 
     path: Path

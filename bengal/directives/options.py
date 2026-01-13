@@ -6,35 +6,36 @@ dataclass fields to get automatic parsing, type coercion, validation, and
 default values.
 
 Key Features:
-    - **Type Coercion**: Automatic conversion from strings to bool, int, float, list.
-    - **Field Aliases**: Map directive option names to Python field names
-      (e.g., ``:class:`` → ``css_class``).
-    - **Validation**: Restrict values to allowed sets via ``_allowed_values``.
-    - **Default Values**: Dataclass defaults are used for missing options.
+- **Type Coercion**: Automatic conversion from strings to bool, int, float, list.
+- **Field Aliases**: Map directive option names to Python field names
+  (e.g., ``:class:`` → ``css_class``).
+- **Validation**: Restrict values to allowed sets via ``_allowed_values``.
+- **Default Values**: Dataclass defaults are used for missing options.
 
 Classes:
-    - ``DirectiveOptions``: Base class for typed option parsing.
-    - ``StyledOptions``: Preset with ``css_class`` field for CSS classes.
-    - ``ContainerOptions``: Preset with layout options (columns, gap, style).
-    - ``TitledOptions``: Preset with icon support for titled directives.
+- ``DirectiveOptions``: Base class for typed option parsing.
+- ``StyledOptions``: Preset with ``css_class`` field for CSS classes.
+- ``ContainerOptions``: Preset with layout options (columns, gap, style).
+- ``TitledOptions``: Preset with icon support for titled directives.
 
 Example:
-    Define custom options for a directive::
+Define custom options for a directive::
 
-        @dataclass
-        class DropdownOptions(DirectiveOptions):
-            open: bool = False
-            css_class: str = ""
+    @dataclass
+    class DropdownOptions(DirectiveOptions):
+        open: bool = False
+        css_class: str = ""
 
-            _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+        _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
-        # Parse from raw directive options:
-        opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
-        # opts.open = True
-        # opts.css_class = "my-class"
+    # Parse from raw directive options:
+    opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
+    # opts.open = True
+    # opts.css_class = "my-class"
 
 See Also:
-    - ``bengal.directives.base``: ``BengalDirective`` uses ``OPTIONS_CLASS``.
+- ``bengal.directives.base``: ``BengalDirective`` uses ``OPTIONS_CLASS``.
+
 """
 
 from __future__ import annotations
@@ -51,34 +52,35 @@ logger = get_logger(__name__)
 @dataclass
 class DirectiveOptions:
     """Base class for typed directive option parsing.
-
+    
     Subclass with typed dataclass fields to enable automatic:
         - Parsing from ``:option: value`` syntax.
         - Type coercion (str → bool, int, float, list).
         - Validation via ``_allowed_values``.
         - Default values from field definitions.
-
+    
     Class Variables:
         _field_aliases: Map option names to field names. Use this when the
             directive option name differs from the Python field name
             (e.g., ``{"class": "css_class"}`` maps ``:class:`` to ``css_class``).
         _allowed_values: Restrict field values to specific sets
             (e.g., ``{"gap": ["small", "medium", "large"]}``).
-
+    
     Example:
         Define a custom options class::
-
+    
             @dataclass
             class DropdownOptions(DirectiveOptions):
                 open: bool = False
                 css_class: str = ""
-
+    
                 _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
-
+    
             # Parse from raw options:
             opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
             assert opts.open is True
             assert opts.css_class == "my-class"
+        
     """
 
     _field_aliases: ClassVar[dict[str, str]] = {}
@@ -322,20 +324,21 @@ class DirectiveOptions:
 @dataclass
 class StyledOptions(DirectiveOptions):
     """Common options for styled directives with CSS class support.
-
+    
     Provides a ``css_class`` field that maps from the ``:class:`` directive
     option. Extend this class for directives that accept custom styling.
-
+    
     Attributes:
         css_class: Additional CSS classes to apply to the directive output.
-
+    
     Example:
         ::
-
+    
             :::{note}
             :class: my-custom-class
             Content here.
             :::
+        
     """
 
     css_class: str = ""
@@ -347,24 +350,25 @@ class StyledOptions(DirectiveOptions):
 @dataclass
 class ContainerOptions(StyledOptions):
     """Options for container-style directives with layout controls.
-
+    
     Extends ``StyledOptions`` with grid layout options for directives like
     cards, tabs, and other multi-item containers.
-
+    
     Attributes:
         columns: Number of columns or ``"auto"`` for responsive.
         gap: Spacing between items (``"small"``, ``"medium"``, ``"large"``).
         style: Visual style variant (``"default"``, ``"minimal"``, ``"bordered"``).
-
+    
     Example:
         ::
-
+    
             :::{cards}
             :columns: 3
             :gap: large
             :style: bordered
             Card content...
             :::
+        
     """
 
     columns: str = "auto"
@@ -385,20 +389,21 @@ class ContainerOptions(StyledOptions):
 @dataclass
 class TitledOptions(StyledOptions):
     """Options for directives with titles and optional icons.
-
+    
     Extends ``StyledOptions`` with an icon field for directives that
     display a title with an optional icon (cards, admonitions, etc.).
-
+    
     Attributes:
         icon: Icon name from the theme's icon library (empty for no icon).
-
+    
     Example:
         ::
-
+    
             :::{card} Card Title
             :icon: star
             Card content here.
             :::
+        
     """
 
     icon: str = ""

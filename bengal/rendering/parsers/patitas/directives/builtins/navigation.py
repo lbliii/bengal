@@ -7,15 +7,16 @@ Provides:
 - related: Show related content based on tags
 
 Site Context:
-    These directives require access to the current page and site tree.
-    The renderer must provide a `get_page_context` callback that returns
-    the current page object with ancestors, section, etc.
+These directives require access to the current page and site tree.
+The renderer must provide a `get_page_context` callback that returns
+the current page object with ancestors, section, etc.
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's navigation directives exactly for parity.
+Matches Bengal's navigation directives exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -81,14 +82,14 @@ class BreadcrumbsOptions(DirectiveOptions):
 class BreadcrumbsDirective:
     """
     Auto-generate breadcrumb navigation from page ancestors.
-
+    
     Syntax:
         :::{breadcrumbs}
         :separator: /
         :show-home: true
         :home-text: Home
         :::
-
+    
     Output:
         <nav class="breadcrumbs" aria-label="Breadcrumb">
           <a class="breadcrumb-item" href="/">Home</a>
@@ -97,12 +98,13 @@ class BreadcrumbsDirective:
           <span class="breadcrumb-separator">›</span>
           <span class="breadcrumb-item breadcrumb-current">Current Page</span>
         </nav>
-
+    
     Requires:
         Page context with `ancestors` attribute.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("breadcrumbs",)
@@ -204,14 +206,14 @@ class SiblingsOptions(DirectiveOptions):
 class SiblingsDirective:
     """
     Show other pages in the same section.
-
+    
     Syntax:
         :::{siblings}
         :limit: 10
         :exclude-current: true
         :show-description: true
         :::
-
+    
     Output:
         <div class="siblings">
           <ul class="siblings-list">
@@ -219,12 +221,13 @@ class SiblingsDirective:
             <li><a href="/page2/">Page 2</a></li>
           </ul>
         </div>
-
+    
     Requires:
         Page context with `_section.sorted_pages` attribute.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("siblings",)
@@ -339,13 +342,13 @@ class PrevNextOptions(DirectiveOptions):
 class PrevNextDirective:
     """
     Section-aware previous/next navigation.
-
+    
     Syntax:
         :::{prev-next}
         :show-title: true
         :show-section: false
         :::
-
+    
     Output:
         <nav class="prev-next">
           <a class="prev-next-link prev-link" href="/prev/">
@@ -357,12 +360,13 @@ class PrevNextDirective:
             <span class="prev-next-title">Next Page</span>
           </a>
         </nav>
-
+    
     Requires:
         Page context with `prev_in_section` and `next_in_section` attributes.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("prev-next",)
@@ -461,14 +465,14 @@ class RelatedOptions(DirectiveOptions):
 class RelatedDirective:
     """
     Show related content based on tags.
-
+    
     Syntax:
         :::{related}
         :limit: 5
         :title: Related Articles
         :show-tags: true
         :::
-
+    
     Output:
         <aside class="related">
           <h3 class="related-title">Related Articles</h3>
@@ -477,12 +481,13 @@ class RelatedDirective:
             <li><a href="/article2/">Article 2</a></li>
           </ul>
         </aside>
-
+    
     Requires:
         Page context with `related_posts` attribute.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("related",)

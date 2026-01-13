@@ -16,13 +16,14 @@ from bengal.autodoc.utils import get_python_class_bases, get_python_function_is_
 def should_include_inherited(config: dict[str, Any], element_type: str = "class") -> bool:
     """
     Check if inherited members should be included for element type.
-
+    
     Args:
         config: Extractor configuration
         element_type: Type of element ("class" or "exception")
-
+    
     Returns:
         True if inherited members should be included
+        
     """
     # Global toggle
     if config.get("include_inherited", False):
@@ -41,18 +42,19 @@ def synthesize_inherited_members(
 ) -> None:
     """
     Add inherited members to a class element.
-
+    
     Modifies class_elem in place by appending inherited members
     from base classes found in class_index.
-
+    
     Uses reverse index for O(1) simple name lookup.
-
+    
     Args:
         class_elem: Class DocElement to augment with inherited members
         class_index: Index mapping qualified class names to DocElements
         config: Extractor configuration
         simple_name_index: Reverse index mapping simple names to qualified
             names for O(1) lookup (e.g., "Config" -> ["pkg1.Config"])
+        
     """
     # Get base classes using typed accessor
     bases = get_python_class_bases(class_elem)

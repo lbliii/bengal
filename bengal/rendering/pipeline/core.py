@@ -6,21 +6,22 @@ for individual pages. Manages thread-local parser instances for performance
 and provides dependency tracking for incremental builds.
 
 Key Concepts:
-    - Thread-local parsers: Parser instances reused per thread for performance
-    - AST-based processing: Content represented as AST for efficient transformation
-    - Template rendering: Template rendering with page context (Kida default)
-    - Dependency tracking: Template and asset dependency tracking
+- Thread-local parsers: Parser instances reused per thread for performance
+- AST-based processing: Content represented as AST for efficient transformation
+- Template rendering: Template rendering with page context (Kida default)
+- Dependency tracking: Template and asset dependency tracking
 
 Related Modules:
-    - bengal.rendering.parsers: Markdown parser implementations (Patitas default)
-    - bengal.rendering.template_engine: Template engine for rendering (Kida default)
-    - bengal.rendering.renderer: Individual page rendering logic
-    - bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.rendering.parsers: Markdown parser implementations (Patitas default)
+- bengal.rendering.template_engine: Template engine for rendering (Kida default)
+- bengal.rendering.renderer: Individual page rendering logic
+- bengal.cache.dependency_tracker: Dependency graph construction
 
 See Also:
-    - bengal/rendering/pipeline/cache_checker.py: Cache operations
-    - bengal/rendering/pipeline/json_accumulator.py: JSON data accumulation
-    - bengal/rendering/pipeline/autodoc_renderer.py: Autodoc rendering
+- bengal/rendering/pipeline/cache_checker.py: Cache operations
+- bengal/rendering/pipeline/json_accumulator.py: JSON data accumulation
+- bengal/rendering/pipeline/autodoc_renderer.py: Autodoc rendering
+
 """
 
 from __future__ import annotations
@@ -64,12 +65,13 @@ logger = get_logger(__name__)
 
 def _configure_directive_cache_for_versions(site: Site) -> None:
     """Auto-enable directive cache for versioned sites.
-
+    
     Versioned sites benefit from directive caching because identical
     directive blocks appear across multiple versions. Cache provides
     3-5x speedup for repeated directive content.
-
+    
     Single-version sites skip caching (no benefit, adds overhead).
+        
     """
     from bengal.directives.cache import configure_cache
 
@@ -107,44 +109,45 @@ def _configure_directive_cache_for_versions(site: Site) -> None:
 class RenderingPipeline:
     """
     Coordinates the entire rendering process for content pages.
-
+    
     Orchestrates the complete rendering pipeline from markdown parsing through
     template rendering to final HTML output. Manages thread-local parser instances
     for performance and integrates with dependency tracking for incremental builds.
-
+    
     Creation:
         Direct instantiation: RenderingPipeline(site, dependency_tracker=None, ...)
             - Created by RenderOrchestrator for page rendering
             - One instance per worker thread (thread-local)
             - Requires Site instance with config
-
+    
     Attributes:
         site: Site instance with config and xref_index
         parser: Thread-local markdown parser (cached per thread)
         dependency_tracker: Optional DependencyTracker for incremental builds
         quiet: Whether to suppress per-page output
         build_stats: Optional BuildStats for error collection
-
+    
     Pipeline Stages:
         1. Parse source content (Markdown, etc.)
         2. Build Abstract Syntax Tree (AST)
         3. Apply templates (Kida by default)
         4. Render output (HTML)
         5. Write to output directory
-
+    
     Relationships:
         - Uses: TemplateEngine for template rendering
         - Uses: Renderer for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Used by: RenderOrchestrator for page rendering
-
+    
     Thread Safety:
         Thread-safe. Uses thread-local parser instances. Each thread should
         have its own RenderingPipeline instance.
-
+    
     Examples:
         pipeline = RenderingPipeline(site, dependency_tracker=tracker)
         pipeline.render_page(page)
+        
     """
 
     def __init__(

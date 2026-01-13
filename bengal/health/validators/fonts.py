@@ -28,13 +28,14 @@ if TYPE_CHECKING:
 class FontValidator(BaseValidator):
     """
     Validates font downloads and CSS generation.
-
+    
     Checks:
     - Font configuration is valid
     - Font files downloaded (if fonts configured)
     - CSS generated with correct @font-face rules
     - Font file sizes are reasonable
     - No broken font references in CSS
+        
     """
 
     name = "Fonts"

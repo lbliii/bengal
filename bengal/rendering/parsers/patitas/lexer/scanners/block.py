@@ -17,11 +17,12 @@ if TYPE_CHECKING:
 
 class BlockScannerMixin:
     """Mixin providing block mode scanning logic.
-
+    
     Scans for block-level elements using window approach:
     1. Find end of current line (window)
     2. Classify the line content (pure logic)
     3. Emit token and commit position (always advances)
+        
     """
 
     # These will be set by the Lexer class or other mixins

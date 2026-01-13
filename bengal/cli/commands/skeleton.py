@@ -21,8 +21,9 @@ from bengal.output import CLIOutput
 def skeleton_cli() -> None:
     """
     Skeleton manifest commands.
-
+    
     Apply declarative site structures from YAML manifests.
+        
     """
     pass
 
@@ -52,8 +53,9 @@ def skeleton_cli() -> None:
 def apply(manifest: str, dry_run: bool, force: bool) -> None:
     """
     Apply a skeleton manifest to hydrate site structure.
-
+    
     The manifest is a YAML file defining the component structure (Identity/Mode/Data).
+        
     """
     cli = CLIOutput()
 

@@ -18,8 +18,9 @@ from bengal.orchestration.build.options import BuildOptions
 def test_site(tmp_path):
     """
     Create a test site with LLM.txt output enabled.
-
+    
     Returns site directory and config for testing.
+        
     """
     site_dir = tmp_path / "test_site"
     site_dir.mkdir()

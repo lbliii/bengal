@@ -60,28 +60,29 @@ def communities(
 ) -> None:
     """
     Discover topical communities in your content.
-
+    
     Uses the Louvain algorithm to find natural clusters of related pages.
     Communities represent topic areas or content groups based on link structure.
-
+    
     Use community detection to:
     - Discover hidden content structure
     - Organize content into logical groups
     - Identify topic clusters
     - Guide taxonomy creation
-
+    
     Examples:
         # Show top 10 communities
         bengal communities
-
+    
         # Show only large communities (10+ pages)
         bengal communities --min-size 10
-
+    
         # Find more granular communities
         bengal communities --resolution 2.0
-
+    
         # Export as JSON
         bengal communities --format json > communities.json
+        
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 

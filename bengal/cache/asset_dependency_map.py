@@ -52,8 +52,9 @@ class AssetReference:
 class AssetDependencyEntry(Cacheable):
     """
     Cache entry for asset dependencies.
-
+    
     Implements the Cacheable protocol for type-safe serialization.
+        
     """
 
     assets: set[str]  # Set of asset URLs/paths
@@ -91,13 +92,13 @@ class AssetDependencyEntry(Cacheable):
 class AssetDependencyMap:
     """
     Persistent map of page-to-asset dependencies for incremental discovery.
-
+    
     Purpose:
     - Track which assets each page references
     - Enable on-demand asset discovery
     - Skip asset discovery for unchanged pages
     - Support incremental asset fingerprinting
-
+    
     Cache Format (JSON):
     {
         "version": 1,
@@ -113,6 +114,7 @@ class AssetDependencyMap:
             }
         }
     }
+        
     """
 
     VERSION = 1

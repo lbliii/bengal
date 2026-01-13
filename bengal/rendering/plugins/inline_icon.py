@@ -35,20 +35,21 @@ _warned_icons: set[str] = set()
 class InlineIconPlugin:
     """
     Mistune plugin for inline icon syntax.
-
+    
     Syntax:
         {icon}`name`              -> 24px icon
         {icon}`name:size`         -> Custom size (e.g., name:16, name:32)
         {icon}`name:size:class`   -> Custom size and CSS class
-
+    
     Examples:
         | Column | Icon |
         |--------|------|
         | Terminal | {icon}`terminal` |
         | Docs | {icon}`docs:16` |
         | Rosette | {icon}`bengal-rosette:32:icon-primary` |
-
+    
     Works in table cells, paragraphs, and other inline contexts.
+        
     """
 
     def __init__(self) -> None:

@@ -30,7 +30,7 @@ __all__ = ["ChildCardsDirective", "ChildCardsOptions"]
 class ChildCardsOptions(DirectiveOptions):
     """
     Options for child-cards directive.
-
+    
     Attributes:
         columns: Column layout
         gap: Grid gap
@@ -38,6 +38,7 @@ class ChildCardsOptions(DirectiveOptions):
         fields: Fields to pull (comma-separated)
         layout: Card layout
         style: Visual style
+        
     """
 
     columns: str = "auto"
@@ -58,13 +59,14 @@ class ChildCardsOptions(DirectiveOptions):
 class ChildCardsDirective(BengalDirective):
     """
     Auto-generate cards from current page's child sections/pages.
-
+    
     Syntax:
         :::{child-cards}
         :columns: 3
         :include: sections
         :fields: title, description, icon
         :::
+        
     """
 
     NAMES: ClassVar[list[str]] = ["child-cards"]

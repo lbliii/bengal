@@ -4,8 +4,9 @@ Menu helper functions for template engine.
 Provides menu access functions with caching for template use.
 
 Related Modules:
-    - bengal.rendering.template_engine.core: Uses these helpers
-    - bengal.core.menu: Menu data model
+- bengal.rendering.template_engine.core: Uses these helpers
+- bengal.core.menu: Menu data model
+
 """
 
 from __future__ import annotations
@@ -16,10 +17,11 @@ from typing import Any
 class MenuHelpersMixin:
     """
     Mixin providing menu helper methods for TemplateEngine.
-
+    
     Requires these attributes on the host class:
         - site: Site instance
         - _menu_dict_cache: dict[str, list[dict]]
+        
     """
 
     site: Any

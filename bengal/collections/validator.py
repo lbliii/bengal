@@ -5,15 +5,15 @@ Validates frontmatter dictionaries against dataclass or Pydantic schemas,
 with automatic type coercion, helpful error messages, and nested type support.
 
 Key Features:
-    - **Dual backend support**: Works with Python dataclasses or Pydantic models
-    - **Type coercion**: Automatically converts strings to datetime, date, etc.
-    - **Nested validation**: Validates nested dataclass fields recursively
-    - **Strict mode**: Optionally reject unknown frontmatter fields
-    - **Detailed errors**: Reports all validation failures, not just the first
+- **Dual backend support**: Works with Python dataclasses or Pydantic models
+- **Type coercion**: Automatically converts strings to datetime, date, etc.
+- **Nested validation**: Validates nested dataclass fields recursively
+- **Strict mode**: Optionally reject unknown frontmatter fields
+- **Detailed errors**: Reports all validation failures, not just the first
 
 Classes:
-    - :class:`SchemaValidator`: Main validation engine
-    - :class:`ValidationResult`: Result of schema validation
+- :class:`SchemaValidator`: Main validation engine
+- :class:`ValidationResult`: Result of schema validation
 
 Example:
     >>> from dataclasses import dataclass
@@ -28,9 +28,10 @@ Example:
     >>> validator = SchemaValidator(BlogPost)
     >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
     >>> result.valid
-    True
+True
     >>> result.data.title
     'Hello'
+
 """
 
 from __future__ import annotations
@@ -51,10 +52,10 @@ logger = get_logger(__name__)
 class ValidationResult:
     """
     Result of schema validation.
-
+    
     Encapsulates the outcome of validating frontmatter against a schema,
     including the validated instance (on success) or detailed errors (on failure).
-
+    
     Attributes:
         valid: ``True`` if validation passed; ``False`` if any errors occurred.
         data: The validated and coerced schema instance (dataclass or Pydantic
@@ -62,13 +63,14 @@ class ValidationResult:
         errors: List of :class:`ValidationError` instances describing each
             field that failed validation. Empty if ``valid`` is ``True``.
         warnings: List of non-fatal warning messages (e.g., deprecated fields).
-
+    
     Example:
-        >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
-        >>> if result.valid:
-        ...     print(result.data.title)
-        ... else:
-        ...     print(result.error_summary)
+            >>> result = validator.validate({"title": "Hello", "date": "2025-01-15"})
+            >>> if result.valid:
+            ...     print(result.data.title)
+            ... else:
+            ...     print(result.error_summary)
+        
     """
 
     valid: bool
@@ -99,17 +101,17 @@ class ValidationResult:
 class SchemaValidator:
     """
     Validates frontmatter dictionaries against dataclass or Pydantic schemas.
-
+    
     Supports automatic type coercion, nested validation, and strict mode for
     rejecting unknown fields.
-
+    
     Supported Schema Types:
         - **Dataclasses**: Python standard library dataclasses (recommended)
         - **Pydantic models**: Auto-detected via ``model_validate`` method
-
+    
     Type Coercion:
         The validator automatically coerces common types:
-
+    
         - ``datetime``: From ISO 8601 strings (e.g., ``"2025-01-15T10:30:00"``)
         - ``date``: From ISO 8601 date strings (e.g., ``"2025-01-15"``)
         - ``bool``: From strings (``"true"``/``"false"``, ``"yes"``/``"no"``)
@@ -117,41 +119,42 @@ class SchemaValidator:
         - ``list[T]``: Validates each item against type ``T``
         - ``Optional[T]``: Accepts ``None`` or validates against ``T``
         - Nested dataclasses: Validates recursively (up to ``max_depth`` levels)
-
+    
     Attributes:
         schema: The schema class being validated against.
         strict: Whether unknown fields raise errors.
         max_depth: Maximum nesting depth for recursive validation.
-
+    
     Example:
-        >>> from dataclasses import dataclass
-        >>> from datetime import datetime
-        >>>
-        >>> @dataclass
-        ... class BlogPost:
-        ...     title: str
-        ...     date: datetime
-        ...     draft: bool = False
-        ...
-        >>> validator = SchemaValidator(BlogPost)
-        >>> result = validator.validate({
-        ...     "title": "Hello World",
-        ...     "date": "2025-01-15",
-        ... })
-        >>> result.valid
+            >>> from dataclasses import dataclass
+            >>> from datetime import datetime
+            >>>
+            >>> @dataclass
+            ... class BlogPost:
+            ...     title: str
+            ...     date: datetime
+            ...     draft: bool = False
+            ...
+            >>> validator = SchemaValidator(BlogPost)
+            >>> result = validator.validate({
+            ...     "title": "Hello World",
+            ...     "date": "2025-01-15",
+            ... })
+            >>> result.valid
         True
-        >>> result.data.title
-        'Hello World'
-
+            >>> result.data.title
+            'Hello World'
+    
     Example:
         Strict mode rejects unknown fields:
-
-        >>> validator = SchemaValidator(BlogPost, strict=True)
-        >>> result = validator.validate({"title": "Hi", "date": "2025-01-15", "unknown": "value"})
-        >>> result.valid
+    
+            >>> validator = SchemaValidator(BlogPost, strict=True)
+            >>> result = validator.validate({"title": "Hi", "date": "2025-01-15", "unknown": "value"})
+            >>> result.valid
         False
-        >>> result.errors[0].field
-        'unknown'
+            >>> result.errors[0].field
+            'unknown'
+        
     """
 
     MAX_RECURSION_DEPTH = 10

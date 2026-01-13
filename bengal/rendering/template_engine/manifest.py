@@ -4,8 +4,9 @@ Asset manifest handling for template engine.
 Provides manifest loading and caching for fingerprinted asset resolution.
 
 Related Modules:
-    - bengal.rendering.template_engine.core: Uses these helpers
-    - bengal.assets.manifest: AssetManifest data model
+- bengal.rendering.template_engine.core: Uses these helpers
+- bengal.assets.manifest: AssetManifest data model
+
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ logger = get_logger(__name__)
 class ManifestHelpersMixin:
     """
     Mixin providing asset manifest helper methods for TemplateEngine.
-
+    
     Requires these attributes on the host class:
         - site: Site instance
         - _asset_manifest_path: Path
@@ -32,6 +33,7 @@ class ManifestHelpersMixin:
         - _asset_manifest_fallbacks: set[str]
         - _asset_manifest_present: bool
         - _asset_manifest_loaded: bool
+        
     """
 
     site: Any

@@ -4,39 +4,40 @@ Provides tabbed content sections with full markdown support including
 nested directives, code blocks, and admonitions.
 
 Supports two rendering modes:
-    - "enhanced" (default): JavaScript-based tabs with data-tab-target
-    - "css_state_machine": URL-driven tabs using :target CSS selector
+- "enhanced" (default): JavaScript-based tabs with data-tab-target
+- "css_state_machine": URL-driven tabs using :target CSS selector
 
 Tab-Item Options:
-    :selected: - Whether this tab is initially selected
-    :icon: - Icon name to show next to tab label
-    :badge: - Badge text (e.g., "New", "Beta", "Pro")
-    :disabled: - Mark tab as disabled/unavailable
+:selected: - Whether this tab is initially selected
+:icon: - Icon name to show next to tab label
+:badge: - Badge text (e.g., "New", "Beta", "Pro")
+:disabled: - Mark tab as disabled/unavailable
 
 Example:
-    :::{tab-set}
-    :sync: language
+:::{tab-set}
+:sync: language
 
-    :::{tab-item} Python
-    :icon: python
-    :selected:
+:::{tab-item} Python
+:icon: python
+:selected:
 
-    Content for Python tab.
-    :::
+Content for Python tab.
+:::
 
-    :::{tab-item} JavaScript
-    :badge: Popular
+:::{tab-item} JavaScript
+:badge: Popular
 
-    Content for JavaScript tab.
-    :::
+Content for JavaScript tab.
+:::
 
-    :::
+:::
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's tabs directive exactly.
+Matches Bengal's tabs directive exactly.
+
 """
 
 from __future__ import annotations
@@ -75,12 +76,13 @@ except ImportError:
 @dataclass(frozen=True, slots=True)
 class TabItemOptions(StyledOptions):
     """Options for tab-item directive.
-
+    
     Attributes:
         selected: Whether this tab is initially selected
         icon: Icon name to show next to tab label
         badge: Badge text (e.g., "New", "Beta", "Pro")
         disabled: Mark tab as disabled/unavailable
+        
     """
 
     selected: bool = False
@@ -93,11 +95,12 @@ class TabItemOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class TabSetOptions(StyledOptions):
     """Options for tab-set directive.
-
+    
     Attributes:
         id: Unique ID for the tab set
         sync: Sync key for synchronizing tabs across multiple tab-sets
         mode: Rendering mode - "enhanced" (JS) or "css_state_machine" (URL-driven)
+        
     """
 
     id: str | None = None
@@ -119,11 +122,12 @@ class TabItemData:
 
 class TabItemDirective:
     """Handler for tab-item directive.
-
+    
     Must be inside a tab-set container.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("tab-item", "tab")
@@ -181,11 +185,12 @@ class TabItemDirective:
 
 class TabSetDirective:
     """Handler for tab-set container directive.
-
+    
     Contains tab-item children that form a tabbed interface.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("tab-set", "tabs")
@@ -375,12 +380,13 @@ class TabSetDirective:
 
 def _extract_tab_items(text: str) -> list[TabItemData]:
     """Extract tab-item divs from rendered HTML, handling nested divs correctly.
-
+    
     Args:
         text: Rendered HTML containing tab-item divs
-
+    
     Returns:
         List of TabItemData with extracted attributes
+        
     """
     matches: list[TabItemData] = []
     pattern = re.compile(

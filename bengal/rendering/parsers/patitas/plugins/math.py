@@ -6,24 +6,25 @@ Usage:
     >>> md = create_markdown(plugins=["math"])
     >>> md("Inline: $E = mc^2$")
     '<p>Inline: <span class="math">E = mc^2</span></p>'
-    >>> md("$$\\nE = mc^2\\n$$")
+    >>> md("$$\nE = mc^2\n$$")
     '<div class="math-block">E = mc^2</div>'
 
 Syntax:
-    Inline math: $expression$
-    Block math: $$expression$$ (on separate lines)
+Inline math: $expression$
+Block math: $$expression$$ (on separate lines)
 
-    Escaping:
-    - \\$ for literal dollar sign
-    - Inside code spans, $ is literal
+Escaping:
+- \$ for literal dollar sign
+- Inside code spans, $ is literal
 
 Notes:
-    - This plugin outputs semantic HTML classes
-    - Actual math rendering (MathJax, KaTeX) is done client-side
-    - Block math with display mode is on separate lines
+- This plugin outputs semantic HTML classes
+- Actual math rendering (MathJax, KaTeX) is done client-side
+- Block math with display mode is on separate lines
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -41,9 +42,10 @@ if TYPE_CHECKING:
 @register_plugin("math")
 class MathPlugin:
     """Plugin adding $math$ and $$math$$ support.
-
+    
     Inline math uses $...$ syntax.
     Block math uses $$...$$ on separate lines.
+        
     """
 
     @property

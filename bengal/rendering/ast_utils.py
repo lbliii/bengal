@@ -11,18 +11,19 @@ These utilities enable O(n) traversal operations that replace regex-based
 extraction on rendered HTML.
 
 Performance:
-    AST walks have better constant factors than regex:
-    - No regex compilation overhead
-    - No string allocation from re.sub
-    - Cache-friendly sequential access
+AST walks have better constant factors than regex:
+- No regex compilation overhead
+- No string allocation from re.sub
+- Cache-friendly sequential access
 
 Related:
-    - bengal/rendering/ast_types.py: ASTNode type definitions
-    - bengal/core/page/content.py: PageContentMixin uses these utilities
-    - bengal/rendering/parsers/mistune/ast.py: AST parsing
+- bengal/rendering/ast_types.py: ASTNode type definitions
+- bengal/core/page/content.py: PageContentMixin uses these utilities
+- bengal/rendering/parsers/mistune/ast.py: AST parsing
 
 See Also:
-    - plan/drafted/rfc-ast-content-pipeline.md: RFC for AST-based pipeline
+- plan/drafted/rfc-ast-content-pipeline.md: RFC for AST-based pipeline
+
 """
 
 from __future__ import annotations
@@ -38,21 +39,22 @@ from bengal.rendering.ast_types import ASTNode, is_heading, is_link, is_text
 def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
     """
     Recursively walk all nodes in an AST.
-
+    
     Yields each node in depth-first order, enabling O(n) traversal
     for extraction operations.
-
+    
     Args:
         ast: Root-level AST nodes
-
+    
     Yields:
         Each ASTNode in the tree
-
+    
     Example:
-        >>> ast = [{"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Hello"}]}]
-        >>> nodes = list(walk_ast(ast))
-        >>> len(nodes)
+            >>> ast = [{"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Hello"}]}]
+            >>> nodes = list(walk_ast(ast))
+            >>> len(nodes)
         2
+        
     """
     for node in ast:
         yield node
@@ -65,19 +67,20 @@ def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
 def generate_heading_id(node: ASTNode) -> str:
     """
     Generate a URL-friendly ID from a heading node.
-
+    
     Extracts text content and converts to a slug suitable for anchor links.
-
+    
     Args:
         node: A heading node
-
+    
     Returns:
         URL-friendly slug (e.g., "getting-started")
-
+    
     Example:
-        >>> node = {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Getting Started!"}]}
-        >>> generate_heading_id(node)
-        'getting-started'
+            >>> node = {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Getting Started!"}]}
+            >>> generate_heading_id(node)
+            'getting-started'
+        
     """
     text = extract_text_from_node(node)
     return _slugify(text)
@@ -86,12 +89,13 @@ def generate_heading_id(node: ASTNode) -> str:
 def extract_text_from_node(node: ASTNode) -> str:
     """
     Extract all text content from a single node and its children.
-
+    
     Args:
         node: AST node to extract text from
-
+    
     Returns:
         Concatenated text content
+        
     """
     parts: list[str] = []
 
@@ -109,12 +113,13 @@ def extract_text_from_node(node: ASTNode) -> str:
 def _slugify(text: str) -> str:
     """
     Convert text to a URL-friendly slug.
-
+    
     Args:
         text: Text to slugify
-
+    
     Returns:
         Lowercase, hyphenated slug
+        
     """
     # Normalize unicode
     text = unicodedata.normalize("NFKD", text)
@@ -131,24 +136,25 @@ def _slugify(text: str) -> str:
 def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:
     """
     Extract TOC structure from AST (replaces HTMLParser in toc.py).
-
+    
     Walks the AST and extracts all heading nodes, building a structured
     table of contents.
-
+    
     Args:
         ast: Root-level AST nodes
-
+    
     Returns:
         List of TOC items with id, title, and level
-
+    
     Example:
-        >>> ast = [
-        ...     {"type": "heading", "level": 2, "children": [{"type": "text", "raw": "Introduction"}]},
-        ...     {"type": "heading", "level": 3, "children": [{"type": "text", "raw": "Background"}]},
-        ... ]
-        >>> toc = extract_toc_from_ast(ast)
-        >>> toc[0]
+            >>> ast = [
+            ...     {"type": "heading", "level": 2, "children": [{"type": "text", "raw": "Introduction"}]},
+            ...     {"type": "heading", "level": 3, "children": [{"type": "text", "raw": "Background"}]},
+            ... ]
+            >>> toc = extract_toc_from_ast(ast)
+            >>> toc[0]
         {'id': 'introduction', 'title': 'Introduction', 'level': 1}
+        
     """
     toc_items: list[dict[str, Any]] = []
 
@@ -181,22 +187,23 @@ def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:
 def extract_links_from_ast(ast: list[ASTNode]) -> list[str]:
     """
     Extract all links from AST.
-
+    
     Args:
         ast: Root-level AST nodes
-
+    
     Returns:
         List of link URLs
-
+    
     Example:
-        >>> ast = [
-        ...     {"type": "paragraph", "children": [
-        ...         {"type": "link", "url": "/docs/", "children": [{"type": "text", "raw": "Docs"}]}
-        ...     ]}
-        ... ]
-        >>> links = extract_links_from_ast(ast)
-        >>> links
+            >>> ast = [
+            ...     {"type": "paragraph", "children": [
+            ...         {"type": "link", "url": "/docs/", "children": [{"type": "text", "raw": "Docs"}]}
+            ...     ]}
+            ... ]
+            >>> links = extract_links_from_ast(ast)
+            >>> links
         ['/docs/']
+        
     """
     links: list[str] = []
 
@@ -220,24 +227,25 @@ def extract_links_from_ast(ast: list[ASTNode]) -> list[str]:
 def extract_plain_text(ast: list[ASTNode]) -> str:
     """
     Extract plain text for search indexing (replaces regex strip in content.py).
-
+    
     Walks the AST and concatenates all text content, adding appropriate
     spacing for block elements.
-
+    
     Args:
         ast: Root-level AST nodes
-
+    
     Returns:
         Plain text content
-
+    
     Example:
-        >>> ast = [
-        ...     {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Hello"}]},
-        ...     {"type": "paragraph", "children": [{"type": "text", "raw": "World"}]},
-        ... ]
-        >>> text = extract_plain_text(ast)
-        >>> text
-        'Hello\\nWorld'
+            >>> ast = [
+            ...     {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Hello"}]},
+            ...     {"type": "paragraph", "children": [{"type": "text", "raw": "World"}]},
+            ... ]
+            >>> text = extract_plain_text(ast)
+            >>> text
+            'Hello\nWorld'
+        
     """
     parts: list[str] = []
 

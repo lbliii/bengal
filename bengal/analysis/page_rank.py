@@ -7,20 +7,20 @@ pages based on link structure, where a page is important if important pages
 link to it.
 
 Algorithm:
-    PageRank iteratively distributes "importance" through the link graph:
-    1. Initialize all pages with equal probability (1/N)
-    2. Each iteration: pages pass their score to linked pages
-    3. Damping factor (default 0.85) models random navigation jumps
-    4. Continue until convergence or max iterations reached
+PageRank iteratively distributes "importance" through the link graph:
+1. Initialize all pages with equal probability (1/N)
+2. Each iteration: pages pass their score to linked pages
+3. Damping factor (default 0.85) models random navigation jumps
+4. Continue until convergence or max iterations reached
 
 Key Concepts:
-    - Damping Factor: Probability of following links vs random jump (0.85 typical)
-    - Convergence: Algorithm stops when max score change < threshold
-    - Personalized PageRank: Bias toward seed pages for topic-focused ranking
+- Damping Factor: Probability of following links vs random jump (0.85 typical)
+- Convergence: Algorithm stops when max score change < threshold
+- Personalized PageRank: Bias toward seed pages for topic-focused ranking
 
 Classes:
-    PageRankResults: Scores and metadata from computation
-    PageRankCalculator: Main algorithm implementation
+PageRankResults: Scores and metadata from computation
+PageRankCalculator: Main algorithm implementation
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -36,12 +36,13 @@ Example:
     >>> results = graph.compute_personalized_pagerank(python_posts)
 
 References:
-    Brin, S., & Page, L. (1998). The anatomy of a large-scale hypertextual
-    web search engine. Computer Networks and ISDN Systems.
+Brin, S., & Page, L. (1998). The anatomy of a large-scale hypertextual
+web search engine. Computer Networks and ISDN Systems.
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Graph coordination
-    - bengal/analysis/link_suggestions.py: Uses PageRank for suggestions
+- bengal/analysis/knowledge_graph.py: Graph coordination
+- bengal/analysis/link_suggestions.py: Uses PageRank for suggestions
+
 """
 
 from __future__ import annotations
@@ -63,14 +64,15 @@ logger = get_logger(__name__)
 class PageRankResults:
     """
     Results from PageRank computation.
-
+    
     Contains importance scores for all pages based on the link structure.
     Pages linked to by many important pages receive high scores.
-
+    
     Attributes:
         scores: Map of pages to PageRank scores (normalized, sum to 1.0)
         iterations: Number of iterations until convergence
         converged: Whether the algorithm converged within max_iterations
+        
     """
 
     scores: dict[Page, float]
@@ -120,21 +122,22 @@ class PageRankResults:
 class PageRankCalculator:
     """
     Compute PageRank scores for pages in a site graph.
-
+    
     PageRank is a link analysis algorithm that assigns numerical weights
     to pages based on their link structure. Pages that are linked to by
     many important pages receive high scores.
-
+    
     The algorithm uses an iterative approach:
     1. Initialize all pages with equal probability (1/N)
     2. Iteratively update scores based on incoming links
     3. Continue until convergence or max iterations
-
+    
     Example:
-        >>> calculator = PageRankCalculator(knowledge_graph)
-        >>> results = calculator.compute()
-        >>> top_pages = results.get_top_pages(20)
-        >>> print(f"Most important page: {top_pages[0][0].title}")
+            >>> calculator = PageRankCalculator(knowledge_graph)
+            >>> results = calculator.compute()
+            >>> top_pages = results.get_top_pages(20)
+            >>> print(f"Most important page: {top_pages[0][0].title}")
+        
     """
 
     def __init__(
@@ -306,21 +309,22 @@ def analyze_page_importance(
 ) -> list[tuple[Page, float]]:
     """
     Convenience function to analyze page importance.
-
+    
     Args:
         graph: KnowledgeGraph with page connections
         damping: Damping factor (default 0.85)
         top_n: Number of top pages to return
-
+    
     Returns:
         List of (page, score) tuples for top N pages
-
+    
     Example:
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> top_pages = analyze_page_importance(graph, top_n=10)
-        >>> for page, score in top_pages:
-        ...     print(f"{page.title}: {score:.4f}")
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> top_pages = analyze_page_importance(graph, top_n=10)
+            >>> for page, score in top_pages:
+            ...     print(f"{page.title}: {score:.4f}")
+        
     """
     calculator = PageRankCalculator(graph, damping=damping)
     results = calculator.compute()

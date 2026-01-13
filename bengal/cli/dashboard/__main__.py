@@ -2,22 +2,23 @@
 Dashboard Development Mode.
 
 Run the dashboard directly for development and testing:
-    python -m bengal.cli.dashboard
+python -m bengal.cli.dashboard
 
 Options:
-    --screen=build|serve|health  Start with specific screen (default: build)
-    --demo                       Run with demo data (no site required)
-    --css-watch                  Hot-reload CSS changes
+--screen=build|serve|health  Start with specific screen (default: build)
+--demo                       Run with demo data (no site required)
+--css-watch                  Hot-reload CSS changes
 
 Example:
-    # Run build dashboard with demo data
-    python -m bengal.cli.dashboard --demo
+# Run build dashboard with demo data
+python -m bengal.cli.dashboard --demo
 
-    # Run serve dashboard
-    python -m bengal.cli.dashboard --screen=serve
+# Run serve dashboard
+python -m bengal.cli.dashboard --screen=serve
 
-    # Watch CSS for hot-reload
-    python -m bengal.cli.dashboard --css-watch
+# Watch CSS for hot-reload
+python -m bengal.cli.dashboard --css-watch
+
 """
 
 from __future__ import annotations

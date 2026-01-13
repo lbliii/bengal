@@ -6,10 +6,10 @@ from CLI flags, config files, and defaults. It eliminates scattered inline
 defaults throughout the codebase.
 
 Precedence (highest to lowest):
-    1. Special Modes (e.g., --fast overrides quiet)
-    2. CLI flags (explicitly passed)
-    3. Config file values (flattened or nested)
-    4. DEFAULTS (single source of truth)
+1. Special Modes (e.g., --fast overrides quiet)
+2. CLI flags (explicitly passed)
+3. Config file values (flattened or nested)
+4. DEFAULTS (single source of truth)
 
 Note: Parallel processing is now auto-detected via should_parallelize().
 Use --no-parallel CLI flag to force sequential mode (sets force_sequential=True).
@@ -21,13 +21,14 @@ Example:
     >>> config = {}
     >>> options = resolve_build_options(config)
     >>> options.force_sequential
-    False  # Will use should_parallelize() to decide
+False  # Will use should_parallelize() to decide
     >>>
     >>> # Force sequential via CLI
     >>> cli = CLIFlags(force_sequential=True)
     >>> options = resolve_build_options(config, cli)
     >>> options.force_sequential
-    True  # Forces sequential, bypasses should_parallelize()
+True  # Forces sequential, bypasses should_parallelize()
+
 """
 
 from __future__ import annotations
@@ -55,16 +56,17 @@ BOOLEAN_BUILD_OPTIONS = {
 class CLIFlags:
     """
     Flags explicitly passed via CLI (None = not passed).
-
+    
     All fields default to None, meaning "not explicitly set by user".
     The resolver will fall back to config or DEFAULTS for None values.
-
+    
     Example:
-        >>> # User passed --no-parallel
-        >>> cli = CLIFlags(force_sequential=True)
-        >>>
-        >>> # User didn't pass --no-parallel flag
-        >>> cli = CLIFlags(force_sequential=None)
+            >>> # User passed --no-parallel
+            >>> cli = CLIFlags(force_sequential=True)
+            >>>
+            >>> # User didn't pass --no-parallel flag
+            >>> cli = CLIFlags(force_sequential=None)
+        
     """
 
     force_sequential: bool | None = None
@@ -80,16 +82,17 @@ class CLIFlags:
 def _get_config_value(config: dict[str, Any] | Any, key: str) -> Any:
     """
     Get config value with defensive path handling.
-
+    
     Checks both flattened (parallel) and nested (build.parallel) paths.
     Handles string boolean coercion for boolean options.
-
+    
     Args:
         config: Configuration dictionary or Config object (may be flattened or nested)
         key: Config key to retrieve
-
+    
     Returns:
         Config value, or None if not found or invalid
+        
     """
     # Use .raw for dict operations (Config always has .raw)
     config = config.raw if hasattr(config, "raw") else config
@@ -128,44 +131,45 @@ def resolve_build_options(
 ) -> BuildOptions:
     """
     Resolve build options with clear precedence.
-
+    
     Precedence (highest to lowest):
         1. Special Modes (e.g., --fast overrides quiet/parallel)
         2. CLI flags (explicitly passed)
         3. Config file values (flattened or nested)
         4. DEFAULTS (single source of truth)
-
+    
     Args:
         config: Site config dictionary (may be flattened or nested)
         cli_flags: CLI flags (None values = not passed)
-
+    
     Returns:
         Fully resolved BuildOptions
-
+    
     Example:
-        >>> # Config only
-        >>> config = {"quiet": True}
-        >>> options = resolve_build_options(config)
-        >>> options.force_sequential
+            >>> # Config only
+            >>> config = {"quiet": True}
+            >>> options = resolve_build_options(config)
+            >>> options.force_sequential
         False  # Auto-detect via should_parallelize()
-        >>> options.quiet
+            >>> options.quiet
         True
-        >>>
-        >>> # CLI forces sequential
-        >>> cli = CLIFlags(force_sequential=True)
-        >>> options = resolve_build_options(config, cli)
-        >>> options.force_sequential
+            >>>
+            >>> # CLI forces sequential
+            >>> cli = CLIFlags(force_sequential=True)
+            >>> options = resolve_build_options(config, cli)
+            >>> options.force_sequential
         True  # CLI wins - forces sequential
-        >>> options.quiet
+            >>> options.quiet
         True  # Still from config
-        >>>
-        >>> # Fast mode overrides quiet
-        >>> cli = CLIFlags(fast=True)
-        >>> options = resolve_build_options(config, cli)
-        >>> options.force_sequential
+            >>>
+            >>> # Fast mode overrides quiet
+            >>> cli = CLIFlags(fast=True)
+            >>> options = resolve_build_options(config, cli)
+            >>> options.force_sequential
         False  # Fast mode doesn't force sequential (still auto-detect)
-        >>> options.quiet
+            >>> options.quiet
         True  # Fast mode forces quiet
+        
     """
     cli = cli_flags or CLIFlags()
     build_defaults = DEFAULTS.get("build", {})

@@ -168,13 +168,14 @@ class MemoryProfiler:
 def profile_memory(name: str = "Operation", verbose: bool = True):
     """
     Convenience context manager for profiling memory.
-
+    
     Example:
         with profile_memory("Building site", verbose=True) as prof:
             site.build(BuildOptions())
-
+    
         delta = prof.get_delta()
         assert delta.rss_delta_mb < 500
+        
     """
     profiler = MemoryProfiler(track_allocations=verbose)
 

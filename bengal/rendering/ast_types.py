@@ -125,12 +125,13 @@ class HardBreakNode(TypedDict):
 class RawHTMLNode(TypedDict):
     """
     Pre-rendered HTML block.
-
+    
     Used for:
     - Directive output (code blocks, admonitions, tabs)
     - Virtual page content (page._prerendered_html)
     - External embeds
     - Any content that bypasses markdown parsing
+        
     """
 
     type: Literal["raw_html"]

@@ -199,15 +199,16 @@ LANGUAGE_ICONS: dict[str, str] = {
 def get_language_icon(lang: str, size: int = 16) -> str:
     """
     Get icon HTML for a programming language.
-
+    
     Returns empty string if no icon available (graceful degradation).
-
+    
     Args:
         lang: Language name (e.g., "python", "bash")
         size: Icon size in pixels
-
+    
     Returns:
         Inline SVG HTML string, or empty string if not found
+        
     """
     normalized = lang.lower().strip()
     icon_name = LANGUAGE_ICONS.get(normalized, LANGUAGE_ICONS["_default"])
@@ -222,23 +223,24 @@ def get_language_icon(lang: str, size: int = 16) -> str:
 def get_display_name(lang: str) -> str:
     """
     Get human-readable display name for a programming language.
-
+    
     Uses LANGUAGE_DISPLAY_NAMES for special cases (JavaScript, C++, etc.),
     falls back to simple capitalization for unknown languages.
-
+    
     Args:
         lang: Language identifier (e.g., "python", "javascript", "cpp")
-
+    
     Returns:
         Display name (e.g., "Python", "JavaScript", "C++")
-
+    
     Examples:
-        >>> get_display_name("javascript")
+            >>> get_display_name("javascript")
         "JavaScript"
-        >>> get_display_name("cpp")
+            >>> get_display_name("cpp")
         "C++"
-        >>> get_display_name("rust")
+            >>> get_display_name("rust")
         "Rust"
+        
     """
     normalized = lang.lower().strip()
     if normalized in LANGUAGE_DISPLAY_NAMES:
@@ -255,18 +257,19 @@ def get_display_name(lang: str) -> str:
 def parse_hl_lines(hl_spec: str) -> list[int]:
     """
     Parse line highlight specification into list of line numbers.
-
+    
     Supports:
     - Single line: "5" -> [5]
     - Multiple lines: "1,3,5" -> [1, 3, 5]
     - Ranges: "1-3" -> [1, 2, 3]
     - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
-
+    
     Args:
         hl_spec: Line specification string (e.g., "1,3-5,7")
-
+    
     Returns:
         Sorted list of unique line numbers
+        
     """
     lines: set[int] = set()
     for part in hl_spec.split(","):
@@ -298,19 +301,20 @@ def render_code_with_highlighting(
 ) -> tuple[str, str]:
     """
     Render code with syntax highlighting using the configured backend.
-
+    
     Uses the highlighting backend registry (bengal.rendering.highlighting)
     which defaults to Rosettes but can be configured to use Pygments,
     tree-sitter, or other backends.
-
+    
     Args:
         code: Source code to highlight
         language: Programming language
         hl_lines: Optional list of line numbers to highlight
         line_numbers: Force line numbers on/off (None = auto for 3+ lines)
-
+    
     Returns:
         Tuple of (highlighted_html, plain_code_for_copy)
+        
     """
     line_count = code.count("\n") + 1
 
@@ -341,16 +345,17 @@ render_code_with_pygments = render_code_with_highlighting
 class CodeTabsOptions(DirectiveOptions):
     """
     Options for code-tabs directive.
-
+    
     v2 simplified syntax requires minimal options - most behavior is automatic:
     - Sync: enabled by default (syncs by language across page)
     - Line numbers: auto for 3+ lines
     - Icons: always shown
-
+    
     Attributes:
         sync: Sync key for tab synchronization (default: "language").
               Use "none" to disable sync for this specific block.
         linenos: Force line numbers on/off (None = auto for 3+ lines)
+        
     """
 
     sync: str = "language"
@@ -370,29 +375,30 @@ class CodeTabsOptions(DirectiveOptions):
 def parse_info_string(info_string: str) -> tuple[str | None, str | None, list[int]]:
     """
     Parse code fence info string to extract filename, title, and highlights.
-
+    
     Strict ordering: filename → title → highlights
-
+    
     Args:
         info_string: Info string after language
             (e.g., "app.py", "{3-4}", 'app.py title="Flask" {5-7}')
-
+    
     Returns:
         Tuple of (filename or None, title or None, list of highlight line numbers)
-
+    
     Examples:
-        >>> parse_info_string("")
+            >>> parse_info_string("")
         (None, None, [])
-        >>> parse_info_string("app.py")
+            >>> parse_info_string("app.py")
         ("app.py", None, [])
-        >>> parse_info_string("{3-4}")
+            >>> parse_info_string("{3-4}")
         (None, None, [3, 4])
-        >>> parse_info_string("app.py {3-4}")
+            >>> parse_info_string("app.py {3-4}")
         ("app.py", None, [3, 4])
-        >>> parse_info_string('title="Flask"')
+            >>> parse_info_string('title="Flask"')
         (None, "Flask", [])
-        >>> parse_info_string('app.py title="Flask" {5-7}')
+            >>> parse_info_string('app.py title="Flask" {5-7}')
         ("app.py", "Flask", [5, 6, 7])
+        
     """
     if not info_string:
         return None, None, []
@@ -425,14 +431,15 @@ def parse_info_string(info_string: str) -> tuple[str | None, str | None, list[in
 def parse_tab_marker(marker: str) -> tuple[str, str | None]:
     """
     Parse a legacy ### tab marker to extract language and optional filename.
-
+    
     DEPRECATED: Use parse_info_string() for v2 syntax.
-
+    
     Args:
         marker: Tab marker text (e.g., "Python", "Python (main.py)")
-
+    
     Returns:
         Tuple of (language, filename or None)
+        
     """
     # Strict filename pattern: must end with .ext (lowercase extension)
     filename_pattern = re.compile(r"^(.+?)\s+\((\w[\w.-]*\.[a-z]+)\)$")
@@ -450,34 +457,35 @@ def parse_tab_marker(marker: str) -> tuple[str, str | None]:
 class CodeTabsDirective(BengalDirective):
     """
     Code tabs for multi-language examples.
-
+    
     Enhanced with Pygments highlighting, auto-sync, and language icons.
-
+    
     v2 Simplified Syntax (preferred):
-        ````{code-tabs}
-
-        ```python app.py {3-4}
+            ````{code-tabs}
+    
+            ```python app.py {3-4}
         def greet(name):
             print(f"Hello, {name}!")
-        ```
-
-        ```javascript index.js {2-3}
+            ```
+    
+            ```javascript index.js {2-3}
         function greet(name) {
             console.log(`Hello, ${name}!`);
         }
-        ```
-        ````
-
+            ```
+            ````
+    
     Legacy Syntax (still supported):
-        ````{code-tabs}
-        ### Python (main.py)
-        ```python
+            ````{code-tabs}
+            ### Python (main.py)
+            ```python
         def greet(name):
             print(f"Hello, {name}!")
-        ```
-        ````
-
+            ```
+            ````
+    
     Aliases: code-tabs, code_tabs
+        
     """
 
     NAMES: ClassVar[list[str]] = ["code-tabs", "code_tabs"]
@@ -783,8 +791,9 @@ class CodeTabsDirective(BengalDirective):
 def render_code_tab_item(renderer: Any, **attrs: Any) -> str:
     """
     Render code tab item marker (used internally).
-
+    
     Enhanced to include filename, highlight lines, and code language.
+        
     """
     lang = attrs.get("lang", "text")
     code = attrs.get("code", "")

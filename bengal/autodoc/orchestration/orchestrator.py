@@ -49,27 +49,28 @@ logger = get_logger(__name__)
 class VirtualAutodocOrchestrator:
     """
     Orchestrate API documentation generation as virtual pages.
-
+    
     This orchestrator creates virtual Page and Section objects that integrate
     directly into the site's build pipeline, rendered via theme templates
     without intermediate markdown files.
-
+    
     Architecture:
         1. Extract DocElements from source (Python, CLI, or OpenAPI)
         2. Create virtual Section hierarchy based on element type
         3. Create virtual Pages for each documentable element
         4. Return (pages, sections) tuple for integration into site
-
+    
     Supports:
         - Python API docs (modules, classes, functions)
         - CLI docs (commands, command groups)
         - OpenAPI docs (endpoints, schemas)
-
+    
     Benefits over markdown-based approach:
         - No intermediate markdown files to manage
         - Direct HTML rendering (bypass markdown parsing)
         - Better layout control (card-based API Explorer)
         - Faster builds (no parse → render → parse cycle)
+        
     """
 
     def __init__(self, site: Site):

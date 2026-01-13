@@ -6,26 +6,26 @@ Bengal's built-in content types. Each strategy encapsulates type-specific
 behavior for sorting, filtering, pagination, and template selection.
 
 Built-in Strategies:
-    - BlogStrategy: Chronological blog posts (newest first, paginated)
-    - ArchiveStrategy: Archive pages (similar to blog, simpler template)
-    - DocsStrategy: Documentation pages (weight-sorted, no pagination)
-    - ApiReferenceStrategy: Python API reference (autodoc-python)
-    - CliReferenceStrategy: CLI command reference (autodoc-cli)
-    - TutorialStrategy: Step-by-step tutorials (weight-sorted)
-    - ChangelogStrategy: Release notes and changelogs (date-sorted)
-    - TrackStrategy: Learning tracks (weight-sorted)
-    - PageStrategy: Generic pages (default fallback)
+- BlogStrategy: Chronological blog posts (newest first, paginated)
+- ArchiveStrategy: Archive pages (similar to blog, simpler template)
+- DocsStrategy: Documentation pages (weight-sorted, no pagination)
+- ApiReferenceStrategy: Python API reference (autodoc-python)
+- CliReferenceStrategy: CLI command reference (autodoc-cli)
+- TutorialStrategy: Step-by-step tutorials (weight-sorted)
+- ChangelogStrategy: Release notes and changelogs (date-sorted)
+- TrackStrategy: Learning tracks (weight-sorted)
+- PageStrategy: Generic pages (default fallback)
 
 Strategy Selection:
-    Content types are typically set in section ``_index.md`` frontmatter:
+Content types are typically set in section ``_index.md`` frontmatter:
 
-    .. code-block:: yaml
+.. code-block:: yaml
 
-        ---
-        content_type: blog
-        ---
+    ---
+    content_type: blog
+    ---
 
-    Alternatively, auto-detection uses ``detect_from_section()`` heuristics.
+Alternatively, auto-detection uses ``detect_from_section()`` heuristics.
 
 Example:
     >>> from bengal.content_types.strategies import BlogStrategy
@@ -34,8 +34,9 @@ Example:
     >>> template = strategy.get_template(page, template_engine)
 
 Related:
-    - bengal/content_types/base.py: ContentTypeStrategy base class
-    - bengal/content_types/registry.py: Strategy registration and lookup
+- bengal/content_types/base.py: ContentTypeStrategy base class
+- bengal/content_types/registry.py: Strategy registration and lookup
+
 """
 
 from __future__ import annotations
@@ -57,23 +58,24 @@ if TYPE_CHECKING:
 class BlogStrategy(ContentTypeStrategy):
     """
     Strategy for blog/news content with chronological ordering.
-
+    
     Optimized for time-based content like blog posts, news articles, and
     announcements. Pages are sorted by date (newest first) and pagination
     is enabled by default for long lists.
-
+    
     Auto-Detection:
         Detected when section name matches blog patterns (``blog``, ``posts``,
         ``news``, ``articles``) or when >60% of pages have date metadata.
-
+    
     Templates:
         - Home: ``blog/home.html`` → ``home.html`` → ``index.html``
         - List: ``blog/list.html``
         - Single: ``blog/single.html``
-
+    
     Class Attributes:
         default_template: ``"blog/list.html"``
         allows_pagination: ``True``
+        
     """
 
     default_template = "blog/list.html"
@@ -133,17 +135,18 @@ class BlogStrategy(ContentTypeStrategy):
 class ArchiveStrategy(BlogStrategy):
     """
     Strategy for archive/chronological content.
-
+    
     Inherits chronological sorting from BlogStrategy but uses a simpler
     archive template. Suitable for date-based archives, historical records,
     or simplified blog views.
-
+    
     Templates:
         Uses ``archive.html`` as the default template.
-
+    
     Class Attributes:
         default_template: ``"archive.html"``
         allows_pagination: ``True`` (inherited from BlogStrategy)
+        
     """
 
     default_template = "archive.html"
@@ -152,34 +155,35 @@ class ArchiveStrategy(BlogStrategy):
 class DocsStrategy(ContentTypeStrategy):
     """
     Strategy for documentation with weight-based ordering.
-
+    
     Optimized for structured documentation where page order is manually
     controlled via ``weight`` frontmatter. Pagination is disabled since
     documentation sections typically show all pages in a structured nav.
-
+    
     Auto-Detection:
         Detected when section name matches documentation patterns
         (``docs``, ``documentation``, ``guides``, ``reference``).
-
+    
     Sorting:
         Pages sorted by ``weight`` (ascending), then title (alphabetical).
         Use ``weight`` in frontmatter to control order:
-
+    
         .. code-block:: yaml
-
+    
             ---
             title: Getting Started
             weight: 10
             ---
-
+    
     Templates:
         - Home: ``doc/home.html`` → ``home.html`` → ``index.html``
         - List: ``doc/list.html``
         - Single: ``doc/single.html``
-
+    
     Class Attributes:
         default_template: ``"doc/list.html"``
         allows_pagination: ``False``
+        
     """
 
     default_template = "doc/list.html"
@@ -224,30 +228,31 @@ class DocsStrategy(ContentTypeStrategy):
 class ApiReferenceStrategy(ContentTypeStrategy):
     """
     Strategy for Python API reference documentation.
-
+    
     Designed for auto-generated API documentation (autodoc) from Python
     source code. Preserves alphabetical discovery order and uses specialized
     API reference templates.
-
+    
     Auto-Detection:
         Detected when section name matches API patterns (``api``, ``reference``,
         ``autodoc-python``, ``api-docs``) or when pages have ``python-module``
         or ``autodoc-python`` type metadata.
-
+    
     Sorting:
         Preserves original discovery order (typically alphabetical by module).
-
+    
     Templates:
         - Home: ``autodoc/python/home.html``
         - List: ``autodoc/python/list.html``
         - Single: ``autodoc/python/single.html``
-
+    
     Class Attributes:
         default_template: ``"autodoc/python/list.html"``
         allows_pagination: ``False``
-
+    
     See Also:
         - bengal/autodoc/: Python autodoc generation
+        
     """
 
     default_template = "autodoc/python/list.html"
@@ -312,30 +317,31 @@ class ApiReferenceStrategy(ContentTypeStrategy):
 class CliReferenceStrategy(ContentTypeStrategy):
     """
     Strategy for CLI command reference documentation.
-
+    
     Designed for auto-generated CLI documentation showing commands, arguments,
     and options. Preserves alphabetical discovery order and uses specialized
     CLI reference templates.
-
+    
     Auto-Detection:
         Detected when section name matches CLI patterns (``cli``, ``commands``,
         ``autodoc-cli``, ``command-line``) or when pages have CLI-related
         type metadata.
-
+    
     Sorting:
         Preserves original discovery order (typically alphabetical by command).
-
+    
     Templates:
         - Home: ``autodoc/cli/home.html``
         - List: ``autodoc/cli/list.html``
         - Single: ``autodoc/cli/single.html``
-
+    
     Class Attributes:
         default_template: ``"autodoc/cli/list.html"``
         allows_pagination: ``False``
-
+    
     See Also:
         - bengal/autodoc/: CLI autodoc generation
+        
     """
 
     default_template = "autodoc/cli/list.html"
@@ -397,32 +403,33 @@ class CliReferenceStrategy(ContentTypeStrategy):
 class TutorialStrategy(ContentTypeStrategy):
     """
     Strategy for tutorial/how-to content.
-
+    
     Optimized for step-by-step learning content where order matters. Pages
     are sorted by weight to maintain sequential flow through tutorials.
-
+    
     Auto-Detection:
         Detected when section name matches tutorial patterns
         (``tutorials``, ``guides``, ``how-to``).
-
+    
     Sorting:
         Pages sorted by ``weight`` (ascending), then title. Use ``weight``
         to control tutorial sequence:
-
+    
         .. code-block:: yaml
-
+    
             ---
             title: Step 1 - Setup
             weight: 10
             ---
-
+    
     Templates:
         - List: ``tutorial/list.html``
         - Single: (inherits from base strategy)
-
+    
     Class Attributes:
         default_template: ``"tutorial/list.html"``
         allows_pagination: ``False``
+        
     """
 
     default_template = "tutorial/list.html"
@@ -445,25 +452,26 @@ class TutorialStrategy(ContentTypeStrategy):
 class ChangelogStrategy(ContentTypeStrategy):
     """
     Strategy for changelog/release notes with chronological timeline.
-
+    
     Designed for version history and release notes where entries are
     organized by release date. Shows newest releases first.
-
+    
     Auto-Detection:
         Detected when section name matches changelog patterns
         (``changelog``, ``releases``, ``release-notes``, ``releasenotes``, ``changes``).
-
+    
     Sorting:
         Pages sorted by date (newest first), then title descending for
         same-day releases (e.g., v1.1.0 before v1.0.1 on same day).
-
+    
     Templates:
         - List: ``changelog/list.html``
         - Single: (inherits from base strategy)
-
+    
     Class Attributes:
         default_template: ``"changelog/list.html"``
         allows_pagination: ``False``
+        
     """
 
     default_template = "changelog/list.html"
@@ -490,24 +498,25 @@ class ChangelogStrategy(ContentTypeStrategy):
 class TrackStrategy(ContentTypeStrategy):
     """
     Strategy for learning track content.
-
+    
     Designed for structured learning paths or course-like content where
     users progress through a sequence of lessons or modules. Pages are
     sorted by weight to maintain learning sequence.
-
+    
     Auto-Detection:
         Detected when section name is exactly ``tracks``.
-
+    
     Sorting:
         Pages sorted by ``weight`` (ascending), then title alphabetically.
-
+    
     Templates:
         - List: ``tracks/list.html``
         - Single: ``tracks/single.html``
-
+    
     Class Attributes:
         default_template: ``"tracks/list.html"``
         allows_pagination: ``False``
+        
     """
 
     default_template = "tracks/list.html"
@@ -549,23 +558,24 @@ class TrackStrategy(ContentTypeStrategy):
 class PageStrategy(ContentTypeStrategy):
     """
     Default strategy for generic pages.
-
+    
     The fallback strategy used when no specific content type is detected
     or configured. Provides sensible defaults for miscellaneous content.
-
+    
     Sorting:
         Pages sorted by ``weight`` (ascending), then title alphabetically.
-
+    
     Templates:
         Uses base strategy template resolution with ``index.html`` as fallback.
-
+    
     Class Attributes:
         default_template: ``"index.html"``
         allows_pagination: ``False``
-
+    
     Note:
         This strategy is also registered as ``"list"`` for generic section
         listings that don't fit other content types.
+        
     """
 
     default_template = "index.html"

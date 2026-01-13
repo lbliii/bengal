@@ -19,9 +19,10 @@ from bengal.cli.commands.new import slugify
 class TestSlugifyProperties:
     """
     Property-based tests for slugify function.
-
+    
     Each test runs 100+ times with randomly generated inputs
     to discover edge cases automatically.
+        
     """
 
     @pytest.mark.hypothesis
@@ -287,6 +288,7 @@ class TestSlugifyProperties:
 class TestSlugifyEdgeCases:
     """
     Targeted property tests for specific edge cases.
+        
     """
 
     @pytest.mark.hypothesis

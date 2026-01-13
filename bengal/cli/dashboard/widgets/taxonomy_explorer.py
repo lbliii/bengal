@@ -29,20 +29,21 @@ if TYPE_CHECKING:
 class TaxonomyExplorer(Vertical):
     """
     Tree browser for site taxonomies.
-
+    
     Displays hierarchical view of:
     - Taxonomies (tags, categories, etc.) as root nodes
     - Terms under each taxonomy
     - Page count per term
-
+    
     Features:
     - Expandable taxonomy groups
     - Term page counts
     - Quick navigation to term pages
-
+    
     Example:
         explorer = TaxonomyExplorer(id="taxonomy-explorer")
         explorer.set_site(site)
+        
     """
 
     DEFAULT_CSS = """

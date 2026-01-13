@@ -23,18 +23,23 @@ Usage:
     >>>
     >>> # With options
     >>> md = create_markdown(plugins=["table", "footnotes"])
-    >>> html = md("# Hello\n\n| A | B |\n|---|---|\n| 1 | 2 |")
+    >>> html = md("# Hello
+
+| A | B |
+|---|---|
+| 1 | 2 |")
 
 Thread Safety:
-    Patitas is designed for Python 3.14t free-threaded builds:
-    - Lexer: Single-use, instance-local state only
-    - Parser: Produces immutable AST (frozen dataclasses)
-    - Renderer: StringBuilder is local to each render() call
-    - No global state: No module-level mutable variables
+Patitas is designed for Python 3.14t free-threaded builds:
+- Lexer: Single-use, instance-local state only
+- Parser: Produces immutable AST (frozen dataclasses)
+- Renderer: StringBuilder is local to each render() call
+- No global state: No module-level mutable variables
 
 See Also:
-    - RFC: plan/drafted/rfc-patitas-markdown-parser.md
-    - Mistune (being replaced): bengal/rendering/parsers/mistune/
+- RFC: plan/drafted/rfc-patitas-markdown-parser.md
+- Mistune (being replaced): bengal/rendering/parsers/mistune/
+
 """
 
 from __future__ import annotations
@@ -142,13 +147,14 @@ __version__ = "0.1.0"
 
 def __getattr__(name: str) -> object:
     """Module-level getattr for free-threading declaration and lazy imports.
-
+    
     Declares this module safe for free-threaded Python (PEP 703/779).
     The interpreter queries _Py_mod_gil to determine if the module
     needs the GIL.
-
+    
     Also provides lazy import of PatitasParser to avoid circular imports
     (wrapper.py imports from this module).
+        
     """
     if name == "_Py_mod_gil":
         # Signal: this module is safe for free-threading
@@ -163,16 +169,17 @@ def __getattr__(name: str) -> object:
 
 def parse(source: str, *, highlight: bool = False, delegate: LexerDelegate | None = None) -> str:
     """Parse Markdown source to HTML.
-
+    
     Simple one-shot parsing function for common use cases.
-
+    
     Args:
         source: Markdown source text
         highlight: Enable syntax highlighting for code blocks
         delegate: Optional sub-lexer delegate for ZCLH handoff
-
+    
     Returns:
         Rendered HTML string
+        
     """
     ast = parse_to_ast(source)
     return render_ast(ast, source, highlight=highlight, delegate=delegate)
@@ -186,8 +193,9 @@ def parse_many(
     workers: int | Literal["auto"] = "auto",
 ) -> list[str]:
     """Parse multiple Markdown documents in parallel.
-
+    
     Leverages Python 3.14t free-threading for true parallel execution.
+        
     """
     n_docs = len(sources)
 
@@ -269,9 +277,10 @@ def render_ast(
     delegate: LexerDelegate | None = None,
 ) -> str:
     """Render AST nodes to HTML.
-
+    
     Note: The 'source' buffer is required because Patitas uses a Zero-Copy Lexer Handoff (ZCLH)
     where AST nodes like FencedCode store source offsets rather than content strings.
+        
     """
     if source is None:
         raise TypeError(
@@ -309,9 +318,10 @@ def create_markdown(
 
 class Markdown:
     """Configured Markdown parser/renderer.
-
+    
     Thread-safe: can be shared across threads. Each __call__ creates
     independent parser/renderer instances.
+        
     """
 
     __slots__ = (

@@ -36,20 +36,21 @@ from bengal.orchestration.build.options import BuildOptions
 def create_large_test_site(num_pages: int, sections: int = 20) -> Path:
     """
     Create a realistic test site with specified number of pages.
-
+    
     Structure:
     - Multiple sections (topic areas)
     - Tags and categories
     - Internal cross-references
     - Code blocks with syntax highlighting
     - Realistic content length (500-1000 words)
-
+    
     Args:
         num_pages: Total number of pages to generate
         sections: Number of top-level sections
-
+    
     Returns:
         Path to the generated site directory
+        
     """
     site_root = Path(mkdtemp(prefix=f"bengal_scale_{num_pages}_"))
 
@@ -250,13 +251,14 @@ def benchmark_full_build(site_root: Path) -> dict:
 def benchmark_incremental_single_page(site_root: Path, site: Site) -> dict:
     """
     Benchmark incremental rebuild after changing a single page.
-
+    
     This simulates the most common editing scenario: fixing a typo,
     updating content, or adding a paragraph to one page.
-
+    
     Args:
         site_root: Path to test site
         site: Already-built Site object (reused for incremental context)
+        
     """
     print("  Running incremental build (single page change)...")
 
@@ -290,9 +292,10 @@ def benchmark_incremental_single_page(site_root: Path, site: Site) -> dict:
 def benchmark_incremental_template_change(site_root: Path) -> dict:
     """
     Benchmark incremental rebuild after template change by modifying config.
-
+    
     This simulates a global change that requires rebuilding all pages,
     such as changing the site title or base template.
+        
     """
     print("  Running incremental build (template change)...")
 

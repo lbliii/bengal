@@ -5,24 +5,25 @@ Provides methods for retrieving pages from sections, adding pages,
 sorting children, and checking section state (has index, needs auto-index).
 
 Required Host Attributes:
-    - name: str
-    - path: Path | None
-    - pages: list[Page]
-    - subsections: list[Section]
-    - metadata: dict[str, Any]
-    - index_page: Page | None
-    - _emit_diagnostic: Callable
+- name: str
+- path: Path | None
+- pages: list[Page]
+- subsections: list[Section]
+- metadata: dict[str, Any]
+- index_page: Page | None
+- _emit_diagnostic: Callable
 
 Related Modules:
-    bengal.core.section: Section dataclass using this mixin
-    bengal.core.page: Page objects contained in sections
+bengal.core.section: Section dataclass using this mixin
+bengal.core.page: Page objects contained in sections
 
 Example:
     >>> section = site.get_section("blog")
     >>> section.regular_pages
-    [<Page 'post1'>, <Page 'post2'>]
+[<Page 'post1'>, <Page 'post2'>]
     >>> section.sorted_pages
-    [<Page 'post2'>, <Page 'post1'>]  # Sorted by weight
+[<Page 'post2'>, <Page 'post1'>]  # Sorted by weight
+
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ from .weighted import WeightedPage
 class SectionQueryMixin:
     """
     Page collection and retrieval.
-
+    
     This mixin handles:
     - Page listing (regular_pages, sorted_pages, regular_pages_recursive)
     - Section listing (sections alias)
@@ -52,6 +53,7 @@ class SectionQueryMixin:
     - Sorting (sort_children_by_weight)
     - Index page detection (has_index, needs_auto_index)
     - Recursive page retrieval (get_all_pages)
+        
     """
 
     # =========================================================================

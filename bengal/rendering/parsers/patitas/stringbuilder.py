@@ -5,13 +5,14 @@ Appends to a list, joins once at the end: O(n) total vs O(n²) for
 repeated string concatenation.
 
 Thread Safety:
-    StringBuilder instances are local to each render() call.
-    No shared mutable state.
+StringBuilder instances are local to each render() call.
+No shared mutable state.
 
 Performance:
-    For a 1000-line document with 500 rendered fragments:
-    - String concatenation: ~125,000 character copies
-    - StringBuilder: ~25,000 character copies (5x faster)
+For a 1000-line document with 500 rendered fragments:
+- String concatenation: ~125,000 character copies
+- StringBuilder: ~25,000 character copies (5x faster)
+
 """
 
 from __future__ import annotations
@@ -19,21 +20,22 @@ from __future__ import annotations
 
 class StringBuilder:
     """Efficient string accumulator.
-
+    
     Appends to a list, joins once at the end.
     O(n) total vs O(n²) for repeated string concatenation.
-
+    
     Usage:
-        >>> sb = StringBuilder()
-        >>> sb.append("<h1>")
-        >>> sb.append("Hello")
-        >>> sb.append("</h1>")
-        >>> sb.build()
-        '<h1>Hello</h1>'
-
+            >>> sb = StringBuilder()
+            >>> sb.append("<h1>")
+            >>> sb.append("Hello")
+            >>> sb.append("</h1>")
+            >>> sb.build()
+            '<h1>Hello</h1>'
+    
     Thread Safety:
         Instance is local to each render() call.
         No shared mutable state.
+        
     """
 
     __slots__ = ("_parts",)

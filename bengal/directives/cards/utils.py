@@ -200,13 +200,14 @@ def resolve_link_url(renderer: Any, link: str) -> str:
 def render_icon(icon_name: str, card_title: str = "") -> str:
     """
     Render icon using Bengal SVG icons.
-
+    
     Args:
         icon_name: Name of the icon to render
         card_title: Title of the card (for warning context)
-
+    
     Returns:
         SVG HTML string, or empty string if not found
+        
     """
     from bengal.directives._icons import render_icon as _render_icon
     from bengal.directives._icons import warn_missing_icon
@@ -379,17 +380,18 @@ def render_child_card(
 
 def escape_html(text: str) -> str:
     """Escape HTML special characters for safe use in attributes.
-
+    
     This is a convenience re-export of the canonical implementation.
-
+    
     Args:
         text: Raw text to escape.
-
+    
     Returns:
         HTML-escaped string safe for use in attribute values.
-
+    
     See Also:
         ``bengal.utils.text.escape_html``: Canonical implementation.
+        
     """
     from bengal.utils.text import escape_html as _escape_html
 

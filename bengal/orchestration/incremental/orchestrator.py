@@ -6,14 +6,15 @@ cache management, change detection, and rebuild filtering through specialized
 component classes.
 
 Key Concepts:
-    - Component delegation: Work delegated to focused component classes
-    - Phase-based detection: Early (pre-taxonomy) and full (post-taxonomy)
+- Component delegation: Work delegated to focused component classes
+- Phase-based detection: Early (pre-taxonomy) and full (post-taxonomy)
 
 Related Modules:
-    - bengal.orchestration.incremental.cache_manager: Cache operations
-    - bengal.orchestration.incremental.change_detector: Change detection
-    - bengal.orchestration.incremental.cleanup: Deleted file cleanup
-    - bengal.core.nav_tree: NavTreeCache for cached navigation
+- bengal.orchestration.incremental.cache_manager: Cache operations
+- bengal.orchestration.incremental.change_detector: Change detection
+- bengal.orchestration.incremental.cleanup: Deleted file cleanup
+- bengal.core.nav_tree: NavTreeCache for cached navigation
+
 """
 
 from __future__ import annotations
@@ -41,32 +42,33 @@ logger = get_logger(__name__)
 class IncrementalOrchestrator:
     """
     Orchestrates incremental build logic for efficient rebuilds.
-
+    
     Coordinates cache management, change detection, dependency tracking, and
     selective rebuilding through specialized component classes. Uses file hashes,
     dependency graphs, and taxonomy indexes to minimize rebuild work.
-
+    
     Component Delegation:
         - CacheManager: Cache loading, saving, and migration
         - ChangeDetector: Unified change detection with phase parameter
         - cleanup: Deleted file cleanup
-
+    
     Creation:
         Direct instantiation: IncrementalOrchestrator(site)
             - Created by BuildOrchestrator when incremental builds enabled
             - Requires Site instance with content populated
-
+    
     Attributes:
         site: Site instance for incremental builds
         cache: BuildCache instance for build state persistence
         tracker: DependencyTracker instance for dependency graph construction
         _cache_manager: CacheManager instance for cache operations
         _change_detector: ChangeDetector instance for change detection (lazy)
-
+    
     Example:
-        >>> orchestrator = IncrementalOrchestrator(site)
-        >>> cache, tracker = orchestrator.initialize(enabled=True)
-        >>> pages, assets, summary = orchestrator.find_work_early()
+            >>> orchestrator = IncrementalOrchestrator(site)
+            >>> cache, tracker = orchestrator.initialize(enabled=True)
+            >>> pages, assets, summary = orchestrator.find_work_early()
+        
     """
 
     def __init__(self, site: Site) -> None:

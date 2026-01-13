@@ -6,26 +6,27 @@ can be served from the built site to display build metrics (e.g., a footer
 badge showing "built in 1m 02s").
 
 Functions:
-    format_duration_ms_compact
-        Formats milliseconds into compact human-readable strings:
-        950 → "950ms", 1200 → "1.2s", 62000 → "1m 02s", 3726000 → "1h 02m"
-    build_shields_like_badge_svg
-        Generates a shields.io-style SVG badge with configurable label,
-        message, and colors. Self-contained (no external fonts or images).
+format_duration_ms_compact
+    Formats milliseconds into compact human-readable strings:
+    950 → "950ms", 1200 → "1.2s", 62000 → "1m 02s", 3726000 → "1h 02m"
+build_shields_like_badge_svg
+    Generates a shields.io-style SVG badge with configurable label,
+    message, and colors. Self-contained (no external fonts or images).
 
 Design Principles:
-    - Pure functions: No I/O, no logging, no side effects
-    - Self-contained output: SVG badges work without external dependencies
-    - Called from postprocess layer which handles file writing
+- Pure functions: No I/O, no logging, no side effects
+- Self-contained output: SVG badges work without external dependencies
+- Called from postprocess layer which handles file writing
 
 Usage:
-    from bengal.orchestration.badge import format_duration_ms_compact, build_shields_like_badge_svg
+from bengal.orchestration.badge import format_duration_ms_compact, build_shields_like_badge_svg
 
     duration_str = format_duration_ms_compact(3500)  # "3.5s"
     svg = build_shields_like_badge_svg(label="built", message=duration_str)
 
 See Also:
-    bengal.orchestration.postprocess: Calls badge generation during post-processing
+bengal.orchestration.postprocess: Calls badge generation during post-processing
+
 """
 
 from __future__ import annotations
@@ -36,12 +37,13 @@ import math
 def format_duration_ms_compact(ms: float) -> str:
     """
     Format milliseconds into a compact, human-friendly string.
-
+    
     Examples:
         - 950 -> "950ms"
         - 1200 -> "1.2s"
         - 62_000 -> "1m 02s"
         - 3_726_000 -> "1h 02m"
+        
     """
     if ms <= 0:
         return "0ms"
@@ -81,9 +83,10 @@ def build_shields_like_badge_svg(
 ) -> str:
     """
     Generate a small "shields.io-like" SVG badge.
-
+    
     This is intentionally minimal and self-contained (no external fonts, no images).
     Width is estimated from character counts; rendering is stable across platforms.
+        
     """
     # Rough width estimate (similar to shields.io rendering): 7px per char + padding.
     # This does not need pixel-perfect accuracy for our use case.

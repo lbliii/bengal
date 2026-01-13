@@ -6,30 +6,31 @@ Provides normalized access to DocElement metadata across all extractor types
 directly accessing element.metadata.
 
 View Dataclasses (for theme developers):
-    - MemberView: Normalized Python method/function view
-    - ParamView: Normalized parameter view
-    - CommandView: Normalized CLI command view
-    - OptionView: Normalized CLI option/argument view
+- MemberView: Normalized Python method/function view
+- ParamView: Normalized parameter view
+- CommandView: Normalized CLI command view
+- OptionView: Normalized CLI option/argument view
 
 Filters:
-    - element | members: Get normalized Python members (methods/functions)
-    - element | commands: Get normalized CLI commands
-    - element | options: Get normalized CLI options/arguments
+- element | members: Get normalized Python members (methods/functions)
+- element | commands: Get normalized CLI commands
+- element | options: Get normalized CLI options/arguments
 
 Legacy Functions:
-    - get_params(element): Get normalized parameters list
-    - get_return_info(element): Get normalized return type info
-    - param_count(element): Count of parameters (excluding self/cls)
-    - return_type(element): Return type string or 'None'
-    - get_element_stats(element): Get display stats for element children
+- get_params(element): Get normalized parameters list
+- get_return_info(element): Get normalized return type info
+- param_count(element): Count of parameters (excluding self/cls)
+- return_type(element): Return type string or 'None'
+- get_element_stats(element): Get display stats for element children
 
 Ergonomic Helpers (Tier 3 - Portable Context Globals):
-    - children_by_type(children, element_type): Filter children by type
-    - public_only(members): Filter to public members (no underscore prefix)
-    - private_only(members): Filter to private members (underscore prefix)
+- children_by_type(children, element_type): Filter children by type
+- public_only(members): Filter to public members (no underscore prefix)
+- private_only(members): Filter to private members (underscore prefix)
 
 These helper functions are registered as both Jinja filters and globals,
 making them portable across any Python-based template engine.
+
 """
 
 from __future__ import annotations
@@ -57,10 +58,10 @@ if TYPE_CHECKING:
 class ParamView:
     """
     Normalized parameter view for templates.
-
+    
     Provides consistent access to parameter data for Python functions,
     CLI commands, and other elements with parameters.
-
+    
     Attributes:
         name: Parameter name
         type: Type annotation (e.g., "str", "int | None")
@@ -68,6 +69,7 @@ class ParamView:
         required: Whether parameter is required
         description: Parameter description from docstring
         kind: Parameter kind (positional, keyword, var_positional, var_keyword)
+        
     """
 
     name: str
@@ -94,10 +96,10 @@ class ParamView:
 class MemberView:
     """
     Normalized Python member view for templates.
-
+    
     Provides consistent access to method/function data regardless of
     how it's stored in the DocElement.
-
+    
     Attributes:
         name: Member name
         signature: Full signature string
@@ -115,6 +117,7 @@ class MemberView:
         href: Link to member page (or anchor)
         decorators: Tuple of decorator names
         typed_metadata: Full PythonFunctionMetadata (for advanced use)
+        
     """
 
     name: str
@@ -212,9 +215,9 @@ class MemberView:
 class OptionView:
     """
     Normalized CLI option/argument view for templates.
-
+    
     Provides consistent access to CLI option data.
-
+    
     Attributes:
         name: Option name (e.g., "verbose")
         flags: Option flags as tuple (e.g., ("-v", "--verbose"))
@@ -228,6 +231,7 @@ class OptionView:
         multiple: Whether option accepts multiple values
         envvar: Environment variable name
         typed_metadata: Full CLIOptionMetadata (for advanced use)
+        
     """
 
     name: str
@@ -288,9 +292,9 @@ class OptionView:
 class CommandView:
     """
     Normalized CLI command view for templates.
-
+    
     Provides consistent access to CLI command data.
-
+    
     Attributes:
         name: Command name
         description: Command description/help text
@@ -302,6 +306,7 @@ class CommandView:
         argument_count: Number of arguments
         subcommand_count: Number of subcommands (if group)
         typed_metadata: Full CLICommandMetadata (for advanced use)
+        
     """
 
     name: str
@@ -365,20 +370,21 @@ class CommandView:
 def members_filter(element: DocElement | None) -> list[MemberView]:
     """
     Normalize Python element members for templates.
-
+    
     Returns a list of MemberView objects for methods, functions, and properties.
-
+    
     Usage:
         {% for m in element | members %}
           <a href="{{ m.href }}">{{ m.name }}</a>
           {% if m.is_async %}<span class="badge">async</span>{% end %}
         {% end %}
-
+    
     Args:
         element: DocElement containing children (class, module)
-
+    
     Returns:
         List of MemberView objects
+        
     """
     if element is None:
         return []
@@ -396,20 +402,21 @@ def members_filter(element: DocElement | None) -> list[MemberView]:
 def commands_filter(element: DocElement | None) -> list[CommandView]:
     """
     Normalize CLI element commands for templates.
-
+    
     Returns a list of CommandView objects for commands and command groups.
-
+    
     Usage:
         {% for cmd in element | commands %}
           <a href="{{ cmd.href }}">{{ cmd.name }}</a>
           <span class="badge">{{ cmd.option_count }} options</span>
         {% end %}
-
+    
     Args:
         element: DocElement containing children (CLI group)
-
+    
     Returns:
         List of CommandView objects
+        
     """
     if element is None:
         return []
@@ -427,21 +434,22 @@ def commands_filter(element: DocElement | None) -> list[CommandView]:
 def options_filter(element: DocElement | None) -> list[OptionView]:
     """
     Normalize CLI element options for templates.
-
+    
     Returns a list of OptionView objects for options and arguments.
-
+    
     Usage:
         {% for opt in element | options %}
           <code>{{ opt.flags_str }}</code>
           <span>{{ opt.description }}</span>
           {% if opt.required %}<span class="badge">required</span>{% end %}
         {% end %}
-
+    
     Args:
         element: DocElement containing children (CLI command)
-
+    
     Returns:
         List of OptionView objects (options first, then arguments)
+        
     """
     if element is None:
         return []
@@ -462,22 +470,23 @@ def options_filter(element: DocElement | None) -> list[OptionView]:
 def member_view_filter(element: DocElement | None) -> MemberView | None:
     """
     Convert a single DocElement to a MemberView.
-
+    
     Use this when iterating over a pre-filtered list of DocElements
     and you want normalized access to each member's properties.
-
+    
     Usage:
         {% for el in members %}
           {% let m = el | member_view %}
           <code>{{ m.name }}</code>
           {% if m.is_async %}<span class="badge">async</span>{% end %}
         {% end %}
-
+    
     Args:
         element: DocElement to convert
-
+    
     Returns:
         MemberView or None if element is None
+        
     """
     if element is None:
         return None
@@ -487,21 +496,22 @@ def member_view_filter(element: DocElement | None) -> MemberView | None:
 def option_view_filter(element: DocElement | None) -> OptionView | None:
     """
     Convert a single DocElement to an OptionView.
-
+    
     Use this when iterating over a pre-filtered list of DocElements
     and you want normalized access to each option's properties.
-
+    
     Usage:
         {% for el in options %}
           {% let opt = el | option_view %}
           <code>{{ opt.flags_str }}</code>
         {% end %}
-
+    
     Args:
         element: DocElement to convert
-
+    
     Returns:
         OptionView or None if element is None
+        
     """
     if element is None:
         return None
@@ -511,21 +521,22 @@ def option_view_filter(element: DocElement | None) -> OptionView | None:
 def command_view_filter(element: DocElement | None) -> CommandView | None:
     """
     Convert a single DocElement to a CommandView.
-
+    
     Use this when iterating over a pre-filtered list of DocElements
     and you want normalized access to each command's properties.
-
+    
     Usage:
         {% for el in commands %}
           {% let cmd = el | command_view %}
           <a href="{{ cmd.href }}">{{ cmd.name }}</a>
         {% end %}
-
+    
     Args:
         element: DocElement to convert
-
+    
     Returns:
         CommandView or None if element is None
+        
     """
     if element is None:
         return None
@@ -535,15 +546,16 @@ def command_view_filter(element: DocElement | None) -> CommandView | None:
 def is_autodoc_page(page: Any) -> bool:
     """
     Check if a page is autodoc-generated (template helper).
-
+    
     This is a template-friendly wrapper around bengal.utils.autodoc.is_autodoc_page
     that can be used in Jinja templates.
-
+    
     Args:
         page: Page object to check
-
+    
     Returns:
         True if page is autodoc-generated
+        
     """
     from bengal.utils.autodoc import is_autodoc_page as _is_autodoc_page
 
@@ -604,25 +616,26 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def get_params(element: DocElement, exclude_self: bool = True) -> list[dict[str, Any]]:
     """
     Get normalized parameters for any DocElement with parameters.
-
+    
     Returns a list of dicts with consistent keys:
         - name: Parameter name
         - type: Type annotation (or None)
         - default: Default value (or None)
         - required: Whether required
         - description: Description text
-
+    
     Usage in templates:
         {% for param in element | get_params %}
           {{ param.name }}: {{ param.type }}
         {% endfor %}
-
+    
     Args:
         element: DocElement (function, method, CLI command, OpenAPI endpoint)
         exclude_self: Exclude 'self' and 'cls' parameters (default True)
-
+    
     Returns:
         List of normalized parameter dicts
+        
     """
     return get_function_parameters(element, exclude_self=exclude_self)
 
@@ -630,16 +643,17 @@ def get_params(element: DocElement, exclude_self: bool = True) -> list[dict[str,
 def param_count(element: DocElement, exclude_self: bool = True) -> int:
     """
     Get count of parameters for an element.
-
+    
     Usage in templates:
         {{ element | param_count }} parameters
-
+    
     Args:
         element: DocElement with parameters
         exclude_self: Exclude 'self' and 'cls' (default True)
-
+    
     Returns:
         Number of parameters
+        
     """
     return len(get_function_parameters(element, exclude_self=exclude_self))
 
@@ -647,15 +661,16 @@ def param_count(element: DocElement, exclude_self: bool = True) -> int:
 def return_type(element: DocElement) -> str:
     """
     Get return type string for an element.
-
+    
     Usage in templates:
         Returns: {{ element | return_type }}
-
+    
     Args:
         element: DocElement (function, method, etc.)
-
+    
     Returns:
         Return type string or 'None' if not specified
+        
     """
     info = get_function_return_info(element)
     return info.get("type") or "None"
@@ -664,23 +679,24 @@ def return_type(element: DocElement) -> str:
 def get_return_info(element: DocElement) -> dict[str, Any]:
     """
     Get normalized return info for an element.
-
+    
     Returns a dict with:
         - type: Return type string (or None)
         - description: Return description (or None)
-
+    
     Usage in templates:
         {% set ret = element | get_return_info %}
         {% if ret.type and ret.type != 'None' %}
           Returns: {{ ret.type }}
           {% if ret.description %} — {{ ret.description }}{% endif %}
         {% endif %}
-
+    
     Args:
         element: DocElement (function, method, etc.)
-
+    
     Returns:
         Dict with 'type' and 'description' keys
+        
     """
     return get_function_return_info(element)
 
@@ -688,10 +704,10 @@ def get_return_info(element: DocElement) -> dict[str, Any]:
 def get_element_stats(element: DocElement) -> list[dict[str, Any]]:
     """
     Extract display stats from a DocElement based on its children types.
-
+    
     Counts children by element_type and returns a list of stats suitable
     for rendering in templates.
-
+    
     Usage in templates:
         {% set stats = element | get_element_stats %}
         {% if stats %}
@@ -704,12 +720,13 @@ def get_element_stats(element: DocElement) -> list[dict[str, Any]]:
           {% endfor %}
         </div>
         {% endif %}
-
+    
     Args:
         element: DocElement with children to count
-
+    
     Returns:
         List of dicts with 'value' (count) and 'label' (singular/plural name)
+        
     """
     if not element or not hasattr(element, "children") or not element.children:
         return []
@@ -762,29 +779,30 @@ def get_element_stats(element: DocElement) -> list[dict[str, Any]]:
 def children_by_type(children: list[Any], element_type: str) -> list[Any]:
     """
     Filter children by element_type.
-
+    
     This replaces verbose Jinja filter chains like:
         {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
-
+    
     With a simple function call:
         {% set methods = children_by_type(children, 'method') %}
-
+    
     Note: This function is portable across template engines because it's
     pure Python and can be injected as a context global in any renderer.
-
+    
     Args:
         children: List of child elements (DocElement or similar)
         element_type: Type to filter (method, function, class, attribute, etc.)
-
+    
     Returns:
         List of children matching the type (empty list if none match)
-
+    
     Example:
         {% set children = element.children or [] %}
         {% set methods = children_by_type(children, 'method') %}
         {% set functions = children_by_type(children, 'function') %}
         {% set classes = children_by_type(children, 'class') %}
         {% set attributes = children_by_type(children, 'attribute') %}
+        
     """
     if not children:
         return []
@@ -794,25 +812,26 @@ def children_by_type(children: list[Any], element_type: str) -> list[Any]:
 def public_only(members: list[Any]) -> list[Any]:
     """
     Filter to members not starting with underscore.
-
+    
     This replaces verbose Jinja filter chains like:
         {% set public = members | rejectattr('name', 'startswith', '_') | list %}
-
+    
     With a simple function call:
         {% set public = public_only(members) %}
-
+    
     Note: This function is portable across template engines because it's
     pure Python and can be injected as a context global in any renderer.
-
+    
     Args:
         members: List of elements with a 'name' attribute
-
+    
     Returns:
         List of members whose name does not start with underscore
-
+    
     Example:
         {% set methods = children_by_type(element.children, 'method') %}
         {% set public_methods = public_only(methods) %}
+        
     """
     if not members:
         return []
@@ -822,25 +841,26 @@ def public_only(members: list[Any]) -> list[Any]:
 def private_only(members: list[Any]) -> list[Any]:
     """
     Filter to members starting with underscore (internal).
-
+    
     This replaces verbose Jinja filter chains like:
         {% set private = members | selectattr('name', 'startswith', '_') | list %}
-
+    
     With a simple function call:
         {% set private = private_only(members) %}
-
+    
     Note: This function is portable across template engines because it's
     pure Python and can be injected as a context global in any renderer.
-
+    
     Args:
         members: List of elements with a 'name' attribute
-
+    
     Returns:
         List of members whose name starts with underscore
-
+    
     Example:
         {% set methods = children_by_type(element.children, 'method') %}
         {% set private_methods = private_only(methods) %}
+        
     """
     if not members:
         return []

@@ -6,8 +6,9 @@ the site's template engine with full context. Extracted from core.py
 per RFC: rfc-modularize-large-files.
 
 Classes:
-    AutodocRenderer: Renders autodoc pages.
-    MetadataView: Dict wrapper for dotted attribute access.
+AutodocRenderer: Renders autodoc pages.
+MetadataView: Dict wrapper for dotted attribute access.
+
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ logger = get_logger(__name__)
 class MetadataView(dict[str, Any]):
     """
     Dict that also supports attribute-style access (dotted) used by templates.
+        
     """
 
     def __getattr__(self, item: str) -> Any:
@@ -43,24 +45,25 @@ class MetadataView(dict[str, Any]):
 class AutodocRenderer:
     """
     Renders autodoc pages through the site's template engine.
-
+    
     Handles both pre-rendered virtual pages and deferred autodoc pages
     that need full template context (menus, navigation, versioning).
-
+    
     Attributes:
         site: Site instance for configuration
         template_engine: TemplateEngine for template rendering
         renderer: Renderer for fallback rendering
         dependency_tracker: Optional DependencyTracker for dependency tracking
         output_collector: Optional collector for hot reload tracking
-
+    
     Example:
-        >>> autodoc = AutodocRenderer(
-        ...     site=site,
-        ...     template_engine=engine,
-        ...     renderer=renderer,
-        ... )
-        >>> autodoc.process_virtual_page(page)
+            >>> autodoc = AutodocRenderer(
+            ...     site=site,
+            ...     template_engine=engine,
+            ...     renderer=renderer,
+            ... )
+            >>> autodoc.process_virtual_page(page)
+        
     """
 
     def __init__(
@@ -509,6 +512,7 @@ class AutodocRenderer:
 def _safe_metadata_summary(meta: Any) -> str:
     """
     Summarize metadata for logging without raising on missing attributes.
+        
     """
     try:
         if isinstance(meta, dict):

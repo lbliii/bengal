@@ -17,6 +17,7 @@ class TestFullSiteUrlConsistency:
     """
     Integration tests ensuring URL consistency across full site builds.
     Marked slow due to full site construction.
+        
     """
 
     @pytest.mark.parametrize(

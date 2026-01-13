@@ -6,36 +6,37 @@ assets) populated during discovery. Supports freeze/unfreeze lifecycle for
 thread-safe reads during parallel rendering.
 
 Public API:
-    SiteContent: Mutable container for site content
+SiteContent: Mutable container for site content
 
 Key Concepts:
-    Discovery Population: Content is populated during the discovery phase.
-        Pages, sections, and assets are added as they're discovered.
+Discovery Population: Content is populated during the discovery phase.
+    Pages, sections, and assets are added as they're discovered.
 
-    Freeze Lifecycle: Content can be frozen before rendering to enable
-        thread-safe concurrent reads.
+Freeze Lifecycle: Content can be frozen before rendering to enable
+    thread-safe concurrent reads.
 
-    Cached Derived Lists: Common page filters (regular, generated, listable)
-        are cached for O(1) repeated access.
+Cached Derived Lists: Common page filters (regular, generated, listable)
+    are cached for O(1) repeated access.
 
 Lifecycle:
-    1. Created empty at Site initialization
-    2. Populated during discovery phase (pages, sections, assets)
-    3. Extended during taxonomy/menu phases
-    4. Frozen before rendering (optional, for safety)
-    5. Cleared on rebuild via clear()
+1. Created empty at Site initialization
+2. Populated during discovery phase (pages, sections, assets)
+3. Extended during taxonomy/menu phases
+4. Frozen before rendering (optional, for safety)
+5. Cleared on rebuild via clear()
 
 Thread Safety:
-    - Mutations during discovery are single-threaded
-    - After freeze(), reads are safe for parallel rendering
-    - Dev server calls clear() before re-discovery
+- Mutations during discovery are single-threaded
+- After freeze(), reads are safe for parallel rendering
+- Dev server calls clear() before re-discovery
 
 Related Packages:
-    bengal.core.site.core: Site dataclass using SiteContent
-    bengal.orchestration.content: Content discovery that populates SiteContent
+bengal.core.site.core: Site dataclass using SiteContent
+bengal.orchestration.content: Content discovery that populates SiteContent
 
 See Also:
-    plan/drafted/rfc-site-responsibility-separation.md
+plan/drafted/rfc-site-responsibility-separation.md
+
 """
 
 from __future__ import annotations
@@ -54,25 +55,25 @@ if TYPE_CHECKING:
 class SiteContent:
     """
     Mutable content container populated during discovery.
-
+    
     Lifecycle:
         1. Created empty at Site initialization
         2. Populated during discovery phase (pages, sections, assets)
         3. Extended during taxonomy/menu phases
         4. Frozen before rendering (optional, for safety)
         5. Cleared on rebuild via clear()
-
+    
     Separation from Site:
         - Contains ONLY content data (pages, sections, assets)
         - No caches (those go in BuildState or derived properties)
         - No registries (those go in ContentRegistry)
         - No config (that goes in SiteData)
-
+    
     Thread Safety:
         - Mutations during discovery are single-threaded
         - After freeze(), reads are safe for parallel rendering
         - Dev server calls clear() before re-discovery
-
+    
     Attributes:
         pages: All pages in the site
         sections: All sections in the site
@@ -83,6 +84,7 @@ class SiteContent:
         menu_localized: Localized menus by language/name
         menu_builders_localized: Localized menu builders
         data: Data from data/ directory
+        
     """
 
     # Core content

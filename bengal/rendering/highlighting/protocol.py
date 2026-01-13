@@ -6,49 +6,50 @@ The protocol ensures consistent behavior across Pygments, tree-sitter, and any
 custom or third-party backends.
 
 Design Philosophy:
-    - **Runtime checkable**: Can verify implementations at runtime
-    - **Clear contracts**: Each method documents preconditions and guarantees
-    - **Minimal interface**: Only essential methods required
-    - **Follows Bengal patterns**: Matches TemplateEngineProtocol style
+- **Runtime checkable**: Can verify implementations at runtime
+- **Clear contracts**: Each method documents preconditions and guarantees
+- **Minimal interface**: Only essential methods required
+- **Follows Bengal patterns**: Matches TemplateEngineProtocol style
 
 Required Methods:
-    - highlight(): Render code with syntax highlighting
-    - supports_language(): Check if backend supports a language
+- highlight(): Render code with syntax highlighting
+- supports_language(): Check if backend supports a language
 
 Required Properties:
-    - name: Backend identifier for configuration
+- name: Backend identifier for configuration
 
 Implementing Custom Backends:
-    To create a custom backend, implement all protocol methods:
+To create a custom backend, implement all protocol methods:
 
-    .. code-block:: python
+.. code-block:: python
 
-        class MyBackend:
-            @property
-            def name(self) -> str:
-                return "my-backend"
+    class MyBackend:
+        @property
+        def name(self) -> str:
+            return "my-backend"
 
-            def highlight(
-                self,
-                code: str,
-                language: str,
-                hl_lines: list[int] | None = None,
-                show_linenos: bool = False,
-            ) -> str:
-                # Implementation...
+        def highlight(
+            self,
+            code: str,
+            language: str,
+            hl_lines: list[int] | None = None,
+            show_linenos: bool = False,
+        ) -> str:
+            # Implementation...
 
-            def supports_language(self, language: str) -> bool:
-                # Implementation...
+        def supports_language(self, language: str) -> bool:
+            # Implementation...
 
-    Then register it:
+Then register it:
 
     >>> from bengal.rendering.highlighting import register_backend
     >>> register_backend("my-backend", MyBackend)
 
 Related Modules:
-    - bengal.rendering.highlighting: Backend factory and registration
-    - bengal.rendering.highlighting.rosettes: Default Rosettes backend (bundled)
-    - bengal.rendering.highlighting.tree_sitter: Optional tree-sitter backend
+- bengal.rendering.highlighting: Backend factory and registration
+- bengal.rendering.highlighting.rosettes: Default Rosettes backend (bundled)
+- bengal.rendering.highlighting.tree_sitter: Optional tree-sitter backend
+
 """
 
 from __future__ import annotations
@@ -60,23 +61,24 @@ from typing import Protocol, runtime_checkable
 class HighlightBackend(Protocol):
     """
     Standardized interface for Bengal syntax highlighting backends.
-
+    
     Follows Bengal's "bring your own X" pattern established by:
     - TemplateEngineProtocol (template engines)
     - BaseMarkdownParser (markdown parsers)
     - ContentSource (content sources)
-
+    
     REQUIRED PROPERTIES:
         name: Backend identifier (used in config, e.g., "rosettes", "tree-sitter")
-
+    
     REQUIRED METHODS:
         highlight(): Render code with syntax highlighting to HTML
         supports_language(): Check if backend supports a language
-
+    
     ALL methods are required. No optional methods. This ensures:
         - Consistent behavior across backends
         - Easy testing and mocking
         - Clear contract for third-party backends
+        
     """
 
     @property

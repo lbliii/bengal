@@ -6,7 +6,8 @@ hierarchies, and sorting sections/pages by weight. Extracted from
 content_discovery.py per RFC: rfc-modularize-large-files.
 
 Classes:
-    SectionBuilder: Creates and organizes Section hierarchies.
+SectionBuilder: Creates and organizes Section hierarchies.
+
 """
 
 from __future__ import annotations
@@ -26,21 +27,22 @@ logger = get_logger(__name__)
 class SectionBuilder:
     """
     Creates and organizes Section hierarchies.
-
+    
     Handles:
     - Section creation from directories
     - Section hierarchy building
     - Weight-based sorting of sections and pages
-
+    
     Attributes:
         site: Optional Site reference for configuration
         sections: List of top-level sections
         pages: List of all discovered pages
-
+    
     Example:
-        >>> builder = SectionBuilder(site=site)
-        >>> section = builder.create_section(Path("content/blog"), name="blog")
-        >>> builder.sort_all_sections()
+            >>> builder = SectionBuilder(site=site)
+            >>> section = builder.create_section(Path("content/blog"), name="blog")
+            >>> builder.sort_all_sections()
+        
     """
 
     def __init__(self, site: Any | None = None):

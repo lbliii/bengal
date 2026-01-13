@@ -31,18 +31,19 @@ from typing import Any
 class IgnorePolicy:
     """
     Configurable policy for ignoring links and HTTP status codes.
-
+    
     Supports three types of ignore rules:
         patterns: Regex patterns matched against full URL string
         domains: Domain substrings checked via "in" operator
         status_ranges: HTTP status codes as singles ("403") or ranges ("500-599")
-
+    
     All rules are applied with OR logic - matching any rule causes ignore.
-
+    
     Attributes:
         patterns: List of regex pattern strings
         domains: List of domain substrings to match
         status_ranges: List of status code specs
+        
     """
 
     def __init__(

@@ -8,8 +8,9 @@ Provides configurable filtering for file watching with support for:
 - Default ignores (common temp/cache directories)
 
 Related:
-    - bengal/server/watcher_runner.py: Uses IgnoreFilter for file watching
-    - bengal/server/file_watcher.py: Integrates with file watcher backends
+- bengal/server/watcher_runner.py: Uses IgnoreFilter for file watching
+- bengal/server/file_watcher.py: Integrates with file watcher backends
+
 """
 
 from __future__ import annotations
@@ -28,26 +29,27 @@ if TYPE_CHECKING:
 class IgnoreFilter:
     r"""
     Filter for determining which paths to ignore during file watching.
-
+    
     Supports glob patterns, regex patterns, and directory ignores.
     Default ignores are always applied (common temp/cache directories).
-
+    
     Features:
         - Glob patterns: Standard shell wildcards (e.g., "*.pyc", "**/__pycache__")
         - Regex patterns: Full regex support (e.g., r".*\.min\.(js|css)$")
         - Directory ignores: Always ignore files under specific directories
         - Default ignores: Common development directories (.git, node_modules, etc.)
-
+    
     Example:
-        >>> filter = IgnoreFilter(
-        ...     glob_patterns=["*.pyc", "__pycache__"],
-        ...     regex_patterns=[r".*\.min\.(js|css)$"],
-        ...     directories=[Path("/project/dist")],
-        ... )
-        >>> filter(Path("/project/foo.pyc"))
+            >>> filter = IgnoreFilter(
+            ...     glob_patterns=["*.pyc", "__pycache__"],
+            ...     regex_patterns=[r".*\.min\.(js|css)$"],
+            ...     directories=[Path("/project/dist")],
+            ... )
+            >>> filter(Path("/project/foo.pyc"))
         True
-        >>> filter(Path("/project/src/app.py"))
+            >>> filter(Path("/project/src/app.py"))
         False
+        
     """
 
     # Default directories to always ignore (common development patterns)

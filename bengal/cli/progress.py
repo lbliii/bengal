@@ -8,20 +8,21 @@ of detail, and gracefully falls back to sequential output in
 non-TTY environments.
 
 Classes:
-    PhaseStatus: Enum for tracking build phase states
-    PhaseProgress: Dataclass for individual phase progress data
-    LiveProgressManager: Main progress display manager
+PhaseStatus: Enum for tracking build phase states
+PhaseProgress: Dataclass for individual phase progress data
+LiveProgressManager: Main progress display manager
 
 Features:
-    - Profile-aware display density
-    - In-place terminal updates (no scrolling)
-    - Graceful fallback for CI/non-TTY environments
-    - Context manager for clean setup/teardown
-    - Throttled rendering to reduce overhead
+- Profile-aware display density
+- In-place terminal updates (no scrolling)
+- Graceful fallback for CI/non-TTY environments
+- Context manager for clean setup/teardown
+- Throttled rendering to reduce overhead
 
 Related:
-    - bengal/utils/profile.py: BuildProfile definitions
-    - bengal/output/: CLI output utilities
+- bengal/utils/profile.py: BuildProfile definitions
+- bengal/output/: CLI output utilities
+
 """
 
 from __future__ import annotations
@@ -46,12 +47,13 @@ logger = get_logger(__name__)
 class PhaseStatus(Enum):
     """
     Status of a build phase.
-
+    
     Values:
         PENDING: Phase not yet started
         RUNNING: Phase currently in progress
         COMPLETE: Phase finished successfully
         FAILED: Phase encountered an error
+        
     """
 
     PENDING = "pending"
@@ -64,7 +66,7 @@ class PhaseStatus(Enum):
 class PhaseProgress:
     """
     Track progress for a single build phase.
-
+    
     Attributes:
         name: Display name for the phase (e.g., 'Rendering', 'Discovery')
         status: Current phase status
@@ -75,6 +77,7 @@ class PhaseProgress:
         start_time: Unix timestamp when phase started
         metadata: Additional phase-specific data (e.g., error messages)
         recent_items: Rolling list of recently processed items
+        
     """
 
     name: str
@@ -116,24 +119,25 @@ class PhaseProgress:
 class LiveProgressManager:
     """
     Manager for live progress updates across build phases.
-
+    
     Features:
     - Profile-aware display (Writer/Theme-Dev/Developer)
     - In-place updates (no scrolling)
     - Graceful fallback for CI/non-TTY
     - Context manager for clean setup/teardown
-
+    
     Example:
         with LiveProgressManager(profile) as progress:
             progress.add_phase('rendering', 'Rendering', total=100)
             progress.start_phase('rendering')
-
+    
             for i in range(100):
                 process_page(i)
                 progress.update_phase('rendering', current=i+1,
                                      current_item=f"page_{i}.html")
-
+    
             progress.complete_phase('rendering', elapsed_ms=1234)
+        
     """
 
     def __init__(self, profile: BuildProfile, console: Console | None = None, enabled: bool = True):

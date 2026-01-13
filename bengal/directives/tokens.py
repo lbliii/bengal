@@ -6,26 +6,27 @@ Using a typed class provides type safety, IDE autocomplete, and consistent
 structure across all directive implementations.
 
 Key Features:
-    - **Type Safety**: Type annotations catch typos and invalid structures.
-    - **IDE Support**: Autocomplete for ``type``, ``attrs``, ``children``.
-    - **Mistune Compatibility**: ``to_dict()`` converts to the dict format
-      expected by Mistune's AST.
-    - **Immutable Operations**: ``with_attrs()`` and ``with_children()`` return
-      new tokens without mutating the original.
-    - **DirectiveType Enum**: Known directive types for type-safe validation.
+- **Type Safety**: Type annotations catch typos and invalid structures.
+- **IDE Support**: Autocomplete for ``type``, ``attrs``, ``children``.
+- **Mistune Compatibility**: ``to_dict()`` converts to the dict format
+  expected by Mistune's AST.
+- **Immutable Operations**: ``with_attrs()`` and ``with_children()`` return
+  new tokens without mutating the original.
+- **DirectiveType Enum**: Known directive types for type-safe validation.
 
 Example:
-    Create a token and convert for Mistune::
+Create a token and convert for Mistune::
 
-        token = DirectiveToken(
-            type="dropdown",
-            attrs={"title": "Details", "open": True},
-            children=parsed_children,
-        )
-        return token.to_dict()  # {"type": "dropdown", "attrs": {...}, ...}
+    token = DirectiveToken(
+        type="dropdown",
+        attrs={"title": "Details", "open": True},
+        children=parsed_children,
+    )
+    return token.to_dict()  # {"type": "dropdown", "attrs": {...}, ...}
 
 See Also:
-    - ``bengal.directives.base``: ``BengalDirective.parse_directive()`` returns tokens.
+- ``bengal.directives.base``: ``BengalDirective.parse_directive()`` returns tokens.
+
 """
 
 from __future__ import annotations
@@ -37,15 +38,16 @@ from typing import Any
 
 class DirectiveType(Enum):
     """Known directive types for type-safe validation.
-
+    
     This enum defines all standard Bengal directive types, enabling type-safe
     comparisons and IDE autocomplete when working with directive tokens.
-
+    
     Example:
-        >>> DirectiveType.STEP.value
-        'step'
-        >>> DirectiveType.NOTE.value
-        'note'
+            >>> DirectiveType.STEP.value
+            'step'
+            >>> DirectiveType.NOTE.value
+            'note'
+        
     """
 
     # Container directives
@@ -96,11 +98,11 @@ class DirectiveType(Enum):
 @dataclass(slots=True)
 class DirectiveToken:
     """Typed AST token for directive nodes.
-
+    
     A structured replacement for ad-hoc dictionaries like
     ``{"type": "dropdown", "attrs": {...}, "children": [...]}``.
     Provides type safety, IDE support, and consistent structure.
-
+    
     Attributes:
         type: Token type string matching the directive's ``TOKEN_TYPE``
             (e.g., ``"dropdown"``, ``"step"``, ``"tab_item"``).
@@ -108,20 +110,21 @@ class DirectiveToken:
             Defaults to empty dict.
         children: List of nested tokens (parsed child content).
             Defaults to empty list.
-
+    
     Example:
         Create a token in ``parse_directive()``::
-
+    
             token = DirectiveToken(
                 type="dropdown",
                 attrs={"title": "Details", "open": True},
                 children=parsed_children,
             )
             return token.to_dict()  # Convert for Mistune compatibility
-
+    
         Add attributes without mutation::
-
+    
             updated = token.with_attrs(id="my-dropdown")
+        
     """
 
     type: str

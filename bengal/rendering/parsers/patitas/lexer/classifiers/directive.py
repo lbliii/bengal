@@ -14,8 +14,9 @@ if TYPE_CHECKING:
 
 class DirectiveClassifierMixin:
     """Mixin providing MyST-style directive classification.
-
+    
     Handles :::{name} and ::::{name} syntax with nesting support.
+        
     """
 
     # These will be set by the Lexer class

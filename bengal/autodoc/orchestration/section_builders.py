@@ -27,19 +27,20 @@ def create_python_sections(
 ) -> dict[str, Section]:
     """
     Create virtual section hierarchy from doc elements.
-
+    
     Creates sections for:
     - /{prefix}/ (root Python API section, e.g., /api/python/)
     - /{prefix}/<package>/ (for each top-level package)
     - /{prefix}/<package>/<subpackage>/ (nested packages)
-
+    
     Args:
         elements: List of DocElements (modules) to process
         site: Site instance
         resolve_output_prefix: Function to resolve output prefix for doc type
-
+    
     Returns:
         Dictionary mapping section path to Section object
+        
     """
     sections: dict[str, Section] = {}
 
@@ -131,22 +132,23 @@ def create_cli_sections(
 ) -> dict[str, Section]:
     """
     Create CLI section hierarchy.
-
+    
     Creates sections for:
     - /{prefix}/ (root CLI section, e.g., /cli/)
     - /{prefix}/<group>/ (for each command group)
     - /{prefix}/<group>/<subgroup>/ (nested command groups)
-
+    
     This mirrors the hierarchical approach used by create_python_sections(),
     ensuring proper NavTree navigation with nested subsections.
-
+    
     Args:
         elements: List of DocElements (commands and command-groups) to process
         site: Site instance
         resolve_output_prefix: Function to resolve output prefix for doc type
-
+    
     Returns:
         Dictionary mapping section path to Section object
+        
     """
     sections: dict[str, Section] = {}
 
@@ -383,22 +385,23 @@ def create_aggregating_parent_sections(
 ) -> dict[str, Section]:
     """
     Create aggregating parent sections for shared prefixes.
-
+    
     When multiple autodoc types share a common prefix (e.g., api/python and
     api/openapi), this creates a parent section (e.g., api/) that aggregates
     them. This enables:
     - A navigable /api/ page showing all API documentation types
     - Correct Dev dropdown detection (finds 'api' section)
-
+    
     The aggregating section uses 'api-hub' type which renders an agnostic
     landing page showing all child API documentation types (Python, REST, etc.)
     instead of using a type-specific template.
-
+    
     Args:
         sections: Existing section dictionary
-
+    
     Returns:
         Dictionary of newly created parent sections
+        
     """
     parent_sections: dict[str, Section] = {}
 

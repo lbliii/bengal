@@ -5,7 +5,8 @@ This module handles checking and storing parsed/rendered content in cache
 for incremental builds. Extracted from core.py per RFC: rfc-modularize-large-files.
 
 Classes:
-    CacheChecker: Handles cache operations for the rendering pipeline.
+CacheChecker: Handles cache operations for the rendering pipeline.
+
 """
 
 from __future__ import annotations
@@ -28,26 +29,27 @@ logger = get_logger(__name__)
 class CacheChecker:
     """
     Handles cache operations for the rendering pipeline.
-
+    
     Manages both rendered output cache (final HTML) and parsed content cache
     (parsed AST before template rendering) for incremental builds.
-
+    
     Attributes:
         dependency_tracker: DependencyTracker with cache access
         site: Site instance for configuration
         renderer: Renderer for template rendering
         build_stats: Optional BuildStats for metrics
         output_collector: Optional collector for hot reload tracking
-
+    
     Example:
-        >>> checker = CacheChecker(
-        ...     dependency_tracker=tracker,
-        ...     site=site,
-        ...     renderer=renderer,
-        ...     build_stats=stats,
-        ... )
-        >>> if checker.try_rendered_cache(page, template):
-        ...     return  # Cache hit, page already written
+            >>> checker = CacheChecker(
+            ...     dependency_tracker=tracker,
+            ...     site=site,
+            ...     renderer=renderer,
+            ...     build_stats=stats,
+            ... )
+            >>> if checker.try_rendered_cache(page, template):
+            ...     return  # Cache hit, page already written
+        
     """
 
     def __init__(

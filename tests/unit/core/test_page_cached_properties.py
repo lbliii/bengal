@@ -4,12 +4,13 @@ Tests for Page cached properties (meta_description, reading_time, excerpt, word_
 Tests automatic caching behavior and performance optimization.
 
 RFC Implementation:
-    These tests verify the Template Object Model improvements from
-    plan/rfc-template-object-model.md, specifically:
-    - page._source: Raw markdown source (returns _raw_content field)
-    - page.content: Rendered HTML (template-ready)
-    - page.word_count: Pre-computed word count from _source
-    - page.reading_time: Uses word_count (from _source)
+These tests verify the Template Object Model improvements from
+plan/rfc-template-object-model.md, specifically:
+- page._source: Raw markdown source (returns _raw_content field)
+- page.content: Rendered HTML (template-ready)
+- page.word_count: Pre-computed word count from _source
+- page.reading_time: Uses word_count (from _source)
+
 """
 
 from bengal.core.page import Page
@@ -204,9 +205,10 @@ class TestPageMetaDescription:
 
 class TestPageReadingTime:
     """Test Page.reading_time cached property.
-
+    
     Note: reading_time now uses word_count (from _source) for calculation,
     ensuring consistent word counting between properties.
+        
     """
 
     def test_reading_time_calculation(self, tmp_path):

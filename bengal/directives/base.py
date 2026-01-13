@@ -5,45 +5,46 @@ implementations. It extends Mistune's ``DirectivePlugin`` with automatic
 registration, typed options, and contract-based nesting validation.
 
 Features:
-    - **Automatic Registration**: Directives register themselves via ``NAMES``
-      and ``TOKEN_TYPE`` class attributes.
-    - **Typed Options**: Parse directive options into typed dataclasses using
-      ``OPTIONS_CLASS``.
-    - **Contract Validation**: Define valid parent-child relationships via
-      ``CONTRACT`` to catch invalid nesting at parse time.
-    - **Template Method Pattern**: Override ``parse_directive()`` and ``render()``
-      for directive-specific logic.
+- **Automatic Registration**: Directives register themselves via ``NAMES``
+  and ``TOKEN_TYPE`` class attributes.
+- **Typed Options**: Parse directive options into typed dataclasses using
+  ``OPTIONS_CLASS``.
+- **Contract Validation**: Define valid parent-child relationships via
+  ``CONTRACT`` to catch invalid nesting at parse time.
+- **Template Method Pattern**: Override ``parse_directive()`` and ``render()``
+  for directive-specific logic.
 
 Class Attributes:
-    NAMES: List of directive names to register (e.g., ``["dropdown", "details"]``).
-    TOKEN_TYPE: Token type string for the AST (e.g., ``"dropdown"``).
-    OPTIONS_CLASS: Dataclass for typed option parsing (default: ``DirectiveOptions``).
-    CONTRACT: Optional nesting validation contract (default: ``None``).
+NAMES: List of directive names to register (e.g., ``["dropdown", "details"]``).
+TOKEN_TYPE: Token type string for the AST (e.g., ``"dropdown"``).
+OPTIONS_CLASS: Dataclass for typed option parsing (default: ``DirectiveOptions``).
+CONTRACT: Optional nesting validation contract (default: ``None``).
 
 Example:
-    Create a custom dropdown directive::
+Create a custom dropdown directive::
 
-        from bengal.directives import BengalDirective, DirectiveToken
+    from bengal.directives import BengalDirective, DirectiveToken
 
-        class DropdownDirective(BengalDirective):
-            NAMES = ["dropdown"]
-            TOKEN_TYPE = "dropdown"
+    class DropdownDirective(BengalDirective):
+        NAMES = ["dropdown"]
+        TOKEN_TYPE = "dropdown"
 
-            def parse_directive(self, title, options, content, children, state):
-                return DirectiveToken(
-                    type=self.TOKEN_TYPE,
-                    attrs={"title": title or "Details"},
-                    children=children,
-                )
+        def parse_directive(self, title, options, content, children, state):
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"title": title or "Details"},
+                children=children,
+            )
 
-            def render(self, renderer, text, **attrs):
-                title = attrs.get("title", "Details")
-                return f"<details><summary>{title}</summary>{text}</details>"
+        def render(self, renderer, text, **attrs):
+            title = attrs.get("title", "Details")
+            return f"<details><summary>{title}</summary>{text}</details>"
 
 See Also:
-    - ``bengal.directives.tokens``: ``DirectiveToken`` definition.
-    - ``bengal.directives.options``: ``DirectiveOptions`` base class.
-    - ``bengal.directives.contracts``: ``DirectiveContract`` for nesting rules.
+- ``bengal.directives.tokens``: ``DirectiveToken`` definition.
+- ``bengal.directives.options``: ``DirectiveOptions`` base class.
+- ``bengal.directives.contracts``: ``DirectiveContract`` for nesting rules.
+
 """
 
 from __future__ import annotations
@@ -93,61 +94,62 @@ from .utils import (  # noqa: F401
 
 class BengalDirective(DirectivePlugin):
     """Base class for Bengal directives with automatic registration and validation.
-
+    
     Subclass this to create custom directives. The base class handles directive
     registration, option parsing, contract validation, and provides shared
     utilities for HTML generation.
-
+    
     Subclass Requirements:
         Define these class attributes:
             NAMES: List of directive names (e.g., ``["dropdown", "details"]``).
             TOKEN_TYPE: Token type for the AST (e.g., ``"dropdown"``).
-
+    
         Override these methods:
             parse_directive: Build the token from parsed components.
             render: Render the token to HTML.
-
+    
         Optionally define:
             OPTIONS_CLASS: Typed options dataclass (default: ``DirectiveOptions``).
             CONTRACT: Nesting validation contract (default: ``None``).
-
+    
     Attributes:
         logger: Module logger for warnings and debug output.
-
+    
     Example:
         Basic directive with options::
-
+    
             class DropdownDirective(BengalDirective):
                 NAMES = ["dropdown", "details"]
                 TOKEN_TYPE = "dropdown"
                 OPTIONS_CLASS = DropdownOptions
-
+    
                 def parse_directive(self, title, options, content, children, state):
                     return DirectiveToken(
                         type=self.TOKEN_TYPE,
                         attrs={"title": title or "Details", "open": options.open},
                         children=children,
                     )
-
+    
                 def render(self, renderer, text, **attrs):
                     title = attrs.get("title", "Details")
                     open_attr = " open" if attrs.get("open") else ""
                     return f"<details{open_attr}><summary>{title}</summary>{text}</details>"
-
+    
         Directive with contract validation::
-
+    
             class StepDirective(BengalDirective):
                 NAMES = ["step"]
                 TOKEN_TYPE = "step"
                 CONTRACT = DirectiveContract(requires_parent=("steps",))
-
+    
                 def parse_directive(self, title, options, content, children, state):
                     # Implementation here
-                    ...
-
+                        ...
+    
                 def render(self, renderer, text, **attrs):
                     # Render implementation
-                    ...
+                        ...
+        
     """
 
     # -------------------------------------------------------------------------

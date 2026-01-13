@@ -4,8 +4,9 @@ Jinja2 environment creation and configuration for template engine.
 Provides environment setup, theme resolution, and template directory discovery.
 
 Related Modules:
-    - bengal.rendering.template_engine.core: Uses this for environment creation
-    - bengal.utils.theme_registry: Theme package resolution
+- bengal.rendering.template_engine.core: Uses this for environment creation
+- bengal.utils.theme_registry: Theme package resolution
+
 """
 
 from __future__ import annotations
@@ -36,15 +37,16 @@ logger = get_logger(__name__)
 def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
     """
     Resolve theme inheritance chain starting from the active theme.
-
+    
     Order: child first → parent → ... (do not duplicate 'default').
-
+    
     Args:
         active_theme: Active theme name
         site: Site instance
-
+    
     Returns:
         List of theme names in inheritance order
+        
     """
     chain = []
     visited: set[str] = set()
@@ -68,15 +70,16 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
 def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
     """
     Resolve the templates directory path for a theme.
-
+    
     Checks site themes, installed themes, and bundled themes in order.
-
+    
     Args:
         theme_name: Theme name to look up
         site: Site instance
-
+    
     Returns:
         Path to theme's templates directory, or None if not found
+        
     """
     # Site-level theme directory
     site_theme_templates = site.root_path / "themes" / theme_name / "templates"
@@ -110,13 +113,14 @@ def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
 def read_theme_extends(theme_name: str, site: Any) -> str | None:
     """
     Read theme.toml for 'extends' from site, installed, or bundled theme path.
-
+    
     Args:
         theme_name: Theme name to look up
         site: Site instance
-
+    
     Returns:
         Parent theme name if extends is set, None otherwise
+        
     """
     # Site theme manifest
     site_manifest = site.root_path / "themes" / theme_name / "theme.toml"
@@ -185,14 +189,15 @@ def create_jinja_environment(
 ) -> tuple[Environment, list[Path]]:
     """
     Create and configure Jinja2 environment.
-
+    
     Args:
         site: Site instance
         template_engine: TemplateEngine instance (for function bindings)
         profile_templates: Whether template profiling is enabled
-
+    
     Returns:
         Tuple of (Jinja2 Environment, list of template directories)
+        
     """
     import sys
 

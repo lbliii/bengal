@@ -7,19 +7,20 @@ Validates:
 2. Broken [[#anchor]] cross-references
 
 Key Features:
-    - Detect duplicate anchor IDs in rendered HTML
-    - Validate [[#anchor]] references against xref_index
-    - Support for both heading anchors and {target} directive anchors
+- Detect duplicate anchor IDs in rendered HTML
+- Validate [[#anchor]] references against xref_index
+- Support for both heading anchors and {target} directive anchors
 
 Related Modules:
-    - bengal.health.base: BaseValidator interface
-    - bengal.health.report: CheckResult for reporting
-    - bengal.directives.target: Target directive
-    - bengal.rendering.parsers.mistune: Heading {#id} syntax
+- bengal.health.base: BaseValidator interface
+- bengal.health.report: CheckResult for reporting
+- bengal.directives.target: Target directive
+- bengal.rendering.parsers.mistune: Heading {#id} syntax
 
 See Also:
-    - bengal/health/validators/cross_ref.py: General cross-reference validation
-    - bengal/rendering/plugins/cross_references.py: [[link]] resolution
+- bengal/health/validators/cross_ref.py: General cross-reference validation
+- bengal/rendering/plugins/cross_references.py: [[link]] resolution
+
 """
 
 from __future__ import annotations
@@ -37,22 +38,23 @@ if TYPE_CHECKING:
 class AnchorValidator(BaseValidator):
     """
     Validates explicit anchors and [[#anchor]] cross-references.
-
+    
     Performs two main validations:
     1. Duplicate anchors: Scans rendered HTML for duplicate id="..." attributes
     2. Broken references: Validates [[#anchor]] syntax against known anchors
-
+    
     Creation:
         health_check.register(AnchorValidator())
-
+    
     Configuration:
         In bengal.yaml:
         health_check:
           validators:
             anchors: true  # Enable/disable anchor validation
-
+    
     Attributes:
         strict: If True, treat warnings as errors (for CI builds)
+        
     """
 
     name = "anchors"
@@ -269,11 +271,12 @@ class AnchorValidator(BaseValidator):
 def create_anchor_validator(strict: bool = False) -> AnchorValidator:
     """
     Factory function to create an AnchorValidator.
-
+    
     Args:
         strict: If True, report duplicate anchors as errors
-
+    
     Returns:
         Configured AnchorValidator
+        
     """
     return AnchorValidator(strict=strict)

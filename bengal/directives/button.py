@@ -29,23 +29,24 @@ VALID_SIZES = frozenset(["small", "medium", "large"])
 class ButtonOptions(DirectiveOptions):
     """
     Options for button directive.
-
+    
     Attributes:
         color: Button color theme (primary, secondary, success, danger, etc.)
         style: Button style (default, pill, outline)
         size: Button size (small, medium, large)
         icon: Optional icon name
         target: Link target (_blank for external links)
-
+    
     Example:
         :::{button} /get-started/
         :color: primary
         :style: pill
         :size: large
         :icon: rocket
-
+    
         Get Started
         :::
+        
     """
 
     color: str = "primary"
@@ -64,7 +65,7 @@ class ButtonOptions(DirectiveOptions):
 class ButtonDirective(BengalDirective):
     """
     Button directive for creating styled link buttons.
-
+    
     Syntax:
         :::{button} /path/to/page/
         :color: primary
@@ -72,31 +73,32 @@ class ButtonDirective(BengalDirective):
         :size: large
         :icon: rocket
         :target: _blank
-
+    
         Button Text
         :::
-
+    
     Options:
         color: primary, secondary, success, danger, warning, info, light, dark
         style: default (rounded), pill (fully rounded), outline
         size: small, medium (default), large
         icon: Icon name (same as cards)
         target: _blank for external links (optional)
-
+    
     Examples:
         # Basic button
         :::{button} /docs/
         Get Started
         :::
-
+    
         # Primary CTA
         :::{button} /signup/
         :color: primary
         :style: pill
         :size: large
-
+    
         Sign Up Free
         :::
+        
     """
 
     NAMES: ClassVar[list[str]] = ["button"]

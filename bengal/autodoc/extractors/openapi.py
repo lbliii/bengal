@@ -37,8 +37,9 @@ logger = logging.getLogger(__name__)
 class OpenAPIExtractor(Extractor):
     """
     Extracts documentation from OpenAPI specifications.
-
+    
     Supports OpenAPI 3.0 and 3.1 (YAML or JSON).
+        
     """
 
     def __init__(self) -> None:

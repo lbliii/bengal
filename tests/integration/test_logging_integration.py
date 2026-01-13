@@ -83,10 +83,11 @@ parallel = false
 def fresh_logger_state():
     """
     Reset logger state before each test.
-
+    
     With LazyLogger, we can simply call reset_loggers() and all module-level
     logger references will automatically refresh on next access. No need for
     importlib.reload() hacks.
+        
     """
     # Clean reset before test
     reset_loggers()

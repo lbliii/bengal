@@ -30,7 +30,7 @@ _ATTR_NAME_RE = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_.:\-]*$")
 
 def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
     """Parse an HTML open tag per CommonMark spec.
-
+    
     CommonMark requires strict validation:
     - Tag name: ASCII letter followed by letters, digits, hyphens
     - Attribute names: [a-zA-Z_:][a-zA-Z0-9_.:-]*
@@ -39,8 +39,9 @@ def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
     - Space required between tag name and first attribute
     - Space required between attributes
     - Optional / before final >
-
+    
     Returns (html_text, end_pos) or None if not valid.
+        
     """
     if pos >= len(text) or text[pos] != "<":
         return None
@@ -191,8 +192,9 @@ _EMAIL_AUTOLINK_RE = re.compile(
 
 def _percent_encode_url(url: str) -> str:
     """Percent-encode special characters in URL for href attribute.
-
+    
     CommonMark requires certain characters to be percent-encoded.
+        
     """
     # Characters that should be percent-encoded in the URL
     # (but not the entire URL, just special chars like backslash, brackets)
@@ -211,12 +213,13 @@ def _percent_encode_url(url: str) -> str:
 
 class SpecialInlineMixin:
     """Mixin for special inline element parsing.
-
+    
     Handles autolinks, HTML inline, roles ({role}`content`), and math ($expression$).
-
+    
     Required Host Attributes: None
-
+    
     Required Host Methods: None
+        
     """
 
     def _try_parse_autolink(

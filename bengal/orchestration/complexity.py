@@ -5,23 +5,24 @@ complexity BEFORE rendering, enabling optimal work distribution across
 parallel workers.
 
 Design Goals:
-    1. Fast: < 0.1ms per page (must not add significant overhead)
-    2. Accurate enough: Relative ordering matters, not absolute accuracy
-    3. Thread-safe: Uses only compiled regexes and immutable data
+1. Fast: < 0.1ms per page (must not add significant overhead)
+2. Accurate enough: Relative ordering matters, not absolute accuracy
+3. Thread-safe: Uses only compiled regexes and immutable data
 
 Key Insight:
-    We don't need perfect predictions. We just need heavy pages to
-    sort before light pages. Even rough estimates improve parallelism.
+We don't need perfect predictions. We just need heavy pages to
+sort before light pages. Even rough estimates improve parallelism.
 
 Algorithm:
-    Implements Longest Processing Time First (LPT) scheduling by sorting
-    pages descending by estimated complexity. LPT is optimal for 2 workers
-    and achieves 4/3-approximation for m≥3 workers.
+Implements Longest Processing Time First (LPT) scheduling by sorting
+pages descending by estimated complexity. LPT is optimal for 2 workers
+and achieves 4/3-approximation for m≥3 workers.
 
 Example:
     >>> from bengal.orchestration.complexity import sort_by_complexity
     >>> sorted_pages = sort_by_complexity(pages)  # Heavy first
     >>> # Now dispatch to ThreadPoolExecutor
+
 """
 
 from __future__ import annotations
@@ -46,14 +47,15 @@ __all__ = [
 @dataclass(frozen=True, slots=True)
 class ComplexityScore:
     """Lightweight complexity metrics for a page.
-
+    
     Immutable and hashable for potential caching use cases.
-
+    
     Attributes:
         content_bytes: Raw content length in bytes
         code_blocks: Count of fenced code blocks
         directives: Count of MyST/RST directives
         variables: Count of template variables ({{ var }})
+        
     """
 
     content_bytes: int
@@ -105,22 +107,23 @@ _VARIABLE = re.compile(r"\{\{")
 
 def estimate_complexity(content: str) -> ComplexityScore:
     """Estimate page rendering complexity from raw content.
-
+    
     Designed to be fast (< 0.1ms per page) so sorting overhead
     doesn't exceed the parallelism benefits.
-
+    
     Implementation uses findall() which is O(n) and creates minimal
     allocations due to regex engine optimizations.
-
+    
     Args:
         content: Raw markdown content (before parsing)
-
+    
     Returns:
         ComplexityScore with heuristic metrics
-
+    
     Example:
-        >>> score = estimate_complexity(page._source)
-        >>> print(f"Complexity: {score.score}")
+            >>> score = estimate_complexity(page._source)
+            >>> print(f"Complexity: {score.score}")
+        
     """
     if not content:
         return ComplexityScore(0, 0, 0, 0)
@@ -143,12 +146,13 @@ def estimate_complexity(content: str) -> ComplexityScore:
 
 def _get_content_safe(page: Page) -> str:
     """Get page content without triggering lazy loads on PageProxy.
-
+    
     For PageProxy instances where content isn't loaded, returns empty
     string (treated as unknown/light complexity). This avoids disk I/O
     during sorting, which would negate the optimization benefits.
-
+    
     For regular Page instances, content is always available.
+        
     """
     # Check for PageProxy with unloaded content
     if hasattr(page, "_full_page") and page._full_page is None:
@@ -160,9 +164,10 @@ def _get_content_safe(page: Page) -> str:
 
 def get_cached_score(page: Page) -> int:
     """Get complexity score with caching on the page object.
-
+    
     Caches the score on the page to avoid recomputation if called
     multiple times (e.g., in logging after sorting).
+        
     """
     # Check for cached score first.
     # Use vars() to check actual instance dict, avoiding Mock auto-creation behavior.
@@ -189,35 +194,36 @@ def sort_by_complexity(
     descending: bool = True,
 ) -> list[Page]:
     """Sort pages by estimated rendering complexity.
-
+    
     For parallel rendering, descending=True (heavy first) is optimal.
     This ensures heavy pages start processing immediately while light
     pages fill in later, minimizing idle worker time.
-
+    
     Thread-safe: creates new list, doesn't modify input.
     Uses Python's stable Timsort, so equal-complexity pages maintain
     their original relative order.
-
+    
     Args:
         pages: List of Page objects to sort
         descending: If True, heaviest pages first (optimal for parallel)
-
+    
     Returns:
         New sorted list (original unchanged)
-
+    
     Performance:
         - Estimation: ~0.01ms per page
         - Sorting: O(n log n) with Timsort
         - Total for 1000 pages: ~10-20ms
-
+    
     Note:
         PageProxy instances with unloaded content are treated as light
         pages to avoid triggering disk I/O during sorting.
-
+    
     Example:
-        >>> sorted_pages = sort_by_complexity(pages)
-        >>> # First page is most complex
-        >>> print(sorted_pages[0].source_path)
+            >>> sorted_pages = sort_by_complexity(pages)
+            >>> # First page is most complex
+            >>> print(sorted_pages[0].source_path)
+        
     """
     # Use (score, index) tuple to ensure stable sort without comparing pages directly.
     # The index acts as a tiebreaker, preserving original order for equal scores.
@@ -232,16 +238,17 @@ def sort_by_complexity(
 
 def get_complexity_stats(pages: list[Page]) -> dict[str, int | float | list[int]]:
     """Get complexity distribution statistics for logging.
-
+    
     Useful for understanding build characteristics and validating
     that complexity ordering is beneficial. High variance_ratio (>10)
     indicates the site will benefit significantly from ordering.
-
+    
     Args:
         pages: List of pages to analyze
-
+    
     Returns:
         Dictionary with distribution stats and top/bottom samples
+        
     """
     if not pages:
         return {

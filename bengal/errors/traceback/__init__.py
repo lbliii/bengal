@@ -9,20 +9,20 @@ Verbosity Styles
 ================
 
 **full**
-    Complete traceback with local variables. Best for deep debugging.
-    Uses Rich's full exception rendering when available.
+Complete traceback with local variables. Best for deep debugging.
+Uses Rich's full exception rendering when available.
 
 **compact** (default)
-    Focused traceback showing last 3 frames with context-aware help.
-    Shows error type, message, and actionable suggestions.
+Focused traceback showing last 3 frames with context-aware help.
+Shows error type, message, and actionable suggestions.
 
 **minimal**
-    One-line error with location and hint. Best for CI/CD output
-    or when errors are expected and just need quick identification.
+One-line error with location and hint. Best for CI/CD output
+or when errors are expected and just need quick identification.
 
 **off**
-    Standard Python traceback. Uses default ``traceback.print_exc()``.
-    Useful when Rich is not desired or for compatibility.
+Standard Python traceback. Uses default ``traceback.print_exc()``.
+Useful when Rich is not desired or for compatibility.
 
 Configuration
 =============
@@ -43,39 +43,40 @@ Components
 ==========
 
 **TracebackConfig**
-    Configuration dataclass with style, show_locals, max_frames, suppress.
-    Use ``TracebackConfig.from_environment()`` to load from env vars.
+Configuration dataclass with style, show_locals, max_frames, suppress.
+Use ``TracebackConfig.from_environment()`` to load from env vars.
 
 **TracebackStyle**
-    Enum of available styles: FULL, COMPACT, MINIMAL, OFF.
+Enum of available styles: FULL, COMPACT, MINIMAL, OFF.
 
 **TracebackRenderer**
-    Base class for style-specific renderers. Subclasses: FullTracebackRenderer,
-    CompactTracebackRenderer, MinimalTracebackRenderer, OffTracebackRenderer.
+Base class for style-specific renderers. Subclasses: FullTracebackRenderer,
+CompactTracebackRenderer, MinimalTracebackRenderer, OffTracebackRenderer.
 
 Usage
 =====
 
 Install Rich traceback handler::
 
-    from bengal.errors.traceback import TracebackConfig
+from bengal.errors.traceback import TracebackConfig
 
     config = TracebackConfig.from_environment()
-    config.install()  # Install Rich global handler
+config.install()  # Install Rich global handler
 
 Display an exception manually::
 
-    from bengal.errors.traceback import TracebackConfig
+from bengal.errors.traceback import TracebackConfig
 
     config = TracebackConfig.from_environment()
     renderer = config.get_renderer()
-    renderer.display_exception(error)
+renderer.display_exception(error)
 
 See Also
 ========
 
 - ``bengal/errors/handlers.py`` - Context-aware help used by renderers
 - ``bengal/cli/`` - CLI integration
+
 """
 
 from __future__ import annotations

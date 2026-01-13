@@ -4,14 +4,15 @@ These tests verify that Patitas produces identical HTML output to the
 existing Bengal/mistune implementations for all Phase A directives.
 
 Test Categories:
-    - Admonitions: note, tip, warning, danger, error, info, example, success, caution, seealso
-    - Dropdown: dropdown, details with all options
-    - Tabs: tab-set, tab-item with sync, badges
-    - Steps: steps, step with metadata
-    - Container: container, div wrappers
-    - Nested: directives inside directives
+- Admonitions: note, tip, warning, danger, error, info, example, success, caution, seealso
+- Dropdown: dropdown, details with all options
+- Tabs: tab-set, tab-item with sync, badges
+- Steps: steps, step with metadata
+- Container: container, div wrappers
+- Nested: directives inside directives
 
 See RFC: plan/drafted/rfc-patitas-bengal-directive-migration.md
+
 """
 
 from __future__ import annotations
@@ -761,16 +762,17 @@ def test_html_parity(
     assert_html_equal: Callable[[str, str, str], None],
 ) -> None:
     """Verify Patitas produces identical HTML to Bengal/mistune.
-
+    
     This test renders the same markdown source with both backends and
     compares the normalized HTML output.
-
+    
     Args:
         name: Test case name
         source: Markdown source to render
         render_with_mistune: Fixture to render with mistune
         render_with_patitas: Fixture to render with patitas
         assert_html_equal: Fixture for HTML comparison
+        
     """
     mistune_html = render_with_mistune(source)
     patitas_html = render_with_patitas(source)
@@ -795,9 +797,9 @@ def test_golden_file(
     assert_html_equal: Callable[[str, str, str], None],
 ) -> None:
     """Compare Patitas output against golden files.
-
+    
     Run with --update-golden-files to regenerate golden files.
-
+    
     Args:
         name: Test case name
         source: Markdown source to render
@@ -807,6 +809,7 @@ def test_golden_file(
         save_golden_file: Fixture to save golden file
         load_golden_file: Fixture to load golden file
         assert_html_equal: Fixture for HTML comparison
+        
     """
     patitas_html = render_with_patitas(source)
 

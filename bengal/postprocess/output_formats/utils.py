@@ -7,24 +7,24 @@ normalization. These utilities ensure consistent behavior across JSON,
 TXT, index, and LLM text generators.
 
 Functions:
-    Text Processing:
-        - strip_html: Remove HTML tags and normalize whitespace
-        - generate_excerpt: Create truncated preview text
+Text Processing:
+    - strip_html: Remove HTML tags and normalize whitespace
+    - generate_excerpt: Create truncated preview text
 
-    URL Handling:
-        - get_page_relative_url: Get URL without baseurl (for objectID)
-        - get_page_public_url: Get full URL with baseurl
-        - get_page_url: Alias for get_page_public_url
-        - normalize_url: Normalize URL for consistent comparison
+URL Handling:
+    - get_page_relative_url: Get URL without baseurl (for objectID)
+    - get_page_public_url: Get full URL with baseurl
+    - get_page_url: Alias for get_page_public_url
+    - normalize_url: Normalize URL for consistent comparison
 
-    Path Resolution:
-        - get_page_json_path: Get output path for page's JSON file
-        - get_page_txt_path: Get output path for page's TXT file
+Path Resolution:
+    - get_page_json_path: Get output path for page's JSON file
+    - get_page_txt_path: Get output path for page's TXT file
 
 Implementation Notes:
-    Text utilities delegate to bengal.utils.text for DRY compliance.
-    URL utilities work with Page._path (internal path) and Page.href
-    (public URL) to avoid baseurl duplication issues.
+Text utilities delegate to bengal.utils.text for DRY compliance.
+URL utilities work with Page._path (internal path) and Page.href
+(public URL) to avoid baseurl duplication issues.
 
 Example:
     >>> from bengal.postprocess.output_formats.utils import (
@@ -38,8 +38,9 @@ Example:
     >>> url = get_page_url(page, site)
 
 Related:
-    - bengal.utils.text: Canonical text processing utilities
-    - bengal.postprocess.output_formats: Output format generators
+- bengal.utils.text: Canonical text processing utilities
+- bengal.postprocess.output_formats: Output format generators
+
 """
 
 from __future__ import annotations
@@ -61,15 +62,16 @@ if TYPE_CHECKING:
 def strip_html(text: str) -> str:
     """
     Remove HTML tags from text and normalize whitespace.
-
+    
     Delegates to bengal.utils.text.strip_html with additional whitespace
     normalization specific to output format generation.
-
+    
     Args:
         text: HTML text
-
+    
     Returns:
         Plain text with HTML tags, entities, and excess whitespace removed
+        
     """
     if not text:
         return ""
@@ -84,17 +86,18 @@ def strip_html(text: str) -> str:
 def generate_excerpt(text: str, length: int = 200) -> str:
     """
     Generate excerpt from text using character-based truncation.
-
+    
     Note: This uses character-based truncation for backward compatibility
     with output format generation. For word-based truncation, use
     bengal.utils.text.generate_excerpt directly.
-
+    
     Args:
         text: Source text (may contain HTML)
         length: Maximum character length
-
+    
     Returns:
         Excerpt string, truncated at word boundary with ellipsis
+        
     """
     if not text:
         return ""
@@ -113,13 +116,14 @@ def generate_excerpt(text: str, length: int = 200) -> str:
 def get_page_relative_url(page: Page, site: Any) -> str:
     """
     Get clean relative URL for page (without baseurl).
-
+    
     Args:
         page: Page to get URL for
         site: Site instance
-
+    
     Returns:
         Relative URL string (without baseurl)
+        
     """
     # Use _path (internal path without baseurl)
     return page._path
@@ -128,13 +132,14 @@ def get_page_relative_url(page: Page, site: Any) -> str:
 def get_page_public_url(page: Page, site: Site) -> str:
     """
     Get the page's public URL including baseurl.
-
+    
     Args:
         page: Page to get URL for
         site: Site instance
-
+    
     Returns:
         Full public URL including baseurl
+        
     """
     # page.href already includes baseurl
     return page.href
@@ -143,13 +148,14 @@ def get_page_public_url(page: Page, site: Site) -> str:
 def get_page_url(page: Page, site: Any) -> str:
     """
     Get the public URL for a page.
-
+    
     Args:
         page: Page to get URL for
         site: Site instance
-
+    
     Returns:
         Full public URL including baseurl
+        
     """
     # page.href already includes baseurl
     return page.href
@@ -158,12 +164,13 @@ def get_page_url(page: Page, site: Any) -> str:
 def get_page_json_path(page: Page) -> Path | None:
     """
     Get the output path for a page's JSON file.
-
+    
     Args:
         page: Page to get JSON path for
-
+    
     Returns:
         Path for the JSON file, or None if output_path not available
+        
     """
     output_path = getattr(page, "output_path", None)
     if not output_path:
@@ -184,12 +191,13 @@ def get_page_json_path(page: Page) -> Path | None:
 def get_page_txt_path(page: Page) -> Path | None:
     """
     Get the output path for a page's TXT file.
-
+    
     Args:
         page: Page to get TXT path for
-
+    
     Returns:
         Path for the TXT file, or None if output_path not available
+        
     """
     output_path = getattr(page, "output_path", None)
     if not output_path:
@@ -210,12 +218,13 @@ def get_page_txt_path(page: Page) -> Path | None:
 def normalize_url(url: str) -> str:
     """
     Normalize a URL for consistent comparison.
-
+    
     Args:
         url: URL to normalize
-
+    
     Returns:
         Normalized URL with consistent formatting
+        
     """
     if not url:
         return ""

@@ -6,17 +6,17 @@ This package provides image processing with caching:
 - ProcessedImage: Result of image processing
 
 Public API:
-    resources.get(path) → ImageResource | None
-    resources.match(pattern) → list[ImageResource]
+resources.get(path) → ImageResource | None
+resources.match(pattern) → list[ImageResource]
 
-    image.fill("800x600 webp q80") → ProcessedImage
-    image.fit("400x400") → ProcessedImage
-    image.resize("800x") → ProcessedImage
+image.fill("800x600 webp q80") → ProcessedImage
+image.fit("400x400") → ProcessedImage
+image.resize("800x") → ProcessedImage
 
 Dependencies:
-    Required: Pillow (pip install bengal[images])
-    Optional: smartcrop (pip install bengal[smartcrop])
-    Optional: pillow-avif-plugin (pip install bengal[avif])
+Required: Pillow (pip install bengal[images])
+Optional: smartcrop (pip install bengal[smartcrop])
+Optional: pillow-avif-plugin (pip install bengal[avif])
 
 Example:
     >>> from bengal.core.resources import ImageResource
@@ -24,6 +24,7 @@ Example:
     >>> processed = img.fill("800x600 webp q80")
     >>> print(processed.rel_permalink)
     '/assets/images/hero_800x600_q80.webp'
+
 """
 
 from __future__ import annotations

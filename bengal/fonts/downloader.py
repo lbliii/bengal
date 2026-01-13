@@ -6,15 +6,15 @@ Downloads .woff2 font files from Google Fonts using only Python stdlib
 Fonts CSS API, which provides direct URLs to font files.
 
 Key Features:
-    - No external dependencies (uses urllib.request)
-    - Automatic SSL fallback for macOS certificate issues
-    - Atomic file writes to prevent corruption
-    - Support for multiple weights and italic styles
+- No external dependencies (uses urllib.request)
+- Automatic SSL fallback for macOS certificate issues
+- Atomic file writes to prevent corruption
+- Support for multiple weights and italic styles
 
 Architecture:
-    This module is a pure utility—it performs network I/O but does not
-    interact with Site or Page models. It is used by FontHelper in the
-    package's __init__.py.
+This module is a pure utility—it performs network I/O but does not
+interact with Site or Page models. It is used by FontHelper in the
+package's __init__.py.
 
 Example:
     >>> from bengal.fonts.downloader import GoogleFontsDownloader
@@ -26,12 +26,13 @@ Example:
     ... )
     >>> for v in variants:
     ...     print(f"{v.family} {v.weight}: {v.filename}")
-    Inter 400: inter-400.woff2
-    Inter 700: inter-700.woff2
+Inter 400: inter-400.woff2
+Inter 700: inter-700.woff2
 
 Related:
-    - bengal/fonts/__init__.py: FontHelper integration
-    - bengal/fonts/generator.py: CSS generation from variants
+- bengal/fonts/__init__.py: FontHelper integration
+- bengal/fonts/generator.py: CSS generation from variants
+
 """
 
 from __future__ import annotations
@@ -52,24 +53,25 @@ logger = get_logger(__name__)
 class FontVariant:
     """
     Represents a specific font variant (family + weight + style combination).
-
+    
     Each FontVariant corresponds to a single downloadable font file from
     Google Fonts. The variant includes all metadata needed to generate
     @font-face CSS rules.
-
+    
     Attributes:
         family: Font family name as displayed (e.g., "Inter", "Playfair Display").
         weight: Numeric font weight (100-900, typically 400 for regular, 700 for bold).
         style: Font style, either "normal" or "italic".
         url: Direct URL to the font file on Google's CDN (.woff2 or .ttf).
-
+    
     Example:
-        >>> variant = FontVariant("Inter", 400, "normal", "https://fonts.gstatic.com/...")
-        >>> print(variant.filename)
+            >>> variant = FontVariant("Inter", 400, "normal", "https://fonts.gstatic.com/...")
+            >>> print(variant.filename)
         inter-400.woff2
-        >>> variant_italic = FontVariant("Inter", 400, "italic", "https://...")
-        >>> print(variant_italic.filename)
+            >>> variant_italic = FontVariant("Inter", 400, "italic", "https://...")
+            >>> print(variant_italic.filename)
         inter-400-italic.woff2
+        
     """
 
     family: str
@@ -99,37 +101,38 @@ class FontVariant:
 class GoogleFontsDownloader:
     """
     Downloads font files from Google Fonts for self-hosting.
-
+    
     Uses the Google Fonts CSS2 API to discover font file URLs, then downloads
     the actual .woff2 (or .ttf) files. No API key is required—the CSS API is
     public and the User-Agent header determines the returned font format.
-
+    
     The downloader handles:
         - Building properly formatted CSS API URLs
         - Parsing CSS to extract font file URLs
         - SSL certificate issues on macOS (automatic fallback)
         - Atomic file writes to prevent corruption
         - Both WOFF2 (for web) and TTF (for image generation) formats
-
+    
     Attributes:
         BASE_URL: Google Fonts CSS2 API endpoint.
         USER_AGENT_WOFF2: Modern browser user-agent that requests woff2 format.
         USER_AGENT_TTF: Legacy user-agent that requests ttf format.
-
+    
     Example:
-        >>> downloader = GoogleFontsDownloader()
-        >>> variants = downloader.download_font(
-        ...     family="Inter",
-        ...     weights=[400, 600, 700],
-        ...     styles=["normal", "italic"],
-        ...     output_dir=Path("assets/fonts")
-        ... )
-        >>> len(variants)
+            >>> downloader = GoogleFontsDownloader()
+            >>> variants = downloader.download_font(
+            ...     family="Inter",
+            ...     weights=[400, 600, 700],
+            ...     styles=["normal", "italic"],
+            ...     output_dir=Path("assets/fonts")
+            ... )
+            >>> len(variants)
         6
-
+    
     Note:
         The User-Agent string determines the font format Google returns.
         Modern browsers get WOFF2, legacy browsers get TTF.
+        
     """
 
     BASE_URL = "https://fonts.googleapis.com/css2"

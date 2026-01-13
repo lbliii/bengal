@@ -34,12 +34,12 @@ from typing import Any
 class BreadcrumbItem:
     """
     Single breadcrumb in navigation trail.
-
+    
     Attributes:
         title: Display text for the breadcrumb
         url: URL to link to
         is_current: True if this is the current page (should not be a link)
-
+    
     Example (Jinja template):
         {% for item in get_breadcrumbs(page) %}
           {% if item.is_current %}
@@ -48,6 +48,7 @@ class BreadcrumbItem:
             <a href="{{ item.href }}">{{ item.title }}</a>
           {% endif %}
         {% endfor %}
+        
     """
 
     title: str
@@ -71,13 +72,13 @@ class BreadcrumbItem:
 class PaginationItem:
     """
     Single page in pagination.
-
+    
     Attributes:
         num: Page number (None for ellipsis)
         url: URL to page (None for ellipsis)
         is_current: True if this is the current page
         is_ellipsis: True if this represents an ellipsis (...)
-
+    
     Example (Jinja template):
         {% for item in pagination.pages %}
           {% if item.is_ellipsis %}
@@ -88,6 +89,7 @@ class PaginationItem:
             <a href="{{ item.href }}">{{ item.num }}</a>
           {% endif %}
         {% endfor %}
+        
     """
 
     num: int | None
@@ -112,19 +114,20 @@ class PaginationItem:
 class PaginationInfo:
     """
     Complete pagination data structure.
-
+    
     Attributes:
         pages: List of PaginationItem objects
         prev: Previous page info (num, url) or None
         next: Next page info (num, url) or None
         first: First page info (num, url)
         last: Last page info (num, url)
-
+    
     Example (Jinja template):
         {% set p = get_pagination_items(current_page, total_pages, base_url) %}
         {% if p.prev %}
           <a href="{{ p.prev.href }}">Previous</a>
         {% endif %}
+        
     """
 
     pages: list[PaginationItem]
@@ -150,12 +153,12 @@ class PaginationInfo:
 class TocGroupItem:
     """
     Grouped TOC item for collapsible sections.
-
+    
     Attributes:
         header: The group header item (dict with id, title, level)
         children: List of child TOC items
         is_group: True if has children, False for standalone items
-
+    
     Example (Jinja template):
         {% for group in get_toc_grouped(page.toc_items) %}
           {% if group.is_group %}
@@ -173,6 +176,7 @@ class TocGroupItem:
             <a href="#{{ group.header.id }}">{{ group.header.title }}</a>
           {% endif %}
         {% endfor %}
+        
     """
 
     header: dict[str, Any]
@@ -196,7 +200,7 @@ class TocGroupItem:
 class AutoNavItem:
     """
     Auto-discovered navigation item.
-
+    
     Attributes:
         name: Display name
         url: Link URL
@@ -204,7 +208,7 @@ class AutoNavItem:
         identifier: Unique identifier (usually section name)
         parent: Parent item identifier (for hierarchy)
         icon: Optional icon identifier
-
+    
     Example (Jinja template):
         {% set auto_items = get_auto_nav() %}
         {% for item in auto_items %}
@@ -213,6 +217,7 @@ class AutoNavItem:
             {{ item.name }}
           </a>
         {% endfor %}
+        
     """
 
     name: str

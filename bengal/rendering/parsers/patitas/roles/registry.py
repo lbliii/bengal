@@ -4,8 +4,8 @@ The registry maps role names to their handlers, enabling
 extensibility and custom role support.
 
 Thread Safety:
-    RoleRegistry is immutable after creation. Safe to share.
-    Use RoleRegistryBuilder for mutable construction.
+RoleRegistry is immutable after creation. Safe to share.
+Use RoleRegistryBuilder for mutable construction.
 
 Example:
     >>> builder = RoleRegistryBuilder()
@@ -13,6 +13,7 @@ Example:
     >>> builder.register(KbdRole())
     >>> registry = builder.build()
     >>> handler = registry.get("ref")
+
 """
 
 from __future__ import annotations
@@ -25,12 +26,13 @@ if TYPE_CHECKING:
 
 class RoleRegistry:
     """Immutable registry of role handlers.
-
+    
     Maps role names to their handlers for lookup during parsing
     and rendering.
-
+    
     Thread Safety:
         Immutable after creation. Safe to share across threads.
+        
     """
 
     __slots__ = ("_handlers", "_by_name", "_by_token_type")
@@ -96,15 +98,16 @@ class RoleRegistry:
 
 class RoleRegistryBuilder:
     """Mutable builder for RoleRegistry.
-
+    
     Use this to register handlers, then call build() to create
     an immutable registry.
-
+    
     Example:
-        >>> builder = RoleRegistryBuilder()
-        >>> builder.register(RefRole())
-        >>> builder.register(KbdRole())
-        >>> registry = builder.build()
+            >>> builder = RoleRegistryBuilder()
+            >>> builder.register(RefRole())
+            >>> builder.register(KbdRole())
+            >>> registry = builder.build()
+        
     """
 
     __slots__ = ("_handlers", "_by_name", "_by_token_type")
@@ -184,9 +187,10 @@ class RoleRegistryBuilder:
 
 def create_default_registry() -> RoleRegistry:
     """Create registry with all built-in roles.
-
+    
     Returns:
         Registry with ref, kbd, abbr, math, icon, etc.
+        
     """
     from bengal.rendering.parsers.patitas.roles.builtins import (
         AbbrRole,

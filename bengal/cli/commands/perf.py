@@ -32,16 +32,17 @@ from bengal.cli.helpers import command_metadata, handle_cli_errors
 @click.option("--compare", "-c", is_flag=True, help="Compare last two builds")
 def perf(last: int, format: str, compare: bool) -> None:
     """Show performance metrics and trends.
-
+    
     Displays build performance metrics collected from previous builds.
     Metrics are automatically saved to .bengal/metrics/ directory.
-
+    
     Examples:
       bengal perf              # Show last 10 builds as table
       bengal perf -n 20        # Show last 20 builds
       bengal perf -f summary   # Show summary of latest build
       bengal perf -f json      # Output as JSON
       bengal perf --compare    # Compare last two builds
+        
     """
     from pathlib import Path
 

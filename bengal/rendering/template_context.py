@@ -6,19 +6,20 @@ in templates, making it impossible to forget baseurl in href/src attributes.
 Provides transparent delegation to wrapped objects while adding baseurl handling.
 
 Key Concepts:
-    - Auto-baseurl: Automatically applies baseurl to .href property
-    - Transparent delegation: All other properties delegate to wrapped object
-    - Multiple baseurl formats: Supports path, absolute, file, and S3 URLs
-    - Template ergonomics: Simplifies template code by removing baseurl handling
+- Auto-baseurl: Automatically applies baseurl to .href property
+- Transparent delegation: All other properties delegate to wrapped object
+- Multiple baseurl formats: Supports path, absolute, file, and S3 URLs
+- Template ergonomics: Simplifies template code by removing baseurl handling
 
 Related Modules:
-    - bengal.rendering.template_engine: Template engine that uses wrappers
-    - bengal.core.page: Page objects being wrapped
-    - bengal.core.section: Section objects being wrapped
+- bengal.rendering.template_engine: Template engine that uses wrappers
+- bengal.core.page: Page objects being wrapped
+- bengal.core.section: Section objects being wrapped
 
 See Also:
-    - bengal/rendering/template_context.py:TemplatePageWrapper for page wrapper
-    - bengal/rendering/template_context.py:TemplateSectionWrapper for section wrapper
+- bengal/rendering/template_context.py:TemplatePageWrapper for page wrapper
+- bengal/rendering/template_context.py:TemplateSectionWrapper for section wrapper
+
 """
 
 from __future__ import annotations
@@ -34,35 +35,36 @@ if TYPE_CHECKING:
 class TemplatePageWrapper:
     """
     Wraps Page objects to auto-apply baseurl to .href in templates.
-
+    
     Provides transparent wrapper that automatically applies baseurl to page URLs,
     making templates ergonomic. All other page properties delegate to the wrapped
     page object, maintaining full compatibility.
-
+    
     Creation:
         Direct instantiation: TemplatePageWrapper(page, baseurl="")
             - Created by TemplateEngine for template context
             - Requires Page instance and optional baseurl
-
+    
     Attributes:
         _page: Wrapped Page object
         _baseurl: Base URL from site config (can be empty, path-only, or absolute)
-
+    
     Relationships:
         - Uses: Page for wrapped page object
         - Used by: TemplateEngine for template context
         - Used in: Templates via template context
-
+    
     Baseurl Formats Supported:
         - Path-only: `/bengal` → `/bengal/docs/page/`
         - Absolute: `https://example.com` → `https://example.com/docs/page/`
         - File protocol: `file:///path/to/site` → `file:///path/to/site/docs/page/`
         - S3: `s3://bucket/path` → `s3://bucket/path/docs/page/`
-
+    
     Examples:
         wrapped = TemplatePageWrapper(page, baseurl="/bengal")
         wrapped.href  # Returns "/bengal/docs/page/" (with baseurl)
         wrapped.title  # Delegates to page.title
+        
     """
 
     def __init__(self, page: Page, baseurl: str = ""):
@@ -125,30 +127,31 @@ class TemplatePageWrapper:
 class TemplateSectionWrapper:
     """
     Wraps Section objects to auto-apply baseurl to .href in templates.
-
+    
     Provides transparent wrapper that automatically applies baseurl to section URLs,
     similar to TemplatePageWrapper. Also wraps pages and subsections when accessed
     to ensure consistent baseurl handling throughout the section hierarchy.
-
+    
     Creation:
         Direct instantiation: TemplateSectionWrapper(section, baseurl="")
             - Created by TemplateEngine for template context
             - Requires Section instance and optional baseurl
-
+    
     Attributes:
         _section: Wrapped Section object
         _baseurl: Base URL from site config
-
+    
     Relationships:
         - Uses: Section for wrapped section object
         - Used by: TemplateEngine for template context
         - Used in: Templates via template context
         - Wraps: Pages and subsections when accessed
-
+    
     Examples:
         wrapped = TemplateSectionWrapper(section, baseurl="/bengal")
         wrapped.href  # Returns "/bengal/docs/section/" (with baseurl)
         wrapped.pages  # Returns wrapped pages with baseurl
+        
     """
 
     def __init__(self, section: Section, baseurl: str = ""):
@@ -231,13 +234,14 @@ class TemplateSectionWrapper:
 class TemplateSiteWrapper:
     """
     Wraps Site object to auto-wrap pages/sections when accessed from templates.
-
+    
     When templates access site.pages or site.sections, the pages/sections
     are automatically wrapped so they have .href with baseurl applied.
-
+    
     PERF: Wrapped lists are cached to avoid O(n) list creation on every access.
     Cache is keyed by the underlying list length, so it auto-invalidates when
     pages/sections are added/removed (e.g., during dev server rebuilds).
+        
     """
 
     __slots__ = (
@@ -310,16 +314,17 @@ def wrap_for_template(
 ) -> TemplatePageWrapper | TemplateSectionWrapper | TemplateSiteWrapper | object | None:
     """
     Wrap Page or Section objects for template context.
-
+    
     This function automatically detects the object type and wraps it appropriately.
     Other objects are returned unchanged.
-
+    
     Args:
         obj: Page, Section, SimpleNamespace (special pages), or other object
         baseurl: Base URL from site config
-
+    
     Returns:
         Wrapped object (if Page/Section/SimpleNamespace with url) or original object
+        
     """
     # Skip None
     if obj is None:

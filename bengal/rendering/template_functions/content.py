@@ -36,18 +36,19 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def safe_html(text: str) -> str:
     """
     Mark HTML as safe (prevents auto-escaping).
-
+    
     This is a marker function - Jinja2's 'safe' filter should be used instead.
     Included for compatibility with other SSGs.
-
+    
     Args:
         text: HTML text to mark as safe
-
+    
     Returns:
         Same text (use with Jinja2's |safe filter)
-
+    
     Example:
         {{ content | safe_html | safe }}
+        
     """
     return text
 
@@ -55,23 +56,24 @@ def safe_html(text: str) -> str:
 def html_escape(text: str) -> str:
     """
     Escape HTML entities.
-
+    
     Converts special characters to HTML entities:
     - < becomes &lt;
     - > becomes &gt;
     - & becomes &amp;
     - " becomes &quot;
     - ' becomes &#x27;
-
+    
     Args:
         text: Text to escape
-
+    
     Returns:
         Escaped HTML text
-
+    
     Example:
         {{ user_input | html_escape }}
         # "<script>" becomes "&lt;script&gt;"
+        
     """
     if not text:
         return ""
@@ -82,22 +84,23 @@ def html_escape(text: str) -> str:
 def html_unescape(text: str) -> str:
     """
     Unescape HTML entities.
-
+    
     Converts HTML entities back to characters:
     - &lt; becomes <
     - &gt; becomes >
     - &amp; becomes &
     - &quot; becomes "
-
+    
     Args:
         text: HTML text with entities
-
+    
     Returns:
         Unescaped text
-
+    
     Example:
         {{ escaped_text | html_unescape }}
         # "&lt;Hello&gt;" becomes "<Hello>"
+        
     """
     if not text:
         return ""
@@ -108,18 +111,23 @@ def html_unescape(text: str) -> str:
 def nl2br(text: str) -> str:
     """
     Convert newlines to HTML <br> tags.
-
-    Replaces \n with <br>\n to preserve both HTML and text formatting.
-
+    
+    Replaces 
+     with <br>
+     to preserve both HTML and text formatting.
+    
     Args:
         text: Text with newlines
-
+    
     Returns:
         HTML with <br> tags
-
+    
     Example:
         {{ text | nl2br | safe }}
-        # "Line 1\nLine 2" becomes "Line 1<br>\nLine 2"
+        # "Line 1
+    Line 2" becomes "Line 1<br>
+    Line 2"
+        
     """
     if not text:
         return ""
@@ -130,22 +138,23 @@ def nl2br(text: str) -> str:
 def smartquotes(text: str) -> str:
     """
     Convert straight quotes to smart (curly) quotes.
-
+    
     Converts:
     - " to " and "
     - ' to ' and '
     - -- to –
     - --- to —
-
+    
     Args:
         text: Text with straight quotes
-
+    
     Returns:
         Text with smart quotes
-
+    
     Example:
         {{ text | smartquotes }}
         # "Hello" becomes "Hello"
+        
     """
     if not text:
         return ""
@@ -174,19 +183,20 @@ def smartquotes(text: str) -> str:
 def emojify(text: str) -> str:
     """
     Convert emoji shortcodes to Unicode emoji.
-
+    
     Converts :emoji_name: to actual emoji characters.
-
+    
     Args:
         text: Text with emoji shortcodes
-
+    
     Returns:
         Text with Unicode emoji
-
+    
     Example:
         {{ text | emojify }}
         # "Hello :smile:" becomes "Hello 😊"
         # "I :heart: Python" becomes "I ❤️ Python"
+        
     """
     if not text:
         return ""
@@ -225,24 +235,25 @@ def emojify(text: str) -> str:
 def extract_content(html: str) -> str:
     """
     Extract content portion from full rendered HTML page.
-
+    
     Removes the page wrapper (html, head, body, navigation, footer) and
     extracts just the main content area. This is useful for embedding
     page content within other pages (e.g., track pages).
-
+    
     Tries multiple strategies to find content:
     1. Look for <article class="prose"> or <div class="docs-content">
     2. Look for <main> content (excluding nav/footer)
     3. Fall back to empty string if no content area found
-
+    
     Args:
         html: Full rendered HTML page
-
+    
     Returns:
         Extracted content HTML (or empty string if extraction fails)
-
+    
     Example:
         {{ page.rendered_html | extract_content | safe }}
+        
     """
     if not html:
         return ""
@@ -347,25 +358,26 @@ def extract_content(html: str) -> str:
 def demote_headings(html: str, levels: int = 1) -> str:
     """
     Demote HTML headings by the specified number of levels.
-
+    
     Shifts heading levels down (h1→h2, h2→h3, etc.) to maintain proper
     document hierarchy when embedding content within other pages.
     Headings cannot go below h6.
-
+    
     Args:
         html: HTML content with headings
         levels: Number of levels to demote (default: 1)
-
+    
     Returns:
         HTML with demoted headings
-
+    
     Example:
         {{ page.content | demote_headings | safe }}
         # <h1>Title</h1> becomes <h2>Title</h2>
         # <h2>Section</h2> becomes <h3>Section</h3>
-
+    
         {{ page.content | demote_headings(2) | safe }}
         # <h1>Title</h1> becomes <h3>Title</h3>
+        
     """
     if not html or levels < 1:
         return html or ""
@@ -389,22 +401,23 @@ def demote_headings(html: str, levels: int = 1) -> str:
 def prefix_heading_ids(html: str, prefix: str) -> str:
     """
     Prefix all heading IDs and their corresponding anchor links with a prefix.
-
+    
     This ensures heading IDs are unique when embedding multiple pages on a
     single page (e.g., track pillar pages). Also updates href="#id" links
     that point to these headings.
-
+    
     Args:
         html: HTML content with headings
         prefix: Prefix to add (e.g., "s1-" for section 1)
-
+    
     Returns:
         HTML with prefixed heading IDs and updated anchor links
-
+    
     Example:
         {{ page.content | prefix_heading_ids("s1-") | safe }}
         # <h2 id="quick-start"> becomes <h2 id="s1-quick-start">
         # <a href="#quick-start"> becomes <a href="#s1-quick-start">
+        
     """
     if not html or not prefix:
         return html or ""
@@ -455,26 +468,27 @@ def urlize(
 ) -> str:
     """
     Convert plain URLs in text to clickable HTML links.
-
+    
     Detects URLs starting with http://, https://, or www. and wraps them
     in anchor tags.
-
+    
     Args:
         text: Text containing URLs
         target: Optional target attribute (e.g., "_blank")
         rel: Optional rel attribute (e.g., "noopener noreferrer")
         shorten: If True, shorten displayed URL text
         shorten_length: Maximum length for shortened display (default: 50)
-
+    
     Returns:
         Text with URLs converted to anchor tags
-
+    
     Example:
         {{ "Check out https://example.com for more info" | urlize }}
         # "Check out <a href="https://example.com">https://example.com</a> for more info"
-
+    
         {{ text | urlize(target='_blank', rel='noopener') }}
         # Opens links in new tab with security attributes
+        
     """
     if not text:
         return ""

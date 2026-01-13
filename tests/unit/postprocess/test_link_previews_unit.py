@@ -95,9 +95,10 @@ class TestLinkPreviewsNormalization:
 class TestJsonUrlConversion:
     """
     Test JSON URL conversion logic.
-
+    
     Note: The actual toJsonUrl() is in JavaScript. These tests document
     the expected behavior for parity testing.
+        
     """
 
     @pytest.mark.parametrize(

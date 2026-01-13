@@ -28,17 +28,18 @@ logger = get_logger(__name__)
 class CacheValidator(BaseValidator):
     """
     Validates build cache integrity (essential checks only).
-
+    
     Checks:
     - Cache file exists and is readable
     - Cache format is valid JSON
     - Cache size is reasonable (not corrupted/bloated)
     - Has expected structure (file_hashes, dependencies)
-
+    
     Skips:
     - Deep dependency graph validation (complex)
     - File hash verification (too slow)
     - Advanced corruption detection (overkill)
+        
     """
 
     name = "Cache Integrity"

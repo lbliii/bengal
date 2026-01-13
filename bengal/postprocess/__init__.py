@@ -7,43 +7,43 @@ syndication, support search functionality, and provide alternative content
 formats for AI/LLM consumption.
 
 Generators:
-    SEO & Syndication:
-        - SitemapGenerator: XML sitemap for search engine discovery
-        - RSSGenerator: RSS 2.0 feeds for content syndication
+SEO & Syndication:
+    - SitemapGenerator: XML sitemap for search engine discovery
+    - RSSGenerator: RSS 2.0 feeds for content syndication
 
-    Special Pages:
-        - SpecialPagesGenerator: 404 error page, search page, graph visualization
-        - RedirectGenerator: HTML redirect pages for URL aliases
+Special Pages:
+    - SpecialPagesGenerator: 404 error page, search page, graph visualization
+    - RedirectGenerator: HTML redirect pages for URL aliases
 
-    Output Formats:
-        - OutputFormatsGenerator: Facade for all output format generators
-        - PageJSONGenerator: Per-page JSON files for programmatic access
-        - PageTxtGenerator: Per-page plain text for AI/LLM consumption
-        - SiteIndexGenerator: Site-wide search index (index.json)
-        - SiteLlmTxtGenerator: Full site content as single text file
+Output Formats:
+    - OutputFormatsGenerator: Facade for all output format generators
+    - PageJSONGenerator: Per-page JSON files for programmatic access
+    - PageTxtGenerator: Per-page plain text for AI/LLM consumption
+    - SiteIndexGenerator: Site-wide search index (index.json)
+    - SiteLlmTxtGenerator: Full site content as single text file
 
 Architecture:
-    Post-processing runs after all pages are rendered and output paths are
-    known. Generators receive a Site instance with fully populated pages
-    and configuration. Each generator writes directly to the output directory
-    using atomic file operations for crash safety.
+Post-processing runs after all pages are rendered and output paths are
+known. Generators receive a Site instance with fully populated pages
+and configuration. Each generator writes directly to the output directory
+using atomic file operations for crash safety.
 
-    The PostprocessOrchestrator (bengal.orchestration.postprocess) coordinates
-    these generators in the correct order and handles configuration.
+The PostprocessOrchestrator (bengal.orchestration.postprocess) coordinates
+these generators in the correct order and handles configuration.
 
 Configuration:
-    Post-processing is configured in bengal.toml under various sections:
+Post-processing is configured in bengal.toml under various sections:
 
-    - [sitemap]: Sitemap generation options
-    - [rss]: RSS feed configuration
-    - [search]: Search page and index settings
-    - [graph]: Knowledge graph visualization
-    - [output_formats]: JSON, LLM text output formats
-    - [redirects]: Redirect file generation
+- [sitemap]: Sitemap generation options
+- [rss]: RSS feed configuration
+- [search]: Search page and index settings
+- [graph]: Knowledge graph visualization
+- [output_formats]: JSON, LLM text output formats
+- [redirects]: Redirect file generation
 
 Example:
-    Generators are typically invoked by the PostprocessOrchestrator, but can
-    be used directly for testing or custom workflows:
+Generators are typically invoked by the PostprocessOrchestrator, but can
+be used directly for testing or custom workflows:
 
     >>> from bengal.postprocess import SitemapGenerator, RSSGenerator
     >>> from bengal.postprocess import RedirectGenerator, OutputFormatsGenerator
@@ -65,9 +65,10 @@ Example:
     >>> formats.generate()
 
 Related:
-    - bengal.orchestration.postprocess: Coordinates post-processing phase
-    - bengal.core.site: Site container with pages and configuration
-    - bengal.core.page: Page objects with metadata and content
+- bengal.orchestration.postprocess: Coordinates post-processing phase
+- bengal.core.site: Site container with pages and configuration
+- bengal.core.page: Page objects with metadata and content
+
 """
 
 from __future__ import annotations

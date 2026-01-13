@@ -11,10 +11,11 @@ Use cases:
 - Image galleries/screenshots
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's media directives exactly for parity.
+Matches Bengal's media directives exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -67,7 +68,7 @@ class FigureOptions(DirectiveOptions):
 class FigureDirective:
     """
     Semantic figure directive for images with captions.
-
+    
     Syntax:
         :::{figure} /images/architecture.png
         :alt: System Architecture Diagram
@@ -75,15 +76,16 @@ class FigureDirective:
         :width: 80%
         :align: center
         :::
-
+    
     Output:
         <figure class="figure align-center" style="width: 80%">
           <img src="..." alt="..." loading="lazy">
           <figcaption>Caption text</figcaption>
         </figure>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("figure",)
@@ -210,13 +212,13 @@ class AudioOptions(DirectiveOptions):
 class AudioDirective:
     """
     Self-hosted audio directive using HTML5 audio element.
-
+    
     Syntax:
         :::{audio} /assets/podcast-ep1.mp3
         :title: Episode 1: Getting Started
         :controls: true
         :::
-
+    
     Output:
         <figure class="audio-embed">
           <audio title="..." controls preload="metadata">
@@ -224,9 +226,10 @@ class AudioDirective:
             <p>Fallback text</p>
           </audio>
         </figure>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("audio",)
@@ -350,18 +353,18 @@ class GalleryOptions(DirectiveOptions):
 class GalleryDirective:
     """
     Responsive image gallery directive.
-
+    
     Syntax:
         :::{gallery}
         :columns: 3
         :lightbox: true
         :gap: 1rem
         :aspect-ratio: 4/3
-
+    
         ![Image 1](/images/photo1.jpg)
         ![Image 2](/images/photo2.jpg "Caption")
         :::
-
+    
     Output:
         <div class="gallery" style="--gallery-columns: 3; ...">
           <figure class="gallery__item">
@@ -371,9 +374,10 @@ class GalleryDirective:
             <figcaption>Caption</figcaption>
           </figure>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("gallery",)

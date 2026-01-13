@@ -5,12 +5,13 @@ Tests YouTube, Vimeo, self-hosted video, Gist, CodePen, CodeSandbox,
 StackBlitz, Asciinema, Figure, and Audio directives.
 
 Related:
-    - RFC: plan/implemented/rfc-media-embed-directives.md
-    - Docs: site/content/docs/reference/directives/media.md
-    - bengal/rendering/plugins/directives/video.py
-    - bengal/rendering/plugins/directives/embed.py
-    - bengal/rendering/plugins/directives/terminal.py
-    - bengal/rendering/plugins/directives/figure.py
+- RFC: plan/implemented/rfc-media-embed-directives.md
+- Docs: site/content/docs/reference/directives/media.md
+- bengal/rendering/plugins/directives/video.py
+- bengal/rendering/plugins/directives/embed.py
+- bengal/rendering/plugins/directives/terminal.py
+- bengal/rendering/plugins/directives/figure.py
+
 """
 
 from __future__ import annotations

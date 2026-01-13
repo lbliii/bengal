@@ -5,7 +5,7 @@ Generates xref.json for cross-project documentation linking. Other Bengal sites
 can import this index to enable [[ext:project:target]] syntax.
 
 Output Format:
-    The xref.json contains:
+The xref.json contains:
 
     ```json
     {
@@ -33,16 +33,16 @@ Output Format:
     ```
 
 Entry Types:
-    - page: Content pages
-    - class: Python autodoc classes
-    - function: Python autodoc functions
-    - method: Python autodoc methods
-    - module: Python autodoc modules
-    - cli: CLI autodoc commands
-    - endpoint: OpenAPI autodoc endpoints
+- page: Content pages
+- class: Python autodoc classes
+- function: Python autodoc functions
+- method: Python autodoc methods
+- module: Python autodoc modules
+- cli: CLI autodoc commands
+- endpoint: OpenAPI autodoc endpoints
 
 Configuration:
-    Enable in bengal.toml:
+Enable in bengal.toml:
 
     ```toml
     [external_refs]
@@ -55,12 +55,13 @@ Example:
     >>> print(f"xref.json written to: {path}")
 
 Related:
-    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
-    - bengal.rendering.plugins.cross_references: CrossReferencePlugin
-    - plan/rfc-external-references.md: RFC for external references
+- bengal.postprocess.output_formats: OutputFormatsGenerator facade
+- bengal.rendering.plugins.cross_references: CrossReferencePlugin
+- plan/rfc-external-references.md: RFC for external references
 
 See Also:
-    - https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+- https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+
 """
 
 from __future__ import annotations
@@ -88,18 +89,18 @@ XREF_INDEX_VERSION = "1"
 class XRefIndexGenerator:
     """
     Generates xref.json for cross-project documentation linking.
-
+    
     Creates a JSON index that other Bengal sites can import to resolve
     [[ext:project:target]] references to pages, API docs, and CLI commands.
-
+    
     Creation:
         Direct instantiation: XRefIndexGenerator(site)
             - Requires Site instance with rendered pages
             - Called during post-processing phase
-
+    
     Attributes:
         site: Site instance with pages and configuration
-
+    
     Entry Types:
         - page: Regular content pages
         - class: Python classes from autodoc
@@ -108,10 +109,11 @@ class XRefIndexGenerator:
         - module: Python modules from autodoc
         - cli: CLI commands from autodoc
         - endpoint: REST API endpoints from autodoc
-
+    
     Example:
-        >>> generator = XRefIndexGenerator(site)
-        >>> path = generator.generate()  # Returns Path to xref.json
+            >>> generator = XRefIndexGenerator(site)
+            >>> path = generator.generate()  # Returns Path to xref.json
+        
     """
 
     def __init__(self, site: Site) -> None:
@@ -401,12 +403,13 @@ class XRefIndexGenerator:
 def should_export_xref_index(site: Site) -> bool:
     """
     Check if xref.json export is enabled.
-
+    
     Args:
         site: Site instance
-
+    
     Returns:
         True if external_refs.export_index is True
+        
     """
     external_refs = site.config.get("external_refs", {})
     if isinstance(external_refs, bool):

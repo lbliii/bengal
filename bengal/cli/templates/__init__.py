@@ -15,8 +15,8 @@ Available Templates:
     changelog: Project changelog site
 
 Classes:
-    SiteTemplate: Base class for defining templates
-    TemplateFile: Dataclass for template file specifications
+SiteTemplate: Base class for defining templates
+TemplateFile: Dataclass for template file specifications
 
 Functions:
     get_template: Retrieve a template by name
@@ -27,6 +27,7 @@ Example:
     >>> from bengal.cli.templates import get_template, list_templates
     >>> template = get_template('blog')
     >>> all_templates = list_templates()
+
 """
 
 from __future__ import annotations

@@ -19,7 +19,7 @@ Usage in Templates:
     ```
 
 Configuration:
-    External references are configured in bengal.toml:
+External references are configured in bengal.toml:
 
     ```toml
     [external_refs]
@@ -34,6 +34,7 @@ Configuration:
     ```
 
 See: plan/rfc-external-references.md
+
 """
 
 from __future__ import annotations
@@ -57,11 +58,12 @@ def register(
 ) -> None:
     """
     Register external reference template functions.
-
+    
     Args:
         env: Kida template environment
         site: Site instance
         resolver: Optional pre-created resolver (creates one if not provided)
+        
     """
     # Create resolver if not provided
     if resolver is None:

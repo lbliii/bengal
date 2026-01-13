@@ -6,40 +6,40 @@ enabling clear error messages with source context, suggestions, and IDE-friendly
 formatting.
 
 Key Classes:
-    TemplateRenderError:
-        Rich exception with template context, line numbers, source snippets,
-        and actionable suggestions. Extends BengalRenderingError for
-        consistent error handling across the codebase.
+TemplateRenderError:
+    Rich exception with template context, line numbers, source snippets,
+    and actionable suggestions. Extends BengalRenderingError for
+    consistent error handling across the codebase.
 
-    TemplateErrorContext:
-        Captures error location (file, line, column) and surrounding source
-        code for display.
+TemplateErrorContext:
+    Captures error location (file, line, column) and surrounding source
+    code for display.
 
-    InclusionChain:
-        Tracks template include/extend hierarchy to show how the error
-        location was reached.
+InclusionChain:
+    Tracks template include/extend hierarchy to show how the error
+    location was reached.
 
-    ErrorDeduplicator:
-        Tracks and deduplicates similar errors across multiple pages to
-        reduce noise in build output. Attached to BuildStats (not global).
+ErrorDeduplicator:
+    Tracks and deduplicates similar errors across multiple pages to
+    reduce noise in build output. Attached to BuildStats (not global).
 
 Error Types:
-    - syntax: Invalid Jinja2 syntax (missing tags, brackets, etc.)
-    - filter: Unknown filter name (e.g., ``| nonexistent``)
-    - undefined: Undefined variable access (e.g., ``{{ missing_var }}``)
-    - callable: NoneType is not callable (e.g., missing filter/function registration)
-    - none_access: NoneType is not iterable (e.g., using 'in' on None)
-    - runtime: Runtime errors during template execution
-    - other: Unclassified template errors
+- syntax: Invalid Jinja2 syntax (missing tags, brackets, etc.)
+- filter: Unknown filter name (e.g., ``| nonexistent``)
+- undefined: Undefined variable access (e.g., ``{{ missing_var }}``)
+- callable: NoneType is not callable (e.g., missing filter/function registration)
+- none_access: NoneType is not iterable (e.g., using 'in' on None)
+- runtime: Runtime errors during template execution
+- other: Unclassified template errors
 
 Display Functions:
     display_template_error():
-        Renders error to terminal with syntax highlighting (via Rich if
-        available) or plain text fallback. Shows source context, suggestions,
-        and documentation links.
+    Renders error to terminal with syntax highlighting (via Rich if
+    available) or plain text fallback. Shows source context, suggestions,
+    and documentation links.
 
 Usage:
-    Typically created automatically by the rendering pipeline:
+Typically created automatically by the rendering pipeline:
 
     >>> try:
     ...     template.render(context)
@@ -49,7 +49,7 @@ Usage:
     ...     )
     ...     display_template_error(error)
 
-    Error deduplication for batch rendering (via BuildStats):
+Error deduplication for batch rendering (via BuildStats):
 
     >>> dedup = build_stats.get_error_deduplicator()
     >>> for page in pages:
@@ -62,17 +62,18 @@ Usage:
     >>> dedup.display_summary()  # Show counts of suppressed errors
 
 Error Message Enhancement:
-    The module includes smart suggestion generation:
-    - Typo detection for variable/filter names
-    - Safe access patterns for undefined errors
-    - Callable identification from template source
-    - Documentation links for common issues
+The module includes smart suggestion generation:
+- Typo detection for variable/filter names
+- Safe access patterns for undefined errors
+- Callable identification from template source
+- Documentation links for common issues
 
 Related Modules:
-    - bengal.rendering.engines.errors: Low-level engine exceptions
-    - bengal.errors: Base error classes (BengalRenderingError)
-    - bengal.orchestration.stats: BuildStats with error deduplicator
-    - bengal.utils.rich_console: Rich terminal output utilities
+- bengal.rendering.engines.errors: Low-level engine exceptions
+- bengal.errors: Base error classes (BengalRenderingError)
+- bengal.orchestration.stats: BuildStats with error deduplicator
+- bengal.utils.rich_console: Rich terminal output utilities
+
 """
 
 from __future__ import annotations
@@ -123,16 +124,17 @@ class InclusionChain:
 class ErrorDeduplicator:
     """
     Tracks and deduplicates similar template errors across multiple pages.
-
+    
     When the same error (same template, line, error type) occurs on multiple
     pages, only the first occurrence is displayed in full. Subsequent occurrences
     are counted and summarized at the end.
-
+    
     Usage:
-        >>> dedup = get_error_deduplicator()
-        >>> if dedup.should_display(error):
-        ...     display_template_error(error)
-        >>> dedup.display_summary()
+            >>> dedup = get_error_deduplicator()
+            >>> if dedup.should_display(error):
+            ...     display_template_error(error)
+            >>> dedup.display_summary()
+        
     """
 
     # Key: (template_name, line_number, error_type, message_prefix)
@@ -228,12 +230,13 @@ class ErrorDeduplicator:
 class TemplateRenderError(BengalRenderingError):
     """
     Rich template error with all debugging information.
-
+    
     This replaces the simple string error messages with structured data
     that can be displayed beautifully and used for IDE integration.
-
+    
     Extends BengalRenderingError to provide consistent error handling
     while maintaining rich context for template debugging.
+        
     """
 
     def __init__(
@@ -794,10 +797,11 @@ class TemplateRenderError(BengalRenderingError):
 def display_template_error(error: TemplateRenderError, use_color: bool = True) -> None:
     """
     Display a rich template error in the terminal.
-
+    
     Args:
         error: Rich error object
         use_color: Whether to use terminal colors
+        
     """
     # Try to use rich for enhanced display
     try:

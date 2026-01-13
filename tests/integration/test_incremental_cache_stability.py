@@ -18,11 +18,12 @@ import pytest
 class TestIncrementalBuildStability:
     """
     Tests for incremental build stability.
-
+    
     Verifies that:
     1. Consecutive incremental builds with no changes don't rebuild pages
     2. Touching templates without content changes doesn't trigger rebuilds
     3. Cache is consistent across builds
+        
     """
 
     @pytest.fixture
@@ -293,13 +294,14 @@ New content here.
 class TestCacheOutputMismatch:
     """
     Regression tests for cache/output mismatch scenarios.
-
+    
     Bug: When .bengal cache is restored but output directory is cleaned
     (e.g., CI with `rm -rf public/*`), Bengal incorrectly skipped rebuilding
     because cache said "nothing changed".
-
+    
     Fix: phase_incremental_filter now checks if output is missing BEFORE
     deciding to skip, forcing a full rebuild when output is empty.
+        
     """
 
     @pytest.fixture
@@ -479,13 +481,14 @@ title: Home
 class TestAutodocOutputMismatch:
     """
     Regression tests for autodoc output missing scenarios.
-
+    
     Bug: When .bengal cache is restored in CI but site/public/api/ (autodoc output)
     was not cached, Bengal incorrectly skipped rebuilding virtual pages because
     the cache said "source files unchanged".
-
+    
     Fix: _check_autodoc_output_missing() now checks if autodoc output directories
     exist and contain content before deciding to skip.
+        
     """
 
     @pytest.fixture

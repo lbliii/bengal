@@ -20,6 +20,7 @@ from bengal.core.site import Site
 def config_directory_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     Create a test site with config/ directory structure.
+        
     """
     # Disable environment auto-detection for tests
     monkeypatch.delenv("BENGAL_ENV", raising=False)
@@ -78,6 +79,7 @@ def config_directory_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Pa
 def single_file_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     Create a test site with single bengal.yaml config (legacy).
+        
     """
     # Disable environment auto-detection for tests
     monkeypatch.delenv("BENGAL_ENV", raising=False)

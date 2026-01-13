@@ -25,9 +25,10 @@ ASCII_PUNCTUATION: frozenset[str] = frozenset("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}
 
 def is_unicode_punctuation(char: str) -> bool:
     """Check if character is Unicode punctuation (Pc, Pd, Pe, Pf, Pi, Po, Ps, or Sc, Sk, Sm, So).
-
+    
     CommonMark uses Unicode punctuation categories for flanking rules.
     This includes ASCII punctuation as a subset.
+        
     """
     if not char:
         return False
@@ -49,10 +50,11 @@ WHITESPACE_OR_EMPTY: frozenset[str] = WHITESPACE | frozenset([""])
 
 def is_unicode_whitespace(char: str) -> bool:
     """Check if character is Unicode whitespace.
-
+    
     CommonMark uses Unicode whitespace for emphasis flanking rules.
     Includes ASCII whitespace and Unicode category Zs (space separator).
     Also treats empty string as whitespace (for boundary checks).
+        
     """
     if not char:
         return True  # Empty string counts as whitespace for boundary checks

@@ -5,38 +5,39 @@ Provides a structured dataclass for representing content series (multi-part
 tutorials, article series, etc.) with navigation support.
 
 Public API:
-    Series: Content series representation with parts navigation
+Series: Content series representation with parts navigation
 
 Frontmatter Format:
     series:
-      name: "Building a Blog with Bengal"
-      part: 1
-      total: 5
+  name: "Building a Blog with Bengal"
+  part: 1
+  total: 5
 
-    Or with optional description:
+Or with optional description:
     series:
-      name: "Building a Blog with Bengal"
-      part: 2
-      total: 5
-      description: "A comprehensive guide to building a blog"
+  name: "Building a Blog with Bengal"
+  part: 2
+  total: 5
+  description: "A comprehensive guide to building a blog"
 
 Template Usage:
-    {% if page.series %}
-      <div class="series-nav">
-        <h4>{{ page.series.name }}</h4>
-        <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
-        {% if page.prev_in_series %}
-          <a href="{{ page.prev_in_series.href }}">← Previous</a>
-        {% endif %}
-        {% if page.next_in_series %}
-          <a href="{{ page.next_in_series.href }}">Next →</a>
-        {% endif %}
-      </div>
+{% if page.series %}
+  <div class="series-nav">
+    <h4>{{ page.series.name }}</h4>
+    <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
+    {% if page.prev_in_series %}
+      <a href="{{ page.prev_in_series.href }}">← Previous</a>
     {% endif %}
+    {% if page.next_in_series %}
+      <a href="{{ page.next_in_series.href }}">Next →</a>
+    {% endif %}
+  </div>
+{% endif %}
 
 Related Modules:
-    - bengal.core.page.computed: Page computed properties using Series
-    - bengal.cache.indexes.series_index: Series-based page index
+- bengal.core.page.computed: Page computed properties using Series
+- bengal.cache.indexes.series_index: Series-based page index
+
 """
 
 from __future__ import annotations
@@ -49,32 +50,33 @@ from typing import Any
 class Series:
     """
     Content series with part tracking and navigation support.
-
+    
     This dataclass represents a multi-part content series with:
     - Series identification (name/slug)
     - Part positioning (current part, total parts)
     - Optional description
-
+    
     The class is frozen (immutable) for hashability and cache safety.
-
+    
     Attributes:
         name: Series name/title (required)
         part: Current part number (1-indexed)
         total: Total number of parts (optional, 0 if unknown)
         description: Series description (optional)
         slug: URL-safe identifier (auto-generated from name if not provided)
-
+    
     Example:
-        >>> series = Series(
-        ...     name="Building a Blog with Bengal",
-        ...     part=1,
-        ...     total=5,
-        ...     description="A comprehensive guide",
-        ... )
-        >>> series.name
-        'Building a Blog with Bengal'
-        >>> series.is_first
+            >>> series = Series(
+            ...     name="Building a Blog with Bengal",
+            ...     part=1,
+            ...     total=5,
+            ...     description="A comprehensive guide",
+            ... )
+            >>> series.name
+            'Building a Blog with Bengal'
+            >>> series.is_first
         True
+        
     """
 
     name: str

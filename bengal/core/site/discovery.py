@@ -5,9 +5,10 @@ Provides methods for discovering content (pages, sections) and assets,
 and setting up page/section references.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.discovery.content_discovery: Content discovery implementation
-    - bengal.discovery.asset_discovery: Asset discovery implementation
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.discovery.content_discovery: Content discovery implementation
+- bengal.discovery.asset_discovery: Asset discovery implementation
+
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 class ContentDiscoveryMixin:
     """
     Mixin providing content and asset discovery methods.
-
+    
     Requires these attributes on the host class:
         - root_path: Path
         - config: dict[str, Any]
@@ -36,6 +37,7 @@ class ContentDiscoveryMixin:
         - theme: str | None
         - register_sections: Callable (from SectionRegistryMixin)
         - _get_theme_assets_chain: Callable (from ThemeIntegrationMixin)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

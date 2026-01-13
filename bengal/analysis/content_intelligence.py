@@ -58,7 +58,7 @@ class ContentSuggestion:
 class ContentAnalysisReport:
     """
     Report of content intelligence analysis.
-
+    
     Attributes:
         pages_analyzed: Number of pages analyzed
         code_blocks_detected: Pages with multiple code blocks (tab candidates)
@@ -66,6 +66,7 @@ class ContentAnalysisReport:
         navigation_patterns: Detected navigation patterns
         suggestions: List of improvement suggestions
         speculation_recommendations: Recommended speculation rules
+        
     """
 
     pages_analyzed: int = 0
@@ -130,14 +131,15 @@ class ContentAnalysisReport:
 class ContentIntelligence:
     """
     Analyzes content for Document Application optimizations.
-
+    
     This runs at author-time (during build) to provide intelligent
     suggestions for improving the user experience.
-
+    
     Example usage:
         intel = ContentIntelligence(site)
         report = intel.analyze()
         print(report.summary())
+        
     """
 
     def __init__(self, site: Site):
@@ -300,12 +302,13 @@ class ContentIntelligence:
 def analyze_content_intelligence(site: Site) -> ContentAnalysisReport:
     """
     Convenience function to analyze content intelligence.
-
+    
     Args:
         site: The Bengal site instance
-
+    
     Returns:
         ContentAnalysisReport with analysis results
+        
     """
     intel = ContentIntelligence(site)
     return intel.analyze()

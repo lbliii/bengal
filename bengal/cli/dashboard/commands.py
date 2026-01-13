@@ -7,9 +7,10 @@ Integrates with Textual's CommandPalette widget.
 Inspired by Toad's ModeProvider pattern for discovery and search.
 
 Usage:
-    Press Ctrl+P in any dashboard to open command palette
-    Type to filter commands and pages
-    Press Enter to execute/navigate
+Press Ctrl+P in any dashboard to open command palette
+Type to filter commands and pages
+Press Enter to execute/navigate
+
 """
 
 from __future__ import annotations
@@ -26,16 +27,17 @@ if TYPE_CHECKING:
 class BengalCommandProvider(Provider):
     """
     Command provider for Bengal dashboards.
-
+    
     Provides fuzzy search for:
     - Dashboard commands (rebuild, clear, open browser, etc.)
     - Screen navigation
     - Configuration options
-
+    
     Includes discovery hits for common actions shown before typing.
-
+    
     The provider is registered with BengalApp and available
     in all screens via Ctrl+P.
+        
     """
 
     # Command definitions with keyboard shortcuts
@@ -186,9 +188,10 @@ class BengalCommandProvider(Provider):
 class BengalPageProvider(Provider):
     """
     Provider for searching site pages.
-
+    
     Enables quick navigation to any page in the site
     via the command palette. Opens page in browser.
+        
     """
 
     async def discover(self) -> Hits:

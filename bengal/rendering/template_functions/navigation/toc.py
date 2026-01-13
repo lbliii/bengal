@@ -12,18 +12,18 @@ from typing import Any
 def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Convert flat TOC items into a nested tree structure with children arrays.
-
+    
     This function builds a proper tree where each node contains its children
     directly, enabling recursive template rendering with count badges.
-
+    
     Args:
         toc_items: Flat list of TOC items with id, title, and level
-
+    
     Returns:
         Nested list where each item has a 'children' array containing
         its sub-items. Items at level 1 (H2) become root nodes, and
         deeper levels become nested children.
-
+    
     Example:
         Input (flat):
             [
@@ -33,7 +33,7 @@ def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 {"id": "api", "title": "API", "level": 1},
                 {"id": "endpoints", "title": "Endpoints", "level": 2},
             ]
-
+    
         Output (nested):
             [
                 {
@@ -50,11 +50,12 @@ def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     ]
                 },
             ]
-
+    
     Template usage:
         {% for item in build_toc_tree(toc_items) %}
           {{ toc_node(item) }}
         {% endfor %}
+        
     """
     if not toc_items:
         return []
@@ -96,21 +97,21 @@ def get_toc_grouped(
 ) -> list[dict[str, Any]]:
     """
     Group TOC items hierarchically for collapsible sections.
-
+    
     This function takes flat TOC items and groups them by a specific heading
     level, making it easy to create collapsible sections. For example, grouping
     by level 1 (H2 headings) creates expandable sections with H3+ as children.
-
+    
     Args:
         toc_items: List of TOC items from page.toc_items
         group_by_level: Level to group by (1 = H2 sections, default)
-
+    
     Returns:
         List of groups, each with:
         - header: The group header item (dict with id, title, level)
         - children: List of child items (empty list if standalone)
         - is_group: True if has children, False for standalone items
-
+    
     Example (basic):
         {% for group in get_toc_grouped(page.toc_items) %}
           {% if group.is_group %}
@@ -129,7 +130,7 @@ def get_toc_grouped(
             <a href="#{{ group.header.id }}">{{ group.header.title }}</a>
           {% endif %}
         {% endfor %}
-
+    
     Example (with custom styling):
         {% for group in get_toc_grouped(page.toc_items) %}
           <div class="toc-group">
@@ -148,6 +149,7 @@ def get_toc_grouped(
             {% endif %}
           </div>
         {% endfor %}
+        
     """
     if not toc_items:
         return []
@@ -194,21 +196,22 @@ def get_toc_grouped(
 def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[dict[str, Any]]:
     """
     Combine TOC items from all track section pages into a single TOC.
-
+    
     Each track section becomes a level-1 TOC item, and its headings become
     nested items with incremented levels.
-
+    
     Args:
         track_items: List of page paths/slugs for track items
         get_page_func: Function to get page by path (from template context)
-
+    
     Returns:
         Combined list of TOC items with section headers and nested headings
-
+    
     Performance:
         Uses local cache to avoid redundant get_page() calls within a single
         TOC generation. With per-render caching in get_page(), this provides
         defense-in-depth optimization.
+        
     """
     combined: list[dict[str, Any]] = []
     # Local cache for pages within this function call.

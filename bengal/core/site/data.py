@@ -4,9 +4,10 @@ Data loading mixin for Site.
 Provides methods for loading data files from the data/ directory into site.data.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.utils.dotdict: DotDict for dot-notation access
-    - bengal.utils.file_io: Data file loading utilities
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.utils.dotdict: DotDict for dot-notation access
+- bengal.utils.file_io: Data file loading utilities
+
 """
 
 from __future__ import annotations
@@ -23,9 +24,10 @@ if TYPE_CHECKING:
 class DataLoadingMixin:
     """
     Mixin providing data directory loading methods.
-
+    
     Requires these attributes on the host class:
         - root_path: Path
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

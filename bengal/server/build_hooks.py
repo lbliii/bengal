@@ -6,11 +6,11 @@ allowing integration with external build tools like npm, Tailwind CSS,
 esbuild, or any custom scripts.
 
 Features:
-    - Sequential command execution with output capture
-    - Configurable timeout per command (default: 60s)
-    - stdout/stderr logging for debugging
-    - Graceful failure handling (non-zero exit logged, not fatal)
-    - Cross-platform subprocess execution
+- Sequential command execution with output capture
+- Configurable timeout per command (default: 60s)
+- stdout/stderr logging for debugging
+- Graceful failure handling (non-zero exit logged, not fatal)
+- Cross-platform subprocess execution
 
 Functions:
     run_hooks: Execute a list of shell commands sequentially
@@ -30,16 +30,17 @@ Configuration (bengal.toml):
     ```
 
 Use Cases:
-    - CSS preprocessing (Sass, Less, Tailwind)
-    - JavaScript bundling (esbuild, webpack, Vite)
-    - Asset optimization (imagemin, svgo)
-    - Icon generation (svg-sprite, fontello)
-    - Custom validation scripts
+- CSS preprocessing (Sass, Less, Tailwind)
+- JavaScript bundling (esbuild, webpack, Vite)
+- Asset optimization (imagemin, svgo)
+- Icon generation (svg-sprite, fontello)
+- Custom validation scripts
 
 Related:
-    - bengal/server/build_trigger.py: Calls hooks during build cycle
-    - bengal/server/dev_server.py: Reads hook configuration
-    - bengal.toml [dev_server] section: Hook configuration
+- bengal/server/build_trigger.py: Calls hooks during build cycle
+- bengal/server/dev_server.py: Reads hook configuration
+- bengal.toml [dev_server] section: Hook configuration
+
 """
 
 from __future__ import annotations
@@ -68,33 +69,34 @@ def run_hooks(
 ) -> bool:
     """
     Run a list of shell commands as hooks.
-
+    
     Executes commands sequentially, capturing output for logging.
     By default, stops execution on first failure.
-
+    
     Args:
         hooks: List of shell commands to run
         hook_type: Type of hook for logging ('pre_build' or 'post_build')
         cwd: Working directory for commands
         timeout: Maximum time per command in seconds (default: 60s)
         stop_on_failure: Whether to stop on first failed hook (default: True)
-
+    
     Returns:
         True if all hooks succeeded, False if any hook failed
-
+    
     Example:
-        >>> run_hooks(
-        ...     ["npm run build:css", "echo 'Done'"],
-        ...     "pre_build",
-        ...     Path("/project"),
-        ...     timeout=30.0,
-        ... )
+            >>> run_hooks(
+            ...     ["npm run build:css", "echo 'Done'"],
+            ...     "pre_build",
+            ...     Path("/project"),
+            ...     timeout=30.0,
+            ... )
         True
-
+    
     Note:
         Commands are parsed using shlex.split() for safety, which handles
         quoted arguments correctly but does not support shell features like
         pipes, redirects, or environment variable expansion.
+        
     """
     if not hooks:
         return True
@@ -197,16 +199,17 @@ def run_hooks(
 def run_pre_build_hooks(config: dict, cwd: Path, *, timeout: float = 60.0) -> bool:
     """
     Run pre-build hooks from config.
-
+    
     Convenience function to extract and run pre_build hooks from config.
-
+    
     Args:
         config: Site configuration dict
         cwd: Working directory for commands
         timeout: Maximum time per command in seconds
-
+    
     Returns:
         True if all hooks succeeded or no hooks configured, False otherwise
+        
     """
     dev_server = config.get("dev_server", {})
     hooks = dev_server.get("pre_build", [])
@@ -220,16 +223,17 @@ def run_pre_build_hooks(config: dict, cwd: Path, *, timeout: float = 60.0) -> bo
 def run_post_build_hooks(config: dict, cwd: Path, *, timeout: float = 60.0) -> bool:
     """
     Run post-build hooks from config.
-
+    
     Convenience function to extract and run post_build hooks from config.
-
+    
     Args:
         config: Site configuration dict
         cwd: Working directory for commands
         timeout: Maximum time per command in seconds
-
+    
     Returns:
         True if all hooks succeeded or no hooks configured, False otherwise
+        
     """
     dev_server = config.get("dev_server", {})
     hooks = dev_server.get("post_build", [])

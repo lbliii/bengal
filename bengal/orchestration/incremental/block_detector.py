@@ -7,8 +7,8 @@ blocks changed and their cache scope.
 RFC: block-level-incremental-builds
 
 Key Insight:
-    Most template edits (nav, footer, header) are to site-scoped blocks.
-    These don't require per-page rebuilds—just re-cache the block once.
+Most template edits (nav, footer, header) are to site-scoped blocks.
+These don't require per-page rebuilds—just re-cache the block once.
 
 Architecture:
     ```
@@ -24,7 +24,8 @@ Architecture:
     ```
 
 Thread-Safety:
-    Stateless detection logic. Thread-safe for concurrent calls.
+Stateless detection logic. Thread-safe for concurrent calls.
+
 """
 
 from __future__ import annotations
@@ -42,11 +43,12 @@ logger = get_logger(__name__)
 
 class BlockChangeSet(NamedTuple):
     """Classification of changed blocks by scope.
-
+    
     Attributes:
         site_scoped: Blocks that only need re-caching (no page rebuilds)
         page_scoped: Blocks that may require page rebuilds
         unknown_scoped: Blocks we can't classify (conservative rebuild)
+        
     """
 
     site_scoped: set[str]
@@ -64,19 +66,20 @@ class BlockChangeSet(NamedTuple):
 
 class BlockChangeDetector:
     """Detects and classifies block-level template changes.
-
+    
     Uses Kida's introspection API to determine which blocks changed
     and what scope they have, enabling smart rebuild decisions.
-
+    
     Example:
-        >>> detector = BlockChangeDetector(engine, block_cache)
-        >>> changes = detector.detect_and_classify("base.html")
-        >>> if changes.only_site_scoped():
-        ...     # Just re-warm site blocks, skip page rebuilds
-        ...     pass
-
+            >>> detector = BlockChangeDetector(engine, block_cache)
+            >>> changes = detector.detect_and_classify("base.html")
+            >>> if changes.only_site_scoped():
+            ...     # Just re-warm site blocks, skip page rebuilds
+            ...     pass
+    
     Thread-Safety:
         Stateless. Safe for concurrent calls with different templates.
+        
     """
 
     def __init__(

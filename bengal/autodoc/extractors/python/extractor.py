@@ -8,9 +8,10 @@ This is the main extractor class that coordinates the extraction process
 using utilities from sibling modules.
 
 Free-Threading Support (PEP 703):
-    With Python 3.13t/3.14t and PYTHON_GIL=0, parallel file extraction achieves
-    true parallelism. For directories with 10+ Python files, this provides
-    significant speedup (3-4x on multi-core machines).
+With Python 3.13t/3.14t and PYTHON_GIL=0, parallel file extraction achieves
+true parallelism. For directories with 10+ Python files, this provides
+significant speedup (3-4x on multi-core machines).
+
 """
 
 from __future__ import annotations
@@ -68,7 +69,7 @@ logger = get_logger(__name__)
 class PythonExtractor(Extractor):
     """
     Extract Python API documentation via AST parsing.
-
+    
     Features:
     - No imports (AST-only) - fast and reliable
     - Extracts modules, classes, functions, methods
@@ -77,11 +78,12 @@ class PythonExtractor(Extractor):
     - Signature building
     - Alias detection
     - Inherited member synthesis
-
+    
     Performance:
     - ~0.1-0.5s per file
     - No dependencies loaded
     - No side effects
+        
     """
 
     def __init__(

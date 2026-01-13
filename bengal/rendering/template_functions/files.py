@@ -44,20 +44,21 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def read_file(path: str, root_path: Path) -> str:
     """
     Read file contents.
-
+    
     Uses bengal.utils.file_io.read_text_file internally for robust file reading
     with UTF-8/latin-1 encoding fallback and comprehensive error handling.
-
+    
     Args:
         path: Relative path to file
         root_path: Site root path
-
+    
     Returns:
         File contents as string
-
+    
     Example:
         {% set license = read_file('LICENSE') %}
         {{ license }}
+        
     """
     if not path:
         logger.debug("read_file_empty_path", caller="template")
@@ -78,18 +79,19 @@ def read_file(path: str, root_path: Path) -> str:
 def file_exists(path: str, root_path: Path) -> bool:
     """
     Check if file exists.
-
+    
     Args:
         path: Relative path to file
         root_path: Site root path
-
+    
     Returns:
         True if file exists
-
+    
     Example:
         {% if file_exists('custom.css') %}
             <link rel="stylesheet" href="{{ asset_url('custom.css') }}">
         {% endif %}
+        
     """
     if not path:
         return False
@@ -101,16 +103,17 @@ def file_exists(path: str, root_path: Path) -> bool:
 def file_size(path: str, root_path: Path) -> str:
     """
     Get human-readable file size.
-
+    
     Args:
         path: Relative path to file
         root_path: Site root path
-
+    
     Returns:
         File size as human-readable string (e.g., "1.5 MB")
-
+    
     Example:
         {{ file_size('downloads/manual.pdf') }}  # "2.3 MB"
+        
     """
     if not path:
         logger.debug("file_size_empty_path", caller="template")

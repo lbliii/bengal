@@ -54,22 +54,23 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def absolute_url(url: str, base_url: str) -> str:
     """
     Convert relative URL to absolute URL.
-
+    
     Uses centralized URL normalization to ensure consistency.
     Detects file URLs (with extensions) and does not add trailing slashes to them.
-
+    
     Args:
         url: Relative or absolute URL
         base_url: Base URL to prepend
-
+    
     Returns:
         Absolute URL
-
+    
     Example:
         {{ page.href | absolute_url }}
         # Output: https://example.com/posts/my-post/
         {{ '/index.json' | absolute_url }}
         # Output: /index.json (no trailing slash for file URLs)
+        
     """
     from bengal.utils.url_normalization import normalize_url
 
@@ -109,18 +110,19 @@ def absolute_url(url: str, base_url: str) -> str:
 def url_encode(text: str) -> str:
     """
     URL encode string (percent encoding).
-
+    
     Encodes special characters for safe use in URLs.
-
+    
     Args:
         text: Text to encode
-
+    
     Returns:
         URL-encoded text
-
+    
     Example:
         {{ search_query | url_encode }}
         # "hello world" -> "hello%20world"
+        
     """
     if not text:
         return ""
@@ -131,18 +133,19 @@ def url_encode(text: str) -> str:
 def url_decode(text: str) -> str:
     """
     URL decode string (decode percent encoding).
-
+    
     Decodes percent-encoded characters back to original form.
-
+    
     Args:
         text: Text to decode
-
+    
     Returns:
         URL-decoded text
-
+    
     Example:
         {{ encoded_text | url_decode }}
         # "hello%20world" -> "hello world"
+        
     """
     if not text:
         return ""
@@ -153,20 +156,21 @@ def url_decode(text: str) -> str:
 def ensure_trailing_slash(url: str) -> str:
     """
     Ensure URL ends with a trailing slash.
-
+    
     This is useful for constructing URLs to index files or ensuring
     consistent URL formatting.
-
+    
     Args:
         url: URL to process
-
+    
     Returns:
         URL with trailing slash
-
+    
     Example:
         {{ page_url | ensure_trailing_slash }}
         # "https://example.com/docs" -> "https://example.com/docs/"
         # "https://example.com/docs/" -> "https://example.com/docs/"
+        
     """
     if not url:
         return "/"
@@ -177,25 +181,26 @@ def ensure_trailing_slash(url: str) -> str:
 def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str = "") -> str:
     """
     Compute URL for build artifacts (build.json, build.svg).
-
+    
     Handles all deployment scenarios:
     - Local dev server (no baseurl)
     - Production with baseurl (e.g., GitHub Pages at /my-repo/)
     - i18n prefix strategy (artifacts in language subdirectories)
-
+    
     Args:
         site: Site instance for config access
         filename: Artifact filename (default: "build.json")
         dir_name: Directory name for artifacts (default: from config or "bengal")
-
+    
     Returns:
         Absolute URL to the build artifact
-
+    
     Example:
         {{ build_artifact_url('build.json') }}
         # Output: /bengal/build.json (no baseurl)
         # Output: /my-repo/bengal/build.json (with baseurl)
         # Output: /fr/bengal/build.json (i18n prefix, French)
+        
     """
     config = getattr(site, "config", {}) or {}
 
@@ -233,13 +238,13 @@ def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str =
 def url_parse(url: str | None) -> dict:
     """
     Parse URL into components.
-
+    
     Args:
         url: URL string to parse
-
+    
     Returns:
         Dictionary with scheme, host, path, query, fragment, and params
-
+    
     Example:
         {% let parts = url | url_parse %}
         {{ parts.scheme }}    {# "https" #}
@@ -247,6 +252,7 @@ def url_parse(url: str | None) -> dict:
         {{ parts.path }}      {# "/docs/api" #}
         {{ parts.query }}     {# "version=2" #}
         {{ parts.params.version }}  {# ["2"] #}
+        
     """
     if not url:
         return {
@@ -272,18 +278,19 @@ def url_parse(url: str | None) -> dict:
 def url_param(url: str | None, param: str, default: str = "") -> str:
     """
     Extract a single query parameter from URL.
-
+    
     Args:
         url: URL string to parse
         param: Parameter name to extract
         default: Default value if parameter not found
-
+    
     Returns:
         Parameter value or default
-
+    
     Example:
         {{ "https://example.com?page=2&sort=date" | url_param('page') }}  # "2"
         {{ url | url_param('missing', 'default') }}  # "default"
+        
     """
     if not url:
         return default
@@ -297,16 +304,17 @@ def url_param(url: str | None, param: str, default: str = "") -> str:
 def url_query(data: dict | None) -> str:
     """
     Build query string from dictionary.
-
+    
     Args:
         data: Dictionary of query parameters
-
+    
     Returns:
         URL-encoded query string
-
+    
     Example:
         {{ {'q': 'test', 'page': 1} | url_query }}  # "q=test&page=1"
         {{ filters | url_query }}
+        
     """
     if not data:
         return ""

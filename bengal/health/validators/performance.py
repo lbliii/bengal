@@ -22,16 +22,17 @@ if TYPE_CHECKING:
 class PerformanceValidator(BaseValidator):
     """
     Validates build performance (basic checks only).
-
+    
     Checks:
     - Build time is reasonable for page count
     - No individual pages are very slow
     - Basic throughput metrics
-
+    
     Skips:
     - Memory profiling (complex)
     - Parallel efficiency analysis (advanced)
     - Build time regression detection (needs history)
+        
     """
 
     name = "Performance"

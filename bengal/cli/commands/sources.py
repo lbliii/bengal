@@ -25,18 +25,19 @@ console = Console()
 def _get_site_root(ctx: click.Context) -> Path:
     """
     Get site root from CLI context, with CWD fallback for interactive use.
-
+    
     For CLI commands, using Path.cwd() as fallback is intentional and acceptable
     because the user is explicitly running commands from a directory they chose.
     This differs from library code where paths must be explicit.
-
+    
     See: plan/implemented/rfc-path-resolution-architecture.md
-
+    
     Args:
         ctx: Click context (may have site_root in obj)
-
+    
     Returns:
         Absolute path to site root
+        
     """
     if ctx.obj and "site_root" in ctx.obj:
         root = ctx.obj["site_root"]
@@ -49,11 +50,12 @@ def _get_site_root(ctx: click.Context) -> Path:
 def sources_group() -> None:
     """
     Manage content sources (Content Layer).
-
+    
     Content sources can be local directories or remote sources like
     GitHub repositories, Notion databases, or REST APIs.
-
+    
     Use 'bengal sources list' to see configured sources.
+        
     """
     pass
 

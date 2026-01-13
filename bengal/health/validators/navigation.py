@@ -26,12 +26,13 @@ logger = get_logger(__name__)
 class NavigationValidator(BaseValidator):
     """
     Validates page navigation integrity.
-
+    
     Checks:
     - next/prev links form valid chains
     - Breadcrumbs (ancestors) are valid
     - Section navigation is consistent
     - No orphaned pages in navigation
+        
     """
 
     name = "Navigation"

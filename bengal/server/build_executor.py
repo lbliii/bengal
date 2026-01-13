@@ -5,37 +5,38 @@ Runs site builds in a separate process (or thread) to ensure the dev server
 remains responsive and can recover from build failures without restarting.
 
 Features:
-    - Process isolation via ProcessPoolExecutor (default)
-    - GIL-aware: Uses ThreadPoolExecutor on Python 3.14+ with free-threading
-    - Configurable executor type via BENGAL_BUILD_EXECUTOR environment variable
-    - Serializable BuildRequest/BuildResult for cross-process communication
-    - Timeout support to recover from hanging builds
-    - Graceful executor lifecycle management
+- Process isolation via ProcessPoolExecutor (default)
+- GIL-aware: Uses ThreadPoolExecutor on Python 3.14+ with free-threading
+- Configurable executor type via BENGAL_BUILD_EXECUTOR environment variable
+- Serializable BuildRequest/BuildResult for cross-process communication
+- Timeout support to recover from hanging builds
+- Graceful executor lifecycle management
 
 Classes:
-    BuildRequest: Serializable build parameters for cross-process communication
-    BuildResult: Serializable build outcome with success/error status
-    BuildExecutor: Manages executor pool and submits build jobs
+BuildRequest: Serializable build parameters for cross-process communication
+BuildResult: Serializable build outcome with success/error status
+BuildExecutor: Manages executor pool and submits build jobs
 
 Environment Variables:
-    BENGAL_BUILD_EXECUTOR: Force executor type ('thread' or 'process')
-    BENGAL_BUILD_TIMEOUT: Timeout in seconds for build operations
+BENGAL_BUILD_EXECUTOR: Force executor type ('thread' or 'process')
+BENGAL_BUILD_TIMEOUT: Timeout in seconds for build operations
 
 Architecture:
-    BuildExecutor creates a single-worker executor pool at initialization.
-    Builds are submitted as BuildRequest objects and executed in the worker.
-    Results are returned as BuildResult objects with timing and error info.
+BuildExecutor creates a single-worker executor pool at initialization.
+Builds are submitted as BuildRequest objects and executed in the worker.
+Results are returned as BuildResult objects with timing and error info.
 
-    Worker Selection:
-    1. If BENGAL_BUILD_EXECUTOR='thread' → ThreadPoolExecutor
-    2. If BENGAL_BUILD_EXECUTOR='process' → ProcessPoolExecutor
-    3. If Python 3.14+ with GIL disabled → ThreadPoolExecutor (free-threading)
-    4. Default → ProcessPoolExecutor (crash isolation)
+Worker Selection:
+1. If BENGAL_BUILD_EXECUTOR='thread' → ThreadPoolExecutor
+2. If BENGAL_BUILD_EXECUTOR='process' → ProcessPoolExecutor
+3. If Python 3.14+ with GIL disabled → ThreadPoolExecutor (free-threading)
+4. Default → ProcessPoolExecutor (crash isolation)
 
 Related:
-    - bengal/server/build_trigger.py: Uses BuildExecutor for safe builds
-    - bengal/server/dev_server.py: Manages executor lifecycle
-    - bengal/orchestration/build_orchestrator.py: Actual build logic
+- bengal/server/build_trigger.py: Uses BuildExecutor for safe builds
+- bengal/server/dev_server.py: Manages executor lifecycle
+- bengal/orchestration/build_orchestrator.py: Actual build logic
+
 """
 
 from __future__ import annotations
@@ -61,10 +62,10 @@ mp_context = multiprocessing.get_context("spawn")
 class BuildRequest:
     """
     Serializable build request for cross-process execution.
-
+    
     All fields must be picklable for use with ProcessPoolExecutor.
     Uses strings instead of Path objects for serialization.
-
+    
     Attributes:
         site_root: Path to site root directory (as string)
         changed_paths: Tuple of changed file paths (as strings)
@@ -76,6 +77,7 @@ class BuildRequest:
         version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             Focus rebuilds on a single version (e.g., "v2", "latest").
             If None, all versions are rebuilt on changes.
+        
     """
 
     site_root: str
@@ -92,9 +94,9 @@ class BuildRequest:
 class BuildResult:
     """
     Serializable build result from subprocess.
-
+    
     All fields must be picklable for use with ProcessPoolExecutor.
-
+    
     Attributes:
         success: Whether the build completed successfully
         pages_built: Number of pages rendered
@@ -102,6 +104,7 @@ class BuildResult:
         error_message: Error message if build failed
         changed_outputs: Serialized output records as (path, type, phase) tuples
             for reload decision. Type is the OutputType.value string.
+        
     """
 
     success: bool
@@ -115,15 +118,16 @@ class BuildResult:
 def _execute_build(request: BuildRequest) -> BuildResult:
     """
     Execute build in subprocess (picklable function).
-
+    
     This function runs in a separate process and must be self-contained.
     It imports Bengal modules lazily to avoid import issues in the subprocess.
-
+    
     Args:
         request: Build request with site configuration
-
+    
     Returns:
         BuildResult with success status and statistics
+        
     """
     start_time = time.time()
 
@@ -204,13 +208,14 @@ def _execute_build(request: BuildRequest) -> BuildResult:
 def is_free_threaded() -> bool:
     """
     Check if running on free-threaded Python (GIL disabled).
-
+    
     Python 3.14+ with PEP 703 can disable the GIL, making threads
     truly parallel. In this mode, ThreadPoolExecutor is as good as
     ProcessPoolExecutor without the serialization overhead.
-
+    
     Returns:
         True if running on free-threaded Python, False otherwise
+        
     """
     if hasattr(sys, "_is_gil_enabled"):
         return not sys._is_gil_enabled()
@@ -220,13 +225,14 @@ def is_free_threaded() -> bool:
 def get_executor_type() -> str:
     """
     Determine which executor type to use.
-
+    
     Order of precedence:
     1. BENGAL_BUILD_EXECUTOR env var ("thread", "process", or "auto")
     2. Auto-detection based on GIL status
-
+    
     Returns:
         "thread" or "process"
+        
     """
     env_override = os.environ.get("BENGAL_BUILD_EXECUTOR", "auto").lower()
 
@@ -246,20 +252,21 @@ def get_executor_type() -> str:
 class BuildExecutor:
     """
     Manages process-isolated or thread-isolated build execution.
-
+    
     Features:
         - Automatic executor type selection based on GIL status
         - Graceful shutdown
         - Timeout support for hanging builds
         - Error capture and reporting
-
+    
     Example:
-        >>> executor = BuildExecutor(max_workers=1)
-        >>> request = BuildRequest(site_root="/path/to/site")
-        >>> result = executor.submit(request, timeout=60.0)
-        >>> if result.success:
-        ...     print(f"Built {result.pages_built} pages")
-        >>> executor.shutdown()
+            >>> executor = BuildExecutor(max_workers=1)
+            >>> request = BuildRequest(site_root="/path/to/site")
+            >>> result = executor.submit(request, timeout=60.0)
+            >>> if result.success:
+            ...     print(f"Built {result.pages_built} pages")
+            >>> executor.shutdown()
+        
     """
 
     def __init__(self, max_workers: int = 1) -> None:
@@ -382,13 +389,14 @@ class BuildExecutor:
 def create_build_executor(max_workers: int = 1) -> BuildExecutor:
     """
     Create a build executor with default settings.
-
+    
     Factory function for convenient executor creation.
-
+    
     Args:
         max_workers: Maximum concurrent builds
-
+    
     Returns:
         Configured BuildExecutor instance
+        
     """
     return BuildExecutor(max_workers=max_workers)

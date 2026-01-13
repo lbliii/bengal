@@ -39,11 +39,12 @@ from .page_core import PageCore
 
 def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None):
     """Create a lazy property that delegates to _full_page.
-
+    
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         doc: Optional docstring for the property
+        
     """
 
     def getter(self: PageProxy) -> Any:
@@ -56,11 +57,12 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None):
 
 def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None):
     """Create a lazy property with getter and setter that delegates to _full_page.
-
+    
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         getter_doc: Optional docstring for the getter
+        
     """
 
     def getter(self: PageProxy) -> Any:
@@ -80,46 +82,46 @@ def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: 
 class PageProxy:
     """
     Lazy-loaded page placeholder.
-
+    
     Holds page metadata from cache and defers loading full content until
     accessed. Transparent to callers - implements Page-like interface.
-
+    
     LIFECYCLE IN INCREMENTAL BUILDS:
     ---------------------------------
     1. **Discovery** (content_discovery.py):
        - Created from cached metadata for unchanged pages
        - Has: title, date, tags, slug, _section, _site, output_path
        - Does NOT have: content, rendered_html (lazy-loaded on demand)
-
+    
     2. **Filtering** (incremental.py):
        - PageProxy objects pass through find_work_early() unchanged
        - Only modified pages become full Page objects for rendering
-
+    
     3. **Rendering** (render.py):
        - Modified pages rendered as full Page objects
        - PageProxy objects skipped (already have cached output)
-
+    
     4. **Update** (build/rendering.py Phase 15):
        - Freshly rendered Page objects REPLACE their PageProxy counterparts
        - site.pages becomes: mix of fresh Page (rebuilt) + PageProxy (cached)
-
+    
     5. **Postprocessing** (postprocess.py):
        - Iterates over site.pages (now updated with fresh Pages)
        - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
          * output_path (for finding where to write .txt/.json)
          * href, _path, permalink (for generating index.json)
          * title, date, tags (for content in output files)
-
+    
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
     - **Templates**: Implements .href, ._path, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
-
+    
     ⚠️ When adding new Page properties used by templates/postprocessing,
     MUST also add to PageProxy or handle in _ensure_loaded().
-
+    
     Usage:
         # Create from cached metadata
         page = PageProxy(
@@ -127,16 +129,17 @@ class PageProxy:
             metadata=cached_metadata,
             loader=load_page_from_disk,  # Callable that loads full page
         )
-
+    
         # Access metadata (instant, from cache)
         print(page.title)  # "My Post"
         print(page.tags)   # ["python", "web"]
-
+    
         # Access full content (triggers lazy load)
         print(page.content)  # Loads from disk and parses
-
+    
         # After first access, it's fully loaded
         assert page._lazy_loaded  # True
+        
     """
 
     # Site reference - set externally during content discovery

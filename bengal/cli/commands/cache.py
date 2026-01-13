@@ -12,17 +12,18 @@ Commands:
 Example:
     >>> # List input patterns for CI cache key
     >>> bengal cache inputs
-    content/**
-    config/**
-    ../bengal/**/*.py
+content/**
+config/**
+../bengal/**/*.py
     
     >>> # Get hash for CI cache key
     >>> bengal cache hash
-    a1b2c3d4e5f6g7h8
+a1b2c3d4e5f6g7h8
 
 Related:
-    - plan/rfc-ci-cache-inputs.md: Design rationale
-    - bengal/utils/hashing.py: Shared hashing utilities
+- plan/rfc-ci-cache-inputs.md: Design rationale
+- bengal/utils/hashing.py: Shared hashing utilities
+
 """
 
 from __future__ import annotations
@@ -51,23 +52,24 @@ if TYPE_CHECKING:
 def get_input_globs(site: Site) -> list[tuple[str, str]]:
     """
     Return list of (glob_pattern, source_description) tuples.
-
+    
     Patterns are relative to site_root or use ../ for external paths.
     These represent all inputs that can affect the build output.
-
+    
     Args:
         site: Loaded Site instance
-
+    
     Returns:
         List of tuples: (glob_pattern, source_description)
-
+    
     Example:
-        >>> globs = get_input_globs(site)
-        >>> for pattern, source in globs:
-        ...     print(f"{pattern} <- {source}")
+            >>> globs = get_input_globs(site)
+            >>> for pattern, source in globs:
+            ...     print(f"{pattern} <- {source}")
         content/** <- built-in
         config/** <- built-in
         ../bengal/**/*.py <- autodoc.python.source_dirs
+        
     """
     inputs: list[tuple[str, str]] = []
     site_root = site.root_path
@@ -148,16 +150,17 @@ def get_input_globs(site: Site) -> list[tuple[str, str]]:
 def cache_cli() -> None:
     """
     Cache management commands.
-
+    
     Commands for managing Bengal's build cache and generating cache keys
     for CI systems. Use `bengal cache inputs` to list all paths that affect
     the build, or `bengal cache hash` to get a deterministic hash for CI
     cache keys.
-
+    
     Examples:
         bengal cache inputs              # List input patterns
         bengal cache inputs --verbose    # Show pattern sources
         bengal cache hash                # Get cache key hash
+        
     """
     pass
 
@@ -197,24 +200,25 @@ def cache_cli() -> None:
 def inputs(output_format: str, verbose: bool, config: str | None, source: str) -> None:
     """
     List all input paths/globs that affect the build.
-
+    
     Use this to construct CI cache keys that properly invalidate
     when any build input changes. The output includes:
-
+    
     - Content and config directories (always)
     - Custom templates and static assets (if present)
     - Autodoc source directories (if enabled)
     - External reference indexes (local paths only)
     - Theme paths (if external theme configured)
-
+    
     Examples:
         bengal cache inputs                  # One pattern per line
         bengal cache inputs --verbose        # Show where each pattern comes from
         bengal cache inputs --format json    # JSON output for scripting
-
+    
     For CI (GitHub Actions):
-        inputs=$(bengal cache inputs | tr '\\n' ' ')
+        inputs=$(bengal cache inputs | tr '\n' ' ')
         key: bengal-${{ hashFiles(inputs) }}
+        
     """
     cli = get_cli_output()
 
@@ -265,21 +269,22 @@ def inputs(output_format: str, verbose: bool, config: str | None, source: str) -
 def cache_hash(include_version: bool, config: str | None, source: str) -> None:
     """
     Compute deterministic hash of all build inputs.
-
+    
     Use this as a CI cache key for accurate invalidation.
     The hash includes:
-
+    
     - All input file contents (from `bengal cache inputs`)
     - Relative file paths (for determinism across machines)
     - Bengal version (by default, for cache invalidation on upgrades)
-
+    
     Examples:
         bengal cache hash                     # Include version (recommended)
         bengal cache hash --no-include-version  # Exclude version
-
+    
     For CI (GitHub Actions):
         hash=$(bengal cache hash)
         key: bengal-${{ runner.os }}-$hash
+        
     """
     cli = get_cli_output()
 

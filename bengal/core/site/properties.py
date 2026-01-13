@@ -5,9 +5,10 @@ Provides property accessors for site configuration values (title, baseurl, autho
 and computed properties like theme_config and indexes.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.core.theme: Theme configuration
-    - bengal.cache.query_index_registry: Query indexes
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.core.theme: Theme configuration
+- bengal.cache.query_index_registry: Query indexes
+
 """
 
 from __future__ import annotations
@@ -28,13 +29,14 @@ if TYPE_CHECKING:
 class SitePropertiesMixin:
     """
     Mixin providing property accessors for site configuration.
-
+    
     Requires these attributes on the host class:
         - config: dict[str, Any]
         - root_path: Path
         - _theme_obj: Theme | None
         - _config_hash: str | None
         - _query_registry: Any
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

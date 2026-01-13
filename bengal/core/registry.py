@@ -6,28 +6,29 @@ indexing. Enables efficient access to content during rendering without scanning
 hierarchies.
 
 Public API:
-    ContentRegistry: Central registry for page and section lookups
+ContentRegistry: Central registry for page and section lookups
 
 Key Concepts:
-    Path-Based Lookups: O(1) access by source file path (primary key)
-    URL-Based Lookups: O(1) access by output URL (for virtual content and links)
-    Freeze/Unfreeze: Registry frozen after discovery for thread-safe reads
+Path-Based Lookups: O(1) access by source file path (primary key)
+URL-Based Lookups: O(1) access by output URL (for virtual content and links)
+Freeze/Unfreeze: Registry frozen after discovery for thread-safe reads
 
 Lifecycle:
-    1. Created empty at Site initialization
-    2. Populated during discovery phase (register_page/register_section)
-    3. Frozen before rendering phase (freeze())
-    4. Cleared on rebuild (clear())
+1. Created empty at Site initialization
+2. Populated during discovery phase (register_page/register_section)
+3. Frozen before rendering phase (freeze())
+4. Cleared on rebuild (clear())
 
 Thread Safety:
-    - Writes (register_*) must happen single-threaded during discovery
-    - Reads (get_*) are safe after freeze() for concurrent rendering
-    - Frozen registry raises BengalError on mutation attempts
+- Writes (register_*) must happen single-threaded during discovery
+- Reads (get_*) are safe after freeze() for concurrent rendering
+- Frozen registry raises BengalError on mutation attempts
 
 Related Packages:
-    bengal.core.site.core: Site dataclass using this registry
-    bengal.core.url_ownership: URL ownership tracking (composed by registry)
-    bengal.core.site.section_registry: Legacy mixin (delegates to registry)
+bengal.core.site.core: Site dataclass using this registry
+bengal.core.url_ownership: URL ownership tracking (composed by registry)
+bengal.core.site.section_registry: Legacy mixin (delegates to registry)
+
 """
 
 from __future__ import annotations
@@ -49,22 +50,23 @@ if TYPE_CHECKING:
 class ContentRegistry:
     """
     O(1) content lookups by path, URL, and metadata.
-
+    
     Thread-safe for reads after freeze(). Rebuilt atomically during discovery.
-
+    
     Lifecycle:
         1. Created empty at Site initialization
         2. Populated during discovery phase (register_page/register_section)
         3. Frozen before rendering phase (freeze())
         4. Cleared on rebuild (clear())
-
+    
     Thread Safety:
         - Writes (register_*) must happen single-threaded during discovery
         - Reads (get_*) are safe after freeze() for concurrent rendering
         - Frozen registry raises BengalError on mutation attempts
-
+    
     Attributes:
         url_ownership: URLRegistry for collision detection and ownership tracking
+        
     """
 
     # Path-based lookups (primary keys)

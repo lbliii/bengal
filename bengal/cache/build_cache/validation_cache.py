@@ -5,14 +5,15 @@ Provides methods for caching and retrieving health check validation results.
 Used as a mixin by the main BuildCache class.
 
 Key Concepts:
-    - Caches CheckResult objects per file and validator
-    - Invalidates when file content changes
-    - Supports partial invalidation (single file or all)
+- Caches CheckResult objects per file and validator
+- Invalidates when file content changes
+- Supports partial invalidation (single file or all)
 
 Related Modules:
-    - bengal.cache.build_cache.core: Main BuildCache class
-    - bengal.health.report: CheckResult dataclass
-    - bengal.health.health_check: Health check runner
+- bengal.cache.build_cache.core: Main BuildCache class
+- bengal.health.report: CheckResult dataclass
+- bengal.health.health_check: Health check runner
+
 """
 
 from __future__ import annotations
@@ -27,10 +28,11 @@ if TYPE_CHECKING:
 class ValidationCacheMixin:
     """
     Mixin providing validation result caching.
-
+    
     Requires these attributes on the host class:
         - validation_results: dict[str, dict[str, list[dict[str, Any]]]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

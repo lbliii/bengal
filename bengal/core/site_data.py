@@ -6,29 +6,30 @@ Created once from config, never modified. Enables caching and thread-safe
 access without locks.
 
 Public API:
-    SiteData: Immutable site configuration container
+SiteData: Immutable site configuration container
 
 Key Concepts:
-    Immutability: All configuration is frozen after construction.
-        MappingProxyType wraps config dict for read-only access.
+Immutability: All configuration is frozen after construction.
+    MappingProxyType wraps config dict for read-only access.
 
-    Path Computation: All paths are computed at construction time
-        and stored as resolved absolute paths.
+Path Computation: All paths are computed at construction time
+    and stored as resolved absolute paths.
 
-    Thread Safety: Fully thread-safe for reads without locks.
-        Safe to share across parallel rendering threads.
+Thread Safety: Fully thread-safe for reads without locks.
+    Safe to share across parallel rendering threads.
 
 Usage:
     data = SiteData.from_config(root_path, config)
-    print(data.title)  # Access config values
-    print(data.output_dir)  # Access computed paths
+print(data.title)  # Access config values
+print(data.output_dir)  # Access computed paths
 
 Related Packages:
-    bengal.core.site.core: Site dataclass using SiteData
-    bengal.config.loader: Config loading that populates SiteData
+bengal.core.site.core: Site dataclass using SiteData
+bengal.config.loader: Config loading that populates SiteData
 
 See Also:
-    plan/drafted/rfc-site-responsibility-separation.md
+plan/drafted/rfc-site-responsibility-separation.md
+
 """
 
 from __future__ import annotations
@@ -46,20 +47,20 @@ from bengal.core.version import VersionConfig
 class SiteData:
     """
     Immutable site configuration and paths.
-
+    
     Created once from config, never modified. Enables caching and
     thread-safe access without locks.
-
+    
     Immutability Guarantees:
         - frozen=True prevents attribute assignment
         - MappingProxyType wraps config dict for read-only access
         - All Path attributes are computed at construction time
-
+    
     Thread Safety:
         - Fully thread-safe for reads (immutable)
         - No locks required
         - Safe to share across parallel rendering threads
-
+    
     Attributes:
         root_path: Site root directory (absolute path)
         output_dir: Output directory for built site (absolute path)
@@ -70,6 +71,7 @@ class SiteData:
         assets_dir: Assets directory path
         data_dir: Data directory path
         cache_dir: Cache directory path (.bengal)
+        
     """
 
     root_path: Path

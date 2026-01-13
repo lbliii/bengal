@@ -38,23 +38,24 @@ def resolve_asset_url(
 ) -> str:
     """
     Resolve an asset path to its final URL.
-
+    
     This is the single source of truth for asset URL resolution.
     Handles fingerprinting, baseurl, and file:// protocol.
-
+    
     Args:
         asset_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
         page: Optional page context (for file:// relative paths)
-
+    
     Returns:
         Resolved asset URL ready for use in HTML
-
+    
     Example:
-        >>> resolve_asset_url('css/style.css', site)
-        '/bengal/assets/css/style.abc123.css'  # Fingerprinted
-        >>> resolve_asset_url('css/style.css', site)  # Dev mode
-        '/bengal/assets/css/style.css'  # Non-fingerprinted
+            >>> resolve_asset_url('css/style.css', site)
+            '/bengal/assets/css/style.abc123.css'  # Fingerprinted
+            >>> resolve_asset_url('css/style.css', site)  # Dev mode
+            '/bengal/assets/css/style.css'  # Non-fingerprinted
+        
     """
     from bengal.rendering.template_engine.url_helpers import with_baseurl
 
@@ -86,15 +87,16 @@ def resolve_asset_url(
 def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
     """
     Resolve a logical asset path to its fingerprinted output path.
-
+    
     Uses a cached manifest for efficient lookups across all template renders.
-
+    
     Args:
         logical_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
-
+    
     Returns:
         Fingerprinted output path (e.g., 'assets/css/style.abc123.css') or None
+        
     """
     from bengal.assets.manifest import AssetManifest
 
@@ -123,14 +125,15 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
 def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str:
     """
     Generate asset URL for file:// protocol using relative paths.
-
+    
     Args:
         asset_path: Validated asset path
         site: Site instance
         page: Page context for computing relative path
-
+    
     Returns:
         Relative asset URL
+        
     """
     asset_url_path = f"assets/{asset_path}"
 
@@ -156,11 +159,12 @@ def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str
 def clear_manifest_cache(site: Site) -> None:
     """
     Clear the asset manifest cache on the site.
-
+    
     Call this when the manifest has been updated (e.g., after asset processing).
-
+    
     Args:
         site: Site instance
+        
     """
     cache_attr = "_asset_manifest_cache"
     if hasattr(site, cache_attr):

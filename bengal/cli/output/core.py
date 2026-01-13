@@ -11,11 +11,12 @@ CLIOutput is the central hub for all terminal output in Bengal CLI:
 - Dev server deduplication to prevent log spam
 
 Classes:
-    CLIOutput: Main output manager class
+CLIOutput: Main output manager class
 
 See Also:
-    bengal.cli.output.globals: Global singleton management
-    bengal.output.dev_server: Dev server output mixin
+bengal.cli.output.globals: Global singleton management
+bengal.output.dev_server: Dev server output mixin
+
 """
 
 from __future__ import annotations
@@ -38,17 +39,17 @@ logger = get_logger(__name__)
 class CLIOutput(DevServerOutputMixin):
     """
     Centralized CLI output manager.
-
+    
     Handles all terminal output with profile-aware formatting,
     consistent spacing, and automatic TTY detection. This is the
     primary interface for all user-facing CLI messages.
-
+    
     Features:
         - Profile-aware: Writer sees minimal info, Developer sees timing
         - TTY detection: Rich output for terminals, plain text for pipes
         - Consistent styling: Visual hierarchy with headers, phases, tips
         - Dev server aware: Deduplicates rapid phase updates
-
+    
     Message Types:
         - header(): Major section start with mascot
         - subheader(): Minor section divider
@@ -56,16 +57,16 @@ class CLIOutput(DevServerOutputMixin):
         - detail(): Indented sub-information
         - success/info/warning/error(): Standard message levels
         - tip(): Subtle suggestion or instruction
-
+    
     Example:
         cli = CLIOutput(profile=BuildProfile.WRITER)
-
+    
         cli.header("Building your site...")
         cli.phase("Discovery", duration_ms=61, details="245 pages")
         cli.detail("Processing markdown files", indent=1)
         cli.success("Built 245 pages in 0.8s")
         cli.tip("Run 'bengal serve' to preview")
-
+    
     Attributes:
         profile: Active build profile (controls verbosity)
         quiet: Suppress non-critical output
@@ -73,6 +74,7 @@ class CLIOutput(DevServerOutputMixin):
         use_rich: Use Rich library for styled output
         console: Rich console instance
         dev_server: True if running in dev server context
+        
     """
 
     def __init__(

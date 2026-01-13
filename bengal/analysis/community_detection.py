@@ -7,20 +7,20 @@ groupings of related pages based on link structure, useful for understanding
 content organization and identifying topic areas.
 
 Algorithm:
-    The Louvain method optimizes modularity (network clustering quality) in two phases:
-    1. Local optimization: Move nodes to communities that maximize modularity gain
-    2. Aggregation: Treat each community as a single node and repeat
-    Phases repeat until no further improvement is possible.
+The Louvain method optimizes modularity (network clustering quality) in two phases:
+1. Local optimization: Move nodes to communities that maximize modularity gain
+2. Aggregation: Treat each community as a single node and repeat
+Phases repeat until no further improvement is possible.
 
 Key Concepts:
-    - Modularity: Quality metric for network partitions (-1.0 to 1.0, higher is better)
-    - Community: Group of densely connected pages sharing topics/themes
-    - Resolution: Parameter controlling community granularity (higher = more communities)
+- Modularity: Quality metric for network partitions (-1.0 to 1.0, higher is better)
+- Community: Group of densely connected pages sharing topics/themes
+- Resolution: Parameter controlling community granularity (higher = more communities)
 
 Classes:
-    Community: A detected group of related pages
-    CommunityDetectionResults: All communities with quality metrics
-    LouvainCommunityDetector: Main detection algorithm
+Community: A detected group of related pages
+CommunityDetectionResults: All communities with quality metrics
+LouvainCommunityDetector: Main detection algorithm
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -32,11 +32,12 @@ Example:
     ...     print(f"Community {community.id}: {community.size} pages")
 
 References:
-    Blondel, V. D., et al. (2008). Fast unfolding of communities in large networks.
-    Journal of Statistical Mechanics: Theory and Experiment.
+Blondel, V. D., et al. (2008). Fast unfolding of communities in large networks.
+Journal of Statistical Mechanics: Theory and Experiment.
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Graph coordination
+- bengal/analysis/knowledge_graph.py: Graph coordination
+
 """
 
 from __future__ import annotations
@@ -59,16 +60,17 @@ logger = get_logger(__name__)
 class Community:
     """
     A community of related pages discovered through link structure.
-
+    
     Represents a group of pages that are densely connected to each other
     and share similar topics or themes. Useful for understanding content
     organization and identifying topic clusters.
-
+    
     Attributes:
         id: Unique community identifier
         pages: Set of pages belonging to this community
         size: Number of pages in the community
         density: Internal connection density (0.0-1.0)
+        
     """
 
     id: int
@@ -89,14 +91,15 @@ class Community:
 class CommunityDetectionResults:
     """
     Results from community detection analysis.
-
+    
     Contains discovered communities and quality metrics. Communities
     represent natural groupings of related pages based on link structure.
-
+    
     Attributes:
         communities: List of detected communities
         modularity: Modularity score (quality metric, -1.0 to 1.0, higher is better)
         num_communities: Total number of communities detected
+        
     """
 
     communities: list[Community]
@@ -123,24 +126,25 @@ class CommunityDetectionResults:
 class LouvainCommunityDetector:
     """
     Detect communities using the Louvain method.
-
+    
     The Louvain algorithm is a greedy optimization method that attempts to
     optimize the modularity of a partition of the network. It runs in two phases:
-
+    
     1. Modularity Optimization: Each node is moved to the community that yields
        the largest increase in modularity.
-
+    
     2. Community Aggregation: A new network is built where nodes are communities
        and edges represent connections between communities.
-
+    
     These phases are repeated until no further improvement is possible.
-
+    
     Example:
-        >>> detector = LouvainCommunityDetector(knowledge_graph)
-        >>> results = detector.detect()
-        >>> print(f"Found {len(results.communities)} communities")
-        >>> for community in results.get_largest_communities(5):
-        ...     print(f"Community {community.id}: {community.size} pages")
+            >>> detector = LouvainCommunityDetector(knowledge_graph)
+            >>> results = detector.detect()
+            >>> print(f"Found {len(results.communities)} communities")
+            >>> for community in results.get_largest_communities(5):
+            ...     print(f"Community {community.id}: {community.size} pages")
+        
     """
 
     def __init__(
@@ -404,20 +408,21 @@ def detect_communities(
 ) -> CommunityDetectionResults:
     """
     Convenience function to detect communities.
-
+    
     Args:
         graph: KnowledgeGraph with page connections
         resolution: Resolution parameter (higher = more communities)
         random_seed: Random seed for reproducibility
-
+    
     Returns:
         CommunityDetectionResults with discovered communities
-
+    
     Example:
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> results = detect_communities(graph)
-        >>> print(f"Found {len(results.communities)} communities")
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = detect_communities(graph)
+            >>> print(f"Found {len(results.communities)} communities")
+        
     """
     detector = LouvainCommunityDetector(graph, resolution=resolution, random_seed=random_seed)
     return detector.detect()

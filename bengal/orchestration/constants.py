@@ -60,14 +60,15 @@ NAV_AFFECTING_KEYS: frozenset[str] = frozenset(
 def extract_nav_metadata(metadata: dict) -> dict:
     """
     Extract only nav-affecting keys from metadata.
-
+    
     Used for comparing whether nav-relevant metadata changed vs body-only changes.
-
+    
     Args:
         metadata: Full page metadata dict
-
+    
     Returns:
         Dict containing only nav-affecting keys and their values
+        
     """
     if not metadata:
         return {}

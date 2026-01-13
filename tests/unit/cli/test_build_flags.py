@@ -191,9 +191,10 @@ class TestStrictMode:
 
 class TestConfigRespect:
     """Test that CLI respects config values when flags not explicitly passed.
-
+    
     RFC: rfc-path-to-200-pgs - discovered that --parallel default=True
     was ignoring config settings. These tests prevent regressions.
+        
     """
 
     def test_no_parallel_flag_default_is_false(self):

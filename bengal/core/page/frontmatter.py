@@ -12,18 +12,19 @@ from typing import Any
 class Frontmatter:
     """
     Typed frontmatter metadata with backward-compatible dict access.
-
+    
     Standard fields have explicit types for IDE autocomplete and type checking.
     Unknown fields are stored in `extra` and accessible via dict syntax.
-
+    
     Example:
-        >>> fm = Frontmatter(title="My Post", tags=["python"])
-        >>> fm.title           # Typed access: str
-        'My Post'
-        >>> fm["title"]        # Dict access (templates): Any
-        'My Post'
-        >>> fm.get("missing")  # Safe access with default
+            >>> fm = Frontmatter(title="My Post", tags=["python"])
+            >>> fm.title           # Typed access: str
+            'My Post'
+            >>> fm["title"]        # Dict access (templates): Any
+            'My Post'
+            >>> fm.get("missing")  # Safe access with default
         None
+        
     """
 
     # Core fields (from PageCore, single source of truth)

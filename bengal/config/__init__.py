@@ -7,9 +7,9 @@ management for Bengal static sites. It supports multiple configuration formats
 directory-based configuration structures.
 
 Architecture:
-    - Config V2: Canonical nested structure (site.*, build.*, dev.*, etc.)
-    - UnifiedConfigLoader: Single loader for all modes (file or directory)
-    - Config/ConfigSection: Type-safe accessors with IDE autocomplete
+- Config V2: Canonical nested structure (site.*, build.*, dev.*, etc.)
+- UnifiedConfigLoader: Single loader for all modes (file or directory)
+- Config/ConfigSection: Type-safe accessors with IDE autocomplete
 
 Modules:
     unified_loader: Single loader for all config modes (replaces old loaders).
@@ -26,32 +26,33 @@ Modules:
     validators: Type-safe configuration validation with helpful error messages.
 
 Example:
-    Load configuration::
+Load configuration::
 
-        from bengal.config import UnifiedConfigLoader
+    from bengal.config import UnifiedConfigLoader
 
-        loader = UnifiedConfigLoader()
-        config = loader.load(site_root)
+    loader = UnifiedConfigLoader()
+    config = loader.load(site_root)
 
-        # Access with structured API
-        title = config.site.title
-        parallel = config.build.parallel
+    # Access with structured API
+    title = config.site.title
+    parallel = config.build.parallel
 
-        # Dict access for dynamic keys
-        raw = config.raw  # Get underlying dict
+    # Dict access for dynamic keys
+    raw = config.raw  # Get underlying dict
 
-    Check for deprecated keys::
+Check for deprecated keys::
 
-        from bengal.config import check_deprecated_keys
+    from bengal.config import check_deprecated_keys
 
-        deprecated = check_deprecated_keys(config.raw, source="bengal.toml")
-        if deprecated:
-            print_deprecation_warnings(deprecated)
+    deprecated = check_deprecated_keys(config.raw, source="bengal.toml")
+    if deprecated:
+        print_deprecation_warnings(deprecated)
 
 See Also:
-    - ``bengal.config.accessor``: Config and ConfigSection classes.
-    - ``bengal.config.defaults``: Default values (all nested).
-    - ``plan/rfc-config-architecture-v2.md``: Architecture RFC.
+- ``bengal.config.accessor``: Config and ConfigSection classes.
+- ``bengal.config.defaults``: Default values (all nested).
+- ``plan/rfc-config-architecture-v2.md``: Architecture RFC.
+
 """
 
 from __future__ import annotations
@@ -72,10 +73,11 @@ from bengal.config.unified_loader import UnifiedConfigLoader
 class ConfigLoader(UnifiedConfigLoader):
     """
     Backward-compatible wrapper around UnifiedConfigLoader.
-
+    
     Legacy ConfigLoader accepted a root path during construction and then
     ``load()`` with no arguments. This wrapper preserves that workflow while
     delegating the real work to UnifiedConfigLoader.
+        
     """
 
     def __init__(self, root_path: Path, track_origins: bool = False) -> None:

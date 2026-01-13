@@ -6,12 +6,12 @@ each key in a merged configuration. This is essential for debugging complex
 multi-file configurations and powers the ``bengal config show --origin`` command.
 
 Use Cases:
-    - **Debugging**: Identify which file set a particular configuration value.
-    - **Introspection**: Understand configuration layering and overrides.
-    - **Documentation**: Generate annotated configuration displays.
+- **Debugging**: Identify which file set a particular configuration value.
+- **Introspection**: Understand configuration layering and overrides.
+- **Documentation**: Generate annotated configuration displays.
 
 Classes:
-    ConfigWithOrigin: Configuration container that tracks the source of each key.
+ConfigWithOrigin: Configuration container that tracks the source of each key.
 
 Example:
     >>> tracker = ConfigWithOrigin()
@@ -23,8 +23,9 @@ Example:
     'environments/prod.yaml'
 
 See Also:
-    - :mod:`bengal.config.directory_loader`: Uses origin tracking during loading.
-    - CLI command ``bengal config show --origin``: Displays origin-annotated config.
+- :mod:`bengal.config.directory_loader`: Uses origin tracking during loading.
+- CLI command ``bengal config show --origin``: Displays origin-annotated config.
+
 """
 
 from __future__ import annotations
@@ -35,26 +36,27 @@ from typing import Any
 class ConfigWithOrigin:
     """
     Configuration container with origin tracking for each key.
-
+    
     Tracks which file (or source) contributed each configuration key,
     enabling introspection and debugging of multi-file configurations.
     Later merges override earlier values, and the origin is updated
     to reflect the most recent source.
-
+    
     Attributes:
         config: The merged configuration dictionary.
         origins: Mapping of dot-separated key paths to their source identifiers.
-
+    
     Example:
-        >>> tracker = ConfigWithOrigin()
-        >>> tracker.merge({"site": {"title": "Test"}}, "_default/site.yaml")
-        >>> tracker.merge({"site": {"baseurl": "/"}}, "environments/prod.yaml")
-        >>> tracker.config
+            >>> tracker = ConfigWithOrigin()
+            >>> tracker.merge({"site": {"title": "Test"}}, "_default/site.yaml")
+            >>> tracker.merge({"site": {"baseurl": "/"}}, "environments/prod.yaml")
+            >>> tracker.config
         {'site': {'title': 'Test', 'baseurl': '/'}}
-        >>> tracker.origins["site.title"]
-        '_default/site.yaml'
-        >>> tracker.origins["site.baseurl"]
-        'environments/prod.yaml'
+            >>> tracker.origins["site.title"]
+            '_default/site.yaml'
+            >>> tracker.origins["site.baseurl"]
+            'environments/prod.yaml'
+        
     """
 
     def __init__(self) -> None:

@@ -7,14 +7,14 @@ isolated content (leaves/orphans), and partitions pages into layers for
 efficient streaming builds.
 
 Key Concepts:
-    - Connectivity Score: Sum of incoming and outgoing references for a page
-    - Hubs: Pages with many incoming references (index pages, popular articles)
-    - Leaves: Pages with few total connections (blog posts, changelog entries)
-    - Orphans: Pages with zero connections (forgotten or draft content)
-    - Layers: Page partitions for hub-first streaming (hubs → mid-tier → leaves)
+- Connectivity Score: Sum of incoming and outgoing references for a page
+- Hubs: Pages with many incoming references (index pages, popular articles)
+- Leaves: Pages with few total connections (blog posts, changelog entries)
+- Orphans: Pages with zero connections (forgotten or draft content)
+- Layers: Page partitions for hub-first streaming (hubs → mid-tier → leaves)
 
 Classes:
-    GraphAnalyzer: Main analyzer that delegates from KnowledgeGraph
+GraphAnalyzer: Main analyzer that delegates from KnowledgeGraph
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -26,8 +26,9 @@ Example:
     >>> layers = graph.get_layers()
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Main graph coordinator
-    - bengal/analysis/results.py: PageLayers result dataclass
+- bengal/analysis/knowledge_graph.py: Main graph coordinator
+- bengal/analysis/results.py: PageLayers result dataclass
+
 """
 
 from __future__ import annotations
@@ -46,21 +47,22 @@ if TYPE_CHECKING:
 class GraphAnalyzer:
     """
     Analyzes knowledge graph structure for page connectivity insights.
-
+    
     Provides methods for:
     - Connectivity scoring (incoming + outgoing refs)
     - Hub detection (highly connected pages)
     - Leaf detection (low connectivity pages)
     - Orphan detection (no connections)
     - Layer partitioning (for hub-first streaming builds)
-
+    
     Example:
-        >>> from bengal.analysis import KnowledgeGraph
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> analyzer = GraphAnalyzer(graph)
-        >>> hubs = analyzer.get_hubs(threshold=10)
-        >>> orphans = analyzer.get_orphans()
+            >>> from bengal.analysis import KnowledgeGraph
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> analyzer = GraphAnalyzer(graph)
+            >>> hubs = analyzer.get_hubs(threshold=10)
+            >>> orphans = analyzer.get_orphans()
+        
     """
 
     def __init__(self, graph: KnowledgeGraph) -> None:

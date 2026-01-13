@@ -5,11 +5,11 @@ Reads collected metrics from `.bengal/metrics/` and provides analysis,
 visualization, and trend detection for build performance tracking.
 
 Key Features:
-    - Load historical build metrics from JSONL files
-    - Analyze trends (time, memory, throughput)
-    - Compare specific builds side-by-side
-    - Generate ASCII tables and JSON output
-    - Detect performance regressions
+- Load historical build metrics from JSONL files
+- Analyze trends (time, memory, throughput)
+- Compare specific builds side-by-side
+- Generate ASCII tables and JSON output
+- Detect performance regressions
 
 Usage:
     >>> from bengal.utils.performance_report import PerformanceReport
@@ -21,13 +21,14 @@ Usage:
     >>> report.compare(build1_idx=0, build2_idx=1)
 
 Related Modules:
-    - bengal/utils/performance_collector.py: Collects metrics
-    - bengal/cli/commands/perf.py: CLI for `bengal perf` command
-    - bengal/utils/paths.py: Metrics directory paths
+- bengal/utils/performance_collector.py: Collects metrics
+- bengal/cli/commands/perf.py: CLI for `bengal perf` command
+- bengal/utils/paths.py: Metrics directory paths
 
 See Also:
-    - .bengal/metrics/history.jsonl: Build history (JSON lines)
-    - .bengal/metrics/latest.json: Most recent build metrics
+- .bengal/metrics/history.jsonl: Build history (JSON lines)
+- .bengal/metrics/latest.json: Most recent build metrics
+
 """
 
 from __future__ import annotations
@@ -43,11 +44,11 @@ from typing import Any
 class BuildMetric:
     """
     Represents a single build's performance metrics.
-
+    
     Immutable record of timing, memory, and configuration data
     captured during a build. Used for historical analysis and
     trend detection.
-
+    
     Attributes:
         timestamp: ISO 8601 timestamp when build completed.
         total_pages: Number of pages processed.
@@ -63,13 +64,14 @@ class BuildMetric:
         rendering_time_ms: Template rendering phase duration.
         assets_time_ms: Asset processing phase duration.
         postprocess_time_ms: Post-processing phase duration.
-
+    
     Example:
-        >>> metric = BuildMetric.from_dict({"total_pages": 100, "build_time_ms": 2500})
-        >>> metric.build_time_s
+            >>> metric = BuildMetric.from_dict({"total_pages": 100, "build_time_ms": 2500})
+            >>> metric.build_time_s
         2.5
-        >>> metric.pages_per_second
+            >>> metric.pages_per_second
         40.0
+        
     """
 
     timestamp: str
@@ -145,25 +147,26 @@ class BuildMetric:
 class PerformanceReport:
     """
     Generates performance reports from collected build metrics.
-
+    
     Loads metrics from `.bengal/metrics/history.jsonl`, analyzes trends,
     and outputs reports in various formats. Used by the `bengal perf`
     CLI command for performance monitoring.
-
+    
     Attributes:
         metrics_dir: Directory containing metrics files.
-
+    
     Example:
-        >>> report = PerformanceReport()
-        >>>
-        >>> # Show last 10 builds as ASCII table
-        >>> report.show(last=10, format='table')
-        >>>
-        >>> # Get JSON output for automation
-        >>> report.show(last=5, format='json')
-        >>>
-        >>> # Compare latest build to previous
-        >>> report.compare(build1_idx=0, build2_idx=1)
+            >>> report = PerformanceReport()
+            >>>
+            >>> # Show last 10 builds as ASCII table
+            >>> report.show(last=10, format='table')
+            >>>
+            >>> # Get JSON output for automation
+            >>> report.show(last=5, format='json')
+            >>>
+            >>> # Compare latest build to previous
+            >>> report.compare(build1_idx=0, build2_idx=1)
+        
     """
 
     def __init__(self, metrics_dir: Path | None = None):

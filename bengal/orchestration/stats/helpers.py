@@ -45,9 +45,10 @@ def show_welcome() -> None:
 
 def show_clean_success(output_dir: str) -> None:
     """Show clean success message using CLI output system.
-
+    
     Note: This is now only used for --force mode (when there's no prompt).
     Regular clean uses inline success message after prompt confirmation.
+        
     """
     # Create CLI output instance (simple, no profile needed for clean)
     cli = CLIOutput(quiet=False, verbose=False)
@@ -63,9 +64,10 @@ def show_clean_success(output_dir: str) -> None:
 def display_template_errors(stats: BuildStats) -> None:
     """
     Display all collected template errors.
-
+    
     Args:
         stats: Build statistics with template errors
+        
     """
     if not stats.template_errors:
         return

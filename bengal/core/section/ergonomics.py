@@ -5,26 +5,27 @@ Provides convenience methods for common theme development patterns like
 recent posts, tag filtering, featured posts, word counts, and reading time.
 
 Required Host Attributes:
-    - name: str
-    - pages: list[Page]
-    - subsections: list[Section]
-    - metadata: dict[str, Any]
-    - index_page: Page | None
-    - sorted_pages: list[Page] (from SectionQueryMixin)
-    - regular_pages_recursive: list[Page] (from SectionQueryMixin)
-    - get_all_pages: Callable (from SectionQueryMixin)
-    - hierarchy: list[str] (from SectionHierarchyMixin)
+- name: str
+- pages: list[Page]
+- subsections: list[Section]
+- metadata: dict[str, Any]
+- index_page: Page | None
+- sorted_pages: list[Page] (from SectionQueryMixin)
+- regular_pages_recursive: list[Page] (from SectionQueryMixin)
+- get_all_pages: Callable (from SectionQueryMixin)
+- hierarchy: list[str] (from SectionHierarchyMixin)
 
 Related Modules:
-    bengal.core.section: Section dataclass using this mixin
-    bengal.core.section.queries: Core page retrieval methods
+bengal.core.section: Section dataclass using this mixin
+bengal.core.section.queries: Core page retrieval methods
 
 Example:
     >>> section = site.get_section("blog")
     >>> section.recent_pages(5)
-    [<Page 'newest'>, <Page 'second'>, ...]
+[<Page 'newest'>, <Page 'second'>, ...]
     >>> section.featured_posts(3)
-    [<Page 'featured1'>, <Page 'featured2'>, ...]
+[<Page 'featured1'>, <Page 'featured2'>, ...]
+
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ if TYPE_CHECKING:
 class SectionErgonomicsMixin:
     """
     Theme developer helpers for common patterns.
-
+    
     This mixin handles:
     - Content pages (alias for sorted_pages without index)
     - Recent pages by date
@@ -51,6 +52,7 @@ class SectionErgonomicsMixin:
     - Word count and reading time aggregation
     - Content aggregation for analytics
     - Template application
+        
     """
 
     # =========================================================================

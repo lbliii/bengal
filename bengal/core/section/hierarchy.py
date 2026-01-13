@@ -6,25 +6,26 @@ for sections. Handles depth calculation, root finding, subsection sorting,
 and identity operations (hash/equality).
 
 Required Host Attributes:
-    - name: str
-    - path: Path | None
-    - parent: Section | None
-    - subsections: list[Section]
-    - metadata: dict[str, Any]
-    - index_page: Page | None
-    - _virtual: bool
-    - _relative_url_override: str | None
+- name: str
+- path: Path | None
+- parent: Section | None
+- subsections: list[Section]
+- metadata: dict[str, Any]
+- index_page: Page | None
+- _virtual: bool
+- _relative_url_override: str | None
 
 Related Modules:
-    bengal.core.section: Section dataclass using this mixin
-    bengal.core.section.navigation: URL generation for sections
+bengal.core.section: Section dataclass using this mixin
+bengal.core.section.navigation: URL generation for sections
 
 Example:
     >>> section = site.get_section("blog/2024")
     >>> section.depth
-    2
+2
     >>> section.root.name
     'content'
+
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
 class SectionHierarchyMixin:
     """
     Tree structure traversal and relationships.
-
+    
     This mixin handles:
     - Parent/child navigation (parent, root, subsections)
     - Depth and hierarchy calculation
@@ -50,6 +51,7 @@ class SectionHierarchyMixin:
     - Tree walking (walk)
     - Identity operations (__hash__, __eq__)
     - Icon property from index page metadata
+        
     """
 
     # =========================================================================

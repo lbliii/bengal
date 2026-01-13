@@ -5,8 +5,9 @@ This module validates that required configuration keys exist at load time
 to fail fast with clear error messages.
 
 See Also:
-    - :mod:`bengal.config.loader`: Configuration loading.
-    - :mod:`bengal.config.defaults`: Default configuration values.
+- :mod:`bengal.config.loader`: Configuration loading.
+- :mod:`bengal.config.defaults`: Default configuration values.
+
 """
 
 from __future__ import annotations
@@ -25,17 +26,18 @@ REQUIRED_KEYS: dict[str, list[str]] = {
 def validate_config(config: dict[str, Any]) -> None:
     """
     Validate required keys exist. Raises ConfigError if missing.
-
+    
     Args:
         config: Configuration dictionary to validate.
-
+    
     Raises:
         BengalConfigError: If any required keys are missing.
-
+    
     Example:
-        >>> validate_config({"site": {"title": "My Site"}})
-        >>> validate_config({"site": {}})  # Missing title
+            >>> validate_config({"site": {"title": "My Site"}})
+            >>> validate_config({"site": {}})  # Missing title
         BengalConfigError: Missing required config keys: site.title
+        
     """
     missing: list[str] = []
     for section, keys in REQUIRED_KEYS.items():

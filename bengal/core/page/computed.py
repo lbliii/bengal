@@ -5,25 +5,26 @@ This mixin provides cached computed properties for pages. Each property is
 computed once on first access and cached using @cached_property decorator.
 
 Key Properties:
-    - meta_description: SEO-friendly description (max 160 chars)
-    - reading_time: Estimated reading time in minutes
-    - excerpt: Content excerpt for listings (max 200 chars)
-    - age_days: Days since publication
-    - age_months: Months since publication
-    - author: Primary Author object
-    - authors: List of all Author objects
-    - series: Series object for multi-part content
+- meta_description: SEO-friendly description (max 160 chars)
+- reading_time: Estimated reading time in minutes
+- excerpt: Content excerpt for listings (max 200 chars)
+- age_days: Days since publication
+- age_months: Months since publication
+- author: Primary Author object
+- authors: List of all Author objects
+- series: Series object for multi-part content
 
 Performance:
-    All properties use @cached_property decorator, ensuring expensive operations
-    (HTML stripping, word counting, truncation) are only performed once per page.
+All properties use @cached_property decorator, ensuring expensive operations
+(HTML stripping, word counting, truncation) are only performed once per page.
 
 Related Modules:
-    - bengal.rendering.pipeline: Content rendering that populates page.content
-    - bengal.core.author: Author dataclass for author metadata
+- bengal.rendering.pipeline: Content rendering that populates page.content
+- bengal.core.author: Author dataclass for author metadata
 
 See Also:
-    - bengal/core/page/__init__.py: Page class that uses this mixin
+- bengal/core/page/__init__.py: Page class that uses this mixin
+
 """
 
 from __future__ import annotations
@@ -69,19 +70,20 @@ class HasSiteAndMetadata(Protocol):
 class PageLike(Protocol):
     """
     Protocol for page-like objects.
-
+    
     Provides a unified interface for objects that can be treated as pages
     in templates, navigation, and rendering. This enables type-safe access
     to page properties without depending on the concrete Page class.
-
+    
     Use Cases:
         - Template rendering: Functions accept PageLike for flexibility
         - Navigation building: Menu items work with any PageLike
         - Testing: Create minimal page-like objects for unit tests
-
+    
     Example:
-        >>> def render_page(page: PageLike) -> str:
-        ...     return f"<h1>{page.title}</h1>{page.content}"
+            >>> def render_page(page: PageLike) -> str:
+            ...     return f"<h1>{page.title}</h1>{page.content}"
+        
     """
 
     @property
@@ -128,18 +130,19 @@ class PageLike(Protocol):
 class PageComputedMixin:
     """
     Mixin providing cached computed properties for pages.
-
+    
     This mixin handles expensive operations that are cached after first access:
     - meta_description - SEO-friendly description
     - word_count - Word count from source content
     - reading_time - Estimated reading time
     - excerpt - Content excerpt
-
+    
     Underscore Convention:
         Properties prefixed with `_` are for internal/advanced use:
         - _source: Raw markdown source (for plugins, custom analysis)
         Properties without `_` are template-ready:
         - word_count, reading_time: Pre-computed for templates
+        
     """
 
     @property

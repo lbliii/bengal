@@ -18,12 +18,13 @@ logger = get_logger(__name__)
 def build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     """
     Build function signature string from AST node.
-
+    
     Args:
         node: Function definition AST node
-
+    
     Returns:
         Signature string like "def foo(x: int, y: str = 'default') -> bool"
+        
     """
     args_parts = []
 
@@ -70,12 +71,13 @@ def build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 def extract_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict[str, Any]]:
     """
     Extract argument information from function AST node.
-
+    
     Args:
         node: Function definition AST node
-
+    
     Returns:
         List of argument dicts with 'name', 'type', 'default' keys
+        
     """
     args = []
 
@@ -102,12 +104,13 @@ def extract_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
 def annotation_to_string(annotation: ast.expr | None) -> str | None:
     """
     Convert AST type annotation to string representation.
-
+    
     Args:
         annotation: AST annotation expression
-
+    
     Returns:
         String representation of the type annotation, or None
+        
     """
     if annotation is None:
         return None
@@ -128,12 +131,13 @@ def annotation_to_string(annotation: ast.expr | None) -> str | None:
 def expr_to_string(expr: ast.expr) -> str:
     """
     Convert AST expression to string representation.
-
+    
     Args:
         expr: AST expression
-
+    
     Returns:
         String representation of the expression
+        
     """
     try:
         return ast.unparse(expr)
@@ -150,11 +154,12 @@ def expr_to_string(expr: ast.expr) -> str:
 def has_yield(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """
     Check if function contains yield statement (is a generator).
-
+    
     Args:
         node: Function AST node
-
+    
     Returns:
         True if function is a generator
+        
     """
     return any(isinstance(child, ast.Yield | ast.YieldFrom) for child in ast.walk(node))

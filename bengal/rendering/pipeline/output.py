@@ -5,30 +5,31 @@ This module provides the final stage of the rendering pipeline: determining
 output paths, selecting templates, and writing rendered HTML to disk.
 
 Key Functions:
-    - determine_output_path(): Compute output file path for a page
-    - determine_template(): Select template based on page type and metadata
-    - write_output(): Write rendered HTML with atomic writes and caching
-    - format_html(): Apply HTML minification or pretty-printing
+- determine_output_path(): Compute output file path for a page
+- determine_template(): Select template based on page type and metadata
+- write_output(): Write rendered HTML with atomic writes and caching
+- format_html(): Apply HTML minification or pretty-printing
 
 Write Strategies:
-    The module supports two write modes controlled by ``build.fast_writes``:
+The module supports two write modes controlled by ``build.fast_writes``:
 
-    - **Atomic writes (default)**: Crash-safe using temporary files and rename.
-      Slightly slower but ensures output is never corrupted on interruption.
+- **Atomic writes (default)**: Crash-safe using temporary files and rename.
+  Slightly slower but ensures output is never corrupted on interruption.
 
-    - **Fast writes**: Direct file writes without atomicity. Used by dev server
-      for maximum performance during rapid iteration.
+- **Fast writes**: Direct file writes without atomicity. Used by dev server
+  for maximum performance during rapid iteration.
 
 Directory Caching:
-    Uses thread-safe directory tracking to minimize syscalls during parallel
-    builds. Once a directory is created, subsequent pages skip the exists check.
+Uses thread-safe directory tracking to minimize syscalls during parallel
+builds. Once a directory is created, subsequent pages skip the exists check.
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Main pipeline orchestration
-    - bengal.rendering.pipeline.thread_local: Directory creation tracking
-    - bengal.utils.url_strategy: URL and path computation
-    - bengal.utils.atomic_write: Atomic file operations
-    - bengal.postprocess.html_output: HTML formatting implementation
+- bengal.rendering.pipeline.core: Main pipeline orchestration
+- bengal.rendering.pipeline.thread_local: Directory creation tracking
+- bengal.utils.url_strategy: URL and path computation
+- bengal.utils.atomic_write: Atomic file operations
+- bengal.postprocess.html_output: HTML formatting implementation
+
 """
 
 from __future__ import annotations
@@ -53,15 +54,16 @@ logger = get_logger(__name__)
 def determine_output_path(page: Page, site: Site) -> Path:
     """
     Determine the output path for a page.
-
+    
     Delegates path computation to centralized URLStrategy (i18n-aware).
-
+    
     Args:
         page: Page to determine path for
         site: Site instance
-
+    
     Returns:
         Output path
+        
     """
     return URLStrategy.compute_regular_page_output_path(page, site)
 
@@ -69,17 +71,18 @@ def determine_output_path(page: Page, site: Site) -> Path:
 def determine_template(page: Page) -> str:
     """
     Determine which template will be used for this page.
-
+    
     Template resolution order:
     1. page.template attribute
     2. page.metadata['template']
     3. Default based on page type
-
+    
     Args:
         page: Page object
-
+    
     Returns:
         Template name (e.g., 'single.html', 'page.html')
+        
     """
     # Check page-specific template first
     if hasattr(page, "template") and page.template:
@@ -112,7 +115,7 @@ def write_output(
 ) -> None:
     """
     Write rendered page to output directory.
-
+    
     Handles:
     - Directory creation with caching (reduces syscalls)
     - Atomic writes for crash safety (optional)
@@ -120,15 +123,16 @@ def write_output(
     - Source→output tracking for incremental cleanup
     - Output tracking for hot reload (when collector provided)
     - Write-behind async I/O (when write_behind provided)
-
+    
     RFC: rfc-path-to-200-pgs (Phase III - Write-Behind I/O)
-
+    
     Args:
         page: Page with rendered content
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload tracking
         write_behind: Optional write-behind collector for async writes
+        
     """
     # Ensure output_path is set
     if page.output_path is None:
@@ -195,12 +199,13 @@ def _track_and_record(
     collector: OutputCollector | None,
 ) -> None:
     """Track dependencies and record output (shared by sync and async paths).
-
+    
     Args:
         page: Page with output_path set
         site: Site instance
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload
+        
     """
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
@@ -224,19 +229,20 @@ def _track_and_record(
 def format_html(html: str, page: Page, site: Site) -> str:
     """
     Format HTML output (minify/pretty).
-
+    
     Respects page-level and site-level configuration:
     - page.metadata.no_format: Skip formatting
     - site.config.html_output.mode: 'minify', 'pretty', or 'raw'
     - site.config.minify_html: Option
-
+    
     Args:
         html: Rendered HTML content
         page: Page being rendered
         site: Site instance for config
-
+    
     Returns:
         Formatted HTML
+        
     """
     try:
         from bengal.postprocess.html_output import format_html_output

@@ -23,8 +23,9 @@ if TYPE_CHECKING:
 @runtime_checkable
 class OutputCollector(Protocol):
     """Protocol for collecting output writes during build.
-
+    
     Implementations must be thread-safe for parallel builds.
+        
     """
 
     def record(
@@ -71,19 +72,20 @@ class OutputCollector(Protocol):
 
 class BuildOutputCollector:
     """Thread-safe implementation of OutputCollector for builds.
-
+    
     This collector tracks all output files written during a build,
     enabling reliable hot reload decisions in the dev server.
-
+    
     Attributes:
         output_dir: Base output directory for relative path calculation
-
+    
     Example:
-        >>> collector = BuildOutputCollector(Path("/site/public"))
-        >>> collector.record(Path("posts/hello.html"), OutputType.HTML, "render")
-        >>> collector.record(Path("assets/style.css"), phase="asset")
-        >>> collector.css_only()
+            >>> collector = BuildOutputCollector(Path("/site/public"))
+            >>> collector.record(Path("posts/hello.html"), OutputType.HTML, "render")
+            >>> collector.record(Path("assets/style.css"), phase="asset")
+            >>> collector.css_only()
         False
+        
     """
 
     def __init__(self, output_dir: Path | None = None) -> None:

@@ -9,7 +9,7 @@ Templates are discovered in two ways:
 The registry is a singleton that lazily initializes on first access.
 
 Classes:
-    TemplateRegistry: Internal class managing template discovery
+TemplateRegistry: Internal class managing template discovery
 
 Functions:
     get_template: Get a template by ID
@@ -21,6 +21,7 @@ Example:
     >>> template = get_template("blog")
     >>> for tid, desc in list_templates():
     ...     print(f"{tid}: {desc}")
+
 """
 
 from __future__ import annotations
@@ -42,12 +43,13 @@ logger = get_logger(__name__)
 class TemplateRegistry:
     """
     Registry for discovering and managing site templates.
-
+    
     Automatically discovers templates from sibling directories on init.
     Prefers skeleton.yaml manifests over Python template modules.
-
+    
     Attributes:
         _templates: Internal cache of template ID -> SiteTemplate mappings
+        
     """
 
     def __init__(self) -> None:
@@ -258,9 +260,10 @@ _registry: TemplateRegistry | None = None
 def _get_registry() -> TemplateRegistry:
     """
     Get or create the global registry instance.
-
+    
     Returns:
         Singleton TemplateRegistry instance
+        
     """
     global _registry
     if _registry is None:
@@ -271,12 +274,13 @@ def _get_registry() -> TemplateRegistry:
 def get_template(template_id: str) -> SiteTemplate | None:
     """
     Get a template by its identifier.
-
+    
     Args:
         template_id: Template ID (e.g., "blog", "docs")
-
+    
     Returns:
         SiteTemplate if found, None otherwise
+        
     """
     return _get_registry().get(template_id)
 
@@ -284,9 +288,10 @@ def get_template(template_id: str) -> SiteTemplate | None:
 def list_templates() -> list[tuple[str, str]]:
     """
     List all available templates.
-
+    
     Returns:
         List of (template_id, description) tuples
+        
     """
     return _get_registry().list()
 
@@ -294,11 +299,12 @@ def list_templates() -> list[tuple[str, str]]:
 def register_template(template: SiteTemplate) -> None:
     """
     Register a custom template with the global registry.
-
+    
     Use this to add templates programmatically at runtime, such as
     from plugins or application-specific code.
-
+    
     Args:
         template: SiteTemplate instance to register
+        
     """
     _get_registry()._templates[template.id] = template

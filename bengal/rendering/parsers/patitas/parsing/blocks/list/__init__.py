@@ -9,14 +9,15 @@ Provides modular list parsing with support for:
 - Block elements within list items
 
 Architecture:
-    List parsing is split into focused modules:
-    - mixin: Main ListParsingMixin class
-    - types: Type definitions and dataclasses
-    - marker: Marker detection and classification
-    - indent: Indent calculation utilities
-    - blank_line: Blank line handling
-    - item_blocks: Block elements in list items
-    - nested: Nested list handling
+List parsing is split into focused modules:
+- mixin: Main ListParsingMixin class
+- types: Type definitions and dataclasses
+- marker: Marker detection and classification
+- indent: Indent calculation utilities
+- blank_line: Blank line handling
+- item_blocks: Block elements in list items
+- nested: Nested list handling
+
 """
 
 from __future__ import annotations

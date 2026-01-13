@@ -4,42 +4,43 @@ Provides collapsible sections with markdown support including
 nested directives and code blocks.
 
 Options:
-    :open: Start expanded (default: false)
-    :icon: Icon name to display next to the title
-    :badge: Badge text (e.g., "New", "Advanced", "Beta")
-    :color: Color variant (success, warning, danger, info, minimal)
-    :description: Secondary text below the title
-    :class: Additional CSS classes
+:open: Start expanded (default: false)
+:icon: Icon name to display next to the title
+:badge: Badge text (e.g., "New", "Advanced", "Beta")
+:color: Color variant (success, warning, danger, info, minimal)
+:description: Secondary text below the title
+:class: Additional CSS classes
 
 Example:
-    :::{dropdown} Click to expand
-    :open:
-    :icon: info
-    :badge: New
-    :color: info
-    :description: Additional context about this content
+:::{dropdown} Click to expand
+:open:
+:icon: info
+:badge: New
+:color: info
+:description: Additional context about this content
 
-    Hidden content here with **markdown** support.
-    :::
+Hidden content here with **markdown** support.
+:::
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's dropdown directive exactly:
-    <details class="dropdown [color] [class]" [open]>
-      <summary>
-        <span class="dropdown-icon">{SVG}</span>
-        <span class="dropdown-header">
-          <span class="dropdown-title">Title</span>
-          <span class="dropdown-description">Description</span>
-        </span>
-        <span class="dropdown-badge">Badge</span>
-      </summary>
-      <div class="dropdown-content">
-        {content}
-      </div>
-    </details>
+Matches Bengal's dropdown directive exactly:
+<details class="dropdown [color] [class]" [open]>
+  <summary>
+    <span class="dropdown-icon">{SVG}</span>
+    <span class="dropdown-header">
+      <span class="dropdown-title">Title</span>
+      <span class="dropdown-description">Description</span>
+    </span>
+    <span class="dropdown-badge">Badge</span>
+  </summary>
+  <div class="dropdown-content">
+    {content}
+  </div>
+</details>
+
 """
 
 from __future__ import annotations
@@ -68,13 +69,14 @@ DROPDOWN_COLORS = frozenset(["success", "warning", "danger", "info", "minimal"])
 
 def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
     """Render dropdown icon using shared icon utilities.
-
+    
     Args:
         icon_name: Name of the icon to render
         dropdown_title: Title of the dropdown (for warning context)
-
+    
     Returns:
         SVG HTML string, or empty string if icon not found
+        
     """
     try:
         from bengal.directives._icons import (
@@ -99,14 +101,14 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
 @dataclass(frozen=True, slots=True)
 class DropdownOptions(StyledOptions):
     """Options for dropdown directive.
-
+    
     Attributes:
         open: Whether dropdown is initially open (expanded)
         icon: Icon name to display next to the title
         badge: Badge text (e.g., "New", "Advanced", "Beta")
         color: Color variant (success, warning, danger, info, minimal)
         description: Secondary text below the title
-
+    
     Example:
         :::{dropdown} My Title
         :open: true
@@ -114,9 +116,10 @@ class DropdownOptions(StyledOptions):
         :badge: Advanced
         :color: info
         :description: Additional context about what's inside
-
+    
         Content here
         :::
+        
     """
 
     open: bool = False
@@ -128,12 +131,13 @@ class DropdownOptions(StyledOptions):
 
 class DropdownDirective:
     """Handler for dropdown (collapsible) directive.
-
+    
     Renders collapsible content using <details>/<summary>.
     Produces HTML identical to Bengal's dropdown directive.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("dropdown", "details")

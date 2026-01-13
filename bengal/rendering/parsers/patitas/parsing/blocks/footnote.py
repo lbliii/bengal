@@ -16,14 +16,15 @@ if TYPE_CHECKING:
 
 class FootnoteParsingMixin:
     """Mixin for footnote definition parsing.
-
+    
     Required Host Attributes:
         - _current: Token | None
-
+    
     Required Host Methods:
         - _at_end() -> bool
         - _advance() -> Token | None
         - _parse_inline(text, location) -> tuple[Inline, ...]
+        
     """
 
     _current: Token | None

@@ -5,23 +5,24 @@ Main dataclass with fields, save/load, and coordination methods. Uses mixins
 for specialized functionality (file tracking, validation, taxonomy, caching).
 
 Key Concepts:
-    - File fingerprints: mtime + size for fast change detection, hash for verification
-    - Dependency tracking: Templates, partials, and data files used by pages
-    - Taxonomy indexes: Tag/category mappings for fast reconstruction
-    - Config hash: Auto-invalidation when configuration changes
-    - Version tolerance: Accepts missing/older cache versions gracefully
-    - Zstandard compression: 92-93% size reduction, <1ms overhead
+- File fingerprints: mtime + size for fast change detection, hash for verification
+- Dependency tracking: Templates, partials, and data files used by pages
+- Taxonomy indexes: Tag/category mappings for fast reconstruction
+- Config hash: Auto-invalidation when configuration changes
+- Version tolerance: Accepts missing/older cache versions gracefully
+- Zstandard compression: 92-93% size reduction, <1ms overhead
 
 Related Modules:
-    - bengal.orchestration.incremental: Incremental build logic using cache
-    - bengal.cache.dependency_tracker: Dependency graph construction
-    - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
-    - bengal.cache.compression: Zstandard compression utilities
+- bengal.orchestration.incremental: Incremental build logic using cache
+- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
+- bengal.cache.compression: Zstandard compression utilities
 
 See Also:
-    - plan/active/rfc-incremental-builds.md: Incremental build design
-    - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
-    - plan/active/rfc-zstd-cache-compression.md: Compression RFC
+- plan/active/rfc-incremental-builds.md: Incremental build design
+- plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+- plan/active/rfc-zstd-cache-compression.md: Compression RFC
+
 """
 
 from __future__ import annotations
@@ -57,24 +58,24 @@ class BuildCache(
 ):
     """
     Tracks file hashes and dependencies between builds.
-
+    
     IMPORTANT PERSISTENCE CONTRACT:
     - This cache must NEVER contain object references (Page, Section, Asset objects)
     - All data must be JSON-serializable (paths, strings, numbers, lists, dicts, sets)
     - Object relationships are rebuilt each build from cached paths
-
+    
     NOTE: BuildCache intentionally does NOT implement the Cacheable protocol.
     Rationale:
     - Uses pickle for performance (faster than JSON for sets/complex structures)
     - Has tolerant loader with custom version handling logic
     - Contains many specialized fields (dependencies, hashes, etc.)
     - Designed for internal build state, not type-safe caching contracts
-
+    
     For type-safe caching, use types that implement the Cacheable protocol:
     - PageCore (bengal/core/page/page_core.py)
     - TagEntry (bengal/cache/taxonomy_index.py)
     - AssetDependencyEntry (bengal/cache/asset_dependency_map.py)
-
+    
     Attributes:
         file_fingerprints: Mapping of file paths to {mtime, size, hash} dicts
         dependencies: Mapping of pages to their dependencies (templates, partials, etc.)
@@ -89,6 +90,7 @@ class BuildCache(
         validation_results: Cached validation results per file/validator
         config_hash: Hash of resolved configuration (for auto-invalidation)
         last_build: Timestamp of last successful build
+        
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.

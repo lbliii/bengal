@@ -80,19 +80,20 @@ VALIDATOR_CATEGORIES: dict[str, tuple[str, str]] = {
 class BengalHealthDashboard(BengalDashboard):
     """
     Interactive health dashboard with tree explorer.
-
+    
     Shows:
     - Header with Bengal branding
     - Summary bar with issue counts
     - Tree view of issues by category
     - Details panel for selected issue
     - Footer with keyboard shortcuts
-
+    
     Bindings:
         q: Quit
         r: Rescan
         enter: View details
         ?: Help
+        
     """
 
     TITLE: ClassVar[str] = "Bengal Health"
@@ -593,13 +594,14 @@ def run_health_dashboard(
 ) -> None:
     """
     Run the health dashboard for a site.
-
+    
     This is the entry point called by `bengal health --dashboard`.
-
+    
     Args:
         site: Site instance to check
         report: Pre-computed health report (optional)
         **kwargs: Additional options
+        
     """
     app = BengalHealthDashboard(
         site=site,

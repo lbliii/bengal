@@ -44,30 +44,31 @@ logger = get_logger(__name__)
 class GitHubSource(ContentSource):
     """
     Content source for GitHub repositories.
-
+    
     Fetches markdown files from a GitHub repo using the GitHub API.
     Supports both public repos and private repos with token authentication.
-
+    
     Configuration:
         repo: str - Repository in "owner/repo" format (required)
         branch: str - Branch name (default: "main")
         path: str - Directory path within repo (default: "")
         token: str - GitHub token (optional, uses GITHUB_TOKEN env var)
         glob: str - File pattern to match (default: "*.md")
-
+    
     Performance:
         Files are fetched in parallel with a configurable concurrency limit.
         Rate limit responses (429/403) trigger automatic retry with exponential backoff.
         Results are streamed as they complete (order is non-deterministic).
-
+    
     Example:
-        >>> source = GitHubSource("api-docs", {
-        ...     "repo": "myorg/api-docs",
-        ...     "branch": "main",
-        ...     "path": "docs",
-        ... })
-        >>> async for entry in source.fetch_all():
-        ...     print(entry.title)
+            >>> source = GitHubSource("api-docs", {
+            ...     "repo": "myorg/api-docs",
+            ...     "branch": "main",
+            ...     "path": "docs",
+            ... })
+            >>> async for entry in source.fetch_all():
+            ...     print(entry.title)
+        
     """
 
     source_type = "github"

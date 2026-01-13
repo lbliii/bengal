@@ -20,8 +20,9 @@ logger = get_logger(__name__)
 def get_line_with_context(file_path: Path, line_number: int, context_lines: int = 2) -> str:
     """
     Get a line from a file with context (lines before/after).
-
+    
     Returns formatted string with line numbers and content.
+        
     """
     try:
         if not file_path.exists():
@@ -55,9 +56,10 @@ def get_line_with_context(file_path: Path, line_number: int, context_lines: int 
 def _get_relative_content_path(file_path: Path) -> str:
     """
     Get a user-friendly relative path for display.
-
+    
     Tries to show path relative to 'content' directory for wayfinding.
     Falls back to showing last 3 path components if content dir not found.
+        
     """
     parts = file_path.parts
 

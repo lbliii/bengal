@@ -31,14 +31,15 @@ logger = get_logger(__name__)
 def _check_parent_project_conflict(root_path: Path, cli: CLIOutput) -> None:
     """
     Check if parent directories contain another Bengal project.
-
+    
     This helps catch a common mistake: running bengal from a subdirectory
     of another Bengal project (e.g., running from project root when the
     actual site is in a 'site/' subdirectory, or vice versa).
-
+    
     Args:
         root_path: The resolved site root path
         cli: CLI output for warnings
+        
     """
     parent = root_path.parent
 
@@ -119,13 +120,14 @@ def _count_markdown_files(directory: Path) -> int:
 def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
     """
     Check if a subdirectory contains what looks like the actual site.
-
+    
     Common case: running from project root when site/ subdirectory
     contains the actual Bengal site with content.
-
+    
     Args:
         root_path: The resolved site root path
         cli: CLI output for warnings
+        
     """
     # Check common subdirectory names for site content
     common_site_dirs = ["site", "docs", "website", "web"]
@@ -202,25 +204,26 @@ def load_site_from_cli(
 ) -> Site:
     """
     Load a Site instance from CLI arguments with consistent error handling.
-
+    
     Args:
         source: Source directory path (default: current directory)
         config: Optional config file path
         environment: Optional environment name (local, preview, production)
         profile: Optional profile name (writer, theme-dev, dev)
         cli: Optional CLIOutput instance (creates new if not provided)
-
+    
     Returns:
         Site instance
-
+    
     Raises:
         click.Abort: If site loading fails
-
+    
     Example:
         @click.command()
         def my_command(source: str, config: str | None):
             site = load_site_from_cli(source, config)
             # ... use site ...
+        
     """
     if cli is None:
         cli = CLIOutput()

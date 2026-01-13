@@ -6,42 +6,42 @@ sites to choose their preferred templating solution while maintaining
 consistent behavior.
 
 Architecture:
-    All template engine access MUST go through create_engine(). Direct
-    imports of engine classes are for type hints and testing only.
+All template engine access MUST go through create_engine(). Direct
+imports of engine classes are for type hints and testing only.
 
 Available Engines:
-    kida (Default):
-        Bengal's native template engine. Jinja2-compatible with unified
-        block endings, pattern matching, pipeline operators, and automatic
-        block caching. Supports free-threaded Python.
+kida (Default):
+    Bengal's native template engine. Jinja2-compatible with unified
+    block endings, pattern matching, pipeline operators, and automatic
+    block caching. Supports free-threaded Python.
 
-    jinja2 (Optional):
-        Industry-standard template engine. Feature-rich with excellent
-        documentation and tooling support.
+jinja2 (Optional):
+    Industry-standard template engine. Feature-rich with excellent
+    documentation and tooling support.
 
-    mako (Optional):
-        Python-like syntax with full Python expression support. Install
-        with: pip install bengal[mako]
+mako (Optional):
+    Python-like syntax with full Python expression support. Install
+    with: pip install bengal[mako]
 
-    patitas (Optional):
-        Pure Python templates for maximum flexibility. Install with:
-        pip install bengal[patitas]
+patitas (Optional):
+    Pure Python templates for maximum flexibility. Install with:
+    pip install bengal[patitas]
 
 Public API:
-    - create_engine(): Factory function (required for engine creation)
-    - register_engine(): Register custom/third-party engines
-    - TemplateEngineProtocol: Interface for custom implementations
-    - TemplateError: Base exception for template errors
-    - TemplateNotFoundError: Template file not found
-    - TemplateRenderError: Template rendering failed
+- create_engine(): Factory function (required for engine creation)
+- register_engine(): Register custom/third-party engines
+- TemplateEngineProtocol: Interface for custom implementations
+- TemplateError: Base exception for template errors
+- TemplateNotFoundError: Template file not found
+- TemplateRenderError: Template rendering failed
 
 Configuration:
-    Set the engine in bengal.yaml:
+Set the engine in bengal.yaml:
 
-    .. code-block:: yaml
+.. code-block:: yaml
 
-        site:
-          template_engine: kida  # default (Bengal's native engine), or jinja2, mako, patitas
+    site:
+      template_engine: kida  # default (Bengal's native engine), or jinja2, mako, patitas
 
 Usage:
     >>> from bengal.rendering.engines import create_engine
@@ -50,19 +50,20 @@ Usage:
     >>> html = engine.render("page.html", {"page": page, "site": site})
 
 Custom Engines:
-    To add a third-party engine, implement TemplateEngineProtocol and register:
+To add a third-party engine, implement TemplateEngineProtocol and register:
 
     >>> from bengal.rendering.engines import register_engine
     >>> register_engine("myengine", MyTemplateEngine)
 
 Related Modules:
-    - bengal.rendering.template_functions: Functions available in templates
-    - bengal.rendering.template_context: Context wrappers for URL handling
-    - bengal.rendering.errors: Rich error objects for debugging
+- bengal.rendering.template_functions: Functions available in templates
+- bengal.rendering.template_context: Context wrappers for URL handling
+- bengal.rendering.errors: Rich error objects for debugging
 
 See Also:
-    - bengal.rendering.engines.protocol: TemplateEngineProtocol definition
-    - bengal.rendering.engines.jinja: Jinja2 implementation details
+- bengal.rendering.engines.protocol: TemplateEngineProtocol definition
+- bengal.rendering.engines.jinja: Jinja2 implementation details
+
 """
 
 from __future__ import annotations
@@ -87,10 +88,11 @@ _ENGINES: dict[str, type[TemplateEngineProtocol]] = {}
 def register_engine(name: str, engine_class: type[TemplateEngineProtocol]) -> None:
     """
     Register a third-party template engine.
-
+    
     Args:
         name: Engine identifier (used in bengal.yaml)
         engine_class: Class implementing TemplateEngineProtocol
+        
     """
     _ENGINES[name] = engine_class
 
@@ -102,21 +104,22 @@ def create_engine(
 ) -> TemplateEngineProtocol:
     """
     Create a template engine based on site configuration.
-
+    
     This is the ONLY way to get a template engine instance.
-
+    
     Args:
         site: Site instance
         profile: Enable template profiling
-
+    
     Returns:
         Engine implementing TemplateEngineProtocol
-
+    
     Raises:
         ValueError: If engine is unknown or required package not installed
-
+    
     Configuration:
         template_engine: kida  # default (Bengal's native engine), or "jinja2", "mako", "patitas", etc.
+        
     """
     engine_name = site.config.get("template_engine", "kida")
 

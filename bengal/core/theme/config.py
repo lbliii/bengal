@@ -5,38 +5,39 @@ Provides theme-related configuration accessible in templates as `site.theme`.
 Includes feature flags system for declarative theme customization.
 
 Public API:
-    Theme: Theme configuration dataclass with feature flags and appearance
+Theme: Theme configuration dataclass with feature flags and appearance
 
 Key Concepts:
-    Feature Flags: Declarative toggles for theme behavior. Users enable
-        features via config rather than editing templates:
+Feature Flags: Declarative toggles for theme behavior. Users enable
+    features via config rather than editing templates:
 
-        [theme]
-        features = ["navigation.toc", "content.code.copy"]
+    [theme]
+    features = ["navigation.toc", "content.code.copy"]
 
-    Appearance Modes: Control default color scheme:
-        - "light": Light mode by default
-        - "dark": Dark mode by default
-        - "system": Follow user's system preference
+Appearance Modes: Control default color scheme:
+    - "light": Light mode by default
+    - "dark": Dark mode by default
+    - "system": Follow user's system preference
 
-    Color Palettes: Named color schemes for theming. The default_palette
-        field specifies which palette to use initially.
+Color Palettes: Named color schemes for theming. The default_palette
+    field specifies which palette to use initially.
 
 Usage:
-    # In templates:
-    {% if site.theme.has_feature('navigation.toc') %}
-      {{ render_toc(page) }}
-    {% endif %}
+# In templates:
+{% if site.theme.has_feature('navigation.toc') %}
+  {{ render_toc(page) }}
+{% endif %}
 
-    # Programmatic access:
+# Programmatic access:
     theme = Theme.from_config(site_config, root_path=site.root_path)
-    if theme.has_feature("content.code.copy"):
-        enable_code_copy()
+if theme.has_feature("content.code.copy"):
+    enable_code_copy()
 
 Related Packages:
-    bengal.core.theme.registry: Installed theme discovery via entry points
-    bengal.core.theme.resolution: Theme inheritance chain resolution
-    bengal.themes.config: ThemeConfig for theme.yaml loading
+bengal.core.theme.registry: Installed theme discovery via entry points
+bengal.core.theme.resolution: Theme inheritance chain resolution
+bengal.themes.config: ThemeConfig for theme.yaml loading
+
 """
 
 from __future__ import annotations
@@ -53,27 +54,28 @@ from bengal.errors import BengalConfigError, ErrorCode
 class Theme:
     """
     Theme configuration object.
-
+    
     Available in templates as `site.theme` for theme developers to access
     theme-related settings.
-
+    
     Attributes:
         name: Theme name (e.g., "default", "my-custom-theme")
         default_appearance: Default appearance mode ("light", "dark", "system")
         default_palette: Default color palette key (empty string for default)
         features: List of enabled feature flags (e.g., ["navigation.toc", "content.code.copy"])
         config: Additional theme-specific configuration from [theme] section
-
+    
     Feature Flags:
         Features are declarative toggles for theme behavior. Users enable/disable
         features via config rather than editing templates.
-
+    
         Example:
             [theme]
             features = ["navigation.toc", "content.code.copy"]
-
+    
         Templates check features via:
             {% if 'navigation.toc' in site.theme_config.features %}
+        
     """
 
     name: str = "default"
@@ -264,6 +266,7 @@ class Theme:
                     "version": theme_config_obj.version,
                     "parent": theme_config_obj.parent,
                     "icons": theme_config_obj.icons.to_dict(),
+                    "header": theme_config_obj.header.to_dict(),
                 },
             )
 

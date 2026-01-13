@@ -14,19 +14,19 @@ def get_pagination_items(
 ) -> dict[str, Any]:
     """
     Generate pagination data structure with URLs and ellipsis markers.
-
+    
     This function handles all pagination logic including:
     - Page number range calculation with window
     - Ellipsis placement (represented as None)
     - URL generation (special case for page 1)
     - Previous/next links
-
+    
     Args:
         current_page: Current page number (1-indexed)
         total_pages: Total number of pages
         base_url: Base URL for pagination (e.g., '/blog/')
         window: Number of pages to show around current (default: 2)
-
+    
     Returns:
         Dictionary with:
         - pages: List of page items (num, url, is_current, is_ellipsis)
@@ -34,15 +34,15 @@ def get_pagination_items(
         - next: Next page info (num, url) or None
         - first: First page info (num, url)
         - last: Last page info (num, url)
-
+    
     Example (basic):
         {% set pagination = get_pagination_items(current_page, total_pages, base_url) %}
-
+    
         <nav class="pagination">
           {% if pagination.prev %}
             <a href="{{ pagination.prev.href }}">← Prev</a>
           {% endif %}
-
+    
           {% for item in pagination.pages %}
             {% if item.is_ellipsis %}
               <span>...</span>
@@ -52,22 +52,22 @@ def get_pagination_items(
               <a href="{{ item.href }}">{{ item.num }}</a>
             {% endif %}
           {% endfor %}
-
+    
           {% if pagination.next %}
             <a href="{{ pagination.next.href }}">Next →</a>
           {% endif %}
         </nav>
-
+    
     Example (Bootstrap):
         {% set p = get_pagination_items(current_page, total_pages, base_url) %}
-
+    
         <ul class="pagination">
           {% if p.prev %}
             <li class="page-item">
               <a class="page-link" href="{{ p.prev.href }}">Previous</a>
             </li>
           {% endif %}
-
+    
           {% for item in p.pages %}
             <li class="page-item {{ 'active' if item.is_current }}">
               {% if item.is_ellipsis %}
@@ -77,13 +77,14 @@ def get_pagination_items(
               {% endif %}
             </li>
           {% endfor %}
-
+    
           {% if p.next %}
             <li class="page-item">
               <a class="page-link" href="{{ p.next.href }}">Next</a>
             </li>
           {% endif %}
         </ul>
+        
     """
     if total_pages <= 0:
         total_pages = 1

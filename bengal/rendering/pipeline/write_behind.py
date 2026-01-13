@@ -9,15 +9,16 @@ rendered pages for a dedicated writer thread.
 Usage:
     collector = WriteBehindCollector()
 
-    # In render workers:
-    collector.enqueue(output_path, html_content)  # Non-blocking
+# In render workers:
+collector.enqueue(output_path, html_content)  # Non-blocking
 
-    # After all rendering:
-    collector.flush_and_close()  # Wait for writes to complete
+# After all rendering:
+collector.flush_and_close()  # Wait for writes to complete
 
 Thread Safety:
-    Queue operations are thread-safe. Multiple render threads can
-    enqueue simultaneously while the writer thread drains.
+Queue operations are thread-safe. Multiple render threads can
+enqueue simultaneously while the writer thread drains.
+
 """
 
 from __future__ import annotations
@@ -37,21 +38,22 @@ logger = get_logger(__name__)
 
 class WriteBehindCollector:
     """Async write-behind buffer for rendered pages.
-
+    
     Worker threads push (path, content) pairs to a queue.
     A dedicated writer thread drains the queue to disk.
-
+    
     Benefits:
         - Overlaps CPU (rendering) with I/O (writing)
         - Reduces worker thread blocking on disk
         - Batches directory creation
-
+    
     Attributes:
         _queue: Thread-safe queue of (Path, str) pairs
         _writer_thread: Background thread draining to disk
         _shutdown: Event signaling shutdown
         _error: Any error from writer thread
         _writes_completed: Count of successful writes
+        
     """
 
     __slots__ = (

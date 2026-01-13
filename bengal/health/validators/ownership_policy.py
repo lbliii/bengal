@@ -5,8 +5,9 @@ Checks if content pages land in reserved namespaces (e.g., /tags/, autodoc prefi
 special pages) and reports ownership violations separately from raw collisions.
 
 See Also:
-    - bengal.config.url_policy: Reserved namespace definitions
-    - plan/drafted/plan-url-ownership-architecture.md: Implementation plan
+- bengal.config.url_policy: Reserved namespace definitions
+- plan/drafted/plan-url-ownership-architecture.md: Implementation plan
+
 """
 
 from __future__ import annotations
@@ -25,21 +26,22 @@ if TYPE_CHECKING:
 class OwnershipPolicyValidator(BaseValidator):
     """
     Validates that user content respects reserved namespace ownership.
-
+    
     Checks if content pages land in reserved namespaces (e.g., /tags/, autodoc
     prefixes, special pages) and reports ownership violations separately from
     raw collisions. Warning mode by default (no build failure).
-
+    
     Checks:
     - Content pages do not land in reserved namespaces
     - Reports ownership violations with namespace owner information
     - Provides clear guidance on namespace policy
-
+    
     Example violation:
         Ownership violation: /tags/python/
           Content page: content/tags/python.md
           Reserved by: taxonomy (priority 40)
           Recommendation: Move content or use different slug
+        
     """
 
     name = "Ownership Policy"

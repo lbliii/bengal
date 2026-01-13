@@ -72,27 +72,28 @@ def where(
 ) -> list[dict[str, Any]]:
     """
     Filter items where key matches value using specified operator.
-
+    
     Supports nested attribute access (e.g., 'metadata.track_id') and comparison operators.
-
+    
     Args:
         items: List of dictionaries or objects to filter
         key: Dictionary key or attribute path to check (supports dot notation like 'metadata.track_id')
         value: Value to compare against (required for all operators)
         operator: Comparison operator: 'eq' (default), 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'not in'
-
+    
     Returns:
         Filtered list
-
+    
     Example:
         {# Basic equality (backward compatible) #}
         {% set tutorials = site.pages | where('category', 'tutorial') %}
         {% set track_pages = site.pages | where('metadata.track_id', 'getting-started') %}
-
+    
         {# With operators #}
         {% set recent = site.pages | where('date', one_year_ago, 'gt') %}
         {% set python = site.pages | where('tags', ['python', 'web'], 'in') %}
         {% set published = site.pages | where('status', 'draft', 'ne') %}
+        
     """
     if not items:
         return []
@@ -154,20 +155,21 @@ def where(
 def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[str, Any]]:
     """
     Filter items where key does not equal value.
-
+    
     Supports nested attribute access (e.g., 'metadata.track_id').
-
+    
     Args:
         items: List of dictionaries or objects to filter
         key: Dictionary key or attribute path to check (supports dot notation like 'metadata.track_id')
         value: Value to exclude
-
+    
     Returns:
         Filtered list
-
+    
     Example:
         {% set active = users | where_not('status', 'archived') %}
         {% set non_tracks = site.pages | where_not('metadata.track_id', 'getting-started') %}
+        
     """
     if not items:
         return []
@@ -184,20 +186,21 @@ def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[st
 def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:
     """
     Group items by key value.
-
+    
     Args:
         items: List of dictionaries to group
         key: Dictionary key to group by
-
+    
     Returns:
         Dictionary mapping key values to lists of items
-
+    
     Example:
         {% set by_category = posts | group_by('category') %}
         {% for category, posts in by_category.items() %}
             <h2>{{ category }}</h2>
-            ...
+                ...
         {% endfor %}
+        
     """
     if not items:
         return {}
@@ -236,18 +239,19 @@ def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, 
 def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     """
     Sort items by key.
-
+    
     Args:
         items: List to sort
         key: Dictionary key or object attribute to sort by
         reverse: Sort in descending order (default: False)
-
+    
     Returns:
         Sorted list
-
+    
     Example:
         {% set recent = posts | sort_by('date', reverse=true) %}
         {% set alphabetical = pages | sort_by('title') %}
+        
     """
     if not items:
         return []
@@ -274,16 +278,17 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
 def limit(items: list[Any], count: int) -> list[Any]:
     """
     Limit items to specified count.
-
+    
     Args:
         items: List to limit
         count: Maximum number of items
-
+    
     Returns:
         First N items
-
+    
     Example:
         {% set recent_5 = posts | sort_by('date', reverse=true) | limit(5) %}
+        
     """
     if not items:
         return []
@@ -294,16 +299,17 @@ def limit(items: list[Any], count: int) -> list[Any]:
 def offset(items: list[Any], count: int) -> list[Any]:
     """
     Skip first N items.
-
+    
     Args:
         items: List to skip from
         count: Number of items to skip
-
+    
     Returns:
         Items after offset
-
+    
     Example:
         {% set page_2 = posts | offset(10) | limit(10) %}
+        
     """
     if not items:
         return []
@@ -314,15 +320,16 @@ def offset(items: list[Any], count: int) -> list[Any]:
 def uniq(items: list[Any]) -> list[Any]:
     """
     Remove duplicate items while preserving order.
-
+    
     Args:
         items: List with potential duplicates
-
+    
     Returns:
         List with duplicates removed
-
+    
     Example:
         {% set unique_tags = all_tags | uniq %}
+        
     """
     if not items:
         return []
@@ -347,17 +354,18 @@ def uniq(items: list[Any]) -> list[Any]:
 def flatten(items: list[list[Any]]) -> list[Any]:
     """
     Flatten nested lists into single list.
-
+    
     Only flattens one level deep.
-
+    
     Args:
         items: List of lists
-
+    
     Returns:
         Flattened list
-
+    
     Example:
         {% set all_tags = posts | map(attribute='tags') | flatten %}
+        
     """
     if not items:
         return []
@@ -375,18 +383,19 @@ def flatten(items: list[list[Any]]) -> list[Any]:
 def first(items: list[Any]) -> Any:
     """
     Get first item from list.
-
+    
     Args:
         items: List to get first item from
-
+    
     Returns:
         First item or None if list is empty
-
+    
     Example:
         {% set featured = site.pages | where('metadata.featured', true) | first %}
         {% if featured %}
             <h2>{{ featured.title }}</h2>
         {% endif %}
+        
     """
     if not items:
         return None
@@ -396,16 +405,17 @@ def first(items: list[Any]) -> Any:
 def last(items: list[Any]) -> Any:
     """
     Get last item from list.
-
+    
     Args:
         items: List to get last item from
-
+    
     Returns:
         Last item or None if list is empty
-
+    
     Example:
         {% set latest = posts | sort_by('date', reverse=true) | first %}
         {% set oldest = posts | sort_by('date') | last %}
+        
     """
     if not items:
         return None
@@ -415,16 +425,17 @@ def last(items: list[Any]) -> Any:
 def reverse(items: list[Any]) -> list[Any]:
     """
     Reverse a list.
-
+    
     Args:
         items: List to reverse
-
+    
     Returns:
         Reversed copy of list
-
+    
     Example:
         {% set reversed = posts | reverse %}
         {% set chronological = posts | sort_by('date') | reverse %}
+        
     """
     if not items:
         return []
@@ -448,19 +459,20 @@ def _get_item_key(item: Any) -> Any:
 def union(items1: list[Any], items2: list[Any]) -> list[Any]:
     """
     Combine two lists, removing duplicates (set union).
-
+    
     Preserves order from first list, then adds items from second list that aren't already present.
-
+    
     Args:
         items1: First list
         items2: Second list
-
+    
     Returns:
         Combined list with duplicates removed
-
+    
     Example:
         {% set all = posts | union(pages) %}
         {% set combined = site.pages | where('type', 'post') | union(site.pages | where('type', 'page')) %}
+        
     """
     if not items1:
         return list(items2) if items2 else []
@@ -490,17 +502,18 @@ def union(items1: list[Any], items2: list[Any]) -> list[Any]:
 def intersect(items1: list[Any], items2: list[Any]) -> list[Any]:
     """
     Get items that appear in both lists (set intersection).
-
+    
     Args:
         items1: First list
         items2: Second list
-
+    
     Returns:
         List of items present in both lists
-
+    
     Example:
         {% set common = posts | intersect(featured_pages) %}
         {% set python_and_web = site.pages | where('tags', 'python', 'in') | intersect(site.pages | where('tags', 'web', 'in')) %}
+        
     """
     if not items1 or not items2:
         return []
@@ -524,17 +537,18 @@ def intersect(items1: list[Any], items2: list[Any]) -> list[Any]:
 def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
     """
     Get items in first list that are not in second list (set difference).
-
+    
     Args:
         items1: First list (items to keep)
         items2: Second list (items to exclude)
-
+    
     Returns:
         List of items in first list but not in second list
-
+    
     Example:
         {% set only_posts = posts | complement(pages) %}
         {% set non_featured = site.pages | complement(site.pages | where('metadata.featured', true)) %}
+        
     """
     if not items1:
         return []
@@ -560,27 +574,28 @@ def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
 def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
     """
     Resolve page paths to Page objects.
-
+    
     Used with query indexes to convert O(1) path lookups into Page objects:
         {% set blog_paths = site.indexes.section.get('blog') %}
         {% set blog_pages = blog_paths | resolve_pages %}
-
+    
     PERFORMANCE: Uses cached page path map from Site for O(1) lookups.
     The cache is automatically invalidated when pages are added/removed.
-
+    
     Args:
         page_paths: List of page source paths (strings)
         site: Site instance with pages
-
+    
     Returns:
         List of Page objects
-
+    
     Example:
         {% set author_paths = site.indexes.author.get('Jane Smith') %}
         {% set author_posts = author_paths | resolve_pages %}
         {% for post in author_posts | sort(attribute='date', reverse=true) %}
             <h2>{{ post.title }}</h2>
         {% endfor %}
+        
     """
     if not page_paths:
         return []
@@ -601,16 +616,16 @@ def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
 def group_by_year(items: list[Any], date_attr: str = "date") -> dict[int, list[Any]]:
     """
     Group items by year, sorted by year descending (newest first).
-
+    
     Useful for creating blog archives organized by publication year.
-
+    
     Args:
         items: List of items with date attributes (e.g., Page objects)
         date_attr: Attribute name containing the date (default: 'date')
-
+    
     Returns:
         Dictionary mapping years to lists of items, sorted by year descending
-
+    
     Example:
         {% set by_year = posts | group_by_year %}
         {% for year, posts in by_year.items() %}
@@ -619,6 +634,7 @@ def group_by_year(items: list[Any], date_attr: str = "date") -> dict[int, list[A
             <a href="{{ post.href }}">{{ post.title }}</a>
           {% endfor %}
         {% endfor %}
+        
     """
     if not items:
         return {}
@@ -647,16 +663,16 @@ def group_by_year(items: list[Any], date_attr: str = "date") -> dict[int, list[A
 def group_by_month(items: list[Any], date_attr: str = "date") -> dict[tuple[int, int], list[Any]]:
     """
     Group items by year-month, sorted by date descending (newest first).
-
+    
     Returns dictionary keyed by (year, month) tuples for granular archives.
-
+    
     Args:
         items: List of items with date attributes (e.g., Page objects)
         date_attr: Attribute name containing the date (default: 'date')
-
+    
     Returns:
         Dictionary mapping (year, month) tuples to lists of items
-
+    
     Example:
         {% set by_month = posts | group_by_month %}
         {% for (year, month), posts in by_month.items() %}
@@ -665,6 +681,7 @@ def group_by_month(items: list[Any], date_attr: str = "date") -> dict[tuple[int,
             <a href="{{ post.href }}">{{ post.title }}</a>
           {% endfor %}
         {% endfor %}
+        
     """
     if not items:
         return {}
@@ -695,17 +712,17 @@ def group_by_month(items: list[Any], date_attr: str = "date") -> dict[tuple[int,
 def archive_years(items: list[Any], date_attr: str = "date") -> list[dict[str, Any]]:
     """
     Get list of years with post counts for archive navigation.
-
+    
     Returns a list of dictionaries with year and count, sorted by year descending.
     Useful for building archive sidebars and navigation.
-
+    
     Args:
         items: List of items with date attributes (e.g., Page objects)
         date_attr: Attribute name containing the date (default: 'date')
-
+    
     Returns:
         List of dicts with 'year' and 'count' keys, sorted by year descending
-
+    
     Example:
         {% set years = posts | archive_years %}
         <ul class="archive-years">
@@ -713,6 +730,7 @@ def archive_years(items: list[Any], date_attr: str = "date") -> list[dict[str, A
           <li><a href="/blog/{{ item.year }}/">{{ item.year }}</a> ({{ item.count }})</li>
         {% endfor %}
         </ul>
+        
     """
     if not items:
         return []

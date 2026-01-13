@@ -5,26 +5,26 @@ This module provides the GitVersionAdapter for building versioned documentation
 from Git branches and tags without requiring folder duplication.
 
 Key Features:
-    - Discover versions from Git branches matching patterns (e.g., `release/*`)
-    - Support both branches and tags as version sources
-    - Use Git worktrees for parallel builds of multiple versions
-    - Cache worktrees to avoid repeated checkouts
-    - Track commits for incremental build detection
+- Discover versions from Git branches matching patterns (e.g., `release/*`)
+- Support both branches and tags as version sources
+- Use Git worktrees for parallel builds of multiple versions
+- Cache worktrees to avoid repeated checkouts
+- Track commits for incremental build detection
 
 Architecture:
-    The adapter integrates with Bengal's versioning system by:
-    1. Discovering branches/tags matching configured patterns
-    2. Creating Version objects for each match
-    3. Managing worktrees for building each version
-    4. Cleaning up worktrees after builds complete
+The adapter integrates with Bengal's versioning system by:
+1. Discovering branches/tags matching configured patterns
+2. Creating Version objects for each match
+3. Managing worktrees for building each version
+4. Cleaning up worktrees after builds complete
 
-    This enables single-source versioned documentation where different versions
-    live in different Git branches, avoiding folder duplication.
+This enables single-source versioned documentation where different versions
+live in different Git branches, avoiding folder duplication.
 
 Related:
-    - bengal/core/version.py: Version and GitVersionConfig models
-    - bengal/orchestration/build_orchestrator.py: Multi-version builds
-    - bengal/discovery/version_resolver.py: Path resolution for versions
+- bengal/core/version.py: Version and GitVersionConfig models
+- bengal/orchestration/build_orchestrator.py: Multi-version builds
+- bengal/discovery/version_resolver.py: Path resolution for versions
 
 Example:
     >>> from bengal.discovery import GitVersionAdapter
@@ -41,6 +41,7 @@ Example:
     >>> versions = adapter.discover_versions()
     >>> for v in versions:
     ...     print(f"{v.id}: {v.source}")
+
 """
 
 from __future__ import annotations
@@ -63,12 +64,13 @@ logger = get_logger(__name__)
 class GitRef:
     """
     Represents a Git reference (branch or tag).
-
+    
     Attributes:
         name: Full ref name (e.g., "refs/heads/release/0.1.6")
         short_name: Short name (e.g., "release/0.1.6")
         commit: Commit SHA
         ref_type: Type of ref ("branch" or "tag")
+        
     """
 
     name: str
@@ -81,12 +83,13 @@ class GitRef:
 class GitWorktree:
     """
     Represents a Git worktree for a version.
-
+    
     Attributes:
         version_id: Version ID this worktree is for
         path: Path to the worktree directory
         ref: Git ref (branch/tag) checked out
         commit: Commit SHA checked out
+        
     """
 
     version_id: str
@@ -98,31 +101,32 @@ class GitWorktree:
 class GitVersionAdapter:
     """
     Discovers and manages versioned documentation from Git branches/tags.
-
+    
     This adapter enables building documentation from multiple Git branches
     without requiring folder duplication. It uses Git worktrees for
     parallel builds.
-
+    
     Attributes:
         repo_path: Path to the Git repository
         config: Git versioning configuration
         worktrees_dir: Directory for worktrees (default: .bengal/worktrees)
-
+    
     Example:
-        >>> adapter = GitVersionAdapter(Path("."), git_config)
-        >>>
-        >>> # Discover versions from branches
-        >>> versions = adapter.discover_versions()
-        >>>
-        >>> # Get worktree for a version
-        >>> worktree = adapter.get_or_create_worktree("0.1.6")
-        >>> print(worktree.path)  # .bengal/worktrees/0.1.6
-        >>>
-        >>> # Build from worktree path
-        >>> site = Site(root_path=worktree.path)
-        >>>
-        >>> # Cleanup
-        >>> adapter.cleanup_worktrees()
+            >>> adapter = GitVersionAdapter(Path("."), git_config)
+            >>>
+            >>> # Discover versions from branches
+            >>> versions = adapter.discover_versions()
+            >>>
+            >>> # Get worktree for a version
+            >>> worktree = adapter.get_or_create_worktree("0.1.6")
+            >>> print(worktree.path)  # .bengal/worktrees/0.1.6
+            >>>
+            >>> # Build from worktree path
+            >>> site = Site(root_path=worktree.path)
+            >>>
+            >>> # Cleanup
+            >>> adapter.cleanup_worktrees()
+        
     """
 
     def __init__(

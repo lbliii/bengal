@@ -6,22 +6,22 @@ It models the site as a directed graph where pages are nodes and links are edges
 enabling structural analysis, importance ranking, and navigation optimization.
 
 Data Sources:
-    The graph aggregates connections from multiple sources:
-    - Cross-references: Internal markdown links between pages
-    - Taxonomies: Shared tags and categories
-    - Related posts: Algorithm-computed relationships
-    - Menu items: Navigation structure
-    - Section hierarchy: Parent-child relationships
+The graph aggregates connections from multiple sources:
+- Cross-references: Internal markdown links between pages
+- Taxonomies: Shared tags and categories
+- Related posts: Algorithm-computed relationships
+- Menu items: Navigation structure
+- Section hierarchy: Parent-child relationships
 
 Key Capabilities:
-    - Hub detection: Find highly-connected important pages
-    - Orphan detection: Identify pages with no incoming links
-    - Connectivity scoring: Weighted semantic link analysis
-    - Layer partitioning: Group pages for streaming builds
-    - Delegated analysis: PageRank, communities, paths, suggestions
+- Hub detection: Find highly-connected important pages
+- Orphan detection: Identify pages with no incoming links
+- Connectivity scoring: Weighted semantic link analysis
+- Layer partitioning: Group pages for streaming builds
+- Delegated analysis: PageRank, communities, paths, suggestions
 
 Classes:
-    KnowledgeGraph: Main graph builder and analysis coordinator
+KnowledgeGraph: Main graph builder and analysis coordinator
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -36,11 +36,12 @@ Example:
     >>> suggestions = graph.suggest_links()
 
 See Also:
-    - bengal/analysis/graph_builder.py: GraphBuilder implementation
-    - bengal/analysis/graph_metrics.py: MetricsCalculator implementation
-    - bengal/analysis/graph_analysis.py: GraphAnalyzer implementation
-    - bengal/analysis/graph_reporting.py: GraphReporter implementation
-    - bengal/analysis/link_types.py: Semantic link type definitions
+- bengal/analysis/graph_builder.py: GraphBuilder implementation
+- bengal/analysis/graph_metrics.py: MetricsCalculator implementation
+- bengal/analysis/graph_analysis.py: GraphAnalyzer implementation
+- bengal/analysis/graph_reporting.py: GraphReporter implementation
+- bengal/analysis/link_types.py: Semantic link type definitions
+
 """
 
 from __future__ import annotations
@@ -80,25 +81,26 @@ __all__ = ["GraphMetrics", "KnowledgeGraph", "PageConnectivity"]
 class KnowledgeGraph:
     """
     Analyzes the connectivity structure of a Bengal site.
-
+    
     Builds a graph of all pages and their connections through:
     - Internal links (cross-references)
     - Taxonomies (tags, categories)
     - Related posts
     - Menu items
-
+    
     Provides insights for:
     - Content strategy (find orphaned pages)
     - Performance optimization (hub-first streaming)
     - Navigation design (understand structure)
     - SEO improvements (link structure)
-
+    
     Example:
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> hubs = graph.get_hubs(threshold=10)
-        >>> orphans = graph.get_orphans()
-        >>> print(f"Found {len(orphans)} orphaned pages")
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> hubs = graph.get_hubs(threshold=10)
+            >>> orphans = graph.get_orphans()
+            >>> print(f"Found {len(orphans)} orphaned pages")
+        
     """
 
     def __init__(

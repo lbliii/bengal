@@ -16,17 +16,18 @@ if TYPE_CHECKING:
 
 class DirectiveParsingMixin:
     """Mixin for directive parsing with contract validation.
-
+    
     Required Host Attributes:
         - _current: Token | None
         - _directive_registry: DirectiveRegistry | None
         - _directive_stack: list[str]
         - _strict_contracts: bool
-
+    
     Required Host Methods:
         - _at_end() -> bool
         - _advance() -> Token | None
         - _parse_block() -> Block | None
+        
     """
 
     _current: Token | None

@@ -6,25 +6,26 @@ Skeletons describe site structure declaratively, enabling generation of sites
 from YAML manifests or programmatic construction.
 
 Component Model:
-    - Identity (type): What is it? (blog, doc, landing, etc.)
-    - Mode (variant): How does it look? (hero, minimal, grid, etc.)
-    - Data (props): What data does it have? (title, date, etc.)
+- Identity (type): What is it? (blog, doc, landing, etc.)
+- Mode (variant): How does it look? (hero, minimal, grid, etc.)
+- Data (props): What data does it have? (title, date, etc.)
 
 Classes:
-    Component: A single page or section in the skeleton
-    Skeleton: Root container with global cascade and structure
+Component: A single page or section in the skeleton
+Skeleton: Root container with global cascade and structure
 
 Example:
     skeleton = Skeleton.from_yaml('''
     name: My Blog
     structure:
-      - path: posts
-        type: blog
-        pages:
-          - path: first-post
-            props:
-              title: My First Post
+  - path: posts
+    type: blog
+    pages:
+      - path: first-post
+        props:
+          title: My First Post
     ''')
+
 """
 
 from __future__ import annotations
@@ -39,15 +40,15 @@ import yaml
 class Component:
     """
     A component in the site structure (Page or Section).
-
+    
     Implements the Component Model pattern:
     - Identity: type (blog, doc, landing) - determines behavior
     - Mode: variant (hero, minimal, grid) - determines appearance
     - Data: props (title, date, author) - content data
-
+    
     Components can contain child pages, making them sections.
     Cascade values are inherited by all descendants.
-
+    
     Attributes:
         path: File/directory path relative to parent
         type: Component identity (determines template family)
@@ -56,6 +57,7 @@ class Component:
         content: Raw markdown body content
         pages: Child components (if present, this is a section)
         cascade: Values to inherit to all descendants
+        
     """
 
     # Identity (Required for sections, inferred for pages)
@@ -98,17 +100,18 @@ class Component:
 class Skeleton:
     """
     Root definition of a site skeleton.
-
+    
     A skeleton describes the complete structure of a site, including
     global cascade values that apply to all components and the
     hierarchical structure of pages and sections.
-
+    
     Attributes:
         name: Human-readable skeleton name
         description: Brief description of the skeleton's purpose
         version: Schema version for compatibility
         cascade: Global cascade applied to all components
         structure: Top-level components in the site
+        
     """
 
     # Metadata about the skeleton itself

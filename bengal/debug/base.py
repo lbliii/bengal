@@ -6,23 +6,23 @@ All debug tools inherit from DebugTool, produce DebugReport instances, and
 can be discovered via DebugRegistry.
 
 Architecture:
-    The debug tool infrastructure follows a consistent pattern:
+The debug tool infrastructure follows a consistent pattern:
 
-    1. Tools inherit from DebugTool and implement analyze()
-    2. Analysis produces a DebugReport with DebugFinding instances
-    3. Findings have severity levels (Severity enum)
-    4. Reports can be formatted for CLI, JSON, or markdown
-    5. Tools register via @DebugRegistry.register decorator
+1. Tools inherit from DebugTool and implement analyze()
+2. Analysis produces a DebugReport with DebugFinding instances
+3. Findings have severity levels (Severity enum)
+4. Reports can be formatted for CLI, JSON, or markdown
+5. Tools register via @DebugRegistry.register decorator
 
 Key Components:
-    - Severity: Enum for finding severity levels (INFO, WARNING, ERROR, CRITICAL)
-    - DebugFinding: Single observation with severity, category, and suggestion
-    - DebugReport: Aggregates findings, statistics, and recommendations
-    - DebugTool: Abstract base class with analyze() contract
-    - DebugRegistry: Tool discovery, registration, and factory
+- Severity: Enum for finding severity levels (INFO, WARNING, ERROR, CRITICAL)
+- DebugFinding: Single observation with severity, category, and suggestion
+- DebugReport: Aggregates findings, statistics, and recommendations
+- DebugTool: Abstract base class with analyze() contract
+- DebugRegistry: Tool discovery, registration, and factory
 
 Example:
-    Creating a custom debug tool:
+Creating a custom debug tool:
 
     >>> @DebugRegistry.register
     ... class MyDebugTool(DebugTool):
@@ -39,21 +39,22 @@ Example:
     ...         )
     ...         return report
 
-    Using a tool:
+Using a tool:
 
     >>> tool = DebugRegistry.create("my-tool", site=site)
     >>> report = tool.run()
     >>> print(report.format_summary())
 
 Related Modules:
-    - bengal.debug.incremental_debugger: Incremental build debugging
-    - bengal.debug.delta_analyzer: Build comparison analysis
-    - bengal.debug.dependency_visualizer: Dependency graph visualization
-    - bengal.debug.config_inspector: Configuration comparison
-    - bengal.debug.shortcode_sandbox: Directive testing sandbox
+- bengal.debug.incremental_debugger: Incremental build debugging
+- bengal.debug.delta_analyzer: Build comparison analysis
+- bengal.debug.dependency_visualizer: Dependency graph visualization
+- bengal.debug.config_inspector: Configuration comparison
+- bengal.debug.shortcode_sandbox: Directive testing sandbox
 
 See Also:
-    - bengal/cli/commands/debug.py: CLI integration for debug tools
+- bengal/cli/commands/debug.py: CLI integration for debug tools
+
 """
 
 from __future__ import annotations
@@ -73,25 +74,26 @@ if TYPE_CHECKING:
 class Severity(Enum):
     """
     Severity levels for debug findings.
-
+    
     Used to categorize the importance and urgency of findings from debug
     tools. Severity determines visual indicators and helps prioritize
     which issues to address first.
-
+    
     Levels:
         INFO: Informational observations, no action required
         WARNING: Potential issues that should be reviewed
         ERROR: Problems that need to be fixed
         CRITICAL: Severe issues requiring immediate attention
-
+    
     Example:
-        >>> finding = DebugFinding(
-        ...     title="Missing template",
-        ...     description="Template not found",
-        ...     severity=Severity.ERROR,
-        ... )
-        >>> print(finding.severity.emoji)
+            >>> finding = DebugFinding(
+            ...     title="Missing template",
+            ...     description="Template not found",
+            ...     severity=Severity.ERROR,
+            ... )
+            >>> print(finding.severity.emoji)
         ❌
+        
     """
 
     INFO = "info"
@@ -136,11 +138,11 @@ class Severity(Enum):
 class DebugFinding:
     """
     A single finding from a debug tool.
-
+    
     Represents an observation, issue, or insight discovered during analysis.
     Findings can range from informational to critical and include actionable
     suggestions where applicable.
-
+    
     Attributes:
         title: Short title describing the finding
         description: Detailed explanation of what was found
@@ -150,6 +152,7 @@ class DebugFinding:
         suggestion: Optional actionable suggestion for resolution
         metadata: Additional context-specific data
         line: Optional line number for file-based findings
+        
     """
 
     title: str
@@ -205,10 +208,10 @@ class DebugFinding:
 class DebugReport:
     """
     Structured output from a debug tool.
-
+    
     Aggregates findings, statistics, and recommendations from a debug analysis.
     Provides multiple output formats for CLI, JSON, and markdown export.
-
+    
     Attributes:
         tool_name: Name of the tool that generated this report
         timestamp: When the report was generated
@@ -218,6 +221,7 @@ class DebugReport:
         recommendations: High-level recommendations based on findings
         execution_time_ms: How long the analysis took
         metadata: Additional tool-specific data
+        
     """
 
     tool_name: str
@@ -401,42 +405,43 @@ class DebugReport:
 class DebugTool(ABC):
     """
     Abstract base class for all Bengal debug tools.
-
+    
     Provides common infrastructure for analysis tools including standardized
     report generation, access to site and cache data, and consistent output
     formatting. All debug tools follow a read-only introspection pattern
     with no side effects.
-
+    
     Subclasses must:
         1. Set class attributes `name` and `description`
         2. Implement the analyze() method
         3. Optionally register with @DebugRegistry.register
-
+    
     Attributes:
         name: Tool identifier used for CLI and registry lookup.
         description: Human-readable description for help text.
         site: Optional Site instance providing page access.
         cache: Optional BuildCache for cache inspection.
         root_path: Project root path for file operations.
-
+    
     Thread Safety:
         Thread-safe for read-only operations. Do not mutate site or cache.
-
+    
     Example:
-        >>> @DebugRegistry.register
-        ... class MyDebugTool(DebugTool):
-        ...     name = "my-tool"
-        ...     description = "Analyzes custom aspects"
-        ...
-        ...     def analyze(self) -> DebugReport:
-        ...         report = self.create_report()
-        ...         report.summary = "Analysis complete"
-        ...         # ... analysis logic ...
-        ...         return report
-        ...
-        >>> tool = MyDebugTool(site=site)
-        >>> report = tool.run()
-        >>> print(report.format_summary())
+            >>> @DebugRegistry.register
+            ... class MyDebugTool(DebugTool):
+            ...     name = "my-tool"
+            ...     description = "Analyzes custom aspects"
+            ...
+            ...     def analyze(self) -> DebugReport:
+            ...         report = self.create_report()
+            ...         report.summary = "Analysis complete"
+            ...         # ... analysis logic ...
+            ...         return report
+            ...
+            >>> tool = MyDebugTool(site=site)
+            >>> report = tool.run()
+            >>> print(report.format_summary())
+        
     """
 
     name: str = "base-tool"
@@ -518,36 +523,37 @@ class DebugTool(ABC):
 class DebugRegistry:
     """
     Registry for debug tool discovery and instantiation.
-
+    
     Provides a central point for tool registration, lookup, and creation.
     Tools register themselves using the @DebugRegistry.register decorator,
     making them discoverable by CLI commands and other tooling.
-
+    
     Class Attributes:
         _tools: Internal dictionary mapping tool names to classes.
-
+    
     Example:
         Register a tool:
-
-        >>> @DebugRegistry.register
-        ... class MyTool(DebugTool):
-        ...     name = "my-tool"
-        ...     description = "Does something useful"
-        ...
-        ...     def analyze(self) -> DebugReport:
-        ...         return self.create_report()
-
+    
+            >>> @DebugRegistry.register
+            ... class MyTool(DebugTool):
+            ...     name = "my-tool"
+            ...     description = "Does something useful"
+            ...
+            ...     def analyze(self) -> DebugReport:
+            ...         return self.create_report()
+    
         List available tools:
-
-        >>> for name, description in DebugRegistry.list_tools():
-        ...     print(f"{name}: {description}")
+    
+            >>> for name, description in DebugRegistry.list_tools():
+            ...     print(f"{name}: {description}")
         my-tool: Does something useful
         incremental: Debug incremental build issues
-
+    
         Create and run a tool:
-
-        >>> tool = DebugRegistry.create("my-tool", site=site)
-        >>> report = tool.run()
+    
+            >>> tool = DebugRegistry.create("my-tool", site=site)
+            >>> report = tool.run()
+        
     """
 
     _tools: dict[str, type[DebugTool]] = {}

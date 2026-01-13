@@ -6,37 +6,38 @@ what depends on what, and the "blast radius" of changes (what would
 rebuild if a file changed).
 
 Key Features:
-    - DependencyNode: Single node with forward/reverse dependencies
-    - DependencyGraph: Complete graph with traversal and visualization
-    - DependencyVisualizer: Debug tool for analysis and export
-    - Multiple output formats: Mermaid, DOT (Graphviz), ASCII tree
+- DependencyNode: Single node with forward/reverse dependencies
+- DependencyGraph: Complete graph with traversal and visualization
+- DependencyVisualizer: Debug tool for analysis and export
+- Multiple output formats: Mermaid, DOT (Graphviz), ASCII tree
 
 Use Cases:
-    - Visualize what templates a page uses
-    - See blast radius of changing a template
-    - Identify highly-connected files (change triggers many rebuilds)
-    - Export dependency diagrams for documentation
+- Visualize what templates a page uses
+- See blast radius of changing a template
+- Identify highly-connected files (change triggers many rebuilds)
+- Export dependency diagrams for documentation
 
 Example:
     >>> from bengal.debug import DependencyVisualizer
     >>> viz = DependencyVisualizer(cache=cache)
     >>> print(viz.visualize_page("content/docs/guide.md"))
-    📄 guide.md
-    ├─ 🎨 page.html
-    │  └─ 🎨 base.html
-    └─ 📊 authors.yaml
+📄 guide.md
+├─ 🎨 page.html
+│  └─ 🎨 base.html
+└─ 📊 authors.yaml
 
     >>> # What would rebuild if base.html changed?
     >>> affected = viz.get_blast_radius("templates/base.html")
     >>> print(f"{len(affected)} pages would rebuild")
 
 Related Modules:
-    - bengal.cache.dependency_tracker: Dependency tracking during builds
-    - bengal.cache.build_cache: Persisted dependency information
-    - bengal.debug.incremental_debugger: Rebuild analysis
+- bengal.cache.dependency_tracker: Dependency tracking during builds
+- bengal.cache.build_cache: Persisted dependency information
+- bengal.debug.incremental_debugger: Rebuild analysis
 
 See Also:
-    - bengal/cli/commands/debug.py: CLI integration
+- bengal/cli/commands/debug.py: CLI integration
+
 """
 
 from __future__ import annotations
@@ -56,22 +57,23 @@ if TYPE_CHECKING:
 class DependencyNode:
     """
     A single node in the dependency graph.
-
+    
     Represents a file and tracks both forward dependencies (what this
     file depends on) and reverse dependencies (what depends on this file).
-
+    
     Attributes:
         path: File path of this node.
         node_type: Classification: "page", "template", "partial", "data", "config".
         dependencies: Paths of files this node depends on.
         dependents: Paths of files that depend on this node.
         metadata: Additional node-specific data.
-
+    
     Example:
-        >>> node = DependencyNode(path="content/guide.md", node_type="page")
-        >>> node.dependencies.add("templates/page.html")
-        >>> node.is_leaf
+            >>> node = DependencyNode(path="content/guide.md", node_type="page")
+            >>> node.dependencies.add("templates/page.html")
+            >>> node.is_leaf
         False
+        
     """
 
     path: str
@@ -116,20 +118,21 @@ class DependencyNode:
 class DependencyGraph:
     """
     Complete dependency graph for a project.
-
+    
     Provides methods for traversal, querying, and visualization.
     Supports both forward (dependencies) and reverse (dependents)
     traversal, transitive closure, and multiple output formats.
-
+    
     Attributes:
         nodes: Dictionary mapping file paths to DependencyNode instances.
         edges: Set of (from, to) tuples representing dependencies.
-
+    
     Example:
-        >>> graph = DependencyGraph()
-        >>> graph.add_edge("page.md", "template.html")
-        >>> deps = graph.get_dependencies("page.md")
-        >>> blast = graph.get_blast_radius("template.html")
+            >>> graph = DependencyGraph()
+            >>> graph.add_edge("page.md", "template.html")
+            >>> deps = graph.get_dependencies("page.md")
+            >>> blast = graph.get_blast_radius("template.html")
+        
     """
 
     nodes: dict[str, DependencyNode] = field(default_factory=dict)
@@ -469,19 +472,20 @@ class DependencyGraph:
 class DependencyVisualizer(DebugTool):
     """
     Debug tool for visualizing dependencies.
-
+    
     Helps understand the dependency structure of builds and
     visualize the blast radius of changes.
-
+    
     Creation:
         Direct instantiation or via DebugRegistry:
             viz = DependencyVisualizer(cache=cache)
-
+    
     Example:
-        >>> viz = DependencyVisualizer(cache=cache)
-        >>> graph = viz.build_graph()
-        >>> print(graph.format_tree("content/posts/my-post.md"))
-        >>> print(graph.to_mermaid(root="content/posts/my-post.md"))
+            >>> viz = DependencyVisualizer(cache=cache)
+            >>> graph = viz.build_graph()
+            >>> print(graph.format_tree("content/posts/my-post.md"))
+            >>> print(graph.to_mermaid(root="content/posts/my-post.md"))
+        
     """
 
     name = "deps"

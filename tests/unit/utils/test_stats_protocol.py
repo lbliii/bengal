@@ -6,9 +6,10 @@ the DisplayableStats protocol, ensuring type safety and compatibility
 with display_build_stats().
 
 Related:
-    - bengal/utils/stats_protocol.py: Protocol definitions
-    - bengal/utils/stats_minimal.py: MinimalStats implementation
-    - bengal/utils/build_stats.py: BuildStats implementation
+- bengal/utils/stats_protocol.py: Protocol definitions
+- bengal/utils/stats_minimal.py: MinimalStats implementation
+- bengal/utils/build_stats.py: BuildStats implementation
+
 """
 
 from __future__ import annotations

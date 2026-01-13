@@ -6,19 +6,20 @@ Provides directives for semantic media elements:
 - Audio: Self-hosted audio files with HTML5 audio element
 
 Architecture:
-    FigureDirective provides semantic HTML structure for images with
-    proper accessibility handling (required alt text).
+FigureDirective provides semantic HTML structure for images with
+proper accessibility handling (required alt text).
 
-    AudioDirective provides native HTML5 audio playback with fallbacks.
+AudioDirective provides native HTML5 audio playback with fallbacks.
 
 Accessibility:
-    - Alt text is required for figure images (WCAG 2.1 AA)
-    - Empty alt ("") supported for decorative images
-    - Title required for audio elements
+- Alt text is required for figure images (WCAG 2.1 AA)
+- Empty alt ("") supported for decorative images
+- Title required for audio elements
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective
-    - RFC: plan/active/rfc-media-embed-directives.md
+- bengal/rendering/plugins/directives/base.py: BengalDirective
+- RFC: plan/active/rfc-media-embed-directives.md
+
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ __all__ = [
 class FigureOptions(DirectiveOptions):
     """
     Options for semantic figure/image directive.
-
+    
     Attributes:
         alt: Required - Alt text for accessibility (empty string for decorative)
         caption: Optional caption text (markdown supported in render)
@@ -59,7 +60,7 @@ class FigureOptions(DirectiveOptions):
         target: Link target - _self, _blank (default: _self)
         loading: Loading strategy - lazy, eager (default: lazy)
         css_class: Additional CSS classes
-
+    
     Example:
         :::{figure} /images/architecture.png
         :alt: System Architecture Diagram
@@ -67,6 +68,7 @@ class FigureOptions(DirectiveOptions):
         :width: 80%
         :align: center
         :::
+        
     """
 
     alt: str = ""
@@ -90,10 +92,10 @@ class FigureOptions(DirectiveOptions):
 class FigureDirective(BengalDirective):
     """
     Semantic figure directive for images with captions.
-
+    
     Provides proper HTML5 semantic structure using <figure> and <figcaption>
     elements with full accessibility support.
-
+    
     Syntax:
         :::{figure} /images/architecture.png
         :alt: System Architecture Diagram
@@ -101,7 +103,7 @@ class FigureDirective(BengalDirective):
         :width: 80%
         :align: center
         :::
-
+    
     Options:
         :alt: (required) Alt text for image - empty string for decorative
         :caption: Optional caption text below image
@@ -112,23 +114,24 @@ class FigureDirective(BengalDirective):
         :target: Link target - _self, _blank (default: _self)
         :loading: Loading strategy - lazy, eager (default: lazy)
         :class: Additional CSS classes
-
+    
     Output:
         <figure class="figure align-center" style="width: 80%">
           <img src="..." alt="..." loading="lazy">
           <figcaption>Caption text here</figcaption>
         </figure>
-
+    
     Accessibility:
         - Alt text required (empty string allowed for decorative images)
         - Proper semantic structure with <figure>/<figcaption>
         - Caption provides additional context
-
+    
     Why not cards? The card workaround documented in Hugo migration lacks:
         - Semantic HTML (<figure> + <figcaption>)
         - Proper accessibility patterns (alt text handling)
         - Caption styling separate from body text
         - Standard width/align controls expected by content authors
+        
     """
 
     NAMES: ClassVar[list[str]] = ["figure"]
@@ -268,7 +271,7 @@ class FigureDirective(BengalDirective):
 class AudioOptions(DirectiveOptions):
     """
     Options for self-hosted audio embed.
-
+    
     Attributes:
         title: Required - Accessible title for audio element
         controls: Show audio controls (default: true)
@@ -277,12 +280,13 @@ class AudioOptions(DirectiveOptions):
         muted: Start muted (default: false)
         preload: Preload mode - none, metadata, auto (default: metadata)
         css_class: Additional CSS classes
-
+    
     Example:
         :::{audio} /assets/podcast-ep1.mp3
         :title: Episode 1: Getting Started
         :controls: true
         :::
+        
     """
 
     title: str = ""
@@ -302,16 +306,16 @@ class AudioOptions(DirectiveOptions):
 class AudioDirective(BengalDirective):
     """
     Self-hosted audio directive using HTML5 audio element.
-
+    
     Provides native audio playback for local or CDN-hosted audio files.
     Supports controls and accessibility requirements.
-
+    
     Syntax:
         :::{audio} /assets/podcast-ep1.mp3
         :title: Episode 1: Getting Started
         :controls: true
         :::
-
+    
     Options:
         :title: (required) Accessible title for audio
         :controls: Show audio controls (default: true)
@@ -320,7 +324,7 @@ class AudioDirective(BengalDirective):
         :muted: Start muted (default: false)
         :preload: Preload mode - none, metadata, auto (default: metadata)
         :class: Additional CSS classes
-
+    
     Output:
         <figure class="audio-embed">
           <audio title="..." controls preload="metadata">
@@ -328,7 +332,7 @@ class AudioDirective(BengalDirective):
             <p>Fallback text with download link</p>
           </audio>
         </figure>
-
+    
     Supported formats (auto-detected from extension):
         - .mp3 (audio/mpeg)
         - .ogg (audio/ogg)
@@ -336,6 +340,7 @@ class AudioDirective(BengalDirective):
         - .flac (audio/flac)
         - .m4a (audio/mp4)
         - .aac (audio/aac)
+        
     """
 
     NAMES: ClassVar[list[str]] = ["audio"]

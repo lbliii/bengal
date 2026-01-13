@@ -6,24 +6,24 @@ Identifies bridge pages (critical for navigation), accessible pages (easy to
 reach), and computes network-wide statistics like diameter and average path length.
 
 Centrality Metrics:
-    - Betweenness: How often a page appears on shortest paths between others.
-      High betweenness indicates bridge pages that connect different site areas.
-    - Closeness: How close a page is to all other pages (average distance).
-      High closeness indicates easily accessible, well-connected pages.
+- Betweenness: How often a page appears on shortest paths between others.
+  High betweenness indicates bridge pages that connect different site areas.
+- Closeness: How close a page is to all other pages (average distance).
+  High closeness indicates easily accessible, well-connected pages.
 
 Network Metrics:
-    - Diameter: Longest shortest path (maximum clicks between any two pages)
-    - Average Path Length: Mean shortest path length across all page pairs
+- Diameter: Longest shortest path (maximum clicks between any two pages)
+- Average Path Length: Mean shortest path length across all page pairs
 
 Performance:
-    For large sites (>500 pages by default), automatically uses pivot-based
-    approximation for O(k*N) complexity instead of O(N²). This provides
-    ~100x speedup for 10K page sites while maintaining accurate rankings.
+For large sites (>500 pages by default), automatically uses pivot-based
+approximation for O(k*N) complexity instead of O(N²). This provides
+~100x speedup for 10K page sites while maintaining accurate rankings.
 
 Classes:
-    PathAnalysisResults: Centrality scores and network metrics
-    PathSearchResult: Results from path finding with safety metadata
-    PathAnalyzer: Main analysis algorithms
+PathAnalysisResults: Centrality scores and network metrics
+PathSearchResult: Results from path finding with safety metadata
+PathAnalyzer: Main analysis algorithms
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -36,15 +36,16 @@ Example:
     >>> print(f"Approximate: {results.is_approximate}")
 
 References:
-    Brandes, U. (2001). A faster algorithm for betweenness centrality.
-    Journal of Mathematical Sociology.
+Brandes, U. (2001). A faster algorithm for betweenness centrality.
+Journal of Mathematical Sociology.
 
-    Bader, D. A., et al. (2007). Approximating betweenness centrality.
-    Algorithms and Models for the Web-Graph.
+Bader, D. A., et al. (2007). Approximating betweenness centrality.
+Algorithms and Models for the Web-Graph.
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Graph coordination
-    - bengal/analysis/link_suggestions.py: Uses centrality for suggestions
+- bengal/analysis/knowledge_graph.py: Graph coordination
+- bengal/analysis/link_suggestions.py: Uses centrality for suggestions
+
 """
 
 from __future__ import annotations
@@ -72,11 +73,11 @@ type ProgressCallback = Callable[[int, int, str], None]
 class PathAnalysisResults:
     """
     Results from path analysis and centrality computations.
-
+    
     Contains centrality metrics that identify important pages in the
     site's link structure. High betweenness indicates bridge pages,
     high closeness indicates easily accessible pages.
-
+    
     Attributes:
         betweenness_centrality: Map of pages to betweenness scores (0.0-1.0)
         closeness_centrality: Map of pages to closeness scores (0.0-1.0)
@@ -84,6 +85,7 @@ class PathAnalysisResults:
         avg_path_length: Average shortest path length between all page pairs
         is_approximate: True if approximation was used (for large sites)
         pivots_used: Number of pivot nodes used (if approximate)
+        
     """
 
     betweenness_centrality: dict[Page, float]
@@ -132,11 +134,12 @@ class PathAnalysisResults:
 class PathSearchResult:
     """
     Result from find_all_paths including metadata about the search.
-
+    
     Attributes:
         paths: List of paths found (each path is a list of pages)
         complete: True if search completed, False if terminated early
         termination_reason: Reason for early termination (if any)
+        
     """
 
     paths: list[list[Page]] = field(default_factory=list)
@@ -147,22 +150,23 @@ class PathSearchResult:
 class PathAnalyzer:
     """
     Analyze navigation paths and page accessibility.
-
+    
     Computes centrality metrics to identify:
     - Bridge pages (high betweenness): Pages that connect different parts of the site
     - Accessible pages (high closeness): Pages that are easy to reach from anywhere
     - Navigation bottlenecks: Critical pages for site navigation
-
+    
     For large sites (>500 pages by default), uses pivot-based approximation
     to achieve O(k*N) complexity instead of O(N²). This provides ~100x speedup
     for 10k page sites while maintaining accurate relative rankings.
-
+    
     Example:
-        >>> analyzer = PathAnalyzer(knowledge_graph, k_pivots=100)
-        >>> results = analyzer.analyze(progress_callback=lambda c, t, p: print(f"{p}: {c}/{t}"))
-        >>> bridges = results.get_top_bridges(10)
-        >>> print(f"Top bridge: {bridges[0][0].title}")
-        >>> print(f"Approximate: {results.is_approximate}")
+            >>> analyzer = PathAnalyzer(knowledge_graph, k_pivots=100)
+            >>> results = analyzer.analyze(progress_callback=lambda c, t, p: print(f"{p}: {c}/{t}"))
+            >>> bridges = results.get_top_bridges(10)
+            >>> print(f"Top bridge: {bridges[0][0].title}")
+            >>> print(f"Approximate: {results.is_approximate}")
+        
     """
 
     # Default configuration
@@ -640,23 +644,24 @@ def analyze_paths(
 ) -> PathAnalysisResults:
     """
     Convenience function for path analysis.
-
+    
     Args:
         graph: KnowledgeGraph with page connections
         k_pivots: Number of pivot nodes for approximation (default: 100)
         seed: Random seed for deterministic results (default: 42)
         auto_approximate_threshold: Use exact if pages <= this (default: 500)
         progress_callback: Optional progress callback
-
+    
     Returns:
         PathAnalysisResults with centrality metrics
-
+    
     Example:
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> results = analyze_paths(graph, k_pivots=50)
-        >>> bridges = results.get_top_bridges(10)
-        >>> print(f"Approximate: {results.is_approximate}")
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = analyze_paths(graph, k_pivots=50)
+            >>> bridges = results.get_top_bridges(10)
+            >>> print(f"Approximate: {results.is_approximate}")
+        
     """
     analyzer = PathAnalyzer(
         graph,

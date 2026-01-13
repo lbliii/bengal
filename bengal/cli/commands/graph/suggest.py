@@ -49,31 +49,32 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 def suggest(top_n: int, min_score: float, format: str, config: str, source: str) -> None:
     """
     Generate smart link suggestions to improve internal linking.
-
+    
     Analyzes your content to recommend links based on:
     - Topic similarity (shared tags/categories)
     - Page importance (PageRank scores)
     - Navigation value (bridge pages)
     - Link gaps (underlinked content)
-
+    
     Use link suggestions to:
     - Improve internal linking structure
     - Boost SEO through better connectivity
     - Increase content discoverability
     - Fill navigation gaps
-
+    
     Examples:
         # Show top 50 link suggestions
         bengal suggest
-
+    
         # Show only high-confidence suggestions
         bengal suggest --min-score 0.5
-
+    
         # Export as JSON
         bengal suggest --format json > suggestions.json
-
+    
         # Generate markdown checklist
         bengal suggest --format markdown > TODO.md
+        
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 

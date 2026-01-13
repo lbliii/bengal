@@ -16,9 +16,10 @@ from bengal.utils.pagination import Paginator
 class TestPaginatorProperties:
     """
     Property-based tests for Paginator class.
-
+    
     Each test runs 100+ times with randomly generated inputs
     to discover edge cases automatically.
+        
     """
 
     @pytest.mark.hypothesis
@@ -287,6 +288,7 @@ class TestPaginatorProperties:
 class TestPaginatorEdgeCases:
     """
     Targeted property tests for specific edge cases.
+        
     """
 
     @pytest.mark.hypothesis

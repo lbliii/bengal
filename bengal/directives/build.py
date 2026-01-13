@@ -3,8 +3,8 @@ Build badge directive for Mistune (MyST-style).
 
 Renders a small badge that points at the build-time artifacts generated during
 build finalization:
-    - `/bengal/build.svg`
-    - `/bengal/build.json`
+- `/bengal/build.svg`
+- `/bengal/build.json`
 
 This directive intentionally does NOT attempt to compute the build duration at
 render-time. The final build duration is only known after rendering completes.
@@ -22,6 +22,7 @@ Syntax:
 :class: mt-3
 :::
 ```
+
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ __all__ = ["BuildDirective", "BuildOptions"]
 class BuildOptions(DirectiveOptions):
     """
     Options for build directive.
-
+    
     Attributes:
         json: If True, wrap the badge in a link to build.json.
         inline: If True, render as inline content (useful inside sentences).
@@ -50,6 +51,7 @@ class BuildOptions(DirectiveOptions):
         css_class: Additional CSS classes on wrapper.
         alt: Image alt text.
         dir_name: Directory name used for artifacts (default: "bengal").
+        
     """
 
     json: bool = False
@@ -72,9 +74,10 @@ class BuildOptions(DirectiveOptions):
 class BuildDirective(BengalDirective):
     """
     Build badge directive.
-
+    
     Emits HTML that references the generated build badge (SVG) and optionally
     links to the build stats JSON.
+        
     """
 
     NAMES: ClassVar[list[str]] = ["build"]
@@ -147,11 +150,12 @@ class BuildDirective(BengalDirective):
 def _resolve_layout_styles(*, inline: bool, align: str) -> tuple[str, str]:
     """
     Return (wrapper_style, img_style) to control placement.
-
+    
     Why inline styles:
         The default theme applies global `img { display: block; margin: auto; }`
         rules inside prose. Inline styles let authors place the badge inline or
         align it without needing custom CSS.
+        
     """
     # Default: preserve existing theme behavior (do not force styles).
     if not inline and align not in ("left", "center", "right"):
@@ -174,6 +178,7 @@ def _resolve_layout_styles(*, inline: bool, align: str) -> tuple[str, str]:
 def _resolve_build_artifact_urls(site: Any, *, page: Any, dir_name: str) -> tuple[str, str]:
     """
     Resolve URLs for build artifacts, considering baseurl and i18n prefix strategy.
+        
     """
     baseurl = ""
     prefix = ""
@@ -240,9 +245,10 @@ def _resolve_build_artifact_urls(site: Any, *, page: Any, dir_name: str) -> tupl
 def _resolve_output_root_for_page(site: Any, page: Any) -> Path:
     """
     Determine which output root should be used for the current page.
-
+    
     For i18n prefix strategy, pages may render into `output_dir/<lang>/...`.
     In that case, build artifacts may also exist under `output_dir/<lang>/bengal/...`.
+        
     """
     output_dir = Path(site.output_dir)
     page_output = Path(page.output_path)

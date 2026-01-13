@@ -1,18 +1,19 @@
 """Built-in directive handlers.
 
 Provides commonly-used directives out of the box:
-    - Admonitions: note, warning, tip, danger, error, info, example, success, caution, seealso
-    - Dropdown: collapsible content with icons, badges, colors
-    - Tabs: tab-set and tab-item with sync and CSS state machine modes
-    - Container: generic wrapper div with custom classes
-    - Steps: numbered step-by-step guides with contracts
-    - Cards: grid layout with card, cards, and child-cards directives
-    - Checklist: styled lists with progress tracking
-    - Media: figure, audio, and gallery directives
-    - Tables: list-table directive for MyST-style tables
-    - Video: youtube, vimeo, tiktok, and self-hosted video embeds
-    - Embed: gist, codepen, codesandbox, stackblitz, spotify, soundcloud
-    - Versioning: since, deprecated, changed version badges
+- Admonitions: note, warning, tip, danger, error, info, example, success, caution, seealso
+- Dropdown: collapsible content with icons, badges, colors
+- Tabs: tab-set and tab-item with sync and CSS state machine modes
+- Container: generic wrapper div with custom classes
+- Steps: numbered step-by-step guides with contracts
+- Cards: grid layout with card, cards, and child-cards directives
+- Checklist: styled lists with progress tracking
+- Media: figure, audio, and gallery directives
+- Tables: list-table directive for MyST-style tables
+- Video: youtube, vimeo, tiktok, and self-hosted video embeds
+- Embed: gist, codepen, codesandbox, stackblitz, spotify, soundcloud
+- Versioning: since, deprecated, changed version badges
+
 """
 
 from __future__ import annotations

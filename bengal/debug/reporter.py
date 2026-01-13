@@ -6,11 +6,11 @@ library. Provides visually organized output with panels, trees, and
 tables optimized for readability and quick information scanning.
 
 Key Features:
-    - Paneled sections with colored borders for visual organization
-    - Tree view for template inheritance chains
-    - Color-coded cache status (green=HIT, yellow=STALE, red=MISS)
-    - Truncated lists for long content with "... +N more" indicators
-    - Issue display with severity emojis and actionable suggestions
+- Paneled sections with colored borders for visual organization
+- Tree view for template inheritance chains
+- Color-coded cache status (green=HIT, yellow=STALE, red=MISS)
+- Truncated lists for long content with "... +N more" indicators
+- Issue display with severity emojis and actionable suggestions
 
 Example:
     >>> from bengal.debug import PageExplainer, ExplanationReporter
@@ -21,11 +21,12 @@ Example:
     >>> print(reporter.format_summary(explanation))  # One-line summary
 
 Related Modules:
-    - bengal.debug.explainer: Produces PageExplanation instances
-    - bengal.debug.models: Data models being formatted
+- bengal.debug.explainer: Produces PageExplanation instances
+- bengal.debug.models: Data models being formatted
 
 See Also:
-    - bengal/cli/commands/explain.py: CLI command using this reporter
+- bengal/cli/commands/explain.py: CLI command using this reporter
+
 """
 
 from __future__ import annotations
@@ -54,20 +55,21 @@ if TYPE_CHECKING:
 class ExplanationReporter:
     """
     Format and display page explanations in terminal.
-
+    
     Uses Rich library for colorful, well-formatted terminal output.
     Designed for quick scanning and visual clarity.
-
+    
     Creation:
         Direct instantiation: ExplanationReporter(console=None)
             - Uses provided Console or creates new one
-
+    
     Attributes:
         console: Rich Console instance for output
-
+    
     Examples:
         reporter = ExplanationReporter()
         reporter.print(explanation)
+        
     """
 
     def __init__(self, console: Console | None = None) -> None:

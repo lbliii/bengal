@@ -6,35 +6,36 @@ execution. Created fresh for each build, passed through orchestration phases,
 and discarded after build completes.
 
 Public API:
-    BuildState: Per-build mutable state container
+BuildState: Per-build mutable state container
 
 Key Concepts:
-    Per-Build Isolation: Each build gets fresh state, preventing cross-build
-        interference and eliminating stale state bugs in dev server.
+Per-Build Isolation: Each build gets fresh state, preventing cross-build
+    interference and eliminating stale state bugs in dev server.
 
-    Thread-Safe Locks: Named locks via get_lock() for parallel operations
-        during rendering phase.
+Thread-Safe Locks: Named locks via get_lock() for parallel operations
+    during rendering phase.
 
-    Render Context: current_language/current_version set per-page during
-        rendering, enabling template functions to access correct context.
+Render Context: current_language/current_version set per-page during
+    rendering, enabling template functions to access correct context.
 
 Lifecycle:
-    1. Created at start of BuildOrchestrator.build()
-    2. Passed through all build phases
-    3. Discarded after build completes (stats extracted first)
+1. Created at start of BuildOrchestrator.build()
+2. Passed through all build phases
+3. Discarded after build completes (stats extracted first)
 
 Thread Safety:
-    - get_lock() provides named locks for parallel operations
-    - Per-build isolation prevents cross-build interference
-    - DevServer creates new BuildState for each rebuild
+- get_lock() provides named locks for parallel operations
+- Per-build isolation prevents cross-build interference
+- DevServer creates new BuildState for each rebuild
 
 Related Packages:
-    bengal.orchestration.build: Build coordinator that creates/uses state
-    bengal.core.site.core: Site with _current_build_state bridge property
-    bengal.rendering.template_engine: Template engine using state caches
+bengal.orchestration.build: Build coordinator that creates/uses state
+bengal.core.site.core: Site with _current_build_state bridge property
+bengal.rendering.template_engine: Template engine using state caches
 
 See Also:
-    plan/drafted/rfc-site-responsibility-separation.md
+plan/drafted/rfc-site-responsibility-separation.md
+
 """
 
 from __future__ import annotations
@@ -49,20 +50,20 @@ from typing import Any
 class BuildState:
     """
     Mutable state for a single build execution.
-
+    
     Created fresh for each build. Passed through orchestration phases.
     Never stored on Site—Site remains the stable data container.
-
+    
     Lifecycle:
         1. Created at start of BuildOrchestrator.build()
         2. Passed through all 21 build phases
         3. Discarded after build completes (stats extracted first)
-
+    
     Thread Safety:
         - get_lock() provides named locks for parallel operations
         - Per-build isolation prevents cross-build interference
         - DevServer creates new BuildState for each rebuild
-
+    
     Attributes:
         build_time: Timestamp when build started
         incremental: Whether this is an incremental build
@@ -78,6 +79,7 @@ class BuildState:
         template_metadata_cache: Cached template metadata
         asset_manifest_previous: Previous manifest for incremental comparison
         asset_manifest_fallbacks: Set of fallback warnings already emitted
+        
     """
 
     # Build context

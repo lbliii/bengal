@@ -19,13 +19,13 @@ def parse_date(
 ) -> datetime | None:
     """
     Parse various date formats into datetime.
-
+    
     Handles:
     - datetime objects (pass through)
     - date objects (convert to datetime at midnight)
     - ISO 8601 strings (with or without timezone)
     - Custom format strings
-
+    
     Args:
         value: Date value in various formats
         formats: Optional list of strptime format strings to try
@@ -33,17 +33,18 @@ def parse_date(
             - 'return_none': Return None (default)
             - 'raise': Raise ValueError
             - 'return_original': Return original value as-is
-
+    
     Returns:
         datetime object or None if parsing fails
-
+    
     Examples:
-        >>> parse_date("2025-10-09")
+            >>> parse_date("2025-10-09")
         datetime(2025, 10, 9, 0, 0)
-        >>> parse_date("2025-10-09T14:30:00Z")
+            >>> parse_date("2025-10-09T14:30:00Z")
         datetime(2025, 10, 9, 14, 30, tzinfo=...)
-        >>> parse_date(datetime.now())
+            >>> parse_date(datetime.now())
         datetime(...)
+        
     """
     if value is None:
         return None
@@ -108,20 +109,21 @@ def parse_date(
 def format_date_iso(date: DateLike) -> str:
     """
     Format date as ISO 8601 string.
-
+    
     Uses parse_date internally for flexible input handling.
-
+    
     Args:
         date: Date value in various formats
-
+    
     Returns:
         ISO 8601 formatted string (YYYY-MM-DDTHH:MM:SS)
-
+    
     Examples:
-        >>> format_date_iso(datetime(2025, 10, 9, 14, 30))
-        '2025-10-09T14:30:00'
-        >>> format_date_iso("2025-10-09")
-        '2025-10-09T00:00:00'
+            >>> format_date_iso(datetime(2025, 10, 9, 14, 30))
+            '2025-10-09T14:30:00'
+            >>> format_date_iso("2025-10-09")
+            '2025-10-09T00:00:00'
+        
     """
     dt = parse_date(date)
     return dt.isoformat() if dt else ""
@@ -130,18 +132,19 @@ def format_date_iso(date: DateLike) -> str:
 def format_date_rfc822(date: DateLike) -> str:
     """
     Format date as RFC 822 string (for RSS feeds).
-
+    
     Uses parse_date internally for flexible input handling.
-
+    
     Args:
         date: Date value in various formats
-
+    
     Returns:
         RFC 822 formatted string (e.g., "Fri, 03 Oct 2025 14:30:00 +0000")
-
+    
     Examples:
-        >>> format_date_rfc822(datetime(2025, 10, 9, 14, 30))
-        'Thu, 09 Oct 2025 14:30:00 '
+            >>> format_date_rfc822(datetime(2025, 10, 9, 14, 30))
+            'Thu, 09 Oct 2025 14:30:00 '
+        
     """
     dt = parse_date(date)
     return dt.strftime("%a, %d %b %Y %H:%M:%S %z") if dt else ""
@@ -150,21 +153,22 @@ def format_date_rfc822(date: DateLike) -> str:
 def format_date_human(date: DateLike, format: str = "%B %d, %Y") -> str:
     """
     Format date in human-readable format.
-
+    
     Uses parse_date internally for flexible input handling.
-
+    
     Args:
         date: Date value in various formats
         format: strftime format string (default: "October 09, 2025")
-
+    
     Returns:
         Formatted date string
-
+    
     Examples:
-        >>> format_date_human(datetime(2025, 10, 9))
-        'October 09, 2025'
-        >>> format_date_human("2025-10-09", format='%Y-%m-%d')
-        '2025-10-09'
+            >>> format_date_human(datetime(2025, 10, 9))
+            'October 09, 2025'
+            >>> format_date_human("2025-10-09", format='%Y-%m-%d')
+            '2025-10-09'
+        
     """
     dt = parse_date(date)
     return dt.strftime(format) if dt else ""
@@ -173,23 +177,24 @@ def format_date_human(date: DateLike, format: str = "%B %d, %Y") -> str:
 def time_ago(date: DateLike, now: datetime | None = None) -> str:
     """
     Convert date to human-readable "time ago" format.
-
+    
     Uses parse_date internally for flexible input handling.
-
+    
     Args:
         date: Date to convert
         now: Current time (defaults to datetime.now())
-
+    
     Returns:
         Human-readable time ago string
-
+    
     Examples:
-        >>> time_ago(datetime.now() - timedelta(minutes=5))
-        '5 minutes ago'
-        >>> time_ago(datetime.now() - timedelta(days=2))
-        '2 days ago'
-        >>> time_ago("2025-10-01")
-        '8 days ago'
+            >>> time_ago(datetime.now() - timedelta(minutes=5))
+            '5 minutes ago'
+            >>> time_ago(datetime.now() - timedelta(days=2))
+            '2 days ago'
+            >>> time_ago("2025-10-01")
+            '8 days ago'
+        
     """
     dt = parse_date(date)
     if not dt:
@@ -230,15 +235,16 @@ def time_ago(date: DateLike, now: datetime | None = None) -> str:
 def get_current_year() -> int:
     """
     Get current year as integer.
-
+    
     Useful for copyright notices and templates.
-
+    
     Returns:
         Current year
-
+    
     Example:
-        >>> get_current_year()
+            >>> get_current_year()
         2025
+        
     """
     return datetime.now().year
 
@@ -246,20 +252,21 @@ def get_current_year() -> int:
 def is_recent(date: DateLike, days: int = 7, now: datetime | None = None) -> bool:
     """
     Check if date is recent (within specified days).
-
+    
     Args:
         date: Date to check
         days: Number of days to consider "recent" (default: 7)
         now: Current time (defaults to datetime.now())
-
+    
     Returns:
         True if date is within the last N days
-
+    
     Examples:
-        >>> is_recent(datetime.now() - timedelta(days=3))
+            >>> is_recent(datetime.now() - timedelta(days=3))
         True
-        >>> is_recent("2025-01-01", days=7)
+            >>> is_recent("2025-01-01", days=7)
         False
+        
     """
     dt = parse_date(date)
     if not dt:
@@ -275,21 +282,22 @@ def is_recent(date: DateLike, days: int = 7, now: datetime | None = None) -> boo
 def date_range_overlap(start1: DateLike, end1: DateLike, start2: DateLike, end2: DateLike) -> bool:
     """
     Check if two date ranges overlap.
-
+    
     Args:
         start1: Start of first range
         end1: End of first range
         start2: Start of second range
         end2: End of second range
-
+    
     Returns:
         True if ranges overlap
-
+    
     Examples:
-        >>> date_range_overlap("2025-01-01", "2025-01-10", "2025-01-05", "2025-01-15")
+            >>> date_range_overlap("2025-01-01", "2025-01-10", "2025-01-05", "2025-01-15")
         True
-        >>> date_range_overlap("2025-01-01", "2025-01-10", "2025-01-15", "2025-01-20")
+            >>> date_range_overlap("2025-01-01", "2025-01-10", "2025-01-15", "2025-01-20")
         False
+        
     """
     dt_start1 = parse_date(start1)
     dt_end1 = parse_date(end1)

@@ -6,43 +6,44 @@ conflict resolution. Enables explicit ownership tracking across content,
 autodoc, taxonomy, special pages, and redirects.
 
 Public API:
-    URLClaim: Immutable record of URL ownership (owner, source, priority)
-    URLCollisionError: Exception raised when URL collision detected
-    URLRegistry: Central authority for URL claims with conflict resolution
+URLClaim: Immutable record of URL ownership (owner, source, priority)
+URLCollisionError: Exception raised when URL collision detected
+URLRegistry: Central authority for URL claims with conflict resolution
 
 Key Concepts:
-    Claim-Time Enforcement: URLs are claimed before file writes. Conflicts
-        detected early prevent silent overwrites and broken navigation.
+Claim-Time Enforcement: URLs are claimed before file writes. Conflicts
+    detected early prevent silent overwrites and broken navigation.
 
-    Priority-Based Resolution: Higher priority claims win. This allows
-        user content (priority 100) to override generated pages.
+Priority-Based Resolution: Higher priority claims win. This allows
+    user content (priority 100) to override generated pages.
 
-    Priority Levels (by convention):
-        100: User content (content/ pages)
-         90: Autodoc sections (explicitly configured)
-         80: Autodoc pages (derived from sections)
-         50: Section indexes (structural authority)
-         40: Taxonomy (auto-generated)
-         10: Special pages (404, search, graph)
-          5: Redirects (should never shadow content)
+Priority Levels (by convention):
+    100: User content (content/ pages)
+     90: Autodoc sections (explicitly configured)
+     80: Autodoc pages (derived from sections)
+     50: Section indexes (structural authority)
+     40: Taxonomy (auto-generated)
+     10: Special pages (404, search, graph)
+      5: Redirects (should never shadow content)
 
-    Ownership Tracking: Each claim records owner (e.g., "content",
-        "autodoc:python"), source file, and optional version/lang.
+Ownership Tracking: Each claim records owner (e.g., "content",
+    "autodoc:python"), source file, and optional version/lang.
 
 Usage:
     registry = URLRegistry()
-    registry.claim("/about/", owner="content", source="content/about.md", priority=100)
-    registry.claim("/api/", owner="autodoc:python", source="bengal.core", priority=50)
+registry.claim("/about/", owner="content", source="content/about.md", priority=100)
+registry.claim("/api/", owner="autodoc:python", source="bengal.core", priority=50)
 
-    # Check for existing claim
+# Check for existing claim
     claim = registry.get_claim("/about/")
-    if claim:
-        print(f"Owned by {claim.owner}")
+if claim:
+    print(f"Owned by {claim.owner}")
 
 Related Packages:
-    bengal.config.url_policy: Reserved namespace definitions
-    bengal.health.validators.ownership_policy: Policy validation
-    bengal.utils.url_strategy: URL computation utilities
+bengal.config.url_policy: Reserved namespace definitions
+bengal.health.validators.ownership_policy: Policy validation
+bengal.utils.url_strategy: URL computation utilities
+
 """
 
 from __future__ import annotations
@@ -61,16 +62,17 @@ if TYPE_CHECKING:
 class URLClaim:
     """
     Immutable record of URL ownership claim.
-
+    
     Represents a single producer's claim to a URL, including ownership
     metadata and priority for conflict resolution.
-
+    
     Attributes:
         owner: Owner identifier (e.g., "content", "autodoc:python", "taxonomy")
         source: Source file path or qualified name
         priority: Priority level (higher = wins conflicts)
         version: Version identifier if applicable (None for unversioned)
         lang: Language code if applicable (None for monolingual)
+        
     """
 
     owner: str
@@ -92,11 +94,12 @@ class URLClaim:
 class URLCollisionError(BengalContentError):
     """
     Exception raised when URL collision detected at claim time.
-
+    
     Provides detailed diagnostics including both claims, priority comparison,
     and suggested fixes.
-
+    
     Extends BengalContentError for consistent error handling.
+        
     """
 
     def __init__(
@@ -164,15 +167,16 @@ class URLCollisionError(BengalContentError):
 class URLRegistry:
     """
     Central authority for URL claims with claim-time enforcement.
-
+    
     Maintains a registry of all URL claims and enforces ownership policy
     at claim time (before file writes). Provides priority-based conflict
     resolution and diagnostic error messages.
-
+    
     Usage:
         registry = URLRegistry()
         registry.claim("/about/", owner="content", source="content/about.md", priority=100)
         url = registry.claim_output_path(output_path, site=site, owner="taxonomy", source="tags/python", priority=40)
+        
     """
 
     def __init__(self) -> None:

@@ -335,9 +335,10 @@ class TestAssetDependencyMap:
 
 class TestAssetDependencyMapErrorCodes:
     """Tests for error code logging in AssetDependencyMap.
-
+    
     Note: Bengal uses structlog which outputs to stdout, not standard logging.
     We use capsys to capture stdout output for verification.
+        
     """
 
     def test_load_failure_logs_error_code(self, tmp_path, capsys):

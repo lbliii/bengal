@@ -13,30 +13,31 @@ Usage:
     >>>
     >>> # Enable specific plugins
     >>> md = create_markdown(plugins=["table", "strikethrough", "math"])
-    >>> html = md("| A | B |\\n|---|---|\\n| 1 | 2 |")
+    >>> html = md("| A | B |\n|---|---|\n| 1 | 2 |")
     >>>
     >>> # Enable all plugins
     >>> md = create_markdown(plugins=["all"])
 
 Plugin Architecture:
-    Unlike mistune's regex-based plugins, Patitas uses a state-machine lexer.
-    Plugins hook into specific extension points:
+Unlike mistune's regex-based plugins, Patitas uses a state-machine lexer.
+Plugins hook into specific extension points:
 
-    1. Inline plugins (strikethrough, math inline):
-       - Registered with the inline parser
-       - Called when special characters are encountered
+1. Inline plugins (strikethrough, math inline):
+   - Registered with the inline parser
+   - Called when special characters are encountered
 
-    2. Block plugins (table, math block, footnote definitions):
-       - Registered with the block scanner
-       - Called at line start when block patterns match
+2. Block plugins (table, math block, footnote definitions):
+   - Registered with the block scanner
+   - Called at line start when block patterns match
 
-    3. Post-processing plugins (footnotes, autolinks):
-       - Transform AST or rendered output
-       - Called after main parsing/rendering
+3. Post-processing plugins (footnotes, autolinks):
+   - Transform AST or rendered output
+   - Called after main parsing/rendering
 
 Thread Safety:
-    All plugins are stateless. State is stored in AST nodes or passed as arguments.
-    Multiple threads can use the same plugin instances concurrently.
+All plugins are stateless. State is stored in AST nodes or passed as arguments.
+Multiple threads can use the same plugin instances concurrently.
+
 """
 
 from __future__ import annotations
@@ -59,14 +60,15 @@ __all__ = [
 @runtime_checkable
 class PatitasPlugin(Protocol):
     """Protocol for Patitas plugins.
-
+    
     Plugins can hook into multiple extension points:
     - extend_lexer: Add token types and scanning logic
     - extend_parser: Add parsing rules for new tokens
     - extend_renderer: Add rendering methods for new nodes
-
+    
     Thread Safety:
         Plugins must be stateless. All state should be in AST nodes.
+        
     """
 
     @property
@@ -105,17 +107,18 @@ BUILTIN_PLUGINS: dict[str, type[PatitasPlugin]] = {}
 
 def register_plugin(name: str) -> type[PatitasPlugin]:
     """Decorator to register a plugin.
-
+    
     Args:
         name: Plugin name for lookup
-
+    
     Returns:
         The decorated class
-
+    
     Usage:
         @register_plugin("table")
         class TablePlugin:
-            ...
+                ...
+        
     """
 
     def decorator(cls: type[PatitasPlugin]) -> type[PatitasPlugin]:
@@ -127,15 +130,16 @@ def register_plugin(name: str) -> type[PatitasPlugin]:
 
 def get_plugin(name: str) -> PatitasPlugin:
     """Get a plugin instance by name.
-
+    
     Args:
         name: Plugin name (e.g., "table", "strikethrough")
-
+    
     Returns:
         Plugin instance
-
+    
     Raises:
         KeyError: If plugin name is not recognized
+        
     """
     if name not in BUILTIN_PLUGINS:
         available = ", ".join(sorted(BUILTIN_PLUGINS.keys()))
@@ -150,12 +154,13 @@ def apply_plugins(
     renderer_class: type[HtmlRenderer],
 ) -> None:
     """Apply plugins to parser components.
-
+    
     Args:
         plugins: List of plugin names to apply
         lexer_class: Lexer class to extend
         parser_class: Parser class to extend
         renderer_class: Renderer class to extend
+        
     """
     for plugin_name in plugins:
         if plugin_name == "all":

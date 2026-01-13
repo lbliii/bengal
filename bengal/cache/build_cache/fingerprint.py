@@ -5,16 +5,17 @@ Provides FileFingerprint dataclass for tracking file changes via mtime + size
 with optional hash verification. Part of the build cache system.
 
 Key Concepts:
-    - Fast path: mtime + size comparison (single stat call, no file read)
-    - Slow path: SHA256 hash only when mtime/size mismatch detected
-    - Handles edge cases: touch/rsync may change mtime but not content
+- Fast path: mtime + size comparison (single stat call, no file read)
+- Slow path: SHA256 hash only when mtime/size mismatch detected
+- Handles edge cases: touch/rsync may change mtime but not content
 
 Related Modules:
-    - bengal.cache.build_cache: Main BuildCache using FileFingerprint
-    - bengal.orchestration.incremental: Incremental build logic
+- bengal.cache.build_cache: Main BuildCache using FileFingerprint
+- bengal.orchestration.incremental: Incremental build logic
 
 See Also:
-    - plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+- plan/active/rfc-orchestrator-performance-improvements.md: Performance RFC
+
 """
 
 from __future__ import annotations
@@ -34,19 +35,20 @@ logger = get_logger(__name__)
 class FileFingerprint:
     """
     Fast file change detection using mtime + size, with optional hash verification.
-
+    
     Performance Optimization:
         - mtime + size comparison is O(1) stat call (no file read)
         - Hash computed lazily only when mtime/size mismatch detected
         - Handles edge cases like touch/rsync that change mtime but not content
-
+    
     Attributes:
         mtime: File modification time (seconds since epoch)
         size: File size in bytes
         hash: SHA256 hash (computed lazily, may be None for fast path)
-
+    
     Thread Safety:
         Immutable after creation. Thread-safe for read operations.
+        
     """
 
     mtime: float

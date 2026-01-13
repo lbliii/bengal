@@ -31,25 +31,27 @@ _ESCAPE_PATTERN = re.compile(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])")
 
 def _process_escapes(text: str) -> str:
     """Process backslash escapes in info strings.
-
+    
     CommonMark: Backslash escapes work in code fence info strings.
+        
     """
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
 def _extract_explicit_id(content: str) -> tuple[str, str | None]:
     """Extract MyST-compatible explicit anchor ID from heading content.
-
+    
     Syntax: ## Title {#custom-id}
-
+    
     The {#id} must be at the end of the content, preceded by whitespace.
     ID must start with a letter, contain only letters, numbers, hyphens, underscores.
-
+    
     Args:
         content: Heading content (already stripped)
-
+    
     Returns:
         Tuple of (content_without_id, explicit_id or None)
+        
     """
     # Quick rejection: must end with }
     if not content.endswith("}"):
@@ -85,14 +87,14 @@ def _extract_explicit_id(content: str) -> tuple[str, str | None]:
 
 class BlockParsingCoreMixin:
     """Core block parsing methods.
-
+    
     Required Host Attributes:
         - _source: str
         - _tokens: list[Token]
         - _pos: int
         - _current: Token | None
         - _tables_enabled: bool
-
+    
     Required Host Methods:
         - _at_end() -> bool
         - _advance() -> Token | None
@@ -101,6 +103,7 @@ class BlockParsingCoreMixin:
         - _parse_directive() -> Directive
         - _parse_footnote_def() -> FootnoteDef
         - _try_parse_table(lines, location) -> Table | None
+        
     """
 
     _source: str

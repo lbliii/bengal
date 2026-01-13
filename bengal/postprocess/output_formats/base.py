@@ -34,20 +34,21 @@ if TYPE_CHECKING:
 class BaseOutputGenerator(ABC):
     """
     Base class for output format generators.
-
+    
     Provides:
     - Atomic file writes (crash-safe)
     - Progress reporting integration
     - Error handling with recovery
     - BuildContext integration for accumulated data
-
+    
     Subclasses must implement:
     - generate(): Generate output files and return count
-
+    
     Attributes:
         site: Site instance with pages and configuration
         build_context: Optional BuildContext with cached data
         logger: Logger instance for this generator
+        
     """
 
     def __init__(

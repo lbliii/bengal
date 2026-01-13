@@ -5,18 +5,19 @@ Validates that code references, configuration mentions, and other semantic
 links in documentation actually exist and are current.
 
 Key Features:
-    - Validate function/class references against source code
-    - Validate configuration option references
-    - Find broken anchor links to headings
-    - Detect stale version references
+- Validate function/class references against source code
+- Validate configuration option references
+- Find broken anchor links to headings
+- Detect stale version references
 
 Related Modules:
-    - bengal.health.base: BaseValidator interface
-    - bengal.health.report: CheckResult for reporting
+- bengal.health.base: BaseValidator interface
+- bengal.health.report: CheckResult for reporting
 
 See Also:
-    - bengal/health/validators/links.py: URL link validation
-    - bengal/debug/base.py: Debug tool infrastructure
+- bengal/health/validators/links.py: URL link validation
+- bengal/debug/base.py: Debug tool infrastructure
+
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ if TYPE_CHECKING:
 class CodeReference:
     """
     A reference to code in documentation content.
-
+    
     Attributes:
         ref_type: Type of reference (function, class, config, variable)
         name: The referenced name
@@ -46,6 +47,7 @@ class CodeReference:
         raw: Raw matched text
         line: Line number in content
         file_path: Path to the content file
+        
     """
 
     ref_type: str  # function, class, config, variable, anchor
@@ -65,13 +67,14 @@ class CodeReference:
 class CodeIndex:
     """
     Index of code symbols for validation.
-
+    
     Attributes:
         functions: Set of function names
         classes: Set of class names
         constants: Set of constant names
         config_options: Set of configuration option names
         modules: Set of module paths
+        
     """
 
     functions: set[str] = field(default_factory=set)
@@ -142,19 +145,20 @@ class CodeIndex:
 class CrossReferenceValidator(BaseValidator):
     """
     Validates semantic cross-references in documentation.
-
+    
     Checks that code references (functions, classes, config options) in
     documentation actually exist in the source code.
-
+    
     Creation:
         health_check.register(CrossReferenceValidator(source_dirs=[Path("src")]))
-
+    
     Attributes:
         source_dirs: Directories to search for source code
         code_index: Index of discovered code symbols
         config_options: Known configuration option names
         current_version: Current product version for version checks
         deprecated_versions: List of deprecated version strings
+        
     """
 
     name = "cross_references"
@@ -463,14 +467,15 @@ def create_cross_ref_validator(
 ) -> CrossReferenceValidator:
     """
     Factory function to create a configured CrossReferenceValidator.
-
+    
     Args:
         site_root: Root path of the site
         source_dir: Name of source code directory
         config_options: Optional set of known config option names
-
+    
     Returns:
         Configured CrossReferenceValidator
+        
     """
     source_path = site_root / source_dir
     source_dirs = [source_path] if source_path.exists() else []

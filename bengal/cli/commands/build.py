@@ -189,9 +189,10 @@ def build(
 ) -> None:
     """
     Build the static site.
-
+    
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
+        
     """
 
     # Import profile system

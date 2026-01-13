@@ -5,10 +5,10 @@ Provides workload-aware worker count calculation for ThreadPoolExecutor usage.
 Calibrated via benchmarks per RFC: rfc-unified-worker-autotune.md
 
 Key Features:
-    - Environment detection (CI vs local vs production)
-    - Workload type profiles (CPU-bound, I/O-bound, mixed)
-    - Auto-weight detection for pages based on content
-    - User config override support
+- Environment detection (CI vs local vs production)
+- Workload type profiles (CPU-bound, I/O-bound, mixed)
+- Auto-weight detection for pages based on content
+- User config override support
 
 Example:
     >>> from bengal.utils.workers import get_optimal_workers, should_parallelize
@@ -18,8 +18,9 @@ Example:
     ...         results = list(executor.map(process, pages))
 
 See Also:
-    - RFC: rfc-unified-worker-autotune.md for design rationale
-    - bengal/config/defaults.py for legacy get_max_workers (deprecated)
+- RFC: rfc-unified-worker-autotune.md for design rationale
+- bengal/config/defaults.py for legacy get_max_workers (deprecated)
+
 """
 
 from __future__ import annotations
@@ -35,10 +36,10 @@ if TYPE_CHECKING:
 
 class WorkloadType(Enum):
     """Workload characteristics for auto-tuning.
-
+    
     Different workload types have different optimal worker counts due to
     their resource usage patterns:
-
+    
     Attributes:
         CPU_BOUND: CPU-intensive work (parsing, rendering, similarity).
             Limited by GIL in standard Python; benefits from few workers.
@@ -46,6 +47,7 @@ class WorkloadType(Enum):
             Can use more workers as threads wait on I/O.
         MIXED: Combined I/O and CPU work (template rendering).
             Moderate worker counts work best.
+        
     """
 
     CPU_BOUND = "cpu_bound"
@@ -55,9 +57,9 @@ class WorkloadType(Enum):
 
 class Environment(Enum):
     """Execution environment for tuning profiles.
-
+    
     Different environments have different resource constraints:
-
+    
     Attributes:
         CI: Constrained CI runner (typically 2-4 vCPU).
             Use minimal workers to avoid resource contention.
@@ -65,6 +67,7 @@ class Environment(Enum):
             Use moderate workers for good performance.
         PRODUCTION: Server deployment (16+ cores).
             Can use more workers for high throughput.
+        
     """
 
     CI = "ci"
@@ -75,13 +78,14 @@ class Environment(Enum):
 @dataclass(frozen=True)
 class WorkloadProfile:
     """Tuning profile for a workload type.
-
+    
     Attributes:
         parallel_threshold: Minimum tasks before parallelizing.
             Below this, thread overhead exceeds benefit.
         min_workers: Floor for worker count.
         max_workers: Ceiling for worker count.
         cpu_fraction: Fraction of cores to use (0.0-1.0).
+        
     """
 
     parallel_threshold: int
@@ -114,24 +118,25 @@ _PROFILES: dict[tuple[WorkloadType, Environment], WorkloadProfile] = {
 def detect_environment() -> Environment:
     """
     Auto-detect execution environment for tuning.
-
+    
     Detection order:
         1. Explicit BENGAL_ENV environment variable
         2. CI environment variables (GitHub Actions, GitLab CI, etc.)
         3. Default to LOCAL
-
+    
     Returns:
         Detected Environment enum value
-
+    
     Examples:
-        >>> import os
-        >>> os.environ["CI"] = "true"
-        >>> detect_environment()
+            >>> import os
+            >>> os.environ["CI"] = "true"
+            >>> detect_environment()
         <Environment.CI: 'ci'>
-
-        >>> os.environ["BENGAL_ENV"] = "production"
-        >>> detect_environment()
+    
+            >>> os.environ["BENGAL_ENV"] = "production"
+            >>> detect_environment()
         <Environment.PRODUCTION: 'production'>
+        
     """
     # Explicit override takes highest priority
     env_value = os.environ.get("BENGAL_ENV", "").lower()
@@ -172,38 +177,39 @@ def get_optimal_workers(
 ) -> int:
     """
     Calculate optimal worker count based on workload characteristics.
-
+    
     Auto-scales based on:
         - Workload type (CPU-bound vs I/O-bound)
         - Environment (CI vs local vs production)
         - Available CPU cores (fraction based on workload)
         - Task count (no point having more workers than tasks)
         - Optional task weight for heavy/light work estimation
-
+    
     Args:
         task_count: Number of tasks to process
         workload_type: Type of work (CPU_BOUND, IO_BOUND, MIXED)
         environment: Execution environment (auto-detected if None)
         config_override: User-configured value (bypasses auto-tune if > 0)
         task_weight: Multiplier for task count (>1 for heavy tasks)
-
+    
     Returns:
         Optimal number of worker threads (always >= 1)
-
+    
     Examples:
-        >>> get_optimal_workers(10, workload_type=WorkloadType.CPU_BOUND)
+            >>> get_optimal_workers(10, workload_type=WorkloadType.CPU_BOUND)
         2  # Conservative for CPU-bound on local
-
-        >>> get_optimal_workers(100, workload_type=WorkloadType.IO_BOUND)
+    
+            >>> get_optimal_workers(100, workload_type=WorkloadType.IO_BOUND)
         6  # More workers for I/O
-
-        >>> get_optimal_workers(5, config_override=16)
+    
+            >>> get_optimal_workers(5, config_override=16)
         16  # User override respected
-
-        >>> import os
-        >>> os.environ["CI"] = "true"
-        >>> get_optimal_workers(100, workload_type=WorkloadType.MIXED)
+    
+            >>> import os
+            >>> os.environ["CI"] = "true"
+            >>> get_optimal_workers(100, workload_type=WorkloadType.MIXED)
         2  # CI mode caps at 2
+        
     """
     # User override takes precedence
     if config_override is not None and config_override > 0:
@@ -237,28 +243,29 @@ def should_parallelize(
 ) -> bool:
     """
     Determine if parallelization is worthwhile for this workload.
-
+    
     Thread pool overhead (~1-2ms per task) only pays off above threshold.
     This function helps avoid the overhead for small workloads.
-
+    
     Args:
         task_count: Number of tasks to process
         workload_type: Type of work
         environment: Execution environment (auto-detected if None)
         total_work_estimate: Optional size estimate (bytes for parsing, etc.)
-
+    
     Returns:
         True if parallelization is recommended
-
+    
     Examples:
-        >>> should_parallelize(3, workload_type=WorkloadType.CPU_BOUND)
+            >>> should_parallelize(3, workload_type=WorkloadType.CPU_BOUND)
         False  # Below threshold
-
-        >>> should_parallelize(10, workload_type=WorkloadType.CPU_BOUND)
+    
+            >>> should_parallelize(10, workload_type=WorkloadType.CPU_BOUND)
         True  # Above threshold
-
-        >>> should_parallelize(100, total_work_estimate=1000)
+    
+            >>> should_parallelize(100, total_work_estimate=1000)
         False  # Work estimate too small (< 5KB)
+        
     """
     if environment is None:
         environment = detect_environment()
@@ -277,29 +284,30 @@ def should_parallelize(
 def estimate_page_weight(page: Page) -> float:
     """
     Estimate relative complexity of a page for worker scheduling.
-
+    
     Heavy pages (autodoc, many code blocks) get higher weights,
     causing them to be scheduled earlier to avoid straggler effect.
-
+    
     Weight factors:
         - Content size: +0.5 per 10KB above 10KB threshold
         - Code blocks: +0.1 per block above 5
         - Directives: +0.05 per directive above 10
         - Autodoc flag: +1.0 bonus
-
+    
     Args:
         page: Page instance to estimate
-
+    
     Returns:
         Weight multiplier (1.0 = average, >1 = heavy, <1 = light).
         Capped at 5.0 to avoid outlier distortion.
-
+    
     Examples:
-        >>> estimate_page_weight(simple_page)
+            >>> estimate_page_weight(simple_page)
         1.0
-
-        >>> estimate_page_weight(autodoc_page)
+    
+            >>> estimate_page_weight(autodoc_page)
         2.5  # Autodoc bonus + code blocks
+        
     """
     weight = 1.0
     content = page.raw_content
@@ -329,24 +337,25 @@ def estimate_page_weight(page: Page) -> float:
 def order_by_complexity(pages: list[Page], *, descending: bool = True) -> list[Page]:
     """
     Order pages by estimated complexity for optimal worker utilization.
-
+    
     Scheduling heavy pages first reduces the "straggler effect" where
     one slow page delays overall completion. This is a common optimization
     for parallel workloads with variable task sizes.
-
+    
     Args:
         pages: List of pages to order
         descending: If True, heaviest first (default for parallel execution)
-
+    
     Returns:
         Sorted list of pages (new list, does not mutate input)
-
+    
     Examples:
-        >>> ordered = order_by_complexity(pages)
-        >>> # Heavy autodoc pages now at front
-
-        >>> ordered = order_by_complexity(pages, descending=False)
-        >>> # Light pages first (for testing/debugging)
+            >>> ordered = order_by_complexity(pages)
+            >>> # Heavy autodoc pages now at front
+    
+            >>> ordered = order_by_complexity(pages, descending=False)
+            >>> # Light pages first (for testing/debugging)
+        
     """
     return sorted(
         pages,
@@ -361,20 +370,21 @@ def get_profile(
 ) -> WorkloadProfile:
     """
     Get the workload profile for inspection or testing.
-
+    
     Args:
         workload_type: Type of work
         environment: Execution environment (auto-detected if None)
-
+    
     Returns:
         WorkloadProfile with threshold and worker settings
-
+    
     Examples:
-        >>> profile = get_profile(WorkloadType.CPU_BOUND)
-        >>> profile.parallel_threshold
+            >>> profile = get_profile(WorkloadType.CPU_BOUND)
+            >>> profile.parallel_threshold
         5
-        >>> profile.max_workers
+            >>> profile.max_workers
         4
+        
     """
     if environment is None:
         environment = detect_environment()

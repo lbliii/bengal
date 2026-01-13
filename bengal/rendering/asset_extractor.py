@@ -144,18 +144,19 @@ class AssetExtractorParser(HTMLParser):
 def extract_assets_from_html(html_content: str) -> set[str]:
     """
     Extract all asset references from rendered HTML.
-
+    
     Args:
         html_content: Rendered HTML content
-
+    
     Returns:
         Set of asset URLs/paths referenced in the HTML
-
+    
     Example:
-        >>> html = '<img src="/images/logo.png" /><script src="/js/app.js"></script>'
-        >>> assets = extract_assets_from_html(html)
-        >>> assert "/images/logo.png" in assets
-        >>> assert "/js/app.js" in assets
+            >>> html = '<img src="/images/logo.png" /><script src="/js/app.js"></script>'
+            >>> assets = extract_assets_from_html(html)
+            >>> assert "/images/logo.png" in assets
+            >>> assert "/js/app.js" in assets
+        
     """
     if not html_content:
         return set()

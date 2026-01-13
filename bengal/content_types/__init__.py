@@ -11,18 +11,18 @@ type-specific behavior for:
 - **Template Selection**: Which templates are used for different page types
 
 Architecture:
-    The package follows the Strategy Pattern with a Registry:
+The package follows the Strategy Pattern with a Registry:
 
-    - ContentTypeStrategy: Abstract base defining the strategy interface
-    - Concrete strategies: BlogStrategy, DocsStrategy, TutorialStrategy, etc.
-    - CONTENT_TYPE_REGISTRY: Maps type names to strategy instances
-    - Auto-detection: Heuristics to infer content type from section structure
+- ContentTypeStrategy: Abstract base defining the strategy interface
+- Concrete strategies: BlogStrategy, DocsStrategy, TutorialStrategy, etc.
+- CONTENT_TYPE_REGISTRY: Maps type names to strategy instances
+- Auto-detection: Heuristics to infer content type from section structure
 
 Public API:
-    - ContentTypeStrategy: Base class for custom content type strategies
-    - get_strategy: Retrieve a strategy by content type name
-    - register_strategy: Register custom content type strategies
-    - CONTENT_TYPE_REGISTRY: Direct access to the strategy registry
+- ContentTypeStrategy: Base class for custom content type strategies
+- get_strategy: Retrieve a strategy by content type name
+- register_strategy: Register custom content type strategies
+- CONTENT_TYPE_REGISTRY: Direct access to the strategy registry
 
 Example:
     >>> from bengal.content_types import get_strategy
@@ -35,12 +35,13 @@ Example:
     >>> register_strategy("custom", CustomStrategy())
 
 Related:
-    - bengal/core/section.py: Section model that uses content types
-    - bengal/rendering/: Template rendering that consumes strategy.get_template()
-    - bengal/orchestration/: Build orchestration using content type detection
+- bengal/core/section.py: Section model that uses content types
+- bengal/rendering/: Template rendering that consumes strategy.get_template()
+- bengal/orchestration/: Build orchestration using content type detection
 
 See Also:
-    - architecture/content-types.md: Design documentation for content types
+- architecture/content-types.md: Design documentation for content types
+
 """
 
 from __future__ import annotations

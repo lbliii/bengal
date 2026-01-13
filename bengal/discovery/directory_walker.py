@@ -6,7 +6,8 @@ filtering during content discovery. Extracted from content_discovery.py
 per RFC: rfc-modularize-large-files.
 
 Classes:
-    DirectoryWalker: Walks directories and yields content items.
+DirectoryWalker: Walks directories and yields content items.
+
 """
 
 from __future__ import annotations
@@ -29,20 +30,21 @@ CONTENT_EXTENSIONS = {".md", ".markdown", ".rst", ".txt"}
 class DirectoryWalker:
     """
     Walks directories to discover content files.
-
+    
     Handles symlink loop detection via inode tracking to prevent infinite
     recursion when symbolic links create circular references.
-
+    
     Attributes:
         content_dir: Root content directory
         site: Optional Site reference for configuration
         visited_inodes: Set of visited (device, inode) pairs for loop detection
-
+    
     Example:
-        >>> walker = DirectoryWalker(Path("content"), site=site)
-        >>> for item, is_file in walker.walk(Path("content/blog")):
-        ...     if is_file:
-        ...         print(f"Found file: {item}")
+            >>> walker = DirectoryWalker(Path("content"), site=site)
+            >>> for item, is_file in walker.walk(Path("content/blog")):
+            ...     if is_file:
+            ...         print(f"Found file: {item}")
+        
     """
 
     def __init__(self, content_dir: Path, site: Any | None = None):

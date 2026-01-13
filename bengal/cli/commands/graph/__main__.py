@@ -64,6 +64,7 @@ def graph_cli() -> None:
 def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     Analyze site structure and connectivity.
+        
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 

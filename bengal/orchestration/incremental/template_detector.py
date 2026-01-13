@@ -39,17 +39,18 @@ DEFAULT_MAX_WORKERS = min(8, (os.cpu_count() or 4))
 class TemplateChangeDetector:
     """
     Detects changes in template files and tracks affected pages.
-
+    
     Collects all template files first, then checks in parallel if above threshold.
-
+    
     Block-Level Detection:
         When `block_cache` is provided and Kida engine is used, enables
         block-level change detection. This can skip page rebuilds entirely
         when only site-scoped blocks (nav, footer, header) change.
-
+    
     Thread-Safety:
         Uses cached engine and context to avoid repeated initialization.
         Thread-safe for concurrent template checks.
+        
     """
 
     def __init__(

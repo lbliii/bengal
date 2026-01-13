@@ -2,9 +2,10 @@
 Unit tests for file watcher abstraction.
 
 Tests:
-    - WatchfilesWatcher creation and configuration
-    - Filter callback integration
-    - Factory function behavior
+- WatchfilesWatcher creation and configuration
+- Filter callback integration
+- Factory function behavior
+
 """
 
 from __future__ import annotations

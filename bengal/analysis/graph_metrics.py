@@ -7,11 +7,12 @@ connectivity statistics from the knowledge graph data structures.
 Extracted from knowledge_graph.py per RFC: rfc-modularize-large-files.
 
 Classes:
-    MetricsCalculator: Computes graph metrics from graph data.
+MetricsCalculator: Computes graph metrics from graph data.
 
 Data Classes:
-    GraphMetrics: Summary statistics about graph structure.
-    PageConnectivity: Connectivity details for a single page.
+GraphMetrics: Summary statistics about graph structure.
+PageConnectivity: Connectivity details for a single page.
+
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 class GraphMetrics:
     """
     Metrics about the knowledge graph structure.
-
+    
     Attributes:
         total_pages: Total number of pages analyzed
         total_links: Total number of links between pages
@@ -35,6 +36,7 @@ class GraphMetrics:
         hub_count: Number of hub pages (highly connected)
         leaf_count: Number of leaf pages (low connectivity)
         orphan_count: Number of orphaned pages (no connections at all)
+        
     """
 
     total_pages: int
@@ -49,7 +51,7 @@ class GraphMetrics:
 class PageConnectivity:
     """
     Connectivity information for a single page.
-
+    
     Attributes:
         page: The page object
         incoming_refs: Number of incoming references
@@ -58,6 +60,7 @@ class PageConnectivity:
         is_hub: True if page has many incoming references
         is_leaf: True if page has few connections
         is_orphan: True if page has no connections at all
+        
     """
 
     page: Page
@@ -72,26 +75,27 @@ class PageConnectivity:
 class MetricsCalculator:
     """
     Computes metrics from knowledge graph data structures.
-
+    
     Takes the populated graph data from GraphBuilder and computes
     overall statistics and per-page connectivity metrics.
-
+    
     Attributes:
         incoming_refs: Dict mapping pages to incoming reference counts
         outgoing_refs: Dict mapping pages to sets of target pages
         hub_threshold: Minimum incoming refs to be considered a hub
         leaf_threshold: Maximum connectivity to be considered a leaf
-
+    
     Example:
-        >>> calculator = MetricsCalculator(
-        ...     incoming_refs=builder.incoming_refs,
-        ...     outgoing_refs=builder.outgoing_refs,
-        ...     analysis_pages=builder.get_analysis_pages(),
-        ...     hub_threshold=10,
-        ...     leaf_threshold=2,
-        ... )
-        >>> metrics = calculator.compute_metrics()
-        >>> connectivity = calculator.get_connectivity(some_page)
+            >>> calculator = MetricsCalculator(
+            ...     incoming_refs=builder.incoming_refs,
+            ...     outgoing_refs=builder.outgoing_refs,
+            ...     analysis_pages=builder.get_analysis_pages(),
+            ...     hub_threshold=10,
+            ...     leaf_threshold=2,
+            ... )
+            >>> metrics = calculator.compute_metrics()
+            >>> connectivity = calculator.get_connectivity(some_page)
+        
     """
 
     def __init__(

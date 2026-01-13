@@ -6,22 +6,23 @@ that need to bypass the content pipeline while still having access
 to theme assets via /assets/css/style.css.
 
 Key Concepts:
-    - Verbatim copying: Files copied as-is without processing
-    - Directory preservation: Maintains directory structure from static/
-    - Size warnings: Warns when static folder exceeds size threshold
-    - Theme asset access: Static files can reference theme assets
+- Verbatim copying: Files copied as-is without processing
+- Directory preservation: Maintains directory structure from static/
+- Size warnings: Warns when static folder exceeds size threshold
+- Theme asset access: Static files can reference theme assets
 
 Related Modules:
-    - bengal.orchestration.asset: Asset processing (for theme assets)
-    - bengal.core.site: Site container with static directory
+- bengal.orchestration.asset: Asset processing (for theme assets)
+- bengal.core.site: Site container with static directory
 
 Usage:
-    static/demos/holo.html  → public/demos/holo.html
-    static/downloads/app.pdf → public/downloads/app.pdf
-    static/robots.txt        → public/robots.txt
+static/demos/holo.html  → public/demos/holo.html
+static/downloads/app.pdf → public/downloads/app.pdf
+static/robots.txt        → public/robots.txt
 
 See Also:
-    - bengal/orchestration/static.py:process_static_files() for processing logic
+- bengal/orchestration/static.py:process_static_files() for processing logic
+
 """
 
 from __future__ import annotations
@@ -44,34 +45,35 @@ LARGE_STATIC_WARNING_BYTES = 50 * 1024 * 1024
 class StaticOrchestrator:
     """
     Orchestrates static file copying to output directory.
-
+    
     Copies files from static/ directory to output directory verbatim without
     any processing. Preserves directory structure and warns about large static
     folders that might impact build performance.
-
+    
     Creation:
         Direct instantiation: StaticOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with root_path and output_dir
-
+    
     Attributes:
         site: Site instance with root_path and output_dir
         logger: Logger instance for static file operations
         static_dir: Path to static/ directory (from config or default)
         output_dir: Output directory path
         enabled: Whether static file copying is enabled
-
+    
     Relationships:
         - Used by: BuildOrchestrator for static file copying phase
         - Uses: Site for directory paths and configuration
-
+    
     Thread Safety:
         Thread-safe for parallel file copying operations.
-
+    
     Examples:
         orchestrator = StaticOrchestrator(site)
         if orchestrator.is_enabled():
             count = orchestrator.copy()
+        
     """
 
     def __init__(self, site: Site) -> None:

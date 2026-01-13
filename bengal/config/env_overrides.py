@@ -6,17 +6,17 @@ for zero-config deployments. It reads environment variables set by various
 hosting platforms and configures the site's baseurl accordingly.
 
 Supported Platforms:
-    - **BENGAL_BASEURL**: Explicit override (highest priority)
-    - **Netlify**: Reads ``URL`` or ``DEPLOY_PRIME_URL`` when ``NETLIFY=true``
-    - **Vercel**: Reads ``VERCEL_URL`` when ``VERCEL=1`` or ``VERCEL=true``
-    - **GitHub Pages**: Constructs baseurl from ``GITHUB_REPOSITORY`` when
-      ``GITHUB_ACTIONS=true``
+- **BENGAL_BASEURL**: Explicit override (highest priority)
+- **Netlify**: Reads ``URL`` or ``DEPLOY_PRIME_URL`` when ``NETLIFY=true``
+- **Vercel**: Reads ``VERCEL_URL`` when ``VERCEL=1`` or ``VERCEL=true``
+- **GitHub Pages**: Constructs baseurl from ``GITHUB_REPOSITORY`` when
+  ``GITHUB_ACTIONS=true``
 
 Priority Order:
-    1. Explicit non-empty config baseurl (always preserved)
-    2. ``BENGAL_BASEURL`` environment variable
-    3. Platform-specific detection (Netlify → Vercel → GitHub Pages)
-    4. No change (use whatever is in config)
+1. Explicit non-empty config baseurl (always preserved)
+2. ``BENGAL_BASEURL`` environment variable
+3. Platform-specific detection (Netlify → Vercel → GitHub Pages)
+4. No change (use whatever is in config)
 
 Key Functions:
     apply_env_overrides: Apply environment-based overrides to configuration.
@@ -31,13 +31,14 @@ Example:
     'https://mysite.netlify.app'
 
 Note:
-    This function never raises exceptions - deployment should not fail
-    due to environment detection issues. Errors are logged and the
-    original config is returned unchanged.
+This function never raises exceptions - deployment should not fail
+due to environment detection issues. Errors are logged and the
+original config is returned unchanged.
 
 See Also:
-    - :mod:`bengal.config.environment`: Environment detection (local/preview/production).
-    - :mod:`bengal.config.loader`: Uses env_overrides during config loading.
+- :mod:`bengal.config.environment`: Environment detection (local/preview/production).
+- :mod:`bengal.config.loader`: Uses env_overrides during config loading.
+
 """
 
 from __future__ import annotations
@@ -53,11 +54,11 @@ logger = get_logger(__name__)
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     """
     Apply environment-based overrides for deployment platforms.
-
+    
     Auto-detects baseurl from platform environment variables when
     config baseurl is not explicitly set. Provides zero-config deployments
     for Netlify, Vercel, and GitHub Pages.
-
+    
     Priority:
         1) BENGAL_BASEURL (explicit override)
         2) Netlify (URL/DEPLOY_PRIME_URL)
@@ -65,48 +66,49 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         4) GitHub Pages (owner.github.io/repo) when running in Actions
            - Set GITHUB_PAGES_ROOT=true for root deployments (user/org sites)
            - Auto-detects user/org sites when repo name is {owner}.github.io
-
+    
     Behavior:
     - Explicit non-empty config baseurl takes precedence over all env vars
     - BENGAL_BASEURL (priority 1) can override empty or missing baseurl
     - Platform detection (priorities 2-4) only applies when baseurl is missing from config
     - If baseurl is explicitly set (even if empty), platform detection respects it
-
+    
     Args:
         config: Configuration dictionary (flat or nested)
-
+    
     Returns:
         Config with baseurl set from environment if applicable
-
+    
     Examples:
-        >>> import os
-        >>> os.environ["GITHUB_ACTIONS"] = "true"
-        >>> os.environ["GITHUB_REPOSITORY"] = "owner/repo"
-        >>> # Missing baseurl allows env override
-        >>> config = {}
-        >>> result = apply_env_overrides(config)
-        >>> result["baseurl"]
-        '/repo'
-
-        >>> # Explicit empty baseurl is respected by platform detection
-        >>> config = {"baseurl": ""}
-        >>> result = apply_env_overrides(config)
-        >>> result["baseurl"]
-        ''
-
-        >>> # But BENGAL_BASEURL can override explicit empty
-        >>> import os
-        >>> os.environ["BENGAL_BASEURL"] = "https://override.com"
-        >>> config = {"baseurl": ""}
-        >>> result = apply_env_overrides(config)
-        >>> result["baseurl"]
-        'https://override.com'
-
-        >>> # Explicit non-empty baseurl is respected
-        >>> config = {"baseurl": "https://custom.com"}
-        >>> result = apply_env_overrides(config)
-        >>> result["baseurl"]
-        'https://custom.com'
+            >>> import os
+            >>> os.environ["GITHUB_ACTIONS"] = "true"
+            >>> os.environ["GITHUB_REPOSITORY"] = "owner/repo"
+            >>> # Missing baseurl allows env override
+            >>> config = {}
+            >>> result = apply_env_overrides(config)
+            >>> result["baseurl"]
+            '/repo'
+    
+            >>> # Explicit empty baseurl is respected by platform detection
+            >>> config = {"baseurl": ""}
+            >>> result = apply_env_overrides(config)
+            >>> result["baseurl"]
+            ''
+    
+            >>> # But BENGAL_BASEURL can override explicit empty
+            >>> import os
+            >>> os.environ["BENGAL_BASEURL"] = "https://override.com"
+            >>> config = {"baseurl": ""}
+            >>> result = apply_env_overrides(config)
+            >>> result["baseurl"]
+            'https://override.com'
+    
+            >>> # Explicit non-empty baseurl is respected
+            >>> config = {"baseurl": "https://custom.com"}
+            >>> result = apply_env_overrides(config)
+            >>> result["baseurl"]
+            'https://custom.com'
+        
     """
     try:
         # Ensure site section exists

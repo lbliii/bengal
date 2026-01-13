@@ -10,20 +10,21 @@ All CLI messaging flows through this class, which ensures:
 - Icon sets (ASCII default, emoji opt-in)
 
 Icon Policy:
-    - ASCII-first by default (✓, !, x, etc.)
-    - Cat mascot (ᓚᘏᗢ) for success headers
-    - Mouse mascot (ᘛ⁐̤ᕐᐷ) for error headers (cat catches the bug!)
-    - Emoji opt-in via BENGAL_EMOJI=1 environment variable
+- ASCII-first by default (✓, !, x, etc.)
+- Cat mascot (ᓚᘏᗢ) for success headers
+- Mouse mascot (ᘛ⁐̤ᕐᐷ) for error headers (cat catches the bug!)
+- Emoji opt-in via BENGAL_EMOJI=1 environment variable
 
 Classes:
-    CLIOutput: The primary output manager class.
+CLIOutput: The primary output manager class.
 
 Related:
-    - bengal/output/globals.py: Singleton access via get_cli_output()
-    - bengal/output/enums.py: MessageLevel and OutputStyle enums
-    - bengal/output/icons.py: Icon set definitions
-    - bengal/output/dev_server.py: DevServerOutputMixin for dev server output
-    - bengal/utils/rich_console.py: Rich console configuration
+- bengal/output/globals.py: Singleton access via get_cli_output()
+- bengal/output/enums.py: MessageLevel and OutputStyle enums
+- bengal/output/icons.py: Icon set definitions
+- bengal/output/dev_server.py: DevServerOutputMixin for dev server output
+- bengal/utils/rich_console.py: Rich console configuration
+
 """
 
 from __future__ import annotations
@@ -45,14 +46,14 @@ logger = logging.getLogger(__name__)
 class CLIOutput(DevServerOutputMixin):
     """
     Centralized CLI output manager.
-
+    
     All terminal output in Bengal flows through this class. It provides
     profile-aware formatting (Writer/Theme-Dev/Developer), consistent
     spacing, automatic TTY detection, and Rich/plain text rendering.
-
+    
     The class inherits dev server output methods from DevServerOutputMixin
     for request logging and file change notifications.
-
+    
     Attributes:
         profile: Active build profile controlling output verbosity and style.
         quiet: If True, suppresses INFO-level and below messages.
@@ -63,15 +64,16 @@ class CLIOutput(DevServerOutputMixin):
         profile_config: Configuration dict from the active profile.
         indent_char: Character used for indentation (default: space).
         indent_size: Number of indent_char per indent level (default: 2).
-
+    
     Example:
-        >>> cli = CLIOutput(profile=BuildProfile.WRITER)
-        >>> cli.header("Building your site...")
-        >>> cli.phase("Discovery", duration_ms=61, details="245 pages")
-        >>> cli.success("Built 245 pages in 0.8s")
-
+            >>> cli = CLIOutput(profile=BuildProfile.WRITER)
+            >>> cli.header("Building your site...")
+            >>> cli.phase("Discovery", duration_ms=61, details="245 pages")
+            >>> cli.success("Built 245 pages in 0.8s")
+    
     Note:
         Use get_cli_output() from bengal.output.globals for singleton access.
+        
     """
 
     def __init__(

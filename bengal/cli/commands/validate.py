@@ -112,10 +112,10 @@ def validate(
 ) -> None:
     """
     Validate site health and content quality.
-
+    
     Runs health checks on your site to find errors, warnings, and issues.
     By default, shows only problems (errors and warnings).
-
+    
     Examples:
         bengal validate
         bengal validate --file content/page.md
@@ -126,10 +126,11 @@ def validate(
         bengal validate --templates
         bengal validate --templates --fix
         bengal validate --templates --templates-pattern "autodoc/**/*.html"
-
+    
     See also:
         bengal site build - Build the site
         bengal health linkcheck - Check links specifically
+        
     """
     cli = get_cli_output()
 
@@ -239,7 +240,7 @@ def _run_watch_mode(
 ) -> None:
     """
     Run validation in watch mode - continuously validate on file changes.
-
+    
     Args:
         site: Site instance
         build_profile: Build profile to use
@@ -247,6 +248,7 @@ def _run_watch_mode(
         suggestions: Whether to show suggestions
         incremental: Whether to use incremental validation
         cli: CLI output instance
+        
     """
     import watchfiles
 
@@ -369,15 +371,16 @@ def _validate_templates(
     cli: CLIOutput,
 ) -> None:
     """Validate templates using existing engine.validate() method.
-
+    
     Args:
         site: Site instance with template engine
         pattern: Optional glob pattern to filter templates
         show_hints: Whether to show migration hints for errors
         cli: CLI output instance
-
+    
     Raises:
         click.ClickException: If template validation fails
+        
     """
     from bengal.rendering.engines import create_engine
 
@@ -424,10 +427,11 @@ def _validate_templates(
 
 def _show_migration_hint(error: Any, cli: CLIOutput) -> None:
     """Show migration hints for common Jinja2 → Kida issues.
-
+    
     Args:
         error: Template error object
         cli: CLI output instance
+        
     """
     message = error.message.lower() if error.message else ""
 

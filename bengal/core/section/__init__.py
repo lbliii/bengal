@@ -6,40 +6,41 @@ pages and subsections. Sections form a hierarchy and provide navigation,
 sorting, and query interfaces for templates.
 
 Public API:
-    Section: Content directory with pages and subsections
-    WeightedPage: Helper for weight-based page sorting
+Section: Content directory with pages and subsections
+WeightedPage: Helper for weight-based page sorting
 
 Creation:
-    Section(name, path): Create a section for a directory
-    Section.create_virtual(): Create a virtual section (no disk directory)
+Section(name, path): Create a section for a directory
+Section.create_virtual(): Create a virtual section (no disk directory)
 
 Package Structure:
-    hierarchy.py: SectionHierarchyMixin (tree traversal, identity)
-    navigation.py: SectionNavigationMixin (URLs, version-aware nav)
-    queries.py: SectionQueryMixin (page retrieval, collection ops)
-    ergonomics.py: SectionErgonomicsMixin (theme developer helpers)
-    utils.py: Module-level helper functions
+hierarchy.py: SectionHierarchyMixin (tree traversal, identity)
+navigation.py: SectionNavigationMixin (URLs, version-aware nav)
+queries.py: SectionQueryMixin (page retrieval, collection ops)
+ergonomics.py: SectionErgonomicsMixin (theme developer helpers)
+utils.py: Module-level helper functions
 
 Key Concepts:
-    Hierarchy: Sections form a tree structure with parent-child relationships.
-        Access via section.parent, section.subsections, section.root.
+Hierarchy: Sections form a tree structure with parent-child relationships.
+    Access via section.parent, section.subsections, section.root.
 
-    Index Pages: Special pages (_index.md or index.md) that represent the section.
-        Provides section-level metadata (title, description, cascade values).
+Index Pages: Special pages (_index.md or index.md) that represent the section.
+    Provides section-level metadata (title, description, cascade values).
 
-    Weight-based Sorting: Pages and subsections sorted by weight metadata.
-        Lower weights appear first; unweighted items sort to end.
+Weight-based Sorting: Pages and subsections sorted by weight metadata.
+    Lower weights appear first; unweighted items sort to end.
 
-    Virtual Sections: Sections without a disk directory (e.g., autodoc API docs).
-        Created via Section.create_virtual() for dynamically-generated content.
+Virtual Sections: Sections without a disk directory (e.g., autodoc API docs).
+    Created via Section.create_virtual() for dynamically-generated content.
 
-    Hashability: Sections hashable by path for set operations and dict keys.
-        Two sections with same path are considered equal.
+Hashability: Sections hashable by path for set operations and dict keys.
+    Two sections with same path are considered equal.
 
 Related Packages:
-    bengal.core.page: Page objects contained within sections
-    bengal.core.site: Site container that manages all sections
-    bengal.orchestration.content: Content discovery that builds section hierarchy
+bengal.core.page: Page objects contained within sections
+bengal.core.site: Site container that manages all sections
+bengal.orchestration.content: Content discovery that builds section hierarchy
+
 """
 
 from __future__ import annotations
@@ -71,7 +72,7 @@ class Section(
 ):
     """
     Represents a folder or logical grouping of pages.
-
+    
     HASHABILITY:
     ============
     Sections are hashable based on their path (or name for virtual sections),
@@ -79,10 +80,10 @@ class Section(
     - Fast membership tests and lookups
     - Type-safe Set[Section] collections
     - Set operations for section analysis
-
+    
     Two sections with the same path are considered equal. The hash is stable
     throughout the section lifecycle because path is immutable.
-
+    
     VIRTUAL SECTIONS:
     =================
     Virtual sections represent API documentation or other dynamically-generated
@@ -91,7 +92,7 @@ class Section(
     - Are discovered via VirtualAutodocOrchestrator during build
     - Work with menu system via name-based lookups
     - Don't write intermediate markdown files
-
+    
     Attributes:
         name: Section name
         path: Path to the section directory (None for virtual sections)
@@ -101,6 +102,7 @@ class Section(
         index_page: Optional index page for the section
         parent: Parent section (if nested)
         _virtual: True if this is a virtual section (no disk directory)
+        
     """
 
     name: str = "root"

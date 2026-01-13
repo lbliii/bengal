@@ -5,32 +5,33 @@ This module provides the ContentDiscovery class that finds and organizes
 markdown content files into Page and Section hierarchies during site builds.
 
 Key Features:
-    - Parallel parsing via ThreadPoolExecutor for performance
-    - Frontmatter parsing with YAML error recovery
-    - i18n support (language detection from directory structure)
-    - Content collection schema validation (opt-in)
-    - Symlink loop detection via inode tracking
-    - Content caching for build-integrated validation
-    - Versioned documentation support (_versions/, _shared/)
+- Parallel parsing via ThreadPoolExecutor for performance
+- Frontmatter parsing with YAML error recovery
+- i18n support (language detection from directory structure)
+- Content collection schema validation (opt-in)
+- Symlink loop detection via inode tracking
+- Content caching for build-integrated validation
+- Versioned documentation support (_versions/, _shared/)
 
 Robustness:
-    - YAML errors in frontmatter are downgraded to debug; content is preserved
-    - UTF-8 BOM is stripped at read time to avoid parser confusion
-    - Permission errors and missing directories are handled gracefully
-    - Hidden files/directories are skipped (except _index.md)
+- YAML errors in frontmatter are downgraded to debug; content is preserved
+- UTF-8 BOM is stripped at read time to avoid parser confusion
+- Permission errors and missing directories are handled gracefully
+- Hidden files/directories are skipped (except _index.md)
 
 Architecture:
-    ContentDiscovery is responsible ONLY for finding and parsing content.
-    Rendering, writing, and other operations are handled by orchestrators.
-    The class integrates with BuildContext for content caching, eliminating
-    redundant disk I/O during health checks.
+ContentDiscovery is responsible ONLY for finding and parsing content.
+Rendering, writing, and other operations are handled by orchestrators.
+The class integrates with BuildContext for content caching, eliminating
+redundant disk I/O during health checks.
 
 Related:
-    - bengal/discovery/directory_walker.py: Directory walking logic
-    - bengal/discovery/content_parser.py: Content file parsing
-    - bengal/discovery/section_builder.py: Section building and sorting
-    - bengal/core/page/: Page, PageProxy, and PageCore data models
-    - bengal/core/section.py: Section data model
+- bengal/discovery/directory_walker.py: Directory walking logic
+- bengal/discovery/content_parser.py: Content file parsing
+- bengal/discovery/section_builder.py: Section building and sorting
+- bengal/core/page/: Page, PageProxy, and PageCore data models
+- bengal/core/section.py: Section data model
+
 """
 
 from __future__ import annotations
@@ -59,10 +60,10 @@ if TYPE_CHECKING:
 class ContentDiscovery:
     """
     Discovers and organizes content files into Page and Section hierarchies.
-
+    
     This class walks the content directory, parses markdown files with frontmatter,
     and builds a structured representation of the site's content.
-
+    
     Key Behaviors:
         - YAML errors in frontmatter are downgraded to debug level; content is
           preserved with synthesized minimal metadata to keep builds progressing.
@@ -75,25 +76,26 @@ class ContentDiscovery:
         - Symlink loops are detected via inode tracking to prevent infinite recursion.
         - Content collections: When collections.py is present, frontmatter is
           validated against schemas during discovery (fail fast).
-
+    
     Attributes:
         content_dir: Root content directory to scan
         site: Optional Site reference for configuration access
         sections: List of discovered Section objects (populated after discover())
         pages: List of discovered Page objects (populated after discover())
-
+    
     Example:
-        >>> from bengal.discovery import ContentDiscovery
-        >>> from pathlib import Path
-        >>>
-        >>> # Basic usage
-        >>> discovery = ContentDiscovery(Path("content"))
-        >>> sections, pages = discovery.discover()
-        >>> print(f"Found {len(pages)} pages in {len(sections)} sections")
-        >>>
-        >>> # With caching for incremental builds
-        >>> discovery = ContentDiscovery(Path("content"), site=site)
-        >>> sections, pages = discovery.discover(use_cache=True, cache=page_cache)
+            >>> from bengal.discovery import ContentDiscovery
+            >>> from pathlib import Path
+            >>>
+            >>> # Basic usage
+            >>> discovery = ContentDiscovery(Path("content"))
+            >>> sections, pages = discovery.discover()
+            >>> print(f"Found {len(pages)} pages in {len(sections)} sections")
+            >>>
+            >>> # With caching for incremental builds
+            >>> discovery = ContentDiscovery(Path("content"), site=site)
+            >>> sections, pages = discovery.discover(use_cache=True, cache=page_cache)
+        
     """
 
     def __init__(

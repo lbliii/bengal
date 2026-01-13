@@ -5,14 +5,15 @@ Provides functions for working with tags, categories, and related content,
 plus normalized TagView for consistent tag data access in templates.
 
 Architecture:
-    Core functions (tag_url, related_posts, etc.) are pure Python with no
-    engine dependencies. Context-dependent functions like tag_url_with_site
-    are registered via the adapter layer for engine-specific context handling.
+Core functions (tag_url, related_posts, etc.) are pure Python with no
+engine dependencies. Context-dependent functions like tag_url_with_site
+are registered via the adapter layer for engine-specific context handling.
 
 Example (TagView):
-    {% for tag in site | tag_views %}
-      <a href="{{ tag.href }}">{{ tag.name }} ({{ tag.count }})</a>
-    {% end %}
+{% for tag in site | tag_views %}
+  <a href="{{ tag.href }}">{{ tag.name }} ({{ tag.count }})</a>
+{% end %}
+
 """
 
 from __future__ import annotations
@@ -37,10 +38,10 @@ _site_ref: Site | None = None
 class TagView:
     """
     Normalized view of a tag for templates.
-
+    
     Provides consistent access to tag data including name, slug, URL,
     post count, and optional description.
-
+    
     Attributes:
         name: Display name of the tag
         slug: URL-safe slug
@@ -48,6 +49,7 @@ class TagView:
         count: Number of posts with this tag
         description: Tag description (if available)
         percentage: Percentage of total posts (for tag clouds)
+        
     """
 
     name: str
@@ -95,12 +97,13 @@ class TagView:
 
 def register(env: TemplateEnvironment, site: Site) -> None:
     """Register taxonomy helper functions with template environment.
-
+    
     Context-dependent functions (tag_url) are registered via the adapter
     layer which handles engine-specific context mechanisms.
-
+    
     Non-context functions (related_posts, popular_tags, has_tag) are
     registered directly here.
+        
     """
     global _site_ref
     _site_ref = site
@@ -138,23 +141,24 @@ def tag_views_filter(
 ) -> list[TagView]:
     """
     Get all tags as normalized TagView objects.
-
+    
     Args:
         source: Site object or taxonomies dict
         limit: Maximum number of tags to return (None for all)
         sort_by: Sort field ('count', 'name', 'percentage')
-
+    
     Returns:
         List of TagView objects
-
+    
     Example:
         {% for tag in site | tag_views %}
           <a href="{{ tag.href }}">{{ tag.name }} ({{ tag.count }})</a>
         {% end %}
-
+    
         {% for tag in site | tag_views(limit=10, sort_by='name') %}
           {{ tag.name }}
         {% end %}
+        
     """
     # Get taxonomies from site or use directly
     if hasattr(source, "taxonomies"):
@@ -190,18 +194,19 @@ def tag_views_filter(
 def tag_view_filter(tag_slug: str) -> TagView | None:
     """
     Get a single tag as a TagView by slug.
-
+    
     Args:
         tag_slug: Tag slug to look up
-
+    
     Returns:
         TagView object or None if not found
-
+    
     Example:
         {% let python_tag = 'python' | tag_view %}
         {% if python_tag %}
           <a href="{{ python_tag.href }}">{{ python_tag.name }}</a>
         {% end %}
+        
     """
     if not tag_slug or not _site_ref:
         return None
@@ -219,30 +224,31 @@ def tag_view_filter(tag_slug: str) -> TagView | None:
 def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5) -> list[Any]:
     """
     Find related posts based on shared tags.
-
+    
     PERFORMANCE NOTE: This function now uses pre-computed related posts
     for O(1) access. The old O(n²) algorithm is kept as a fallback for
     backward compatibility with custom templates.
-
+    
     RECOMMENDED: Use `page.related_posts` directly in templates instead
     of calling this function.
-
+    
     Args:
         page: Current page
         all_pages: All site pages (optional, only needed for fallback)
         limit: Maximum number of related posts
-
+    
     Returns:
         List of related pages sorted by relevance
-
+    
     Example (NEW - recommended):
         {% set related = page.related_posts[:3] %}
-
+    
     Example (OLD - backward compatible):
         {% set related = related_posts(page, limit=3) %}
         {% for post in related %}
           <a href="{{ url_for(post) }}">{{ post.title }}</a>
         {% endfor %}
+        
     """
     page_slug = page.slug if hasattr(page, "slug") else "unknown"
 
@@ -317,19 +323,20 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
 def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple[str, int]]:
     """
     Get most popular tags sorted by count.
-
+    
     Args:
         tags_dict: Dictionary of tag -> pages
         limit: Maximum number of tags
-
+    
     Returns:
         List of (tag, count) tuples
-
+    
     Example:
         {% set top_tags = popular_tags(limit=5) %}
         {% for tag, count in top_tags %}
           <a href="{{ tag_url(tag) }}">{{ tag }} ({{ count }})</a>
         {% endfor %}
+        
     """
     if not tags_dict:
         logger.debug("popular_tags_empty", caller="template")
@@ -353,18 +360,19 @@ def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple
 def tag_url(tag: str) -> str:
     """
     Generate URL for a tag page.
-
+    
     Uses bengal.utils.text.slugify for tag slug generation.
-
+    
     Args:
         tag: Tag name
-
+    
     Returns:
         URL path to tag page
-
+    
     Example:
         <a href="{{ tag_url('python') }}">Python</a>
         # <a href="/tags/python/">Python</a>
+        
     """
     if not tag:
         return "/tags/"
@@ -380,18 +388,19 @@ def tag_url(tag: str) -> str:
 def has_tag(page: Any, tag: str) -> bool:
     """
     Check if page has a specific tag.
-
+    
     Args:
         page: Page to check
         tag: Tag to look for
-
+    
     Returns:
         True if page has the tag
-
+    
     Example:
         {% if page | has_tag('tutorial') %}
           <span class="badge">Tutorial</span>
         {% endif %}
+        
     """
     if not hasattr(page, "tags") or not page.tags:
         return False

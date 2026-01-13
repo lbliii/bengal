@@ -5,30 +5,31 @@ Provides URL generation (href, _path, absolute_href) and version-aware
 filtering methods for sections. Handles versioned content path transformation.
 
 Required Host Attributes:
-    - name: str
-    - path: Path | None
-    - parent: Section | None
-    - subsections: list[Section]
-    - metadata: dict[str, Any]
-    - index_page: Page | None
-    - _virtual: bool
-    - _relative_url_override: str | None
-    - _site: Site | None
-    - _diagnostics: DiagnosticsSink | None
-    - sorted_pages: list[Page] (from SectionQueryMixin)
-    - sorted_subsections: list[Section] (from SectionHierarchyMixin)
+- name: str
+- path: Path | None
+- parent: Section | None
+- subsections: list[Section]
+- metadata: dict[str, Any]
+- index_page: Page | None
+- _virtual: bool
+- _relative_url_override: str | None
+- _site: Site | None
+- _diagnostics: DiagnosticsSink | None
+- sorted_pages: list[Page] (from SectionQueryMixin)
+- sorted_subsections: list[Section] (from SectionHierarchyMixin)
 
 Related Modules:
-    bengal.core.section: Section dataclass using this mixin
-    bengal.core.section.hierarchy: Tree structure methods
-    bengal.utils.url_normalization: URL normalization utilities
+bengal.core.section: Section dataclass using this mixin
+bengal.core.section.hierarchy: Tree structure methods
+bengal.utils.url_normalization: URL normalization utilities
 
 Example:
     >>> section = site.get_section("docs")
     >>> section.href
     '/docs/'
     >>> section.pages_for_version("v2")
-    [<Page 'getting-started'>, <Page 'configuration'>]
+[<Page 'getting-started'>, <Page 'configuration'>]
+
 """
 
 from __future__ import annotations
@@ -48,13 +49,14 @@ if TYPE_CHECKING:
 class SectionNavigationMixin:
     """
     URL generation and version-aware navigation.
-
+    
     This mixin handles:
     - URL properties (href, _path, absolute_href)
     - Subsection index URL tracking
     - Navigation children detection
     - Version-aware page/subsection filtering
     - Versioned path transformation
+        
     """
 
     # =========================================================================

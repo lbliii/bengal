@@ -11,29 +11,30 @@ Use cases:
 - Auto-generated section indexes
 
 Example:
-    ::::{cards}
-    :columns: 3
+::::{cards}
+:columns: 3
 
-    :::{card} Getting Started
-    :icon: rocket
-    :link: /docs/quickstart/
+:::{card} Getting Started
+:icon: rocket
+:link: /docs/quickstart/
 
-    Quick introduction to the platform.
-    :::
+Quick introduction to the platform.
+:::
 
-    :::{card} API Reference
-    :icon: book
-    :link: /docs/api/
+:::{card} API Reference
+:icon: book
+:link: /docs/api/
 
-    Complete API documentation.
-    :::
-    ::::
+Complete API documentation.
+:::
+::::
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's cards directive exactly for parity.
+Matches Bengal's cards directive exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -98,12 +99,13 @@ VALID_COLORS = frozenset(
 
 def normalize_columns(columns: str) -> str:
     """Normalize columns specification.
-
+    
     Args:
         columns: Raw columns value (auto, 1-6, or responsive like 1-2-3)
-
+    
     Returns:
         Normalized columns string
+        
     """
     columns = str(columns).strip()
 
@@ -124,13 +126,14 @@ def normalize_columns(columns: str) -> str:
 
 def _render_icon(icon_name: str, card_title: str = "") -> str:
     """Render icon using Bengal SVG icons.
-
+    
     Args:
         icon_name: Name of the icon to render
         card_title: Title of the card (for warning context)
-
+    
     Returns:
         SVG HTML string, or empty string if not found
+        
     """
     try:
         from bengal.directives._icons import render_icon, warn_missing_icon
@@ -153,13 +156,14 @@ def _render_icon(icon_name: str, card_title: str = "") -> str:
 @dataclass(frozen=True, slots=True)
 class CardsOptions(StyledOptions):
     """Options for cards grid directive.
-
+    
     Attributes:
         columns: Column layout ("auto", "1-6", or responsive "1-2-3")
         gap: Grid gap (small, medium, large)
         style: Visual style (default, minimal, bordered)
         variant: Card variant (navigation, info, concept)
         layout: Card layout (default, horizontal, portrait, compact)
+        
     """
 
     columns: str = "auto"
@@ -172,7 +176,7 @@ class CardsOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class CardOptions(StyledOptions):
     """Options for individual card directive.
-
+    
     Attributes:
         icon: Icon name
         link: URL or page reference
@@ -183,6 +187,7 @@ class CardOptions(StyledOptions):
         footer: Footer content
         pull: Fields to pull from linked page (comma-separated)
         layout: Layout override (default, horizontal, portrait, compact)
+        
     """
 
     icon: str = ""
@@ -199,7 +204,7 @@ class CardOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class ChildCardsOptions(StyledOptions):
     """Options for child-cards directive.
-
+    
     Attributes:
         columns: Column layout
         gap: Grid gap
@@ -207,6 +212,7 @@ class ChildCardsOptions(StyledOptions):
         fields: Fields to pull (comma-separated)
         layout: Card layout
         style: Visual style
+        
     """
 
     columns: str = "auto"
@@ -224,11 +230,12 @@ class ChildCardsOptions(StyledOptions):
 
 class CardsDirective:
     """Handler for cards grid container directive.
-
+    
     Creates a responsive grid of cards with sensible defaults.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("cards",)
@@ -298,11 +305,12 @@ class CardsDirective:
 
 class CardDirective:
     """Handler for individual card directive.
-
+    
     Renders a single card with optional link, icon, badge, etc.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("card",)
@@ -436,12 +444,13 @@ class CardDirective:
 
 class ChildCardsDirective:
     """Handler for child-cards directive.
-
+    
     Auto-generates cards from current page's child sections/pages.
     Requires render context with current page information.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("child-cards",)

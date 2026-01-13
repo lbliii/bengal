@@ -28,22 +28,23 @@ def safe_template_exists(
 ) -> bool:
     """
     Check if template exists with null-safety and optional logging.
-
+    
     Centralizes the common pattern of checking template existence
     with graceful handling of missing engine.
-
+    
     Args:
         template_engine: Template engine (may be None)
         name: Template name to check
         log_failures: If True, log debug message when template not found
-
+    
     Returns:
         True if template exists, False otherwise
-
+    
     Example:
-        >>> from bengal.rendering.engines.utils import safe_template_exists
-        >>> if safe_template_exists(engine, "blog/home.html"):
-        ...     return "blog/home.html"
+            >>> from bengal.rendering.engines.utils import safe_template_exists
+            >>> if safe_template_exists(engine, "blog/home.html"):
+            ...     return "blog/home.html"
+        
     """
     if template_engine is None:
         return False

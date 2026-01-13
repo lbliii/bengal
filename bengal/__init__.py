@@ -23,9 +23,10 @@ __all__ = ["Asset", "Page", "Section", "Site", "__version__"]
 def __getattr__(name: str) -> Any:
     """
     Lazily resolve top-level re-exports.
-
+    
     This keeps `import bengal` lightweight while preserving the existing
     `bengal.Asset`, `bengal.Page`, `bengal.Section`, and `bengal.Site` API.
+        
     """
     if name == "Asset":
         from bengal.core.asset import Asset

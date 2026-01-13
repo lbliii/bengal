@@ -12,7 +12,7 @@ Features:
 - Line highlighting
 
 Syntax (v2 simplified):
-    :::{code-tabs}
+:::{code-tabs}
 
     ```python app.py {3-4}
     def hello():
@@ -23,13 +23,14 @@ Syntax (v2 simplified):
     console.log("Hello!");
     ```
 
-    :::
+:::
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's code-tabs directive exactly for parity.
+Matches Bengal's code-tabs directive exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -223,11 +224,12 @@ class CodeTabItem:
 @dataclass(frozen=True, slots=True)
 class CodeTabsOptions(DirectiveOptions):
     """Options for code-tabs directive.
-
+    
     Attributes:
         sync: Sync key for tab synchronization (default: "language")
         linenos: Force line numbers on/off (None = auto for 3+ lines)
         tabs: Parsed tab items (injected by parse method)
+        
     """
 
     sync: str = "language"
@@ -238,38 +240,39 @@ class CodeTabsOptions(DirectiveOptions):
 class CodeTabsDirective:
     """
     Code tabs for multi-language code examples.
-
+    
     Syntax (v2 simplified):
         :::{code-tabs}
-
-        ```python app.py {3-4}
-        def greet(name):
-            print(f"Hello, {name}!")
-        ```
-
-        ```javascript index.js {2-3}
-        function greet(name) {
-            console.log(`Hello, ${name}!`);
-        }
-        ```
-
+    
+            ```python app.py {3-4}
+            def greet(name):
+                print(f"Hello, {name}!")
+            ```
+    
+            ```javascript index.js {2-3}
+            function greet(name) {
+                console.log(`Hello, ${name}!`);
+            }
+            ```
+    
         :::
-
+    
     Legacy syntax (still supported):
         :::{code-tabs}
         ### Python (main.py)
-        ```python
-        def greet(name):
-            print(f"Hello, {name}!")
-        ```
+            ```python
+            def greet(name):
+                print(f"Hello, {name}!")
+            ```
         :::
-
+    
     Options:
         :sync: Sync key for tab synchronization (default: "language")
         :linenos: Force line numbers on/off (default: auto for 3+ lines)
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("code-tabs", "code_tabs")

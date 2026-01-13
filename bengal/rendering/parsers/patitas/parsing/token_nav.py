@@ -15,11 +15,12 @@ if TYPE_CHECKING:
 
 class TokenNavigationMixin:
     """Mixin providing token stream navigation methods.
-
+    
     Required Host Attributes:
         - _tokens: Sequence[Token]
         - _pos: int
         - _current: Token | None
+        
     """
 
     _tokens: Sequence[Token]

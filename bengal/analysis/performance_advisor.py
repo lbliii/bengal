@@ -7,26 +7,26 @@ experience. The advisor provides letter grades, priority-ranked suggestions,
 and specific configuration examples.
 
 Analysis Areas:
-    - Parallel Processing: Detect opportunities for multi-core rendering
-    - Incremental Builds: Identify potential for cache-based optimization
-    - Rendering Performance: Find template bottlenecks and slow pages
-    - Asset Optimization: Detect slow image/CSS processing
-    - Memory Usage: Flag high memory consumption patterns
-    - Template Complexity: Identify overly complex template logic
+- Parallel Processing: Detect opportunities for multi-core rendering
+- Incremental Builds: Identify potential for cache-based optimization
+- Rendering Performance: Find template bottlenecks and slow pages
+- Asset Optimization: Detect slow image/CSS processing
+- Memory Usage: Flag high memory consumption patterns
+- Template Complexity: Identify overly complex template logic
 
 Grading System:
-    - A (90-100): Excellent performance, well-optimized
-    - B (75-89): Good performance, minor optimizations possible
-    - C (60-74): Fair performance, improvements recommended
-    - D (45-59): Poor performance, needs improvement
-    - F (0-44): Critical performance issues
+- A (90-100): Excellent performance, well-optimized
+- B (75-89): Good performance, minor optimizations possible
+- C (60-74): Fair performance, improvements recommended
+- D (45-59): Poor performance, needs improvement
+- F (0-44): Critical performance issues
 
 Classes:
-    SuggestionType: Category of performance suggestion
-    SuggestionPriority: Priority level (HIGH, MEDIUM, LOW)
-    PerformanceSuggestion: A single recommendation with impact estimate
-    PerformanceGrade: Overall build performance assessment
-    PerformanceAdvisor: Main analyzer that generates suggestions
+SuggestionType: Category of performance suggestion
+SuggestionPriority: Priority level (HIGH, MEDIUM, LOW)
+PerformanceSuggestion: A single recommendation with impact estimate
+PerformanceGrade: Overall build performance assessment
+PerformanceAdvisor: Main analyzer that generates suggestions
 
 Example:
     >>> from bengal.analysis.performance_advisor import analyze_build
@@ -37,8 +37,9 @@ Example:
     ...     print(f"{suggestion.title}: {suggestion.impact}")
 
 See Also:
-    - bengal/orchestration/stats.py: BuildStats data source
-    - bengal/cli/build.py: CLI integration
+- bengal/orchestration/stats.py: BuildStats data source
+- bengal/cli/build.py: CLI integration
+
 """
 
 from __future__ import annotations
@@ -75,10 +76,10 @@ class SuggestionPriority(Enum):
 class PerformanceSuggestion:
     """
     A single performance improvement suggestion.
-
+    
     Represents an actionable recommendation to improve build performance,
     with estimated impact and configuration examples.
-
+    
     Attributes:
         type: Category of suggestion (BUILD, CONTENT, CONFIG, etc.)
         priority: Priority level (HIGH, MEDIUM, LOW)
@@ -87,6 +88,7 @@ class PerformanceSuggestion:
         impact: Estimated performance impact (e.g., "Could save ~2.5s")
         action: What the user should do to implement this suggestion
         config_example: Optional example configuration change
+        
     """
 
     type: SuggestionType
@@ -113,15 +115,16 @@ class PerformanceSuggestion:
 class PerformanceGrade:
     """
     Overall performance assessment for a build.
-
+    
     Provides a letter grade (A-F) and category assessment based on
     build performance metrics and best practices compliance.
-
+    
     Attributes:
         grade: Letter grade (A, B, C, D, or F)
         score: Numeric score (0-100)
         category: Performance category ("Excellent", "Good", "Fair", "Poor", "Critical")
         summary: One-line summary of performance assessment
+        
     """
 
     grade: str  # A, B, C, D, F
@@ -223,9 +226,10 @@ class PerformanceGrade:
 class PerformanceAdvisor:
     """
     Analyzes build performance and provides intelligent suggestions.
-
+    
     Uses build statistics to identify bottlenecks and recommend
     optimizations tailored to the specific project.
+        
     """
 
     def __init__(self, stats: BuildStats, environment: dict[str, Any] | None = None):
@@ -521,13 +525,14 @@ def analyze_build(
 ) -> PerformanceAdvisor:
     """
     Quick analysis of build statistics.
-
+    
     Args:
         stats: Build statistics
         environment: Optional environment info
-
+    
     Returns:
         PerformanceAdvisor with analysis complete
+        
     """
     advisor = PerformanceAdvisor(stats, environment)
     advisor.analyze()

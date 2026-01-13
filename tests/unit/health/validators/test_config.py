@@ -192,9 +192,10 @@ class TestConfigValidatorWrapperEdgeCases:
 
 class TestBaseurlValidation:
     """Tests for GitHub Pages baseurl configuration checks.
-
+    
     Common misconfiguration: GitHub Pages project sites need baseurl = "/repo-name"
     but users often forget this, causing all assets and links to 404.
+        
     """
 
     def test_github_pages_project_site_missing_baseurl(self, validator, mock_site):

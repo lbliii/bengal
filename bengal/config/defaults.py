@@ -6,21 +6,21 @@ in Bengal. All configuration access should use these defaults via
 :func:`get_default` or specialized helpers like :func:`get_max_workers`.
 
 The ``DEFAULTS`` dictionary contains default values organized by category:
-    - Site metadata (title, baseurl, description, author, language)
-    - Build settings (output_dir, parallel, incremental, pretty_urls)
-    - Static files configuration
-    - HTML output formatting
-    - Asset processing (minify, optimize, fingerprint)
-    - Theme settings
-    - Content processing options
-    - Search configuration
-    - Pagination settings
-    - Health check validators and thresholds
-    - Feature toggles (RSS, sitemap, search, JSON, llm_txt)
-    - Graph visualization
-    - Internationalization (i18n)
-    - Output format options
-    - Markdown parser configuration
+- Site metadata (title, baseurl, description, author, language)
+- Build settings (output_dir, parallel, incremental, pretty_urls)
+- Static files configuration
+- HTML output formatting
+- Asset processing (minify, optimize, fingerprint)
+- Theme settings
+- Content processing options
+- Search configuration
+- Pagination settings
+- Health check validators and thresholds
+- Feature toggles (RSS, sitemap, search, JSON, llm_txt)
+- Graph visualization
+- Internationalization (i18n)
+- Output format options
+- Markdown parser configuration
 
 Key Functions:
     get_default: Retrieve default value for any config key (supports nested keys).
@@ -33,16 +33,17 @@ Key Functions:
 Example:
     >>> from bengal.config.defaults import get_default, get_max_workers
     >>> get_default("content", "excerpt_length")
-    200
+200
     >>> get_max_workers(None)  # Auto-detect based on CPU cores
-    11
+11
 
 Note:
-    This module avoids heavy dependencies for fast import time during builds.
+This module avoids heavy dependencies for fast import time during builds.
 
 See Also:
-    - :mod:`bengal.config.loader`: Configuration loading from files.
-    - :mod:`bengal.config.env_overrides`: Environment variable overrides.
+- :mod:`bengal.config.loader`: Configuration loading from files.
+- :mod:`bengal.config.env_overrides`: Environment variable overrides.
+
 """
 
 from __future__ import annotations
@@ -63,30 +64,31 @@ DEFAULT_MAX_WORKERS = max(4, _CPU_COUNT - 1)
 def get_max_workers(config_value: int | None = None) -> int:
     """
     Resolve max_workers with auto-detection.
-
+    
     .. deprecated:: 1.0
         Use :func:`bengal.utils.workers.get_optimal_workers` instead.
         This function does not account for workload type or environment.
-
+    
     Args:
         config_value: User-configured value from site.config.get("max_workers")
                      - None or 0 = auto-detect based on CPU count
                      - Positive int = use that value
-
+    
     Returns:
         Resolved worker count (always >= 1)
-
+    
     Example:
-        >>> get_max_workers(None)  # Auto-detect
+            >>> get_max_workers(None)  # Auto-detect
         11  # On a 12-core machine
-        >>> get_max_workers(0)     # Also auto-detect
+            >>> get_max_workers(0)     # Also auto-detect
         11
-        >>> get_max_workers(8)     # Use specified
+            >>> get_max_workers(8)     # Use specified
         8
-
+    
     See Also:
         :func:`bengal.utils.workers.get_optimal_workers` for workload-aware
         worker tuning with environment detection and workload-type profiles.
+        
     """
     import warnings
 
@@ -469,23 +471,24 @@ DEFAULTS: dict[str, Any] = {
 def get_default(key: str, nested_key: str | None = None) -> Any:
     """
     Get default value for a config key.
-
+    
     Args:
         key: Top-level config key (e.g., "max_workers", "theme")
         nested_key: Optional nested key using dot notation (e.g., "lunr.prebuilt")
-
+    
     Returns:
         Default value, or None if key not found
-
+    
     Example:
-        >>> get_default("max_workers")
+            >>> get_default("max_workers")
         None  # Means auto-detect
-        >>> get_default("content", "excerpt_length")
+            >>> get_default("content", "excerpt_length")
         200
-        >>> get_default("search", "lunr.prebuilt")
+            >>> get_default("search", "lunr.prebuilt")
         True
-        >>> get_default("theme", "name")
-        'default'
+            >>> get_default("theme", "name")
+            'default'
+        
     """
     value = DEFAULTS.get(key)
 
@@ -508,21 +511,22 @@ def get_default(key: str, nested_key: str | None = None) -> Any:
 def get_pagination_per_page(config_value: int | None = None) -> int:
     """
     Resolve pagination per_page with default.
-
+    
     Args:
         config_value: User-configured value from site configuration.
             If ``None``, returns the default value from ``DEFAULTS``.
-
+    
     Returns:
         Items per page (default: 10, minimum: 1).
-
+    
     Example:
-        >>> get_pagination_per_page(None)
+            >>> get_pagination_per_page(None)
         10
-        >>> get_pagination_per_page(25)
+            >>> get_pagination_per_page(25)
         25
-        >>> get_pagination_per_page(0)  # Clamped to minimum
+            >>> get_pagination_per_page(0)  # Clamped to minimum
         1
+        
     """
     if config_value is None:
         pagination_defaults: dict[str, Any] = DEFAULTS.get("pagination", {})
@@ -553,32 +557,33 @@ def normalize_bool_or_dict(
 ) -> dict[str, Any]:
     """
     Normalize config values that can be bool or dict.
-
+    
     This standardizes handling of config keys like `health_check`, `search`,
     `graph`, etc. that accept both:
     - `key: false` (bool to disable)
     - `key: { enabled: true, ... }` (dict with options)
-
+    
     Args:
         value: The config value (bool, dict, or None)
         key: The config key name (for defaults lookup)
         default_enabled: Whether the feature is enabled by default
-
+    
     Returns:
         Normalized dict with 'enabled' key and any other options
-
+    
     Examples:
-        >>> normalize_bool_or_dict(False, "health_check")
+            >>> normalize_bool_or_dict(False, "health_check")
         {'enabled': False}
-
-        >>> normalize_bool_or_dict(True, "search")
+    
+            >>> normalize_bool_or_dict(True, "search")
         {'enabled': True, 'lunr': {'prebuilt': True, ...}, 'ui': {...}}
-
-        >>> normalize_bool_or_dict({'verbose': True}, "health_check")
+    
+            >>> normalize_bool_or_dict({'verbose': True}, "health_check")
         {'enabled': True, 'verbose': True}
-
-        >>> normalize_bool_or_dict(None, "graph")
+    
+            >>> normalize_bool_or_dict(None, "graph")
         {'enabled': True, 'path': '/graph/'}
+        
     """
     # Get defaults for this key if available
     key_defaults = DEFAULTS.get(key, {})
@@ -618,27 +623,28 @@ def is_feature_enabled(
 ) -> bool:
     """
     Check if a bool/dict config feature is enabled.
-
+    
     Convenience function for quick enable/disable checks without
     needing the full normalized dict.
-
+    
     Args:
         config: The site config dictionary
         key: The config key to check (e.g., "health_check", "search")
         default: Default value if key not present
-
+    
     Returns:
         True if feature is enabled, False otherwise
-
+    
     Examples:
-        >>> is_feature_enabled({"health_check": False}, "health_check")
+            >>> is_feature_enabled({"health_check": False}, "health_check")
         False
-
-        >>> is_feature_enabled({"search": {"enabled": True}}, "search")
+    
+            >>> is_feature_enabled({"search": {"enabled": True}}, "search")
         True
-
-        >>> is_feature_enabled({}, "graph")  # Not in config
+    
+            >>> is_feature_enabled({}, "graph")  # Not in config
         True  # Default is True
+        
     """
     value = config.get(key)
 
@@ -662,28 +668,29 @@ def get_feature_config(
 ) -> dict[str, Any]:
     """
     Get normalized config for a bool/dict feature.
-
+    
     This is the main entry point for accessing features that can be
     configured as either bool or dict.
-
+    
     Args:
         config: The site config dictionary
         key: The config key (e.g., "health_check", "search", "graph")
         default_enabled: Whether the feature is enabled by default
-
+    
     Returns:
         Normalized dict with 'enabled' key and feature options
-
+    
     Examples:
-        >>> cfg = get_feature_config({"health_check": False}, "health_check")
-        >>> cfg["enabled"]
+            >>> cfg = get_feature_config({"health_check": False}, "health_check")
+            >>> cfg["enabled"]
         False
-
-        >>> cfg = get_feature_config({"search": {"ui": {"modal": False}}}, "search")
-        >>> cfg["enabled"]
+    
+            >>> cfg = get_feature_config({"search": {"ui": {"modal": False}}}, "search")
+            >>> cfg["enabled"]
         True
-        >>> cfg["ui"]["modal"]
+            >>> cfg["ui"]["modal"]
         False
+        
     """
     return normalize_bool_or_dict(
         config.get(key),

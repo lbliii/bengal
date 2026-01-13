@@ -21,7 +21,7 @@ __all__ = ["BadgePlugin"]
 class BadgePlugin:
     """
     Mistune plugin for inline badge syntax.
-
+    
     Syntax:
         {bdg-primary}`text`      -> Primary color badge
         {bdg-secondary}`text`    -> Secondary/muted badge
@@ -31,7 +31,7 @@ class BadgePlugin:
         {bdg-info}`text`         -> Info/blue badge
         {bdg-light}`text`        -> Light badge
         {bdg-dark}`text`         -> Dark badge
-
+    
     Maps to Bengal's CSS color system:
         bdg-primary   -> badge-primary (blue)
         bdg-secondary -> badge-secondary (gray)
@@ -41,8 +41,9 @@ class BadgePlugin:
         bdg-info      -> badge-info (blue)
         bdg-light     -> badge-light (light gray)
         bdg-dark      -> badge-dark (dark gray)
-
+    
     Compatibility: Full support for bdg-* roles.
+        
     """
 
     # Badge color mapping (legacy -> Bengal CSS classes)

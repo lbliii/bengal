@@ -5,19 +5,20 @@ Provides TypedDict definitions for CSS manifest structure, enabling
 type-safe loading and validation of theme CSS manifests.
 
 Usage:
-    from bengal.orchestration.css_manifest_types import CSSManifest
+from bengal.orchestration.css_manifest_types import CSSManifest
 
     manifest: CSSManifest = {
-        "core": [...],
-        "shared": [...],
-        "type_map": {...},
-        "feature_map": {...},
-        "palettes": [...],
-    }
+    "core": [...],
+    "shared": [...],
+    "type_map": {...},
+    "feature_map": {...},
+    "palettes": [...],
+}
 
 See Also:
-    - bengal/themes/default/css_manifest.py: Default theme manifest
-    - bengal/orchestration/css_optimizer.py: Manifest consumer
+- bengal/themes/default/css_manifest.py: Default theme manifest
+- bengal/orchestration/css_optimizer.py: Manifest consumer
+
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from typing import TypedDict
 class CSSManifest(TypedDict, total=False):
     """
     Schema for CSS manifest structure.
-
+    
     Attributes:
         core: CSS files always included (site won't render without these)
         shared: Common components used across most content types
@@ -37,6 +38,7 @@ class CSSManifest(TypedDict, total=False):
         palettes: Color theme preset files
         experimental: Opt-in experimental CSS
         version: Manifest version for cache invalidation
+        
     """
 
     core: list[str]
@@ -51,7 +53,7 @@ class CSSManifest(TypedDict, total=False):
 class CSSOptimizationReport(TypedDict):
     """
     Report from CSS optimization process.
-
+    
     Attributes:
         skipped: Whether optimization was skipped (no manifest)
         included_count: Number of CSS files included
@@ -62,6 +64,7 @@ class CSSOptimizationReport(TypedDict):
         features_detected: Features detected in site
         included_files: List of included CSS file paths
         excluded_files: List of excluded CSS file paths
+        
     """
 
     skipped: bool

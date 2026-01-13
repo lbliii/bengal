@@ -9,16 +9,16 @@ Source: https://github.com/lbliii/rosettes
 Docs: https://lbliii.github.io/rosettes/
 
 Features:
-    - 55 languages supported (hand-written state machine lexers)
-    - O(n) guaranteed performance, zero ReDoS vulnerability
-    - 3.4x faster than Pygments (parallel builds)
-    - Lock-free, thread-safe by design
-    - Semantic class output (default) or Pygments-compatible
-    - Config-based theme selection (RFC-0003)
+- 55 languages supported (hand-written state machine lexers)
+- O(n) guaranteed performance, zero ReDoS vulnerability
+- 3.4x faster than Pygments (parallel builds)
+- Lock-free, thread-safe by design
+- Semantic class output (default) or Pygments-compatible
+- Config-based theme selection (RFC-0003)
 
 Unsupported Languages:
-    For languages not in the 55 supported, code is rendered as plain
-    preformatted text with proper HTML escaping.
+For languages not in the 55 supported, code is rendered as plain
+preformatted text with proper HTML escaping.
 
 Usage:
     >>> from bengal.rendering.highlighting import get_highlighter
@@ -28,6 +28,7 @@ Usage:
 Direct Usage (without Bengal):
     >>> from rosettes import highlight
     >>> html = highlight("def foo(): pass", "python")
+
 """
 
 from __future__ import annotations
@@ -56,15 +57,16 @@ _logger = logging.getLogger(__name__)
 
 class RosettesBackend:
     """Rosettes-based syntax highlighting backend.
-
+    
     Uses the external rosettes package (https://pypi.org/project/rosettes/).
-
+    
     Thread-safe by design: Rosettes uses immutable state and
     functools.cache for memoization.
-
+    
     Supports theming via site configuration (RFC-0003):
         - css_class_style: "semantic" (default) or "pygments"
         - theme: auto-inherited from site palette
+        
     """
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:

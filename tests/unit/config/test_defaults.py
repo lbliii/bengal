@@ -61,8 +61,9 @@ class TestGetMaxWorkers:
 
 class TestGetDefault:
     """Tests for get_default function.
-
+    
     Note: Config is now fully nested (site.title, site.language, etc.)
+        
     """
 
     def test_section_access(self):

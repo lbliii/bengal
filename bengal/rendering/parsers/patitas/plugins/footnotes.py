@@ -4,27 +4,28 @@ Adds support for footnote references and definitions.
 
 Usage:
     >>> md = create_markdown(plugins=["footnotes"])
-    >>> md("Text with footnote[^1].\\n\\n[^1]: Footnote content.")
+    >>> md("Text with footnote[^1].\n\n[^1]: Footnote content.")
     '<p>Text with footnote<sup><a href="#fn-1">1</a></sup>.</p>...'
 
 Syntax:
-    Reference: [^identifier]
-    Definition: [^identifier]: Content here
+Reference: [^identifier]
+Definition: [^identifier]: Content here
 
-    Multi-line definitions:
-    [^note]:
-        First paragraph of footnote.
+Multi-line definitions:
+[^note]:
+    First paragraph of footnote.
 
-        Second paragraph with indent.
+    Second paragraph with indent.
 
 Features:
-    - Numeric or named identifiers: [^1], [^note]
-    - Footnotes collected and rendered at end
-    - Back-references from footnote to text
-    - Multi-paragraph footnotes with indentation
+- Numeric or named identifiers: [^1], [^note]
+- Footnotes collected and rendered at end
+- Back-references from footnote to text
+- Multi-paragraph footnotes with indentation
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -42,11 +43,12 @@ if TYPE_CHECKING:
 @register_plugin("footnotes")
 class FootnotesPlugin:
     """Plugin adding [^1] footnote support.
-
+    
     Footnotes are:
     1. Parsed as inline references [^id]
     2. Defined as block elements [^id]: content
     3. Rendered as a footnotes section at document end
+        
     """
 
     @property

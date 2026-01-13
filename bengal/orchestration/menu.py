@@ -6,18 +6,19 @@ incremental menu building with caching, i18n localization, and active state
 tracking. Menus are built during content discovery and cached for template access.
 
 Key Concepts:
-    - Menu sources: Config definitions, page frontmatter, section structure
-    - Incremental caching: Menu cache invalidation on content changes
-    - i18n menus: Localized menu variants per language
-    - Active state: Current page and active trail tracking
+- Menu sources: Config definitions, page frontmatter, section structure
+- Incremental caching: Menu cache invalidation on content changes
+- i18n menus: Localized menu variants per language
+- Active state: Current page and active trail tracking
 
 Related Modules:
-    - bengal.core.menu: Menu data structures (MenuItem, MenuBuilder)
-    - bengal.core.site: Site container that holds menus
-    - bengal.rendering.template_functions.navigation: Template access to menus
+- bengal.core.menu: Menu data structures (MenuItem, MenuBuilder)
+- bengal.core.site: Site container that holds menus
+- bengal.rendering.template_functions.navigation: Template access to menus
 
 See Also:
-    - bengal/orchestration/menu.py:MenuOrchestrator for menu building logic
+- bengal/orchestration/menu.py:MenuOrchestrator for menu building logic
+
 """
 
 from __future__ import annotations
@@ -39,32 +40,33 @@ if TYPE_CHECKING:
 class MenuOrchestrator:
     """
     Orchestrates navigation menu building with incremental caching.
-
+    
     Handles menu building from config definitions, page frontmatter, and section
     structure. Supports incremental menu building by caching menus when config
     and menu-related pages are unchanged.
-
+    
     Creation:
         Direct instantiation: MenuOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with pages and config populated
-
+    
     Attributes:
         site: Site instance containing menu configuration and pages
         _menu_cache_key: Cache key for incremental menu building
-
+    
     Relationships:
         - Uses: MenuBuilder for menu construction
         - Uses: MenuItem for menu item representation
         - Used by: BuildOrchestrator for menu building phase
         - Updates: site.menu with built menus
-
+    
     Thread Safety:
         Not thread-safe. Should be used from single thread during build.
-
+    
     Examples:
         orchestrator = MenuOrchestrator(site)
         rebuilt = orchestrator.build(changed_pages=changed, config_changed=False)
+        
     """
 
     def __init__(self, site: Site):

@@ -6,46 +6,47 @@ dynamic pages for taxonomy listings. Supports incremental updates, i18n,
 and parallel processing.
 
 Key Responsibilities:
-    Taxonomy Collection
-        Scans all pages for taxonomy metadata (tags, categories) and builds
-        site.taxonomies with term-to-pages mappings.
-    Tag Index Page
-        Generates /tags/ page listing all tags with page counts.
-    Individual Tag Pages
-        Generates /tags/{slug}/ pages with paginated listings of posts
-        for each tag.
-    Incremental Updates
-        Only regenerates affected tags when page tags change, using
-        TaxonomyIndex for O(1) change detection.
+Taxonomy Collection
+    Scans all pages for taxonomy metadata (tags, categories) and builds
+    site.taxonomies with term-to-pages mappings.
+Tag Index Page
+    Generates /tags/ page listing all tags with page counts.
+Individual Tag Pages
+    Generates /tags/{slug}/ pages with paginated listings of posts
+    for each tag.
+Incremental Updates
+    Only regenerates affected tags when page tags change, using
+    TaxonomyIndex for O(1) change detection.
 
 Architecture:
-    The orchestrator builds site.taxonomies dict during collection:
-        site.taxonomies['tags'][slug] = {
+The orchestrator builds site.taxonomies dict during collection:
+    site.taxonomies['tags'][slug] = {
             'name': str,      # Display name (e.g., 'Python')
             'slug': str,      # URL slug (e.g., 'python')
             'pages': list[Page]  # Pages with this tag
-        }
+    }
 
-    Dynamic pages are generated pages with _generated=True metadata
-    that use taxonomy templates (tags.html, tag.html).
+Dynamic pages are generated pages with _generated=True metadata
+that use taxonomy templates (tags.html, tag.html).
 
 Performance:
-    Collection: O(n) where n=total pages
-    Incremental: O(changed) for affected tags only
-    Generation: Parallel via ThreadPoolExecutor for 20+ tags
+Collection: O(n) where n=total pages
+Incremental: O(changed) for affected tags only
+Generation: Parallel via ThreadPoolExecutor for 20+ tags
 
 i18n Support:
-    When i18n is enabled, generates per-locale tag pages and respects
-    share_taxonomies configuration for cross-locale tag sharing.
+When i18n is enabled, generates per-locale tag pages and respects
+share_taxonomies configuration for cross-locale tag sharing.
 
 Related Modules:
-    bengal.cache.build_cache: Stores tag-to-pages mappings for incremental
-    bengal.cache.taxonomy_index: Detects unchanged tags for Phase 2c.2
-    bengal.utils.pagination: Paginator for tag page listings
+bengal.cache.build_cache: Stores tag-to-pages mappings for incremental
+bengal.cache.taxonomy_index: Detects unchanged tags for Phase 2c.2
+bengal.utils.pagination: Paginator for tag page listings
 
 See Also:
-    bengal.orchestration.section: Handles section archives (separate concern)
-    bengal.orchestration.build: Phase 7 (taxonomies) coordination
+bengal.orchestration.section: Handles section archives (separate concern)
+bengal.orchestration.build: Phase 7 (taxonomies) coordination
+
 """
 
 from __future__ import annotations
@@ -78,13 +79,14 @@ if TYPE_CHECKING:
 class TaxonomyOrchestrator:
     """
     Handles taxonomies and dynamic page generation.
-
+    
     Responsibilities:
         - Collect tags, categories, and other taxonomies
         - Generate tag index pages
         - Generate individual tag pages (with pagination)
-
+    
     Note: Section archive pages are now handled by SectionOrchestrator
+        
     """
 
     def __init__(self, site: Site, threshold: int = 20, parallel: bool = True):

@@ -6,19 +6,20 @@ Handles the rendering phase of the build pipeline, including asset fingerprintin
 page rendering, and dependency tracking for incremental builds.
 
 Key Concepts:
-    - Asset fingerprinting: Hash-based cache-busting for assets
-    - Font URL rewriting: Update font references after fingerprinting
-    - Page rendering: Template rendering for all pages
-    - Dependency tracking: Track template and asset dependencies
+- Asset fingerprinting: Hash-based cache-busting for assets
+- Font URL rewriting: Update font references after fingerprinting
+- Page rendering: Template rendering for all pages
+- Dependency tracking: Track template and asset dependencies
 
 Related Modules:
-    - bengal.orchestration.render: Page rendering orchestration
-    - bengal.orchestration.asset: Asset processing orchestration
-    - bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.orchestration.render: Page rendering orchestration
+- bengal.orchestration.asset: Asset processing orchestration
+- bengal.cache.dependency_tracker: Dependency graph construction
 
 See Also:
-    - bengal/orchestration/build/rendering.py: Rendering phase functions
-    - plan/active/rfc-build-pipeline.md: Build pipeline design
+- bengal/orchestration/build/rendering.py: Rendering phase functions
+- plan/active/rfc-build-pipeline.md: Build pipeline design
+
 """
 
 from __future__ import annotations
@@ -45,15 +46,16 @@ if TYPE_CHECKING:
 def _get_top_bottleneck(total_render_ms: float) -> str | None:
     """
     Get the top rendering bottleneck from template profiler.
-
+    
     Returns the slowest template function or template as a formatted string
     showing what percentage of total render time it consumed.
-
+    
     Args:
         total_render_ms: Total rendering time in milliseconds
-
+    
     Returns:
         Formatted string like "get_nav 42%" or None if no profiler data
+        
     """
     from bengal.rendering.template_profiler import get_profiler
 
@@ -106,20 +108,21 @@ def _optimize_css(
 ) -> None:
     """
     Generate optimized CSS based on content types and features.
-
+    
     Analyzes site content to determine which CSS files are needed,
     then generates a minimal style.css with only necessary imports.
     The optimized CSS is written to the cache directory and the
     style.css asset's source is overridden to use it.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         assets_to_process: List of assets (may be modified to update style.css source)
-
+    
     Side effects:
         - Writes optimized CSS to .bengal/cache/assets/optimized-style.css
         - Updates style.css asset's _bundled_content to use optimized version
+        
     """
     from bengal.orchestration.css_optimizer import CSSOptimizer
 
@@ -194,15 +197,16 @@ def _optimize_css(
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
     """
     Rewrite fonts.css to use fingerprinted font filenames.
-
+    
     After asset fingerprinting, font files have hashed names like:
         fonts/outfit-400.6c18d579.woff2
-
+    
     This function updates fonts.css to reference these fingerprinted names
     instead of the original names.
-
+    
     Args:
         orchestrator: Build orchestrator instance
+        
     """
     fonts_css_path = orchestrator.site.output_dir / "assets" / "fonts.css"
     manifest_path = orchestrator.site.output_dir / "asset-manifest.json"
@@ -238,9 +242,9 @@ def phase_assets(
 ) -> list[Asset]:
     """
     Phase 13: Process Assets.
-
+    
     Processes assets (copy, minify, fingerprint) before rendering so asset_url() works.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -248,13 +252,14 @@ def phase_assets(
         parallel: Whether to use parallel processing
         assets_to_process: List of assets to process
         collector: Optional output collector for hot reload tracking
-
+    
     Returns:
         Updated assets_to_process list (may be expanded if theme assets need processing)
-
+    
     Side effects:
         - Copies/processes assets to output directory
         - Updates orchestrator.stats.assets_time_ms
+        
     """
     # Asset processing is I/O-bound and benefits from parallel execution
     with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
@@ -303,13 +308,14 @@ def phase_assets(
 
 def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) -> None:
     """Log template introspection insights (verbose mode only).
-
+    
     Uses Kida's introspection API to analyze templates and log:
     - Cacheable blocks (site-wide vs page-level)
     - Block dependencies
     - Optimization opportunities
-
+    
     RFC: kida-template-introspection
+        
     """
     if not verbose:
         return
@@ -371,9 +377,9 @@ def phase_render(
 ) -> BuildContext:
     """
     Phase 14: Render Pages.
-
+    
     Renders all pages to HTML using templates.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -392,13 +398,14 @@ def phase_render(
                       cached content. If provided, its cached content is preserved
                       in the final context for use by validators.
         collector: Optional output collector for hot reload tracking
-
+    
     Returns:
         BuildContext used for rendering (needed by postprocess)
-
+    
     Side effects:
         - Renders pages to HTML
         - Updates orchestrator.stats.rendering_time_ms
+        
     """
     quiet_mode = quiet and not verbose
 
@@ -567,14 +574,15 @@ def phase_update_site_pages(
 ) -> None:
     """
     Phase 15: Update Site Pages.
-
+    
     Updates site.pages with freshly rendered pages (for incremental builds).
     Replaces stale PageProxy objects with rendered Page objects.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         pages_to_build: List of freshly rendered pages
+        
     """
     if incremental and pages_to_build:
         start = time.perf_counter()
@@ -634,16 +642,17 @@ def phase_track_assets(
 ) -> None:
     """
     Phase 16: Persist Asset Dependencies.
-
+    
     Persists asset dependencies that were accumulated during rendering
     (inline extraction). Assets are extracted in RenderingPipeline and
     accumulated in BuildContext for efficient batch persistence.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: List of rendered pages
         cli: Optional CLI output handler
         build_context: BuildContext with accumulated assets from rendering
+        
     """
     with orchestrator.logger.phase("track_assets", enabled=True):
         start = time.perf_counter()

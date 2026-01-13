@@ -30,10 +30,11 @@ __all__ = ["register", "data_table"]
 def register(env: TemplateEnvironment, site: Site) -> None:
     """
     Register functions with template environment.
-
+    
     Args:
         env: Jinja2 environment
         site: Site instance
+        
     """
     env.globals.update(
         {
@@ -46,10 +47,10 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def data_table(env: Any, path: str, **options: Any) -> Markup:
     """
     Render interactive data table from YAML or CSV file.
-
+    
     Uses the same underlying implementation as the data-table directive,
     but can be called directly from templates for more flexibility.
-
+    
     Args:
         env: Jinja2 environment (injected)
         path: Relative path to data file (YAML or CSV)
@@ -60,23 +61,24 @@ def data_table(env: Any, path: str, **options: Any) -> Markup:
             - pagination (int|False): Rows per page, or False to disable (default: 50)
             - height (str): Table height like "400px" (default: "auto")
             - columns (str): Comma-separated list of columns to show (default: all)
-
+    
     Returns:
         Markup object with rendered HTML table
-
+    
     Example:
         {# Basic usage #}
         {{ data_table('data/browser-support.yaml') }}
-
+    
         {# With options #}
         {{ data_table('data/hardware-specs.csv',
                       pagination=100,
                       height='500px',
                       search=True) }}
-
+    
         {# Show specific columns only #}
         {{ data_table('data/support-matrix.yaml',
                       columns='Feature,Chrome,Firefox') }}
+        
     """
     if not path:
         logger.warning(

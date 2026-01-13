@@ -34,15 +34,16 @@ if TYPE_CHECKING:
 class FeatureDetector:
     """
     Detects CSS-requiring features in page content.
-
+    
     This class analyzes page content to find features that need
     specific CSS files (mermaid, data_tables, etc.).
-
+    
     Thread-safe: Can be used from parallel page parsing.
-
+    
     Example:
         detector = FeatureDetector()
         features = detector.detect_features_in_content(page._source)
+        
     """
 
     # Feature detection patterns
@@ -137,14 +138,15 @@ class FeatureDetector:
 def detect_site_features(site: Site) -> set[str]:
     """
     Detect all features used across a site.
-
+    
     Convenience function to scan all pages and collect features.
-
+    
     Args:
         site: Site with populated pages list
-
+    
     Returns:
         Set of all detected features
+        
     """
     detector = FeatureDetector()
     all_features: set[str] = set()

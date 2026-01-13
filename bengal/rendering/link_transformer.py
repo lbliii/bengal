@@ -30,26 +30,27 @@ logger = get_logger(__name__)
 def transform_internal_links(html: str, baseurl: str) -> str:
     """
     Transform internal links to include baseurl prefix.
-
+    
     This function finds all ``<a href="/...">`` and ``<img src="/...">`` tags
     where the path starts with "/" and prepends the baseurl.
-
+    
     Args:
         html: Rendered HTML content
         baseurl: Base URL prefix (e.g., "/bengal" or "https://example.com/bengal")
-
+    
     Returns:
         HTML with transformed internal links
-
+    
     Examples:
-        >>> transform_internal_links('<a href="/docs/">Docs</a>', '/bengal')
-        '<a href="/bengal/docs/">Docs</a>'
-
-        >>> transform_internal_links('<a href="https://ext.com/">X</a>', '/bengal')
-        '<a href="https://ext.com/">X</a>'  # External link unchanged
-
-        >>> transform_internal_links('<a href="#top">Top</a>', '/bengal')
-        '<a href="#top">Top</a>'  # Anchor unchanged
+            >>> transform_internal_links('<a href="/docs/">Docs</a>', '/bengal')
+            '<a href="/bengal/docs/">Docs</a>'
+    
+            >>> transform_internal_links('<a href="https://ext.com/">X</a>', '/bengal')
+            '<a href="https://ext.com/">X</a>'  # External link unchanged
+    
+            >>> transform_internal_links('<a href="#top">Top</a>', '/bengal')
+            '<a href="#top">Top</a>'  # Anchor unchanged
+        
     """
     if not baseurl:
         return html
@@ -97,16 +98,17 @@ def transform_internal_links(html: str, baseurl: str) -> str:
 def _get_baseurl_from_config(config: dict[str, Any]) -> str:
     """
     Get baseurl from config dict, handling nested structure.
-
+    
     Config can be either:
     - Flat: {"baseurl": "...", ...}
     - Nested: {"site": {"baseurl": "..."}, ...}
-
+    
     Args:
         config: Site configuration dict
-
+    
     Returns:
         Baseurl string or empty string
+        
     """
     # Try nested structure first (TOML format: [site] section)
     site_section = config.get("site", {})
@@ -121,16 +123,17 @@ def _get_baseurl_from_config(config: dict[str, Any]) -> str:
 def should_transform_links(config: dict[str, Any]) -> bool:
     """
     Check if link transformation should be applied.
-
+    
     Link transformation is enabled when:
     1. baseurl is configured (non-empty)
     2. transform_links is not explicitly disabled
-
+    
     Args:
         config: Site configuration dict
-
+    
     Returns:
         True if links should be transformed
+        
     """
     baseurl = _get_baseurl_from_config(config)
     if not baseurl:
@@ -147,12 +150,13 @@ def should_transform_links(config: dict[str, Any]) -> bool:
 def get_baseurl(config: dict[str, Any]) -> str:
     """
     Get normalized baseurl from config.
-
+    
     Args:
         config: Site configuration dict
-
+    
     Returns:
         Normalized baseurl string or empty string
+        
     """
     baseurl = _get_baseurl_from_config(config)
     return baseurl.rstrip("/")
@@ -161,29 +165,30 @@ def get_baseurl(config: dict[str, Any]) -> str:
 def normalize_md_links(html: str) -> str:
     """
     Transform .md links to clean URLs.
-
+    
     Converts markdown-style file links to clean URLs:
     - ./folder-mode.md  ->  ./folder-mode/
     - ../other.md       ->  ../other/
     - sibling.md        ->  sibling/
     - ./_index.md       ->  ./
     - path/page.md      ->  path/page/
-
+    
     This allows users to write natural markdown links that will work both
     in GitHub/editors (where .md files exist) and in the rendered site.
-
+    
     Args:
         html: Rendered HTML content
-
+    
     Returns:
         HTML with .md links transformed to clean URLs
-
+    
     Examples:
-        >>> normalize_md_links('<a href="./guide.md">Guide</a>')
-        '<a href="./guide/">Guide</a>'
-
-        >>> normalize_md_links('<a href="./_index.md">Index</a>')
-        '<a href="./">Index</a>'
+            >>> normalize_md_links('<a href="./guide.md">Guide</a>')
+            '<a href="./guide/">Guide</a>'
+    
+            >>> normalize_md_links('<a href="./_index.md">Index</a>')
+            '<a href="./">Index</a>'
+        
     """
     if not html:
         return html

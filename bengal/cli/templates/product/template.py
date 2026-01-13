@@ -17,14 +17,15 @@ from ..base import SiteTemplate, TemplateFile
 
 def _load_template_file(relative_path: str) -> str:
     """Load and lightly render a page from the template's ``pages/`` dir.
-
+    
     Replaces ``{{date}}`` placeholders with today's date (``YYYY-MM-DD``).
-
+    
     Args:
         relative_path: Path inside this template's ``pages/`` directory.
-
+    
     Returns:
         The file contents with simple substitutions applied.
+        
     """
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
@@ -41,12 +42,13 @@ def _load_template_file(relative_path: str) -> str:
 
 def _load_data_file(relative_path: str) -> str:
     """Load a data file from the template's ``data/`` dir.
-
+    
     Args:
         relative_path: Path inside this template's ``data/`` directory.
-
+    
     Returns:
         The file contents.
+        
     """
     template_dir = Path(__file__).parent
     file_path = template_dir / "data" / relative_path
@@ -57,9 +59,10 @@ def _load_data_file(relative_path: str) -> str:
 
 def _create_product_template() -> SiteTemplate:
     """Construct the product template definition.
-
+    
     Returns:
         A :class:`SiteTemplate` that scaffolds a product-focused site.
+        
     """
 
     files = [

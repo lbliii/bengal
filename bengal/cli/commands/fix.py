@@ -59,18 +59,19 @@ def fix(
 ) -> None:
     """
     Auto-fix common health check issues.
-
+    
     Analyzes health check results and applies safe fixes automatically.
     By default, only applies SAFE fixes (reversible, no side effects).
-
+    
     Examples:
         bengal fix
         bengal fix --validator Directives
         bengal fix --dry-run  # See what would be fixed
         bengal fix --all  # Apply all fixes including confirmations
-
+    
     See also:
         bengal validate - Run health checks
+        
     """
     cli = get_cli_output()
 

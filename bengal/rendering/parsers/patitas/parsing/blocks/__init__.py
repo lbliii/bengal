@@ -11,12 +11,13 @@ Provides mixins for parsing block-level Markdown content:
 - Paragraphs
 
 Architecture:
-    Block parsing is split into logical modules:
-    - core: Block dispatch and basic blocks
-    - list: Complex list parsing with nesting
-    - table: GFM table parsing
-    - directive: Directive parsing with contracts
-    - footnote: Footnote definition parsing
+Block parsing is split into logical modules:
+- core: Block dispatch and basic blocks
+- list: Complex list parsing with nesting
+- table: GFM table parsing
+- directive: Directive parsing with contracts
+- footnote: Footnote definition parsing
+
 """
 
 from __future__ import annotations
@@ -38,10 +39,10 @@ class BlockParsingMixin(
     FootnoteParsingMixin,
 ):
     """Combined block parsing mixin.
-
+    
     Combines all block parsing functionality into a single mixin
     that can be inherited by the Parser class.
-
+    
     Required Host Attributes:
         - _source: str
         - _tokens: list[Token]
@@ -51,11 +52,12 @@ class BlockParsingMixin(
         - _directive_registry: DirectiveRegistry | None
         - _directive_stack: list[str]
         - _strict_contracts: bool
-
+    
     Required Host Methods:
         - _at_end() -> bool
         - _advance() -> Token | None
         - _parse_inline(text, location) -> tuple[Inline, ...]
+        
     """
 
     pass

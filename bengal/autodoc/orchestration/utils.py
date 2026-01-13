@@ -14,16 +14,17 @@ from typing import Any
 def get_template_dir_for_type(page_type: str) -> str:
     """
     Map page types to template directories.
-
+    
     Page types control CSS styling via data-type attribute, but templates are
     organized in different directories. This function maps the page type to
     the appropriate template directory.
-
+    
     Args:
         page_type: The page type (e.g., 'autodoc-python', 'autodoc-cli', 'autodoc-rest')
-
+    
     Returns:
         Template directory name (e.g., 'autodoc/python', 'autodoc/cli', 'api-hub')
+        
     """
     # Map standardized page types to template directories
     type_to_template = {
@@ -38,15 +39,16 @@ def get_template_dir_for_type(page_type: str) -> str:
 def normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
     """
     Normalize github repo/branch for autodoc template consumption.
-
+    
     Mirrors RenderingPipeline._normalize_config for the subset we need
     inside the autodoc orchestrator (owner/repo → https URL, default branch).
-
+    
     Args:
         site_config: Site configuration dict
-
+    
     Returns:
         Normalized autodoc config with github_repo and github_branch
+        
     """
     base = {}
     if isinstance(site_config, dict):
@@ -68,28 +70,29 @@ def normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
 def format_source_file_for_display(source_file: Path | str | None, root_path: Path) -> str | None:
     """
     Normalize source_file paths for GitHub links.
-
+    
     Converts source file paths to repository-relative POSIX paths suitable
     for constructing GitHub blob URLs.
-
+    
     Strategy:
         1. If path is relative, keep as-is (already repo-relative)
         2. If absolute, try to make relative to repo root (root_path.parent)
         3. Fall back to site root (root_path)
         4. If neither works, return POSIX-ified absolute path
-
+    
     Args:
         source_file: Path to source file (absolute or relative)
         root_path: Site root path (typically the site/ directory within a repo)
-
+    
     Returns:
         Repository-relative POSIX path, or None if source_file is None
-
+    
     Example:
-        >>> # Site root: /home/user/myproject/site
-        >>> # Source: /home/user/myproject/mypackage/core/module.py
-        >>> format_source_file_for_display(source, site_root)
-        'mypackage/core/module.py'
+            >>> # Site root: /home/user/myproject/site
+            >>> # Source: /home/user/myproject/mypackage/core/module.py
+            >>> format_source_file_for_display(source, site_root)
+            'mypackage/core/module.py'
+        
     """
     if not source_file:
         return None
@@ -119,15 +122,16 @@ def format_source_file_for_display(source_file: Path | str | None, root_path: Pa
 def slugify(text: str) -> str:
     """
     Convert text to URL-friendly slug.
-
+    
     Strips common suffixes (API, Reference, Documentation), converts to lowercase,
     replaces non-alphanumeric characters with hyphens, and collapses multiple hyphens.
-
+    
     Args:
         text: Text to slugify (e.g., "Commerce API Reference")
-
+    
     Returns:
         URL-friendly slug (e.g., "commerce"), or "rest" as fallback for empty results
+        
     """
     if not text or not text.strip():
         return "rest"

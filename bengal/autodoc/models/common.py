@@ -16,16 +16,17 @@ from pathlib import Path
 class SourceLocation:
     """
     Source code location for a documented element.
-
+    
     Attributes:
         file: Path to source file (string for serializability)
         line: Line number (1-based)
         column: Column number (optional, 1-based)
-
+    
     Example:
-        >>> loc = SourceLocation(file="bengal/core/site.py", line=45)
-        >>> loc.file
-        'bengal/core/site.py'
+            >>> loc = SourceLocation(file="bengal/core/site.py", line=45)
+            >>> loc.file
+            'bengal/core/site.py'
+        
     """
 
     file: str
@@ -69,21 +70,22 @@ class SourceLocation:
 class QualifiedName:
     """
     Validated qualified name for a documented element.
-
+    
     Ensures qualified names don't have empty parts (e.g., from
     malformed module paths like "...bengal.core").
-
+    
     Attributes:
         parts: Tuple of name parts (non-empty strings)
-
+    
     Example:
-        >>> qn = QualifiedName.from_string("bengal.core.site.Site")
-        >>> qn.parts
+            >>> qn = QualifiedName.from_string("bengal.core.site.Site")
+            >>> qn.parts
         ('bengal', 'core', 'site', 'Site')
-        >>> qn.name
-        'Site'
-        >>> str(qn)
-        'bengal.core.site.Site'
+            >>> qn.name
+            'Site'
+            >>> str(qn)
+            'bengal.core.site.Site'
+        
     """
 
     parts: tuple[str, ...]

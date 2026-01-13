@@ -5,17 +5,18 @@ This module re-exports path utilities from their canonical locations for
 backward compatibility. New code should import directly from the canonical
 locations:
 
-    - ``BengalPaths``: from bengal.cache.paths
+- ``BengalPaths``: from bengal.cache.paths
 
 For legacy compatibility, this module also provides ``LegacyBengalPaths``
 with static methods for path resolution.
 
 Canonical Locations:
-    - bengal/cache/paths.py: BengalPaths (instance-based), STATE_DIR_NAME
-    - bengal/utils/text.py: format_path_for_display
+- bengal/cache/paths.py: BengalPaths (instance-based), STATE_DIR_NAME
+- bengal/utils/text.py: format_path_for_display
 
 See Also:
-    - architecture/file-organization.md: Overall file organization
+- architecture/file-organization.md: Overall file organization
+
 """
 
 from __future__ import annotations
@@ -31,24 +32,25 @@ __all__ = ["BengalPaths", "LegacyBengalPaths"]
 class LegacyBengalPaths:
     """
     Legacy static method interface for Bengal path resolution.
-
+    
     This class provides backward-compatible static methods for accessing
     Bengal state directory paths. New code should use the instance-based
     ``BengalPaths`` class from ``bengal.cache.paths`` instead.
-
+    
     Example (legacy pattern)::
-
+    
         from bengal.utils.paths import LegacyBengalPaths
         log_path = LegacyBengalPaths.get_build_log_path(source_dir)
-
+    
     Example (recommended pattern)::
-
+    
         from bengal.cache.paths import BengalPaths
         paths = BengalPaths(source_dir)
         log_path = paths.build_log
-
+    
     .. deprecated::
         Use ``bengal.cache.paths.BengalPaths`` instead.
+        
     """
 
     @staticmethod

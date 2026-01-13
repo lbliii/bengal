@@ -4,7 +4,8 @@ Provides SourceLocation dataclass for tracking positions in source text.
 Used throughout Patitas for error messages, AST nodes, and debugging.
 
 Thread Safety:
-    SourceLocation is frozen (immutable) and safe to share across threads.
+SourceLocation is frozen (immutable) and safe to share across threads.
+
 """
 
 from __future__ import annotations
@@ -15,30 +16,31 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class SourceLocation:
     """Source location for error messages and debugging.
-
+    
     Tracks both position in source and optionally the source file path
     for multi-file documentation builds.
-
+    
     All positions are 1-indexed (lineno and col_offset start at 1).
-
+    
     Attributes:
         lineno: Starting line number (1-indexed)
         col_offset: Starting column offset (1-indexed)
         end_lineno: Ending line number (optional)
         end_col_offset: Ending column offset (optional)
         source_file: Source file path (optional, for multi-file builds)
-
+    
     Examples:
-        >>> loc = SourceLocation(lineno=1, col_offset=1)
-        >>> loc
+            >>> loc = SourceLocation(lineno=1, col_offset=1)
+            >>> loc
         SourceLocation(lineno=1, col_offset=1, end_lineno=None, ...)
-
-        >>> loc = SourceLocation(1, 1, 1, 10, "docs/guide.md")
-        >>> f"{loc.source_file}:{loc.lineno}:{loc.col_offset}"
-        'docs/guide.md:1:1'
-
+    
+            >>> loc = SourceLocation(1, 1, 1, 10, "docs/guide.md")
+            >>> f"{loc.source_file}:{loc.lineno}:{loc.col_offset}"
+            'docs/guide.md:1:1'
+    
     Thread Safety:
         Frozen dataclass ensures immutability for safe sharing.
+        
     """
 
     lineno: int

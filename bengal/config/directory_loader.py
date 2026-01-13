@@ -11,36 +11,36 @@ structure, supporting multi-file configurations with environment-specific and
 profile-specific overrides.
 
 Directory Structure:
-    The expected directory layout is::
+The expected directory layout is::
 
-        config/
-        ├── _default/           # Base configuration (multiple YAML files)
-        │   ├── site.yaml       # Site metadata
-        │   ├── build.yaml      # Build settings
-        │   └── theme.yaml      # Theme configuration
-        ├── environments/       # Environment-specific overrides
-        │   ├── production.yaml
-        │   ├── preview.yaml
-        │   └── local.yaml
-        └── profiles/           # User-defined profiles
-            ├── writer.yaml
-            └── developer.yaml
+    config/
+    ├── _default/           # Base configuration (multiple YAML files)
+    │   ├── site.yaml       # Site metadata
+    │   ├── build.yaml      # Build settings
+    │   └── theme.yaml      # Theme configuration
+    ├── environments/       # Environment-specific overrides
+    │   ├── production.yaml
+    │   ├── preview.yaml
+    │   └── local.yaml
+    └── profiles/           # User-defined profiles
+        ├── writer.yaml
+        └── developer.yaml
 
 Merge Precedence (lowest to highest):
-    1. Bengal DEFAULTS from ``defaults.py`` - Built-in defaults
-    2. ``config/_default/*.yaml`` - Base configuration
-    3. ``config/environments/<env>.yaml`` - Environment overrides
-    4. ``config/profiles/<profile>.yaml`` - Profile settings
+1. Bengal DEFAULTS from ``defaults.py`` - Built-in defaults
+2. ``config/_default/*.yaml`` - Base configuration
+3. ``config/environments/<env>.yaml`` - Environment overrides
+4. ``config/profiles/<profile>.yaml`` - Profile settings
 
 Features:
-    - Auto-detection of deployment environment (Netlify, Vercel, GitHub Actions)
-    - Feature group expansion (e.g., ``features.rss: true`` → detailed config)
-    - Origin tracking for debugging (``bengal config show --origin``)
-    - Automatic environment variable overrides for baseurl
+- Auto-detection of deployment environment (Netlify, Vercel, GitHub Actions)
+- Feature group expansion (e.g., ``features.rss: true`` → detailed config)
+- Origin tracking for debugging (``bengal config show --origin``)
+- Automatic environment variable overrides for baseurl
 
 Classes:
-    ConfigLoadError: Raised when configuration loading fails.
-    ConfigDirectoryLoader: Main loader class for directory-based configuration.
+ConfigLoadError: Raised when configuration loading fails.
+ConfigDirectoryLoader: Main loader class for directory-based configuration.
 
 Example:
     >>> from bengal.config.directory_loader import ConfigDirectoryLoader
@@ -48,8 +48,9 @@ Example:
     >>> config = loader.load(Path("config"), environment="production")
 
 See Also:
-    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
-    - :mod:`bengal.config.environment`: Environment detection logic.
+- :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
+- :mod:`bengal.config.environment`: Environment detection logic.
+
 """
 
 from __future__ import annotations
@@ -73,12 +74,12 @@ logger = get_logger(__name__)
 class ConfigLoadError(BengalConfigError):
     """
     Raised when configuration loading fails.
-
+    
     This exception is raised for various configuration loading failures
     including missing directories, invalid YAML syntax, or file permission
     errors. Extends :class:`~bengal.errors.BengalConfigError` for consistent
     error handling throughout the configuration system.
-
+    
     Attributes:
         Inherited from BengalConfigError:
             message: Description of the error.
@@ -86,6 +87,7 @@ class ConfigLoadError(BengalConfigError):
             line_number: Line number where the error occurred (if applicable).
             suggestion: Helpful suggestion for fixing the error.
             original_error: The underlying exception, if any.
+        
     """
 
     pass
@@ -94,11 +96,11 @@ class ConfigLoadError(BengalConfigError):
 class ConfigDirectoryLoader:
     """
     Load configuration from a directory structure with layered overrides.
-
+    
     This loader supports multi-file configurations organized in directories,
     with automatic environment detection and profile-based customization.
     It provides deterministic merging with clear precedence rules.
-
+    
     Features:
         - **Multi-file configs**: Split configuration across multiple YAML files
           in ``_default/`` for better organization.
@@ -109,31 +111,32 @@ class ConfigDirectoryLoader:
         - **Origin tracking**: Optional tracking of which file contributed each
           configuration key (for ``bengal config show --origin``).
         - **Feature expansion**: Simple feature toggles expanded to detailed config.
-
+    
     Attributes:
         track_origins: Whether origin tracking is enabled.
         origin_tracker: The :class:`ConfigWithOrigin` instance if tracking is enabled.
-
+    
     Example:
         Basic usage::
-
+    
             loader = ConfigDirectoryLoader()
             config = loader.load(Path("config"))
-
+    
         With origin tracking::
-
+    
             loader = ConfigDirectoryLoader(track_origins=True)
             config = loader.load(Path("config"), environment="production")
             tracker = loader.get_origin_tracker()
             print(tracker.show_with_origin())
-
+    
         With profile::
-
+    
             config = loader.load(
                 Path("config"),
                 environment="local",
                 profile="developer"
             )
+        
     """
 
     def __init__(self, track_origins: bool = False) -> None:

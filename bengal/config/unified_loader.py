@@ -6,15 +6,16 @@ directory-based configuration. It replaces the previous ConfigLoader and
 ConfigDirectoryLoader classes with a unified implementation.
 
 Precedence (lowest to highest):
-    1. DEFAULTS (nested structure)
-    2. User config (single file or directory)
-    3. Environment overrides (optional)
-    4. Profile overrides (optional)
+1. DEFAULTS (nested structure)
+2. User config (single file or directory)
+3. Environment overrides (optional)
+4. Profile overrides (optional)
 
 See Also:
-    - :mod:`bengal.config.accessor`: Config and ConfigSection classes.
-    - :mod:`bengal.config.defaults`: Default configuration values.
-    - :mod:`bengal.config.validation`: Configuration validation.
+- :mod:`bengal.config.accessor`: Config and ConfigSection classes.
+- :mod:`bengal.config.defaults`: Default configuration values.
+- :mod:`bengal.config.validation`: Configuration validation.
+
 """
 
 from __future__ import annotations
@@ -42,12 +43,13 @@ logger = get_logger(__name__)
 class UnifiedConfigLoader:
     """
     Single loader for all config modes.
-
+    
     Precedence (lowest to highest):
         1. DEFAULTS (nested structure)
         2. User config (single file or directory)
         3. Environment overrides (optional)
         4. Profile overrides (optional)
+        
     """
 
     def __init__(self, track_origins: bool = False) -> None:

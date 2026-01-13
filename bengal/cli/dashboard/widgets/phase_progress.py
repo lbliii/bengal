@@ -45,24 +45,25 @@ class PhaseInfo:
 class PhaseProgress(Vertical):
     """
     Real-time streaming build phase progress display.
-
+    
     Extends BuildPhasePlan with:
     - Live phase updates via callbacks
     - Phase details display (item counts, etc.)
     - Total elapsed time tracking
     - Current phase highlighting
-
+    
     Default phases match Bengal build pipeline:
     - Discovery → Content → Assets → Rendering → Finalization → Health
-
+    
     Example:
         progress = PhaseProgress(id="build-progress")
-
+    
         # Set as build callbacks
         orchestrator.build(
             on_phase_start=progress.start_phase,
             on_phase_complete=progress.complete_phase,
         )
+        
     """
 
     DEFAULT_CSS = """

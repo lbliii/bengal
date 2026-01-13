@@ -17,15 +17,16 @@ if TYPE_CHECKING:
 class SectionContext:
     """
     Smart wrapper for Section with safe access.
-
+    
     Returns empty values when no section exists (for non-section pages).
     Template authors can always write {{ section.title }} without checks.
-
+    
     Example:
         {{ section.title }}
         {{ section.name }}
         {{ section.href }}
         {% for page in section.pages %}
+        
     """
 
     __slots__ = ("_section", "_params_cache")

@@ -6,18 +6,19 @@ the DisplayableStats protocol for use when full BuildStats data
 is not available (e.g., subprocess rebuilds via BuildResult).
 
 Architecture:
-    MinimalStats implements DisplayableStats with sensible defaults
-    for attributes not available from the build result. This allows
-    display_build_stats() to work uniformly with both full builds
-    and subprocess rebuilds.
+MinimalStats implements DisplayableStats with sensible defaults
+for attributes not available from the build result. This allows
+display_build_stats() to work uniformly with both full builds
+and subprocess rebuilds.
 
 Related:
-    - bengal/utils/stats_protocol.py: Protocol definitions
-    - bengal/utils/build_stats.py: Full BuildStats implementation
-    - bengal/server/build_executor.py: BuildResult that this wraps
+- bengal/utils/stats_protocol.py: Protocol definitions
+- bengal/utils/build_stats.py: Full BuildStats implementation
+- bengal/server/build_executor.py: BuildResult that this wraps
 
 See Also:
-    - plan/drafted/rfc-stats-architecture.md: Design rationale
+- plan/drafted/rfc-stats-architecture.md: Design rationale
+
 """
 
 from __future__ import annotations
@@ -33,26 +34,27 @@ if TYPE_CHECKING:
 class MinimalStats:
     """
     Lightweight stats for subprocess build results.
-
+    
     Implements the DisplayableStats protocol with sensible defaults
     for attributes not available from BuildResult. This replaces
     ad-hoc local stub classes with a tested, protocol-compliant
     implementation.
-
+    
     Attributes:
         total_pages: Number of pages built (from BuildResult.pages_built)
         build_time_ms: Build duration in ms (from BuildResult.build_time_ms)
         incremental: Whether this was an incremental build
-
+    
     All other attributes default to appropriate zero/empty values,
     which display_build_stats() handles gracefully (skips if 0).
-
+    
     Example:
-        >>> from bengal.server.build_executor import BuildResult
-        >>> result = BuildResult(success=True, pages_built=50, build_time_ms=500.0)
-        >>> stats = MinimalStats.from_build_result(result, incremental=True)
-        >>> stats.total_pages
+            >>> from bengal.server.build_executor import BuildResult
+            >>> result = BuildResult(success=True, pages_built=50, build_time_ms=500.0)
+            >>> stats = MinimalStats.from_build_result(result, incremental=True)
+            >>> stats.total_pages
         50
+        
     """
 
     # Required: from BuildResult

@@ -5,10 +5,10 @@ Provides a generic paginator for content collections (pages, posts, tags)
 with template-friendly context generation for navigation controls.
 
 Key Features:
-    - Generic type support for any item type
-    - 1-indexed page numbers (user-friendly)
-    - Template context generation with prev/next links
-    - Configurable page window for navigation
+- Generic type support for any item type
+- 1-indexed page numbers (user-friendly)
+- Template context generation with prev/next links
+- Configurable page window for navigation
 
 Usage:
     >>> from bengal.utils.pagination import Paginator
@@ -21,12 +21,13 @@ Usage:
     >>> ctx = paginator.page_context(page_number=2, base_url="/blog/")
 
 Related Modules:
-    - bengal/orchestration/archive_orchestrator.py: Uses for section archives
-    - bengal/orchestration/taxonomy_orchestrator.py: Uses for tag pages
-    - bengal/rendering/template_functions/: Pagination filters
+- bengal/orchestration/archive_orchestrator.py: Uses for section archives
+- bengal/orchestration/taxonomy_orchestrator.py: Uses for tag pages
+- bengal/rendering/template_functions/: Pagination filters
 
 See Also:
-    - bengal/themes/default/templates/partials/pagination.html: Template usage
+- bengal/themes/default/templates/partials/pagination.html: Template usage
+
 """
 
 from __future__ import annotations
@@ -38,31 +39,32 @@ from typing import Any
 class Paginator[T]:
     """
     Generic paginator for splitting a list of items into pages.
-
+    
     This class provides pagination logic for any collection of items,
     producing page slices and template context for navigation controls.
-
+    
     Type Parameter:
         T: The type of items being paginated (e.g., Page, dict, str)
-
+    
     Attributes:
         items: Complete list of items to paginate
         per_page: Number of items per page (minimum: 1)
         num_pages: Total number of pages (computed)
-
+    
     Thread Safety:
         Paginator instances are thread-safe for read operations.
         Do not modify `items` after construction.
-
+    
     Example:
-        >>> posts = [{"title": f"Post {i}"} for i in range(25)]
-        >>> paginator = Paginator(posts, per_page=10)
-        >>> paginator.num_pages
+            >>> posts = [{"title": f"Post {i}"} for i in range(25)]
+            >>> paginator = Paginator(posts, per_page=10)
+            >>> paginator.num_pages
         3
-        >>> len(paginator.page(1))
+            >>> len(paginator.page(1))
         10
-        >>> len(paginator.page(3))
+            >>> len(paginator.page(3))
         5
+        
     """
 
     def __init__(self, items: list[T], per_page: int = 10) -> None:

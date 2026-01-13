@@ -5,22 +5,23 @@ This module provides the true AST architecture for content processing,
 replacing the misleading `parsed_ast` field (which actually contains HTML).
 
 Architecture:
-    - _ast: True AST from parser (list of tokens) - Phase 3
-    - html: HTML rendered from AST (or legacy parsed_ast)
-    - plain_text: Plain text for search/LLM (AST walk or raw markdown)
+- _ast: True AST from parser (list of tokens) - Phase 3
+- html: HTML rendered from AST (or legacy parsed_ast)
+- plain_text: Plain text for search/LLM (AST walk or raw markdown)
 
 Benefits:
-    - Parse once, use many times
-    - Faster post-processing (O(n) AST walks vs regex)
-    - Cleaner transformations (shortcodes at AST level)
-    - Better caching (cache AST separately from HTML)
+- Parse once, use many times
+- Faster post-processing (O(n) AST walks vs regex)
+- Cleaner transformations (shortcodes at AST level)
+- Better caching (cache AST separately from HTML)
 
 Migration Plan:
-    Phase 1: Add html, plain_text properties (non-breaking)
-    Phase 2: Deprecate parsed_ast
-    Phase 3: Implement true AST with hybrid fallback
+Phase 1: Add html, plain_text properties (non-breaking)
+Phase 2: Deprecate parsed_ast
+Phase 3: Implement true AST with hybrid fallback
 
 See: plan/active/rfc-content-ast-architecture.md
+
 """
 
 from __future__ import annotations
@@ -37,18 +38,19 @@ if TYPE_CHECKING:
 class PageContentMixin:
     """
     Mixin providing AST-based content properties for pages.
-
+    
     This mixin handles content representation across multiple formats:
     - AST (Abstract Syntax Tree) - structural representation (Phase 3)
     - HTML - rendered for display (via .content property)
     - Plain text - for search indexing and LLM
-
+    
     All properties use lazy evaluation with caching for performance.
-
+    
     Key Properties:
         content: Rendered HTML content (template-ready, display output)
         html: Alias for content (rendered HTML)
         _source: Raw markdown source (internal use, via PageComputedMixin)
+        
     """
 
     # Fields from Page that this mixin accesses

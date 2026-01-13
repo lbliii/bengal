@@ -42,18 +42,19 @@ def handle_cli_errors(
 ) -> Callable[[F], F]:
     """
     Decorator for unified CLI error handling.
-
+    
     Args:
         show_art: Whether to show ASCII art in error messages
         preserve_chain: Whether to preserve exception chain (raise ... from e)
         show_traceback: Whether to show traceback (None = auto-detect from config)
-
+    
     Example:
         @click.command()
         @handle_cli_errors()
         def my_command():
             # ... command logic ...
             pass
+        
     """
 
     def decorator(func: F) -> F:
@@ -144,16 +145,17 @@ def cli_error_context(
 ) -> Generator[None]:
     """
     Context manager for error handling within command functions.
-
+    
     Args:
         operation: Description of the operation being performed
         show_art: Whether to show ASCII art in error messages
         show_traceback: Whether to show traceback (None = auto-detect)
-
+    
     Example:
         def my_command():
             with cli_error_context("loading site"):
                 site = Site.from_config(...)
+        
     """
     try:
         yield

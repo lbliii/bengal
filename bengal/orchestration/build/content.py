@@ -23,18 +23,19 @@ def phase_sections(
 ) -> None:
     """
     Phase 6: Section Finalization.
-
+    
     Ensures all sections have index pages and validates section structure.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         incremental: Whether this is an incremental build
         affected_sections: Set of section paths affected by changes (or None for full build)
-
+    
     Side effects:
         - May create generated index pages for sections without them
         - Invalidates regular_pages cache
+        
     """
     with orchestrator.logger.phase("section_finalization"):
         # If incremental and there are no affected sections, skip noisy finalization/validation
@@ -84,25 +85,26 @@ def phase_taxonomies(
 ) -> set[str]:
     """
     Phase 7: Taxonomies & Dynamic Pages.
-
+    
     Collects taxonomy terms (tags, categories) and generates taxonomy pages.
     Optimized for incremental builds - only processes changed pages.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
         force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental)
-
+    
     Returns:
         Set of affected tag slugs
-
+    
     Side effects:
         - Populates orchestrator.site.taxonomies
         - Creates taxonomy pages in orchestrator.site.pages
         - Invalidates regular_pages cache
         - Updates orchestrator.stats.taxonomy_time_ms
+        
     """
     affected_tags = set()
 
@@ -162,11 +164,12 @@ def phase_taxonomies(
 def phase_taxonomy_index(orchestrator: BuildOrchestrator) -> None:
     """
     Phase 8: Save Taxonomy Index.
-
+    
     Persists tag-to-pages mapping for incremental builds.
-
+    
     Side effects:
         - Writes taxonomy index to .bengal/taxonomy_index.json
+        
     """
     with orchestrator.logger.phase("save_taxonomy_index", enabled=True):
         try:
@@ -218,17 +221,18 @@ def phase_menus(
 ) -> None:
     """
     Phase 9: Menu Building.
-
+    
     Builds navigation menus. Optimized for incremental builds.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         changed_page_paths: Set of paths for pages that changed
-
+    
     Side effects:
         - Populates orchestrator.site.menu
         - Updates orchestrator.stats.menu_time_ms
+        
     """
     with orchestrator.logger.phase("menus"):
         menu_start = time.time()
@@ -257,19 +261,20 @@ def phase_related_posts(
 ) -> None:
     """
     Phase 10: Related Posts Index.
-
+    
     Pre-computes related posts for O(1) template access.
     Skipped for large sites (>5K pages) or sites without tags.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental optimization)
-
+    
     Side effects:
         - Populates page.related_posts for each page
         - Updates orchestrator.stats.related_posts_time_ms
+        
     """
     should_build_related = (
         hasattr(orchestrator.site, "taxonomies")
@@ -330,17 +335,18 @@ def phase_query_indexes(
 ) -> None:
     """
     Phase 11: Query Indexes.
-
+    
     Builds pre-computed indexes for O(1) template lookups.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
         pages_to_build: List of pages being built (for incremental)
-
+    
     Side effects:
         - Builds/updates site.indexes
+        
     """
     with orchestrator.logger.phase("query_indexes"):
         query_indexes_start = time.time()
@@ -384,20 +390,21 @@ def phase_update_pages_list(
 ) -> list[Any]:
     """
     Phase 12: Update Pages List.
-
+    
     Updates the pages_to_build list to include newly generated taxonomy pages.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         pages_to_build: Current list of pages to build
         affected_tags: Set of affected tag slugs
-
+    
     Returns:
         Updated pages_to_build list including generated taxonomy pages
-
+    
     Side effects:
         - Invalidates page caches
+        
     """
     # Convert to set for O(1) membership and automatic deduplication
     pages_to_build_set = set(pages_to_build) if pages_to_build else set()

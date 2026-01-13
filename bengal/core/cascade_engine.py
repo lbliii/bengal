@@ -6,30 +6,31 @@ independently from Site and ContentOrchestrator. Pre-computes page-section
 relationships for O(1) top-level page detection.
 
 Public API:
-    CascadeEngine: Applies cascade metadata from sections to pages
+CascadeEngine: Applies cascade metadata from sections to pages
 
 Key Concepts:
-    Cascade: Metadata propagation from section _index.md files to all
-        descendant pages. Define once at section level, apply everywhere.
+Cascade: Metadata propagation from section _index.md files to all
+    descendant pages. Define once at section level, apply everywhere.
 
-    Accumulation: Cascades accumulate through the hierarchy. Child sections
-        inherit parent cascade and can extend/override values.
+Accumulation: Cascades accumulate through the hierarchy. Child sections
+    inherit parent cascade and can extend/override values.
 
-    Precedence: Page-level metadata always overrides cascaded values.
-        Cascades only fill in missing fields, never replace existing.
+Precedence: Page-level metadata always overrides cascaded values.
+    Cascades only fill in missing fields, never replace existing.
 
-    Pre-computation: Page-section relationships computed once at init
-        for O(1) top-level page detection (vs O(n) per-page lookup).
+Pre-computation: Page-section relationships computed once at init
+    for O(1) top-level page detection (vs O(n) per-page lookup).
 
 Usage:
     engine = CascadeEngine(site.pages, site.sections)
     stats = engine.apply()
-    # stats contains: pages_processed, pages_with_cascade, etc.
+# stats contains: pages_processed, pages_with_cascade, etc.
 
 Related Packages:
-    bengal.core.site.discovery: ContentDiscoveryMixin calls _apply_cascades()
-    bengal.core.section: Section objects that define cascade metadata
-    bengal.core.page: Page objects that receive cascaded metadata
+bengal.core.site.discovery: ContentDiscoveryMixin calls _apply_cascades()
+bengal.core.section: Section objects that define cascade metadata
+bengal.core.page: Page objects that receive cascaded metadata
+
 """
 
 from __future__ import annotations
@@ -44,19 +45,20 @@ if TYPE_CHECKING:
 class CascadeEngine:
     """
     Isolated cascade application logic with pre-computed O(1) lookups.
-
+    
     Handles metadata cascading where section _index.md files can define
     cascade metadata that propagates to descendant pages. This allows
     setting common metadata at the section level rather than repeating
     it on every page.
-
+    
     Pre-computes page-section relationships to avoid O(n²) lookups
     when determining if a page is top-level (not in any section).
-
+    
     Attributes:
         pages: All pages in the site
         sections: All sections in the site
         _pages_in_sections: Pre-computed set of pages that belong to sections (O(1) lookup)
+        
     """
 
     def __init__(self, pages: list[Any], sections: list[Any]) -> None:

@@ -5,25 +5,26 @@ parsing failures that includes detailed context like file path, line number,
 content snippets, and helpful suggestions.
 
 Key Exports:
-    - ``DirectiveError``: Exception class for directive parsing failures.
-    - ``format_directive_error()``: Format error messages without raising.
-    - ``get_suggestion()``: Get suggestions for common error types.
-    - ``DIRECTIVE_SUGGESTIONS``: Dict of common error messages and fixes.
+- ``DirectiveError``: Exception class for directive parsing failures.
+- ``format_directive_error()``: Format error messages without raising.
+- ``get_suggestion()``: Get suggestions for common error types.
+- ``DIRECTIVE_SUGGESTIONS``: Dict of common error messages and fixes.
 
 Example:
-    Raise a directive error with full context::
+Raise a directive error with full context::
 
-        raise DirectiveError(
-            directive_type="tabs",
-            error_message="Tab markers require a space after colon",
-            file_path=Path("content/guide.md"),
-            line_number=42,
-            content_snippet="### Tab:Python",
-            suggestion="Use '### Tab: Python' (note the space)",
-        )
+    raise DirectiveError(
+        directive_type="tabs",
+        error_message="Tab markers require a space after colon",
+        file_path=Path("content/guide.md"),
+        line_number=42,
+        content_snippet="### Tab:Python",
+        suggestion="Use '### Tab: Python' (note the space)",
+    )
 
 See Also:
-    - ``bengal.errors.BengalRenderingError``: Base error class.
+- ``bengal.errors.BengalRenderingError``: Base error class.
+
 """
 
 from __future__ import annotations
@@ -35,21 +36,21 @@ from bengal.errors import BengalRenderingError
 
 class DirectiveError(BengalRenderingError):
     """Rich error for directive parsing failures with detailed context.
-
+    
     Provides enhanced error messages including:
         - Directive type that failed
         - File path and line number
         - Content snippet highlighting the problem
         - Helpful suggestions for fixing the issue
-
+    
     Attributes:
         directive_type: Type of directive that failed (e.g., ``"tabs"``).
         error_message: Human-readable error description.
         content_snippet: Content snippet showing the problem area.
-
+    
     Example:
         ::
-
+    
             raise DirectiveError(
                 directive_type="tabs",
                 error_message="Tab markers require a space after colon",
@@ -58,6 +59,7 @@ class DirectiveError(BengalRenderingError):
                 content_snippet="### Tab:Python",
                 suggestion="Use '### Tab: Python' (note the space)",
             )
+        
     """
 
     def __init__(
@@ -150,11 +152,11 @@ def format_directive_error(
     suggestion: str | None = None,
 ) -> str:
     """Format a directive error message without raising an exception.
-
+    
     Creates a rich error message string with file location, context lines,
     and optional suggestion. Use this when you want to format error output
     without raising ``DirectiveError``.
-
+    
     Args:
         directive_type: Type of directive (e.g., ``"tabs"``).
         error_message: Human-readable error description.
@@ -163,13 +165,13 @@ def format_directive_error(
         content_lines: Lines of content around the error for context.
         error_line_offset: Index in ``content_lines`` to mark as the error line.
         suggestion: Helpful suggestion for fixing the issue.
-
+    
     Returns:
         Multi-line formatted error message with emoji indicators.
-
+    
     Example:
         ::
-
+    
             msg = format_directive_error(
                 directive_type="tabs",
                 error_message="Requires at least 2 tabs",
@@ -180,6 +182,7 @@ def format_directive_error(
                 suggestion="Add another tab with ### Tab: Name",
             )
             print(msg)
+        
     """
     lines = []
 
@@ -251,15 +254,16 @@ Keys:
 
 def get_suggestion(error_key: str) -> str | None:
     """Get a helpful suggestion for a common error type.
-
+    
     Args:
         error_key: Key from ``DIRECTIVE_SUGGESTIONS`` (e.g., ``"empty_tabs"``).
-
+    
     Returns:
         Suggestion string if key exists, ``None`` otherwise.
-
+    
     Example:
-        >>> get_suggestion("empty_tabs")
-        'Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs'
+            >>> get_suggestion("empty_tabs")
+            'Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs'
+        
     """
     return DIRECTIVE_SUGGESTIONS.get(error_key)

@@ -17,13 +17,14 @@ search:
 ```
 
 Performance Impact:
-    - Build time: +5-10s for index pre-building
-    - Runtime: ~50% faster initial search (no client-side index build)
-    - Index size: ~60% smaller (pre-built is more compact)
+- Build time: +5-10s for index pre-building
+- Runtime: ~50% faster initial search (no client-side index build)
+- Index size: ~60% smaller (pre-built is more compact)
 
 Related:
-    - index_generator.py: Source of page data (index.json)
-    - search.js: Client-side search using pre-built or runtime index
+- index_generator.py: Source of page data (index.json)
+- search.js: Client-side search using pre-built or runtime index
+
 """
 
 from __future__ import annotations
@@ -53,11 +54,11 @@ except ImportError:
 class LunrIndexGenerator:
     """
     Generate pre-built Lunr.js search index at build time.
-
+    
     Uses the Python `lunr` package (pure Python implementation of Lunr.js)
     to build a serialized search index that can be loaded directly by the
     client-side Lunr.js library.
-
+    
     Field Boosts (matching search.js):
         - title: 10x (most important)
         - search_keywords: 8x (explicit search terms)
@@ -67,11 +68,12 @@ class LunrIndexGenerator:
         - author: 2x (authorship)
         - content: 1x (full text)
         - kind: 1x (content type)
-
+    
     Example:
-        >>> generator = LunrIndexGenerator(site)
-        >>> path = generator.generate()
-        >>> print(f"Index written to: {path}")
+            >>> generator = LunrIndexGenerator(site)
+            >>> path = generator.generate()
+            >>> print(f"Index written to: {path}")
+        
     """
 
     # Field boost values (matching search.js for consistency)

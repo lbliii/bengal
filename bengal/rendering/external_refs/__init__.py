@@ -4,10 +4,10 @@ External References for Bengal SSG.
 Provides cross-project documentation linking using [[ext:project:target]] syntax.
 
 Architecture:
-    Three-tier resolution:
-    1. URL Templates (Instant, Offline) - Pattern-based URL construction
-    2. Bengal Index (Cached, Async) - Fetch xref.json from Bengal sites
-    3. Graceful Fallback - Render as code + warning (never breaks build)
+Three-tier resolution:
+1. URL Templates (Instant, Offline) - Pattern-based URL construction
+2. Bengal Index (Cached, Async) - Fetch xref.json from Bengal sites
+3. Graceful Fallback - Render as code + warning (never breaks build)
 
 Usage:
     ```markdown
@@ -32,17 +32,18 @@ Configuration:
     ```
 
 Components:
-    - ExternalRefResolver: Main resolver class
-    - IndexCache: Cached index fetching with stale-while-revalidate
-    - resolve_template: URL template expansion
+- ExternalRefResolver: Main resolver class
+- IndexCache: Cached index fetching with stale-while-revalidate
+- resolve_template: URL template expansion
 
 Related:
-    - bengal.rendering.plugins.cross_references: Integration point
-    - bengal.postprocess.xref_index: xref.json exporter
-    - plan/rfc-external-references.md: RFC for this feature
+- bengal.rendering.plugins.cross_references: Integration point
+- bengal.postprocess.xref_index: xref.json exporter
+- plan/rfc-external-references.md: RFC for this feature
 
 See Also:
-    - https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+- https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+
 """
 
 from bengal.rendering.external_refs.resolver import (

@@ -6,33 +6,34 @@ efficiency. The hub-first strategy keeps highly connected pages in memory
 while streaming leaves in batches with immediate memory release.
 
 Strategy:
-    1. Build knowledge graph to analyze page connectivity
-    2. Classify pages into hubs (highly connected), mid-tier, and leaves
-    3. Render hubs first and keep in memory (referenced often by links)
-    4. Process mid-tier in batches
-    5. Stream leaves in batches with gc.collect() after each batch
+1. Build knowledge graph to analyze page connectivity
+2. Classify pages into hubs (highly connected), mid-tier, and leaves
+3. Render hubs first and keep in memory (referenced often by links)
+4. Process mid-tier in batches
+5. Stream leaves in batches with gc.collect() after each batch
 
 Memory Reduction:
-    Achieves 80-90% memory reduction on large sites by:
-    - Processing leaves in small batches instead of all at once
-    - Releasing page content after rendering each batch
-    - Keeping only hub pages in memory throughout
+Achieves 80-90% memory reduction on large sites by:
+- Processing leaves in small batches instead of all at once
+- Releasing page content after rendering each batch
+- Keeping only hub pages in memory throughout
 
 Recommended Use:
-    Best for sites with 5K+ pages where memory is constrained.
-    For smaller sites, standard rendering is faster due to lower overhead.
+Best for sites with 5K+ pages where memory is constrained.
+For smaller sites, standard rendering is faster due to lower overhead.
 
 Performance Notes:
-    - Uses build_context.knowledge_graph if available to avoid rebuilding
-    - Falls back to standard rendering if knowledge graph unavailable
-    - Batch size is configurable (default: 100 pages per batch)
+- Uses build_context.knowledge_graph if available to avoid rebuilding
+- Falls back to standard rendering if knowledge graph unavailable
+- Batch size is configurable (default: 100 pages per batch)
 
 Related Modules:
-    bengal.analysis.knowledge_graph: Graph construction and analysis
-    bengal.orchestration.render: Standard rendering (used for actual work)
+bengal.analysis.knowledge_graph: Graph construction and analysis
+bengal.orchestration.render: Standard rendering (used for actual work)
 
 See Also:
-    bengal.orchestration.build: Enables streaming via memory_optimized flag
+bengal.orchestration.build: Enables streaming via memory_optimized flag
+
 """
 
 from __future__ import annotations
@@ -59,42 +60,43 @@ logger = get_logger(__name__)
 class StreamingRenderOrchestrator:
     """
     Memory-optimized page rendering using knowledge graph analysis.
-
+    
     Processes pages in connectivity-based order to minimize memory usage.
     Hub pages are rendered first and kept in memory (they're referenced
     often), while leaf pages are streamed in batches with immediate release.
-
+    
     Strategy:
         1. Build/reuse knowledge graph to identify page connectivity
         2. Classify into hubs, mid-tier, and leaves based on link count
         3. Render hubs first (keep in memory for cross-page references)
         4. Process mid-tier in batches
         5. Stream leaves with gc.collect() after each batch
-
+    
     Memory Savings:
         80-90% reduction on large sites by not keeping all pages in memory.
         Leaf pages (typically 70-80% of content) are released immediately.
-
+    
     Creation:
         Direct instantiation: StreamingRenderOrchestrator(site)
             - Created by BuildOrchestrator when memory_optimized=True
             - Requires Site instance with pages populated
-
+    
     Attributes:
         site: Site instance containing pages for rendering
-
+    
     Relationships:
         - Uses: KnowledgeGraph for connectivity analysis
         - Uses: RenderOrchestrator for actual page rendering
         - Used by: BuildOrchestrator when memory_optimized flag is set
-
+    
     Best For:
         Sites with 5K+ pages where memory is constrained. For smaller sites,
         the graph analysis overhead exceeds benefits.
-
+    
     Example:
         streaming = StreamingRenderOrchestrator(site)
         streaming.process(pages, parallel=True, batch_size=100)
+        
     """
 
     def __init__(self, site: Site):

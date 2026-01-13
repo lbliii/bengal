@@ -6,18 +6,19 @@ Protocol definitions for mistune parser types. These enable type-safe
 directive development without depending on mistune internals.
 
 Shadow Protocols:
-    Mistune's internal types (BlockParser, BlockState) are not exported.
-    This module defines matching protocols that allow type checking without
-    coupling to mistune's implementation details.
+Mistune's internal types (BlockParser, BlockState) are not exported.
+This module defines matching protocols that allow type checking without
+coupling to mistune's implementation details.
 
 Example:
     >>> from bengal.directives.types import DirectiveAttrs, DirectiveToken
     >>> attrs: DirectiveAttrs = {"class_": "highlight", "id": "my-directive"}
 
 See Also:
-    - :mod:`bengal.directives.base`: BengalDirective base class
-    - :mod:`bengal.directives.tokens`: DirectiveToken dataclass
-    - :mod:`bengal.rendering.ast_types`: AST node types
+- :mod:`bengal.directives.base`: BengalDirective base class
+- :mod:`bengal.directives.tokens`: DirectiveToken dataclass
+- :mod:`bengal.rendering.ast_types`: AST node types
+
 """
 
 from __future__ import annotations
@@ -39,9 +40,10 @@ if TYPE_CHECKING:
 class MistuneBlockState(Protocol):
     """
     Protocol matching mistune's BlockState interface.
-
+    
     BlockState manages parser state during block-level parsing, including
     cursor position, token buffer, and nesting depth tracking.
+        
     """
 
     @property
@@ -71,9 +73,10 @@ class MistuneBlockState(Protocol):
 class MistuneBlockParser(Protocol):
     """
     Protocol matching mistune's BlockParser interface.
-
+    
     BlockParser handles block-level markdown parsing, including paragraphs,
     headings, code blocks, and directives.
+        
     """
 
     @property
@@ -99,8 +102,9 @@ class MistuneBlockParser(Protocol):
 class MistuneMarkdown(Protocol):
     """
     Protocol matching mistune's Markdown interface.
-
+    
     Used for directive registration and renderer access.
+        
     """
 
     @property
@@ -331,8 +335,9 @@ class DirectiveOptionsDict(TypedDict, total=False):
 class DirectiveRenderer(Protocol):
     """
     Protocol for directive renderers.
-
+    
     Renderers convert parsed directive tokens to HTML output.
+        
     """
 
     def render_children(self, token: dict[str, object]) -> str:

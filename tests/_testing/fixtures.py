@@ -27,11 +27,12 @@ from bengal.icons import resolver as icon_resolver
 def reset_icon_resolver():
     """
     Reset icon resolver state before each test.
-
+    
     This ensures test isolation when running in parallel - tests that
     initialize the resolver with custom sites won't affect other tests.
     After the test, resets to uninitialized state so fallback to default
     theme works correctly.
+        
     """
     # Clear cache before test
     icon_resolver.clear_cache()
@@ -48,8 +49,9 @@ def reset_icon_resolver():
 def rootdir() -> Path:
     """
     Path to tests/roots/ directory containing test site templates.
-
+    
     Session-scoped since the directory doesn't change during test run.
+        
     """
     return Path(__file__).parent.parent / "roots"
 
@@ -58,19 +60,20 @@ def rootdir() -> Path:
 def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
     """
     Factory to create Site instances from test roots.
-
+    
     Usage:
         def test_something(site_factory):
             site = site_factory("test-basic")
             # or with overrides:
             site = site_factory("test-basic", confoverrides={"site.title": "Custom"})
-
+    
     Args:
         testroot: Name of the root under tests/roots/
         confoverrides: Dict of config overrides to apply
-
+    
     Returns:
         Configured Site instance (content/assets already discovered)
+        
     """
 
     def _factory(testroot: str, confoverrides: dict[str, Any] | None = None) -> Site:
@@ -146,14 +149,15 @@ def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
 def build_site(request) -> Callable:
     """
     Helper to build a site instance.
-
+    
     Usage:
         def test_something(site, build_site):
             build_site()  # Builds site with default options
             # or:
             build_site(parallel=False, incremental=True)
-
+    
     Automatically injects 'site' from test parameters if present.
+        
     """
 
     def _build(parallel: bool = False, incremental: bool = False) -> None:
@@ -184,8 +188,9 @@ def build_site(request) -> Callable:
 class EphemeralSite:
     """
     Wrapper for ephemeral test sites created by site_builder.
-
+    
     Provides convenient methods for building and inspecting output.
+        
     """
 
     site: Site
@@ -221,23 +226,24 @@ class EphemeralSite:
 def site_builder(tmp_path: Path) -> Callable:
     """
     Factory to create ephemeral sites from config and content dicts.
-
+    
     Usage:
         def test_something(site_builder):
             site = site_builder(
                 config={"title": "Test Site", "document_application": {"enabled": True}},
-                content={"_index.md": "---\\ntitle: Home\\n---\\nWelcome"}
+                content={"_index.md": "---\ntitle: Home\n---\nWelcome"}
             )
             site.build()
             html = site.read_output("index.html")
             assert "Welcome" in html
-
+    
     Args:
         config: Dict of site configuration (nested structure)
         content: Dict mapping relative paths to content strings
-
+    
     Returns:
         EphemeralSite instance with build() and read_output() methods
+        
     """
 
     def _factory(

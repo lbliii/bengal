@@ -6,32 +6,33 @@ pages by their section (content directory). This is Bengal's most commonly used
 index, enabling fast access to all pages within a content section.
 
 Section Detection:
-    Sections are automatically detected from the directory structure:
-    - content/blog/post.md → section = 'blog'
-    - content/docs/guide.md → section = 'docs'
-    - content/posts/2024/article.md → section = 'posts'
+Sections are automatically detected from the directory structure:
+- content/blog/post.md → section = 'blog'
+- content/docs/guide.md → section = 'docs'
+- content/posts/2024/article.md → section = 'posts'
 
 Template Usage:
-    {# Get all blog posts #}
-    {% set blog_posts = site.indexes.section.get('blog') %}
+{# Get all blog posts #}
+{% set blog_posts = site.indexes.section.get('blog') %}
 
-    {# Get all docs pages #}
-    {% set docs = site.indexes.section.get('docs') %}
+{# Get all docs pages #}
+{% set docs = site.indexes.section.get('docs') %}
 
-    {# List all sections #}
-    {% for section in site.indexes.section.keys() %}
-      {{ section }}: {{ site.indexes.section.get(section)|length }} pages
-    {% endfor %}
+{# List all sections #}
+{% for section in site.indexes.section.keys() %}
+  {{ section }}: {{ site.indexes.section.get(section)|length }} pages
+{% endfor %}
 
 Common Patterns:
-    - Blog listing: site.indexes.section.get('blog')
-    - Documentation sidebar: site.indexes.section.get('docs')
-    - Project showcase: site.indexes.section.get('projects')
+- Blog listing: site.indexes.section.get('blog')
+- Documentation sidebar: site.indexes.section.get('docs')
+- Project showcase: site.indexes.section.get('projects')
 
 Related:
-    - bengal.cache.query_index: Base QueryIndex class
-    - bengal.cache.indexes.category_index: Content-based classification
-    - bengal.core.section: Section model
+- bengal.cache.query_index: Base QueryIndex class
+- bengal.cache.indexes.category_index: Content-based classification
+- bengal.core.section: Section model
+
 """
 
 from __future__ import annotations
@@ -48,15 +49,16 @@ if TYPE_CHECKING:
 class SectionIndex(QueryIndex):
     """
     Index pages by section (directory).
-
+    
     Provides O(1) lookup of all pages in a section:
         site.indexes.section.get('blog')        # All blog posts
         site.indexes.section.get('docs')        # All docs pages
-
+    
     Example frontmatter:
         # Section is automatically detected from directory structure
         # content/blog/post.md → section = 'blog'
         # content/docs/guide.md → section = 'docs'
+        
     """
 
     def __init__(self, cache_path: Path):

@@ -1,16 +1,17 @@
 """Formatting roles for inline styling.
 
 Provides roles for common inline formatting:
-    - kbd: Keyboard shortcuts
-    - abbr: Abbreviations with expansion
-    - sub: Subscript
-    - sup: Superscript
+- kbd: Keyboard shortcuts
+- abbr: Abbreviations with expansion
+- sub: Subscript
+- sup: Superscript
 
 Example:
-    Press {kbd}`Ctrl+C` to copy.
-    The {abbr}`HTML (HyperText Markup Language)` standard.
-    H{sub}`2`O is water.
-    E = mc{sup}`2`.
+Press {kbd}`Ctrl+C` to copy.
+The {abbr}`HTML (HyperText Markup Language)` standard.
+H{sub}`2`O is water.
+E = mc{sup}`2`.
+
 """
 
 from __future__ import annotations
@@ -27,15 +28,16 @@ if TYPE_CHECKING:
 
 class KbdRole:
     """Handler for {kbd}`key` role.
-
+    
     Renders keyboard shortcuts with proper semantics.
-
+    
     Syntax:
         {kbd}`Ctrl+C` - Single shortcut
         {kbd}`Ctrl+Shift+P` - Multiple modifiers
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("kbd",)
@@ -81,14 +83,15 @@ class KbdRole:
 
 class AbbrRole:
     """Handler for {abbr}`ABBR (expansion)` role.
-
+    
     Renders abbreviations with title attribute for expansion.
-
+    
     Syntax:
         {abbr}`HTML (HyperText Markup Language)`
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("abbr",)
@@ -140,14 +143,15 @@ class AbbrRole:
 
 class SubRole:
     """Handler for {sub}`text` role.
-
+    
     Renders subscript text.
-
+    
     Syntax:
         H{sub}`2`O
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("sub",)
@@ -177,14 +181,15 @@ class SubRole:
 
 class SupRole:
     """Handler for {sup}`text` role.
-
+    
     Renders superscript text.
-
+    
     Syntax:
         E = mc{sup}`2`
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("sup",)

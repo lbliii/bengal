@@ -39,11 +39,12 @@ logger = get_logger(__name__)
 class SpeculationRule:
     """
     A single speculation rule for prefetch or prerender.
-
+    
     Attributes:
         href_matches: URL pattern(s) to match
         eagerness: How eagerly to trigger (conservative | moderate | eager)
         exclude_selectors: CSS selectors to exclude from the rule
+        
     """
 
     href_matches: list[str] = field(default_factory=lambda: ["/*"])
@@ -81,12 +82,12 @@ class SpeculationRule:
 class SpeculationRulesGenerator:
     """
     Generates speculation rules based on site configuration and structure.
-
+    
     The generator can:
     1. Use explicit configuration from bengal.yaml
     2. Auto-generate rules based on site analysis
     3. Combine both approaches
-
+    
     Example config in bengal.yaml:
         document_application:
           speculation:
@@ -103,6 +104,7 @@ class SpeculationRulesGenerator:
             exclude_patterns:
               - "/admin/*"
               - "*.pdf"
+        
     """
 
     def __init__(self, site: Site):
@@ -275,12 +277,13 @@ class SpeculationRulesGenerator:
 def generate_speculation_rules(site: Site) -> str:
     """
     Convenience function to generate speculation rules JSON.
-
+    
     Args:
         site: The Bengal site instance
-
+    
     Returns:
         JSON string for <script type="speculationrules">, or empty string if disabled
+        
     """
     generator = SpeculationRulesGenerator(site)
     return generator.to_json()

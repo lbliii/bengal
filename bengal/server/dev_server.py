@@ -5,41 +5,42 @@ Provides a complete local development environment for Bengal sites with
 HTTP serving, file watching, incremental builds, and browser live reload.
 
 Features:
-    - HTTP server for viewing the built site locally
-    - File watching with automatic incremental rebuilds
-    - Live reload via Server-Sent Events (no full page refresh for CSS)
-    - Graceful shutdown handling (Ctrl+C, SIGTERM)
-    - Stale process detection and cleanup
-    - Automatic port fallback if port is in use
-    - Optional browser auto-open
-    - Pre/post build hooks for custom workflows
-    - Process-isolated builds for crash resilience
-    - Custom 404 error pages
+- HTTP server for viewing the built site locally
+- File watching with automatic incremental rebuilds
+- Live reload via Server-Sent Events (no full page refresh for CSS)
+- Graceful shutdown handling (Ctrl+C, SIGTERM)
+- Stale process detection and cleanup
+- Automatic port fallback if port is in use
+- Optional browser auto-open
+- Pre/post build hooks for custom workflows
+- Process-isolated builds for crash resilience
+- Custom 404 error pages
 
 Classes:
-    DevServer: Main entry point orchestrating all server components
+DevServer: Main entry point orchestrating all server components
 
 Architecture:
-    The DevServer coordinates several subsystems:
+The DevServer coordinates several subsystems:
 
-    1. Initial Build: Runs a full site build before starting the server
-    2. HTTP Server: ThreadingTCPServer with BengalRequestHandler
-    3. File Watcher: WatcherRunner with watchfiles backend
-    4. Build Trigger: Handles file changes and triggers rebuilds
-    5. Resource Manager: Ensures cleanup on all exit scenarios
+1. Initial Build: Runs a full site build before starting the server
+2. HTTP Server: ThreadingTCPServer with BengalRequestHandler
+3. File Watcher: WatcherRunner with watchfiles backend
+4. Build Trigger: Handles file changes and triggers rebuilds
+5. Resource Manager: Ensures cleanup on all exit scenarios
 
-    Build Pipeline:
-    FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor → Site.build()
-                                      ↓
-                             ReloadController → LiveReload → Browser
+Build Pipeline:
+FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor → Site.build()
+                                  ↓
+                         ReloadController → LiveReload → Browser
 
 Related:
-    - bengal/server/watcher_runner.py: Async file watching bridge
-    - bengal/server/build_trigger.py: Build orchestration
-    - bengal/server/build_executor.py: Process-isolated builds
-    - bengal/server/request_handler.py: HTTP request handling
-    - bengal/server/live_reload.py: SSE-based hot reload
-    - bengal/server/resource_manager.py: Cleanup coordination
+- bengal/server/watcher_runner.py: Async file watching bridge
+- bengal/server/build_trigger.py: Build orchestration
+- bengal/server/build_executor.py: Process-isolated builds
+- bengal/server/request_handler.py: HTTP request handling
+- bengal/server/live_reload.py: SSE-based hot reload
+- bengal/server/resource_manager.py: Cleanup coordination
+
 """
 
 from __future__ import annotations
@@ -72,7 +73,7 @@ logger = get_logger(__name__)
 class DevServer:
     """
     Development server with file watching and auto-rebuild.
-
+    
     Provides a complete development environment for Bengal sites with:
     - HTTP server for viewing the site locally
     - File watching for automatic rebuilds
@@ -80,24 +81,25 @@ class DevServer:
     - Stale process detection and cleanup
     - Automatic port fallback
     - Optional browser auto-open
-
+    
     The server performs an initial build, then watches for changes and
     automatically rebuilds only what's needed using incremental builds.
-
+    
     Features:
     - Incremental + parallel builds (5-10x faster than full builds)
     - Beautiful, minimal request logging
     - Custom 404 error pages
     - PID file tracking for stale process detection
     - Comprehensive resource cleanup on shutdown
-
+    
     Example:
         from bengal.core import Site
         from bengal.server import DevServer
-
+    
         site = Site.from_config()
         server = DevServer(site, port=5173, watch=True)
         server.start()  # Runs until Ctrl+C
+        
     """
 
     def __init__(

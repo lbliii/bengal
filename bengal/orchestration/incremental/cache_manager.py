@@ -5,13 +5,14 @@ Handles loading, saving, and migration of build cache.
 Extracted from IncrementalOrchestrator for single responsibility.
 
 Key Concepts:
-    - Cache loading: Load existing cache or create fresh instance
-    - Cache migration: Migrate legacy cache from output_dir/.bengal-cache.json
-    - Cache saving: Persist cache after build completion
+- Cache loading: Load existing cache or create fresh instance
+- Cache migration: Migrate legacy cache from output_dir/.bengal-cache.json
+- Cache saving: Persist cache after build completion
 
 Related Modules:
-    - bengal.cache.build_cache: Build cache dataclass
-    - bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.cache.build_cache: Build cache dataclass
+- bengal.cache.dependency_tracker: Dependency graph construction
+
 """
 
 from __future__ import annotations
@@ -34,20 +35,21 @@ logger = get_logger(__name__)
 class CacheManager:
     """
     Manages cache initialization, loading, saving, and migration.
-
+    
     Extracted from IncrementalOrchestrator to handle all cache-related
     operations in a single focused class.
-
+    
     Attributes:
         site: Site instance for cache operations
         cache: BuildCache instance (None until initialized)
         tracker: DependencyTracker instance (None until initialized)
-
+    
     Example:
-        >>> manager = CacheManager(site)
-        >>> cache, tracker = manager.initialize(enabled=True)
-        >>> # ... build operations ...
-        >>> manager.save(pages_built, assets_processed)
+            >>> manager = CacheManager(site)
+            >>> cache, tracker = manager.initialize(enabled=True)
+            >>> # ... build operations ...
+            >>> manager.save(pages_built, assets_processed)
+        
     """
 
     def __init__(self, site: Site) -> None:

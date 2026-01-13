@@ -5,16 +5,17 @@ HTTP request logging display for dev server dashboard.
 Shows method, path, status, and duration for each request.
 
 Usage:
-    from bengal.cli.dashboard.widgets import RequestLog
+from bengal.cli.dashboard.widgets import RequestLog
 
     log = RequestLog()
 
-    # Connect to request handler callback
-    BengalRequestHandler.set_on_request(
-        lambda method, path, status, duration: log.add_request(method, path, status, duration)
-    )
+# Connect to request handler callback
+BengalRequestHandler.set_on_request(
+    lambda method, path, status, duration: log.add_request(method, path, status, duration)
+)
 
 RFC: rfc-dashboard-api-integration
+
 """
 
 from __future__ import annotations
@@ -59,18 +60,19 @@ def get_status_icon(status_code: int) -> str:
 class RequestLog(Vertical):
     """
     HTTP request log for dev server dashboard.
-
+    
     Features:
     - Request table with method, path, status, duration
     - Status-based coloring (2xx green, 4xx yellow, 5xx red)
     - Request count and average latency tracking
     - Max entries with auto-trim
-
+    
     Example:
         log = RequestLog(id="request-log")
-
+    
         # Connect to request handler
         BengalRequestHandler.set_on_request(log.add_request)
+        
     """
 
     DEFAULT_CSS = """

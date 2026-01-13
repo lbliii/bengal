@@ -516,10 +516,11 @@ class TestParseHlLines:
 
 class TestRenderCodeWithPygments:
     """Tests for syntax highlighting rendering.
-
+    
     Note: Uses render_code_with_pygments which is aliased to
     render_code_with_highlighting, which uses the Rosettes backend.
     Rosettes has a simpler output format without table-based line numbers.
+        
     """
 
     def test_basic_highlighting(self):

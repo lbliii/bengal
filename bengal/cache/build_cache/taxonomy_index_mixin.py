@@ -5,15 +5,16 @@ Provides methods for maintaining bidirectional tag/page indexes for fast
 taxonomy reconstruction during incremental builds.
 
 Key Concepts:
-    - Forward index: page_path → set[tag_slug]
-    - Inverted index: tag_slug → set[page_path]
-    - O(1) taxonomy reconstruction from cache
-    - Efficient tag change detection
+- Forward index: page_path → set[tag_slug]
+- Inverted index: tag_slug → set[page_path]
+- O(1) taxonomy reconstruction from cache
+- Efficient tag change detection
 
 Related Modules:
-    - bengal.cache.build_cache.core: Main BuildCache class
-    - bengal.orchestration.taxonomy: Taxonomy orchestration
-    - bengal.cache.taxonomy_index: TaxonomyIndex utilities
+- bengal.cache.build_cache.core: Main BuildCache class
+- bengal.orchestration.taxonomy: Taxonomy orchestration
+- bengal.cache.taxonomy_index: TaxonomyIndex utilities
+
 """
 
 from __future__ import annotations
@@ -28,12 +29,13 @@ if TYPE_CHECKING:
 class TaxonomyIndexMixin:
     """
     Mixin providing taxonomy indexing for fast incremental builds.
-
+    
     Requires these attributes on the host class:
         - taxonomy_deps: dict[str, set[str]]
         - page_tags: dict[str, set[str]]
         - tag_to_pages: dict[str, set[str]]
         - known_tags: set[str]
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

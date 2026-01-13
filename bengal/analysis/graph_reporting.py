@@ -7,13 +7,13 @@ human-readable statistics, identifies content gaps, and provides prioritized
 recommendations.
 
 Report Types:
-    - Statistics: Page counts, link density, connectivity distribution
-    - Recommendations: Prioritized actions for improving site structure
-    - SEO Insights: Link depth analysis, link equity flow, orphan risks
-    - Content Gaps: Missing cross-links, underlinked sections, tag coverage
+- Statistics: Page counts, link density, connectivity distribution
+- Recommendations: Prioritized actions for improving site structure
+- SEO Insights: Link depth analysis, link equity flow, orphan risks
+- Content Gaps: Missing cross-links, underlinked sections, tag coverage
 
 Classes:
-    GraphReporter: Main reporter that delegates from KnowledgeGraph
+GraphReporter: Main reporter that delegates from KnowledgeGraph
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph
@@ -26,8 +26,9 @@ Example:
     >>> content_gaps = graph.get_content_gaps()
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Main graph coordinator
-    - bengal/analysis/graph_analysis.py: Underlying analysis
+- bengal/analysis/knowledge_graph.py: Main graph coordinator
+- bengal/analysis/graph_analysis.py: Underlying analysis
+
 """
 
 from __future__ import annotations
@@ -47,19 +48,20 @@ logger = get_logger(__name__)
 class GraphReporter:
     """
     Generates reports and insights from knowledge graph analysis.
-
+    
     Provides methods for:
     - Formatted statistics output
     - Actionable recommendations for site structure
     - SEO-focused insights
     - Content gap detection
-
+    
     Example:
-        >>> from bengal.analysis import KnowledgeGraph
-        >>> graph = KnowledgeGraph(site)
-        >>> graph.build()
-        >>> reporter = GraphReporter(graph)
-        >>> print(reporter.format_stats())
+            >>> from bengal.analysis import KnowledgeGraph
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> reporter = GraphReporter(graph)
+            >>> print(reporter.format_stats())
+        
     """
 
     def __init__(self, graph: KnowledgeGraph) -> None:

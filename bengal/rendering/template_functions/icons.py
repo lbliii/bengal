@@ -6,10 +6,11 @@ Icons are loaded via the theme-aware resolver and rendered output is cached
 by (name, size, css_class, aria_label) to minimize per-render overhead.
 
 Performance:
-    - Icons loaded via bengal.icons.resolver (theme-aware, cached)
-    - Rendered SVG cached by parameters (typical hit rate: >95%)
-    - Regex processing only on cache miss
-    - Zero file I/O during template rendering (after first load)
+- Icons loaded via bengal.icons.resolver (theme-aware, cached)
+- Rendered SVG cached by parameters (typical hit rate: >95%)
+- Regex processing only on cache miss
+- Zero file I/O during template rendering (after first load)
+
 """
 
 from __future__ import annotations
@@ -64,19 +65,20 @@ def _render_icon_cached(
 ) -> str:
     """
     Render an icon with LRU caching for repeated calls.
-
+    
     The cache key is (name, size, css_class, aria_label). This captures
     the vast majority of repeated icon renders (e.g., navigation icons
     appear on every page with the same parameters).
-
+    
     Args:
         name: Icon name (already mapped through ICON_MAP)
         size: Icon size in pixels
         css_class: Additional CSS classes
         aria_label: Accessibility label
-
+    
     Returns:
         Rendered SVG HTML string, or empty string if icon not found
+        
     """
     # Load icon via theme-aware resolver
     svg_content = icon_resolver.load_icon(name)
@@ -112,27 +114,28 @@ def _render_icon_cached(
 def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -> Markup:
     """
     Render an SVG icon for use in templates.
-
+    
     Uses theme-aware icon resolution and LRU caching for optimal performance.
     Icons are loaded from the theme asset chain (site > theme > parent > default).
-
+    
     Icon name mapping priority:
     1. theme.yaml aliases (if theme config available)
     2. ICON_MAP (fallback for backwards compatibility)
-
+    
     Args:
         name: Icon name (e.g., "search", "menu", "close", "arrow-up")
         size: Icon size in pixels (default: 24)
         css_class: Additional CSS classes
         aria_label: Accessibility label (if empty, uses aria-hidden)
-
+    
     Returns:
         Markup object containing inline SVG HTML, or empty Markup if icon not found
-
+    
     Example:
         {{ icon("search", size=20) }}
         {{ icon("menu", size=24, css_class="nav-icon") }}
         {{ icon("arrow-up", size=18, aria_label="Back to top") }}
+        
     """
     if not name:
         return Markup("")
@@ -192,13 +195,14 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
 def register(env: TemplateEnvironment, site: Site) -> None:
     """
     Register icon template functions.
-
+    
     Icons are loaded on-demand via the theme-aware resolver, which is
     initialized during Site setup.
-
+    
     Args:
         env: Jinja2 environment
         site: Site instance (stored for theme config access)
+        
     """
     global _site_instance
     _site_instance = site
@@ -210,9 +214,10 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def get_icon_cache_stats() -> dict[str, int]:
     """
     Get icon cache statistics for debugging/profiling.
-
+    
     Returns:
         Dictionary with cache hit/miss information
+        
     """
     cache_info = _render_icon_cached.cache_info()
     return {
@@ -227,8 +232,9 @@ def get_icon_cache_stats() -> dict[str, int]:
 def clear_icon_cache() -> None:
     """
     Clear the icon render cache and warned icons set.
-
+    
     Useful for testing or when icons are modified during development.
+        
     """
     _render_icon_cached.cache_clear()
     _warned_icons.clear()

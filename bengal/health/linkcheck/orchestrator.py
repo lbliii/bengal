@@ -6,15 +6,16 @@ internal or external, and delegates to specialized checkers. Results are
 consolidated into reports for console output and JSON serialization.
 
 Architecture:
-    1. Extract links from output_dir/*.html using HTML parsing
-    2. Classify links (http/https -> external, else -> internal)
-    3. Run InternalLinkChecker and AsyncLinkChecker concurrently
-    4. Build consolidated results and summary
+1. Extract links from output_dir/*.html using HTML parsing
+2. Classify links (http/https -> external, else -> internal)
+3. Run InternalLinkChecker and AsyncLinkChecker concurrently
+4. Build consolidated results and summary
 
 Related:
-    - bengal.health.linkcheck.async_checker: External link checking
-    - bengal.health.linkcheck.internal_checker: Internal link checking
-    - bengal.health.validators.links: LinkValidator health check
+- bengal.health.linkcheck.async_checker: External link checking
+- bengal.health.linkcheck.internal_checker: Internal link checking
+- bengal.health.validators.links: LinkValidator health check
+
 """
 
 from __future__ import annotations
@@ -42,17 +43,17 @@ logger = get_logger(__name__)
 class LinkCheckOrchestrator:
     """
     Orchestrates internal and external link checking.
-
+    
     Extracts links from built HTML files, classifies them, and delegates to
     specialized checkers. Provides consolidated results and multiple output
     formats (console, JSON).
-
+    
     Features:
         - HTML parsing to extract href attributes
         - Automatic internal/external classification
         - Concurrent checking with ignore policies
         - Console and JSON report formatting
-
+    
     Attributes:
         site: Site instance with output_dir
         check_internal: Whether to validate internal links
@@ -61,12 +62,13 @@ class LinkCheckOrchestrator:
         ignore_policy: IgnorePolicy instance for filtering
         internal_checker: InternalLinkChecker (if check_internal)
         external_checker: AsyncLinkChecker (if check_external)
-
+    
     Example:
-        >>> orchestrator = LinkCheckOrchestrator(site, check_external=True)
-        >>> results, summary = orchestrator.check_all_links()
-        >>> if not summary.passed:
-        ...     print(orchestrator.format_console_report(results, summary))
+            >>> orchestrator = LinkCheckOrchestrator(site, check_external=True)
+            >>> results, summary = orchestrator.check_all_links()
+            >>> if not summary.passed:
+            ...     print(orchestrator.format_console_report(results, summary))
+        
     """
 
     def __init__(

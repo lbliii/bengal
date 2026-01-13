@@ -4,14 +4,14 @@ Provides interactive tables for hardware/software support matrices and other
 complex tabular data with filtering, sorting, and searching capabilities.
 
 Syntax:
-    :::{data-table} path/to/data.yaml
-    :search: true
-    :filter: true
-    :sort: true
-    :pagination: 50
-    :height: 400px
-    :columns: col1,col2,col3
-    :::
+:::{data-table} path/to/data.yaml
+:search: true
+:filter: true
+:sort: true
+:pagination: 50
+:height: 400px
+:columns: col1,col2,col3
+:::
 
 Supports:
 - YAML files (with metadata and column definitions)
@@ -20,13 +20,14 @@ Supports:
 - Responsive design via Tabulator.js
 
 Context Requirements:
-    Requires FileResolver for loading data files.
+Requires FileResolver for loading data files.
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's data-table directive exactly for parity.
+Matches Bengal's data-table directive exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -73,7 +74,7 @@ class DataTableOptions(DirectiveOptions):
 class DataTableDirective:
     """
     Interactive data table directive.
-
+    
     Syntax:
         :::{data-table} path/to/data.yaml
         :search: true
@@ -83,11 +84,11 @@ class DataTableDirective:
         :height: 400px
         :columns: col1,col2,col3
         :::
-
+    
     Supported file formats:
         - YAML: Must have 'columns' and 'data' keys
         - CSV: Headers auto-detected from first row
-
+    
     Options:
         :search: Enable search box (default: true)
         :filter: Enable column filters (default: true)
@@ -95,12 +96,13 @@ class DataTableDirective:
         :pagination: Page size or false (default: 50)
         :height: Table height CSS value (default: auto)
         :columns: Comma-separated list of visible columns
-
+    
     Requires:
         FileResolver for loading data files.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("data-table",)

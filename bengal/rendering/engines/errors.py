@@ -5,11 +5,11 @@ This module defines the error hierarchy for template-related failures. All
 engines MUST use these types for consistent error handling and reporting.
 
 Exception Hierarchy:
-    BengalRenderingError (base)
-    ├── TemplateNotFoundError  - Template file doesn't exist
-    └── TemplateRenderError    - Rendering failed (see bengal.rendering.errors)
+BengalRenderingError (base)
+├── TemplateNotFoundError  - Template file doesn't exist
+└── TemplateRenderError    - Rendering failed (see bengal.rendering.errors)
 
-    TemplateError (dataclass)  - Validation result, not an exception
+TemplateError (dataclass)  - Validation result, not an exception
 
 Usage:
     >>> from bengal.rendering.engines.errors import TemplateNotFoundError
@@ -22,15 +22,16 @@ Usage:
     >>> errors = [TemplateError("bad.html", "syntax error", line=5)]
 
 Error Handling Guidelines:
-    - render_template() MUST raise TemplateNotFoundError if template missing
-    - render_template() MUST raise TemplateRenderError if rendering fails
-    - validate() MUST NOT raise; return list of TemplateError instead
-    - template_exists() MUST NOT raise; return False instead
+- render_template() MUST raise TemplateNotFoundError if template missing
+- render_template() MUST raise TemplateRenderError if rendering fails
+- validate() MUST NOT raise; return list of TemplateError instead
+- template_exists() MUST NOT raise; return False instead
 
 Related Modules:
-    - bengal.rendering.errors: TemplateRenderError with rich context
-    - bengal.errors: Base BengalRenderingError class
-    - bengal.rendering.engines.protocol: Protocol defining error contracts
+- bengal.rendering.errors: TemplateRenderError with rich context
+- bengal.errors: Base BengalRenderingError class
+- bengal.rendering.engines.protocol: Protocol defining error contracts
+
 """
 
 from __future__ import annotations
@@ -45,8 +46,9 @@ from bengal.errors import BengalRenderingError
 class TemplateError:
     """
     Represents a template validation or render error.
-
+    
     Returned by validate() method. Also raised during render_template().
+        
     """
 
     template: str
@@ -79,10 +81,11 @@ class TemplateError:
 class TemplateNotFoundError(BengalRenderingError):
     """
     Raised when a template cannot be found.
-
+    
     MUST be raised by render_template() when template doesn't exist.
-
+    
     Extends BengalRenderingError for consistent error handling.
+        
     """
 
     def __init__(

@@ -13,13 +13,14 @@ from ..base import SiteTemplate, TemplateFile
 
 def _load_file(filename: str, subdir: str = "pages") -> str:
     """Load a file from this template's directory.
-
+    
     Args:
         filename: File name within the subdirectory.
         subdir: Subdirectory under this template (``pages`` or ``data``).
-
+    
     Returns:
         The file contents as a string.
+        
     """
     template_dir = Path(__file__).parent
     file_path = template_dir / subdir / filename
@@ -30,9 +31,10 @@ def _load_file(filename: str, subdir: str = "pages") -> str:
 
 def _create_resume_template() -> SiteTemplate:
     """Construct the resume template definition.
-
+    
     Returns:
         A :class:`SiteTemplate` for a data‑driven resume/CV site.
+        
     """
 
     files = [

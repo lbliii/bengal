@@ -2,13 +2,14 @@
 Version diff utility for comparing documentation between versions.
 
 This module provides utilities for:
-    - Diffing content between versions
-    - Identifying new, changed, and removed pages
-    - Generating migration guides based on diffs
+- Diffing content between versions
+- Identifying new, changed, and removed pages
+- Generating migration guides based on diffs
 
 Related:
-    - bengal/core/version.py: Version models
-    - bengal/discovery/git_version_adapter.py: Git version adapter
+- bengal/core/version.py: Version models
+- bengal/discovery/git_version_adapter.py: Git version adapter
+
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ logger = get_logger(__name__)
 class PageDiff:
     """
     Represents the diff between two versions of a page.
-
+    
     Attributes:
         path: Logical path of the page (e.g., "docs/guide.md")
         status: Change status ("added", "modified", "removed", "unchanged")
@@ -38,6 +39,7 @@ class PageDiff:
         new_content: Content in the newer version (None if removed)
         diff_lines: Unified diff output (if modified)
         change_percentage: Percentage of content changed
+        
     """
 
     path: str
@@ -52,7 +54,7 @@ class PageDiff:
 class VersionDiff:
     """
     Represents the diff between two versions.
-
+    
     Attributes:
         old_version: Older version ID
         new_version: Newer version ID
@@ -60,6 +62,7 @@ class VersionDiff:
         removed_pages: Pages that exist only in old version
         modified_pages: Pages that exist in both but have changes
         unchanged_pages: Pages that are identical
+        
     """
 
     old_version: str
@@ -127,10 +130,11 @@ class VersionDiff:
 class VersionDiffer:
     """
     Compares content between two versions.
-
+    
     Can work with:
     - Folder-based versions (comparing directories)
     - Git-based versions (comparing branches/tags)
+        
     """
 
     def __init__(
@@ -283,18 +287,19 @@ def diff_git_versions(
 ) -> VersionDiff:
     """
     Diff two git refs (branches/tags) without checking out.
-
+    
     Uses git diff-tree to compare file lists and git show
     to get file contents.
-
+    
     Args:
         repo_path: Path to git repository
         old_ref: Old git ref (branch/tag/commit)
         new_ref: New git ref (branch/tag/commit)
         content_dir: Content directory to compare
-
+    
     Returns:
         VersionDiff with changes between refs
+        
     """
     import subprocess
 

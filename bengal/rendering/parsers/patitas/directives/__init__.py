@@ -2,24 +2,24 @@
 
 Provides extensible block-level markup through the directive syntax:
 
-    :::{directive-name} optional title
-    :option-key: option value
+:::{directive-name} optional title
+:option-key: option value
 
-    Content goes here.
-    :::
+Content goes here.
+:::
 
 Key components:
-    - DirectiveHandler: Protocol for custom directive implementations
-    - DirectiveOptions: Base class for typed option parsing
-    - DirectiveContract: Nesting validation rules
-    - DirectiveRegistry: Handler lookup and registration
+- DirectiveHandler: Protocol for custom directive implementations
+- DirectiveOptions: Base class for typed option parsing
+- DirectiveContract: Nesting validation rules
+- DirectiveRegistry: Handler lookup and registration
 
 Thread Safety:
-    All components are designed for thread-safety:
-    - Options are frozen dataclasses
-    - Contracts are frozen dataclasses
-    - Registry is immutable after creation
-    - Handlers must be stateless
+All components are designed for thread-safety:
+- Options are frozen dataclasses
+- Contracts are frozen dataclasses
+- Registry is immutable after creation
+- Handlers must be stateless
 
 Example:
     >>> from patitas.directives import DirectiveHandler, DirectiveOptions
@@ -39,6 +39,7 @@ Example:
     ...
     ...     def render(self, node, rendered_children, sb):
     ...         sb.append(f'<video src="{node.title}"></video>')
+
 """
 
 from __future__ import annotations

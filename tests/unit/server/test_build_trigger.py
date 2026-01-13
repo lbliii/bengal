@@ -160,8 +160,9 @@ weight: 10
 class TestVersionScopedBuilds:
     """
     Tests for version-scoped build functionality.
-
+    
     RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+        
     """
 
     @pytest.fixture
@@ -362,8 +363,9 @@ class TestBuildTriggerIntegration:
 
 class TestBuildTriggerCaching:
     """Tests for BuildTrigger caching optimizations.
-
+    
     RFC: rfc-server-package-optimizations
+        
     """
 
     @pytest.fixture
@@ -543,9 +545,10 @@ weight: 5
 
 class TestBuildTriggerQueuing:
     """Tests for BuildTrigger change queuing during builds.
-
+    
     When a build is in progress, changes should be queued instead of discarded.
     This prevents lost changes during rapid editing (important for autodoc pages).
+        
     """
 
     @pytest.fixture

@@ -8,17 +8,18 @@ Textual-based terminal dashboards for Bengal CLI commands:
 - BengalApp: Unified multi-screen dashboard
 
 Usage:
-    bengal build --dashboard
-    bengal serve --dashboard
-    bengal health --dashboard
-    bengal --dashboard  # Unified dashboard
+bengal build --dashboard
+bengal serve --dashboard
+bengal health --dashboard
+bengal --dashboard  # Unified dashboard
 
 Or run directly for development:
-    python -m bengal.cli.dashboard
+python -m bengal.cli.dashboard
 
 Related:
-    - bengal/themes/tokens.py: Shared design tokens
-    - bengal.tcss: Textual CSS stylesheet
+- bengal/themes/tokens.py: Shared design tokens
+- bengal.tcss: Textual CSS stylesheet
+
 """
 
 from __future__ import annotations

@@ -18,8 +18,9 @@ if TYPE_CHECKING:
 
 class HtmlClassifierMixin:
     """Mixin providing HTML block classification.
-
+    
     Implements CommonMark 4.6 HTML block types 1-7.
+        
     """
 
     # These will be set by the Lexer class

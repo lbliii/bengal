@@ -6,11 +6,12 @@ for closing nested directives. This eliminates the need to track colon counts
 in complex structures.
 
 Example:
-    :::{tab-set}
-    :::{tab-item} First
-    Content
-    :::{/tab-item}
-    :::{/tab-set}
+:::{tab-set}
+:::{tab-item} First
+Content
+:::{/tab-item}
+:::{/tab-set}
+
 """
 
 from __future__ import annotations

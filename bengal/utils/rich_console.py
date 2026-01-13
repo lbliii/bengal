@@ -6,26 +6,26 @@ terminal capabilities, CI/CD environments, and user preferences. This module
 is the central point for all Bengal CLI output formatting.
 
 Key Features:
-    - Singleton console with Bengal color theme
-    - Profile-aware output (Writer/Theme-Dev/Developer)
-    - CI/CD detection (disables fancy output)
-    - Emoji preference via BENGAL_EMOJI environment variable
-    - Live display detection for progress coordination
+- Singleton console with Bengal color theme
+- Profile-aware output (Writer/Theme-Dev/Developer)
+- CI/CD detection (disables fancy output)
+- Emoji preference via BENGAL_EMOJI environment variable
+- Live display detection for progress coordination
 
 Configuration:
-    Environment Variables:
-        - BENGAL_EMOJI=1: Enable emoji in CLI output (default: ASCII)
-        - NO_COLOR: Disable all colors (follows NO_COLOR standard)
-        - CI: Detected automatically, disables fancy terminal features
-        - TERM=dumb: Disables rich features
+Environment Variables:
+    - BENGAL_EMOJI=1: Enable emoji in CLI output (default: ASCII)
+    - NO_COLOR: Disable all colors (follows NO_COLOR standard)
+    - CI: Detected automatically, disables fancy terminal features
+    - TERM=dumb: Disables rich features
 
 Bengal Color Palette:
-    - primary: #FF9D00 (Vivid Orange) - Brand color
-    - secondary: #3498DB (Bright Blue) - Links, paths
-    - accent: #F1C40F (Sunflower Yellow) - Highlights
-    - success: #2ECC71 (Emerald Green) - Success messages
-    - error: #E74C3C (Alizarin Crimson) - Errors
-    - warning: #E67E22 (Carrot Orange) - Warnings
+- primary: #FF9D00 (Vivid Orange) - Brand color
+- secondary: #3498DB (Bright Blue) - Links, paths
+- accent: #F1C40F (Sunflower Yellow) - Highlights
+- success: #2ECC71 (Emerald Green) - Success messages
+- error: #E74C3C (Alizarin Crimson) - Errors
+- warning: #E67E22 (Carrot Orange) - Warnings
 
 Usage:
     >>> from bengal.utils.rich_console import get_console, should_use_rich
@@ -38,12 +38,13 @@ Usage:
     ...     pass
 
 Related Modules:
-    - bengal/cli/progress.py: Live progress display
-    - bengal/utils/logger.py: Structured logging (uses rich for output)
-    - bengal/output.py: CLI output coordination
+- bengal/cli/progress.py: Live progress display
+- bengal/utils/logger.py: Structured logging (uses rich for output)
+- bengal/output.py: CLI output coordination
 
 See Also:
-    - bengal/utils/COLOR_PALETTE.md: Color palette documentation
+- bengal/utils/COLOR_PALETTE.md: Color palette documentation
+
 """
 
 from __future__ import annotations
@@ -100,11 +101,12 @@ _console: Console | None = None
 def should_use_emoji() -> bool:
     """
     Determine if emoji should be used in CLI output.
-
+    
     Checks the BENGAL_EMOJI environment variable. ASCII-first by default.
-
+    
     Returns:
         True if BENGAL_EMOJI=1, False otherwise
+        
     """
     return os.getenv("BENGAL_EMOJI", "").strip() == "1"
 
@@ -112,9 +114,10 @@ def should_use_emoji() -> bool:
 def get_console() -> Console:
     """
     Get singleton rich console instance.
-
+    
     Returns:
         Configured Console instance
+        
     """
     global _console
 
@@ -142,9 +145,10 @@ def get_console() -> Console:
 def should_use_rich() -> bool:
     """
     Determine if we should use rich features.
-
+    
     Returns:
         True if rich features should be enabled
+        
     """
     console = get_console()
 
@@ -164,10 +168,10 @@ def should_use_rich() -> bool:
 def detect_environment() -> dict[str, bool | str | int | None]:
     """
     Detect terminal and environment capabilities.
-
+    
     Gathers comprehensive information about the execution environment
     to help with debugging and adaptive output formatting.
-
+    
     Returns:
         Dictionary containing:
             - is_terminal (bool): Whether stdout is a TTY
@@ -179,12 +183,13 @@ def detect_environment() -> dict[str, bool | str | int | None]:
             - is_git_repo (bool): Whether .git directory exists
             - cpu_count (int): Number of CPU cores
             - terminal_app (str): Terminal emulator name
-
+    
     Example:
-        >>> env = detect_environment()
-        >>> if env["is_ci"]:
-        ...     # Simplify output for CI logs
-        ...     pass
+            >>> env = detect_environment()
+            >>> if env["is_ci"]:
+            ...     # Simplify output for CI logs
+            ...     pass
+        
     """
     env: dict[str, bool | str | int | None] = {}
 
@@ -234,19 +239,20 @@ def reset_console() -> None:
 def is_live_display_active() -> bool:
     """
     Check if a Live display is currently active on the console.
-
+    
     This function accesses the private `_live` attribute using `getattr()`
     to safely handle cases where it might not exist, with a fallback that
     assumes no Live display is active if an exception occurs.
-
+    
     Returns:
         True if a Live display is currently active, False otherwise
-
+    
     Note:
         Tested against Rich >= 13.7.0 (as specified in pyproject.toml).
         Uses the private _live attribute since Rich does not provide a public API
         for detecting active Live displays. The getattr() call provides safe access
         with a sensible default value (None).
+        
     """
     console = get_console()
 

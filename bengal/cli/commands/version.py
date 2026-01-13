@@ -24,11 +24,12 @@ from bengal.core.version import Version, VersionConfig
 def version_cli() -> None:
     """
     Version management for documentation.
-
+    
     Commands:
         list     Display all configured versions
         create   Create a new version snapshot
         info     Show details about a specific version
+        
     """
     pass
 
@@ -56,16 +57,17 @@ def version_cli() -> None:
 def list_versions(output_format: str, source: str) -> None:
     """
     📋 Display all configured versions.
-
+    
     Shows version ID, label, source directory, and status (latest, deprecated).
-
+    
     Examples:
         bengal version list
         bengal version list --format json
-
+    
     See also:
         bengal version info - Show details about a specific version
         bengal version create - Create a new version snapshot
+        
     """
     cli = get_cli_output()
 
@@ -125,15 +127,16 @@ def list_versions(output_format: str, source: str) -> None:
 def info(version_id: str, source: str) -> None:
     """
     Show details about a specific version.
-
+    
     Accepts version ID or alias (e.g., 'v2', 'latest', 'stable').
-
+    
     Examples:
         bengal version info v2
         bengal version info latest
-
+    
     See also:
         bengal version list - List all versions
+        
     """
     cli = get_cli_output()
 
@@ -234,22 +237,23 @@ def create(
 ) -> None:
     """
     Create a new version snapshot.
-
+    
     Copies the current documentation to a versioned directory and updates
     configuration to include the new version.
-
+    
     Examples:
         bengal version create v2
         bengal version create v2 --label '2.0 (Stable)'
         bengal version create v1 --from docs --to _versions/v1/docs
-
+    
     Workflow:
         1. Copy docs/ → _versions/v2/docs/
         2. Update config with new version entry
         3. Current docs/ becomes the new "latest" version
-
+    
     See also:
         bengal version list - List all versions
+        
     """
     cli = get_cli_output()
 
@@ -409,21 +413,22 @@ def diff_versions(
 ) -> None:
     """
     Compare documentation between two versions.
-
+    
     Shows added, removed, and modified pages between versions.
-
+    
     Examples:
         bengal version diff v2 v3
         bengal version diff main release/0.1.6 --git
         bengal version diff v1 v2 --output markdown
-
+    
     Output formats:
         summary  - Brief summary of changes (default)
         markdown - Markdown changelog suitable for release notes
         json     - JSON output for automation
-
+    
     See also:
         bengal version list - List all versions
+        
     """
     cli = get_cli_output()
 

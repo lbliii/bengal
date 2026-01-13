@@ -4,7 +4,7 @@ Contracts define valid nesting relationships between directives,
 catching structural errors at parse time rather than runtime.
 
 Thread Safety:
-    Contract is frozen (immutable). Safe to share across threads.
+Contract is frozen (immutable). Safe to share across threads.
 
 Example:
     >>> STEPS_CONTRACT = DirectiveContract(
@@ -14,6 +14,7 @@ Example:
     >>> STEP_CONTRACT = DirectiveContract(
     ...     requires_parent=("steps",),
     ... )
+
 """
 
 from __future__ import annotations
@@ -30,31 +31,32 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class DirectiveContract:
     """Validation rules for directive nesting.
-
+    
     Use contracts to enforce structural requirements like "step must
     be inside steps" or "tab-item can only contain certain content".
-
+    
     Violations emit warnings rather than raising exceptions, allowing
     graceful degradation of invalid markup.
-
+    
     Attributes:
         requires_parent: This directive must be inside one of these parents.
         requires_children: This directive must contain at least one of these.
         allows_children: Only these child directive types are allowed.
         max_children: Maximum number of children allowed.
         forbids_children: These directive types are forbidden as children.
-
+    
     Example:
-        >>> # tab-item must be inside tab-set
-        >>> TAB_ITEM_CONTRACT = DirectiveContract(
-        ...     requires_parent=("tab-set",),
-        ... )
-        >>>
-        >>> # tab-set must contain tab-item children
-        >>> TAB_SET_CONTRACT = DirectiveContract(
-        ...     requires_children=("tab-item",),
-        ...     allows_children=("tab-item",),
-        ... )
+            >>> # tab-item must be inside tab-set
+            >>> TAB_ITEM_CONTRACT = DirectiveContract(
+            ...     requires_parent=("tab-set",),
+            ... )
+            >>>
+            >>> # tab-set must contain tab-item children
+            >>> TAB_SET_CONTRACT = DirectiveContract(
+            ...     requires_children=("tab-item",),
+            ...     allows_children=("tab-item",),
+            ... )
+        
     """
 
     requires_parent: tuple[str, ...] | None = None
@@ -218,8 +220,9 @@ class DirectiveContract:
 @dataclass(frozen=True, slots=True)
 class ContractViolation:
     """Record of a contract violation.
-
+    
     Contains information about what went wrong and suggestions for fixes.
+        
     """
 
     directive: str

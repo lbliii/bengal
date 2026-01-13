@@ -5,13 +5,14 @@ Identifies which pages and assets need rebuilding based on file changes,
 section-level optimizations, and template dependencies.
 
 Key Concepts:
-    - Section-level filtering: Skip entire sections if no files changed
-    - Force-changed filtering: Always include explicitly changed files
-    - Shared content cascade: Versioned content inherits shared content changes
+- Section-level filtering: Skip entire sections if no files changed
+- Force-changed filtering: Always include explicitly changed files
+- Shared content cascade: Versioned content inherits shared content changes
 
 Related Modules:
-    - bengal.cache.build_cache: Build cache for change detection
-    - bengal.orchestration.incremental: Incremental build coordination
+- bengal.cache.build_cache: Build cache for change detection
+- bengal.orchestration.incremental: Incremental build coordination
+
 """
 
 from __future__ import annotations
@@ -35,20 +36,21 @@ logger = get_logger(__name__)
 class RebuildFilter:
     """
     Filters pages and assets for rebuilding based on change detection.
-
+    
     Uses section-level optimization to skip checking individual pages in
     unchanged sections, improving performance for large sites.
-
+    
     Attributes:
         site: Site instance for page and section access
         cache: BuildCache instance for change detection
-
+    
     Example:
-        >>> filter = RebuildFilter(site, cache)
-        >>> pages_to_rebuild = filter.find_changed_pages(
-        ...     forced_changed=changed_sources,
-        ...     nav_changed=nav_sources,
-        ... )
+            >>> filter = RebuildFilter(site, cache)
+            >>> pages_to_rebuild = filter.find_changed_pages(
+            ...     forced_changed=changed_sources,
+            ...     nav_changed=nav_sources,
+            ... )
+        
     """
 
     def __init__(self, site: Site, cache: BuildCache) -> None:

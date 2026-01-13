@@ -11,10 +11,11 @@ Use cases:
 - Change notices for breaking changes
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's versioning directives exactly for parity.
+Matches Bengal's versioning directives exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -88,21 +89,21 @@ class SinceOptions(DirectiveOptions):
 class SinceDirective:
     """
     Directive for marking when a feature was introduced.
-
+    
     Syntax:
         :::{since} v2.0
         :::
-
+    
         :::{since} v2.0
         This feature was added in version 2.0.
         :::
-
+    
     Output (inline badge):
         <span class="version-badge version-badge-since">
           <svg ...>...</svg>
           <span>New in v2.0</span>
         </span>
-
+    
     Output (with content):
         <div class="version-directive version-since">
           <div class="version-directive-header">
@@ -110,9 +111,10 @@ class SinceDirective:
           </div>
           <div class="version-directive-content">...</div>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("since", "versionadded")
@@ -200,21 +202,21 @@ class DeprecatedOptions(DirectiveOptions):
 class DeprecatedDirective:
     """
     Directive for marking deprecated features.
-
+    
     Syntax:
         :::{deprecated} v3.0
         :::
-
+    
         :::{deprecated} v3.0
         Use new_function() instead.
         :::
-
+    
     Output (inline badge):
         <span class="version-badge version-badge-deprecated">
           <svg ...>...</svg>
           <span>Deprecated since v3.0</span>
         </span>
-
+    
     Output (with content):
         <div class="version-directive version-deprecated">
           <div class="version-directive-header">
@@ -222,9 +224,10 @@ class DeprecatedDirective:
           </div>
           <div class="version-directive-content">...</div>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("deprecated", "versionremoved")
@@ -312,21 +315,21 @@ class ChangedOptions(DirectiveOptions):
 class ChangedDirective:
     """
     Directive for marking behavior changes.
-
+    
     Syntax:
         :::{changed} v2.5
         :::
-
+    
         :::{changed} v2.5
         The default value changed from 10 to 20.
         :::
-
+    
     Output (inline badge):
         <span class="version-badge version-badge-changed">
           <svg ...>...</svg>
           <span>Changed in v2.5</span>
         </span>
-
+    
     Output (with content):
         <div class="version-directive version-changed">
           <div class="version-directive-header">
@@ -334,9 +337,10 @@ class ChangedDirective:
           </div>
           <div class="version-directive-content">...</div>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("changed", "versionchanged")

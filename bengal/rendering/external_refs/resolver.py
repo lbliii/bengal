@@ -7,10 +7,10 @@ Resolves [[ext:project:target]] references using three-tier resolution:
 3. Graceful Fallback
 
 Design Goals (from RFC):
-    - Offline by default — Most links resolve without network
-    - Builds never fail — External issues = warnings only
-    - Progressive enhancement — Start simple, add features as needed
-    - Bengal-native — Own format, not Sphinx compatibility
+- Offline by default — Most links resolve without network
+- Builds never fail — External issues = warnings only
+- Progressive enhancement — Start simple, add features as needed
+- Bengal-native — Own format, not Sphinx compatibility
 
 Example:
     >>> resolver = ExternalRefResolver(config)
@@ -21,6 +21,7 @@ Example:
     '<a href="https://lbliii.github.io/kida/api/python/kida/#Markup" class="extref">Kida Markup</a>'
 
 See: plan/rfc-external-references.md
+
 """
 
 from __future__ import annotations
@@ -62,22 +63,23 @@ class UnresolvedRef:
 class ExternalRefResolver:
     """
     Resolver for external documentation references.
-
+    
     Implements three-tier resolution:
     1. URL Templates - Instant, offline pattern matching
     2. Bengal Index - Cached xref.json from other Bengal sites
     3. Graceful Fallback - Render as code + emit warning
-
+    
     Attributes:
         config: Site configuration
         templates: URL templates for common documentation sites
         indexes: Cached Bengal indexes
         unresolved: List of unresolved references for health checks
-
+    
     Example:
-        >>> resolver = ExternalRefResolver(config)
-        >>> resolver.resolve("python", "pathlib.Path")
-        '<a href="..." class="extref">Path</a>'
+            >>> resolver = ExternalRefResolver(config)
+            >>> resolver.resolve("python", "pathlib.Path")
+            '<a href="..." class="extref">Path</a>'
+        
     """
 
     config: Config | dict[str, Any]
@@ -349,26 +351,27 @@ class ExternalRefResolver:
 def resolve_template(template: str, target: str) -> str:
     """
     Resolve URL template with target variables.
-
+    
     Available variables:
         - {target}: Full target string (e.g., "pathlib.Path")
         - {module}: Module part (e.g., "pathlib")
         - {name}: Name part (e.g., "Path")
         - {name_lower}: Lowercase name (e.g., "path")
-
+    
     Args:
         template: URL template string
         target: Target to resolve
-
+    
     Returns:
         Expanded URL string
-
+    
     Example:
-        >>> resolve_template(
-        ...     "https://docs.python.org/3/library/{module}.html#{name}",
-        ...     "pathlib.Path"
-        ... )
-        'https://docs.python.org/3/library/pathlib.html#Path'
+            >>> resolve_template(
+            ...     "https://docs.python.org/3/library/{module}.html#{name}",
+            ...     "pathlib.Path"
+            ... )
+            'https://docs.python.org/3/library/pathlib.html#Path'
+        
     """
     # Parse target: "pathlib.Path" → module="pathlib", name="Path"
     parts = target.rsplit(".", 1)
@@ -387,15 +390,16 @@ def resolve_template(template: str, target: str) -> str:
 class IndexCache:
     """
     Cache for external reference indexes.
-
+    
     Implements stale-while-revalidate pattern:
     - Fresh cache: Return immediately
     - Stale cache: Return immediately, refresh in background
     - No cache: Fetch synchronously (first time only)
-
+    
     Attributes:
         cache_dir: Directory to store cached indexes
         default_cache_days: Default cache duration
+        
     """
 
     cache_dir: Path

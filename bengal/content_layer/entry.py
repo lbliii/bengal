@@ -17,10 +17,10 @@ from typing import Any
 class ContentEntry:
     """
     Unified representation of content from any source.
-
+    
     ContentEntry is source-agnostic - whether content comes from local files,
     GitHub, Notion, or a REST API, it's represented the same way.
-
+    
     Attributes:
         id: Unique identifier within the source (e.g., file path, doc ID)
         slug: URL-friendly slug for routing
@@ -34,18 +34,19 @@ class ContentEntry:
         etag: HTTP ETag (for conditional requests)
         cached_path: Local cache file path (if cached)
         cached_at: When this entry was cached
-
+    
     Example:
-        >>> entry = ContentEntry(
-        ...     id="getting-started.md",
-        ...     slug="getting-started",
-        ...     content="# Getting Started\\n\\nWelcome to...",
-        ...     frontmatter={"title": "Getting Started", "weight": 1},
-        ...     source_type="local",
-        ...     source_name="docs",
-        ... )
-        >>> entry.title
-        'Getting Started'
+            >>> entry = ContentEntry(
+            ...     id="getting-started.md",
+            ...     slug="getting-started",
+            ...     content="# Getting Started\n\nWelcome to...",
+            ...     frontmatter={"title": "Getting Started", "weight": 1},
+            ...     source_type="local",
+            ...     source_name="docs",
+            ... )
+            >>> entry.title
+            'Getting Started'
+        
     """
 
     # Identity

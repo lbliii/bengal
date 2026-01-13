@@ -35,8 +35,9 @@ OPTIONAL_IMPORTS = {
 def get_imports_from_file(file_path: Path) -> set[str]:
     """
     Extract all import names from a Python file.
-
+    
     Returns top-level package names (e.g., 'hypothesis' from 'import hypothesis.strategies').
+        
     """
     try:
         with open(file_path, encoding="utf-8") as f:

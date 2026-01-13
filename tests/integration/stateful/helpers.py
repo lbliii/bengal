@@ -14,9 +14,10 @@ from pathlib import Path
 def create_temp_site(name: str = "test_site") -> Path:
     """
     Create a temporary site directory with basic structure.
-
+    
     Returns:
         Path to site root directory
+        
     """
     tmpdir = Path(tempfile.mkdtemp(prefix=f"bengal_{name}_"))
 
@@ -57,15 +58,16 @@ output_dir = "public"
 def write_page(site_dir: Path, rel_path: str, title: str, content: str = "") -> Path:
     """
     Write a content page to the site.
-
+    
     Args:
         site_dir: Site root directory
         rel_path: Relative path from content/ (e.g., "blog/post.md")
         title: Page title
         content: Page content (optional)
-
+    
     Returns:
         Path to created page file
+        
     """
     page_path = site_dir / "content" / rel_path
     page_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,10 +86,11 @@ title: "{title}"
 def delete_page(site_dir: Path, rel_path: str) -> None:
     """
     Delete a content page from the site.
-
+    
     Args:
         site_dir: Site root directory
         rel_path: Relative path from content/ (e.g., "blog/post.md")
+        
     """
     page_path = site_dir / "content" / rel_path
     if page_path.exists():
@@ -97,16 +100,17 @@ def delete_page(site_dir: Path, rel_path: str) -> None:
 def run_build(site_dir: Path, incremental: bool = False) -> dict[str, any]:
     """
     Run a build and return results.
-
+    
     Args:
         site_dir: Site root directory
         incremental: Whether to run incremental build
-
+    
     Returns:
         Dict with build results:
         - output_files: Set of generated file paths
         - success: Whether build succeeded
         - errors: List of error messages
+        
     """
     try:
         # Import here to avoid circular deps
@@ -146,12 +150,13 @@ def run_build(site_dir: Path, incremental: bool = False) -> dict[str, any]:
 def hash_outputs(site_dir: Path) -> dict[str, str]:
     """
     Hash all output files for comparison.
-
+    
     Args:
         site_dir: Site root directory
-
+    
     Returns:
         Dict mapping relative paths to SHA256 hashes
+        
     """
     output_dir = site_dir / "public"
     hashes = {}
@@ -173,13 +178,14 @@ def hash_outputs(site_dir: Path) -> dict[str, str]:
 def extract_internal_links(site_dir: Path, html_file: Path) -> set[str]:
     """
     Extract internal links from an HTML file.
-
+    
     Args:
         site_dir: Site root directory
         html_file: Path to HTML file (absolute or relative to public/)
-
+    
     Returns:
         Set of internal link URLs (e.g., {"/about/", "/blog/"})
+        
     """
     import re
 
@@ -201,13 +207,14 @@ def extract_internal_links(site_dir: Path, html_file: Path) -> set[str]:
 def link_target_exists(site_dir: Path, link_url: str) -> bool:
     """
     Check if a link target exists in the output.
-
+    
     Args:
         site_dir: Site root directory
         link_url: Link URL (e.g., "/about/", "/blog/post/")
-
+    
     Returns:
         True if target file exists
+        
     """
     output_dir = site_dir / "public"
 
@@ -227,9 +234,10 @@ def link_target_exists(site_dir: Path, link_url: str) -> bool:
 def clean_site(site_dir: Path) -> None:
     """
     Clean up a temporary site directory.
-
+    
     Args:
         site_dir: Site root directory to remove
+        
     """
     if site_dir.exists():
         shutil.rmtree(site_dir)
@@ -238,12 +246,13 @@ def clean_site(site_dir: Path) -> None:
 def get_cache_path(site_dir: Path) -> Path:
     """
     Get path to build cache file.
-
+    
     Args:
         site_dir: Site root directory
-
+    
     Returns:
         Path to cache file (base path, actual file may be .json or .json.zst)
+        
     """
     return site_dir / ".bengal" / "cache.json"
 
@@ -257,9 +266,10 @@ def cache_exists(site_dir: Path) -> bool:
 def read_cache_size(site_dir: Path) -> int:
     """
     Get number of entries in cache.
-
+    
     Returns:
         Number of cached items, or 0 if cache doesn't exist
+        
     """
     cache_path = get_cache_path(site_dir)
     if not cache_path.exists():

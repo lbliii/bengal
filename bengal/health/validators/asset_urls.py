@@ -30,14 +30,15 @@ logger = get_logger(__name__)
 class AssetURLValidator(BaseValidator):
     """
     Validates that asset URLs in rendered HTML resolve to actual files.
-
+    
     This catches fingerprinting issues before deployment. Critical for
     production builds where fingerprinting is enabled.
-
+    
     Checks:
     - CSS/JS links in HTML point to existing files
     - Detects when HTML uses non-fingerprinted URLs but only fingerprinted files exist
     - Samples HTML files for performance
+        
     """
 
     name = "Asset URLs"

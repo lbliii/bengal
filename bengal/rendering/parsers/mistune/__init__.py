@@ -5,24 +5,25 @@ This package provides the MistuneParser class using the mistune library.
 Components are organized into focused modules:
 
 Modules:
-    - highlighting.py: Syntax highlighting plugin with Pygments
-    - toc.py: TOC extraction and heading anchor injection
-    - ast.py: AST parsing and rendering
-    - patterns.py: Compiled regex patterns
+- highlighting.py: Syntax highlighting plugin with Pygments
+- toc.py: TOC extraction and heading anchor injection
+- ast.py: AST parsing and rendering
+- patterns.py: Compiled regex patterns
 
 Features:
-    - Tables (GFM)
-    - Fenced code blocks with syntax highlighting
-    - Strikethrough
-    - Task lists
-    - Autolinks
-    - TOC generation
-    - Admonitions
-    - Footnotes
-    - Definition lists
-    - Variable substitution
-    - Cross-references
-    - AST output
+- Tables (GFM)
+- Fenced code blocks with syntax highlighting
+- Strikethrough
+- Task lists
+- Autolinks
+- TOC generation
+- Admonitions
+- Footnotes
+- Definition lists
+- Variable substitution
+- Cross-references
+- AST output
+
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ class MistuneParser(BaseMarkdownParser):
     """
     Parser using mistune library.
     Faster with full documentation features.
-
+    
     Supported features:
     - Tables (GFM)
     - Fenced code blocks
@@ -65,6 +66,7 @@ class MistuneParser(BaseMarkdownParser):
     - Footnotes (custom plugin)
     - Definition lists (custom plugin)
     - Variable substitution (custom plugin)
+        
     """
 
     def __init__(self, enable_highlighting: bool = True) -> None:

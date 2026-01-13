@@ -5,8 +5,9 @@ Verifies that DIRECTIVE_NAMES class attributes match actual registrations
 and that the single source of truth (DIRECTIVE_CLASSES) is complete.
 
 Related:
-    - RFC: plan/active/rfc-directive-registry-single-source-of-truth.md
-    - Implementation: bengal/rendering/plugins/directives/__init__.py
+- RFC: plan/active/rfc-directive-registry-single-source-of-truth.md
+- Implementation: bengal/rendering/plugins/directives/__init__.py
+
 """
 
 from __future__ import annotations

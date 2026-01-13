@@ -1,36 +1,37 @@
 """Admonition directive for callout boxes.
 
 Supports standard admonition types:
-    - note: General information
-    - warning: Potential issues
-    - tip: Helpful suggestions
-    - danger: Serious risk
-    - error: Error conditions
-    - info: Informational callout
-    - example: Example content
-    - success: Success messages
-    - caution: Proceed carefully (maps to warning CSS)
-    - seealso: Related information
+- note: General information
+- warning: Potential issues
+- tip: Helpful suggestions
+- danger: Serious risk
+- error: Error conditions
+- info: Informational callout
+- example: Example content
+- success: Success messages
+- caution: Proceed carefully (maps to warning CSS)
+- seealso: Related information
 
 Example:
-    :::{note} Optional Title
-    :class: custom-class
+:::{note} Optional Title
+:class: custom-class
 
-    This is the note content.
-    :::
+This is the note content.
+:::
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's admonition directive exactly:
-    <div class="admonition note">
-      <p class="admonition-title">
-        <span class="admonition-icon-wrapper">{SVG}</span>
-        <span class="admonition-title-text">Title</span>
-      </p>
-      {content}
-    </div>
+Matches Bengal's admonition directive exactly:
+<div class="admonition note">
+  <p class="admonition-title">
+    <span class="admonition-icon-wrapper">{SVG}</span>
+    <span class="admonition-title-text">Title</span>
+  </p>
+  {content}
+</div>
+
 """
 
 from __future__ import annotations
@@ -96,12 +97,13 @@ TYPE_TO_ICON: dict[str, str] = {
 
 def _render_admonition_icon(icon_name: str) -> str:
     """Render admonition icon using Phosphor icons.
-
+    
     Args:
         icon_name: Name of the icon to render
-
+    
     Returns:
         SVG HTML string, or empty string if icon not found
+        
     """
     try:
         from bengal.directives._icons import render_svg_icon
@@ -114,12 +116,13 @@ def _render_admonition_icon(icon_name: str) -> str:
 
 class AdmonitionDirective:
     """Handler for admonition directives.
-
+    
     Renders callout boxes for notes, warnings, tips, etc.
     Produces HTML identical to Bengal's admonition directive.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = tuple(ADMONITION_TYPES)

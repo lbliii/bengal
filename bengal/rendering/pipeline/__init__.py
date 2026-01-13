@@ -6,16 +6,16 @@ for individual pages. Manages thread-local parser instances for performance
 and provides dependency tracking for incremental builds.
 
 Public API:
-    - RenderingPipeline: Main pipeline class for page rendering
-    - extract_toc_structure: Parse TOC HTML into structured data
-    - TOC_EXTRACTION_VERSION: Version for cache invalidation
+- RenderingPipeline: Main pipeline class for page rendering
+- extract_toc_structure: Parse TOC HTML into structured data
+- TOC_EXTRACTION_VERSION: Version for cache invalidation
 
 The pipeline is composed of focused modules:
-    - core.py: Main RenderingPipeline class
-    - thread_local.py: Thread-local parser management
-    - toc.py: TOC extraction utilities
-    - transforms.py: Content transformations
-    - output.py: Output handling
+- core.py: Main RenderingPipeline class
+- thread_local.py: Thread-local parser management
+- toc.py: TOC extraction utilities
+- transforms.py: Content transformations
+- output.py: Output handling
 
 Usage:
 
@@ -27,10 +27,11 @@ pipeline.process_page(page)
 ```
 
 Related Modules:
-    - bengal.rendering.parsers: Markdown parser implementations
-    - bengal.rendering.template_engine: Template rendering (Kida default)
-    - bengal.rendering.renderer: Page rendering logic
-    - bengal.cache.dependency_tracker: Dependency tracking
+- bengal.rendering.parsers: Markdown parser implementations
+- bengal.rendering.template_engine: Template rendering (Kida default)
+- bengal.rendering.renderer: Page rendering logic
+- bengal.cache.dependency_tracker: Dependency tracking
+
 """
 
 from __future__ import annotations

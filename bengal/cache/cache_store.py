@@ -12,17 +12,17 @@ with any type implementing the Cacheable protocol. It handles:
 - Backward compatibility (reads both compressed and uncompressed)
 
 Design Philosophy:
-    CacheStore provides a reusable cache storage layer that works with any
-    Cacheable type. This eliminates the need for each cache (TaxonomyIndex,
-    AssetDependencyMap, etc.) to implement its own save/load logic.
+CacheStore provides a reusable cache storage layer that works with any
+Cacheable type. This eliminates the need for each cache (TaxonomyIndex,
+AssetDependencyMap, etc.) to implement its own save/load logic.
 
-    Benefits:
-    - Consistent version handling across all caches
-    - Type-safe operations (mypy validates)
-    - Tolerant loading (returns empty on mismatch, doesn't crash)
-    - Automatic directory creation
-    - Single source of truth for cache file format
-    - 12-14x compression ratio with Zstandard (PEP 784)
+Benefits:
+- Consistent version handling across all caches
+- Type-safe operations (mypy validates)
+- Tolerant loading (returns empty on mismatch, doesn't crash)
+- Automatic directory creation
+- Single source of truth for cache file format
+- 12-14x compression ratio with Zstandard (PEP 784)
 
 Usage Example:
 
@@ -46,11 +46,12 @@ loaded_tags = store.load(TagEntry, expected_version=1)
 ```
 
 See Also:
-    - bengal/cache/cacheable.py - Cacheable protocol definition
-    - bengal/cache/compression.py - Zstandard compression utilities
-    - bengal/cache/taxonomy_index.py - Example usage (TagEntry)
-    - bengal/cache/asset_dependency_map.py - Example usage (AssetDependencyEntry)
-    - plan/active/rfc-zstd-cache-compression.md - Compression RFC
+- bengal/cache/cacheable.py - Cacheable protocol definition
+- bengal/cache/compression.py - Zstandard compression utilities
+- bengal/cache/taxonomy_index.py - Example usage (TagEntry)
+- bengal/cache/asset_dependency_map.py - Example usage (AssetDependencyEntry)
+- plan/active/rfc-zstd-cache-compression.md - Compression RFC
+
 """
 
 from __future__ import annotations
@@ -71,20 +72,20 @@ T = TypeVar("T", bound=Cacheable)
 class CacheStore:
     """
     Generic cache storage for types implementing the Cacheable protocol.
-
+    
     Provides type-safe save/load operations with version management,
     Zstandard compression, and tolerant loading (returns empty list on
     version mismatch or missing file).
-
+    
     Attributes:
         cache_path: Path to cache file (e.g., .bengal/taxonomy_index.json)
         compress: Whether to use Zstandard compression (default: True)
-
+    
     Cache File Format:
         Compressed (.json.zst):
             Zstd-compressed JSON with same structure as below
             92-93% smaller, 12-14x compression ratio
-
+    
         Uncompressed (.json):
             {
                 "version": 1,
@@ -93,54 +94,55 @@ class CacheStore:
                     {...}
                 ]
             }
-
+    
     Version Management:
         - Each cache file has a top-level "version" field
         - On version mismatch, load() returns empty list and logs warning
         - On missing file, load() returns empty list (no warning)
         - On malformed data, load() returns empty list and logs error
-
+    
         This "tolerant loading" approach ensures that stale or incompatible
         caches don't crash the build - they just rebuild from scratch.
-
+    
     Compression:
         - Enabled by default (Python 3.14+ with compression.zstd)
         - 92-93% size reduction on typical cache files
         - <1ms compress time, <0.3ms decompress time
         - Auto-detects format on load (reads both .json.zst and .json)
         - Backward compatible: reads old uncompressed caches
-
+    
     Type Safety:
         - save() accepts list of any Cacheable type
         - load() requires explicit type parameter for deserialization
         - mypy validates that type implements Cacheable protocol
-
+    
     Example:
         store = CacheStore(Path('.bengal/tags.json'))
-
+    
         # Save (compressed by default)
         tags: list[TagEntry] = [...]
         store.save(tags, version=1)  # Writes .json.zst
-
+    
         # Load (type-safe, auto-detects format)
         loaded: list[TagEntry] = store.load(TagEntry, expected_version=1)
-
+    
         # Disable compression for debugging
         store = CacheStore(Path('.bengal/tags.json'), compress=False)
-
+    
     Performance:
         With compression (default):
         - Save: ~1ms (serialize + compress + write)
         - Load: ~0.5ms (read + decompress + parse)
         - Size: 12-14x smaller than JSON
-
+    
         Without compression:
         - JSON serialization: ~10µs per object
         - File I/O: ~1-5ms for typical cache files
-
+    
     Thread Safety:
         Not thread-safe. Cache files should only be written by build process
         (single-threaded during discovery/build phases).
+        
     """
 
     def __init__(self, cache_path: Path, compress: bool = True):

@@ -6,9 +6,9 @@ CWD-dependent behavior. All paths are resolved relative to a fixed base
 (typically site.root_path).
 
 Key Principles:
-    - Base path must always be absolute
-    - No Path.cwd() calls - all resolution is explicit
-    - Paths resolved once at ingestion, not repeatedly
+- Base path must always be absolute
+- No Path.cwd() calls - all resolution is explicit
+- Paths resolved once at ingestion, not repeatedly
 
 Usage:
 
@@ -21,13 +21,14 @@ resolver = PathResolver.from_site(site)
 ```
 
 Architecture:
-    This utility is part of the centralized path resolution architecture.
-    See plan/active/rfc-path-resolution-architecture.md for design rationale.
+This utility is part of the centralized path resolution architecture.
+See plan/active/rfc-path-resolution-architecture.md for design rationale.
 
 Related Modules:
-    - bengal.core.site: Site.root_path is always absolute
-    - bengal.config.loader: Config paths resolved on load
-    - bengal.directives: Directives use resolver
+- bengal.core.site: Site.root_path is always absolute
+- bengal.config.loader: Config paths resolved on load
+- bengal.directives: Directives use resolver
+
 """
 
 from __future__ import annotations
@@ -48,20 +49,21 @@ logger = get_logger(__name__)
 class PathResolver:
     """
     Centralized path resolution utility.
-
+    
     All paths resolved relative to a fixed base (site root).
     Eliminates CWD-dependent behavior across the codebase.
-
+    
     Attributes:
         base: Absolute base path for resolution
-
+    
     Example:
-        >>> resolver = PathResolver(Path("/home/user/site").resolve())
-        >>> resolver.resolve("../bengal")
+            >>> resolver = PathResolver(Path("/home/user/site").resolve())
+            >>> resolver.resolve("../bengal")
         PosixPath('/home/user/bengal')
-
-        >>> resolver.resolve("/absolute/path")
+    
+            >>> resolver.resolve("/absolute/path")
         PosixPath('/absolute/path')
+        
     """
 
     def __init__(self, base: Path) -> None:
@@ -220,19 +222,20 @@ class PathResolver:
 def resolve_path(path: str | Path, base: Path) -> Path:
     """
     Convenience function to resolve a single path.
-
+    
     For one-off resolutions without creating a resolver instance.
-
+    
     Args:
         path: Path to resolve
         base: Base path for resolution
-
+    
     Returns:
         Absolute path
-
+    
     Example:
-        >>> resolve_path("content/post.md", Path("/site"))
+            >>> resolve_path("content/post.md", Path("/site"))
         PosixPath('/site/content/post.md')
+        
     """
     resolver = PathResolver(base)
     return resolver.resolve(path)

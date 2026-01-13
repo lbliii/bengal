@@ -7,14 +7,15 @@ bengal.health.report by providing dict-based types for JSON serialization
 and configuration.
 
 Note:
-    Core health types (CheckResult, CheckStatus, HealthReport) are dataclasses
-    in bengal.health.report. This module provides complementary TypedDicts
-    for dict-based patterns like cache serialization and config.
+Core health types (CheckResult, CheckStatus, HealthReport) are dataclasses
+in bengal.health.report. This module provides complementary TypedDicts
+for dict-based patterns like cache serialization and config.
 
 See Also:
-    - :mod:`bengal.health.report`: Core dataclasses (CheckResult, HealthReport)
-    - :mod:`bengal.health.base`: Validator base class
-    - :mod:`bengal.health.health_check`: Health check orchestrator
+- :mod:`bengal.health.report`: Core dataclasses (CheckResult, HealthReport)
+- :mod:`bengal.health.base`: Validator base class
+- :mod:`bengal.health.health_check`: Health check orchestrator
+
 """
 
 from __future__ import annotations
@@ -205,9 +206,10 @@ class QualityThresholds(TypedDict, total=False):
 class ValidatorProtocol(Protocol):
     """
     Protocol for health validators.
-
+    
     All validators implement this interface, enabling polymorphic
     validation orchestration.
+        
     """
 
     @property

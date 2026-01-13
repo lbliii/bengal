@@ -13,14 +13,15 @@ Key features:
 - Integrates with health check system for observability
 
 Architecture:
-    This module consolidates link validation that was previously split between
-    rendering/ and health/. The LinkValidator class contains the core logic,
-    while LinkValidatorWrapper integrates it into the health check framework.
+This module consolidates link validation that was previously split between
+rendering/ and health/. The LinkValidator class contains the core logic,
+while LinkValidatorWrapper integrates it into the health check framework.
 
 Related:
-    - bengal/health/validators/__init__.py: Validator exports
-    - bengal/core/page/operations.py: Page.validate_links() method
-    - plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
+- bengal/health/validators/__init__.py: Validator exports
+- bengal/core/page/operations.py: Page.validate_links() method
+- plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
+
 """
 
 from __future__ import annotations
@@ -44,17 +45,18 @@ logger = get_logger(__name__)
 class LinkValidator:
     """
     Validates links in pages to catch broken links.
-
+    
     This validator checks that internal links resolve to existing pages
     in the site. External links (http/https), mailto, tel, and fragment-only
     links are skipped (external link checking is handled separately).
-
+    
     Attributes:
         validated_urls: Set of URLs that have been validated (cache)
         broken_links: List of (page_path, broken_link) tuples
         _page_urls: Cached set of all page URLs for O(1) lookup
         _source_paths: Cached set of all source paths for resolving relative links
         _site: Reference to site being validated
+        
     """
 
     def __init__(self, site: Site | None = None) -> None:
@@ -456,11 +458,12 @@ class LinkValidator:
 class LinkValidatorWrapper(BaseValidator):
     """
     Health check wrapper for link validation.
-
+    
     Integrates LinkValidator into the health check system and provides
     observability stats for link validation performance tracking.
-
+    
     Implements HasStats protocol for observability.
+        
     """
 
     name = "Links"
@@ -571,15 +574,16 @@ class LinkValidatorWrapper(BaseValidator):
 def validate_links(page: Page, site: Site | None = None) -> list[str]:
     """
     Validate all links in a page.
-
+    
     Convenience function for use by rendering pipeline and other callers.
-
+    
     Args:
         page: Page to validate
         site: Optional Site instance for URL resolution
-
+    
     Returns:
         List of broken link URLs
+        
     """
     validator = LinkValidator(site)
     return validator.validate_page_links(page, site)

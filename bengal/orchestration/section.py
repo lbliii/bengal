@@ -6,38 +6,39 @@ type detection, and structural validation. This orchestrator runs after
 content discovery to finalize section structure before rendering.
 
 Key Responsibilities:
-    Index Page Generation
-        Ensures every section has an index page. Sections without explicit
-        _index.md files get auto-generated archive pages.
-    Content Type Detection
-        Determines section content type (blog, doc, autodoc, tutorial) and
-        selects appropriate templates and pagination settings.
-    Existing Index Enrichment
-        Enriches user-created index pages with section context (_posts,
-        _subsections, _paginator) for template access.
-    Structural Validation
-        Validates section hierarchy integrity after finalization.
+Index Page Generation
+    Ensures every section has an index page. Sections without explicit
+    _index.md files get auto-generated archive pages.
+Content Type Detection
+    Determines section content type (blog, doc, autodoc, tutorial) and
+    selects appropriate templates and pagination settings.
+Existing Index Enrichment
+    Enriches user-created index pages with section context (_posts,
+    _subsections, _paginator) for template access.
+Structural Validation
+    Validates section hierarchy integrity after finalization.
 
 Content Types:
-    The orchestrator detects content type from section structure and metadata:
-        - blog: Date-ordered posts with pagination
-        - doc: Weight-ordered documentation
-        - autodoc/python: API reference from Python docstrings
-        - autodoc/cli: CLI reference from Click commands
-        - tutorial: Learning content in sequence
+The orchestrator detects content type from section structure and metadata:
+    - blog: Date-ordered posts with pagination
+    - doc: Weight-ordered documentation
+    - autodoc/python: API reference from Python docstrings
+    - autodoc/cli: CLI reference from Click commands
+    - tutorial: Learning content in sequence
 
 Build Phase:
-    Section finalization runs during Phase 6, after discovery (Phase 2)
-    and before taxonomies (Phase 7). Incremental builds can selectively
-    finalize only affected sections.
+Section finalization runs during Phase 6, after discovery (Phase 2)
+and before taxonomies (Phase 7). Incremental builds can selectively
+finalize only affected sections.
 
 Related Modules:
-    bengal.core.section: Section data model
-    bengal.content_types.registry: Content type strategies
-    bengal.discovery.page_factory: Page creation utilities
+bengal.core.section: Section data model
+bengal.content_types.registry: Content type strategies
+bengal.discovery.page_factory: Page creation utilities
 
 See Also:
-    bengal.orchestration.build: Build coordinator calling this orchestrator
+bengal.orchestration.build: Build coordinator calling this orchestrator
+
 """
 
 from __future__ import annotations
@@ -60,15 +61,16 @@ if TYPE_CHECKING:
 class SectionOrchestrator:
     """
     Handles section structure and completeness.
-
+    
     Responsibilities:
     - Ensure all sections have index pages (explicit or auto-generated)
     - Generate archive pages for sections without _index.md
     - Validate section structure
     - Maintain section hierarchy integrity
-
+    
     This orchestrator implements the "structural" concerns of sections,
     separate from cross-cutting concerns like taxonomies (tags, categories).
+        
     """
 
     def __init__(self, site: Site):

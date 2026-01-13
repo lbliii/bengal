@@ -29,15 +29,16 @@ _ESCAPE_PATTERN = re.compile(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])")
 
 def _process_escapes(text: str) -> str:
     """Process backslash escapes in link URLs and titles.
-
+    
     CommonMark: Backslash escapes work in link destinations and titles.
     A backslash followed by ASCII punctuation is replaced with the literal char.
-
+    
     Args:
         text: Raw text that may contain backslash escapes
-
+    
     Returns:
         Text with escapes processed
+        
     """
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
@@ -48,25 +49,27 @@ _WHITESPACE_PATTERN = re.compile(r"[ \t\n]+")
 
 def _unescape_label(label: str) -> str:
     """Unescape label-specific escapes (backslash, [, ]).
-
+    
     CommonMark: Backslash escapes are allowed in labels but only matter for
     backslash and bracket characters. Other escapes remain literal so that
-    labels like ``[foo\\!]`` do not match ``[foo!]`` (spec example 545).
+    labels like ``[foo\!]`` do not match ``[foo!]`` (spec example 545).
+        
     """
     return label.replace("\\\\", "\\").replace("\\[", "[").replace("\\]", "]")
 
 
 def _normalize_label(label: str) -> str:
     """Normalize a link reference label for matching.
-
+    
     CommonMark 4.7: "Label matching is case-insensitive and Unicode case fold
     equivalent. Spaces, tabs, and line endings are normalized to single space."
-
+    
     Args:
         label: Raw label text
-
+    
     Returns:
         Normalized label (lowercase, whitespace normalized)
+        
     """
     # CommonMark: remove bracket/backslash escapes before normalization
     unescaped = _unescape_label(label)
@@ -78,17 +81,18 @@ def _normalize_label(label: str) -> str:
 
 def _parse_link_destination(text: str, pos: int) -> tuple[str, int] | None:
     """Parse a link destination starting at pos.
-
+    
     CommonMark 6.5: Link destination is either:
     1. Angle-bracket delimited: <url> (can contain spaces, no newlines or unescaped </>)
     2. Raw URL: sequence of non-space chars with balanced parens
-
+    
     Args:
         text: The full text being parsed
         pos: Position after the opening (
-
+    
     Returns:
         (url, end_pos) or None if invalid
+        
     """
     if pos >= len(text):
         return None
@@ -173,16 +177,17 @@ def _parse_link_destination(text: str, pos: int) -> tuple[str, int] | None:
 
 def _parse_link_title(text: str, pos: int) -> tuple[str | None, int]:
     """Parse an optional link title starting at pos.
-
+    
     CommonMark: Title is enclosed in ", ', or ()
     Can span lines but opening/closing delimiters must match.
-
+    
     Args:
         text: The full text being parsed
         pos: Position to start looking for title
-
+    
     Returns:
         (title, end_pos) - title may be None if no valid title found
+        
     """
     # Skip whitespace including newlines (title can be on next line)
     while pos < len(text) and text[pos] in " \t\n\r":
@@ -221,15 +226,16 @@ def _parse_link_title(text: str, pos: int) -> tuple[str | None, int]:
 
 def _parse_inline_link(text: str, pos: int) -> tuple[str, str | None, int] | None:
     """Parse an inline link destination and optional title.
-
+    
     Format: (url) or (url "title") or (<url> 'title')
-
+    
     Args:
         text: Full text being parsed
         pos: Position at the opening (
-
+    
     Returns:
         (url, title, end_pos) or None if invalid
+        
     """
     if pos >= len(text) or text[pos] != "(":
         return None
@@ -277,16 +283,17 @@ def _parse_inline_link(text: str, pos: int) -> tuple[str, str | None, int] | Non
 
 def _skip_html_tag(text: str, pos: int) -> int:
     """Skip over an HTML tag starting at pos.
-
+    
     Handles open tags, close tags, and self-closing tags.
     Properly handles quoted attribute values that may contain special chars.
-
+    
     Args:
         text: Full text to search
         pos: Position at the opening <
-
+    
     Returns:
         Position after the closing > or pos if not a valid tag
+        
     """
     text_len = len(text)
     if pos >= text_len or text[pos] != "<":
@@ -346,18 +353,19 @@ def _skip_html_tag(text: str, pos: int) -> int:
 
 def _find_closing_bracket(text: str, start: int) -> int:
     """Find closing bracket ] while respecting code spans, HTML tags, and nested brackets.
-
+    
     CommonMark: Code spans have higher precedence than link text brackets.
     A code span inside link text means the ] inside the code span doesn't count.
     HTML tags protect their contents - ] inside HTML attribute values doesn't count.
     Nested brackets [ ] are allowed inside link text.
-
+    
     Args:
         text: Full text to search
         start: Position to start searching (should be after opening [)
-
+    
     Returns:
         Position of closing ] or -1 if not found
+        
     """
     pos = start
     text_len = len(text)
@@ -430,15 +438,16 @@ def _find_closing_bracket(text: str, start: int) -> int:
 
 def _extract_plain_text(text: str) -> str:
     """Extract plain text from inline content for image alt text.
-
+    
     CommonMark: Image alt text is the plain text content with formatting stripped.
     E.g., "*foo* bar" becomes "foo bar".
-
+    
     Args:
         text: Raw inline content that may contain formatting
-
+    
     Returns:
         Plain text with formatting markers removed
+        
     """
     # Remove emphasis markers: *, _, **, __
     result = text
@@ -459,15 +468,16 @@ def _extract_plain_text(text: str) -> str:
 
 def _contains_link(children: tuple) -> bool:
     """Check if children contain a Link node at any nesting level.
-
+    
     CommonMark: Links may not contain other links, at any level of nesting.
     If parsing link text produces a link, the outer link is invalid.
-
+    
     Args:
         children: Tuple of inline nodes
-
+    
     Returns:
         True if any child is or contains a Link node
+        
     """
     for child in children:
         if isinstance(child, Link):
@@ -480,12 +490,13 @@ def _contains_link(children: tuple) -> bool:
 
 class LinkParsingMixin:
     """Mixin for link and image parsing.
-
+    
     Required Host Attributes:
         - _link_refs: dict[str, tuple[str, str]]
-
+    
     Required Host Methods:
         - _parse_inline(text, location) -> tuple[Inline, ...]
+        
     """
 
     _link_refs: dict[str, tuple[str, str]]

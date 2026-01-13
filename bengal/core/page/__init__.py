@@ -6,42 +6,43 @@ navigation, content processing, and rendering. Pages represent markdown
 content files and are the primary content unit in Bengal.
 
 Public API:
-    Page: Content page with metadata, content, and rendering capabilities
-    PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
+Page: Content page with metadata, content, and rendering capabilities
+PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
 
 Package Structure:
-    page_core.py: PageCore dataclass (cacheable metadata)
-    metadata.py: PageMetadataMixin (frontmatter access)
-    navigation.py: PageNavigationMixin (URL, breadcrumbs)
-    computed.py: PageComputedMixin (derived properties)
-    content.py: PageContentMixin (AST, TOC, excerpts)
-    relationships.py: PageRelationshipsMixin (prev/next, related)
-    operations.py: PageOperationsMixin (read, save)
-    proxy.py: PageProxy for lazy loading
-    utils.py: Field separation utilities
+page_core.py: PageCore dataclass (cacheable metadata)
+metadata.py: PageMetadataMixin (frontmatter access)
+navigation.py: PageNavigationMixin (URL, breadcrumbs)
+computed.py: PageComputedMixin (derived properties)
+content.py: PageContentMixin (AST, TOC, excerpts)
+relationships.py: PageRelationshipsMixin (prev/next, related)
+operations.py: PageOperationsMixin (read, save)
+proxy.py: PageProxy for lazy loading
+utils.py: Field separation utilities
 
 Key Concepts:
-    Mixin Architecture: Page combines focused mixins for separation of
-        concerns. Each mixin handles a specific aspect (metadata, nav, etc.).
+Mixin Architecture: Page combines focused mixins for separation of
+    concerns. Each mixin handles a specific aspect (metadata, nav, etc.).
 
-    Hashability: Pages are hashable by source_path, enabling set operations
-        and use as dict keys. Two pages with same path are equal.
+Hashability: Pages are hashable by source_path, enabling set operations
+    and use as dict keys. Two pages with same path are equal.
 
-    Virtual Pages: Pages without disk files (e.g., autodoc). Created via
-        Page.create_virtual() for dynamically-generated content.
+Virtual Pages: Pages without disk files (e.g., autodoc). Created via
+    Page.create_virtual() for dynamically-generated content.
 
-    PageCore: Cacheable subset of page metadata. Shared between Page,
-        PageProxy, and cache layer. Enables incremental builds.
+PageCore: Cacheable subset of page metadata. Shared between Page,
+    PageProxy, and cache layer. Enables incremental builds.
 
 Build Lifecycle:
-    1. Discovery: source_path, content, metadata available
-    2. Parsing: toc, parsed_ast populated
-    3. Rendering: rendered_html, output_path populated
+1. Discovery: source_path, content, metadata available
+2. Parsing: toc, parsed_ast populated
+3. Rendering: rendered_html, output_path populated
 
 Related Packages:
-    bengal.core.page.page_core: Cacheable page metadata
-    bengal.rendering.renderer: Page rendering pipeline
-    bengal.orchestration.content: Content discovery and page creation
+bengal.core.page.page_core: Cacheable page metadata
+bengal.rendering.renderer: Page rendering pipeline
+bengal.orchestration.content: Content discovery and page creation
+
 """
 
 from __future__ import annotations
@@ -80,7 +81,7 @@ class Page(
 ):
     """
     Represents a single content page.
-
+    
     HASHABILITY:
     ============
     Pages are hashable based on their source_path, allowing them to be stored
@@ -89,12 +90,12 @@ class Page(
     - Automatic deduplication with sets
     - Set operations for page analysis
     - Direct use as dictionary keys
-
+    
     Two pages with the same source_path are considered equal, even if their
     content differs. The hash is stable throughout the page lifecycle because
     source_path is immutable. Mutable fields (content, rendered_html, etc.)
     do not affect the hash or equality.
-
+    
     VIRTUAL PAGES:
     ==============
     Virtual pages represent dynamically-generated content (e.g., API docs)
@@ -103,27 +104,27 @@ class Page(
     - Are created via Page.create_virtual() factory
     - Don't read from disk (content provided directly)
     - Integrate with site's page collection and navigation
-
+    
     BUILD LIFECYCLE:
     ================
     Pages progress through distinct build phases. Properties have different
     availability depending on the current phase:
-
+    
     1. Discovery (content_discovery.py)
        ✅ Available: source_path, content, metadata, title, slug, date
        ❌ Not available: toc, parsed_ast, toc_items, rendered_html
-
+    
     2. Parsing (pipeline.py)
        ✅ Available: All Stage 1 + toc, parsed_ast
        ✅ toc_items can be accessed (will extract from toc)
-
+    
     3. Rendering (pipeline.py)
        ✅ Available: All previous + rendered_html, output_path
        ✅ All properties fully populated
-
+    
     Note: Some properties like toc_items can be accessed early (returning [])
     but won't cache empty results, allowing proper extraction after parsing.
-
+    
     Attributes:
         source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
@@ -138,6 +139,7 @@ class Page(
         toc_items: Structured TOC data for custom rendering
         related_posts: Related pages (pre-computed during build based on tag overlap)
         _virtual: True if this is a virtual page (not backed by a disk file)
+        
     """
 
     # Class-level warning counter (shared across all Page instances)

@@ -6,22 +6,22 @@ tracking provenance and enabling updates. Inspired by similar patterns
 in Docusaurus and other documentation frameworks.
 
 Key Features:
-    - Copy theme templates into project `templates/` preserving paths
-    - Track provenance in `.bengal/themes/sources.json`
-    - List all swizzled files with their source themes
-    - Auto-update unchanged files when themes are updated
-    - Detect local modifications to prevent accidental overwrites
+- Copy theme templates into project `templates/` preserving paths
+- Track provenance in `.bengal/themes/sources.json`
+- List all swizzled files with their source themes
+- Auto-update unchanged files when themes are updated
+- Detect local modifications to prevent accidental overwrites
 
 Workflow:
-    1. User runs `bengal swizzle partials/toc.html`
-    2. Template is copied from theme to project templates/
-    3. Provenance is recorded (source, checksums, timestamp)
-    4. User modifies the local copy as needed
-    5. Later, `bengal swizzle --update` syncs unchanged files
+1. User runs `bengal swizzle partials/toc.html`
+2. Template is copied from theme to project templates/
+3. Provenance is recorded (source, checksums, timestamp)
+4. User modifies the local copy as needed
+5. Later, `bengal swizzle --update` syncs unchanged files
 
 Design Note:
-    Currently uses naive update (only updates if local unchanged).
-    Three-way merge support may be added in future versions.
+Currently uses naive update (only updates if local unchanged).
+Three-way merge support may be added in future versions.
 
 Usage:
     >>> from bengal.utils.swizzle import SwizzleManager
@@ -39,12 +39,13 @@ Usage:
     >>> results = manager.update()
 
 Related Modules:
-    - bengal/cli/commands/swizzle.py: CLI command
-    - bengal/rendering/engines.py: Template engine with swizzle support
-    - bengal/core/theme.py: Theme resolution
+- bengal/cli/commands/swizzle.py: CLI command
+- bengal/rendering/engines.py: Template engine with swizzle support
+- bengal/core/theme.py: Theme resolution
 
 See Also:
-    - .bengal/themes/sources.json: Swizzle registry location
+- .bengal/themes/sources.json: Swizzle registry location
+
 """
 
 from __future__ import annotations
@@ -70,10 +71,10 @@ logger = get_logger(__name__)
 class SwizzleRecord:
     """
     Immutable record of a swizzled template's provenance.
-
+    
     Tracks the origin of a swizzled file and checksums for detecting
     local modifications. Stored in `.bengal/themes/sources.json`.
-
+    
     Attributes:
         target: Relative path within project templates/ (e.g., "partials/toc.html").
         source: Absolute path to original theme file at swizzle time.
@@ -81,6 +82,7 @@ class SwizzleRecord:
         upstream_checksum: SHA-256 checksum (truncated) of original theme file.
         local_checksum: SHA-256 checksum (truncated) of copied file at swizzle time.
         timestamp: Unix epoch seconds when swizzle occurred.
+        
     """
 
     target: str  # templates-relative path (e.g., "partials/toc.html")
@@ -94,30 +96,31 @@ class SwizzleRecord:
 class SwizzleManager:
     """
     Manages safe template overrides with provenance tracking.
-
+    
     The SwizzleManager enables users to customize theme templates while
     maintaining a record of where they came from. This allows for safe
     theme updates - unchanged swizzled files can be auto-updated.
-
+    
     Attributes:
         site: Site instance for theme and path resolution.
         root: Site root path.
         registry_path: Path to `.bengal/themes/sources.json`.
-
+    
     Example:
-        >>> manager = SwizzleManager(site)
-        >>>
-        >>> # Swizzle a template for customization
-        >>> local_path = manager.swizzle("partials/header.html")
-        >>> print(f"Edit: {local_path}")
-        >>>
-        >>> # Check what's been swizzled
-        >>> for record in manager.list():
-        ...     print(f"{record.target} (from {record.theme})")
-        >>>
-        >>> # Update unchanged swizzles after theme update
-        >>> results = manager.update()
-        >>> print(f"Updated: {results['updated']}")
+            >>> manager = SwizzleManager(site)
+            >>>
+            >>> # Swizzle a template for customization
+            >>> local_path = manager.swizzle("partials/header.html")
+            >>> print(f"Edit: {local_path}")
+            >>>
+            >>> # Check what's been swizzled
+            >>> for record in manager.list():
+            ...     print(f"{record.target} (from {record.theme})")
+            >>>
+            >>> # Update unchanged swizzles after theme update
+            >>> results = manager.update()
+            >>> print(f"Updated: {results['updated']}")
+        
     """
 
     def __init__(self, site: Site) -> None:

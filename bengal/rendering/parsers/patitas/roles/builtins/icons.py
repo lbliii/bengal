@@ -1,14 +1,15 @@
 """Icon role for inline SVG icons.
 
 Provides inline icon rendering via the {icon} role:
-    {icon}`name` - Icon at default size (24px)
-    {icon}`name:size` - Icon at custom size
-    {icon}`name:size:class` - Icon with size and CSS class
+{icon}`name` - Icon at default size (24px)
+{icon}`name:size` - Icon at custom size
+{icon}`name:size:class` - Icon with size and CSS class
 
 Example:
-    See the {icon}`warning` icon for alerts.
-    Use {icon}`terminal:16` for small inline icons.
-    Style with {icon}`star:24:icon-primary`.
+See the {icon}`warning` icon for alerts.
+Use {icon}`terminal:16` for small inline icons.
+Style with {icon}`star:24:icon-primary`.
+
 """
 
 from __future__ import annotations
@@ -26,18 +27,19 @@ if TYPE_CHECKING:
 
 class IconRole:
     """Handler for {icon}`name:size:class` role.
-
+    
     Renders inline SVG icons from Bengal's icon library.
     Icons are loaded via the theme-aware resolver.
-
+    
     Syntax:
         {icon}`warning` - Default size (24px)
         {icon}`terminal:16` - Custom size
         {icon}`star:24:icon-primary` - Size and CSS class
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
         Icon loading uses thread-safe resolver.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("icon", "svg-icon")

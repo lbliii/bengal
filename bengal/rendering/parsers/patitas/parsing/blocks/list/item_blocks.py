@@ -45,16 +45,17 @@ def handle_thematic_break(
     parser: ParserProtocol,
 ) -> tuple[Block | None, bool]:
     """Handle a thematic break token within a list item.
-
+    
     Args:
         token: The THEMATIC_BREAK token
         saw_paragraph_content: Whether paragraph content was seen before this
         has_content_lines: Whether there are accumulated content lines
         parser: The parser instance
-
+    
     Returns:
         Tuple of (block to add or None, should_continue)
         - If should_continue is False, the list should terminate
+        
     """
     if not saw_paragraph_content and not has_content_lines:
         # Thematic break immediately after list marker - include in item
@@ -73,17 +74,18 @@ def handle_fenced_code_immediate(
     parser: ParserProtocol,
 ) -> tuple[Block | None, bool]:
     """Handle a fenced code block immediately after list marker.
-
+    
     Args:
         token: The FENCED_CODE_START token
         saw_paragraph_content: Whether paragraph content was seen before this
         has_content_lines: Whether there are accumulated content lines
         content_indent: Content indent for the list item
         parser: The parser instance
-
+    
     Returns:
         Tuple of (block to add or None, should_continue)
         - If should_continue is False, the list should terminate
+        
     """
     if not saw_paragraph_content and not has_content_lines:
         # Fenced code block immediately after list marker
@@ -100,17 +102,18 @@ def parse_block_quote_from_indented_code(
     check_indent: int,
 ) -> BlockQuote:
     """Parse a block quote from INDENTED_CODE tokens.
-
+    
     Used when block quote markers appear at content indent level within
     list items, where the lexer produces INDENTED_CODE tokens.
-
+    
     Args:
         start_token: The first INDENTED_CODE token with block quote content
         parser: The parser instance
         check_indent: The content indent level
-
+    
     Returns:
         A BlockQuote node
+        
     """
     bq_lines: list[str] = []
     code_content = start_token.value.lstrip().rstrip()
@@ -157,16 +160,17 @@ def parse_fenced_code_from_indented_code(
     check_indent: int,
 ) -> FencedCode:
     """Parse a fenced code block from INDENTED_CODE tokens.
-
+    
     Used when fenced code appears at content indent level within list items.
-
+    
     Args:
         start_token: The first INDENTED_CODE token with fence markers
         parser: The parser instance
         check_indent: The content indent level
-
+    
     Returns:
         A FencedCode node
+        
     """
     code_content = start_token.value.lstrip().rstrip()
     fence_char = code_content[0]
@@ -215,14 +219,15 @@ def parse_indented_code_in_list(
     check_indent: int,
 ) -> IndentedCode:
     """Parse an indented code block within a list item.
-
+    
     Args:
         start_token: The first INDENTED_CODE token
         parser: The parser instance
         check_indent: The content indent level
-
+    
     Returns:
         An IndentedCode node
+        
     """
     code_lines: list[str] = [start_token.value]
     parser._advance()

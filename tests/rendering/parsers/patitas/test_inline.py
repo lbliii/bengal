@@ -308,9 +308,10 @@ class TestInlineEdgeCases:
 
 class TestAutolinks:
     """CommonMark autolink tests (section 6.7).
-
+    
     Autolinks are absolute URIs and email addresses wrapped in angle brackets.
     They are parsed as links, not as raw HTML.
+        
     """
 
     # --- URI Autolinks ---
@@ -436,8 +437,9 @@ class TestAutolinks:
 
 class TestRawHTMLInline:
     """Raw HTML inline tests (CommonMark 6.8).
-
+    
     Tests for HTML tags that pass through unchanged.
+        
     """
 
     def test_simple_html_tag(self):

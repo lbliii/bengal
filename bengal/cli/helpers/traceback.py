@@ -37,19 +37,19 @@ def configure_traceback(
 ) -> None:
     """
     Configure traceback handling with proper precedence.
-
+    
     Precedence order:
     1. CLI --traceback flag (highest)
     2. CLI --debug flag (maps to full traceback)
     3. File-based config ([dev.traceback] in site config)
     4. Environment variable (BENGAL_TRACEBACK)
     5. Default (minimal)
-
+    
     Args:
         debug: Whether debug mode is enabled (maps to full traceback)
         traceback: Explicit traceback style (full, compact, minimal, off)
         site: Optional Site instance to apply file-based config from
-
+    
     Example:
         @click.command()
         @click.option("--debug", is_flag=True)
@@ -57,6 +57,7 @@ def configure_traceback(
         def my_command(debug: bool, traceback: str | None):
             configure_traceback(debug, traceback)
             # ... rest of command ...
+        
     """
     # Step 1: Map --debug flag to traceback style if --traceback not explicitly set
     map_debug_flag_to_traceback(debug, traceback)

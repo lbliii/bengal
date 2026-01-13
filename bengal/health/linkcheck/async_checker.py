@@ -5,16 +5,17 @@ Uses httpx for async HTTP requests with connection pooling and DNS caching.
 Implements exponential backoff with jitter for resilient retry behavior.
 
 Features:
-    - Global concurrency limit via asyncio.Semaphore
-    - Per-host concurrency to avoid rate limiting
-    - HEAD-first requests with GET fallback
-    - Configurable timeout, retries, and backoff
-    - Ignore policies for patterns, domains, and status codes
+- Global concurrency limit via asyncio.Semaphore
+- Per-host concurrency to avoid rate limiting
+- HEAD-first requests with GET fallback
+- Configurable timeout, retries, and backoff
+- Ignore policies for patterns, domains, and status codes
 
 Related:
-    - bengal.health.linkcheck.ignore_policy: IgnorePolicy configuration
-    - bengal.health.linkcheck.models: LinkCheckResult data model
-    - bengal.utils.retry: Shared backoff calculation
+- bengal.health.linkcheck.ignore_policy: IgnorePolicy configuration
+- bengal.health.linkcheck.models: LinkCheckResult data model
+- bengal.utils.retry: Shared backoff calculation
+
 """
 
 from __future__ import annotations
@@ -35,16 +36,16 @@ logger = get_logger(__name__)
 class AsyncLinkChecker:
     """
     Async HTTP link checker with retries, backoff, and concurrency control.
-
+    
     Uses httpx AsyncClient with connection pooling for efficient concurrent
     requests. Implements two-tier concurrency limiting (global and per-host)
     to balance throughput against rate limiting risks.
-
+    
     Request Strategy:
         1. Send HEAD request (lightweight)
         2. On 405/501, fallback to GET
         3. Retry on timeout/network errors with exponential backoff
-
+    
     Attributes:
         max_concurrency: Global concurrent request limit
         per_host_limit: Per-host concurrent request limit
@@ -53,11 +54,12 @@ class AsyncLinkChecker:
         retry_backoff: Base delay for exponential backoff
         ignore_policy: IgnorePolicy for filtering URLs/statuses
         user_agent: User-Agent header sent with requests
-
+    
     Example:
-        >>> checker = AsyncLinkChecker(max_concurrency=10, timeout=5.0)
-        >>> urls = [("https://example.com", "index.html")]
-        >>> results = await checker.check_links(urls)
+            >>> checker = AsyncLinkChecker(max_concurrency=10, timeout=5.0)
+            >>> urls = [("https://example.com", "index.html")]
+            >>> results = await checker.check_links(urls)
+        
     """
 
     def __init__(

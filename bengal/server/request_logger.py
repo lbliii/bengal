@@ -5,24 +5,25 @@ Provides beautiful, minimal request logging with intelligent filtering
 to reduce noise while highlighting important events (errors, page loads).
 
 Features:
-    - Color-coded output by status code (2xx green, 4xx yellow, 5xx red)
-    - Automatic filtering of noisy requests (favicons, cache hits, assets)
-    - Optional resource 404 suppression (expected when deps not installed)
-    - Structured logging for machine-readable analysis
-    - BrokenPipe/ConnectionReset suppression (normal client behavior)
+- Color-coded output by status code (2xx green, 4xx yellow, 5xx red)
+- Automatic filtering of noisy requests (favicons, cache hits, assets)
+- Optional resource 404 suppression (expected when deps not installed)
+- Structured logging for machine-readable analysis
+- BrokenPipe/ConnectionReset suppression (normal client behavior)
 
 Classes:
-    RequestLogger: Mixin class for HTTP request handlers
+RequestLogger: Mixin class for HTTP request handlers
 
 Architecture:
-    This module provides a mixin that overrides log_message() and log_error()
-    from BaseHTTPRequestHandler. It should be mixed in before the handler class
-    in the MRO to intercept logging calls.
+This module provides a mixin that overrides log_message() and log_error()
+from BaseHTTPRequestHandler. It should be mixed in before the handler class
+in the MRO to intercept logging calls.
 
 Related:
-    - bengal/server/request_handler.py: Uses RequestLogger mixin
-    - bengal/output/cli.py: CLIOutput handles actual console formatting
-    - bengal/utils/logger.py: Structured logging backend
+- bengal/server/request_handler.py: Uses RequestLogger mixin
+- bengal/output/cli.py: CLIOutput handles actual console formatting
+- bengal/utils/logger.py: Structured logging backend
+
 """
 
 from __future__ import annotations
@@ -39,21 +40,22 @@ logger = get_logger(__name__)
 class RequestLogger:
     """
     Mixin providing beautiful, minimal HTTP request logging.
-
+    
     Designed to be mixed into an HTTP request handler to override default
     logging behavior. Filters out noisy requests and provides color-coded
     output for easy scanning during development.
-
+    
     Filtering Rules:
         - Skip: favicon requests, .well-known paths
         - Skip: 304 Not Modified (cache hits)
         - Skip: Successful asset loads (/assets/, /static/)
         - Skip: Optional resource 404s (search-index.json)
         - Show: All page loads, errors, and initial asset loads
-
+    
     Example:
-        >>> class MyHandler(RequestLogger, SimpleHTTPRequestHandler):
-        ...     pass  # Logging is automatically enhanced
+            >>> class MyHandler(RequestLogger, SimpleHTTPRequestHandler):
+            ...     pass  # Logging is automatically enhanced
+        
     """
 
     def log_message(self, format: str, *args: Any) -> None:

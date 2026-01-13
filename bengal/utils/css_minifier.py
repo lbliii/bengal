@@ -74,29 +74,30 @@ _NO_SPACE_CHARS = frozenset(",:;>{}()[+-*/=~|^&")
 def minify_css(css: str) -> str:
     """
     Minify CSS by removing comments and unnecessary whitespace.
-
+    
     This is a conservative minifier that:
     - Removes CSS comments (/* ... */)
     - Collapses whitespace
     - Preserves all CSS syntax (nesting, @layer, @import, etc.)
     - Does NOT transform or rewrite CSS
-
+    
     Performance: O(n) via incremental context tracking.
-
+    
     Args:
         css: CSS content to minify
-
+    
     Returns:
         Minified CSS content
-
+    
     Examples:
-        >>> css = "/* Comment */ body { color: red; }"
-        >>> minify_css(css)
-        'body{color:red}'
-
-        >>> css = "@layer tokens { :root { --color: blue; } }"
-        >>> minify_css(css)
-        '@layer tokens{:root{--color:blue}}'
+            >>> css = "/* Comment */ body { color: red; }"
+            >>> minify_css(css)
+            'body{color:red}'
+    
+            >>> css = "@layer tokens { :root { --color: blue; } }"
+            >>> minify_css(css)
+            '@layer tokens{:root{--color:blue}}'
+        
     """
     if not css:
         return css

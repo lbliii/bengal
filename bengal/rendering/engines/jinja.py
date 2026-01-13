@@ -55,18 +55,19 @@ _template_compilation_locks = PerKeyLockManager()
 class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
     """
     Jinja2 template engine for rendering pages.
-
+    
     Provides Jinja2 template rendering with theme inheritance, template function
     registration, asset manifest access, and optional template profiling.
-
+    
     Attributes:
         site: Site instance with theme and configuration
         template_dirs: List of template directories (populated during init)
         env: Jinja2 Environment instance
-
+    
     Example:
         engine = JinjaTemplateEngine(site, profile=True)
         html = engine.render_template("page.html", {"page": page})
+        
     """
 
     def __init__(self, site: Site, *, profile: bool = False) -> None:
@@ -513,8 +514,9 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 def clear_template_locks() -> None:
     """
     Clear all template compilation locks.
-
+    
     Call this at the end of a build session to reset lock state.
     Safe to call when no threads are actively compiling templates.
+        
     """
     _template_compilation_locks.clear()

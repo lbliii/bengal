@@ -2,11 +2,12 @@
 Unit tests for BuildExecutor with process isolation.
 
 Tests:
-    - BuildRequest/BuildResult serialization
-    - Executor type detection (thread vs process)
-    - Free-threading detection mock tests
-    - Executor shutdown
-    - Timeout handling
+- BuildRequest/BuildResult serialization
+- Executor type detection (thread vs process)
+- Free-threading detection mock tests
+- Executor shutdown
+- Timeout handling
+
 """
 
 from __future__ import annotations

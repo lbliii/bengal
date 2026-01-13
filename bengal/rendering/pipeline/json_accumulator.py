@@ -5,7 +5,8 @@ This module handles accumulating JSON data during rendering for post-processing
 optimization. Extracted from core.py per RFC: rfc-modularize-large-files.
 
 Classes:
-    JsonAccumulator: Accumulates page data during rendering.
+JsonAccumulator: Accumulates page data during rendering.
+
 """
 
 from __future__ import annotations
@@ -24,21 +25,22 @@ logger = get_logger(__name__)
 class JsonAccumulator:
     """
     Accumulates JSON and unified page data during rendering.
-
+    
     Computes all per-page derivatives once (excerpt, word_count, etc.)
     for consumption by multiple post-processing generators:
     - PageJSONGenerator (per-page JSON files)
     - SiteIndexGenerator (index.json for search)
-
+    
     Attributes:
         site: Site instance for configuration
         build_context: BuildContext for data accumulation
         page_json_generator: Cached PageJSONGenerator instance
         page_json_generator_opts: Cached options for generator
-
+    
     Example:
-        >>> accumulator = JsonAccumulator(site, build_context)
-        >>> accumulator.accumulate_unified_page_data(page)
+            >>> accumulator = JsonAccumulator(site, build_context)
+            >>> accumulator.accumulate_unified_page_data(page)
+        
     """
 
     def __init__(self, site: Any, build_context: BuildContext | None):

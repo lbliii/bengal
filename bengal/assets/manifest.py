@@ -10,36 +10,37 @@ fingerprinted files actually written to ``public/assets`` along with basic
 metadata that deployment tooling can inspect.
 
 Key Features:
-    - **Deterministic URLs**: Logical paths resolve to consistent output paths
-    - **Fingerprinting Support**: Tracks content hashes for cache-busting
-    - **Metadata Tracking**: Records file size and update timestamps
-    - **Atomic Writes**: Uses atomic file operations for safe updates
-    - **JSON Serialization**: Human-readable manifest format
+- **Deterministic URLs**: Logical paths resolve to consistent output paths
+- **Fingerprinting Support**: Tracks content hashes for cache-busting
+- **Metadata Tracking**: Records file size and update timestamps
+- **Atomic Writes**: Uses atomic file operations for safe updates
+- **JSON Serialization**: Human-readable manifest format
 
 Manifest Format:
-    The manifest is stored as JSON with the following structure::
+The manifest is stored as JSON with the following structure::
 
-        {
-            "version": 1,
-            "generated_at": "2025-01-15T10:30:00Z",
-            "assets": {
-                "css/style.css": {
-                    "output_path": "assets/css/style.abc123.css",
-                    "fingerprint": "abc123def456",
-                    "size_bytes": 4096,
-                    "updated_at": "2025-01-15T10:30:00Z"
-                }
+    {
+        "version": 1,
+        "generated_at": "2025-01-15T10:30:00Z",
+        "assets": {
+            "css/style.css": {
+                "output_path": "assets/css/style.abc123.css",
+                "fingerprint": "abc123def456",
+                "size_bytes": 4096,
+                "updated_at": "2025-01-15T10:30:00Z"
             }
         }
+    }
 
 Architecture:
-    This module is designed to be used by AssetOrchestrator during builds.
-    Templates access resolved URLs via the ``asset()`` filter, which reads
-    from the manifest to resolve logical paths.
+This module is designed to be used by AssetOrchestrator during builds.
+Templates access resolved URLs via the ``asset()`` filter, which reads
+from the manifest to resolve logical paths.
 
 Related:
-    - bengal/orchestration/asset_orchestrator.py: Uses manifest during builds
-    - bengal/rendering/filters.py: asset() filter reads from manifest
+- bengal/orchestration/asset_orchestrator.py: Uses manifest during builds
+- bengal/rendering/filters.py: asset() filter reads from manifest
+
 """
 
 from __future__ import annotations
@@ -59,16 +60,17 @@ logger = get_logger(__name__)
 def _isoformat(timestamp: float | None) -> str | None:
     """
     Convert a POSIX timestamp to an ISO-8601 UTC string.
-
+    
     Args:
         timestamp: Unix timestamp in seconds, or None.
-
+    
     Returns:
         ISO-8601 formatted string with 'Z' suffix for UTC, or None if input is None.
-
+    
     Example:
-        >>> _isoformat(1705315800.0)
-        '2024-01-15T10:30:00Z'
+            >>> _isoformat(1705315800.0)
+            '2024-01-15T10:30:00Z'
+        
     """
     if timestamp is None:
         return None
@@ -78,16 +80,17 @@ def _isoformat(timestamp: float | None) -> str | None:
 def _posix(path_like: str) -> str:
     """
     Normalize a path to POSIX-style forward slashes for cross-platform portability.
-
+    
     Args:
         path_like: Path string, potentially with backslashes on Windows.
-
+    
     Returns:
         Path string with forward slashes only.
-
+    
     Example:
-        >>> _posix("css\\\\style.css")
-        'css/style.css'
+            >>> _posix("css\\style.css")
+            'css/style.css'
+        
     """
     return PurePosixPath(path_like).as_posix()
 
@@ -96,29 +99,30 @@ def _posix(path_like: str) -> str:
 class AssetManifestEntry:
     """
     Manifest entry for a single logical asset.
-
+    
     Represents the mapping from a logical asset path (as used in templates) to
     its actual output location, along with metadata for debugging and deployment.
-
+    
     Uses ``slots=True`` for memory efficiency when tracking many assets.
-
+    
     Attributes:
         logical_path: Logical path requested from templates (e.g. ``css/style.css``).
         output_path: Relative path under the output directory (e.g. ``assets/css/style.X.css``).
         fingerprint: Content hash used for cache-busting, or None if disabled.
         size_bytes: File size in bytes for visibility and debugging.
         updated_at: ISO-8601 timestamp of the last file write.
-
+    
     Example:
-        >>> entry = AssetManifestEntry(
-        ...     logical_path="css/style.css",
-        ...     output_path="assets/css/style.abc123.css",
-        ...     fingerprint="abc123def456",
-        ...     size_bytes=4096,
-        ...     updated_at="2025-01-15T10:30:00Z",
-        ... )
-        >>> entry.to_dict()
+            >>> entry = AssetManifestEntry(
+            ...     logical_path="css/style.css",
+            ...     output_path="assets/css/style.abc123.css",
+            ...     fingerprint="abc123def456",
+            ...     size_bytes=4096,
+            ...     updated_at="2025-01-15T10:30:00Z",
+            ... )
+            >>> entry.to_dict()
         {'output_path': 'assets/css/style.abc123.css', 'fingerprint': 'abc123def456', ...}
+        
     """
 
     logical_path: str
@@ -175,31 +179,32 @@ class AssetManifestEntry:
 class AssetManifest:
     """
     Asset manifest container with serialization helpers.
-
+    
     Manages a collection of AssetManifestEntry objects and provides methods
     for reading, writing, and querying the manifest.
-
+    
     The manifest is the single source of truth for asset URL resolution during
     rendering. Templates use the ``asset()`` filter which queries this manifest
     to resolve logical paths to fingerprinted output URLs.
-
+    
     Attributes:
         version: Manifest format version for future compatibility.
         generated_at: ISO-8601 timestamp when manifest was created/updated.
         _entries: Internal dictionary mapping logical paths to entries.
-
+    
     Example:
-        >>> manifest = AssetManifest()
-        >>> manifest.set_entry(
-        ...     "css/style.css",
-        ...     "assets/css/style.ABC.css",
-        ...     fingerprint="ABC123",
-        ...     size_bytes=4096,
-        ...     updated_at=time.time(),
-        ... )
-        >>> manifest.get("css/style.css").output_path
-        'assets/css/style.ABC.css'
-        >>> manifest.write(Path("public/asset-manifest.json"))
+            >>> manifest = AssetManifest()
+            >>> manifest.set_entry(
+            ...     "css/style.css",
+            ...     "assets/css/style.ABC.css",
+            ...     fingerprint="ABC123",
+            ...     size_bytes=4096,
+            ...     updated_at=time.time(),
+            ... )
+            >>> manifest.get("css/style.css").output_path
+            'assets/css/style.ABC.css'
+            >>> manifest.write(Path("public/asset-manifest.json"))
+        
     """
 
     version: int = 1

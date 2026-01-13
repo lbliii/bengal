@@ -6,21 +6,22 @@ replacing scattered local variables. Created at build start and populated
 incrementally as phases execute.
 
 Key Concepts:
-    - Shared context: Single context object passed to all build phases
-    - Phase coordination: Enables phase-to-phase communication
-    - State management: Centralized build state management
-    - Lifecycle: Created at build start, populated during phases
-    - Lazy artifacts: Expensive computations cached on first access
+- Shared context: Single context object passed to all build phases
+- Phase coordination: Enables phase-to-phase communication
+- State management: Centralized build state management
+- Lifecycle: Created at build start, populated during phases
+- Lazy artifacts: Expensive computations cached on first access
 
 Related Modules:
-    - bengal.orchestration.build: Build orchestration using BuildContext
-    - bengal.utils.build_stats: Build statistics collection
-    - bengal.utils.progress: Progress reporting
+- bengal.orchestration.build: Build orchestration using BuildContext
+- bengal.utils.build_stats: Build statistics collection
+- bengal.utils.progress: Progress reporting
 
 See Also:
-    - bengal/utils/build_context.py:BuildContext for context structure
-    - plan/active/rfc-build-pipeline.md: Build pipeline design
-    - plan/active/rfc-lazy-build-artifacts.md: Lazy artifact design
+- bengal/utils/build_context.py:BuildContext for context structure
+- plan/active/rfc-build-pipeline.md: Build pipeline design
+- plan/active/rfc-lazy-build-artifacts.md: Lazy artifact design
+
 """
 
 from __future__ import annotations
@@ -51,15 +52,16 @@ if TYPE_CHECKING:
 class AccumulatedPageData:
     """
     Unified per-page data accumulated during rendering.
-
+    
     Contains all fields needed by:
     - PageJSONGenerator (per-page JSON files)
     - SiteIndexGenerator (index.json for search)
-
+    
     Computed once during render phase, consumed by multiple post-processing
     generators. Eliminates redundant computation and double page iteration.
-
+    
     See: plan/drafted/rfc-unified-page-data-accumulation.md
+        
     """
 
     # =========================================================================
@@ -124,16 +126,16 @@ class AccumulatedPageData:
 class BuildContext:
     """
     Shared build context passed across build phases.
-
+    
     This context is created at the start of build() and passed to all _phase_* methods.
     It replaces local variables that were scattered throughout the 894-line build() method.
-
+    
     Lifecycle:
         1. Created in _setup_build_context() at build start
         2. Populated incrementally as phases execute
         3. Used by all _phase_* methods for shared state
         4. (Optional) Can be used as context manager for automatic cleanup
-
+    
     Categories:
         - Core: site, stats, profile (required)
         - Cache: cache, tracker (initialized in Phase 0)
@@ -142,24 +144,25 @@ class BuildContext:
         - Incremental state: affected_tags, affected_sections, changed_page_paths
         - Output: cli, progress_manager, reporter
         - Build-scoped: build_id, _build_scoped_cache (for cross-build isolation)
-
+    
     Build-Scoped Caching (RFC: Cache Lifecycle Hardening):
         Values cached via get_cached() are scoped to this build instance.
         When used as a context manager, BUILD_START is signaled on entry
         and BUILD_END + cache cleanup on exit. This prevents cross-build
         contamination when Site objects are reused.
-
+    
     Example:
         # As context manager (recommended for new code)
         with BuildContext(site=site) as ctx:
             contexts = ctx.get_cached("global_contexts", lambda: build_contexts(site))
             # ... build operations ...
         # Automatic cleanup on exit
-
+    
         # Traditional usage (backward compatible)
         ctx = BuildContext(site=site)
         # ... build operations ...
         ctx.clear_lazy_artifacts()  # Manual cleanup
+        
     """
 
     # Core (required)

@@ -16,13 +16,14 @@ from bengal.utils.lru_cache import LRUCache
 class DirectiveCache:
     """
     LRU cache for parsed directive content.
-
+    
     Uses content hash to detect changes and reuse parsed AST.
     Implements LRU eviction to limit memory usage.
-
+    
     Thread-safe: Uses shared LRUCache with RLock for safe concurrent access.
-
+    
     Expected impact: 30-50% speedup on pages with repeated directive patterns.
+        
     """
 
     def __init__(self, max_size: int = 1000):
@@ -125,9 +126,10 @@ _directive_cache = DirectiveCache(max_size=1000)
 def get_cache() -> DirectiveCache:
     """
     Get the global directive cache instance.
-
+    
     Returns:
         Global DirectiveCache instance
+        
     """
     return _directive_cache
 
@@ -135,13 +137,14 @@ def get_cache() -> DirectiveCache:
 def configure_cache(max_size: int | None = None, enabled: bool | None = None) -> None:
     """
     Configure the global directive cache.
-
+    
     Args:
         max_size: Maximum cache size (None to keep current)
         enabled: Whether to enable caching (None to keep current)
-
+    
     Note:
         max_size changes require recreating the cache. This clears existing entries.
+        
     """
     global _directive_cache
 
@@ -167,8 +170,9 @@ def clear_cache() -> None:
 def get_cache_stats() -> dict[str, Any]:
     """
     Get statistics from the global directive cache.
-
+    
     Returns:
         Cache statistics dictionary
+        
     """
     return _directive_cache.stats()

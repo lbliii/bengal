@@ -5,30 +5,30 @@ Generates JSON files alongside each HTML page, providing machine-readable
 page data for client-side features like search, previews, and navigation.
 
 Output Format:
-    Each page.html gets a corresponding page.json (or index.json for
-    directory index pages) containing:
+Each page.html gets a corresponding page.json (or index.json for
+directory index pages) containing:
 
-    - url: Full public URL with baseurl
-    - title: Page title from frontmatter
-    - description: Page description
-    - date: ISO 8601 formatted date (if available)
-    - plain_text: Plain text content for search
-    - excerpt: Truncated preview text
-    - metadata: Serializable frontmatter fields
-    - section: Parent section name
-    - tags: List of tags
-    - word_count: Content word count
-    - reading_time: Estimated reading time in minutes
-    - graph: Contextual minimap connections (if graph data available)
+- url: Full public URL with baseurl
+- title: Page title from frontmatter
+- description: Page description
+- date: ISO 8601 formatted date (if available)
+- plain_text: Plain text content for search
+- excerpt: Truncated preview text
+- metadata: Serializable frontmatter fields
+- section: Parent section name
+- tags: List of tags
+- word_count: Content word count
+- reading_time: Estimated reading time in minutes
+- graph: Contextual minimap connections (if graph data available)
 
 Performance:
-    - Parallel file writes using ThreadPoolExecutor (8 workers)
-    - Compact JSON (no indentation) for 3x faster serialization
-    - Lazy graph index building for O(1) lookups
-    - Optional accumulated JSON from rendering phase to avoid double iteration
+- Parallel file writes using ThreadPoolExecutor (8 workers)
+- Compact JSON (no indentation) for 3x faster serialization
+- Lazy graph index building for O(1) lookups
+- Optional accumulated JSON from rendering phase to avoid double iteration
 
 Configuration:
-    Controlled via [output_formats] in bengal.toml:
+Controlled via [output_formats] in bengal.toml:
 
     ```toml
     [output_formats]
@@ -44,9 +44,10 @@ Example:
     >>> print(f"Generated {count} JSON files")
 
 Related:
-    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
-    - bengal.analysis.graph_visualizer: Graph data for contextual minimap
-    - bengal.postprocess.output_formats.utils: URL and path utilities
+- bengal.postprocess.output_formats: OutputFormatsGenerator facade
+- bengal.analysis.graph_visualizer: Graph data for contextual minimap
+- bengal.postprocess.output_formats.utils: URL and path utilities
+
 """
 
 from __future__ import annotations
@@ -74,36 +75,37 @@ logger = get_logger(__name__)
 class PageJSONGenerator:
     """
     Generates per-page JSON files for client-side features.
-
+    
     Creates a JSON file alongside each HTML page containing metadata,
     content, and graph connections. Used for search indexing, page
     previews, and contextual navigation minimaps.
-
+    
     Creation:
         Direct instantiation: PageJSONGenerator(site, graph_data=...)
             - Created by OutputFormatsGenerator for JSON generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages
         graph_data: Optional pre-computed graph data for contextual minimap
         include_html: Whether to include HTML content (default: False)
         include_text: Whether to include plain text content (default: True)
-
+    
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for page access, utils for path resolution
-
+    
     Performance:
         - Parallel writes with 8-thread pool
         - Lazy graph index building (O(1) lookups vs O(n²))
         - Compact JSON serialization (no whitespace)
         - Optional accumulated JSON from rendering phase
-
+    
     Example:
-        >>> generator = PageJSONGenerator(site, graph_data=graph_data)
-        >>> count = generator.generate(pages)
-        >>> print(f"Generated {count} JSON files")
+            >>> generator = PageJSONGenerator(site, graph_data=graph_data)
+            >>> count = generator.generate(pages)
+            >>> print(f"Generated {count} JSON files")
+        
     """
 
     def __init__(

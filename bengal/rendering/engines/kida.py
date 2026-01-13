@@ -7,10 +7,11 @@ Configuration:
     template_engine: kida
 
 Features:
-    - 2-5x faster than Jinja2 for typical templates
-    - Free-threading safe (Python 3.14t)
-    - Native async support
-    - Pythonic scoping with let/set/export
+- 2-5x faster than Jinja2 for typical templates
+- Free-threading safe (Python 3.14t)
+- Native async support
+- Pythonic scoping with let/set/export
+
 """
 
 from __future__ import annotations
@@ -39,14 +40,15 @@ if TYPE_CHECKING:
 
 class KidaTemplateEngine:
     """Bengal integration for Kida template engine.
-
+    
     Implements TemplateEngineProtocol for seamless integration
     with Bengal's rendering pipeline.
-
+    
     Example:
         # In bengal.yaml:
         site:
           template_engine: kida
+        
     """
 
     NAME = "kida"

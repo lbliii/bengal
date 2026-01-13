@@ -17,13 +17,14 @@ if TYPE_CHECKING:
 
 class DirectiveScannerMixin:
     """Mixin providing directive mode scanning logic.
-
+    
     Scans content inside directive blocks, handling:
     - Directive options (:key: value)
     - Nested directives (higher colon count)
     - Closing fence (matching or higher colon count)
     - All block-level elements (lists, headings, code, quotes, etc.)
     - Regular content (paragraph lines)
+        
     """
 
     # These will be set by the Lexer class

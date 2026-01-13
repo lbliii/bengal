@@ -36,15 +36,16 @@ def compute_element_urls(
 ) -> None:
     """
     Compute _path and href for an element and all its children.
-
+    
     This sets URL properties on DocElement so templates can use {{ child.href }}
     directly without manual URL building or filters.
-
+    
     Args:
         element: DocElement to process
         site: Site instance (for baseurl)
         doc_type: Type of documentation ("python", "cli", "openapi")
         resolve_output_prefix: Function to resolve output prefix
+        
     """
     prefix = resolve_output_prefix(doc_type)
 
@@ -90,11 +91,11 @@ def create_pages(
 ) -> tuple[list[Page], AutodocRunResult]:
     """
     Create virtual pages for documentation elements.
-
+    
     This uses a two-pass approach to ensure navigation works correctly:
     1. First pass: Create all Page objects and add them to sections
     2. Second pass: Render HTML (now sections have all their pages)
-
+    
     Args:
         elements: DocElements to create pages for
         sections: Section hierarchy for page placement
@@ -105,9 +106,10 @@ def create_pages(
         find_parent_section: Function to find parent section
         result: AutodocRunResult to track failures and warnings
         consolidate: Whether to consolidate elements into section index pages (OpenAPI)
-
+    
     Returns:
         Tuple of (list of virtual Page objects, updated result)
+        
     """
     if result is None:
         result = AutodocRunResult()

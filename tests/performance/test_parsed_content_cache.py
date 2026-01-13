@@ -21,10 +21,11 @@ from bengal.orchestration.build.options import BuildOptions
 def test_parsed_content_cache_speeds_up_builds():
     """
     Test that parsed content cache speeds up repeated full builds.
-
+    
     This is the primary benefit of Optimization #2.
     Uses multiple runs and statistical analysis to avoid flakiness from timing noise.
     Allows 10% tolerance margin to account for system variability.
+        
     """
     temp_dir = Path(tempfile.mkdtemp())
 

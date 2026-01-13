@@ -25,13 +25,14 @@ if TYPE_CHECKING:
 class RSSValidator(BaseValidator):
     """
     Validates RSS feed quality.
-
+    
     Checks:
     - RSS file exists (if site has dated content)
     - XML is well-formed
     - Feed structure is valid RSS 2.0
     - URLs are properly formatted
     - Feed has reasonable number of items
+        
     """
 
     name = "RSS Feed"

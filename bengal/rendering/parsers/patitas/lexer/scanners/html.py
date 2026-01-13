@@ -17,9 +17,10 @@ if TYPE_CHECKING:
 
 class HtmlScannerMixin:
     """Mixin providing HTML block mode scanning logic.
-
+    
     Scans content inside HTML blocks until the appropriate end condition
     based on the HTML block type (1-7 per CommonMark spec).
+        
     """
 
     # These will be set by the Lexer class

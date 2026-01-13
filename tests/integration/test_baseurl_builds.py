@@ -40,9 +40,10 @@ def test_build_with_path_baseurl(site, build_site):
 @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
 def test_template_data_attributes_include_baseurl(site, build_site):
     """Test that template data-page-url attributes include baseurl.
-
+    
     Regression test for: graph-contextual data-page-url was using
     page.relative_url instead of page.url, causing URL mismatch in JS.
+        
     """
     build_site()
 
@@ -62,9 +63,10 @@ def test_template_data_attributes_include_baseurl(site, build_site):
 @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
 def test_graph_json_urls_not_doubled(site, build_site):
     """Test that graph.json URLs don't have doubled baseurl.
-
+    
     Regression test for: GraphVisualizer was prepending baseurl even when
     page.url already included it, causing /bengal/bengal/... paths.
+        
     """
     build_site()
 
@@ -87,13 +89,14 @@ def test_graph_json_urls_not_doubled(site, build_site):
 @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
 def test_internal_markdown_links_transformed(site, build_site):
     """Test that internal markdown links get baseurl prepended.
-
+    
     Regression test for: Standard markdown links like [text](/path/) were
     not transformed to include baseurl, breaking links on GitHub Pages.
-
+    
     Note: This tests the link_transformer module, which transforms links
     within markdown-rendered content. Template-generated links (like RSS)
     are handled separately by templates using {{ url }} filters.
+        
     """
     build_site()
 

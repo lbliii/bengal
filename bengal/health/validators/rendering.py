@@ -29,14 +29,15 @@ if TYPE_CHECKING:
 class RenderingValidator(BaseValidator):
     """
     Validates HTML rendering quality.
-
+    
     Checks:
     - Basic HTML structure (<html>, <head>, <body>)
     - No unrendered Jinja2 variables in output
     - Basic SEO metadata present
-
+    
     Note: Template function validation was removed as redundant - missing filters
     cause immediate template errors during build.
+        
     """
 
     name = "Rendering"

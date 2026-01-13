@@ -27,25 +27,26 @@ def resolve_template_cascade(
 ) -> str:
     """
     Resolve template from cascade of candidates.
-
+    
     Tries each candidate in order, returning first that exists.
     Falls back to specified default if none exist.
-
+    
     Args:
         candidates: Template names to try in order
         template_engine: Engine for existence checks
         fallback: Default template if none found
-
+    
     Returns:
         First existing template or fallback
-
+    
     Example:
-        >>> from bengal.content_types.templates import resolve_template_cascade
-        >>> template = resolve_template_cascade(
-        ...     ["blog/home.html", "home.html", "index.html"],
-        ...     engine,
-        ...     fallback="index.html"
-        ... )
+            >>> from bengal.content_types.templates import resolve_template_cascade
+            >>> template = resolve_template_cascade(
+            ...     ["blog/home.html", "home.html", "index.html"],
+            ...     engine,
+            ...     fallback="index.html"
+            ... )
+        
     """
     if template_engine is None:
         logger.debug("template_cascade_no_engine", fallback=fallback)

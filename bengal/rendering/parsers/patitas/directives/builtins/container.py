@@ -9,20 +9,21 @@ Use cases:
 - Grouping related content with a common class
 
 Example:
-    :::{container} api-section
-    :class: highlighted
+:::{container} api-section
+:class: highlighted
 
-    Content here
-    :::
+Content here
+:::
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's container directive exactly:
-    <div class="class-names">
-    {content}
-    </div>
+Matches Bengal's container directive exactly:
+<div class="class-names">
+{content}
+</div>
+
 """
 
 from __future__ import annotations
@@ -45,9 +46,10 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class ContainerOptions(StyledOptions):
     """Options for container directive.
-
+    
     The :class: option adds additional CSS classes beyond
     those specified in the title.
+        
     """
 
     pass  # Uses class_ from StyledOptions
@@ -55,12 +57,13 @@ class ContainerOptions(StyledOptions):
 
 class ContainerDirective:
     """Handler for container directive.
-
+    
     Renders a generic wrapper div with custom CSS classes.
     The title line is treated as class names.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("container", "div")

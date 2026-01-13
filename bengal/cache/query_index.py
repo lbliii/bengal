@@ -44,20 +44,21 @@ logger = get_logger(__name__)
 class IndexEntry(Cacheable):
     """
     A single entry in a query index.
-
+    
     Represents one index key (e.g., 'blog' section, 'Jane Smith' author)
     and all pages that match that key.
-
+    
     Implements the Cacheable protocol for type-safe serialization.
-
+    
     Uses set for O(1) add/remove/contains operations.
-
+    
     Attributes:
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
         page_paths: Set of page source paths for O(1) operations
         metadata: Extra data for display (e.g., section title, author email)
         updated_at: ISO timestamp of last update
         content_hash: Hash of page_paths for change detection
+        
     """
 
     def __init__(
@@ -128,23 +129,24 @@ class IndexEntry(Cacheable):
 class QueryIndex(ABC):
     """
     Base class for queryable indexes.
-
+    
     Subclasses define:
     - What to index (e.g., by_section, by_author, by_tag)
     - How to extract keys from pages
     - Optionally: custom serialization logic
-
+    
     The base class handles:
     - Index storage and persistence
     - Incremental updates
     - Change detection
     - O(1) lookups
-
+    
     Example:
         class SectionIndex(QueryIndex):
             def extract_keys(self, page):
                 section = page._section.name if page._section else None
                 return [(section, {})] if section else []
+        
     """
 
     VERSION = 1  # Schema version for cache invalidation

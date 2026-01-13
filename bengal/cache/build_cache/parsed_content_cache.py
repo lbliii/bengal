@@ -5,15 +5,16 @@ Provides methods for caching parsed markdown content (HTML, TOC, AST) to skip
 re-parsing when only templates change. Optimization #2 from the cache RFC.
 
 Key Concepts:
-    - Caches rendered HTML (post-markdown, pre-template)
-    - Caches TOC and structured TOC items
-    - Optionally caches true AST for parse-once, use-many patterns
-    - Validates against metadata, template, and parser version
-    - Uses content hash for dependency validation
+- Caches rendered HTML (post-markdown, pre-template)
+- Caches TOC and structured TOC items
+- Optionally caches true AST for parse-once, use-many patterns
+- Validates against metadata, template, and parser version
+- Uses content hash for dependency validation
 
 Related Modules:
-    - bengal.cache.build_cache.core: Main BuildCache class
-    - bengal.rendering.pipeline: Markdown parsing pipeline
+- bengal.cache.build_cache.core: Main BuildCache class
+- bengal.rendering.pipeline: Markdown parsing pipeline
+
 """
 
 from __future__ import annotations
@@ -36,11 +37,12 @@ logger = get_logger(__name__)
 class ParsedContentCacheMixin:
     """
     Mixin providing parsed content caching (Optimization #2).
-
+    
     Requires these attributes on the host class:
         - parsed_content: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

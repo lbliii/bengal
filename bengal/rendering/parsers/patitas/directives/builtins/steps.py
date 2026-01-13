@@ -4,40 +4,41 @@ Provides visual step-by-step guides using nested directives
 with contract-based validation.
 
 Steps Container Options:
-    :class: - Custom CSS class for the steps container
-    :style: - Visual style (default, compact)
-    :start: - Start numbering from this value (default: 1)
+:class: - Custom CSS class for the steps container
+:style: - Visual style (default, compact)
+:start: - Start numbering from this value (default: 1)
 
 Step Options:
-    :class: - Custom CSS class for the step
-    :description: - Lead-in text with special typography
-    :optional: - Mark step as optional/skippable
-    :duration: - Estimated time for the step
+:class: - Custom CSS class for the step
+:description: - Lead-in text with special typography
+:optional: - Mark step as optional/skippable
+:duration: - Estimated time for the step
 
 Example:
-    :::{steps}
-    :start: 1
+:::{steps}
+:start: 1
 
-    :::{step} Configure Settings
-    :description: Before we begin, ensure your environment is set up.
-    :duration: 5 min
+:::{step} Configure Settings
+:description: Before we begin, ensure your environment is set up.
+:duration: 5 min
 
-    Step content with **markdown** support.
-    :::
+Step content with **markdown** support.
+:::
 
-    :::{step} Optional Step
-    :optional:
+:::{step} Optional Step
+:optional:
 
-    This step can be skipped.
-    :::
+This step can be skipped.
+:::
 
-    :::
+:::
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's steps directive exactly.
+Matches Bengal's steps directive exactly.
+
 """
 
 from __future__ import annotations
@@ -65,13 +66,14 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class StepOptions(StyledOptions):
     """Options for step directive.
-
+    
     Attributes:
         description: Lead-in text with special typography
         optional: Mark step as optional/skippable
         duration: Estimated time for the step
         step_number: Step number (injected by parent steps container)
         heading_level: Heading level for step title (injected by parent)
+        
     """
 
     description: str | None = None
@@ -84,10 +86,11 @@ class StepOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class StepsOptions(StyledOptions):
     """Options for steps container directive.
-
+    
     Attributes:
         style: Step style (compact, default)
         start: Start numbering from this value
+        
     """
 
     style: str | None = None
@@ -96,11 +99,12 @@ class StepsOptions(StyledOptions):
 
 class StepDirective:
     """Handler for step directive.
-
+    
     Individual step that must be inside a steps container.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("step",)
@@ -221,11 +225,12 @@ class StepDirective:
 
 class StepsDirective:
     """Handler for steps container directive.
-
+    
     Contains step children that form a numbered list.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("steps",)

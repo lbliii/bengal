@@ -4,11 +4,12 @@ Directive analysis module.
 Extracts and analyzes directive blocks from markdown content.
 
 Build-Integrated Validation:
-    When a BuildContext with cached content is provided, the analyzer uses
-    cached content instead of re-reading files from disk. This eliminates
-    ~4 seconds of redundant disk I/O during health checks (773 files).
+When a BuildContext with cached content is provided, the analyzer uses
+cached content instead of re-reading files from disk. This eliminates
+~4 seconds of redundant disk I/O during health checks (773 files).
 
-    See: plan/active/rfc-build-integrated-validation.md
+See: plan/active/rfc-build-integrated-validation.md
+
 """
 
 from __future__ import annotations
@@ -34,15 +35,16 @@ logger = get_logger(__name__)
 class CodeBlockRange:
     """
     Represents a fenced code block's line range for O(1) containment checks.
-
+    
     Used by DirectiveAnalyzer to pre-compute code block boundaries in a single
     O(L) pass, enabling O(R) lookups instead of O(L) per-position checks.
-
+    
     Attributes:
         start_line: Opening fence line number (1-indexed)
         end_line: Closing fence line number (1-indexed)
-        fence_type: "backtick" (```) or "tilde" (~~~)
-        fence_depth: Number of fence characters (3+)
+            fence_type: "backtick" (```) or "tilde" (~~~)
+            fence_depth: Number of fence characters (3+)
+        
     """
 
     start_line: int
@@ -55,15 +57,16 @@ class CodeBlockRange:
 class ColonDirectiveRange:
     """
     Represents a colon directive's line range for O(1) containment checks.
-
+    
     Used by DirectiveAnalyzer to pre-compute colon directive boundaries in a
     single O(L) pass, enabling O(R) lookups instead of O(L) per-position checks.
-
+    
     Attributes:
         start_line: Opening fence line number (1-indexed)
         end_line: Closing fence line number (1-indexed)
         fence_depth: Number of colon characters (3+)
         directive_type: Directive name (e.g., "note", "warning")
+        
     """
 
     start_line: int
@@ -80,13 +83,14 @@ if TYPE_CHECKING:
 class DirectiveAnalyzer:
     """
     Analyzes directive usage across a site.
-
+    
     Extracts directives from markdown content, validates their structure,
     and collects statistics for reporting.
-
+    
     Build-Integrated Validation:
         When analyze_from_context() is used with cached content, the analyzer
         avoids disk I/O entirely, reducing health check time from ~4.6s to <100ms.
+        
     """
 
     def analyze(

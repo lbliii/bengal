@@ -64,16 +64,16 @@ if TYPE_CHECKING:
 
 class ListParsingMixin:
     """Mixin for list parsing.
-
+    
     Handles nested lists, task lists, continuation paragraphs, and loose/tight detection.
-
+    
     Required Host Attributes:
         - _source: str
         - _tokens: list[Token]
         - _pos: int
         - _current: Token | None
         - _containers: ContainerStack (Phase 2 shadow stack)
-
+    
     Required Host Methods:
         - _at_end() -> bool
         - _advance() -> Token | None
@@ -81,6 +81,7 @@ class ListParsingMixin:
         - _parse_block() -> Block | None
         - _get_line_at(offset) -> str
         - _strip_columns(text, count) -> str
+        
     """
 
     _source: str

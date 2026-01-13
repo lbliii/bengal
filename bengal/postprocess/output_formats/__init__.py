@@ -7,17 +7,18 @@ Generates alternative output formats for pages to enable:
 - Programmatic access (JSON API)
 
 Structure:
-    - json_generator.py: Per-page JSON files
-    - txt_generator.py: Per-page LLM text files
-    - index_generator.py: Site-wide index.json
-    - llm_generator.py: Site-wide llm-full.txt
-    - utils.py: Shared utilities
+- json_generator.py: Per-page JSON files
+- txt_generator.py: Per-page LLM text files
+- index_generator.py: Site-wide index.json
+- llm_generator.py: Site-wide llm-full.txt
+- utils.py: Shared utilities
 
 Configuration (bengal.toml):
-    [output_formats]
+[output_formats]
     enabled = true
     per_page = ["json", "llm_txt"]
     site_wide = ["index_json", "llm_full"]
+
 """
 
 from __future__ import annotations
@@ -53,45 +54,46 @@ __all__ = [
 class OutputFormatsGenerator:
     """
     Facade for generating all output format variants.
-
+    
     Coordinates generation of alternative content formats to enable
     client-side search, AI/LLM discovery, and programmatic API access.
-
+    
     Creation:
         Direct instantiation: OutputFormatsGenerator(site, config=config)
             - Created by PostprocessOrchestrator for output format generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages
         config: Normalized configuration dict
         graph_data: Optional pre-computed graph data for contextual minimap
         build_context: Optional BuildContext with accumulated JSON data
-
+    
     Relationships:
         - Used by: PostprocessOrchestrator for output format generation
         - Delegates to: PageJSONGenerator, PageTxtGenerator,
                         SiteIndexGenerator, SiteLlmTxtGenerator
-
+    
     Output Formats:
         Per-Page:
             - json: page.json with metadata, content, graph connections
             - llm_txt: page.txt with structured plain text
-
+    
         Site-Wide:
             - index_json: index.json for client-side search
             - llm_full: llm-full.txt with all site content
-
+    
     Configuration Formats:
         Simple (from [build.output_formats]):
             {'enabled': True, 'json': True, 'llm_txt': True}
-
+    
         Advanced (from [output_formats]):
             {'per_page': ['json', 'llm_txt'], 'site_wide': ['index_json']}
-
+    
     Example:
-        >>> generator = OutputFormatsGenerator(site, config=config)
-        >>> generator.generate()
+            >>> generator = OutputFormatsGenerator(site, config=config)
+            >>> generator.generate()
+        
     """
 
     def __init__(

@@ -27,23 +27,24 @@ logger = get_logger(__name__)
 class DataTableDirective(DirectivePlugin):
     """
     Data table directive using Mistune's fenced syntax.
-
+    
     Syntax:
-        ```{data-table} path/to/data.yaml
-        :search: true
-        :filter: true
-        :sort: true
-        :pagination: 50
-        :height: 400px
-        :columns: col1,col2,col3
-        ```
-
+            ```{data-table} path/to/data.yaml
+            :search: true
+            :filter: true
+            :sort: true
+            :pagination: 50
+            :height: 400px
+            :columns: col1,col2,col3
+            ```
+    
     Supports:
     - YAML files (with metadata and column definitions)
     - CSV files (auto-detect headers)
     - Interactive filtering, sorting, searching
     - Responsive design
     - Keyboard navigation
+        
     """
 
     # Directive names this class registers (for health check introspection)
@@ -351,14 +352,15 @@ class DataTableDirective(DirectivePlugin):
 def render_data_table(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render data table to HTML.
-
+    
     Args:
         renderer: Mistune renderer
         text: Rendered children content (unused for data tables)
         **attrs: Table attributes from directive
-
+    
     Returns:
         HTML string for data table
+        
     """
     # Check for error
     if "error" in attrs:

@@ -20,8 +20,9 @@ from bengal.utils.atomic_write import atomic_write_text
 def codemod_cli() -> None:
     """
     Automated code transformation utilities.
-
+    
     Use codemod commands to migrate codebases safely with preview and dry-run modes.
+        
     """
     pass
 
@@ -49,17 +50,18 @@ def codemod_cli() -> None:
 def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
     """
     Migrate URL properties from old naming to new href/_path convention.
-
+    
     Replaces:
     - .url → .href (but NOT source_url, canonical_url, etc.)
     - .relative_url → ._path
     - .site_path → ._path
     - .permalink → .href
-
+    
     Examples:
         bengal codemod-urls --path site/themes/ --dry-run
         bengal codemod-urls --path site/themes/ --diff
         bengal codemod-urls --path site/themes/
+        
     """
     cli = CLIOutput()
     cli.info("Codemod: URL Property Migration")

@@ -23,14 +23,15 @@ __all__ = ["RubricDirective", "RubricOptions"]
 class RubricOptions(DirectiveOptions):
     """
     Options for rubric directive.
-
+    
     Attributes:
         css_class: Additional CSS classes
-
+    
     Example:
         :::{rubric} Parameters
         :class: rubric-parameters
         :::
+        
     """
 
     css_class: str = ""
@@ -41,19 +42,20 @@ class RubricOptions(DirectiveOptions):
 class RubricDirective(BengalDirective):
     """
     Rubric directive for pseudo-headings.
-
+    
     Syntax:
         :::{rubric} Parameters
         :class: rubric-parameters
         :::
-
+    
     Creates styled text that looks like a heading but doesn't appear in TOC.
     The rubric renders immediately with no content inside - any content is ignored.
-
+    
     Use cases:
         - API documentation section labels (Parameters, Returns, Raises)
         - Section dividers that shouldn't be in navigation
         - Styled labels without heading semantics
+        
     """
 
     NAMES: ClassVar[list[str]] = ["rubric"]

@@ -6,19 +6,20 @@ sitemap.xml with page URLs, modification dates, change frequencies, and prioriti
 Supports sitemap index files for large sites.
 
 Key Concepts:
-    - XML sitemap: Standard XML format for search engine discovery
-    - Page metadata: Last modified dates, change frequencies, priorities
-    - Sitemap index: Index file for multiple sitemap files (large sites)
-    - SEO optimization: Helps search engines discover and index content
+- XML sitemap: Standard XML format for search engine discovery
+- Page metadata: Last modified dates, change frequencies, priorities
+- Sitemap index: Index file for multiple sitemap files (large sites)
+- SEO optimization: Helps search engines discover and index content
 
 Related Modules:
-    - bengal.orchestration.postprocess: Post-processing orchestration
-    - bengal.core.site: Site container with pages
-    - bengal.core.page: Page objects with metadata
+- bengal.orchestration.postprocess: Post-processing orchestration
+- bengal.core.site: Site container with pages
+- bengal.core.page: Page objects with metadata
 
 See Also:
-    - bengal/postprocess/sitemap.py:SitemapGenerator for sitemap generation
-    - https://www.sitemaps.org/: Sitemap protocol specification
+- bengal/postprocess/sitemap.py:SitemapGenerator for sitemap generation
+- https://www.sitemaps.org/: Sitemap protocol specification
+
 """
 
 from __future__ import annotations
@@ -36,33 +37,34 @@ if TYPE_CHECKING:
 class SitemapGenerator:
     """
     Generates XML sitemap for SEO and search engine discovery.
-
+    
     Creates sitemap.xml files listing all pages with metadata for search engines.
     Supports sitemap index files for large sites and i18n alternate language links.
-
+    
     Creation:
         Direct instantiation: SitemapGenerator(site)
             - Created by PostprocessOrchestrator for sitemap generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages and configuration
         logger: Logger instance for sitemap generation events
-
+    
     Relationships:
         - Used by: PostprocessOrchestrator for sitemap generation
         - Uses: Site for page access and configuration
-
+    
     Features:
         - URL location with baseurl support
         - Last modified dates from page metadata
         - Change frequency and priority metadata
         - i18n alternate language links (hreflang)
         - Sitemap index support for large sites
-
+    
     Examples:
         generator = SitemapGenerator(site)
         generator.generate()  # Writes sitemap.xml to output directory
+        
     """
 
     def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:

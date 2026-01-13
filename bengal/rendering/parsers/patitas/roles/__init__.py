@@ -2,19 +2,19 @@
 
 Provides extensible inline markup through the role syntax:
 
-    {role}`content`
+{role}`content`
 
 Roles are the inline equivalent of directives, providing
 custom inline markup capabilities.
 
 Key components:
-    - RoleHandler: Protocol for custom role implementations
-    - RoleRegistry: Handler lookup and registration
+- RoleHandler: Protocol for custom role implementations
+- RoleRegistry: Handler lookup and registration
 
 Thread Safety:
-    All components are designed for thread-safety:
-    - Handlers must be stateless
-    - Registry is immutable after creation
+All components are designed for thread-safety:
+- Handlers must be stateless
+- Registry is immutable after creation
 
 Example:
     >>> from patitas.roles import RoleHandler
@@ -28,6 +28,7 @@ Example:
     ...
     ...     def render(self, node, sb):
     ...         sb.append(f'<span class="emoji">{EMOJI_MAP.get(node.content, node.content)}</span>')
+
 """
 
 from __future__ import annotations

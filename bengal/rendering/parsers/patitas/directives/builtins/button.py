@@ -8,10 +8,11 @@ Use cases:
 - Navigation links with visual emphasis
 
 Thread Safety:
-    Stateless handler. Safe for concurrent use across threads.
+Stateless handler. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's button directive exactly for parity.
+Matches Bengal's button directive exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -59,7 +60,7 @@ class ButtonOptions(DirectiveOptions):
 class ButtonDirective:
     """
     Button directive for styled link buttons.
-
+    
     Syntax:
         :::{button} /path/to/page/
         :color: primary
@@ -67,25 +68,26 @@ class ButtonDirective:
         :size: large
         :icon: rocket
         :target: _blank
-
+    
         Button Text
         :::
-
+    
     Options:
         color: primary, secondary, success, danger, warning, info, light, dark
         style: default (rounded), pill (fully rounded), outline
         size: small, medium (default), large
         icon: Icon name (same as cards)
         target: _blank for external links (optional)
-
+    
     Output:
         <a class="button button-primary button-lg" href="/path/">
           <span class="button-icon">...</span>
           <span class="button-text">Button Text</span>
         </a>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("button",)

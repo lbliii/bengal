@@ -15,11 +15,12 @@ if TYPE_CHECKING:
 
 class TableParsingMixin:
     """Mixin for GFM table parsing.
-
+    
     Required Host Attributes: None
-
+    
     Required Host Methods:
         - _parse_inline(text, location) -> tuple[Inline, ...]
+        
     """
 
     def _try_parse_table(self, lines: list[str], location: SourceLocation) -> Table | None:

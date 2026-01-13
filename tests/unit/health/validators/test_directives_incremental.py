@@ -14,6 +14,7 @@ def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: 
     """
     When incremental mode is enabled and changed_page_paths is empty, directive analysis should
     skip all pages (no disk reads / parsing work).
+        
     """
     # Arrange: create 2 content files and fake pages pointing at them
     a = tmp_path / "a.md"

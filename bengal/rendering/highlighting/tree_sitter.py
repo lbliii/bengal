@@ -6,23 +6,24 @@ parsers. It is optional and requires the tree-sitter package and language
 grammar packages.
 
 Features:
-    - 10x faster than Pygments for supported languages
-    - Semantic highlighting via tree queries
-    - Local variable tracking via locals.scm
-    - Thread-safe via thread-local Parser instances
-    - Automatic fallback to Pygments for unsupported languages
+- 10x faster than Pygments for supported languages
+- Semantic highlighting via tree queries
+- Local variable tracking via locals.scm
+- Thread-safe via thread-local Parser instances
+- Automatic fallback to Pygments for unsupported languages
 
 Performance:
-    - Parse time (per block): ~0.15ms (vs ~1.5ms for Pygments)
-    - Memory per parser: ~10KB (vs ~50KB for Pygments lexer)
+- Parse time (per block): ~0.15ms (vs ~1.5ms for Pygments)
+- Memory per parser: ~10KB (vs ~50KB for Pygments lexer)
 
 Requirements:
-    - tree-sitter>=0.22
-    - Language grammar packages (e.g., tree-sitter-python)
+- tree-sitter>=0.22
+- Language grammar packages (e.g., tree-sitter-python)
 
 See Also:
-    - https://tree-sitter.github.io/tree-sitter/
-    - https://github.com/tree-sitter/py-tree-sitter
+- https://tree-sitter.github.io/tree-sitter/
+- https://github.com/tree-sitter/py-tree-sitter
+
 """
 
 from __future__ import annotations
@@ -156,18 +157,19 @@ class HighlightQueries:
 class TreeSitterBackend(HighlightBackend):
     """
     Tree-sitter based syntax highlighting backend.
-
+    
     Features:
     - 10x faster than Pygments for supported languages
     - Semantic highlighting via tree queries
     - Local variable tracking via locals.scm
     - Thread-safe via thread-local Parser instances
     - Automatic fallback to Pygments for unsupported languages
-
+    
     Reference:
     - https://tree-sitter.github.io/tree-sitter/
     - https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html
     - https://github.com/tree-sitter/py-tree-sitter
+        
     """
 
     # Class-level caches (thread-safe)

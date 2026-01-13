@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 @dataclass
 class ListMarkerInfo:
     """Information extracted from a list marker.
-
+    
     Attributes:
         ordered: Whether this is an ordered list (1. vs -)
         bullet_char: For unordered lists, the bullet character (-, *, +)
@@ -23,6 +23,7 @@ class ListMarkerInfo:
         start: Starting number for ordered lists
         indent: Indent level of the marker
         marker_length: Length of the marker including trailing space
+        
     """
 
     ordered: bool
@@ -36,8 +37,9 @@ class ListMarkerInfo:
 @dataclass
 class ListItemState:
     """State for parsing a single list item.
-
+    
     Tracks content accumulation, child blocks, and task list status.
+        
     """
 
     children: list[Block] = field(default_factory=list)
@@ -50,10 +52,10 @@ class ListItemState:
 @dataclass
 class ListParsingContext:
     """Context for list parsing operations.
-
+    
     Encapsulates the parsing state needed by helper functions without
     exposing the full parser interface.
-
+    
     Attributes:
         source: The full source text being parsed
         start_indent: Indent level of the list's first marker
@@ -61,6 +63,7 @@ class ListParsingContext:
         bullet_char: Bullet character for unordered lists
         ordered_marker_char: Marker character (. or )) for ordered lists
         ordered: Whether this is an ordered list
+        
     """
 
     source: str

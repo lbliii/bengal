@@ -2,12 +2,13 @@
 Unit tests for build hooks module.
 
 Tests:
-    - Successful hook execution
-    - Failed hook (non-zero exit code)
-    - Hook timeout
-    - Multiple hooks in sequence
-    - Hook execution stops on first failure
-    - Convenience functions for pre/post build hooks
+- Successful hook execution
+- Failed hook (non-zero exit code)
+- Hook timeout
+- Multiple hooks in sequence
+- Hook execution stops on first failure
+- Convenience functions for pre/post build hooks
+
 """
 
 from __future__ import annotations

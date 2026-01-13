@@ -2,12 +2,12 @@
 Configuration loader supporting TOML and YAML formats.
 
 .. deprecated:: 0.2.0
-    This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
-    Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
+This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
+Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
 
-        from bengal.config import UnifiedConfigLoader
-        loader = UnifiedConfigLoader()
-        config = loader.load(site_root)
+    from bengal.config import UnifiedConfigLoader
+    loader = UnifiedConfigLoader()
+    config = loader.load(site_root)
 
 This module provides the primary configuration loader for Bengal sites using
 single-file configuration (``bengal.toml`` or ``bengal.yaml``). It handles
@@ -16,16 +16,16 @@ file discovery, format detection, validation, and environment overrides.
 For multi-file directory-based configuration, see :mod:`bengal.config.directory_loader`.
 
 Features:
-    - **Auto-discovery**: Automatically finds ``bengal.toml``, ``bengal.yaml``,
-      or ``bengal.yml`` in the site root.
-    - **Format support**: Loads both TOML and YAML configuration files.
-    - **Section normalization**: Accepts common aliases (e.g., ``menus`` → ``menu``).
-    - **Validation**: Type checking, range validation, and dependency checking.
-    - **Flattening**: Nested sections (``site.title``) accessible at top level.
-    - **Environment overrides**: Automatic baseurl detection from platforms.
+- **Auto-discovery**: Automatically finds ``bengal.toml``, ``bengal.yaml``,
+  or ``bengal.yml`` in the site root.
+- **Format support**: Loads both TOML and YAML configuration files.
+- **Section normalization**: Accepts common aliases (e.g., ``menus`` → ``menu``).
+- **Validation**: Type checking, range validation, and dependency checking.
+- **Flattening**: Nested sections (``site.title``) accessible at top level.
+- **Environment overrides**: Automatic baseurl detection from platforms.
 
 Classes:
-    ConfigLoader: Main loader class for single-file configuration.
+ConfigLoader: Main loader class for single-file configuration.
 
 Functions:
     pretty_print_config: Display configuration with Rich formatting.
@@ -39,9 +39,10 @@ Example:
     'My Site'
 
 See Also:
-    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
-    - :mod:`bengal.config.defaults`: Default values for all configuration options.
-    - :mod:`bengal.config.validators`: Configuration validation logic.
+- :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
+- :mod:`bengal.config.defaults`: Default values for all configuration options.
+- :mod:`bengal.config.validators`: Configuration validation logic.
+
 """
 
 from __future__ import annotations
@@ -60,19 +61,20 @@ logger = get_logger(__name__)
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
     Pretty print configuration using Rich formatting.
-
+    
     Displays the configuration dictionary with syntax highlighting and
     formatting. Falls back to standard ``pprint`` if Rich is unavailable
     or disabled.
-
+    
     Args:
         config: Configuration dictionary to display.
         title: Title to display above the configuration output.
-
+    
     Example:
-        >>> config = {"title": "My Site", "baseurl": "/"}
-        >>> pretty_print_config(config, title="Site Configuration")
+            >>> config = {"title": "My Site", "baseurl": "/"}
+            >>> pretty_print_config(config, title="Site Configuration")
         # Outputs formatted configuration with Rich or pprint
+        
     """
     try:
         from rich.pretty import pprint as rich_pprint
@@ -107,26 +109,27 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
 class ConfigLoader:
     """
     Load site configuration from ``bengal.toml`` or ``bengal.yaml``.
-
+    
     This is the primary configuration loader for single-file Bengal configurations.
     It auto-discovers configuration files, validates contents, normalizes section
     names, and applies environment-based overrides.
-
+    
     Attributes:
         SECTION_ALIASES: Mapping of accepted section name variations to canonical names.
         KNOWN_SECTIONS: Set of recognized configuration section names.
         root_path: Root directory to search for configuration files.
         warnings: List of configuration warnings accumulated during loading.
-
+    
     Example:
-        >>> loader = ConfigLoader(Path("my-site"))
-        >>> config = loader.load()
-        >>> config["title"]
-        'My Site'
-
-        >>> # Check for configuration warnings
-        >>> for warning in loader.get_warnings():
-        ...     print(warning)
+            >>> loader = ConfigLoader(Path("my-site"))
+            >>> config = loader.load()
+            >>> config["title"]
+            'My Site'
+    
+            >>> # Check for configuration warnings
+            >>> for warning in loader.get_warnings():
+            ...     print(warning)
+        
     """
 
     # Section aliases for ergonomic config (accept common variations)

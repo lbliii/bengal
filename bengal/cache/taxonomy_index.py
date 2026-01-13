@@ -36,8 +36,9 @@ logger = get_logger(__name__)
 class TagEntry(Cacheable):
     """
     Entry for a single tag in the index.
-
+    
     Implements the Cacheable protocol for type-safe serialization.
+        
     """
 
     tag_slug: str  # Normalized tag identifier
@@ -81,13 +82,13 @@ class TagEntry(Cacheable):
 class TaxonomyIndex:
     """
     Persistent index of tag-to-pages mappings for incremental taxonomy updates.
-
+    
     Purpose:
     - Track which pages have which tags
     - Enable incremental tag updates (only changed tags)
     - Avoid full taxonomy rebuild on every page change
     - Support incremental tag page generation
-
+    
     Cache Format (JSON):
     {
         "version": 2,
@@ -105,11 +106,12 @@ class TaxonomyIndex:
             "content/post2.md": ["python"]
         }
     }
-
+    
     Performance Optimization (RFC: Cache Algorithm Optimization):
     - Added reverse index (_page_to_tags) for O(1) page-to-tags lookup
     - get_tags_for_page(): O(t×p) → O(1)
     - remove_page_from_all_tags(): O(t×p) → O(t') where t' = tags for page
+        
     """
 
     VERSION = 2  # Bumped: added page_to_tags reverse index

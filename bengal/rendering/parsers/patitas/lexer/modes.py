@@ -11,12 +11,13 @@ from enum import Enum, auto
 
 class LexerMode(Enum):
     """Lexer operating modes.
-
+    
     The lexer switches between modes based on context:
     - BLOCK: Between blocks, scanning for block starts
     - CODE_FENCE: Inside fenced code block
     - DIRECTIVE: Inside directive block
     - HTML_BLOCK: Inside HTML block (types 1-7)
+        
     """
 
     BLOCK = auto()  # Between blocks

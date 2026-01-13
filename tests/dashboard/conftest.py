@@ -62,9 +62,10 @@ def _create_mock_asset(index: int, category: str = "styles") -> MagicMock:
 def mock_site() -> MagicMock:
     """
     Create a mock Site object for dashboard testing.
-
+    
     Provides realistic data for rendering dashboards without
     requiring actual site files.
+        
     """
     site = MagicMock()
     site.title = "Test Site"
@@ -98,8 +99,9 @@ def mock_site() -> MagicMock:
 def bengal_app(mock_site: MagicMock) -> BengalApp:
     """
     Create BengalApp instance for testing.
-
+    
     Returns app configured with mock site, starting on landing screen.
+        
     """
     from bengal.cli.dashboard.app import BengalApp
 
@@ -110,8 +112,9 @@ def bengal_app(mock_site: MagicMock) -> BengalApp:
 def bengal_app_no_site() -> BengalApp:
     """
     Create BengalApp instance without a site.
-
+    
     Useful for testing error handling and empty states.
+        
     """
     from bengal.cli.dashboard.app import BengalApp
 
@@ -122,14 +125,15 @@ def bengal_app_no_site() -> BengalApp:
 async def pilot(bengal_app: BengalApp) -> AsyncGenerator[Pilot]:
     """
     Async fixture providing Textual pilot for interaction testing.
-
+    
     Waits for app to mount before yielding.
-
+    
     Usage:
         @pytest.mark.asyncio
         async def test_navigation(pilot):
             await pilot.press("1")
             assert pilot.app.screen.name == "build"
+        
     """
     async with bengal_app.run_test() as pilot:
         # Wait for app to fully mount and install screens
@@ -141,8 +145,9 @@ async def pilot(bengal_app: BengalApp) -> AsyncGenerator[Pilot]:
 async def pilot_no_site(bengal_app_no_site: BengalApp) -> AsyncGenerator[Pilot]:
     """
     Async fixture providing pilot for app without site.
-
+    
     Useful for testing error states and notifications.
+        
     """
     async with bengal_app_no_site.run_test() as pilot:
         await pilot.pause()
@@ -254,12 +259,13 @@ def mock_serve_stats() -> dict:
 async def headless_app():
     """
     Async context manager for testing Textual apps in headless mode.
-
+    
     Usage:
         async with headless_app() as create_app:
             app = create_app(BengalBuildDashboard)
             async with app.run_test() as pilot:
                 await pilot.press("q")
+        
     """
 
     async def _create_app(app_class, *args, **kwargs):

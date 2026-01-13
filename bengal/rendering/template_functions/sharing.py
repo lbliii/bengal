@@ -5,16 +5,17 @@ Provides template functions for generating share URLs for popular social
 platforms. All URLs are properly encoded for safe sharing.
 
 Template Usage:
-    <a href="{{ share_url('twitter', page) }}">Share on Twitter</a>
-    <a href="{{ share_url('linkedin', page) }}">Share on LinkedIn</a>
-    <a href="{{ share_url('facebook', page) }}">Share on Facebook</a>
+<a href="{{ share_url('twitter', page) }}">Share on Twitter</a>
+<a href="{{ share_url('linkedin', page) }}">Share on LinkedIn</a>
+<a href="{{ share_url('facebook', page) }}">Share on Facebook</a>
 
-    {# Or use individual functions #}
-    <a href="{{ twitter_share_url(page.absolute_href, page.title) }}">Tweet</a>
+{# Or use individual functions #}
+<a href="{{ twitter_share_url(page.absolute_href, page.title) }}">Tweet</a>
 
 Related Modules:
-    - bengal.rendering.template_functions.seo: SEO meta tag generation
-    - bengal.rendering.template_functions.urls: URL manipulation
+- bengal.rendering.template_functions.seo: SEO meta tag generation
+- bengal.rendering.template_functions.urls: URL manipulation
+
 """
 
 from __future__ import annotations
@@ -62,24 +63,25 @@ def share_url(
 ) -> str:
     """
     Generate share URL for a given platform and page.
-
+    
     Convenience function that routes to platform-specific generators.
     Uses page properties (absolute_href, title) for URL and text defaults.
-
+    
     Args:
         platform: Social platform name (twitter, linkedin, facebook, reddit, hackernews, email)
         page: Page object with absolute_href and title attributes
         text: Optional custom share text (defaults to page.title)
         via: Optional attribution handle (for Twitter)
         site: Site instance for config access
-
+    
     Returns:
         Share URL for the specified platform
-
+    
     Example:
         {{ share_url('twitter', page) }}
         {{ share_url('twitter', page, via='myblog') }}
         {{ share_url('linkedin', page, text='Check this out!') }}
+        
     """
     # Extract URL and text from page
     url = getattr(page, "absolute_href", "") or getattr(page, "href", "")
@@ -119,19 +121,20 @@ def twitter_share_url(
 ) -> str:
     """
     Generate Twitter/X share URL.
-
+    
     Args:
         url: URL to share
         text: Tweet text
         via: Twitter handle for attribution (without @)
         hashtags: List of hashtags (without #)
-
+    
     Returns:
         Twitter intent URL
-
+    
     Example:
         {{ twitter_share_url(page.absolute_href, page.title, via='myblog') }}
         → https://twitter.com/intent/tweet?url=...&text=...&via=myblog
+        
     """
     params: dict[str, str] = {"url": url}
 
@@ -151,18 +154,19 @@ def twitter_share_url(
 def linkedin_share_url(url: str, title: str = "", summary: str = "") -> str:
     """
     Generate LinkedIn share URL.
-
+    
     Args:
         url: URL to share
         title: Article title (optional)
         summary: Article summary (optional)
-
+    
     Returns:
         LinkedIn share URL
-
+    
     Example:
         {{ linkedin_share_url(page.absolute_href, page.title) }}
         → https://www.linkedin.com/sharing/share-offsite/?url=...
+        
     """
     # LinkedIn now primarily uses the simple share URL format
     params = {"url": url}
@@ -172,16 +176,17 @@ def linkedin_share_url(url: str, title: str = "", summary: str = "") -> str:
 def facebook_share_url(url: str) -> str:
     """
     Generate Facebook share URL.
-
+    
     Args:
         url: URL to share
-
+    
     Returns:
         Facebook share dialog URL
-
+    
     Example:
         {{ facebook_share_url(page.absolute_href) }}
         → https://www.facebook.com/sharer/sharer.php?u=...
+        
     """
     return f"https://www.facebook.com/sharer/sharer.php?u={quote(url, safe='')}"
 
@@ -189,17 +194,18 @@ def facebook_share_url(url: str) -> str:
 def reddit_share_url(url: str, title: str = "") -> str:
     """
     Generate Reddit submit URL.
-
+    
     Args:
         url: URL to share
         title: Post title
-
+    
     Returns:
         Reddit submit URL
-
+    
     Example:
         {{ reddit_share_url(page.absolute_href, page.title) }}
         → https://www.reddit.com/submit?url=...&title=...
+        
     """
     params: dict[str, str] = {"url": url}
     if title:
@@ -210,17 +216,18 @@ def reddit_share_url(url: str, title: str = "") -> str:
 def hackernews_share_url(url: str, title: str = "") -> str:
     """
     Generate Hacker News submit URL.
-
+    
     Args:
         url: URL to share
         title: Post title
-
+    
     Returns:
         HN submit URL
-
+    
     Example:
         {{ hackernews_share_url(page.absolute_href, page.title) }}
         → https://news.ycombinator.com/submitlink?u=...&t=...
+        
     """
     params: dict[str, str] = {"u": url}
     if title:
@@ -231,18 +238,19 @@ def hackernews_share_url(url: str, title: str = "") -> str:
 def email_share_url(url: str, subject: str = "", body: str = "") -> str:
     """
     Generate mailto: URL for email sharing.
-
+    
     Args:
         url: URL to share
         subject: Email subject
         body: Email body (URL appended if not in body)
-
+    
     Returns:
         mailto: URL
-
+    
     Example:
         {{ email_share_url(page.absolute_href, page.title) }}
         → mailto:?subject=...&body=...
+        
     """
     params: dict[str, str] = {}
 
@@ -261,26 +269,27 @@ def email_share_url(url: str, subject: str = "", body: str = "") -> str:
 def mastodon_share_text(url: str, text: str = "") -> str:
     """
     Generate pre-formatted text for Mastodon sharing.
-
+    
     Mastodon doesn't have a universal share URL since it's decentralized.
     This returns the share text that can be used with a Mastodon web+share
     intent or copied manually.
-
+    
     Args:
         url: URL to share
         text: Share text
-
+    
     Returns:
         Formatted share text with URL
-
+    
     Example:
         {{ mastodon_share_text(page.absolute_href, page.title) }}
         → "Page Title https://example.com/page/"
-
+    
     Usage:
         <a href="https://mastodon.social/share?text={{ mastodon_share_text(page.absolute_href, page.title) | urlencode }}">
           Share on Mastodon
         </a>
+        
     """
     if text:
         return f"{text} {url}"

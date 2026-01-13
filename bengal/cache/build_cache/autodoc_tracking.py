@@ -5,19 +5,20 @@ Tracks which Python source files produce which autodoc pages, enabling
 selective regeneration of autodoc pages when their source files change.
 
 Key Concepts:
-    - Source file tracking: Maps Python/OpenAPI source files to autodoc page paths
-    - Selective invalidation: Only rebuild affected autodoc pages, not all
-    - Orphan cleanup: Remove autodoc pages when source files are deleted
-    - Self-validation: Validate source file hashes for CI cache correctness
+- Source file tracking: Maps Python/OpenAPI source files to autodoc page paths
+- Selective invalidation: Only rebuild affected autodoc pages, not all
+- Orphan cleanup: Remove autodoc pages when source files are deleted
+- Self-validation: Validate source file hashes for CI cache correctness
 
 Related Modules:
-    - bengal.autodoc.orchestration: Creates autodoc pages with dependencies
-    - bengal.orchestration.incremental: Uses dependency info for selective builds
-    - bengal.utils.hashing: Shared hashing utilities
+- bengal.autodoc.orchestration: Creates autodoc pages with dependencies
+- bengal.orchestration.incremental: Uses dependency info for selective builds
+- bengal.utils.hashing: Shared hashing utilities
 
 See Also:
-    - plan/rfc-autodoc-incremental-builds.md: Design rationale
-    - plan/rfc-ci-cache-inputs.md: CI cache validation rationale
+- plan/rfc-autodoc-incremental-builds.md: Design rationale
+- plan/rfc-ci-cache-inputs.md: CI cache validation rationale
+
 """
 
 from __future__ import annotations
@@ -34,18 +35,19 @@ logger = get_logger(__name__)
 class AutodocTrackingMixin:
     """
     Track autodoc source file to page dependencies WITH hash validation.
-
+    
     This mixin adds dependency tracking for autodoc pages, enabling selective
     rebuilds when only specific Python/OpenAPI source files change. It also
     provides self-validation capabilities to detect stale autodoc sources
     even when CI cache keys are incorrect.
-
+    
     Attributes:
         autodoc_dependencies: Mapping of source_file path to set of autodoc page paths
             that are generated from that source file.
         autodoc_source_metadata: Mapping of source_file path to (content_hash, mtime)
             tuple for self-validation. The mtime-first optimization skips hash
             computation when mtime is unchanged.
+        
     """
 
     # Mixin expects these to be defined in the main dataclass

@@ -34,11 +34,11 @@ def validate_mutually_exclusive(
 ) -> Callable[[F], F]:
     """
     Decorator to validate mutually exclusive flags.
-
+    
     Args:
         flag_pairs: Pairs of flag names that cannot be used together
         error_message: Custom error message (default: "{flag1} and {flag2} cannot be used together")
-
+    
     Example:
         @click.command()
         @click.option("--quiet", is_flag=True)
@@ -47,6 +47,7 @@ def validate_mutually_exclusive(
         def my_command(quiet: bool, verbose: bool):
             # ...
             pass
+        
     """
 
     def decorator(func: F) -> F:
@@ -72,11 +73,11 @@ def validate_flag_conflicts(
 ) -> Callable[[F], F]:
     """
     Decorator to validate flag conflicts (one flag conflicts with multiple others).
-
+    
     Args:
         conflicts: Dict mapping flag name to list of conflicting flag names
         error_message: Custom error message template (default: "{flag} cannot be used with {others}")
-
+    
     Example:
         @click.command()
         @click.option("--fast", is_flag=True)
@@ -86,6 +87,7 @@ def validate_flag_conflicts(
         def my_command(fast: bool, dev: bool, theme_dev: bool):
             # ...
             pass
+        
     """
 
     def decorator(func: F) -> F:

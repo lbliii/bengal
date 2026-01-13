@@ -6,28 +6,29 @@ in theme directories. Supports nested configuration for features, appearance,
 and icons with validation.
 
 Models:
-    FeatureFlags: Category-organized boolean feature toggles
-    AppearanceConfig: Theme mode and palette selection
-    IconConfig: Icon library and semantic aliases
-    ThemeConfig: Root configuration combining all settings
+FeatureFlags: Category-organized boolean feature toggles
+AppearanceConfig: Theme mode and palette selection
+IconConfig: Icon library and semantic aliases
+ThemeConfig: Root configuration combining all settings
 
 Architecture:
-    Configuration models are passive dataclasses with factory methods for
-    loading from dictionaries or YAML files. Validation occurs in __post_init__
-    for immediate feedback on invalid values.
+Configuration models are passive dataclasses with factory methods for
+loading from dictionaries or YAML files. Validation occurs in __post_init__
+for immediate feedback on invalid values.
 
 Example:
     >>> config = ThemeConfig.load(Path("themes/default"))
     >>> config.name
     'default'
     >>> config.features.has_feature("navigation.toc")
-    True
+True
     >>> config.appearance.default_mode
     'system'
 
 Related:
-    bengal/themes/tokens.py: Design tokens used with theme config
-    bengal/themes/default/theme.yaml: Example theme configuration
+bengal/themes/tokens.py: Design tokens used with theme config
+bengal/themes/default/theme.yaml: Example theme configuration
+
 """
 
 from __future__ import annotations
@@ -48,11 +49,11 @@ logger = get_logger(__name__)
 class FeatureFlags:
     """
     Feature flags organized by category.
-
+    
     Features are grouped into categories (navigation, content, search, etc.)
     with boolean toggles for each feature. Use dotted notation to query
     features (e.g., "navigation.toc").
-
+    
     Attributes:
         navigation: Navigation features (toc, breadcrumbs, prev_next, etc.)
         content: Content features (code_copy, syntax_highlight, etc.)
@@ -60,13 +61,14 @@ class FeatureFlags:
         header: Header features (logo, theme_toggle, etc.)
         footer: Footer features (copyright, social_links, etc.)
         accessibility: Accessibility features (skip_links, focus_visible, etc.)
-
+    
     Example:
-        >>> flags = FeatureFlags(navigation={"toc": True, "breadcrumbs": False})
-        >>> flags.has_feature("navigation.toc")
+            >>> flags = FeatureFlags(navigation={"toc": True, "breadcrumbs": False})
+            >>> flags.has_feature("navigation.toc")
         True
-        >>> flags.get_enabled_features()
+            >>> flags.get_enabled_features()
         ['navigation.toc']
+        
     """
 
     navigation: dict[str, bool] = field(default_factory=dict)
@@ -140,16 +142,17 @@ class FeatureFlags:
 class AppearanceConfig:
     """
     Appearance configuration for theme mode and color palette.
-
+    
     Controls the default visual appearance including light/dark mode preference
     and optional color palette variant. Validates mode against allowed values.
-
+    
     Attributes:
         default_mode: Theme mode preference ("light", "dark", or "system")
         default_palette: Optional palette variant name (e.g., "blue-bengal")
-
+    
     Raises:
         BengalConfigError: If default_mode is not one of: light, dark, system
+        
     """
 
     default_mode: str = "system"
@@ -189,24 +192,25 @@ class AppearanceConfig:
 class IconConfig:
     """
     Icon library configuration with semantic aliases.
-
+    
     Controls which icon library is used (default: Phosphor) and provides
     semantic name mappings for consistent icon usage across the theme.
-
+    
     Attributes:
         library: Icon library name (e.g., "phosphor", "heroicons")
         aliases: Semantic-to-icon name mappings (e.g., {"search": "magnifying-glass"})
         defaults: Default icons for common UI elements (e.g., {"external_link": "arrow-up-right"})
         extend_defaults: Whether to fall through to Bengal's default icons (Phosphor)
             when an icon is not found in the theme. Defaults to True.
-
+    
     Example:
-        >>> icons = IconConfig(library="phosphor", aliases={"search": "magnifying-glass"})
-        >>> icons.library
-        'phosphor'
-
-        >>> # Disable fallback to default icons
-        >>> icons = IconConfig(extend_defaults=False)
+            >>> icons = IconConfig(library="phosphor", aliases={"search": "magnifying-glass"})
+            >>> icons.library
+            'phosphor'
+    
+            >>> # Disable fallback to default icons
+            >>> icons = IconConfig(extend_defaults=False)
+        
     """
 
     library: str = "phosphor"
@@ -248,13 +252,84 @@ class IconConfig:
 
 
 @dataclass
+class HeaderConfig:
+    """
+    Header layout and behavior configuration.
+
+    Controls the site header appearance including navigation position,
+    sticky behavior, and auto-hide functionality.
+
+    Attributes:
+        nav_position: Navigation link alignment ("left" or "center").
+            - "left": Nav links appear after the logo (default)
+            - "center": Nav links are centered in the header
+        sticky: Whether the header stays fixed at the top on scroll.
+            Defaults to True.
+        autohide: Whether the header hides on scroll down and reappears
+            on scroll up. Only applies when sticky is True.
+
+    Example:
+        >>> header = HeaderConfig(nav_position="center", sticky=True)
+        >>> header.nav_position
+        'center'
+    """
+
+    nav_position: str = "left"
+    sticky: bool = True
+    autohide: bool = False
+
+    def __post_init__(self) -> None:
+        """Validate header configuration."""
+        valid_positions = {"left", "center"}
+        if self.nav_position not in valid_positions:
+            error = BengalConfigError(
+                f"Invalid nav_position '{self.nav_position}'. "
+                f"Must be one of: {', '.join(valid_positions)}",
+                code=ErrorCode.C003,
+                suggestion=f"Set nav_position to one of: {', '.join(valid_positions)}",
+            )
+            record_error(error)
+            raise error
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HeaderConfig:
+        """
+        Create HeaderConfig from dictionary.
+
+        Args:
+            data: Dictionary with header settings
+
+        Returns:
+            HeaderConfig instance
+        """
+        return cls(
+            nav_position=data.get("nav_position", "left"),
+            sticky=data.get("sticky", True),
+            autohide=data.get("autohide", False),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert HeaderConfig to dictionary.
+
+        Returns:
+            Dictionary representation
+        """
+        return {
+            "nav_position": self.nav_position,
+            "sticky": self.sticky,
+            "autohide": self.autohide,
+        }
+
+
+@dataclass
 class ThemeConfig:
     """
     Complete theme configuration loaded from theme.yaml.
-
+    
     Consolidates all theme settings into a single configuration object that
     can be loaded from YAML files and serialized back for export.
-
+    
     Attributes:
         name: Theme identifier (e.g., "default", "docs-theme")
         version: Semantic version string (e.g., "1.0.0")
@@ -262,18 +337,19 @@ class ThemeConfig:
         features: Feature flags organized by category
         appearance: Theme mode and palette settings
         icons: Icon library and alias configuration
-
+    
     Example:
-        >>> config = ThemeConfig.load(Path("themes/default"))
-        >>> config.name
-        'default'
-        >>> config.features.has_feature("navigation.toc")
+            >>> config = ThemeConfig.load(Path("themes/default"))
+            >>> config.name
+            'default'
+            >>> config.features.has_feature("navigation.toc")
         True
-
+    
     See Also:
         FeatureFlags: Feature toggle configuration
         AppearanceConfig: Visual appearance settings
         IconConfig: Icon library settings
+        
     """
 
     name: str = "default"
@@ -282,6 +358,7 @@ class ThemeConfig:
     features: FeatureFlags = field(default_factory=FeatureFlags)
     appearance: AppearanceConfig = field(default_factory=AppearanceConfig)
     icons: IconConfig = field(default_factory=IconConfig)
+    header: HeaderConfig = field(default_factory=HeaderConfig)
 
     @classmethod
     def load(cls, theme_path: Path) -> ThemeConfig:
@@ -334,6 +411,15 @@ class ThemeConfig:
         appearance = AppearanceConfig.from_dict(data.get("appearance", {}))
         icons = IconConfig.from_dict(data.get("icons", {}))
 
+        # Header config can come from top-level 'header' or from 'features.header'
+        # Top-level 'header' takes precedence for layout settings
+        header_data = data.get("header", {})
+        features_header = data.get("features", {}).get("header", {})
+
+        # Merge: features.header provides defaults, top-level header overrides
+        merged_header = {**features_header, **header_data}
+        header = HeaderConfig.from_dict(merged_header)
+
         return cls(
             name=name,
             version=version,
@@ -341,6 +427,7 @@ class ThemeConfig:
             features=features,
             appearance=appearance,
             icons=icons,
+            header=header,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -371,4 +458,5 @@ class ThemeConfig:
                 "aliases": self.icons.aliases,
                 "defaults": self.icons.defaults,
             },
+            "header": self.header.to_dict(),
         }

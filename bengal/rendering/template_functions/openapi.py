@@ -13,8 +13,9 @@ Functions:
 - schemas: Filter to normalize schema access from sections
 
 Engine-Agnostic:
-    These functions work with any template engine that provides a globals/filters
-    interface (Jinja2, Kida, or custom engines via the adapter layer).
+These functions work with any template engine that provides a globals/filters
+interface (Jinja2, Kida, or custom engines via the adapter layer).
+
 """
 
 from __future__ import annotations
@@ -46,11 +47,11 @@ if TYPE_CHECKING:
 class EndpointView:
     """
     Normalized endpoint view for templates.
-
+    
     Provides consistent access to endpoint data regardless of
     whether the source is a DocElement (consolidated mode) or
     Page (individual mode).
-
+    
     Attributes:
         method: HTTP method (GET, POST, etc.)
         path: URL path with parameters (/users/{id})
@@ -62,6 +63,7 @@ class EndpointView:
         operation_id: OpenAPI operationId (for advanced use)
         tags: Endpoint tags
         typed_metadata: Full OpenAPIEndpointMetadata (for advanced use)
+        
     """
 
     method: str
@@ -121,9 +123,9 @@ class EndpointView:
 class SchemaView:
     """
     Normalized schema view for templates.
-
+    
     Provides consistent access to schema data for listing and linking.
-
+    
     Attributes:
         name: Schema name (e.g., "User", "OrderRequest")
         schema_type: Type (object, array, string, etc.)
@@ -135,6 +137,7 @@ class SchemaView:
         enum: Enum values (if applicable)
         example: Example value (if provided)
         typed_metadata: Full OpenAPISchemaMetadata
+        
     """
 
     name: str
@@ -190,20 +193,21 @@ def _generate_anchor_id(method: str, path: str) -> str:
 def endpoints_filter(section: Section | None) -> list[EndpointView]:
     """
     Normalize section endpoints for templates.
-
+    
     Detects consolidation mode automatically and returns a list of
     EndpointView objects with consistent properties.
-
+    
     Usage:
         {% for ep in section | endpoints %}
           <a href="{{ ep.href }}">{{ ep.method }} {{ ep.path }}</a>
         {% end %}
-
+    
     Args:
         section: Section containing endpoints
-
+    
     Returns:
         List of EndpointView objects
+        
     """
     if section is None:
         return []
@@ -236,20 +240,21 @@ def endpoints_filter(section: Section | None) -> list[EndpointView]:
 def schemas_filter(section: Section | None) -> list[SchemaView]:
     """
     Normalize section schemas for templates.
-
+    
     Returns a list of SchemaView objects with consistent properties.
-
+    
     Usage:
         {% for schema in section | schemas %}
           <a href="{{ schema.href }}">{{ schema.name }}</a>
           <span>{{ schema.schema_type }}</span>
         {% end %}
-
+    
     Args:
         section: Section containing schemas (usually root API section)
-
+    
     Returns:
         List of SchemaView objects
+        
     """
     if section is None:
         return []
@@ -269,10 +274,11 @@ def schemas_filter(section: Section | None) -> list[SchemaView]:
 
 def register(env: TemplateEnvironment, site: Site) -> None:
     """Register OpenAPI functions with template environment.
-
+    
     Args:
         env: Template environment (Jinja2, Kida, or any engine with globals/filters)
         site: Site instance
+        
     """
     env.globals.update(
         {
@@ -312,7 +318,7 @@ def generate_code_sample(
 ) -> str:
     """
     Generate a code sample for an API endpoint in the specified language.
-
+    
     Args:
         language: Target language (curl, python, javascript, go, ruby, php)
         method: HTTP method (GET, POST, PUT, PATCH, DELETE, etc.)
@@ -322,12 +328,13 @@ def generate_code_sample(
         parameters: List of parameter definitions
         headers: Additional headers
         auth_scheme: Authentication scheme name
-
+    
     Returns:
         Formatted code sample string
-
+    
     Example:
         {{ generate_code_sample('curl', 'GET', '/users/{id}') }}
+        
     """
     method = method.upper()
     generators = {
@@ -716,16 +723,17 @@ def _dict_to_php_array(obj: Any, indent: int = 2) -> str:
 def highlight_path_params(path: str) -> str:
     """
     Highlight path parameters like {id} with HTML markup.
-
+    
     Args:
         path: Endpoint path with {param} placeholders
-
+    
     Returns:
         Path with highlighted parameters
-
+    
     Example:
         {{ "/users/{id}/posts/{post_id}" | highlight_path_params }}
         # Returns: /users/<span class="api-path-param">{id}</span>/posts/<span class="api-path-param">{post_id}</span>
+        
     """
     if not path:
         return ""
@@ -740,15 +748,16 @@ def highlight_path_params(path: str) -> str:
 def method_color_class(method: str) -> str:
     """
     Get CSS class for HTTP method styling.
-
+    
     Args:
         method: HTTP method (GET, POST, PUT, PATCH, DELETE, etc.)
-
+    
     Returns:
         CSS class name
-
+    
     Example:
         {{ "POST" | method_color_class }}  # "api-method--post"
+        
     """
     method = (method or "GET").upper()
     return f"api-method--{method.lower()}"
@@ -757,16 +766,17 @@ def method_color_class(method: str) -> str:
 def status_code_class(code: str | int) -> str:
     """
     Get CSS class for HTTP status code styling.
-
+    
     Args:
         code: HTTP status code (200, 404, etc.)
-
+    
     Returns:
         CSS class based on status category
-
+    
     Example:
         {{ 200 | status_code_class }}  # "status--success"
         {{ 404 | status_code_class }}  # "status--client-error"
+        
     """
     code_str = str(code)
     if not code_str:
@@ -788,16 +798,17 @@ def get_response_example(
 ) -> Any:
     """
     Extract example response from OpenAPI responses.
-
+    
     Args:
         responses: List or dict of response definitions
         status_code: Target status code (default "200")
-
+    
     Returns:
         Example response object or None
-
+    
     Example:
         {{ get_response_example(element.metadata.responses, "200") | tojson }}
+        
     """
     if not responses:
         return None

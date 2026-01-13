@@ -5,21 +5,22 @@ Runs the async FileWatcher in a background thread and triggers builds
 via callback when changes are detected.
 
 Architecture:
-    WatcherRunner owns the file watching lifecycle:
-    1. Creates IgnoreFilter from site config
-    2. Creates FileWatcher (using watchfiles)
-    3. Runs async watcher in background thread
-    4. Collects and debounces changes
-    5. Triggers builds via BuildTrigger
+WatcherRunner owns the file watching lifecycle:
+1. Creates IgnoreFilter from site config
+2. Creates FileWatcher (using watchfiles)
+3. Runs async watcher in background thread
+4. Collects and debounces changes
+5. Triggers builds via BuildTrigger
 
 Dashboard Integration (RFC: rfc-dashboard-api-integration):
-    - on_file_change callback: Called immediately when a file change is detected
-      (before debouncing), allowing the dashboard to show real-time file activity.
+- on_file_change callback: Called immediately when a file change is detected
+  (before debouncing), allowing the dashboard to show real-time file activity.
 
 Related:
-    - bengal/server/file_watcher.py: Async file watching (watchfiles)
-    - bengal/server/ignore_filter.py: Path filtering
-    - bengal/server/build_trigger.py: Build execution
+- bengal/server/file_watcher.py: Async file watching (watchfiles)
+- bengal/server/ignore_filter.py: Path filtering
+- bengal/server/build_trigger.py: Build execution
+
 """
 
 from __future__ import annotations
@@ -42,25 +43,26 @@ logger = get_logger(__name__)
 class WatcherRunner:
     """
     Runs FileWatcher in a background thread with debouncing.
-
+    
     Features:
         - Async-to-sync bridge for FileWatcher
         - Built-in debouncing (configurable delay)
         - Event type tracking (created, modified, deleted)
         - Thread-safe change accumulation
         - Graceful shutdown
-
+    
     Example:
-        >>> def on_changes(paths, event_types):
-        ...     print(f"Changed: {paths}")
-        >>> runner = WatcherRunner(
-        ...     paths=[Path("content"), Path("templates")],
-        ...     ignore_filter=IgnoreFilter(),
-        ...     on_changes=on_changes,
-        ... )
-        >>> runner.start()
-        >>> # ... later
-        >>> runner.stop()
+            >>> def on_changes(paths, event_types):
+            ...     print(f"Changed: {paths}")
+            >>> runner = WatcherRunner(
+            ...     paths=[Path("content"), Path("templates")],
+            ...     ignore_filter=IgnoreFilter(),
+            ...     on_changes=on_changes,
+            ... )
+            >>> runner.start()
+            >>> # ... later
+            >>> runner.stop()
+        
     """
 
     def __init__(
@@ -284,10 +286,10 @@ def create_watcher_runner(
 ) -> WatcherRunner:
     """
     Create a WatcherRunner configured for a site.
-
+    
     Factory function that creates IgnoreFilter from site config
     and configures the watcher runner.
-
+    
     Args:
         site: Site instance with config
         watch_dirs: Directories to watch
@@ -296,9 +298,10 @@ def create_watcher_runner(
         on_file_change: Optional callback for immediate file change events (path, event_type).
                         Called before debouncing for real-time dashboard updates.
                         (RFC: rfc-dashboard-api-integration)
-
+    
     Returns:
         Configured WatcherRunner instance
+        
     """
     # Create ignore filter from site config
     config = getattr(site, "config", {}) or {}

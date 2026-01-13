@@ -5,26 +5,27 @@ This module provides an optimized HTML transformation approach that combines
 multiple passes into an efficient sequence with quick rejection checks.
 
 Performance:
-    Benchmarked at ~27% faster than separate transform calls.
-    See: scripts/benchmark_transforms.py
+Benchmarked at ~27% faster than separate transform calls.
+See: scripts/benchmark_transforms.py
 
 Architecture:
-    - Step 1: Jinja escaping via str.replace() (C-optimized, very fast)
-    - Step 2: .md link normalization (single regex pass with quick rejection)
-    - Step 3: Internal link baseurl prefixing (single regex pass with quick rejection)
+- Step 1: Jinja escaping via str.replace() (C-optimized, very fast)
+- Step 2: .md link normalization (single regex pass with quick rejection)
+- Step 3: Internal link baseurl prefixing (single regex pass with quick rejection)
 
 The key optimizations are:
-    1. Quick rejection checks before regex operations
-    2. Single transformer instance reused across pages
-    3. Compiled regex patterns
+1. Quick rejection checks before regex operations
+2. Single transformer instance reused across pages
+3. Compiled regex patterns
 
 Related Modules:
-    - bengal.rendering.pipeline.transforms: Original separate transforms
-    - bengal.rendering.pipeline.core: Uses this transformer
-    - bengal.rendering.link_transformer: Link transformation patterns
+- bengal.rendering.pipeline.transforms: Original separate transforms
+- bengal.rendering.pipeline.core: Uses this transformer
+- bengal.rendering.link_transformer: Link transformation patterns
 
 RFC Reference:
-    plan/drafted/rfc-rendering-package-optimizations.md
+plan/drafted/rfc-rendering-package-optimizations.md
+
 """
 
 from __future__ import annotations
@@ -40,29 +41,30 @@ logger = get_logger(__name__)
 class HybridHTMLTransformer:
     """
     Optimized HTML transformer combining multiple transformation passes.
-
+    
     This transformer applies Jinja escaping and link transformations in an
     optimized sequence with quick rejection checks to skip unnecessary work.
-
+    
     Creation:
         transformer = HybridHTMLTransformer(baseurl="/bengal")
         result = transformer.transform(html)
-
+    
     Thread Safety:
         Thread-safe. Transformer instances are stateless after initialization
         and can be safely shared across threads.
-
+    
     Performance:
         Approximately 27% faster than calling separate transform functions.
         Improvement is most significant for pages with transformable content.
-
+    
     Examples:
-        >>> transformer = HybridHTMLTransformer("/bengal")
-        >>> transformer.transform('<a href="/docs/">Docs</a>')
-        '<a href="/bengal/docs/">Docs</a>'
-
-        >>> transformer.transform('<a href="./guide.md">Guide</a>')
-        '<a href="./guide/">Guide</a>'
+            >>> transformer = HybridHTMLTransformer("/bengal")
+            >>> transformer.transform('<a href="/docs/">Docs</a>')
+            '<a href="/bengal/docs/">Docs</a>'
+    
+            >>> transformer.transform('<a href="./guide.md">Guide</a>')
+            '<a href="./guide/">Guide</a>'
+        
     """
 
     def __init__(self, baseurl: str = "") -> None:
@@ -184,15 +186,16 @@ class HybridHTMLTransformer:
 def create_transformer(config: dict[str, Any]) -> HybridHTMLTransformer:
     """
     Create a transformer instance from site config.
-
+    
     Factory function that extracts baseurl from config and creates
     an appropriately configured transformer.
-
+    
     Args:
         config: Site configuration dictionary
-
+    
     Returns:
         Configured HybridHTMLTransformer instance
+        
     """
     # Handle nested config structure (TOML format: [site] section)
     # Also support flat config (baseurl at top level) for backward compatibility

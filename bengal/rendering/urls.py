@@ -40,23 +40,24 @@ __all__ = [
 def resolve_tag_url(tag: str, site: Site, page: Any = None) -> str:
     """
     Generate a tag URL with i18n prefix support.
-
+    
     This is the single source of truth for tag URL generation.
     Handles i18n prefixes and baseurl.
-
+    
     Args:
         tag: Tag name
         site: Site instance
         page: Optional page context (for language detection)
-
+    
     Returns:
         Tag URL ready for use in HTML
-
+    
     Example:
-        >>> resolve_tag_url('python', site)
-        '/bengal/tags/python/'
-        >>> resolve_tag_url('python', site, page)  # Page has lang='es'
-        '/bengal/es/tags/python/'
+            >>> resolve_tag_url('python', site)
+            '/bengal/tags/python/'
+            >>> resolve_tag_url('python', site, page)  # Page has lang='es'
+            '/bengal/es/tags/python/'
+        
     """
     from bengal.rendering.template_functions.taxonomies import tag_url as base_tag_url
 
@@ -81,18 +82,19 @@ def resolve_tag_url(tag: str, site: Site, page: Any = None) -> str:
 def apply_baseurl(path: str, site: Site) -> str:
     """
     Apply baseurl prefix to a path.
-
+    
     Handles various baseurl formats:
     - Path prefix: /bengal
     - Absolute URL: https://example.com
     - File protocol: file:///path
-
+    
     Args:
         path: Relative path (e.g., '/tags/python/')
         site: Site instance
-
+    
     Returns:
         URL with baseurl applied
+        
     """
     baseurl = (site.baseurl or "").rstrip("/")
 

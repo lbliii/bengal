@@ -4,24 +4,25 @@ Base classes for the autodoc documentation extraction system.
 This module defines the core abstractions used by all documentation extractors:
 
 Core Classes:
-    - DocElement: Unified data model representing any documented element
-      (function, class, endpoint, command, etc.)
-    - Extractor: Abstract base class that all extractors must implement
+- DocElement: Unified data model representing any documented element
+  (function, class, endpoint, command, etc.)
+- Extractor: Abstract base class that all extractors must implement
 
 Architecture:
-    DocElement serves as the lingua franca between extractors and the
-    rendering system. Each extractor (Python, OpenAPI, CLI) produces
-    DocElement trees that can be serialized, cached, and rendered
-    uniformly regardless of source type.
+DocElement serves as the lingua franca between extractors and the
+rendering system. Each extractor (Python, OpenAPI, CLI) produces
+DocElement trees that can be serialized, cached, and rendered
+uniformly regardless of source type.
 
 Serialization:
-    DocElement supports JSON serialization via `to_dict()` and `from_dict()`
-    for caching extracted documentation between builds.
+DocElement supports JSON serialization via `to_dict()` and `from_dict()`
+for caching extracted documentation between builds.
 
 Related:
-    - bengal/autodoc/extractors/: Concrete extractor implementations
-    - bengal/autodoc/models/: Typed metadata dataclasses for DocElement.typed_metadata
-    - bengal/autodoc/orchestration/: Converts DocElements to virtual pages
+- bengal/autodoc/extractors/: Concrete extractor implementations
+- bengal/autodoc/models/: Typed metadata dataclasses for DocElement.typed_metadata
+- bengal/autodoc/orchestration/: Converts DocElements to virtual pages
+
 """
 
 from __future__ import annotations
@@ -45,18 +46,19 @@ def _cached_param_info(
 ) -> Any:
     """
     Cache common parameter patterns for deserialization.
-
+    
     Memoizes ParameterInfo construction to avoid repeated object creation
     for common signatures (e.g., "self", "cls", common type hints).
-
+    
     Args:
         name: Parameter name
         type_hint: Type annotation string
         default: Default value string
         description: Docstring description
-
+    
     Returns:
         ParameterInfo dataclass instance
+        
     """
     # Import here to avoid circular imports
     from bengal.autodoc.models.python import ParameterInfo
@@ -72,8 +74,9 @@ def _cached_param_info(
 def clear_autodoc_caches() -> None:
     """
     Clear autodoc-related caches.
-
+    
     Call between builds or when cache invalidation is needed.
+        
     """
     _cached_param_info.cache_clear()
 
@@ -82,10 +85,10 @@ def clear_autodoc_caches() -> None:
 class DocElement:
     """
     Represents a documented element (function, class, endpoint, command, etc.).
-
+    
     This is the unified data model used by all extractors.
     Each extractor converts its specific domain into this common format.
-
+    
     Attributes:
         name: Element name (e.g., 'build', 'Site', 'GET /users')
         qualified_name: Full path (e.g., 'bengal.core.site.Site.build')
@@ -102,6 +105,7 @@ class DocElement:
             Computed during page building. Use for internal comparisons.
         href: Public URL with baseurl (e.g., "/bengal/cli/assets/build/").
             Computed during page building. Use in templates: <a href="{{ child.href }}">
+        
     """
 
     name: str
@@ -436,18 +440,19 @@ class DocElement:
 class Extractor(ABC):
     """
     Base class for all documentation extractors.
-
+    
     Each documentation type (Python, OpenAPI, CLI) implements this interface.
     This enables a unified API for generating documentation from different sources.
-
+    
     Example:
         class PythonExtractor(Extractor):
             def extract(self, source: Path) -> List[DocElement]:
                 # Extract Python API docs via AST
-                ...
-
+                    ...
+    
             # Templates are now unified under bengal/autodoc/templates/
             # with python/, cli/, openapi/ subdirectories
+        
     """
 
     @abstractmethod

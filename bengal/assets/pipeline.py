@@ -6,48 +6,49 @@ bundling via esbuild. This module enables modern frontend tooling without
 requiring users to configure complex build systems.
 
 Supported Transformations:
-    - **SCSS → CSS**: Compiles ``.scss`` files using the ``sass`` CLI
-    - **PostCSS**: Applies autoprefixer and other PostCSS plugins
-    - **JS/TS Bundling**: Bundles and minifies via ``esbuild``
+- **SCSS → CSS**: Compiles ``.scss`` files using the ``sass`` CLI
+- **PostCSS**: Applies autoprefixer and other PostCSS plugins
+- **JS/TS Bundling**: Bundles and minifies via ``esbuild``
 
 Behavior:
-    - Only runs when enabled via config (``[assets].pipeline = true``)
-    - Detects required CLIs on PATH and produces clear, actionable errors
-    - Compiles into a temporary pipeline output directory
-    - Output files are then fingerprinted by AssetOrchestrator
+- Only runs when enabled via config (``[assets].pipeline = true``)
+- Detects required CLIs on PATH and produces clear, actionable errors
+- Compiles into a temporary pipeline output directory
+- Output files are then fingerprinted by AssetOrchestrator
 
 Requirements:
-    Node.js tooling must be installed separately::
+Node.js tooling must be installed separately::
 
-        npm install -D sass postcss postcss-cli autoprefixer esbuild
+    npm install -D sass postcss postcss-cli autoprefixer esbuild
 
 Architecture:
-    This module acts as a thin wrapper over Node CLIs. It does not change
-    the public API of asset processing; compiled files are returned to
-    AssetOrchestrator for fingerprinting and manifest generation.
+This module acts as a thin wrapper over Node CLIs. It does not change
+the public API of asset processing; compiled files are returned to
+AssetOrchestrator for fingerprinting and manifest generation.
 
-    Pipeline Flow:
-        1. Discover source files (SCSS, JS/TS) in assets/ and theme assets
-        2. Compile SCSS → CSS via ``sass`` CLI
-        3. Apply PostCSS transforms (if enabled)
-        4. Bundle JS/TS via ``esbuild``
-        5. Return compiled files for AssetOrchestrator processing
+Pipeline Flow:
+    1. Discover source files (SCSS, JS/TS) in assets/ and theme assets
+    2. Compile SCSS → CSS via ``sass`` CLI
+    3. Apply PostCSS transforms (if enabled)
+    4. Bundle JS/TS via ``esbuild``
+    5. Return compiled files for AssetOrchestrator processing
 
 Configuration:
-    Pipeline settings are read from ``bengal.yaml``::
+Pipeline settings are read from ``bengal.yaml``::
 
-        assets:
-          pipeline: true        # Enable/disable pipeline
-          scss: true            # Compile SCSS files
-          postcss: true         # Apply PostCSS transforms
-          postcss_config: null  # Custom postcss.config.js path
-          bundle_js: true       # Bundle JavaScript/TypeScript
-          esbuild_target: es2018  # esbuild target environment
-          sourcemaps: true      # Generate source maps
+    assets:
+      pipeline: true        # Enable/disable pipeline
+      scss: true            # Compile SCSS files
+      postcss: true         # Apply PostCSS transforms
+      postcss_config: null  # Custom postcss.config.js path
+      bundle_js: true       # Bundle JavaScript/TypeScript
+      esbuild_target: es2018  # esbuild target environment
+      sourcemaps: true      # Generate source maps
 
 Related:
-    - bengal/orchestration/asset_orchestrator.py: Consumes pipeline output
-    - bengal/assets/manifest.py: Tracks compiled asset URLs
+- bengal/orchestration/asset_orchestrator.py: Consumes pipeline output
+- bengal/assets/manifest.py: Tracks compiled asset URLs
+
 """
 
 from __future__ import annotations
@@ -71,10 +72,10 @@ logger = get_logger(__name__)
 class PipelineConfig:
     """
     Configuration for the Node-based asset pipeline.
-
+    
     Populated from site configuration and passed to NodePipeline. All boolean
     flags default to sensible values when the pipeline is enabled.
-
+    
     Attributes:
         root_path: Site root directory containing assets/ and themes/.
         theme_name: Active theme name for locating theme assets, or None.
@@ -85,6 +86,7 @@ class PipelineConfig:
         bundle_js: Whether to bundle JavaScript/TypeScript files.
         esbuild_target: Target environment for esbuild (e.g. 'es2018', 'esnext').
         sourcemaps: Whether to generate source maps for debugging.
+        
     """
 
     root_path: Path
@@ -101,32 +103,33 @@ class PipelineConfig:
 class NodePipeline:
     """
     Thin wrapper over Node CLIs for asset compilation.
-
+    
     Orchestrates SCSS compilation, PostCSS transforms, and JavaScript bundling
     by invoking external CLI tools. Designed to fail gracefully with clear
     error messages when required tools are not installed.
-
+    
     The pipeline writes compiled files to a temporary directory, which is then
     processed by AssetOrchestrator for fingerprinting and deployment.
-
+    
     Attributes:
         config: Pipeline configuration settings.
         temp_out_dir: Temporary directory for compiled output files.
-
+    
     Example:
-        >>> config = PipelineConfig(
-        ...     root_path=Path("/site"),
-        ...     theme_name="default",
-        ...     enabled=True,
-        ...     scss=True,
-        ...     postcss=True,
-        ...     postcss_config=None,
-        ...     bundle_js=True,
-        ...     esbuild_target="es2018",
-        ...     sourcemaps=True,
-        ... )
-        >>> pipeline = NodePipeline(config)
-        >>> compiled_files = pipeline.build()
+            >>> config = PipelineConfig(
+            ...     root_path=Path("/site"),
+            ...     theme_name="default",
+            ...     enabled=True,
+            ...     scss=True,
+            ...     postcss=True,
+            ...     postcss_config=None,
+            ...     bundle_js=True,
+            ...     esbuild_target="es2018",
+            ...     sourcemaps=True,
+            ... )
+            >>> pipeline = NodePipeline(config)
+            >>> compiled_files = pipeline.build()
+        
     """
 
     def __init__(self, config: PipelineConfig) -> None:
@@ -511,20 +514,21 @@ class NodePipeline:
 def from_site(site: Site) -> NodePipeline:
     """
     Factory to create a NodePipeline from site configuration.
-
+    
     Extracts pipeline settings from the site's ``[assets]`` config section
     and creates a configured NodePipeline instance.
-
+    
     Args:
         site: Site instance with loaded configuration.
-
+    
     Returns:
         Configured NodePipeline ready to run.
-
+    
     Example:
-        >>> from bengal.assets.pipeline import from_site
-        >>> pipeline = from_site(site)
-        >>> compiled_files = pipeline.build()
+            >>> from bengal.assets.pipeline import from_site
+            >>> pipeline = from_site(site)
+            >>> compiled_files = pipeline.build()
+        
     """
     assets_cfg = (
         site.config.get("assets", {}) if isinstance(site.config.get("assets"), dict) else {}

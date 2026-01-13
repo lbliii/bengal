@@ -6,23 +6,24 @@ for use in unit tests. Using these mocks instead of ad-hoc class definitions
 ensures consistency across the test suite and reduces duplication.
 
 Usage:
-    from tests._testing.mocks import MockPage, MockSection, create_mock_xref_index
+from tests._testing.mocks import MockPage, MockSection, create_mock_xref_index
 
-    def test_something():
-        page = MockPage(title="Test", href="/test/")
-        section = MockSection(name="docs", title="Documentation")
-        xref_index = create_mock_xref_index([page])
+def test_something():
+    page = MockPage(title="Test", href="/test/")
+    section = MockSection(name="docs", title="Documentation")
+    xref_index = create_mock_xref_index([page])
 
-    # For analysis/graph tests:
-    from tests._testing.mocks import MockAnalysisPage
+# For analysis/graph tests:
+from tests._testing.mocks import MockAnalysisPage
     page = MockAnalysisPage(source_path=Path("test.md"), tags=["python"])
 
 Patterns:
-    - MockPage: Lightweight page mock for directive/rendering tests
-    - MockSection: Lightweight section mock for navigation tests
-    - create_mock_xref_index: Build xref_index from mock pages
-    - MockSite: Lightweight site mock for validator tests
-    - MockAnalysisPage: Page mock for analysis tests (no `categories` attr)
+- MockPage: Lightweight page mock for directive/rendering tests
+- MockSection: Lightweight section mock for navigation tests
+- create_mock_xref_index: Build xref_index from mock pages
+- MockSite: Lightweight site mock for validator tests
+- MockAnalysisPage: Page mock for analysis tests (no `categories` attr)
+
 """
 
 from __future__ import annotations
@@ -38,10 +39,10 @@ from unittest.mock import Mock
 class MockPage:
     """
     Mock page object for testing.
-
+    
     Provides a lightweight page implementation with common attributes
     used in directive, rendering, and template tests.
-
+    
     Attributes:
         title: Page title (required)
         href: Page URL with baseurl (default: "/")
@@ -55,20 +56,21 @@ class MockPage:
         icon: Page icon identifier (default: "")
         slug: URL slug (derived from source_path stem if not provided)
         _section: Parent section reference (default: None)
-
+    
     Example:
-        >>> page = MockPage(title="Getting Started", href="/docs/quickstart/")
-        >>> page.title
-        'Getting Started'
-        >>> page.metadata
+            >>> page = MockPage(title="Getting Started", href="/docs/quickstart/")
+            >>> page.title
+            'Getting Started'
+            >>> page.metadata
         {}
-
-        >>> page = MockPage(
-        ...     title="API Reference",
-        ...     href="/api/",
-        ...     metadata={"description": "Complete API docs"},
-        ...     tags=["api", "reference"]
-        ... )
+    
+            >>> page = MockPage(
+            ...     title="API Reference",
+            ...     href="/api/",
+            ...     metadata={"description": "Complete API docs"},
+            ...     tags=["api", "reference"]
+            ... )
+        
     """
 
     title: str = ""
@@ -103,10 +105,10 @@ class MockPage:
 class MockSection:
     """
     Mock section object for testing.
-
+    
     Provides a lightweight section implementation for navigation
     and hierarchy tests.
-
+    
     Attributes:
         name: Section name (directory name)
         title: Section display title
@@ -115,17 +117,18 @@ class MockSection:
         subsections: List of child sections
         pages: List of pages in section
         index_page: Section index page (auto-created if None)
-
+    
     Example:
-        >>> section = MockSection(name="docs", title="Documentation")
-        >>> section.index_page.href
-        '/docs/'
-
-        >>> section = MockSection(
-        ...     name="guides",
-        ...     title="User Guides",
-        ...     pages=[MockPage(title="Quickstart", href="/guides/quickstart/")]
-        ... )
+            >>> section = MockSection(name="docs", title="Documentation")
+            >>> section.index_page.href
+            '/docs/'
+    
+            >>> section = MockSection(
+            ...     name="guides",
+            ...     title="User Guides",
+            ...     pages=[MockPage(title="Quickstart", href="/guides/quickstart/")]
+            ... )
+        
     """
 
     name: str
@@ -150,32 +153,33 @@ class MockSection:
 class MockSite:
     """
     Mock site object for testing.
-
+    
     Provides a lightweight site implementation for validator
     and health check tests.
-
+    
     WARNING: This is a mock - do not use for actual file I/O operations.
     The default paths use /dev/null parent to prevent accidental file creation.
     For tests that need real file I/O, pass explicit tmp_path-based paths.
-
+    
     Attributes:
         pages: List of pages in site
         sections: List of top-level sections
         config: Site configuration dict
         root_path: Site root directory (defaults to /dev/null/mock-site)
         output_dir: Build output directory (defaults to /dev/null/mock-output)
-
+    
     Example:
-        >>> site = MockSite(pages=[MockPage(title="Home", href="/")])
-        >>> len(site.pages)
+            >>> site = MockSite(pages=[MockPage(title="Home", href="/")])
+            >>> len(site.pages)
         1
-
+    
         # For tests needing real paths:
-        >>> site = MockSite(
-        ...     pages=[page],
-        ...     root_path=tmp_path,
-        ...     output_dir=tmp_path / "public"
-        ... )
+            >>> site = MockSite(
+            ...     pages=[page],
+            ...     root_path=tmp_path,
+            ...     output_dir=tmp_path / "public"
+            ... )
+        
     """
 
     pages: list[MockPage] = field(default_factory=list)
@@ -198,36 +202,37 @@ class MockSite:
 class MockAnalysisPage:
     """
     Mock page for analysis/graph tests (link suggestions, PageRank, etc.).
-
+    
     This dataclass deliberately does NOT have a `categories` attribute to match
     the Page interface used by LinkSuggestionEngine._build_category_map(), which
     checks `hasattr(page, "category")` first, then falls back to `categories`.
-
+    
     Use this instead of raw Mock() with `del page.categories` patterns.
-
+    
     HASHABILITY:
     ============
     MockAnalysisPage is hashable based on source_path (matching the real Page
     class behavior), allowing use in sets and as dict keys for analysis graphs.
-
+    
     Attributes:
         source_path: Path to source file (required for identity)
         title: Page title (used in LinkSuggestion repr)
         tags: List of tags for topic similarity scoring
         category: Single category (optional, used for category similarity)
         metadata: Page metadata dict (for _generated flag, etc.)
-
+    
     Example:
-        >>> page = MockAnalysisPage(
-        ...     source_path=Path("docs/guide.md"),
-        ...     title="User Guide",
-        ...     tags=["python", "tutorial"],
-        ...     category="guides"
-        ... )
-        >>> hasattr(page, "categories")
+            >>> page = MockAnalysisPage(
+            ...     source_path=Path("docs/guide.md"),
+            ...     title="User Guide",
+            ...     tags=["python", "tutorial"],
+            ...     category="guides"
+            ... )
+            >>> hasattr(page, "categories")
         False
-        >>> hash(page)  # Hashable!
-        ...
+            >>> hash(page)  # Hashable!
+            ...
+        
     """
 
     source_path: Path
@@ -250,24 +255,25 @@ class MockAnalysisPage:
 def create_mock_xref_index(pages: list[MockPage]) -> dict[str, Any]:
     """
     Build xref_index from mock pages.
-
+    
     Creates the cross-reference index structure used by the markdown
     parser for resolving [[wiki-style]] links.
-
+    
     Args:
         pages: List of MockPage objects to index
-
+    
     Returns:
         Dictionary with by_id, by_path, by_slug, and by_heading keys
-
+    
     Example:
-        >>> pages = [
-        ...     MockPage(title="Home", url="/", source_path=Path("index.md")),
-        ...     MockPage(title="About", url="/about/", source_path=Path("about.md")),
-        ... ]
-        >>> index = create_mock_xref_index(pages)
-        >>> index["by_slug"]["about"][0].title
-        'About'
+            >>> pages = [
+            ...     MockPage(title="Home", url="/", source_path=Path("index.md")),
+            ...     MockPage(title="About", url="/about/", source_path=Path("about.md")),
+            ... ]
+            >>> index = create_mock_xref_index(pages)
+            >>> index["by_slug"]["about"][0].title
+            'About'
+        
     """
     by_path: dict[str, MockPage] = {}
     by_slug: dict[str, list[MockPage]] = {}
@@ -302,28 +308,29 @@ def create_mock_page_hierarchy(
 ) -> tuple[list[MockPage], list[MockSection]]:
     """
     Create a page/section hierarchy from a structure definition.
-
+    
     Useful for creating complex test hierarchies without manual setup.
-
+    
     Args:
         structure: Dict defining hierarchy (keys are names, values are nested dicts or None)
         base_path: Base URL path (default: "")
-
+    
     Returns:
         Tuple of (pages, sections)
-
+    
     Example:
-        >>> structure = {
-        ...     "docs": {
-        ...         "_index": None,  # Section index
-        ...         "quickstart": None,  # Page
-        ...         "guides": {
-        ...             "_index": None,
-        ...             "tutorial": None,
-        ...         }
-        ...     }
-        ... }
-        >>> pages, sections = create_mock_page_hierarchy(structure)
+            >>> structure = {
+            ...     "docs": {
+            ...         "_index": None,  # Section index
+            ...         "quickstart": None,  # Page
+            ...         "guides": {
+            ...             "_index": None,
+            ...             "tutorial": None,
+            ...         }
+            ...     }
+            ... }
+            >>> pages, sections = create_mock_page_hierarchy(structure)
+        
     """
     pages: list[MockPage] = []
     sections: list[MockSection] = []

@@ -5,49 +5,49 @@ This package provides pluggable Markdown parser engines with a unified interface
 Choose the parser that best fits your needs:
 
 Parser Engines:
-    PatitasParser (Default):
-        Modern parser with typed AST, designed for Python 3.14+ free-threading.
-        Features O(n) guaranteed parsing, immutable AST nodes, and StringBuilder
-        rendering. Production-ready with full directive support.
+PatitasParser (Default):
+    Modern parser with typed AST, designed for Python 3.14+ free-threading.
+    Features O(n) guaranteed parsing, immutable AST nodes, and StringBuilder
+    rendering. Production-ready with full directive support.
 
-        Key features:
-        - O(n) parsing (no regex backtracking, no ReDoS)
-        - Typed AST with frozen dataclasses
-        - Thread-safe by design (free-threading ready)
-        - StringBuilder O(n) rendering
-        - Full directive support (40+ directives)
+    Key features:
+    - O(n) parsing (no regex backtracking, no ReDoS)
+    - Typed AST with frozen dataclasses
+    - Thread-safe by design (free-threading ready)
+    - StringBuilder O(n) rendering
+    - Full directive support (40+ directives)
 
-        See: plan/drafted/rfc-patitas-markdown-parser.md
+    See: plan/drafted/rfc-patitas-markdown-parser.md
 
-    MistuneParser (Legacy):
-        Fast, modern parser with excellent performance. Supports all Bengal
-        features including TOC extraction, cross-references, and variable
-        substitution. Will be deprecated in Bengal 3.0.
+MistuneParser (Legacy):
+    Fast, modern parser with excellent performance. Supports all Bengal
+    features including TOC extraction, cross-references, and variable
+    substitution. Will be deprecated in Bengal 3.0.
 
-        Performance: ~100 pages in 1.2s
+    Performance: ~100 pages in 1.2s
 
-    PythonMarkdownParser:
-        Full-featured parser with extensive extension support. Better
-        compatibility with complex Markdown edge cases but slower.
+PythonMarkdownParser:
+    Full-featured parser with extensive extension support. Better
+    compatibility with complex Markdown edge cases but slower.
 
-        Performance: ~100 pages in 3.8s (3.2x slower)
+    Performance: ~100 pages in 3.8s (3.2x slower)
 
 Public API:
-    - create_markdown_parser(): Factory function (recommended)
-    - BaseMarkdownParser: Protocol for custom parser implementations
-    - PatitasParser: Modern typed-AST parser (production-ready)
-    - MistuneParser: Fast Mistune-based parser (legacy)
-    - PythonMarkdownParser: Python-Markdown based parser
+- create_markdown_parser(): Factory function (recommended)
+- BaseMarkdownParser: Protocol for custom parser implementations
+- PatitasParser: Modern typed-AST parser (production-ready)
+- MistuneParser: Fast Mistune-based parser (legacy)
+- PythonMarkdownParser: Python-Markdown based parser
 
 Configuration:
-    Set the parser in bengal.yaml:
+Set the parser in bengal.yaml:
 
-    .. code-block:: yaml
+.. code-block:: yaml
 
-        markdown:
-          parser: patitas  # Default
-          # parser: mistune  # Legacy (will be deprecated in Bengal 3.0)
-          # parser: python-markdown  # Full-featured but slower
+    markdown:
+      parser: patitas  # Default
+      # parser: mistune  # Legacy (will be deprecated in Bengal 3.0)
+      # parser: python-markdown  # Full-featured but slower
 
 Usage:
     >>> from bengal.rendering.parsers import create_markdown_parser
@@ -62,25 +62,26 @@ Usage:
     >>> html = parser.parse("# Hello World", metadata={})
     >>>
     >>> # Parse with TOC extraction
-    >>> html, toc = parser.parse_with_toc("## Section 1\\n## Section 2", {})
+    >>> html, toc = parser.parse_with_toc("## Section 1\n## Section 2", {})
 
 Thread Safety:
-    MistuneParser and PythonMarkdownParser instances are NOT thread-safe.
-    The rendering pipeline uses thread-local caching (see pipeline.thread_local)
-    to provide one parser per worker thread.
+MistuneParser and PythonMarkdownParser instances are NOT thread-safe.
+The rendering pipeline uses thread-local caching (see pipeline.thread_local)
+to provide one parser per worker thread.
 
-    PatitasParser is thread-safe by design - each parse() call creates
-    independent parser/renderer instances with no shared state.
+PatitasParser is thread-safe by design - each parse() call creates
+independent parser/renderer instances with no shared state.
 
 Related Modules:
-    - bengal.rendering.pipeline.thread_local: Thread-local parser management
-    - bengal.rendering.plugins: Mistune plugins for enhanced parsing
-    - bengal.directives: Documentation directive support
+- bengal.rendering.pipeline.thread_local: Thread-local parser management
+- bengal.rendering.plugins: Mistune plugins for enhanced parsing
+- bengal.directives: Documentation directive support
 
 See Also:
-    - architecture/performance.md: Parser benchmarks and optimization
-    - plan/drafted/rfc-patitas-markdown-parser.md: Patitas RFC
-    - plan/drafted/rfc-patitas-bengal-directive-migration.md: Directive migration
+- architecture/performance.md: Parser benchmarks and optimization
+- plan/drafted/rfc-patitas-markdown-parser.md: Patitas RFC
+- plan/drafted/rfc-patitas-bengal-directive-migration.md: Directive migration
+
 """
 
 from __future__ import annotations
@@ -112,36 +113,37 @@ __all__ = [
 def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
     """
     Create a markdown parser instance.
-
+    
     Factory function to instantiate the appropriate parser based on engine
     selection. This is the recommended way to create parsers.
-
+    
     Args:
         engine: Parser engine name. Options:
             - 'patitas' (default): Modern parser with typed AST
             - 'mistune': Legacy parser, will be deprecated in Bengal 3.0
             - 'python-markdown' / 'markdown': Full-featured, slower
-
+    
     Returns:
         Parser instance implementing BaseMarkdownParser protocol.
-
+    
     Raises:
         BengalConfigError: If engine name is not recognized.
         ImportError: If python-markdown is requested but not installed.
-
+    
     Examples:
-        >>> # Modern parser (recommended for Python 3.14+)
-        >>> parser = create_markdown_parser('patitas')
-        >>>
-        >>> # Default parser (patitas)
-        >>> parser = create_markdown_parser()
-        >>>
-        >>> # Explicit engine selection
-        >>> parser = create_markdown_parser('python-markdown')
-
+            >>> # Modern parser (recommended for Python 3.14+)
+            >>> parser = create_markdown_parser('patitas')
+            >>>
+            >>> # Default parser (patitas)
+            >>> parser = create_markdown_parser()
+            >>>
+            >>> # Explicit engine selection
+            >>> parser = create_markdown_parser('python-markdown')
+    
     Note:
         Set BENGAL_PARSER_DEPRECATION_WARNINGS=1 to see deprecation warnings
         for mistune parser usage.
+        
     """
     engine = (engine or "patitas").lower()
 

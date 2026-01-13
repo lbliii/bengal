@@ -7,42 +7,43 @@ sources, explains how effective values are resolved through the layer
 system, and identifies potential configuration issues.
 
 Key Features:
-    - ConfigDiff: Single configuration key difference
-    - ConfigComparisonResult: Complete diff between two sources
-    - KeyExplanation: Resolution chain for a specific key
-    - ConfigInspector: Debug tool combining all capabilities
+- ConfigDiff: Single configuration key difference
+- ConfigComparisonResult: Complete diff between two sources
+- KeyExplanation: Resolution chain for a specific key
+- ConfigInspector: Debug tool combining all capabilities
 
 Use Cases:
-    - Compare local vs production configuration
-    - Understand why a config key has a specific value
-    - Detect configuration drift between environments
-    - Find deprecated or suspicious configuration
+- Compare local vs production configuration
+- Understand why a config key has a specific value
+- Detect configuration drift between environments
+- Find deprecated or suspicious configuration
 
 Example:
     >>> from bengal.debug.config_inspector import ConfigInspector
     >>> inspector = ConfigInspector(site)
     >>> diff = inspector.compare("local", "production")
     >>> print(diff.format_detailed())
-    Comparing: local → production
-      Added: 1
-      Removed: 0
-      Changed: 3
+Comparing: local → production
+  Added: 1
+  Removed: 0
+  Changed: 3
 
     >>> explanation = inspector.explain_key("site.baseurl")
     >>> print(explanation.format())
-    site.baseurl: https://example.com
-      Source: environments/production.yaml
-      Resolution chain:
-        ○ _default: /
-        → environments/production: https://example.com
+site.baseurl: https://example.com
+  Source: environments/production.yaml
+  Resolution chain:
+    ○ _default: /
+    → environments/production: https://example.com
 
 Related Modules:
-    - bengal.config.directory_loader: Config loading and layering
-    - bengal.config.environment: Environment detection
-    - bengal.debug.base: Debug tool infrastructure
+- bengal.config.directory_loader: Config loading and layering
+- bengal.config.environment: Environment detection
+- bengal.debug.base: Debug tool infrastructure
 
 See Also:
-    - bengal/cli/commands/config.py: CLI integration
+- bengal/cli/commands/config.py: CLI integration
+
 """
 
 from __future__ import annotations
@@ -61,7 +62,7 @@ logger = get_logger(__name__)
 class ConfigDiff:
     """
     A single configuration key difference between two sources.
-
+    
     Attributes:
         path: Dot-separated key path (e.g., "site.title", "build.parallel").
         type: Type of change: "added", "removed", or "changed".
@@ -70,15 +71,16 @@ class ConfigDiff:
         old_origin: Source file where old value came from.
         new_origin: Source file where new value comes from.
         impact: Potential impact description of this change.
-
+    
     Example:
-        >>> diff = ConfigDiff(
-        ...     path="site.baseurl",
-        ...     type="changed",
-        ...     old_value="/",
-        ...     new_value="https://example.com",
-        ...     impact="Changes output URLs and may break links",
-        ... )
+            >>> diff = ConfigDiff(
+            ...     path="site.baseurl",
+            ...     type="changed",
+            ...     old_value="/",
+            ...     new_value="https://example.com",
+            ...     impact="Changes output URLs and may break links",
+            ... )
+        
     """
 
     path: str
@@ -108,21 +110,22 @@ class ConfigDiff:
 class ConfigComparisonResult:
     """
     Complete result of comparing two configuration sources.
-
+    
     Contains all differences found, categorized by type, with the
     full configuration dictionaries for reference.
-
+    
     Attributes:
         source1: Name of first (earlier/base) configuration source.
         source2: Name of second (later/target) configuration source.
         diffs: List of all ConfigDiff instances found.
         config1: Complete configuration dictionary from source1.
         config2: Complete configuration dictionary from source2.
-
+    
     Example:
-        >>> result = inspector.compare("local", "production")
-        >>> if result.has_changes:
-        ...     print(f"{len(result.changed)} keys changed")
+            >>> result = inspector.compare("local", "production")
+            >>> if result.has_changes:
+            ...     print(f"{len(result.changed)} keys changed")
+        
     """
 
     source1: str
@@ -211,10 +214,10 @@ class ConfigComparisonResult:
 class KeyExplanation:
     """
     Explanation of how a configuration key got its effective value.
-
+    
     Shows the complete resolution chain through defaults, environment,
     and profile layers, indicating which layer provided the final value.
-
+    
     Attributes:
         key_path: Dot-separated key path (e.g., "site.baseurl").
         effective_value: The final resolved value for this key.
@@ -223,15 +226,16 @@ class KeyExplanation:
         is_default: Whether the value comes from _default layer.
         deprecated: Whether this key is deprecated.
         deprecation_message: Message explaining deprecation.
-
+    
     Example:
-        >>> explanation = inspector.explain_key("build.parallel")
-        >>> print(explanation.format())
+            >>> explanation = inspector.explain_key("build.parallel")
+            >>> print(explanation.format())
         build.parallel: True
           Source: environments/production.yaml
           Resolution chain:
             ○ _default: False
             → environments/production: True
+        
     """
 
     key_path: str
@@ -274,11 +278,11 @@ class KeyExplanation:
 class ConfigInspector(DebugTool):
     """
     Advanced configuration inspector and diff tool.
-
+    
     Provides deep comparison between configuration sources (environments,
     profiles), explains how values are resolved through the layer system,
     and identifies potential configuration issues.
-
+    
     Capabilities:
         - Deep comparison between any config sources
         - Origin tracking for each value
@@ -287,18 +291,19 @@ class ConfigInspector(DebugTool):
         - Default value detection
         - Deprecation warnings
         - Issue detection (missing protocols, trailing slashes)
-
+    
     Creation:
         Instantiate with a Site instance:
             inspector = ConfigInspector(site)
-
+    
     Example:
-        >>> inspector = ConfigInspector(site)
-        >>> diff = inspector.compare("local", "production")
-        >>> print(diff.format_detailed())
-        >>>
-        >>> explanation = inspector.explain_key("site.baseurl")
-        >>> print(explanation.format())
+            >>> inspector = ConfigInspector(site)
+            >>> diff = inspector.compare("local", "production")
+            >>> print(diff.format_detailed())
+            >>>
+            >>> explanation = inspector.explain_key("site.baseurl")
+            >>> print(explanation.format())
+        
     """
 
     name: str = "config"

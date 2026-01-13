@@ -9,17 +9,18 @@ Public API:
     get_directive_base_css(): Returns bundled base CSS as a string
 
 Architecture:
-    Base CSS is auto-included BEFORE theme CSS in all builds.
-    Same specificity rules apply, so theme CSS can override any rule.
+Base CSS is auto-included BEFORE theme CSS in all builds.
+Same specificity rules apply, so theme CSS can override any rule.
 
 Token Contract (soft convention):
-    Base CSS uses semantic tokens with fallbacks:
-        --color-primary: Primary brand color
-        --color-accent: Secondary accent color
+Base CSS uses semantic tokens with fallbacks:
+    --color-primary: Primary brand color
+    --color-accent: Secondary accent color
 
 See Also:
-    plan/rfc-directive-base-css.md: RFC describing this design
-    bengal/assets/css/directives/: Individual directive CSS files
+plan/rfc-directive-base-css.md: RFC describing this design
+bengal/assets/css/directives/: Individual directive CSS files
+
 """
 
 from __future__ import annotations
@@ -32,16 +33,17 @@ from pathlib import Path
 def get_directive_base_css() -> str:
     """
     Return bundled directive base CSS as a single string.
-
+    
     Reads and bundles all CSS files from the directives/ subdirectory,
     resolving @import statements. The result is cached for performance.
-
+    
     Returns:
         Bundled CSS content (~200 lines, < 2KB)
-
+    
     Example:
-        >>> css = get_directive_base_css()
-        >>> print(len(css))  # ~2000 characters
+            >>> css = get_directive_base_css()
+            >>> print(len(css))  # ~2000 characters
+        
     """
     directives_dir = Path(__file__).parent / "directives"
     index_file = directives_dir / "_index.css"
@@ -56,12 +58,13 @@ def get_directive_base_css() -> str:
 def _bundle_css(css_file: Path) -> str:
     """
     Bundle CSS by resolving @import statements recursively.
-
+    
     Args:
         css_file: Path to CSS file to bundle
-
+    
     Returns:
         Bundled CSS content with all imports inlined
+        
     """
     import re
 
@@ -91,8 +94,9 @@ def _bundle_css(css_file: Path) -> str:
 def get_directive_base_css_path() -> Path:
     """
     Return the path to the directive base CSS directory.
-
+    
     Returns:
         Path to bengal/assets/css/directives/
+        
     """
     return Path(__file__).parent / "directives"

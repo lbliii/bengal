@@ -98,12 +98,13 @@ def generate_random_title() -> str:
 def create_minimal_site(num_files: int) -> Path:
     """
     Create a minimal test site matching CSS-Tricks methodology.
-
+    
     Args:
         num_files: Number of markdown files to generate
-
+    
     Returns:
         Path to temporary site directory
+        
     """
     temp_dir = Path(tempfile.mkdtemp())
 
@@ -160,13 +161,14 @@ generate_rss = false
 def benchmark_build(num_files: int, runs: int = 3) -> dict:
     """
     Benchmark Bengal build time for a given number of files.
-
+    
     Args:
         num_files: Number of files to build
         runs: Number of runs to average
-
+    
     Returns:
         Dictionary with timing information
+        
     """
     print(f"\n{'=' * 60}")
     print(f"Benchmarking {num_files:,} files")

@@ -18,16 +18,17 @@ if TYPE_CHECKING:
 class SiteContext:
     """
     Smart wrapper for Site object with ergonomic access patterns.
-
+    
     Provides clean access to site configuration with sensible defaults.
     All properties return safe values (never None for strings).
-
+    
     Example:
         {{ site.title }}             # Site title
         {{ site.logo }}              # Logo URL ('' if not set)
         {{ site.baseurl }}           # Base URL ('' if not set)
         {{ site.author }}            # Default author
         {{ site.params.repo_url }}   # Custom params
+        
     """
 
     __slots__ = ("_site", "_params_cache")
@@ -128,18 +129,19 @@ class SiteContext:
 class ThemeContext:
     """
     Smart wrapper for Theme configuration with ergonomic access.
-
+    
     Provides clean access to theme settings:
     - Direct properties: name, appearance, palette, features
     - Custom config via get() or dot notation
     - Feature checking via has()
-
+    
     Example:
         {{ theme.name }}                    # Theme name
         {{ theme.appearance }}              # 'light', 'dark', or 'system'
         {{ theme.hero_style }}              # Custom config value
         {% if theme.has('navigation.toc') %}
         {% if 'feature' in theme.features %}
+        
     """
 
     __slots__ = ("_theme", "_config_cache")
@@ -199,6 +201,31 @@ class ThemeContext:
             return []
         return self._theme.features or []
 
+    # Header configuration properties for ergonomic template access
+    @property
+    def header_nav_position(self) -> str:
+        """Header navigation position ('left' or 'center')."""
+        if self._theme is None or self._theme.config is None:
+            return "left"
+        header = self._theme.config.get("header", {})
+        return header.get("nav_position", "left") if isinstance(header, dict) else "left"
+
+    @property
+    def header_sticky(self) -> bool:
+        """Whether header is sticky (fixed at top on scroll)."""
+        if self._theme is None or self._theme.config is None:
+            return True
+        header = self._theme.config.get("header", {})
+        return header.get("sticky", True) if isinstance(header, dict) else True
+
+    @property
+    def header_autohide(self) -> bool:
+        """Whether header auto-hides on scroll down."""
+        if self._theme is None or self._theme.config is None:
+            return False
+        header = self._theme.config.get("header", {})
+        return header.get("autohide", False) if isinstance(header, dict) else False
+
     @property
     def config(self) -> ParamsContext:
         """Theme config as ParamsContext for safe nested access (cached)."""
@@ -241,14 +268,15 @@ class ThemeContext:
 class ConfigContext:
     """
     Smart wrapper for site configuration with safe access.
-
+    
     Allows both dot notation and get() access to config values.
     Never raises KeyError or returns None for string values.
-
+    
     Example:
         {{ config.title }}
         {{ config.get('baseurl', '/') }}
         {{ config.params.repo_url }}
+        
     """
 
     __slots__ = ("_config", "_nested_cache")

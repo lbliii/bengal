@@ -61,13 +61,14 @@ def page_titles():
 class PageLifecycleWorkflow(RuleBasedStateMachine):
     """
     Simulates realistic page management workflows.
-
+    
     Hypothesis will generate sequences like:
     - create foo → build → create bar → build → delete foo → build
     - create 3 pages → build → modify all → incremental → delete 1 → build
-
+    
     This test verifies that Bengal maintains consistency across
     all possible sequences of create/modify/delete/build operations.
+        
     """
 
     def __init__(self):
@@ -318,14 +319,15 @@ TestPageLifecycleWorkflow = pytest.mark.slow(pytest.mark.hypothesis(PageLifecycl
 class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
     """
     Critical test: Incremental builds must produce identical output to full builds.
-
+    
     This is THE most important property for an SSG. Users expect:
     - `bengal build` (full)
     - modify one file
     - `bengal build` (incremental)
     - → result should be identical to full rebuild
-
+    
     Hypothesis will generate many sequences to test this property.
+        
     """
 
     def __init__(self):

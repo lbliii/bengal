@@ -6,22 +6,22 @@ content type strategies must implement. Strategies encapsulate type-specific
 behavior for sorting, filtering, pagination, and template selection.
 
 Architecture:
-    ContentTypeStrategy follows the Strategy Pattern, allowing different content
-    types (blog, docs, tutorial, etc.) to define their own behavior while
-    maintaining a consistent interface. Strategies are stateless and can be
-    shared across sections.
+ContentTypeStrategy follows the Strategy Pattern, allowing different content
+types (blog, docs, tutorial, etc.) to define their own behavior while
+maintaining a consistent interface. Strategies are stateless and can be
+shared across sections.
 
 Class Attributes:
-    - default_template: Fallback template when no specific template is found
-    - allows_pagination: Whether this content type supports pagination
+- default_template: Fallback template when no specific template is found
+- allows_pagination: Whether this content type supports pagination
 
 Extension Points:
-    Subclasses should override:
-    - sort_pages(): Define custom sort order
-    - filter_display_pages(): Control which pages appear in lists
-    - should_paginate(): Custom pagination logic
-    - get_template(): Template resolution strategy
-    - detect_from_section(): Auto-detection heuristics
+Subclasses should override:
+- sort_pages(): Define custom sort order
+- filter_display_pages(): Control which pages appear in lists
+- should_paginate(): Custom pagination logic
+- get_template(): Template resolution strategy
+- detect_from_section(): Auto-detection heuristics
 
 Example:
     >>> class BlogStrategy(ContentTypeStrategy):
@@ -32,8 +32,9 @@ Example:
     ...         return sorted(pages, key=lambda p: p.date, reverse=True)
 
 Related:
-    - bengal/content_types/strategies.py: Concrete strategy implementations
-    - bengal/content_types/registry.py: Strategy registration and lookup
+- bengal/content_types/strategies.py: Concrete strategy implementations
+- bengal/content_types/registry.py: Strategy registration and lookup
+
 """
 
 from __future__ import annotations
@@ -52,40 +53,41 @@ logger = get_logger(__name__)
 class ContentTypeStrategy:
     """
     Base strategy for content type behavior.
-
+    
     ContentTypeStrategy defines the interface for content type-specific behavior.
     Each content type (blog, doc, tutorial, changelog, etc.) can have its own
     strategy that customizes:
-
+    
     - **Sorting**: How pages are ordered in list views (e.g., by date, weight)
     - **Filtering**: Which pages appear in section listings
     - **Pagination**: Whether and how pagination is applied
     - **Template Selection**: Which templates are used for list/single views
-
+    
     Subclasses should override methods to provide custom behavior. The base
     implementation provides sensible defaults that work for generic content.
-
+    
     Class Attributes:
         default_template: Fallback template path when no specific template
             is found. Subclasses should override this.
         allows_pagination: Whether this content type supports pagination.
             Set to True for content types with many items (e.g., blog).
-
+    
     Example:
-        >>> class NewsStrategy(ContentTypeStrategy):
-        ...     default_template = "news/list.html"
-        ...     allows_pagination = True
-        ...
-        ...     def sort_pages(self, pages):
-        ...         # Sort by date, newest first
-        ...         return sorted(pages, key=lambda p: p.date, reverse=True)
-        ...
-        ...     def detect_from_section(self, section):
-        ...         return section.name.lower() in ("news", "announcements")
-
+            >>> class NewsStrategy(ContentTypeStrategy):
+            ...     default_template = "news/list.html"
+            ...     allows_pagination = True
+            ...
+            ...     def sort_pages(self, pages):
+            ...         # Sort by date, newest first
+            ...         return sorted(pages, key=lambda p: p.date, reverse=True)
+            ...
+            ...     def detect_from_section(self, section):
+            ...         return section.name.lower() in ("news", "announcements")
+    
     See Also:
         - BlogStrategy: Example of chronological content strategy
         - DocsStrategy: Example of weight-based content strategy
+        
     """
 
     # Class-level defaults

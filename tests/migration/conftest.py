@@ -64,11 +64,12 @@ def golden_file_path(request: pytest.FixtureRequest) -> Path:
 
 class _HtmlNormalizer(html.parser.HTMLParser):
     """HTML parser that normalizes whitespace and attribute order.
-
+    
     Used to compare HTML output while ignoring:
     - Whitespace differences (leading/trailing/multiple spaces)
     - Attribute order differences
     - Self-closing tag variations (</br> vs <br /> vs <br>)
+        
     """
 
     def __init__(self) -> None:
@@ -148,23 +149,24 @@ class _HtmlNormalizer(html.parser.HTMLParser):
 
 def normalize_html(html_content: str) -> str:
     """Normalize HTML for comparison.
-
+    
     Normalizes:
     - Whitespace (leading/trailing, multiple spaces collapsed)
     - Attribute order (sorted alphabetically)
     - Self-closing tags (standardized to <tag />)
     - Blank lines removed
-
+    
     Preserves:
     - Whitespace inside pre/code blocks
     - HTML entities
     - Semantic structure
-
+    
     Args:
         html_content: Raw HTML string
-
+    
     Returns:
         Normalized HTML string for comparison
+        
     """
     if not html_content:
         return ""
@@ -199,9 +201,10 @@ def normalize_html(html_content: str) -> str:
 @pytest.fixture
 def render_with_mistune() -> Callable[[str], str]:
     """Create a function to render markdown using the mistune backend.
-
+    
     Returns:
         Function that takes markdown source and returns HTML
+        
     """
     from bengal.rendering.parsers.mistune import MistuneParser
 
@@ -216,9 +219,10 @@ def render_with_mistune() -> Callable[[str], str]:
 @pytest.fixture
 def render_with_patitas() -> Callable[[str], str]:
     """Create a function to render markdown using the Patitas backend.
-
+    
     Returns:
         Function that takes markdown source and returns HTML
+        
     """
     from bengal.rendering.parsers.patitas import create_markdown
     from bengal.rendering.parsers.patitas.directives.registry import create_default_registry
@@ -256,9 +260,10 @@ def render_with_patitas() -> Callable[[str], str]:
 @pytest.fixture
 def assert_html_equal() -> Callable[[str, str, str], None]:
     """Create assertion function for HTML equality.
-
+    
     Returns:
         Function that asserts two HTML strings are semantically equal
+        
     """
 
     def _assert(actual: str, expected: str, context: str = "") -> None:
@@ -284,9 +289,10 @@ def compare_backends(
     assert_html_equal: Callable[[str, str, str], None],
 ) -> Callable[[str, str], None]:
     """Create function to compare output from both backends.
-
+    
     Returns:
         Function that takes test name and source, compares backends
+        
     """
 
     def _compare(name: str, source: str) -> None:
@@ -305,9 +311,10 @@ def compare_backends(
 @pytest.fixture
 def save_golden_file() -> Callable[[Path, str], None]:
     """Create function to save golden file.
-
+    
     Returns:
         Function that saves HTML content to golden file path
+        
     """
 
     def _save(path: Path, html_content: str) -> None:
@@ -320,9 +327,10 @@ def save_golden_file() -> Callable[[Path, str], None]:
 @pytest.fixture
 def load_golden_file() -> Callable[[Path], str | None]:
     """Create function to load golden file.
-
+    
     Returns:
         Function that loads HTML from golden file path, or None if not found
+        
     """
 
     def _load(path: Path) -> str | None:

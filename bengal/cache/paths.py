@@ -6,52 +6,53 @@ a centralized location for cache files, indexes, logs, and runtime state.
 Use BengalPaths instead of hardcoding `.bengal` strings throughout the codebase.
 
 Constants:
-    STATE_DIR_NAME: The state directory name (".bengal")
+STATE_DIR_NAME: The state directory name (".bengal")
 
 Classes:
-    BengalPaths: Accessor for all state directory paths
+BengalPaths: Accessor for all state directory paths
 
 Directory Structure:
-    .bengal/
-    ├── cache.json.zst       # Main build cache (compressed)
-    ├── page_metadata.json.zst # Page discovery cache (compressed)
-    ├── asset_deps.json.zst  # Asset dependency map (compressed)
-    ├── taxonomy_index.json.zst # Taxonomy index (compressed)
-    ├── build_history.json   # Build history for delta analysis
-    ├── server.pid           # Dev server PID
-    ├── asset-manifest.json  # Asset manifest
-    ├── indexes/             # Query indexes (section, author, etc.)
-    ├── templates/           # Template bytecode cache
-    ├── content_cache/       # Remote content cache
-    ├── logs/                # Build/serve logs
-    ├── metrics/             # Performance metrics
-    ├── profiles/            # Profiling output
-    ├── themes/              # Theme state (swizzle registry)
-    │   └── sources.json
-    ├── js_bundle/           # JS bundle temporary files
-    ├── pipeline_out/        # Asset pipeline temporary output
-    └── generated/           # Generated content (auto-pages, etc.)
+.bengal/
+├── cache.json.zst       # Main build cache (compressed)
+├── page_metadata.json.zst # Page discovery cache (compressed)
+├── asset_deps.json.zst  # Asset dependency map (compressed)
+├── taxonomy_index.json.zst # Taxonomy index (compressed)
+├── build_history.json   # Build history for delta analysis
+├── server.pid           # Dev server PID
+├── asset-manifest.json  # Asset manifest
+├── indexes/             # Query indexes (section, author, etc.)
+├── templates/           # Template bytecode cache
+├── content_cache/       # Remote content cache
+├── logs/                # Build/serve logs
+├── metrics/             # Performance metrics
+├── profiles/            # Profiling output
+├── themes/              # Theme state (swizzle registry)
+│   └── sources.json
+├── js_bundle/           # JS bundle temporary files
+├── pipeline_out/        # Asset pipeline temporary output
+└── generated/           # Generated content (auto-pages, etc.)
 
 Usage:
-    from bengal.cache.paths import BengalPaths, STATE_DIR_NAME
+from bengal.cache.paths import BengalPaths, STATE_DIR_NAME
 
-    # Create paths accessor
+# Create paths accessor
     paths = BengalPaths(site.root_path)
 
-    # Access specific paths
+# Access specific paths
     cache_path = paths.build_cache      # .bengal/cache.json
     logs_dir = paths.logs_dir           # .bengal/logs/
 
-    # Create all directories
-    paths.ensure_dirs()
+# Create all directories
+paths.ensure_dirs()
 
-    # Or access via Site
+# Or access via Site
     cache_path = site.paths.build_cache
 
 Related:
-    - bengal.cache.build_cache: Uses paths.build_cache
-    - bengal.rendering.template_engine: Uses paths.templates_dir
-    - bengal.core.site: Site.paths property returns BengalPaths
+- bengal.cache.build_cache: Uses paths.build_cache
+- bengal.rendering.template_engine: Uses paths.templates_dir
+- bengal.core.site: Site.paths property returns BengalPaths
+
 """
 
 from __future__ import annotations
@@ -65,21 +66,22 @@ STATE_DIR_NAME = ".bengal"
 class BengalPaths:
     """
     Accessor for all .bengal directory paths.
-
+    
     Provides a unified interface for accessing all paths within the
     Bengal state directory. Use this class instead of hardcoding
     ".bengal" strings throughout the codebase.
-
+    
     Attributes:
         root: Project root path
         state_dir: Path to .bengal directory
-
+    
     Example:
-        >>> paths = BengalPaths(Path("/my/site"))
-        >>> paths.build_cache
+            >>> paths = BengalPaths(Path("/my/site"))
+            >>> paths.build_cache
         PosixPath('/my/site/.bengal/cache.json')
-        >>> paths.logs_dir
+            >>> paths.logs_dir
         PosixPath('/my/site/.bengal/logs')
+        
     """
 
     def __init__(self, root: Path) -> None:
@@ -259,16 +261,17 @@ class BengalPaths:
 def migrate_template_cache(paths: BengalPaths, output_dir: Path) -> bool:
     """
     Migrate template cache from old location to new location.
-
+    
     Old location: output_dir/.bengal-cache/templates/
     New location: .bengal/templates/
-
+    
     Args:
         paths: BengalPaths instance for the site
         output_dir: Output directory (e.g., public/)
-
+    
     Returns:
         True if migration was performed, False if not needed
+        
     """
     import shutil
 

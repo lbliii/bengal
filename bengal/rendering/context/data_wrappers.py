@@ -13,19 +13,20 @@ from typing import Any
 class SmartDict:
     """
     A dict wrapper that allows safe dot-notation access.
-
+    
     Returns empty string for missing string keys, empty list for missing
     list keys, and empty dict for missing dict keys. Enables template
     developers to write clean code without defensive checks.
-
+    
     Example:
-        >>> d = SmartDict({'name': 'Bengal'})
-        >>> d.name
-        'Bengal'
-        >>> d.missing_key
-        ''
-        >>> d.get('missing', 'default')
-        'default'
+            >>> d = SmartDict({'name': 'Bengal'})
+            >>> d.name
+            'Bengal'
+            >>> d.missing_key
+            ''
+            >>> d.get('missing', 'default')
+            'default'
+        
     """
 
     def __init__(self, data: dict[str, Any] | None = None):
@@ -65,23 +66,24 @@ class SmartDict:
 class ParamsContext:
     """
     Smart wrapper for page metadata/frontmatter with recursive nesting support.
-
+    
     Provides clean access to page params without .get() everywhere.
     Nested dicts are recursively wrapped for safe chained access.
-
+    
     Example:
         {{ params.author }}
         {{ params.description }}
         {{ params.social.twitter.handle }}  # Deep access is safe
         {{ params.get('custom_field', 'default') }}
-
+    
         {% for key, value in params.items() %}
-
+    
     Performance:
         Nested dictionaries are wrapped lazily and cached on first access.
         This prevents repeatedly creating new ParamsContext objects for the same
         nested data, which is especially important for deeply nested structures
         or when accessed in template loops.
+        
     """
 
     __slots__ = ("_data", "_cache")
@@ -161,36 +163,37 @@ class ParamsContext:
 class CascadingParamsContext:
     """
     Params with inheritance: page → section → site.
-
+    
     Access {{ params.author }} and get the most specific value defined.
     Implements Eleventy-style data cascade for template variables.
-
+    
     Cascade order (most to least specific):
         1. Page frontmatter
         2. Section _index.md frontmatter
         3. Site bengal.toml [params]
-
+    
     Example:
         # bengal.toml
         # [params]
         # company = "Acme Corp"
-
+    
         # blog/_index.md
         # ---
         # params:
         #   author: Blog Team
         # ---
-
+    
         # blog/post.md
         # ---
         # author: Jane Doe
         # ---
-
+    
         {{ params.author }}   → "Jane Doe" (page)
         {{ params.company }}  → "Acme Corp" (cascaded from site)
-
+    
     Performance:
         Nested dictionaries are wrapped lazily and cached on first access.
+        
     """
 
     __slots__ = ("_page", "_section", "_site", "_cache")

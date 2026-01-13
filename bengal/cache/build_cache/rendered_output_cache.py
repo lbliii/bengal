@@ -5,14 +5,15 @@ Provides methods for caching fully rendered HTML output to skip both markdown
 parsing AND template rendering. Optimization #3 from the cache RFC.
 
 Key Concepts:
-    - Caches final HTML (post-template, ready to write)
-    - Validates against content, metadata, template, and dependencies
-    - Expected 20-40% faster incremental builds
+- Caches final HTML (post-template, ready to write)
+- Validates against content, metadata, template, and dependencies
+- Expected 20-40% faster incremental builds
 
 Related Modules:
-    - bengal.cache.build_cache.core: Main BuildCache class
-    - bengal.rendering.renderer: Page rendering
-    - plan/active/rfc-orchestrator-performance.md: Performance RFC
+- bengal.cache.build_cache.core: Main BuildCache class
+- bengal.rendering.renderer: Page rendering
+- plan/active/rfc-orchestrator-performance.md: Performance RFC
+
 """
 
 from __future__ import annotations
@@ -32,10 +33,11 @@ if TYPE_CHECKING:
 class RenderedOutputCacheMixin:
     """
     Mixin providing rendered output caching (Optimization #3).
-
+    
     Requires these attributes on the host class:
         - rendered_output: dict[str, dict[str, Any]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

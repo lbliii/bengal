@@ -5,8 +5,9 @@ Provides cached page list properties (regular_pages, generated_pages, listable_p
 with automatic invalidation when pages change.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.core.page: Page model
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.core.page: Page model
+
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 class PageCachesMixin:
     """
     Mixin providing cached page list properties.
-
+    
     Requires these attributes on the host class:
         - pages: list[Page]
         - _regular_pages_cache: list[Page] | None
@@ -29,6 +30,7 @@ class PageCachesMixin:
         - _listable_pages_cache: list[Page] | None
         - _page_path_map: dict[str, Page] | None
         - _page_path_map_version: int
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

@@ -8,25 +8,26 @@ Usage:
     '<p>Visit <a href="https://example.com">https://example.com</a> for more info.</p>'
 
 Syntax:
-    URLs are automatically linked:
-    - http://example.com
-    - https://example.com
-    - www.example.com
+URLs are automatically linked:
+- http://example.com
+- https://example.com
+- www.example.com
 
-    Emails are automatically linked:
-    - user@example.com
+Emails are automatically linked:
+- user@example.com
 
-    Explicit autolinks (CommonMark):
-    - <https://example.com>
-    - <user@example.com>
+Explicit autolinks (CommonMark):
+- <https://example.com>
+- <user@example.com>
 
 Notes:
-    - URLs in code spans are not autolinked
-    - URLs in explicit links are not double-linked
-    - Trailing punctuation is handled smartly
+- URLs in code spans are not autolinked
+- URLs in explicit links are not double-linked
+- Trailing punctuation is handled smartly
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -44,9 +45,10 @@ if TYPE_CHECKING:
 @register_plugin("autolinks")
 class AutolinksPlugin:
     """Plugin for automatic URL and email linking.
-
+    
     Extends inline parsing to detect URLs and emails without
     explicit markdown link syntax.
+        
     """
 
     @property

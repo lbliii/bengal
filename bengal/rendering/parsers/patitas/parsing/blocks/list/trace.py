@@ -41,10 +41,11 @@ def is_trace_enabled() -> bool:
 
 def trace(event: str, **kwargs: Any) -> None:
     """Log a trace event if tracing is enabled.
-
+    
     Args:
         event: Event name (e.g., "parse_list", "handle_blank_line")
         **kwargs: Key-value pairs to include in trace output
+        
     """
     if not _ENABLED:
         return
@@ -63,11 +64,12 @@ def trace(event: str, **kwargs: Any) -> None:
 
 class trace_scope:
     """Context manager for indented trace scopes.
-
+    
     Usage:
         with trace_scope("parse_list_item", marker="1."):
             # traces within here will be indented
             trace("found_content", line="foo")
+        
     """
 
     def __init__(self, event: str, **kwargs: Any):
@@ -93,12 +95,13 @@ def trace_decision(
     **context: Any,
 ) -> None:
     """Trace a decision point with its inputs and outcome.
-
+    
     Args:
         event: Decision event name
         condition: The condition being evaluated (as string)
         result: The boolean result
         **context: Additional context values
+        
     """
     if not _ENABLED:
         return

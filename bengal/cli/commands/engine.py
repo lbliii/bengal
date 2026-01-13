@@ -38,12 +38,13 @@ def engine() -> None:
 def list_engines(verbose: bool) -> None:
     """
     📋 List available template engines.
-
+    
     Shows all built-in engines and any registered third-party engines.
-
+    
     Examples:
         bengal engine list
         bengal engine list --verbose
+        
     """
     cli = get_cli_output()
     from bengal.rendering.engines import _ENGINES
@@ -130,12 +131,13 @@ def list_engines(verbose: bool) -> None:
 def info(source: str, config: str | None) -> None:
     """
     Show current template engine configuration.
-
+    
     Displays the active template engine and its configuration for a site.
-
+    
     Examples:
         bengal engine info
         bengal engine info --source /path/to/site
+        
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)

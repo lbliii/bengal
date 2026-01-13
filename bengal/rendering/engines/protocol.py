@@ -6,51 +6,52 @@ The protocols ensure consistent behavior across Jinja2, Kida, and any custom
 or third-party engines.
 
 Protocols:
-    - TemplateEnvironment: Interface for environment objects (globals, filters, tests)
-    - TemplateEngineProtocol: Full engine interface for rendering templates
+- TemplateEnvironment: Interface for environment objects (globals, filters, tests)
+- TemplateEngineProtocol: Full engine interface for rendering templates
 
 Design Philosophy:
-    - **No optional methods**: Every method is required for predictable behavior
-    - **Runtime checkable**: Can verify implementations at runtime
-    - **Clear contracts**: Each method documents preconditions and guarantees
-    - **Error consistency**: Standardized exception types across engines
+- **No optional methods**: Every method is required for predictable behavior
+- **Runtime checkable**: Can verify implementations at runtime
+- **Clear contracts**: Each method documents preconditions and guarantees
+- **Error consistency**: Standardized exception types across engines
 
 Required Attributes (TemplateEngineProtocol):
-    - site: Site instance for accessing config and content
-    - template_dirs: Ordered search paths for template resolution
+- site: Site instance for accessing config and content
+- template_dirs: Ordered search paths for template resolution
 
 Required Methods (TemplateEngineProtocol):
-    - render_template(): Render named template file
-    - render_string(): Render inline template string
-    - template_exists(): Check template availability
-    - get_template_path(): Resolve template to filesystem path
-    - list_templates(): Enumerate available templates
-    - validate(): Syntax-check all templates
+- render_template(): Render named template file
+- render_string(): Render inline template string
+- template_exists(): Check template availability
+- get_template_path(): Resolve template to filesystem path
+- list_templates(): Enumerate available templates
+- validate(): Syntax-check all templates
 
 Implementing Custom Engines:
-    To create a custom engine, implement all protocol methods:
+To create a custom engine, implement all protocol methods:
 
-    .. code-block:: python
+.. code-block:: python
 
-        class MyEngine:
-            def __init__(self, site: Site):
-                self.site = site
-                self.template_dirs = [site.root_path / "templates"]
+    class MyEngine:
+        def __init__(self, site: Site):
+            self.site = site
+            self.template_dirs = [site.root_path / "templates"]
 
-            def render_template(self, name: str, context: dict) -> str:
-                # Implementation...
+        def render_template(self, name: str, context: dict) -> str:
+            # Implementation...
 
-            # ... implement all other methods ...
+        # ... implement all other methods ...
 
-    Then register it:
+Then register it:
 
     >>> from bengal.rendering.engines import register_engine
     >>> register_engine("myengine", MyEngine)
 
 Related Modules:
-    - bengal.rendering.engines: Engine factory and registration
-    - bengal.rendering.engines.jinja: Reference Jinja2 implementation
-    - bengal.rendering.engines.errors: Exception types
+- bengal.rendering.engines: Engine factory and registration
+- bengal.rendering.engines.jinja: Reference Jinja2 implementation
+- bengal.rendering.engines.errors: Exception types
+
 """
 
 from __future__ import annotations
@@ -69,28 +70,29 @@ if TYPE_CHECKING:
 class TemplateEnvironment(Protocol):
     """
     Protocol for template environment objects.
-
+    
     Template environments provide the runtime context for template rendering,
     including global variables, filters, and tests. Both Jinja2's Environment
     and Kida's Environment implement this interface.
-
+    
     This protocol defines the minimal interface needed for registering
     template functions. Environments may provide additional features
     beyond this protocol.
-
+    
     Attributes:
         globals: Dict-like mapping of global variables available in all templates
         filters: Dict-like mapping of filter functions (value transformers)
         tests: Dict-like mapping of test functions (boolean predicates)
-
+    
     Example:
-        >>> def register(env: TemplateEnvironment, site: Site) -> None:
-        ...     env.globals["my_func"] = my_function
-        ...     env.filters["my_filter"] = my_filter
-
+            >>> def register(env: TemplateEnvironment, site: Site) -> None:
+            ...     env.globals["my_func"] = my_function
+            ...     env.filters["my_filter"] = my_filter
+    
     Implementations:
         - jinja2.Environment: Jinja2's native environment
         - kida.Environment: Kida template engine
+        
     """
 
     globals: MutableMapping[str, Any]
@@ -101,24 +103,25 @@ class TemplateEnvironment(Protocol):
 class EngineCapability(Flag):
     """
     Capabilities that template engines may support.
-
+    
     Using Flag enum allows:
     - Composable capabilities (BLOCK_CACHING | INTROSPECTION)
     - Single property on engine (vs multiple can_* methods)
     - Easy extensibility (add new capabilities without API change)
     - Type-safe capability checks
-
+    
     Alternative considered: Individual `can_cache_blocks()`, `can_introspect()`
     methods. Rejected because:
     - Requires protocol changes for each new capability
     - More verbose engine implementations
     - Harder to query "what can this engine do?"
-
+    
     Example:
-        >>> if engine.has_capability(EngineCapability.BLOCK_CACHING):
-        ...     enable_block_cache()
-        >>> if EngineCapability.INTROSPECTION in engine.capabilities:
-        ...     analyze_template_structure()
+            >>> if engine.has_capability(EngineCapability.BLOCK_CACHING):
+            ...     enable_block_cache()
+            >>> if EngineCapability.INTROSPECTION in engine.capabilities:
+            ...     analyze_template_structure()
+        
     """
 
     NONE = 0
@@ -133,11 +136,11 @@ class EngineCapability(Flag):
 class TemplateEngineProtocol(Protocol):
     """
     Standardized interface for all Bengal template engines.
-
+    
     REQUIRED ATTRIBUTES:
         site: Site instance (injected at construction)
         template_dirs: Ordered list of template search directories
-
+    
     REQUIRED METHODS:
         render_template(): Render a named template
         render_string(): Render an inline template string
@@ -145,11 +148,12 @@ class TemplateEngineProtocol(Protocol):
         get_template_path(): Resolve template to filesystem path
         list_templates(): List all available templates
         validate(): Validate all templates for syntax errors
-
+    
     ALL methods are required. No optional methods. This ensures:
         - Consistent behavior across engines
         - Easy testing and mocking
         - Clear contract for third-party engines
+        
     """
 
     # --- Required Attributes ---

@@ -35,25 +35,26 @@ def atomic_write_text(
 ) -> None:
     """
     Write text to a file atomically.
-
+    
     Uses write-to-temp-then-rename to ensure the file is never partially written.
     If the process crashes during write, the original file (if any) remains intact.
-
+    
     The rename operation is atomic on POSIX systems (Linux, macOS), meaning it
     either completely succeeds or completely fails - there's no partial state.
-
+    
     Args:
         path: Destination file path
         content: Text content to write
         encoding: Text encoding (default: utf-8)
         mode: File permissions (default: None, keeps system default)
-
+    
     Raises:
         OSError: If write or rename fails
-
+    
     Example:
-        >>> atomic_write_text('output.html', '<html>...</html>')
-        >>> atomic_write_text('data.json', json.dumps(data), encoding='utf-8')
+            >>> atomic_write_text('output.html', '<html>...</html>')
+            >>> atomic_write_text('data.json', json.dumps(data), encoding='utf-8')
+        
     """
     path = Path(path)
 
@@ -91,17 +92,18 @@ def atomic_write_text(
 def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None) -> None:
     """
     Write binary data to a file atomically.
-
+    
     Args:
         path: Destination file path
         content: Binary content to write
         mode: File permissions (default: None, keeps system default)
-
+    
     Raises:
         OSError: If write or rename fails
-
+    
     Example:
-        >>> atomic_write_bytes('image.png', image_data)
+            >>> atomic_write_bytes('image.png', image_data)
+        
     """
     path = Path(path)
     # Ensure parent directory exists (defensive; callers may choose to skip this for hot paths)
@@ -129,21 +131,22 @@ def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None
 class AtomicFile:
     """
     Context manager for atomic file writing.
-
+    
     Useful when you need to write incrementally or use file handle directly
     (e.g., with json.dump(), ElementTree.write(), etc.).
-
+    
     The file is written to a temporary location, then atomically renamed
     on successful completion. If an exception occurs, the temp file is
     cleaned up and the original file remains unchanged.
-
+    
     Example:
-        >>> with AtomicFile('output.json', 'w') as f:
-        ...     json.dump(data, f)
+            >>> with AtomicFile('output.json', 'w') as f:
+            ...     json.dump(data, f)
         # File is atomically renamed on successful __exit__
-
-        >>> with AtomicFile('sitemap.xml', 'wb') as f:
-        ...     tree.write(f, encoding='utf-8')
+    
+            >>> with AtomicFile('sitemap.xml', 'wb') as f:
+            ...     tree.write(f, encoding='utf-8')
+        
     """
 
     def __init__(

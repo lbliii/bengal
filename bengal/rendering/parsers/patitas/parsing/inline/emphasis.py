@@ -4,8 +4,9 @@ Implements CommonMark delimiter stack algorithm for emphasis/strong.
 See: https://spec.commonmark.org/0.31.2/#emphasis-and-strong-emphasis
 
 Thread Safety:
-    All methods are stateless or use instance-local state only.
-    Safe for concurrent use when each parser instance is used by one thread.
+All methods are stateless or use instance-local state only.
+Safe for concurrent use when each parser instance is used by one thread.
+
 """
 
 from __future__ import annotations
@@ -30,13 +31,14 @@ if TYPE_CHECKING:
 
 class EmphasisMixin:
     """Mixin for emphasis delimiter processing.
-
+    
     Implements CommonMark flanking rules and delimiter matching algorithm.
     Uses external MatchRegistry for match tracking (enables immutable tokens).
-
+    
     Required Host Attributes: None
-
+    
     Required Host Methods: None
+        
     """
 
     def _is_left_flanking(self, before: str, after: str, delim: str) -> bool:

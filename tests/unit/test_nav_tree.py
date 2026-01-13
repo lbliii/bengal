@@ -586,9 +586,10 @@ class TestNavTreeContext:
 
 class TestNavNodeProxy:
     """Test NavNodeProxy URL handling with baseurl.
-
+    
     Critical for GitHub Pages and subdirectory deployments.
     NavNodeProxy.href should apply baseurl, while _path should not.
+        
     """
 
     @pytest.fixture

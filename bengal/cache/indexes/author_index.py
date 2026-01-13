@@ -5,52 +5,53 @@ This module provides AuthorIndex, a QueryIndex implementation that indexes pages
 by their author(s). Supports both single author and multi-author scenarios.
 
 Frontmatter Formats:
-    Single author (string):
-        author: "Jane Smith"
+Single author (string):
+    author: "Jane Smith"
 
-    Single author (dict with details):
-        author:
-          name: "Jane Smith"
-          email: "jane@example.com"
-          bio: "Python enthusiast"
-          avatar: "/images/authors/jane.jpg"
-          url: "https://janesmith.dev"
-          social:
-            twitter: "janesmith"
-            github: "janesmith"
+Single author (dict with details):
+    author:
+      name: "Jane Smith"
+      email: "jane@example.com"
+      bio: "Python enthusiast"
+      avatar: "/images/authors/jane.jpg"
+      url: "https://janesmith.dev"
+      social:
+        twitter: "janesmith"
+        github: "janesmith"
 
-    Multiple authors:
-        authors:
-          - "Jane Smith"
-          - "Bob Jones"
+Multiple authors:
+    authors:
+      - "Jane Smith"
+      - "Bob Jones"
 
-    Multiple authors with details:
-        authors:
-          - name: "Jane Smith"
-            email: "jane@example.com"
-            avatar: "/images/authors/jane.jpg"
-          - name: "Bob Jones"
+Multiple authors with details:
+    authors:
+      - name: "Jane Smith"
+        email: "jane@example.com"
+        avatar: "/images/authors/jane.jpg"
+      - name: "Bob Jones"
 
 Template Usage:
-    {# Get all posts by an author #}
-    {% set posts = site.indexes.author.get('Jane Smith') %}
+{# Get all posts by an author #}
+{% set posts = site.indexes.author.get('Jane Smith') %}
 
-    {# List all authors with metadata #}
-    {% for author in site.indexes.author.keys() %}
-      {% set meta = site.indexes.author.get_metadata(author) %}
-      <div class="author">
-        {% if meta.avatar %}
-          <img src="{{ meta.avatar }}" alt="{{ author }}">
-        {% endif %}
-        <span>{{ author }}</span>
-        <small>{{ site.indexes.author.get(author)|length }} posts</small>
-      </div>
-    {% endfor %}
+{# List all authors with metadata #}
+{% for author in site.indexes.author.keys() %}
+  {% set meta = site.indexes.author.get_metadata(author) %}
+  <div class="author">
+    {% if meta.avatar %}
+      <img src="{{ meta.avatar }}" alt="{{ author }}">
+    {% endif %}
+    <span>{{ author }}</span>
+    <small>{{ site.indexes.author.get(author)|length }} posts</small>
+  </div>
+{% endfor %}
 
 Related:
-    - bengal.cache.query_index: Base QueryIndex class
-    - bengal.cache.indexes.category_index: Similar single-valued index
-    - bengal.core.author: Author dataclass for structured author data
+- bengal.cache.query_index: Base QueryIndex class
+- bengal.cache.indexes.category_index: Similar single-valued index
+- bengal.core.author: Author dataclass for structured author data
+
 """
 
 from __future__ import annotations
@@ -67,10 +68,10 @@ if TYPE_CHECKING:
 class AuthorIndex(QueryIndex):
     """
     Index pages by author.
-
+    
     Supports both string and dict author formats:
         author: "Jane Smith"
-
+    
         # Or with details:
         author:
           name: "Jane Smith"
@@ -80,16 +81,17 @@ class AuthorIndex(QueryIndex):
           social:
             twitter: "janesmith"
             github: "janesmith"
-
+    
     Provides O(1) lookup:
         site.indexes.author.get('Jane Smith')   # All posts by Jane
-
+    
     Multi-author support (multi-valued index):
         authors: ["Jane Smith", "Bob Jones"]    # Both authors get index entry
-
+    
     Rich metadata support:
         site.indexes.author.get_metadata('Jane Smith')
         # Returns: {email: "...", bio: "...", avatar: "...", url: "...", social: {...}}
+        
     """
 
     def __init__(self, cache_path: Path):

@@ -2,19 +2,20 @@
 Version-aware directives for documentation.
 
 Provides MyST-style directives for marking version-specific content:
-    :::{since} v2.0
-    This feature was added in version 2.0.
-    :::
+:::{since} v2.0
+This feature was added in version 2.0.
+:::
 
-    :::{deprecated} v3.0
-    Use new_function() instead.
-    :::
+:::{deprecated} v3.0
+Use new_function() instead.
+:::
 
 Architecture:
-    Enhanced to align with Bengal's default theme aesthetic:
-    - Luminescent left-edge glow animation
-    - Palette-aware colors via CSS custom properties
-    - Neumorphic badge styling
+Enhanced to align with Bengal's default theme aesthetic:
+- Luminescent left-edge glow animation
+- Palette-aware colors via CSS custom properties
+- Neumorphic badge styling
+
 """
 
 from __future__ import annotations
@@ -67,15 +68,16 @@ ICON_REFRESH_CW = (
 class SinceOptions(DirectiveOptions):
     """
     Options for since directive.
-
+    
     Attributes:
         css_class: CSS classes for styling
-
+    
     Example:
         :::{since} v2.0
         :class: version-badge
         This feature was added in version 2.0.
         :::
+        
     """
 
     css_class: str = "version-since"
@@ -86,19 +88,20 @@ class SinceOptions(DirectiveOptions):
 class SinceDirective(BengalDirective):
     """
     Directive for marking when a feature was introduced.
-
+    
     Renders as a badge with optional explanatory content.
-
+    
     Syntax:
         :::{since} v2.0
         :::
-
+    
         :::{since} v2.0
         This feature was added in version 2.0.
         :::
-
+    
     The version is provided as the title (after directive name).
     Optional content provides additional context.
+        
     """
 
     NAMES: ClassVar[list[str]] = ["since", "versionadded"]
@@ -178,15 +181,16 @@ class SinceDirective(BengalDirective):
 class DeprecatedOptions(DirectiveOptions):
     """
     Options for deprecated directive.
-
+    
     Attributes:
         css_class: CSS classes for styling
-
+    
     Example:
         :::{deprecated} v3.0
         :class: version-warning
         Use new_function() instead.
         :::
+        
     """
 
     css_class: str = "version-deprecated"
@@ -197,19 +201,20 @@ class DeprecatedOptions(DirectiveOptions):
 class DeprecatedDirective(BengalDirective):
     """
     Directive for marking deprecated features.
-
+    
     Renders as a warning box with deprecation notice.
-
+    
     Syntax:
         :::{deprecated} v3.0
         :::
-
+    
         :::{deprecated} v3.0
         Use new_function() instead.
         :::
-
+    
     The version is the version where deprecation occurred.
     Optional content explains the migration path.
+        
     """
 
     NAMES: ClassVar[list[str]] = ["deprecated", "versionremoved"]
@@ -291,15 +296,16 @@ class DeprecatedDirective(BengalDirective):
 class ChangedOptions(DirectiveOptions):
     """
     Options for changed directive.
-
+    
     Attributes:
         css_class: CSS classes for styling
-
+    
     Example:
         :::{changed} v2.5
         :class: version-info
         The default value changed from 10 to 20.
         :::
+        
     """
 
     css_class: str = "version-changed"
@@ -310,19 +316,20 @@ class ChangedOptions(DirectiveOptions):
 class ChangedDirective(BengalDirective):
     """
     Directive for marking behavior changes.
-
+    
     Renders as an info box with change notice.
-
+    
     Syntax:
         :::{changed} v2.5
         :::
-
+    
         :::{changed} v2.5
         The default value changed from 10 to 20.
         :::
-
+    
     The version is when the change occurred.
     Optional content explains what changed.
+        
     """
 
     NAMES: ClassVar[list[str]] = ["changed", "versionchanged"]

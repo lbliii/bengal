@@ -7,33 +7,33 @@ from data management, keeping the Site class focused on data representation
 while orchestrators handle operations.
 
 Architecture:
-    Core models in bengal/core/ are passive data structures with no I/O.
-    Orchestrators in this package handle all build operations, logging, and
-    side effects. This separation enables testability and maintainability.
+Core models in bengal/core/ are passive data structures with no I/O.
+Orchestrators in this package handle all build operations, logging, and
+side effects. This separation enables testability and maintainability.
 
 Orchestrators:
-    BuildOrchestrator
-        Main build coordinator that sequences all phases
-    ContentOrchestrator
-        Content and asset discovery, page/section setup
-    TaxonomyOrchestrator
-        Taxonomy collection (tags, categories) and dynamic page generation
-    MenuOrchestrator
-        Navigation menu building with caching and i18n support
-    RenderOrchestrator
-        Page rendering with parallel and sequential modes
-    AssetOrchestrator
-        Asset processing: copying, minification, optimization, fingerprinting
-    PostprocessOrchestrator
-        Post-build tasks: sitemap, RSS feeds, output formats
-    IncrementalOrchestrator
-        Change detection and caching for incremental builds
+BuildOrchestrator
+    Main build coordinator that sequences all phases
+ContentOrchestrator
+    Content and asset discovery, page/section setup
+TaxonomyOrchestrator
+    Taxonomy collection (tags, categories) and dynamic page generation
+MenuOrchestrator
+    Navigation menu building with caching and i18n support
+RenderOrchestrator
+    Page rendering with parallel and sequential modes
+AssetOrchestrator
+    Asset processing: copying, minification, optimization, fingerprinting
+PostprocessOrchestrator
+    Post-build tasks: sitemap, RSS feeds, output formats
+IncrementalOrchestrator
+    Change detection and caching for incremental builds
 
 Performance:
-    Orchestrators support parallel processing via ThreadPoolExecutor.
-    Parallel thresholds (typically 5+ items) avoid thread overhead for
-    small workloads. Free-threaded Python (3.13t+) is auto-detected for
-    true parallelism without GIL contention.
+Orchestrators support parallel processing via ThreadPoolExecutor.
+Parallel thresholds (typically 5+ items) avoid thread overhead for
+small workloads. Free-threaded Python (3.13t+) is auto-detected for
+true parallelism without GIL contention.
 
 Example:
     >>> from bengal.orchestration import BuildOrchestrator
@@ -41,9 +41,10 @@ Example:
     >>> stats = orchestrator.build(parallel=True, incremental=True)
 
 See Also:
-    bengal.core: Passive data models (Page, Site, Section, Asset)
-    bengal.cache: Build caching infrastructure
-    bengal.rendering: Template and content rendering
+bengal.core: Passive data models (Page, Site, Section, Asset)
+bengal.cache: Build caching infrastructure
+bengal.rendering: Template and content rendering
+
 """
 
 from __future__ import annotations
@@ -75,9 +76,10 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """
     Lazily resolve orchestration re-exports.
-
+    
     This keeps `import bengal.orchestration` lightweight and avoids import
     cycles between orchestration packages.
+        
     """
     if name == "AssetOrchestrator":
         from bengal.orchestration.asset import AssetOrchestrator

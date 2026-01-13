@@ -6,7 +6,8 @@ YAML error recovery, and collection schema validation. Extracted from
 content_discovery.py per RFC: rfc-modularize-large-files.
 
 Classes:
-    ContentParser: Parses content files with frontmatter.
+ContentParser: Parses content files with frontmatter.
+
 """
 
 from __future__ import annotations
@@ -28,23 +29,24 @@ logger = get_logger(__name__)
 class ContentParser:
     """
     Parses content files with frontmatter and optional validation.
-
+    
     Handles:
     - Valid frontmatter
     - Invalid YAML in frontmatter (graceful degradation)
     - Missing frontmatter
     - File encoding issues
     - Collection schema validation (when collections defined)
-
+    
     Attributes:
         content_dir: Root content directory
         collections: Optional dict of collection configs for validation
         strict_validation: Whether to raise on validation failure
         build_context: Optional BuildContext for content caching
-
+    
     Example:
-        >>> parser = ContentParser(Path("content"), collections=collections)
-        >>> content, metadata = parser.parse_file(Path("content/post.md"))
+            >>> parser = ContentParser(Path("content"), collections=collections)
+            >>> content, metadata = parser.parse_file(Path("content/post.md"))
+        
     """
 
     def __init__(

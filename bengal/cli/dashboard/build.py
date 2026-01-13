@@ -47,19 +47,20 @@ class PhaseInfo:
 class BengalBuildDashboard(BengalDashboard):
     """
     Interactive build dashboard with live progress.
-
+    
     Shows:
     - Header with Bengal branding
     - Progress bar for current phase
     - DataTable with phase timing
     - Log widget for build output
     - Footer with keyboard shortcuts
-
+    
     Bindings:
         q: Quit
         r: Rebuild (if build complete)
         c: Clear log
         ?: Help
+        
     """
 
     TITLE: ClassVar[str] = "Bengal Build"
@@ -527,15 +528,16 @@ def run_build_dashboard(
 ) -> None:
     """
     Run the build dashboard for a site.
-
+    
     This is the entry point called by `bengal build --dashboard`.
-
+    
     Args:
         site: Site instance to build
         parallel: Enable parallel rendering
         incremental: Use incremental build
         profile: Build profile
         **kwargs: Additional build options
+        
     """
     app = BengalBuildDashboard(
         site=site,

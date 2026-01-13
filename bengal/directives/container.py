@@ -27,15 +27,16 @@ __all__ = ["ContainerDirective", "ContainerOptions"]
 class ContainerOptions(DirectiveOptions):
     """
     Options for container directive.
-
+    
     Attributes:
         css_class: Additional CSS classes (merged with title classes)
-
+    
     Example:
         :::{container} api-section
         :class: highlighted
         Content
         :::
+        
     """
 
     css_class: str = ""
@@ -46,29 +47,30 @@ class ContainerOptions(DirectiveOptions):
 class ContainerDirective(BengalDirective):
     """
     Container directive for wrapping content in a styled div.
-
+    
     Syntax:
         :::{container} class-name
         Content goes here...
         :::
-
+    
         :::{container} api-attributes
         `attr1`
         : Description of attr1
         :::
-
+    
     Multiple classes:
         :::{container} api-section highlighted
         Content with multiple classes...
         :::
-
+    
     The first line after the directive (title) is the class(es) to apply.
     Additional classes can be added via :class: option.
     Content is parsed as markdown.
-
+    
     Aliases:
         - container: Primary name
         - div: HTML semantic alias
+        
     """
 
     NAMES: ClassVar[list[str]] = ["container", "div"]

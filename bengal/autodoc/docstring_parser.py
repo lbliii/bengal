@@ -5,18 +5,18 @@ This module provides parsers for the three major Python docstring conventions,
 enabling autodoc to extract structured information from any docstring style.
 
 Supported Styles:
-    - **Google style**: Uses `Args:`, `Returns:`, `Raises:`, `Example:` sections
-    - **NumPy style**: Uses underlined section headers (Parameters, Returns, etc.)
-    - **Sphinx style**: Uses `:param:`, `:returns:`, `:raises:` field syntax
+- **Google style**: Uses `Args:`, `Returns:`, `Raises:`, `Example:` sections
+- **NumPy style**: Uses underlined section headers (Parameters, Returns, etc.)
+- **Sphinx style**: Uses `:param:`, `:returns:`, `:raises:` field syntax
 
 Auto-Detection:
-    The `parse_docstring()` function can automatically detect the docstring style
-    based on patterns in the text. This allows mixed-style codebases to be
-    documented correctly without explicit configuration.
+The `parse_docstring()` function can automatically detect the docstring style
+based on patterns in the text. This allows mixed-style codebases to be
+documented correctly without explicit configuration.
 
 Architecture:
-    Each parser class extracts the same structured data into a `ParsedDocstring`
-    container, providing a uniform interface regardless of input style.
+Each parser class extracts the same structured data into a `ParsedDocstring`
+container, providing a uniform interface regardless of input style.
 
 Example:
     >>> from bengal.autodoc.docstring_parser import parse_docstring
@@ -32,11 +32,12 @@ Example:
     >>> parsed.summary
     'Brief summary.'
     >>> parsed.args
-    {'name': 'Parameter description'}
+{'name': 'Parameter description'}
 
 Related:
-    - bengal/autodoc/extractors/python/: Uses these parsers for AST extraction
-    - bengal/autodoc/models/python.py: ParsedDocstring frozen dataclass variant
+- bengal/autodoc/extractors/python/: Uses these parsers for AST extraction
+- bengal/autodoc/models/python.py: ParsedDocstring frozen dataclass variant
+
 """
 
 from __future__ import annotations
@@ -49,11 +50,11 @@ from typing import Any
 class ParsedDocstring:
     """
     Container for structured docstring data extracted by parsers.
-
+    
     This class provides a uniform representation of docstring content regardless
     of the original style (Google, NumPy, or Sphinx). All parsers populate the
     same fields, enabling consistent template rendering.
-
+    
     Attributes:
         summary: First line of the docstring (brief description)
         description: Full description including summary
@@ -68,6 +69,7 @@ class ParsedDocstring:
         deprecated: Deprecation notice if present
         version_added: Version when this API was added
         attributes: Class attribute name → description mapping
+        
     """
 
     def __init__(self) -> None:
@@ -107,13 +109,14 @@ class ParsedDocstring:
 def parse_docstring(docstring: str | None, style: str = "auto") -> ParsedDocstring:
     """
     Parse docstring and extract structured information.
-
+    
     Args:
         docstring: Raw docstring text
         style: Docstring style ('auto', 'google', 'numpy', 'sphinx')
-
+    
     Returns:
         ParsedDocstring object with extracted information
+        
     """
     if not docstring:
         return ParsedDocstring()
@@ -140,12 +143,13 @@ def parse_docstring(docstring: str | None, style: str = "auto") -> ParsedDocstri
 def detect_docstring_style(docstring: str) -> str:
     """
     Auto-detect docstring style.
-
+    
     Args:
         docstring: Raw docstring text
-
+    
     Returns:
         Style name ('google', 'numpy', 'sphinx', or 'plain')
+        
     """
     # Google style markers
     if re.search(
@@ -171,10 +175,10 @@ def detect_docstring_style(docstring: str) -> str:
 class GoogleDocstringParser:
     """
     Parser for Google-style Python docstrings.
-
+    
     Google style uses section headers followed by colons and indented content.
     This is the most common style in modern Python projects.
-
+    
     Recognized Sections:
         - Args/Arguments/Parameters: Function parameters
         - Returns/Return: Return value description
@@ -185,25 +189,26 @@ class GoogleDocstringParser:
         - See Also: Cross-references
         - Attributes: Class/module attributes
         - Deprecated: Deprecation notices
-
+    
     Custom Sections:
         Unrecognized section headers (title-case phrases ending with colon)
         are preserved in the description field as markdown sections.
-
+    
     Example Input:
-        ```
-        Brief summary line.
-
-        Args:
-            name (str): The name to greet
-            loud (bool): Whether to shout
-
-        Returns:
-            str: The greeting message
-
-        Raises:
-            ValueError: If name is empty
-        ```
+            ```
+            Brief summary line.
+    
+            Args:
+                name (str): The name to greet
+                loud (bool): Whether to shout
+    
+            Returns:
+                str: The greeting message
+    
+            Raises:
+                ValueError: If name is empty
+            ```
+        
     """
 
     def parse(self, docstring: str) -> ParsedDocstring:
@@ -508,10 +513,10 @@ class GoogleDocstringParser:
 class NumpyDocstringParser:
     """
     Parser for NumPy-style Python docstrings.
-
+    
     NumPy style uses section headers underlined with dashes. This style is
     common in scientific Python packages (NumPy, SciPy, pandas, etc.).
-
+    
     Recognized Sections:
         - Parameters: Function parameters with type on separate line
         - Returns: Return value with type on separate line
@@ -523,23 +528,24 @@ class NumpyDocstringParser:
         - Examples: Usage examples (often with doctest format)
         - Attributes: Class attributes
         - Methods: Class method summaries
-
+    
     Example Input:
-        ```
-        Brief summary line.
-
-        Parameters
-        ----------
-        name : str
-            The name to greet.
-        loud : bool, optional
-            Whether to shout (default: False).
-
-        Returns
-        -------
-        str
-            The greeting message.
-        ```
+            ```
+            Brief summary line.
+    
+            Parameters
+            ----------
+            name : str
+                The name to greet.
+            loud : bool, optional
+                Whether to shout (default: False).
+    
+            Returns
+            -------
+            str
+                The greeting message.
+            ```
+        
     """
 
     def parse(self, docstring: str) -> ParsedDocstring:
@@ -704,33 +710,34 @@ class NumpyDocstringParser:
 class SphinxDocstringParser:
     """
     Parser for Sphinx/reStructuredText-style Python docstrings.
-
+    
     Sphinx style uses inline field syntax with colons. This is the traditional
     style used by Sphinx autodoc and older Python projects.
-
+    
     Recognized Fields:
         - :param name: Parameter description
         - :type name: Parameter type annotation
         - :returns: / :return: Return value description
         - :rtype: Return type annotation
         - :raises ExceptionType: Exception description
-
+    
     Note:
         This parser handles the most common Sphinx field patterns. Some
         advanced Sphinx directives are not fully supported.
-
+    
     Example Input:
-        ```
-        Brief summary line.
-
-        :param name: The name to greet
-        :type name: str
-        :param loud: Whether to shout
-        :type loud: bool
-        :returns: The greeting message
-        :rtype: str
-        :raises ValueError: If name is empty
-        ```
+            ```
+            Brief summary line.
+    
+            :param name: The name to greet
+            :type name: str
+            :param loud: Whether to shout
+            :type loud: bool
+            :returns: The greeting message
+            :rtype: str
+            :raises ValueError: If name is empty
+            ```
+        
     """
 
     def parse(self, docstring: str) -> ParsedDocstring:

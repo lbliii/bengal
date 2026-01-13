@@ -6,9 +6,10 @@ Provides O(1) section lookups by path and URL via ContentRegistry.
 See: plan/drafted/rfc-site-responsibility-separation.md
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.core.section: Section model
-    - bengal.core.registry: ContentRegistry for centralized lookups
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.core.section: Section model
+- bengal.core.registry: ContentRegistry for centralized lookups
+
 """
 
 from __future__ import annotations
@@ -26,13 +27,14 @@ if TYPE_CHECKING:
 class SectionRegistryMixin:
     """
     Mixin providing section registry for O(1) lookups.
-
+    
     Delegates to ContentRegistry for all lookups.
-
+    
     Requires these attributes on the host class:
         - root_path: Path
         - sections: list[Section]
         - registry: ContentRegistry (property)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

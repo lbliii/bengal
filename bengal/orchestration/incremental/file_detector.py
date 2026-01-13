@@ -36,14 +36,15 @@ DEFAULT_MAX_WORKERS = min(8, (os.cpu_count() or 4))
 class FileChangeDetector:
     """
     Detects changes in content files (pages and assets).
-
+    
     Uses parallel processing for large workloads (workload-aware threshold).
     For smaller sets, sequential is faster due to thread overhead.
-
+    
     Performance:
         - Sequential: O(n) × stat call latency
         - Parallel: O(n/workers) × stat call latency + thread overhead
         - Break-even: ~50 files on typical SSD
+        
     """
 
     def __init__(

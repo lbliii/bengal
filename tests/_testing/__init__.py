@@ -8,19 +8,20 @@ Usage in conftest.py:
     pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
 
 Mock Objects:
-    from tests._testing.mocks import MockPage, MockSection, MockSite
+from tests._testing.mocks import MockPage, MockSection, MockSite
 
     page = MockPage(title="Test", href="/test/")
     site = MockSite(pages=[page])
 
 Progress Reporting:
-    For long-running tests, use the test_progress fixture:
+For long-running tests, use the test_progress fixture:
 
-        def test_long_running(test_progress):
-            with test_progress.phase("Processing", total=100) as update:
-                for i in range(100):
-                    do_work()
-                    update(i + 1)
+    def test_long_running(test_progress):
+        with test_progress.phase("Processing", total=100) as update:
+            for i in range(100):
+                do_work()
+                update(i + 1)
+
 """
 
 from tests._testing.mocks import (

@@ -5,42 +5,43 @@ Provides hierarchical navigation with O(1) lookups and baseurl-aware URLs.
 Pre-computed navigation trees enable fast sidebar and menu rendering.
 
 Public API:
-    NavNode: Single navigation node (title, URL, children, state flags)
-    NavTree: Pre-computed navigation tree with O(1) URL lookups
-    NavTreeContext: Per-page context overlay for active trail detection
-    NavNodeProxy: Template-safe proxy that applies baseurl to URLs
-    NavTreeCache: Thread-safe cache for NavTree instances by version
+NavNode: Single navigation node (title, URL, children, state flags)
+NavTree: Pre-computed navigation tree with O(1) URL lookups
+NavTreeContext: Per-page context overlay for active trail detection
+NavNodeProxy: Template-safe proxy that applies baseurl to URLs
+NavTreeCache: Thread-safe cache for NavTree instances by version
 
 URL Naming Convention:
     _path: Site-relative path WITHOUT baseurl (e.g., "/docs/foo/")
-           Used for internal lookups, active trail detection, caching.
+       Used for internal lookups, active trail detection, caching.
 
     href: Public URL WITH baseurl applied (e.g., "/bengal/docs/foo/")
-          Used for template href attributes and external links.
+      Used for template href attributes and external links.
 
-    When baseurl is configured (e.g., "/bengal" for GitHub Pages),
-    NavNodeProxy.href automatically includes it. Templates should always
-    use .href for links.
+When baseurl is configured (e.g., "/bengal" for GitHub Pages),
+NavNodeProxy.href automatically includes it. Templates should always
+use .href for links.
 
 Template Usage:
-    {% for item in get_nav_tree(page) %}
-      <a href="{{ item.href }}">{{ item.title }}</a>
-      {% if item.is_in_trail %}class="active"{% endif %}
-    {% endfor %}
+{% for item in get_nav_tree(page) %}
+  <a href="{{ item.href }}">{{ item.title }}</a>
+  {% if item.is_in_trail %}class="active"{% endif %}
+{% endfor %}
 
 Internal Usage:
-    if page._path in nav_tree.active_trail_urls:
-        mark_active()
+if page._path in nav_tree.active_trail_urls:
+    mark_active()
 
 Performance:
-    - O(1) URL lookup via NavTree.flat_nodes dict
-    - Tree built once per version, cached in NavTreeCache
-    - NavNodeProxy wraps nodes without copying for template state
+- O(1) URL lookup via NavTree.flat_nodes dict
+- Tree built once per version, cached in NavTreeCache
+- NavNodeProxy wraps nodes without copying for template state
 
 Related Packages:
-    bengal.core.site: Site object that holds the NavTree
-    bengal.core.section: Section objects that form the tree structure
-    bengal.rendering.template_functions.navigation: Template functions
+bengal.core.site: Site object that holds the NavTree
+bengal.core.section: Section objects that form the tree structure
+bengal.rendering.template_functions.navigation: Template functions
+
 """
 
 from __future__ import annotations
@@ -65,12 +66,13 @@ if TYPE_CHECKING:
 class NavNode:
     """
     Hierarchical navigation node for pre-computed trees.
-
+    
     Designed for memory efficiency and Jinja2 compatibility.
-
+    
     IMPORTANT: The `_path` field stores site_path (WITHOUT baseurl) for cache
     efficiency and internal lookups. Templates should use NavNodeProxy.href
     which applies baseurl automatically.
+        
     """
 
     id: str
@@ -142,8 +144,9 @@ class NavNode:
 class NavTree:
     """
     Pre-computed navigation tree for a specific version.
-
+    
     This object is immutable and cached per version.
+        
     """
 
     root: NavNode
@@ -395,9 +398,10 @@ class NavTree:
 class NavTreeContext:
     """
     Per-page context overlay for a NavTree.
-
+    
     Preserves immutability of the cached NavTree while providing
     page-specific state like 'is_current' and 'is_in_trail'.
+        
     """
 
     def __init__(
@@ -468,30 +472,30 @@ class NavTreeContext:
 class NavNodeProxy:
     """
     Transient proxy for NavNode that injects page-specific state.
-
+    
     Used during template rendering to avoid mutating the cached NavTree.
-
+    
     PERFORMANCE:
     ============
     Properties are cached on first access to avoid repeated computation.
     Templates may access is_current, is_in_trail, href multiple times per node.
     Without caching, this creates millions of redundant computations.
-
+    
     URL CONVENTION:
     ===============
     NavNodeProxy provides two URL properties with distinct purposes:
-
+    
     - `href`: Public URL with baseurl applied (for template href attributes)
               Example: "/bengal/docs/getting-started/" on GitHub Pages
               USE THIS IN TEMPLATES: <a href="{{ item.href }}">
-
+    
     - `_path`: Site-relative path WITHOUT baseurl (for internal lookups)
                Example: "/docs/getting-started/"
                USE THIS FOR: Active trail detection, URL comparisons
-
+    
     The cached NavTree stores _path internally for efficient lookups,
     but templates should always use .href for href attributes.
-
+    
     Other Properties:
     - `is_current`: True if this node is the current page
     - `is_in_trail`: True if this node is in the path to current page
@@ -499,6 +503,7 @@ class NavNodeProxy:
     - `is_section`: True if this node represents a section
     - `has_children`: True if this node has children
     - `absolute_href`: Fully-qualified URL for meta tags and sitemaps
+        
     """
 
     __slots__ = (
@@ -669,22 +674,23 @@ class NavNodeProxy:
 class NavTreeCache:
     """
     Thread-safe cache for NavTree instances with LRU eviction.
-
+    
     Uses per-version locking to prevent duplicate NavTree builds when multiple
     threads request the same version simultaneously. Different versions can
     still be built in parallel.
-
+    
     Memory leak prevention: Cache is limited to 20 entries. When limit is reached,
     least-recently-used entries are evicted (LRU). This prevents unbounded growth
     if many version_ids are created while keeping frequently-accessed versions cached.
-
+    
     Thread Safety:
         - Uses shared LRUCache with internal RLock
         - _build_locks: Per-version locks to serialize builds for SAME version
         - Different versions build in parallel (no contention)
-
+    
     Eviction Strategy:
         LRU (Least Recently Used) via shared bengal.utils.lru_cache.LRUCache.
+        
     """
 
     _cache: LRUCache[str, NavTree] = LRUCache(maxsize=20, name="nav_tree")

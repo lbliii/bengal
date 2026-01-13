@@ -21,7 +21,8 @@ Architecture:
     ```
 
 Thread-Safety:
-    Uses cached inheritance data. Safe for concurrent calls.
+Uses cached inheritance data. Safe for concurrent calls.
+
 """
 
 from __future__ import annotations
@@ -46,13 +47,14 @@ logger = get_logger(__name__)
 @dataclass
 class RebuildDecision:
     """Rebuild decision for a template change.
-
+    
     Attributes:
         blocks_to_rewarm: Site-scoped blocks to re-cache
         pages_to_rebuild: Pages that need full rebuild
         skip_all_pages: True if only site-scoped blocks changed
         reason: Human-readable explanation
         child_templates: Child templates also affected (inheritance)
+        
     """
 
     blocks_to_rewarm: set[str] = field(default_factory=set)
@@ -64,23 +66,24 @@ class RebuildDecision:
 
 class RebuildDecisionEngine:
     """Makes smart rebuild decisions based on block-level changes.
-
+    
     Key insight: If only site-scoped blocks changed, we can skip
     page rebuilds entirely and just re-warm those blocks.
-
+    
     Handles template inheritance: When base.html changes, child templates
     (page.html extends base.html) may also need block re-hashing.
-
+    
     Example:
-        >>> engine = RebuildDecisionEngine(detector, cache, tracker, kida)
-        >>> decision = engine.decide("base.html", Path("templates/base.html"))
-        >>> if decision.skip_all_pages:
-        ...     # Only re-warm blocks, no page rebuilds needed!
-        ...     for block in decision.blocks_to_rewarm:
-        ...         rewarm_block(block)
-
+            >>> engine = RebuildDecisionEngine(detector, cache, tracker, kida)
+            >>> decision = engine.decide("base.html", Path("templates/base.html"))
+            >>> if decision.skip_all_pages:
+            ...     # Only re-warm blocks, no page rebuilds needed!
+            ...     for block in decision.blocks_to_rewarm:
+            ...         rewarm_block(block)
+    
     Thread-Safety:
         Uses cached inheritance data. Safe for concurrent calls.
+        
     """
 
     def __init__(

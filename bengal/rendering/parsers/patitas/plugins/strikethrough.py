@@ -8,13 +8,14 @@ Usage:
     '<p><del>deleted text</del></p>'
 
 Syntax:
-    ~~text~~ → <del>text</del>
+~~text~~ → <del>text</del>
 
-    Strikethrough can contain other inline elements:
-    ~~**bold deleted**~~ → <del><strong>bold deleted</strong></del>
+Strikethrough can contain other inline elements:
+~~**bold deleted**~~ → <del><strong>bold deleted</strong></del>
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -32,8 +33,9 @@ if TYPE_CHECKING:
 @register_plugin("strikethrough")
 class StrikethroughPlugin:
     """Plugin adding ~~strikethrough~~ support.
-
+    
     Extends inline parsing to recognize ~~ delimiters.
+        
     """
 
     @property

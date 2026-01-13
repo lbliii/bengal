@@ -11,24 +11,25 @@ This package combines:
 - Cached NavTree infrastructure for O(1) navigation lookups
 
 Organization:
-    - models.py: Typed dataclasses (BreadcrumbItem, etc.)
-    - breadcrumbs.py: get_breadcrumbs()
-    - pagination.py: get_pagination_items()
-    - tree.py: get_nav_tree(), get_nav_context()
-    - auto_nav.py: get_auto_nav(), section menu helpers
-    - toc.py: get_toc_grouped(), combine_track_toc_items()
-    - section.py: get_section(), section_pages()
+- models.py: Typed dataclasses (BreadcrumbItem, etc.)
+- breadcrumbs.py: get_breadcrumbs()
+- pagination.py: get_pagination_items()
+- tree.py: get_nav_tree(), get_nav_context()
+- auto_nav.py: get_auto_nav(), section menu helpers
+- toc.py: get_toc_grouped(), combine_track_toc_items()
+- section.py: get_section(), section_pages()
 
 Core NavTree Models (bengal.core.nav_tree):
-    - NavNode: Immutable node in navigation tree
-    - NavTree: Cached tree with O(1) lookups
-    - NavTreeContext: Per-page active trail overlay
-    - NavNodeProxy: Template-friendly wrapper
+- NavNode: Immutable node in navigation tree
+- NavTree: Cached tree with O(1) lookups
+- NavTreeContext: Per-page active trail overlay
+- NavNodeProxy: Template-friendly wrapper
 
 Related:
-    - bengal/rendering/template_functions/get_page.py: Page lookup
-    - bengal/core/section.py: Section model
-    - bengal/core/nav_tree.py: NavTree infrastructure
+- bengal/rendering/template_functions/get_page.py: Page lookup
+- bengal/core/section.py: Section model
+- bengal/core/nav_tree.py: NavTree infrastructure
+
 """
 
 from __future__ import annotations

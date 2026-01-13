@@ -67,17 +67,18 @@ def handle_blank_line(
     containers: ContainerStack,
 ) -> BlankLineResult:
     """Handle blank line in list parsing using ContainerStack.
-
+    
     Determines what action to take after encountering a blank line
     within a list item. Queries indent values from the container stack
     (the stack is the source of truth for indent context).
-
+    
     Args:
         next_token: The token following the blank line(s)
         containers: The container stack with current frame context
-
+    
     Returns:
         BlankLineResult indicating how to proceed
+        
     """
     if next_token is None:
         return EndList()
@@ -140,19 +141,20 @@ def _handle_blank_then_indented_code(
     containers: ContainerStack,
 ) -> BlankLineResult:
     """Handle INDENTED_CODE token after blank line using ContainerStack.
-
+    
     This is complex because INDENTED_CODE may be:
     - A list marker continuation (at list level)
     - Paragraph continuation (at content level)
     - Block quote or fenced code
     - Actual indented code block (4+ beyond content)
-
+    
     Args:
         token: The INDENTED_CODE token
         containers: The container stack with current frame context
-
+    
     Returns:
         BlankLineResult indicating how to proceed
+        
     """
     current = containers.current()
     start_indent = current.start_indent

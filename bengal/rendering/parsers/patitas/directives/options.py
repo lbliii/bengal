@@ -4,8 +4,8 @@ Directive options are parsed from :key: value lines in the directive body.
 This module provides base classes for type-safe option parsing.
 
 Thread Safety:
-    All options classes are frozen dataclasses (immutable).
-    Safe to share across threads.
+All options classes are frozen dataclasses (immutable).
+Safe to share across threads.
 
 Example:
     >>> @dataclass(frozen=True, slots=True)
@@ -17,7 +17,8 @@ Example:
     >>> raw = {"name": "my-note", "collapsible": "true"}
     >>> opts = AdmonitionOptions.from_raw(raw)
     >>> opts.collapsible
-    True
+True
+
 """
 
 from __future__ import annotations
@@ -29,30 +30,31 @@ from typing import Any, ClassVar, Self, get_type_hints
 @dataclass(frozen=True, slots=True)
 class DirectiveOptions:
     """Base class for typed directive options.
-
+    
     Subclass this to define options for your directive. Options are
     automatically parsed from :key: value lines in the directive.
-
+    
     Type coercion is automatic based on type hints:
     - str: Used as-is
     - bool: "true", "yes", "1", "" → True; others → False
     - int: Parsed with int()
     - float: Parsed with float()
     - list[str]: Split by whitespace
-
+    
     Thread Safety:
         Frozen dataclass ensures immutability for safe sharing.
-
+    
     Example:
-        >>> @dataclass(frozen=True, slots=True)
-        ... class ImageOptions(DirectiveOptions):
-        ...     width: int | None = None
-        ...     height: int | None = None
-        ...     alt: str | None = None
-        ...
-        >>> opts = ImageOptions.from_raw({"width": "800", "alt": "Photo"})
-        >>> opts.width
+            >>> @dataclass(frozen=True, slots=True)
+            ... class ImageOptions(DirectiveOptions):
+            ...     width: int | None = None
+            ...     height: int | None = None
+            ...     alt: str | None = None
+            ...
+            >>> opts = ImageOptions.from_raw({"width": "800", "alt": "Photo"})
+            >>> opts.width
         800
+        
     """
 
     # Mapping of option aliases (e.g., "class" -> "class_")
@@ -161,10 +163,11 @@ class DirectiveOptions:
 @dataclass(frozen=True, slots=True)
 class StyledOptions(DirectiveOptions):
     """Common options for styled directives.
-
+    
     Provides standard styling options that most directives support:
     - class_: Additional CSS classes
     - name: Reference ID/anchor
+        
     """
 
     class_: str | None = None

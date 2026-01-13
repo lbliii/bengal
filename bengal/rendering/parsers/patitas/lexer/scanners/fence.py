@@ -14,8 +14,9 @@ if TYPE_CHECKING:
 
 class FenceScannerMixin:
     """Mixin providing fenced code mode scanning logic.
-
+    
     Scans content inside fenced code blocks, detecting the closing fence.
+        
     """
 
     # These will be set by the Lexer class

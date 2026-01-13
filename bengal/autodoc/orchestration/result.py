@@ -2,8 +2,9 @@
 Autodoc run result and page context classes.
 
 Provides:
-    - AutodocRunResult: Summary of an autodoc generation run
-    - PageContext: Lightweight page-like context for template rendering
+- AutodocRunResult: Summary of an autodoc generation run
+- PageContext: Lightweight page-like context for template rendering
+
 """
 
 from __future__ import annotations
@@ -19,9 +20,9 @@ if TYPE_CHECKING:
 class AutodocRunResult:
     """
     Summary of an autodoc generation run.
-
+    
     Tracks successes, failures, and warnings for observability and strict mode enforcement.
-
+    
     Attributes:
         extracted: Number of elements successfully extracted
         rendered: Number of pages successfully rendered
@@ -32,6 +33,7 @@ class AutodocRunResult:
         failed_render_identifiers: Qualified names of elements that failed rendering
         fallback_pages: URL paths of pages rendered via fallback template
         autodoc_dependencies: Mapping of source file paths to autodoc page paths
+        
     """
 
     extracted: int = 0
@@ -78,15 +80,15 @@ class AutodocRunResult:
 class PageContext:
     """
     Lightweight page-like context for autodoc template rendering.
-
+    
     Templates extend base.html and include partials that expect a 'page' variable
     with attributes like metadata, tags, title, and relative_url. This class provides
     those attributes without requiring a full Page object (which doesn't exist yet
     during the initial render phase).
-
+    
     The navigation attributes (prev, next, prev_in_section, next_in_section) are
     set to None since autodoc virtual pages don't participate in linear navigation.
-
+    
     Attributes:
         title: Page title
         metadata: Page metadata dict
@@ -95,6 +97,7 @@ class PageContext:
         variant: Optional variant name
         source_path: Optional source file path
         section: Optional parent section
+        
     """
 
     def __init__(

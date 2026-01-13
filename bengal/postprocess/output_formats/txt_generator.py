@@ -6,8 +6,8 @@ text files are optimized for AI/LLM discovery, RAG systems, and content
 extraction by providing clean, structured plain text without HTML markup.
 
 Output Format:
-    Each page.html gets a corresponding page.txt (or index.txt for
-    directory index pages) with this structure:
+Each page.html gets a corresponding page.txt (or index.txt for
+directory index pages) with this structure:
 
     ```
     # Page Title
@@ -30,14 +30,14 @@ Output Format:
     ```
 
 Use Cases:
-    - LLM context windows (clean text without HTML noise)
-    - RAG (Retrieval-Augmented Generation) pipelines
-    - AI-powered search and analysis
-    - Content extraction for external tools
-    - Accessibility (screen readers, text-only browsers)
+- LLM context windows (clean text without HTML noise)
+- RAG (Retrieval-Augmented Generation) pipelines
+- AI-powered search and analysis
+- Content extraction for external tools
+- Accessibility (screen readers, text-only browsers)
 
 Configuration:
-    Controlled via [output_formats] in bengal.toml:
+Controlled via [output_formats] in bengal.toml:
 
     ```toml
     [output_formats]
@@ -52,9 +52,10 @@ Example:
     >>> print(f"Generated {count} TXT files")
 
 Related:
-    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
-    - bengal.postprocess.output_formats.llm_generator: Site-wide LLM text
-    - bengal.core.page: Page.plain_text for AST-based text extraction
+- bengal.postprocess.output_formats: OutputFormatsGenerator facade
+- bengal.postprocess.output_formats.llm_generator: Site-wide LLM text
+- bengal.core.page: Page.plain_text for AST-based text extraction
+
 """
 
 from __future__ import annotations
@@ -78,36 +79,37 @@ logger = get_logger(__name__)
 class PageTxtGenerator:
     """
     Generates per-page LLM-friendly text files.
-
+    
     Creates a .txt file alongside each HTML page in a structured format
     optimized for AI/LLM discovery, RAG pipelines, and content extraction.
-
+    
     Creation:
         Direct instantiation: PageTxtGenerator(site, separator_width=80)
             - Created by OutputFormatsGenerator for TXT generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages
         separator_width: Width of separator lines in output (default: 80)
-
+    
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for page access, Page.plain_text for content
-
+    
     Output Structure:
         - Header: Title, URL, section, tags, date
         - Content: Plain text from AST (no HTML)
         - Footer: Author, word count, reading time
-
+    
     Performance:
         - Parallel writes with 8-thread pool
         - Uses cached Page.plain_text (computed during rendering)
-
+    
     Example:
-        >>> generator = PageTxtGenerator(site, separator_width=80)
-        >>> count = generator.generate(pages)
-        >>> print(f"Generated {count} TXT files")
+            >>> generator = PageTxtGenerator(site, separator_width=80)
+            >>> count = generator.generate(pages)
+            >>> print(f"Generated {count} TXT files")
+        
     """
 
     def __init__(

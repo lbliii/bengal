@@ -5,16 +5,17 @@ This package provides type-safe metadata dataclasses that replace
 the untyped `metadata: dict[str, Any]` field on DocElement.
 
 Usage:
-    from bengal.autodoc.models import PythonClassMetadata, DocMetadata
+from bengal.autodoc.models import PythonClassMetadata, DocMetadata
 
-    if isinstance(element.typed_metadata, PythonClassMetadata):
-        bases = element.typed_metadata.bases  # Type-safe!
+if isinstance(element.typed_metadata, PythonClassMetadata):
+    bases = element.typed_metadata.bases  # Type-safe!
 
 Architecture:
-    - common.py: Shared types (SourceLocation, QualifiedName)
-    - python.py: Python-specific metadata (module, class, function)
-    - cli.py: CLI-specific metadata (command, group, option)
-    - openapi.py: OpenAPI-specific metadata (endpoint, schema, overview)
+- common.py: Shared types (SourceLocation, QualifiedName)
+- python.py: Python-specific metadata (module, class, function)
+- cli.py: CLI-specific metadata (command, group, option)
+- openapi.py: OpenAPI-specific metadata (endpoint, schema, overview)
+
 """
 
 from __future__ import annotations

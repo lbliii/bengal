@@ -9,19 +9,20 @@ Use cases:
 - Numbered step lists
 
 Example:
-    :::{checklist} Prerequisites
-    :style: numbered
-    :show-progress:
-    - [x] Python 3.14+
-    - [x] Bengal installed
-    - [ ] Git configured
-    :::
+:::{checklist} Prerequisites
+:style: numbered
+:show-progress:
+- [x] Python 3.14+
+- [x] Bengal installed
+- [ ] Git configured
+:::
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's checklist directive exactly for parity.
+Matches Bengal's checklist directive exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -54,12 +55,13 @@ __all__ = ["ChecklistDirective"]
 class ChecklistOptions(DirectiveOptions):
     """
     Typed options for checklist directive.
-
+    
     Attributes:
         style: Visual style (default, numbered, minimal)
         show_progress: Display completion percentage for task lists
         compact: Tighter spacing between items
         css_class: Additional CSS classes
+        
     """
 
     style: str = "default"
@@ -76,7 +78,7 @@ class ChecklistOptions(DirectiveOptions):
 class ChecklistDirective:
     """
     Checklist directive for styled lists with progress tracking.
-
+    
     Syntax:
         :::{checklist} Optional Title
         :style: numbered
@@ -87,7 +89,7 @@ class ChecklistDirective:
         - [x] Completed item
         - [ ] Unchecked item
         :::
-
+    
     Options:
         :style: Visual style
             - default: Standard bullet list styling
@@ -96,9 +98,10 @@ class ChecklistDirective:
         :show-progress: Show completion bar for task lists
         :compact: Tighter spacing between items
         :class: Additional CSS classes
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("checklist",)

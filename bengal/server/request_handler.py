@@ -5,38 +5,39 @@ Provides the main request handler that combines file serving, live reload
 injection, and custom error pages.
 
 Features:
-    - Automatic live reload script injection into HTML responses
-    - Custom 404.html page support (serves user's error page if present)
-    - Rebuild-aware directory listing (shows "rebuilding" page during builds)
-    - HTML response caching for rapid navigation
-    - Cache-busting headers for development
+- Automatic live reload script injection into HTML responses
+- Custom 404.html page support (serves user's error page if present)
+- Rebuild-aware directory listing (shows "rebuilding" page during builds)
+- HTML response caching for rapid navigation
+- Cache-busting headers for development
 
 Classes:
-    BengalRequestHandler: Main HTTP handler combining all features
+BengalRequestHandler: Main HTTP handler combining all features
 
 Functions:
     get_rebuilding_page_html: Generate themed "rebuilding" placeholder page
 
 Constants:
-    REBUILDING_PAGE_HTML: HTML template for rebuild placeholder
-    PALETTE_COLORS: Theme color definitions for rebuilding page
-    DEFAULT_PALETTE: Default theme (snow-lynx)
+REBUILDING_PAGE_HTML: HTML template for rebuild placeholder
+PALETTE_COLORS: Theme color definitions for rebuilding page
+DEFAULT_PALETTE: Default theme (snow-lynx)
 
 Architecture:
-    The handler uses multiple inheritance (mixins) to compose functionality:
-    - RequestLogger: Beautiful HTTP request logging
-    - LiveReloadMixin: SSE endpoint and script injection
-    - SimpleHTTPRequestHandler: Base file serving
+The handler uses multiple inheritance (mixins) to compose functionality:
+- RequestLogger: Beautiful HTTP request logging
+- LiveReloadMixin: SSE endpoint and script injection
+- SimpleHTTPRequestHandler: Base file serving
 
-    Request flow:
-    1. SSE endpoint (/__bengal_reload__) → LiveReloadMixin.handle_sse()
-    2. HTML files → inject live reload script via mixin
-    3. Other files → default SimpleHTTPRequestHandler behavior
+Request flow:
+1. SSE endpoint (/__bengal_reload__) → LiveReloadMixin.handle_sse()
+2. HTML files → inject live reload script via mixin
+3. Other files → default SimpleHTTPRequestHandler behavior
 
 Related:
-    - bengal/server/live_reload.py: LiveReloadMixin implementation
-    - bengal/server/request_logger.py: RequestLogger mixin
-    - bengal/server/dev_server.py: Creates and manages this handler
+- bengal/server/live_reload.py: LiveReloadMixin implementation
+- bengal/server/request_logger.py: RequestLogger mixin
+- bengal/server/dev_server.py: Creates and manages this handler
+
 """
 
 from __future__ import annotations
@@ -277,23 +278,24 @@ DEFAULT_PALETTE = "snow-lynx"
 def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
     """
     Generate themed HTML for the "rebuilding" placeholder page.
-
+    
     Creates a visually appealing loading page shown during site rebuilds.
     The page features Bengal branding, animated elements, and automatically
     refreshes when the build completes (via meta refresh and live reload).
-
+    
     Args:
         path: URL path that triggered the rebuild (shown to user for context)
         palette: Theme name from PALETTE_COLORS (e.g., 'snow-lynx', 'charcoal-bengal').
                  Falls back to DEFAULT_PALETTE if None or invalid.
-
+    
     Returns:
         Complete HTML document as bytes, ready to serve.
-
+    
     Example:
-        >>> html = get_rebuilding_page_html("/blog/my-post", "charcoal-bengal")
-        >>> b"Rebuilding" in html
+            >>> html = get_rebuilding_page_html("/blog/my-post", "charcoal-bengal")
+            >>> b"Rebuilding" in html
         True
+        
     """
     # Get colors for the palette (or default)
     palette_key = palette or DEFAULT_PALETTE
@@ -317,12 +319,12 @@ def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
 class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
     """
     HTTP request handler for Bengal dev server with live reload and error pages.
-
+    
     Combines multiple mixins to provide a complete development experience:
     - RequestLogger: Beautiful, filtered HTTP request logging
     - LiveReloadMixin: SSE endpoint and automatic script injection
     - SimpleHTTPRequestHandler: Static file serving
-
+    
     Features:
         - Live reload script auto-injection into HTML pages
         - Server-Sent Events endpoint at /__bengal_reload__
@@ -330,11 +332,11 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         - "Rebuilding" placeholder during active builds
         - HTML response caching (LRU, 50 pages)
         - Aggressive cache-busting headers
-
+    
     Dashboard Integration (RFC: rfc-dashboard-api-integration):
         - on_request callback: Called for each HTTP request with method, path, status, and duration.
           Enables real-time request logging display in the dev server dashboard.
-
+    
     Class Attributes:
         server_version: HTTP server version header ("Bengal/1.0")
         protocol_version: HTTP protocol version ("HTTP/1.1" for keep-alive)
@@ -342,16 +344,17 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         _build_in_progress: Flag indicating active rebuild
         _active_palette: Theme for rebuilding page styling
         _on_request: Optional callback for request logging (method, path, status_code, duration_ms)
-
+    
     Thread Safety:
         - _html_cache is protected by _html_cache_lock
         - _build_in_progress is protected by _build_lock
         - Safe for use with ThreadingTCPServer
-
+    
     Example:
-        >>> from functools import partial
-        >>> handler = partial(BengalRequestHandler, directory="/path/to/public")
-        >>> server = TCPServer(("localhost", 5173), handler)
+            >>> from functools import partial
+            >>> handler = partial(BengalRequestHandler, directory="/path/to/public")
+            >>> server = TCPServer(("localhost", 5173), handler)
+        
     """
 
     # Suppress default server version header

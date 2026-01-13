@@ -6,16 +6,16 @@ file at the project root. This module handles the dynamic import and
 validation of user-defined collection configurations.
 
 Functions:
-    - :func:`load_collections`: Load collections dict from project file
-    - :func:`get_collection_for_path`: Find which collection owns a file
-    - :func:`validate_collections_config`: Check collection directories exist
-    - :func:`build_collection_trie`: Build path trie for O(P) lookups
+- :func:`load_collections`: Load collections dict from project file
+- :func:`get_collection_for_path`: Find which collection owns a file
+- :func:`validate_collections_config`: Check collection directories exist
+- :func:`build_collection_trie`: Build path trie for O(P) lookups
 
 Classes:
-    - :class:`CollectionPathTrie`: Prefix trie for efficient path matching
+- :class:`CollectionPathTrie`: Prefix trie for efficient path matching
 
 Usage:
-    Collections are automatically loaded during site discovery:
+Collections are automatically loaded during site discovery:
 
     >>> from bengal.collections.loader import load_collections
     >>> collections = load_collections(Path("/path/to/project"))
@@ -34,6 +34,7 @@ The ``collections.py`` file should define a ``collections`` dictionary:
     ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
     ...     "docs": define_collection(schema=DocPage, directory="content/docs"),
     ... }
+
 """
 
 from __future__ import annotations
@@ -53,24 +54,25 @@ logger = get_logger(__name__)
 class CollectionPathTrie:
     """
     Prefix trie for O(P) collection path matching.
-
+    
     For overlapping directories (e.g., ``docs/`` and ``docs/api/``), returns
     the **deepest** matching collection. This differs from linear scan which
     returns the **first** match based on dict iteration order.
-
+    
     Example:
-        >>> trie = CollectionPathTrie()
-        >>> trie.insert(Path("content/blog"), "blog", blog_config)
-        >>> trie.insert(Path("content/docs"), "docs", docs_config)
-        >>> trie.insert(Path("content/docs/api"), "api", api_config)
-        >>>
-        >>> trie.find(Path("content/docs/api/endpoint.md"))
+            >>> trie = CollectionPathTrie()
+            >>> trie.insert(Path("content/blog"), "blog", blog_config)
+            >>> trie.insert(Path("content/docs"), "docs", docs_config)
+            >>> trie.insert(Path("content/docs/api"), "api", api_config)
+            >>>
+            >>> trie.find(Path("content/docs/api/endpoint.md"))
         ('api', api_config)  # Returns deepest match
-
+    
     Time Complexity:
         - insert: O(P) where P = path depth
         - find: O(P) where P = path depth
         - Space: O(C × P) where C = collections, P = avg path depth
+        
     """
 
     _COLLECTION_KEY = "__collection__"
@@ -144,17 +146,18 @@ def build_collection_trie(
 ) -> CollectionPathTrie:
     """
     Build a path trie from collection configurations.
-
+    
     Args:
         collections: Dictionary of collection configurations.
-
+    
     Returns:
         A :class:`CollectionPathTrie` for O(P) path lookups.
-
+    
     Example:
-        >>> collections = load_collections(project_root)
-        >>> trie = build_collection_trie(collections)
-        >>> name, config = get_collection_for_path(file, root, collections, trie=trie)
+            >>> collections = load_collections(project_root)
+            >>> trie = build_collection_trie(collections)
+            >>> name, config = get_collection_for_path(file, root, collections, trie=trie)
+        
     """
     trie = CollectionPathTrie()
     for name, config in collections.items():
@@ -169,49 +172,50 @@ def load_collections(
 ) -> dict[str, CollectionConfig[Any]]:
     """
     Load collection definitions from the project's collections file.
-
+    
     Dynamically imports the ``collections.py`` file from the project root
     and extracts the ``collections`` dictionary. If no file exists or the
     file doesn't define ``collections``, returns an empty dict.
-
+    
     Args:
         project_root: Path to the project root directory.
         collection_file: Name of the collections file. Defaults to
             ``collections.py``.
-
+    
     Returns:
         Dictionary mapping collection names to :class:`CollectionConfig`
         instances. Returns an empty dict if:
         - The collections file doesn't exist
         - The file doesn't define a ``collections`` variable
         - The ``collections`` variable isn't a dict
-
+    
     Example:
-        >>> collections = load_collections(Path("/path/to/project"))
-        >>> for name, config in collections.items():
-        ...     print(f"{name}: {config.directory}")
+            >>> collections = load_collections(Path("/path/to/project"))
+            >>> for name, config in collections.items():
+            ...     print(f"{name}: {config.directory}")
         blog: content/blog
         docs: content/docs
-
+    
     Note:
         The collections file must export a ``collections`` dictionary:
-
-        >>> # collections.py
-        >>> from dataclasses import dataclass
-        >>> from bengal.collections import define_collection
-        >>>
-        >>> @dataclass
-        ... class BlogPost:
-        ...     title: str
-        ...
-        >>> collections = {
-        ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
-        ... }
-
+    
+            >>> # collections.py
+            >>> from dataclasses import dataclass
+            >>> from bengal.collections import define_collection
+            >>>
+            >>> @dataclass
+            ... class BlogPost:
+            ...     title: str
+            ...
+            >>> collections = {
+            ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
+            ... }
+    
     Warning:
         This function executes user code via ``importlib``. The collections
         file runs at import time, so side effects in module-level code will
         execute. Keep collections.py focused on schema and collection definitions.
+        
     """
     collections_path = project_root / collection_file
 
@@ -296,46 +300,47 @@ def get_collection_for_path(
 ) -> tuple[str | None, CollectionConfig[Any] | None]:
     """
     Determine which collection a content file belongs to.
-
+    
     Matches the file path against collection directories to find the
     applicable collection. Used during content discovery to apply the
     correct schema validation.
-
+    
     Args:
         file_path: Absolute or relative path to the content file.
         content_root: Root content directory (e.g., ``site/content/``).
         collections: Dictionary of loaded collections from :func:`load_collections`.
         trie: Optional pre-built trie for O(P) lookup. If None, uses O(C × P)
             linear scan. Build with :func:`build_collection_trie`.
-
+    
     Returns:
         A tuple of ``(collection_name, config)`` if the file is within a
         collection's directory, or ``(None, None)`` if the file doesn't
         belong to any defined collection.
-
+    
     Note:
         - With trie: Returns **deepest** matching collection (most specific).
         - Without trie: Returns **first** matching collection (dict order).
         - Files outside the content root always return ``(None, None)``.
         - Remote collections (with ``loader`` but no ``directory``) are skipped.
-
+    
     Example:
-        >>> file_path = Path("content/blog/my-post.md")
-        >>> name, config = get_collection_for_path(
-        ...     file_path, Path("content"), collections
-        ... )
-        >>> name
-        'blog'
-        >>> config.schema
+            >>> file_path = Path("content/blog/my-post.md")
+            >>> name, config = get_collection_for_path(
+            ...     file_path, Path("content"), collections
+            ... )
+            >>> name
+            'blog'
+            >>> config.schema
         <class 'BlogPost'>
-
+    
     Example:
         Using trie for better performance with many collections:
-
-        >>> trie = build_collection_trie(collections)
-        >>> name, config = get_collection_for_path(
-        ...     file_path, Path("content"), collections, trie=trie
-        ... )
+    
+            >>> trie = build_collection_trie(collections)
+            >>> name, config = get_collection_for_path(
+            ...     file_path, Path("content"), collections, trie=trie
+            ... )
+        
     """
     try:
         rel_path = file_path.relative_to(content_root)
@@ -368,28 +373,29 @@ def validate_collections_config(
 ) -> list[tuple[str, str]]:
     """
     Validate collection configurations for common issues.
-
+    
     Checks that local collection directories exist and are valid directories.
     Remote collections (with loaders) are skipped.
-
+    
     Args:
         collections: Dictionary of loaded collections from :func:`load_collections`.
         content_root: Root content directory to resolve relative paths.
-
+    
     Returns:
         List of tuples ``(warning_message, error_code)`` for invalid
         configurations. Empty list if all configurations are valid.
-
+    
     Example:
-        >>> warnings = validate_collections_config(collections, Path("content"))
-        >>> for message, code in warnings:
-        ...     print(f"[{code}] Warning: {message}")
+            >>> warnings = validate_collections_config(collections, Path("content"))
+            >>> for message, code in warnings:
+            ...     print(f"[{code}] Warning: {message}")
         [N015] Warning: Collection 'blog' directory does not exist: content/blog
-
+    
     Note:
         This performs filesystem checks and should be called during site
         initialization, not during hot-reload. Remote collections with
         ``loader`` but no ``directory`` are automatically skipped.
+        
     """
     warnings: list[tuple[str, str]] = []
 

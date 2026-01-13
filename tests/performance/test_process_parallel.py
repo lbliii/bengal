@@ -21,12 +21,13 @@ from bengal.rendering.pipeline import RenderingPipeline
 def render_page_process(args):
     """
     Render a single page in a separate process.
-
+    
     Args:
         args: Tuple of (site, page)
-
+    
     Returns:
         Tuple of (page_source_path, success, error_msg)
+        
     """
     site, page = args
 
@@ -47,9 +48,10 @@ def render_page_process(args):
 @pytest.mark.memory_intensive(limit_gb=1.0)
 def test_thread_vs_process_rendering():
     """Compare thread-based vs process-based rendering.
-
+    
     Marked slow: Creates and renders 1000 complex pages (~117s).
     Marked serial/parallel_unsafe: Uses ProcessPoolExecutor which conflicts with pytest-xdist.
+        
     """
 
     # Create test site

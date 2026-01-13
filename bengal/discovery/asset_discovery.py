@@ -5,18 +5,19 @@ This module provides the AssetDiscovery class that finds and organizes static
 assets (images, CSS, JavaScript, fonts, etc.) during site builds.
 
 Architecture:
-    AssetDiscovery follows Bengal's separation of concerns:
-    - Discovery ONLY finds files and creates Asset objects
-    - Asset processing (optimization, bundling, minification) is handled by
-      orchestrators in `bengal/orchestration/`
+AssetDiscovery follows Bengal's separation of concerns:
+- Discovery ONLY finds files and creates Asset objects
+- Asset processing (optimization, bundling, minification) is handled by
+  orchestrators in `bengal/orchestration/`
 
-    The class skips hidden files, temporary files (.tmp), and markdown files
-    to avoid including non-asset content.
+The class skips hidden files, temporary files (.tmp), and markdown files
+to avoid including non-asset content.
 
 Related:
-    - bengal/core/asset.py: Asset data model
-    - bengal/orchestration/asset_orchestrator.py: Asset processing
-    - bengal/discovery/__init__.py: Package exports
+- bengal/core/asset.py: Asset data model
+- bengal/orchestration/asset_orchestrator.py: Asset processing
+- bengal/discovery/__init__.py: Package exports
+
 """
 
 from __future__ import annotations
@@ -32,29 +33,30 @@ logger = get_logger(__name__)
 class AssetDiscovery:
     """
     Discovers static assets (images, CSS, JS, fonts, etc.).
-
+    
     This class is responsible ONLY for finding files and creating Asset objects.
     Asset processing logic (bundling, minification, optimization) is handled
     by orchestrators.
-
+    
     Filtering Behavior:
         - Skips hidden files and directories (starting with '.')
         - Skips temporary files (.tmp extension)
         - Skips markdown files (.md extension)
         - Creates the assets directory if it doesn't exist
-
+    
     Attributes:
         assets_dir: Root directory to scan for assets
         assets: List of discovered Asset objects (populated after discover())
-
+    
     Example:
-        >>> from bengal.discovery import AssetDiscovery
-        >>> from pathlib import Path
-        >>>
-        >>> discovery = AssetDiscovery(Path("static"))
-        >>> assets = discovery.discover()
-        >>> for asset in assets:
-        ...     print(f"{asset.source_path} -> {asset.output_path}")
+            >>> from bengal.discovery import AssetDiscovery
+            >>> from pathlib import Path
+            >>>
+            >>> discovery = AssetDiscovery(Path("static"))
+            >>> assets = discovery.discover()
+            >>> for asset in assets:
+            ...     print(f"{asset.source_path} -> {asset.output_path}")
+        
     """
 
     def __init__(self, assets_dir: Path) -> None:

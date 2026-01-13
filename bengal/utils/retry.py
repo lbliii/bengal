@@ -22,8 +22,9 @@ delay = calculate_backoff(attempt=2, base=0.5, max_delay=10.0)
 ```
 
 Related Modules:
-    - bengal.health.linkcheck.async_checker: Uses for HTTP retry
-    - bengal.utils.file_lock: Uses for lock acquisition retry
+- bengal.health.linkcheck.async_checker: Uses for HTTP retry
+- bengal.utils.file_lock: Uses for lock acquisition retry
+
 """
 
 from __future__ import annotations
@@ -45,22 +46,23 @@ def calculate_backoff(
 ) -> float:
     """
     Calculate exponential backoff delay with optional jitter.
-
+    
     Uses formula: base * (2 ^ attempt) with ±25% jitter.
-
+    
     Args:
         attempt: Current attempt number (0-indexed)
         base: Base delay in seconds
         max_delay: Maximum delay cap
         jitter: Add random jitter to prevent thundering herd
-
+    
     Returns:
         Delay in seconds
-
+    
     Examples:
-        >>> calculate_backoff(0, base=0.5)  # ~0.5s
-        >>> calculate_backoff(1, base=0.5)  # ~1.0s
-        >>> calculate_backoff(2, base=0.5)  # ~2.0s
+            >>> calculate_backoff(0, base=0.5)  # ~0.5s
+            >>> calculate_backoff(1, base=0.5)  # ~1.0s
+            >>> calculate_backoff(2, base=0.5)  # ~2.0s
+        
     """
     delay = base * (2**attempt)
     delay = min(delay, max_delay)
@@ -84,7 +86,7 @@ def retry_with_backoff(
 ) -> T:
     """
     Execute function with retry and exponential backoff.
-
+    
     Args:
         func: Function to execute (no arguments)
         retries: Maximum retry attempts
@@ -93,19 +95,20 @@ def retry_with_backoff(
         jitter: Add jitter to prevent thundering herd
         exceptions: Exception types to catch and retry
         on_retry: Optional callback(attempt, exception) on each retry
-
+    
     Returns:
         Result of successful function call
-
+    
     Raises:
         Last exception if all retries exhausted
-
+    
     Example:
-        >>> result = retry_with_backoff(
-        ...     lambda: requests.get(url),
-        ...     retries=3,
-        ...     exceptions=(ConnectionError,),
-        ... )
+            >>> result = retry_with_backoff(
+            ...     lambda: requests.get(url),
+            ...     retries=3,
+            ...     exceptions=(ConnectionError,),
+            ... )
+        
     """
     last_error: Exception | None = None
 
@@ -140,7 +143,7 @@ async def async_retry_with_backoff(
 ) -> T:
     """
     Execute async function with retry and exponential backoff.
-
+    
     Args:
         coro_func: Async function to execute (no arguments, returns awaitable)
         retries: Maximum retry attempts
@@ -149,19 +152,20 @@ async def async_retry_with_backoff(
         jitter: Add jitter to prevent thundering herd
         exceptions: Exception types to catch and retry
         on_retry: Optional callback(attempt, exception) on each retry
-
+    
     Returns:
         Result of successful coroutine
-
+    
     Raises:
         Last exception if all retries exhausted
-
+    
     Example:
-        >>> result = await async_retry_with_backoff(
-        ...     lambda: client.get(url),
-        ...     retries=3,
-        ...     exceptions=(httpx.TimeoutException,),
-        ... )
+            >>> result = await async_retry_with_backoff(
+            ...     lambda: client.get(url),
+            ...     retries=3,
+            ...     exceptions=(httpx.TimeoutException,),
+            ... )
+        
     """
     last_error: Exception | None = None
 

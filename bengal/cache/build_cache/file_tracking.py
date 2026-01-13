@@ -5,14 +5,15 @@ Provides methods for tracking file changes, hashing, and dependency management.
 Used as a mixin by the main BuildCache class.
 
 Key Concepts:
-    - File fingerprints: mtime + size for fast change detection
-    - SHA256 hashing: Reliable content change detection
-    - Dependency tracking: Template, partial, and data file dependencies
-    - Output tracking: Source → output file mapping for cleanup
+- File fingerprints: mtime + size for fast change detection
+- SHA256 hashing: Reliable content change detection
+- Dependency tracking: Template, partial, and data file dependencies
+- Output tracking: Source → output file mapping for cleanup
 
 Related Modules:
-    - bengal.cache.build_cache.core: Main BuildCache class
-    - bengal.orchestration.incremental: Incremental build logic
+- bengal.cache.build_cache.core: Main BuildCache class
+- bengal.orchestration.incremental: Incremental build logic
+
 """
 
 from __future__ import annotations
@@ -32,15 +33,16 @@ logger = get_logger(__name__)
 class FileTrackingMixin:
     """
     Mixin providing file tracking, hashing, and dependency management.
-
+    
     Requires these attributes on the host class:
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
-
+    
     Performance Optimization:
     - Added reverse_dependencies for O(1) affected pages lookup
     - get_affected_pages(): O(n) → O(1)
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

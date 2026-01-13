@@ -6,77 +6,78 @@ modules by responsibility. Functions are automatically registered with the
 template engine during site initialization.
 
 Engine-Agnostic:
-    These functions work with any template engine that provides a globals/filters
-    interface (Jinja2, Kida, or custom engines via the adapter layer).
+These functions work with any template engine that provides a globals/filters
+interface (Jinja2, Kida, or custom engines via the adapter layer).
 
 Architecture:
-    Each submodule self-registers its functions via a ``register(env, site)``
-    function, following the Single Responsibility Principle. The main
-    ``register_all()`` function coordinates registration in dependency order.
+Each submodule self-registers its functions via a ``register(env, site)``
+function, following the Single Responsibility Principle. The main
+``register_all()`` function coordinates registration in dependency order.
 
 Function Categories:
-    Phase 1 - Essential (30 functions):
-        - strings: Text manipulation (truncate, slugify, titlecase, etc.)
-        - collections: List/dict operations (sort_by, group_by, filter, etc.)
-        - math_functions: Numeric operations (add, multiply, round, etc.)
-        - dates: Date formatting and manipulation
-        - urls: URL construction and manipulation
-        - get_page: Page lookup by path
+Phase 1 - Essential (30 functions):
+    - strings: Text manipulation (truncate, slugify, titlecase, etc.)
+    - collections: List/dict operations (sort_by, group_by, filter, etc.)
+    - math_functions: Numeric operations (add, multiply, round, etc.)
+    - dates: Date formatting and manipulation
+    - urls: URL construction and manipulation
+    - get_page: Page lookup by path
 
-    Phase 2 - Advanced (25 functions):
-        - content: Content processing (markdown, highlight, excerpt)
-        - data: Data file loading (yaml, json, csv)
-        - advanced_strings: Regex, pluralization, translations
-        - files: File operations (read, glob, exists)
-        - advanced_collections: Chunking, pagination, tree operations
+Phase 2 - Advanced (25 functions):
+    - content: Content processing (markdown, highlight, excerpt)
+    - data: Data file loading (yaml, json, csv)
+    - advanced_strings: Regex, pluralization, translations
+    - files: File operations (read, glob, exists)
+    - advanced_collections: Chunking, pagination, tree operations
 
-    Phase 3 - Specialized (20 functions):
-        - images: Image processing and optimization
-        - icons: Icon libraries (FontAwesome, Material, etc.)
-        - seo: Meta tags, Open Graph, structured data
-        - debug: Development helpers (dump, inspect, type)
-        - taxonomies: Tag and category operations
-        - pagination_helpers: Pagination rendering
-        - i18n: Internationalization support
+Phase 3 - Specialized (20 functions):
+    - images: Image processing and optimization
+    - icons: Icon libraries (FontAwesome, Material, etc.)
+    - seo: Meta tags, Open Graph, structured data
+    - debug: Development helpers (dump, inspect, type)
+    - taxonomies: Tag and category operations
+    - pagination_helpers: Pagination rendering
+    - i18n: Internationalization support
 
-    Phase 4 - Cross-References (5 functions):
-        - crossref: Internal linking between pages
+Phase 4 - Cross-References (5 functions):
+    - crossref: Internal linking between pages
 
-    Phase 5 - Navigation:
-        - navigation/: Breadcrumbs, TOC, auto-nav, tree building
+Phase 5 - Navigation:
+    - navigation/: Breadcrumbs, TOC, auto-nav, tree building
 
-    Phase 6 - Theme:
-        - theme: Asset URLs, theme configuration access
+Phase 6 - Theme:
+    - theme: Asset URLs, theme configuration access
 
-    Phase 7 - Autodoc:
-        - autodoc: API documentation helpers
+Phase 7 - Autodoc:
+    - autodoc: API documentation helpers
 
-    Phase 8 - Tests:
-        - template_tests: Template test functions (match, draft, featured)
+Phase 8 - Tests:
+    - template_tests: Template test functions (match, draft, featured)
 
-    Phase 9 - Versioning:
-        - version_url: Smart version switching URLs
+Phase 9 - Versioning:
+    - version_url: Smart version switching URLs
 
 Usage in Templates:
-    Functions are available directly in templates:
+Functions are available directly in templates:
 
-    .. code-block:: jinja
+.. code-block:: jinja
 
-        {{ page.content | markdown | safe }}
-        {{ pages | sort_by('date', reverse=True) }}
-        {{ site.pages | where('draft', false) }}
-        {% set data = load_data('data/config.yaml') %}
+    {{ page.content | markdown | safe }}
+    {{ pages | sort_by('date', reverse=True) }}
+    {{ site.pages | where('draft', false) }}
+    {% set data = load_data('data/config.yaml') %}
 
 Registration:
-    Called automatically by the template engine:
+Called automatically by the template engine:
 
     >>> from bengal.rendering.template_functions import register_all
     >>> register_all(env, site)
 
 Related Modules:
-    - bengal.rendering.engines: Template engines that use these functions
-    - bengal.rendering.template_tests: Template test registrations
-    - bengal.rendering.template_context: Context wrappers for templates
+- bengal.rendering.engines: Template engines that use these functions
+- bengal.rendering.template_tests: Template test registrations
+- bengal.rendering.template_context: Context wrappers for templates
+
 """
 
 from __future__ import annotations
@@ -130,19 +131,20 @@ logger = get_logger(__name__)
 def register_all(env: TemplateEnvironment, site: Site, engine_type: str | None = None) -> None:
     """
     Register all template functions with template environment.
-
+    
     This is a thin coordinator - each module handles its own registration
     following the Single Responsibility Principle.
-
+    
     Non-context-dependent functions are registered directly by their modules.
     Context-dependent functions (t, current_lang, tag_url, asset_url) are
     registered by the adapter layer (see bengal.rendering.adapters).
-
+    
     Args:
         env: Template environment to register functions with
         site: Site instance for context-aware functions
         engine_type: Engine type for adapter selection (auto-detected if None).
                      If provided, also registers context-dependent functions.
+        
     """
     logger.debug("registering_template_functions", phase="template_setup")
 

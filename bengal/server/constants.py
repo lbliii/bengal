@@ -6,14 +6,15 @@ across all dev server components. Changes here propagate to documentation,
 CLI defaults, and runtime behavior.
 
 Constants:
-    DEFAULT_DEV_HOST: Default hostname for the dev server (localhost)
-    DEFAULT_DEV_PORT: Default port number (5173, matches Vite convention)
-    LIVE_RELOAD_PATH: SSE endpoint path for live reload connections
+DEFAULT_DEV_HOST: Default hostname for the dev server (localhost)
+DEFAULT_DEV_PORT: Default port number (5173, matches Vite convention)
+LIVE_RELOAD_PATH: SSE endpoint path for live reload connections
 
 Related:
-    - bengal/server/dev_server.py: Uses these defaults for server initialization
-    - bengal/server/live_reload.py: Uses LIVE_RELOAD_PATH for SSE endpoint
-    - bengal/cli/serve.py: CLI exposes these as default argument values
+- bengal/server/dev_server.py: Uses these defaults for server initialization
+- bengal/server/live_reload.py: Uses LIVE_RELOAD_PATH for SSE endpoint
+- bengal/cli/serve.py: CLI exposes these as default argument values
+
 """
 
 from __future__ import annotations

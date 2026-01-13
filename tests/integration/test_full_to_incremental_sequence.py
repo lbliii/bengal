@@ -25,6 +25,7 @@ class TestIncrementalSequence:
     """
     Integration tests for full-to-incremental build sequences.
     Marked slow due to multiple full builds and file watching simulation.
+        
     """
 
     @pytest.fixture(autouse=True)
@@ -188,8 +189,9 @@ Modified content (updated).""")
 @pytest.mark.slow
 class TestIncrementalBuildRegression:
     """Regression tests for specific incremental build bugs.
-
+    
     Marked slow due to multiple full + incremental build sequences.
+        
     """
 
     def test_bug_cache_not_saved_after_full_build(self, tmp_path):

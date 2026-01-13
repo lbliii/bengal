@@ -4,25 +4,26 @@ Adds support for checkbox task lists.
 
 Usage:
     >>> md = create_markdown(plugins=["task_lists"])
-    >>> md("- [ ] Unchecked\\n- [x] Checked")
+    >>> md("- [ ] Unchecked\n- [x] Checked")
     '<ul><li class="task-list-item"><input type="checkbox" disabled> Unchecked</li>...'
 
 Syntax:
-    - [ ] Unchecked task
-    - [x] Checked task
-    - [X] Also checked (uppercase)
+- [ ] Unchecked task
+- [x] Checked task
+- [X] Also checked (uppercase)
 
-    Works with ordered lists too:
-    1. [ ] First task
-    2. [x] Second task
+Works with ordered lists too:
+1. [ ] First task
+2. [x] Second task
 
 Notes:
-    - Checkboxes are rendered disabled by default
-    - The ListItem node has a `checked` field (True/False/None)
-    - Task list support is enabled by default in core parser
+- Checkboxes are rendered disabled by default
+- The ListItem node has a `checked` field (True/False/None)
+- Task list support is enabled by default in core parser
 
 Thread Safety:
-    This plugin is stateless and thread-safe.
+This plugin is stateless and thread-safe.
+
 """
 
 from __future__ import annotations
@@ -40,9 +41,10 @@ if TYPE_CHECKING:
 @register_plugin("task_lists")
 class TaskListPlugin:
     """Plugin for task list checkbox support.
-
+    
     Task lists are partially built into the core parser via the
     ListItem.checked field. This plugin enables checkbox detection.
+        
     """
 
     @property

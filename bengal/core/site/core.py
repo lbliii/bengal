@@ -6,33 +6,34 @@ assets, themes, and the build process. Site is the primary entry point for
 building and serving Bengal sites.
 
 Public API:
-    Site: Central container with build(), serve(), and clean() methods
+Site: Central container with build(), serve(), and clean() methods
 
 Key Responsibilities:
-    Content Organization: Manages pages, sections, and assets in hierarchy
-    Build Coordination: site.build() orchestrates full build pipeline
-    Dev Server: site.serve() provides live-reload development server
-    Theme Integration: Resolves theme chains for template/asset lookup
-    Query Interfaces: Provides taxonomy, menu, and page query APIs
+Content Organization: Manages pages, sections, and assets in hierarchy
+Build Coordination: site.build() orchestrates full build pipeline
+Dev Server: site.serve() provides live-reload development server
+Theme Integration: Resolves theme chains for template/asset lookup
+Query Interfaces: Provides taxonomy, menu, and page query APIs
 
 Mixin Architecture:
-    Site is composed of focused mixins for separation of concerns:
-    - SitePropertiesMixin: Config property accessors
-    - PageCachesMixin: Cached page lists
-    - SiteFactoriesMixin: Factory methods (from_config, for_testing)
-    - ContentDiscoveryMixin: Content/asset discovery
-    - ThemeIntegrationMixin: Theme resolution
-    - DataLoadingMixin: data/ directory loading
-    - SectionRegistryMixin: O(1) section lookups
+Site is composed of focused mixins for separation of concerns:
+- SitePropertiesMixin: Config property accessors
+- PageCachesMixin: Cached page lists
+- SiteFactoriesMixin: Factory methods (from_config, for_testing)
+- ContentDiscoveryMixin: Content/asset discovery
+- ThemeIntegrationMixin: Theme resolution
+- DataLoadingMixin: data/ directory loading
+- SectionRegistryMixin: O(1) section lookups
 
 Caching Strategy:
-    Expensive computations (page lists, section lookups) are cached and
-    invalidated when content changes via invalidate_page_caches().
+Expensive computations (page lists, section lookups) are cached and
+invalidated when content changes via invalidate_page_caches().
 
 Related Packages:
-    bengal.orchestration.build: Build phase orchestration
-    bengal.rendering.template_engine: Template rendering with Site context
-    bengal.cache.build_cache: Build state persistence
+bengal.orchestration.build: Build phase orchestration
+bengal.rendering.template_engine: Template rendering with Site context
+bengal.cache.build_cache: Build state persistence
+
 """
 
 from __future__ import annotations
@@ -84,18 +85,18 @@ class Site(
 ):
     """
     Represents the entire website and orchestrates the build process.
-
+    
     Creation:
         Recommended: Site.from_config(root_path)
             - Loads configuration from bengal.toml
             - Applies all settings automatically
             - Use for production builds and CLI
-
+    
         Direct instantiation: Site(root_path=path, config=config)
             - For unit testing with controlled state
             - For programmatic config manipulation
             - Advanced use case only
-
+    
     Attributes:
         root_path: Root directory of the site
         config: Site configuration dictionary (from bengal.toml or explicit)
@@ -106,21 +107,22 @@ class Site(
         output_dir: Output directory for built site
         build_time: Timestamp of the last build
         taxonomies: Collected taxonomies (tags, categories, etc.)
-
+    
     Examples:
         # Production/CLI (recommended):
         site = Site.from_config(Path('/path/to/site'))
-
+    
         # Unit testing:
         site = Site(root_path=Path('/test'), config={})
         site.pages = [test_page1, test_page2]
-
+    
         # Programmatic config:
         from bengal.config import UnifiedConfigLoader
         loader = UnifiedConfigLoader()
         config = loader.load(path)
         # Note: config is now a Config object, use config.raw for dict access
         site = Site(root_path=path, config=config)
+        
     """
 
     root_path: Path

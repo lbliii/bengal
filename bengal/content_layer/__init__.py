@@ -43,15 +43,16 @@ collections = {
 ```
 
 Installation:
-    pip install bengal              # Local-only (default)
-    pip install bengal[github]      # + GitHub source
-    pip install bengal[notion]      # + Notion source
-    pip install bengal[all-sources] # All remote sources
+pip install bengal              # Local-only (default)
+pip install bengal[github]      # + GitHub source
+pip install bengal[notion]      # + Notion source
+pip install bengal[all-sources] # All remote sources
 
 Related:
-    - bengal/collections/: Content collections with schema validation
-    - bengal/discovery/: Content discovery (uses content layer internally)
-    - plan/active/rfc-content-layer-api.md: Design document
+- bengal/collections/: Content collections with schema validation
+- bengal/discovery/: Content discovery (uses content layer internally)
+- plan/active/rfc-content-layer-api.md: Design document
+
 """
 
 from __future__ import annotations

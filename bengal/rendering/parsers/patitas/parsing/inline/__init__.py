@@ -11,8 +11,9 @@ Provides mixins for parsing inline Markdown content:
 - Strikethrough (~~)
 
 Architecture:
-    Uses CommonMark delimiter stack algorithm for proper emphasis parsing.
-    See: https://spec.commonmark.org/0.31.2/#emphasis-and-strong-emphasis
+Uses CommonMark delimiter stack algorithm for proper emphasis parsing.
+See: https://spec.commonmark.org/0.31.2/#emphasis-and-strong-emphasis
+
 """
 
 from __future__ import annotations
@@ -43,16 +44,17 @@ class InlineParsingMixin(
     SpecialInlineMixin,
 ):
     """Combined inline parsing mixin.
-
+    
     Combines all inline parsing functionality into a single mixin
     that can be inherited by the Parser class.
-
+    
     Required Host Attributes:
         - _source: str
         - _math_enabled: bool
         - _strikethrough_enabled: bool
         - _footnotes_enabled: bool
         - _link_refs: dict[str, tuple[str, str]]
+        
     """
 
     pass

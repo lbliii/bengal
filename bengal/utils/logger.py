@@ -117,10 +117,11 @@ class LogEvent:
 class BengalLogger:
     """
     Phase-aware structured logger for Bengal builds.
-
+    
     Tracks build phases, emits structured events, and provides
     timing information. All logs are written to both console
     and a build log file.
+        
     """
 
     def __init__(
@@ -569,15 +570,16 @@ def _get_actual_logger(name: str) -> BengalLogger:
 class LazyLogger:
     """
     Transparent proxy for BengalLogger that tracks registry resets.
-
+    
     Module-level `logger = get_logger(__name__)` references hold this proxy.
     When `reset_loggers()` is called, the registry version increments and
     the proxy will fetch a fresh logger on next access.
-
+    
     Attributes:
         _name: The logger name to fetch.
         _real_logger: Cached reference to the actual logger.
         _version: The registry version when the logger was cached.
+        
     """
 
     __slots__ = ("_name", "_real_logger", "_version")
@@ -612,12 +614,13 @@ def configure_logging(
 ) -> None:
     """
     Configure global logging settings.
-
+    
     Args:
         level: Minimum log level to emit
         log_file: Path to log file
         verbose: Show verbose output
         track_memory: Enable memory profiling (adds overhead)
+        
     """
     _global_config["level"] = level
     _global_config["log_file"] = log_file
@@ -664,19 +667,20 @@ def configure_logging(
 def get_logger(name: str) -> BengalLogger:
     """
     Get a logger proxy for the given name.
-
+    
     Returns a LazyLogger proxy that automatically refreshes when
     reset_loggers() is called. This ensures module-level logger
     references never become stale.
-
+    
     The proxy is cached, so calling get_logger() with the same name
     returns the same proxy instance.
-
+    
     Args:
         name: Logger name (typically __name__)
-
+    
     Returns:
         LazyLogger proxy (type-compatible with BengalLogger)
+        
     """
     if name not in _lazy_loggers:
         _lazy_loggers[name] = LazyLogger(name)
@@ -686,12 +690,13 @@ def get_logger(name: str) -> BengalLogger:
 def set_console_quiet(quiet: bool = True) -> None:
     """
     Enable or disable console output for all loggers.
-
+    
     Used by live progress manager to suppress structured log events
     while preserving file logging for debugging.
-
+    
     Args:
         quiet: If True, suppress console output; if False, enable it
+        
     """
     _global_config["quiet_console"] = quiet
 

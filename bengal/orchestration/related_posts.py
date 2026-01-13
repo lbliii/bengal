@@ -6,31 +6,32 @@ O(1) template access at render time. Uses tag-based matching to identify
 content relationships.
 
 Algorithm:
-    For each page with tags, finds other pages that share tags and scores
-    them by the number of shared tags. Higher scores indicate stronger
-    relevance. The top N related posts are stored on each page.
+For each page with tags, finds other pages that share tags and scores
+them by the number of shared tags. Higher scores indicate stronger
+relevance. The top N related posts are stored on each page.
 
 Performance:
-    Build-time: O(n·t) where n=pages and t=average tags per page
-    Render-time: O(1) - pre-computed list on page.related_posts
+Build-time: O(n·t) where n=pages and t=average tags per page
+Render-time: O(1) - pre-computed list on page.related_posts
 
-    This moves expensive computation from render-time O(n²) to build-time,
-    resulting in significant performance improvement for template access.
+This moves expensive computation from render-time O(n²) to build-time,
+resulting in significant performance improvement for template access.
 
-    Parallel processing is used for sites with 100+ pages to avoid thread
-    pool overhead on smaller sites.
+Parallel processing is used for sites with 100+ pages to avoid thread
+pool overhead on smaller sites.
 
 Usage in Templates:
-    {% for post in page.related_posts %}
-      <a href="{{ post.href }}">{{ post.title }}</a>
-    {% endfor %}
+{% for post in page.related_posts %}
+  <a href="{{ post.href }}">{{ post.title }}</a>
+{% endfor %}
 
 Related Modules:
-    bengal.core.page: Page model with related_posts attribute
-    bengal.orchestration.build: Calls this during Phase 10
+bengal.core.page: Page model with related_posts attribute
+bengal.orchestration.build: Calls this during Phase 10
 
 See Also:
-    bengal.orchestration.taxonomy: Provides taxonomy index used for matching
+bengal.orchestration.taxonomy: Provides taxonomy index used for matching
+
 """
 
 from __future__ import annotations
@@ -55,35 +56,36 @@ if TYPE_CHECKING:
 class RelatedPostsOrchestrator:
     """
     Builds related posts relationships during the build phase.
-
+    
     Uses the taxonomy index for efficient tag-based matching. For each page,
     finds other pages with overlapping tags and scores by shared tag count.
-
+    
     Complexity:
         Build: O(n·t) where n=pages, t=average tags per page (typically 2-5)
         Access: O(1) via page.related_posts attribute
-
+    
     Creation:
         Direct instantiation: RelatedPostsOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with taxonomies populated
-
+    
     Attributes:
         site: Site instance containing pages and taxonomies
-
+    
     Relationships:
         - Uses: site.taxonomies['tags'] for tag-to-page mapping
         - Updates: page.related_posts for each processed page
         - Used by: BuildOrchestrator for Phase 10 (related posts)
-
+    
     Thread Safety:
         Supports parallel processing for sites with 100+ pages.
         Each page's computation is independent and thread-safe.
-
+    
     Example:
         orchestrator = RelatedPostsOrchestrator(site)
         orchestrator.build_index(limit=5, parallel=True)
         # page.related_posts now contains list of related Page objects
+        
     """
 
     def __init__(self, site: Site):

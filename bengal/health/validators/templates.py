@@ -11,14 +11,15 @@ Key features:
 - CLI integration for validation commands
 
 Architecture:
-    This module consolidates template validation that was previously in
-    rendering/validator.py. The TemplateValidator class contains the core logic,
-    while validate_templates() provides CLI integration.
+This module consolidates template validation that was previously in
+rendering/validator.py. The TemplateValidator class contains the core logic,
+while validate_templates() provides CLI integration.
 
 Related:
-    - bengal/health/validators/__init__.py: Validator exports
-    - bengal/rendering/engines/jinja.py: TemplateEngine.validate_templates()
-    - plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
+- bengal/health/validators/__init__.py: Validator exports
+- bengal/rendering/engines/jinja.py: TemplateEngine.validate_templates()
+- plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
+
 """
 
 from __future__ import annotations
@@ -38,15 +39,16 @@ logger = get_logger(__name__)
 class TemplateValidator:
     """
     Validates templates for syntax errors and missing dependencies.
-
+    
     This validator checks Jinja2 templates for:
     - Syntax errors (unclosed tags, invalid expressions)
     - Missing included templates
     - Invalid extends references
-
+    
     Attributes:
         template_engine: TemplateEngine instance to validate
         env: Jinja2 environment from the template engine
+        
     """
 
     def __init__(self, template_engine: Any) -> None:
@@ -175,14 +177,15 @@ class TemplateValidator:
 def validate_templates(template_engine: Any) -> int:
     """
     Validate all templates and display results.
-
+    
     This is the main entry point for CLI template validation.
-
+    
     Args:
         template_engine: TemplateEngine instance
-
+    
     Returns:
         Number of errors found
+        
     """
     click.echo(click.style("\n🔍 Validating templates...\n", fg="cyan", bold=True))
 

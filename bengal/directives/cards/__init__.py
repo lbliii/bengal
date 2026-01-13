@@ -6,9 +6,9 @@ Provides a modern, simple card grid system with auto-layout and responsive colum
 This is a package containing the cards, card, and child-cards directives.
 
 Components:
-    - CardsDirective: Grid container for cards
-    - CardDirective: Individual card with optional link, icon, image
-    - ChildCardsDirective: Auto-generate cards from child sections/pages
+- CardsDirective: Grid container for cards
+- CardDirective: Individual card with optional link, icon, image
+- ChildCardsDirective: Auto-generate cards from child sections/pages
 
 Syntax (preferred - named closers):
 
@@ -26,6 +26,7 @@ Card content with **markdown** support.
 :::{/card}
 :::{/cards}
 ```
+
 """
 
 from __future__ import annotations

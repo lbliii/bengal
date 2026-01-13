@@ -3,12 +3,13 @@
 Renders typed AST to HTML with O(n) performance using StringBuilder.
 
 Thread Safety:
-    All state is local to each render() call.
-    Multiple threads can render concurrently without synchronization.
+All state is local to each render() call.
+Multiple threads can render concurrently without synchronization.
 
 Single-Pass Heading Decoration:
-    Heading IDs are generated during the AST walk, eliminating the need for
-    regex-based post-processing. TOC data is collected during rendering.
+Heading IDs are generated during the AST walk, eliminating the need for
+regex-based post-processing. TOC data is collected during rendering.
+
 """
 
 from __future__ import annotations
@@ -62,9 +63,10 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class HeadingInfo:
     """Heading metadata collected during rendering.
-
+    
     Used to build TOC without post-render regex scanning.
     Collected by HtmlRenderer during the AST walk.
+        
     """
 
     level: int
@@ -74,20 +76,21 @@ class HeadingInfo:
 
 class HtmlRenderer:
     """Render AST to HTML using StringBuilder pattern.
-
+    
     O(n) rendering using StringBuilder for string accumulation.
     All state is local to each render() call.
-
+    
     Usage:
-        >>> from bengal.rendering.parsers.patitas import parse_to_ast
-        >>> ast = parse_to_ast("# Hello **World**")
-        >>> renderer = HtmlRenderer()
-        >>> html = renderer.render(ast)
-        '<h1>Hello <strong>World</strong></h1>\\n'
-
+            >>> from bengal.rendering.parsers.patitas import parse_to_ast
+            >>> ast = parse_to_ast("# Hello **World**")
+            >>> renderer = HtmlRenderer()
+            >>> html = renderer.render(ast)
+            '<h1>Hello <strong>World</strong></h1>\n'
+    
     Thread Safety:
         Multiple threads can render concurrently without synchronization.
         Each call creates independent StringBuilder.
+        
     """
 
     __slots__ = (
@@ -801,13 +804,14 @@ class HtmlRenderer:
 
 def _escape_html(text: str) -> str:
     """Escape HTML special characters for text content.
-
+    
     Per CommonMark spec:
     - < > & must be escaped (XSS prevention)
     - " should be escaped to &quot; (for safety)
     - ' should remain literal in text content (not &#x27;)
-
-    Also strips internal \x00 markers used for lazy continuation escaping.
+    
+    Also strips internal   markers used for lazy continuation escaping.
+        
     """
     # Strip internal \x00 markers (used to prevent block element detection in lazy continuation)
     text = text.replace("\x00", "")
@@ -825,14 +829,15 @@ def _escape_attr(text: str) -> str:
 
 def _encode_url(url: str) -> str:
     """Encode URL for use in href attribute per CommonMark spec.
-
+    
     CommonMark requires:
     1. Percent-encoding of special characters in URLs (space, backslash, etc.)
     2. HTML escaping of characters that are special in HTML (& → &amp;)
-
+    
     The final output goes in an HTML attribute, so we need both:
     - URL percent-encoding for URL-special characters
     - HTML escaping for HTML-special characters (&, <, >, ", ')
+        
     """
     import html
     from urllib.parse import quote
@@ -878,9 +883,10 @@ def _encode_url(url: str) -> str:
 
 def _escape_link_title(title: str) -> str:
     """Escape link title for use in title attribute per CommonMark spec.
-
+    
     Titles use HTML escaping but must also decode HTML entities first.
     E.g., &quot; in source becomes " which then becomes &quot; in output.
+        
     """
     import html
 
@@ -891,8 +897,9 @@ def _escape_link_title(title: str) -> str:
 
 def _default_slugify(text: str) -> str:
     """Default slugify function for heading IDs.
-
+    
     Uses bengal.utils.text.slugify with HTML unescaping enabled.
+        
     """
     from bengal.utils.text import slugify
 

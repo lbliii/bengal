@@ -228,8 +228,9 @@ class TestChangeDetectorTemplates:
 class TestVersionScopeFiltering:
     """
     Test version-scoped page filtering.
-
+    
     RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+        
     """
 
     @pytest.fixture

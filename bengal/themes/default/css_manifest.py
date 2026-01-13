@@ -6,24 +6,25 @@ The CSSOptimizer uses this manifest to generate minimal style.css
 bundles based on what content types and features are actually used.
 
 Categories:
-    CSS_CORE: Always included (site won't render without these)
-    CSS_SHARED: Common components used across most content types
-    CSS_TYPE_MAP: Content-type-specific CSS
-    CSS_FEATURE_MAP: Feature-specific CSS (enabled by content or config)
-    CSS_PALETTES: Color theme presets
+CSS_CORE: Always included (site won't render without these)
+CSS_SHARED: Common components used across most content types
+CSS_TYPE_MAP: Content-type-specific CSS
+CSS_FEATURE_MAP: Feature-specific CSS (enabled by content or config)
+CSS_PALETTES: Color theme presets
 
 Usage:
-    from bengal.themes.default.css_manifest import (
-        CSS_CORE,
-        CSS_SHARED,
-        CSS_TYPE_MAP,
-        CSS_FEATURE_MAP,
-        CSS_PALETTES,
-    )
+from bengal.themes.default.css_manifest import (
+    CSS_CORE,
+    CSS_SHARED,
+    CSS_TYPE_MAP,
+    CSS_FEATURE_MAP,
+    CSS_PALETTES,
+)
 
 See Also:
-    - bengal/orchestration/css_optimizer.py: CSSOptimizer that consumes this
-    - plan/drafted/rfc-css-tree-shaking.md: Design rationale
+- bengal/orchestration/css_optimizer.py: CSSOptimizer that consumes this
+- plan/drafted/rfc-css-tree-shaking.md: Design rationale
+
 """
 
 from __future__ import annotations

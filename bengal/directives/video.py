@@ -5,23 +5,24 @@ Provides directives for embedding videos from YouTube, Vimeo, TikTok, and self-h
 sources with privacy-by-default, accessibility requirements, and responsive design.
 
 Architecture:
-    - VideoDirective: Abstract base class for video embeds
-    - YouTubeDirective: YouTube with privacy-enhanced mode (youtube-nocookie.com)
-    - VimeoDirective: Vimeo with Do Not Track mode
-    - TikTokDirective: TikTok short-form video embeds
-    - SelfHostedVideoDirective: Native HTML5 video for local files
+- VideoDirective: Abstract base class for video embeds
+- YouTubeDirective: YouTube with privacy-enhanced mode (youtube-nocookie.com)
+- VimeoDirective: Vimeo with Do Not Track mode
+- TikTokDirective: TikTok short-form video embeds
+- SelfHostedVideoDirective: Native HTML5 video for local files
 
 Security:
-    All video IDs are validated via regex patterns to prevent XSS and injection.
-    Iframe embeds use appropriate sandbox attributes and CSP-friendly URLs.
+All video IDs are validated via regex patterns to prevent XSS and injection.
+Iframe embeds use appropriate sandbox attributes and CSP-friendly URLs.
 
 Accessibility:
-    Title is required for all embeds to meet WCAG 2.1 AA requirements.
-    Fallback content provided for users without JavaScript/iframe support.
+Title is required for all embeds to meet WCAG 2.1 AA requirements.
+Fallback content provided for users without JavaScript/iframe support.
 
 Related:
-    - bengal/rendering/plugins/directives/base.py: BengalDirective
-    - RFC: plan/active/rfc-media-embed-directives.md
+- bengal/rendering/plugins/directives/base.py: BengalDirective
+- RFC: plan/active/rfc-media-embed-directives.md
+
 """
 
 from __future__ import annotations
@@ -61,7 +62,7 @@ __all__ = [
 class VideoOptions(DirectiveOptions):
     """
     Common options for all video directives.
-
+    
     Attributes:
         title: Required - Accessible title for iframe/video (WCAG requirement)
         width: Container width (e.g., "100%", "800px", "80%"). Default: "100%"
@@ -70,7 +71,7 @@ class VideoOptions(DirectiveOptions):
         autoplay: Auto-start video (not recommended for accessibility)
         loop: Loop video playback
         muted: Start video muted
-
+    
     Example:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
@@ -78,6 +79,7 @@ class VideoOptions(DirectiveOptions):
         :aspect: 16/9
         :autoplay: false
         :::
+        
     """
 
     title: str = ""
@@ -94,17 +96,18 @@ class VideoOptions(DirectiveOptions):
 class VideoDirective(BengalDirective):
     """
     Abstract base class for video embed directives.
-
+    
     Provides common functionality for all video embeds:
     - URL/ID validation via subclass patterns
     - Responsive container with aspect ratio
     - Accessibility requirements (title required)
     - Shared rendering utilities
-
+    
     Subclass Requirements:
         ID_PATTERN: Compiled regex for validating video source
         validate_source(): Validate and return error or None
         build_embed_url(): Build the embed URL from source and options
+        
     """
 
     # Subclass must define these
@@ -153,7 +156,7 @@ class VideoDirective(BengalDirective):
 class YouTubeOptions(VideoOptions):
     """
     Options for YouTube video embed.
-
+    
     Attributes:
         title: Required - Accessible title for iframe
         start: Start time in seconds
@@ -161,13 +164,14 @@ class YouTubeOptions(VideoOptions):
         privacy: Use youtube-nocookie.com (default: true for GDPR compliance)
         controls: Show player controls
         aspect: Aspect ratio (default: 16/9)
-
+    
     Example:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
         :start: 30
         :privacy: true
         :::
+        
     """
 
     start: int = 0
@@ -181,17 +185,17 @@ class YouTubeOptions(VideoOptions):
 class YouTubeDirective(VideoDirective):
     """
     YouTube video embed directive with privacy-enhanced mode.
-
+    
     Uses youtube-nocookie.com by default for GDPR compliance.
     Validates YouTube video IDs (11 alphanumeric characters).
-
+    
     Syntax:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
         :start: 30
         :privacy: true
         :::
-
+    
     Options:
         :title: (required) Accessible title for iframe
         :start: Start time in seconds
@@ -203,17 +207,18 @@ class YouTubeDirective(VideoDirective):
         :muted: Start muted (default: false)
         :aspect: Aspect ratio (default: 16/9)
         :class: Additional CSS classes
-
+    
     Output:
         <div class="video-embed youtube" data-aspect="16/9">
           <iframe src="https://www.youtube-nocookie.com/embed/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
         </div>
-
+    
     Security:
         - Video ID validated via regex (11 alphanumeric + _ -)
         - XSS prevention via strict ID validation
         - Privacy mode uses youtube-nocookie.com domain
+        
     """
 
     NAMES: ClassVar[list[str]] = ["youtube"]
@@ -344,7 +349,7 @@ class YouTubeDirective(VideoDirective):
 class VimeoOptions(VideoOptions):
     """
     Options for Vimeo video embed.
-
+    
     Attributes:
         title: Required - Accessible title for iframe
         color: Player accent color (hex without #)
@@ -352,13 +357,14 @@ class VimeoOptions(VideoOptions):
         dnt: Do Not Track mode (default: true for privacy)
         background: Background mode - no controls (default: false)
         aspect: Aspect ratio (default: 16/9)
-
+    
     Example:
         :::{vimeo} 123456789
         :title: My Vimeo Video
         :color: ff0000
         :dnt: true
         :::
+        
     """
 
     color: str = ""
@@ -372,16 +378,16 @@ class VimeoOptions(VideoOptions):
 class VimeoDirective(VideoDirective):
     """
     Vimeo video embed directive with Do Not Track mode.
-
+    
     Uses dnt=1 by default for privacy compliance.
     Validates Vimeo video IDs (6-11 digits).
-
+    
     Syntax:
         :::{vimeo} 123456789
         :title: My Vimeo Video
         :color: ff0000
         :::
-
+    
     Options:
         :title: (required) Accessible title for iframe
         :color: Player accent color (hex without #)
@@ -393,10 +399,11 @@ class VimeoDirective(VideoDirective):
         :muted: Start muted (default: false)
         :aspect: Aspect ratio (default: 16/9)
         :class: Additional CSS classes
-
+    
     Security:
         - Video ID validated via regex (6-11 digits)
         - DNT mode respects user privacy preferences
+        
     """
 
     NAMES: ClassVar[list[str]] = ["vimeo"]
@@ -527,7 +534,7 @@ class VimeoDirective(VideoDirective):
 class SelfHostedVideoOptions(VideoOptions):
     """
     Options for self-hosted video embed.
-
+    
     Attributes:
         title: Required - Accessible title for video element
         poster: Poster image URL
@@ -535,13 +542,14 @@ class SelfHostedVideoOptions(VideoOptions):
         preload: Preload mode - none, metadata, auto (default: metadata)
         width: Video width (px or %)
         aspect: Aspect ratio (default: 16/9)
-
+    
     Example:
         :::{video} /assets/demo.mp4
         :title: Product Demo
         :poster: /assets/demo-poster.jpg
         :controls: true
         :::
+        
     """
 
     poster: str = ""
@@ -558,17 +566,17 @@ class SelfHostedVideoOptions(VideoOptions):
 class SelfHostedVideoDirective(VideoDirective):
     """
     Self-hosted video directive using HTML5 video element.
-
+    
     Provides native video playback for local or CDN-hosted video files.
     Supports poster images, controls, and accessibility requirements.
-
+    
     Syntax:
         :::{video} /assets/demo.mp4
         :title: Product Demo
         :poster: /assets/demo-poster.jpg
         :controls: true
         :::
-
+    
     Options:
         :title: (required) Accessible title for video
         :poster: Poster image URL shown before playback
@@ -580,7 +588,7 @@ class SelfHostedVideoDirective(VideoDirective):
         :width: Video width (default: 100%)
         :aspect: Aspect ratio (default: 16/9)
         :class: Additional CSS classes
-
+    
     Output:
         <figure class="video-embed self-hosted">
           <video title="..." controls preload="metadata">
@@ -588,12 +596,13 @@ class SelfHostedVideoDirective(VideoDirective):
             <p>Fallback text with download link</p>
           </video>
         </figure>
-
+    
     Supported formats (auto-detected from extension):
         - .mp4 (video/mp4)
         - .webm (video/webm)
         - .ogg (video/ogg)
         - .mov (video/quicktime)
+        
     """
 
     NAMES: ClassVar[list[str]] = ["video"]
@@ -746,16 +755,17 @@ class SelfHostedVideoDirective(VideoDirective):
 class TikTokOptions(VideoOptions):
     """
     Options for TikTok video embed.
-
+    
     Attributes:
         title: Required - Accessible title for iframe
         width: Container width (default: 100%)
         aspect: Aspect ratio (default: 9/16 for vertical TikTok videos)
-
+    
     Example:
         :::{tiktok} 7123456789012345678
         :title: Funny cat video
         :::
+        
     """
 
     # TikTok videos are typically vertical, so default to 9:16
@@ -767,15 +777,15 @@ class TikTokOptions(VideoOptions):
 class TikTokDirective(VideoDirective):
     """
     TikTok video embed directive.
-
+    
     Embeds TikTok videos using their iframe embed API.
     Validates TikTok video IDs (19 digits).
-
+    
     Syntax:
         :::{tiktok} 7123456789012345678
         :title: My TikTok Video
         :::
-
+    
     Options:
         :title: (required) Accessible title for iframe
         :width: Container width (default: 100%)
@@ -784,16 +794,17 @@ class TikTokDirective(VideoDirective):
         :loop: Loop video (default: false)
         :aspect: Aspect ratio (default: 9/16 for vertical videos)
         :class: Additional CSS classes
-
+    
     Output:
         <div class="video-embed tiktok" data-aspect="9/16">
           <iframe src="https://www.tiktok.com/embed/v2/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
         </div>
-
+    
     Security:
         - Video ID validated via regex (19 digits)
         - XSS prevention via strict ID validation
+        
     """
 
     NAMES: ClassVar[list[str]] = ["tiktok"]

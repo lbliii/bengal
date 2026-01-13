@@ -6,23 +6,23 @@ inspired by Obsidian's graph view. The visualizations are standalone HTML
 files that can be served alongside the site or used for offline analysis.
 
 Features:
-    - Force-directed graph layout with physics simulation
-    - Interactive node exploration (hover, click, drag)
-    - Search and filtering by page title, tags, or type
-    - Responsive design with zoom and pan
-    - Theme-aware styling (light/dark mode)
-    - Customizable node colors based on connectivity
+- Force-directed graph layout with physics simulation
+- Interactive node exploration (hover, click, drag)
+- Search and filtering by page title, tags, or type
+- Responsive design with zoom and pan
+- Theme-aware styling (light/dark mode)
+- Customizable node colors based on connectivity
 
 Node Types:
-    - Hub: Highly connected pages (large, prominent color)
-    - Regular: Normal pages
-    - Orphan: Pages with no incoming links (warning color)
-    - Generated: Taxonomy and other generated pages
+- Hub: Highly connected pages (large, prominent color)
+- Regular: Normal pages
+- Orphan: Pages with no incoming links (warning color)
+- Generated: Taxonomy and other generated pages
 
 Classes:
-    GraphNode: Data structure for visualization nodes
-    GraphEdge: Data structure for visualization edges
-    GraphVisualizer: Main visualization generator
+GraphNode: Data structure for visualization nodes
+GraphEdge: Data structure for visualization edges
+GraphVisualizer: Main visualization generator
 
 Example:
     >>> from bengal.analysis import KnowledgeGraph, GraphVisualizer
@@ -33,8 +33,9 @@ Example:
     >>> Path('public/graph.html').write_text(html)
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Graph data source
-    - bengal/themes/*/assets/css/style.css: Theme CSS variables
+- bengal/analysis/knowledge_graph.py: Graph data source
+- bengal/themes/*/assets/css/style.css: Theme CSS variables
+
 """
 
 from __future__ import annotations
@@ -62,7 +63,7 @@ _TEMPLATE_PATH = Path(__file__).parent / "templates" / "graph_visualizer.html"
 class GraphNode:
     """
     Node in the graph visualization.
-
+    
     Attributes:
         id: Unique identifier for the node
         label: Display label (page title)
@@ -75,6 +76,7 @@ class GraphNode:
         reading_time: Content depth (minutes to read)
         size: Visual size (based on connectivity + content depth)
         color: Node color (based on type or connectivity)
+        
     """
 
     id: str
@@ -94,11 +96,12 @@ class GraphNode:
 class GraphEdge:
     """
     Edge in the graph visualization.
-
+    
     Attributes:
         source: Source node ID
         target: Target node ID
         weight: Edge weight (link strength)
+        
     """
 
     source: str
@@ -109,18 +112,19 @@ class GraphEdge:
 class GraphVisualizer:
     """
     Generate interactive D3.js visualizations of knowledge graphs.
-
+    
     Creates standalone HTML files with:
     - Force-directed graph layout
     - Interactive node exploration
     - Search and filtering
     - Responsive design
     - Customizable styling
-
+    
     Example:
-        >>> visualizer = GraphVisualizer(site, graph)
-        >>> html = visualizer.generate_html()
-        >>> Path('graph.html').write_text(html)
+            >>> visualizer = GraphVisualizer(site, graph)
+            >>> html = visualizer.generate_html()
+            >>> Path('graph.html').write_text(html)
+        
     """
 
     def __init__(self, site: Site, graph: KnowledgeGraph):

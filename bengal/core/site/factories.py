@@ -5,9 +5,10 @@ Provides classmethod factories for creating Site instances from configuration
 files or for testing purposes.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass
-    - bengal.config.loader: Configuration loading
-    - bengal.config.directory_loader: Directory-based config loading
+- bengal.core.site.core: Main Site dataclass
+- bengal.config.loader: Configuration loading
+- bengal.config.directory_loader: Directory-based config loading
+
 """
 
 from __future__ import annotations
@@ -22,8 +23,9 @@ if TYPE_CHECKING:
 class SiteFactoriesMixin:
     """
     Mixin providing factory methods for Site creation.
-
+    
     This is a classmethod mixin - methods here are called on the class, not instances.
+        
     """
 
     @classmethod

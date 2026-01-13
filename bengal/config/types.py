@@ -13,8 +13,9 @@ Example:
     ... }
 
 See Also:
-    - :mod:`bengal.config.defaults`: Default values using these types.
-    - :mod:`bengal.config.loader`: Configuration loading and validation.
+- :mod:`bengal.config.defaults`: Default values using these types.
+- :mod:`bengal.config.loader`: Configuration loading and validation.
+
 """
 
 from __future__ import annotations
@@ -363,22 +364,23 @@ class ExternalRefIndexConfig(TypedDict, total=False):
 
 class ExternalRefsConfig(TypedDict, total=False):
     """External references configuration for cross-project linking.
-
+    
     Enables linking to external documentation using [[ext:project:target]] syntax.
-
+    
     Example:
-        >>> config: ExternalRefsConfig = {
-        ...     "enabled": True,
-        ...     "export_index": True,  # Generate xref.json
-        ...     "templates": {
-        ...         "python": "https://docs.python.org/3/library/{module}.html#{name}",
-        ...     },
-        ...     "indexes": [
-        ...         {"name": "kida", "url": "https://lbliii.github.io/kida/xref.json"},
-        ...     ],
-        ... }
-
+            >>> config: ExternalRefsConfig = {
+            ...     "enabled": True,
+            ...     "export_index": True,  # Generate xref.json
+            ...     "templates": {
+            ...         "python": "https://docs.python.org/3/library/{module}.html#{name}",
+            ...     },
+            ...     "indexes": [
+            ...         {"name": "kida", "url": "https://lbliii.github.io/kida/xref.json"},
+            ...     ],
+            ... }
+    
     See: plan/rfc-external-references.md
+        
     """
 
     enabled: bool
@@ -418,11 +420,11 @@ class SitemapConfig(TypedDict, total=False):
 
 class SiteConfig(TypedDict, total=False):
     """Complete site configuration schema.
-
+    
     This TypedDict provides full type information for Bengal site configuration.
     All fields are optional (total=False) to support partial configuration with
     defaults applied by :func:`bengal.config.defaults.get_default`.
-
+    
     Categories:
         - Site Metadata: title, baseurl, description, author, language
         - Build Settings: output_dir, parallel, incremental, etc.
@@ -441,14 +443,15 @@ class SiteConfig(TypedDict, total=False):
         - Markdown: parser configuration
         - Link Previews: hover card settings
         - Document Application: modern browser features
-
+    
     Example:
-        >>> config: SiteConfig = {
-        ...     "title": "My Documentation",
-        ...     "baseurl": "/docs/",
-        ...     "theme": {"name": "default"},
-        ...     "content": {"excerpt_length": 300},
-        ... }
+            >>> config: SiteConfig = {
+            ...     "title": "My Documentation",
+            ...     "baseurl": "/docs/",
+            ...     "theme": {"name": "default"},
+            ...     "content": {"excerpt_length": 300},
+            ... }
+        
     """
 
     # -------------------------------------------------------------------------

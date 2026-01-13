@@ -12,18 +12,19 @@ Use cases:
 - Code review recordings
 
 Security:
-    All video IDs are validated via regex patterns to prevent XSS and injection.
-    Iframe embeds use appropriate sandbox attributes and CSP-friendly URLs.
+All video IDs are validated via regex patterns to prevent XSS and injection.
+Iframe embeds use appropriate sandbox attributes and CSP-friendly URLs.
 
 Accessibility:
-    Title is required for all embeds to meet WCAG 2.1 AA requirements.
-    Fallback content provided for users without JavaScript/iframe support.
+Title is required for all embeds to meet WCAG 2.1 AA requirements.
+Fallback content provided for users without JavaScript/iframe support.
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's video directives exactly for parity.
+Matches Bengal's video directives exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -84,23 +85,24 @@ class YouTubeOptions(DirectiveOptions):
 class YouTubeDirective:
     """
     YouTube video embed directive with privacy-enhanced mode.
-
+    
     Syntax:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
         :start: 30
         :privacy: true
         :::
-
+    
     Output:
         <div class="video-embed youtube" data-aspect="16/9">
           <iframe src="https://www.youtube-nocookie.com/embed/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on YouTube: ...</p></noscript>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("youtube",)
@@ -264,22 +266,23 @@ class VimeoOptions(DirectiveOptions):
 class VimeoDirective:
     """
     Vimeo video embed directive with Do Not Track mode.
-
+    
     Syntax:
         :::{vimeo} 123456789
         :title: My Vimeo Video
         :color: ff0000
         :::
-
+    
     Output:
         <div class="video-embed vimeo" data-aspect="16/9">
           <iframe src="https://player.vimeo.com/video/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on Vimeo: ...</p></noscript>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("vimeo",)
@@ -438,21 +441,22 @@ class TikTokOptions(DirectiveOptions):
 class TikTokDirective:
     """
     TikTok video embed directive.
-
+    
     Syntax:
         :::{tiktok} 7123456789012345678
         :title: Funny cat video
         :::
-
+    
     Output:
         <div class="video-embed tiktok" data-aspect="9/16">
           <iframe src="https://www.tiktok.com/embed/v2/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on TikTok: ...</p></noscript>
         </div>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("tiktok",)
@@ -618,14 +622,14 @@ class SelfHostedVideoOptions(DirectiveOptions):
 class SelfHostedVideoDirective:
     """
     Self-hosted video directive using HTML5 video element.
-
+    
     Syntax:
         :::{video} /assets/demo.mp4
         :title: Product Demo
         :poster: /assets/demo-poster.jpg
         :controls: true
         :::
-
+    
     Output:
         <figure class="video-embed self-hosted">
           <video title="..." controls preload="metadata">
@@ -633,9 +637,10 @@ class SelfHostedVideoDirective:
             <p>Fallback text with download link</p>
           </video>
         </figure>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("video",)

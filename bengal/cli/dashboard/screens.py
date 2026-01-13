@@ -27,9 +27,10 @@ if TYPE_CHECKING:
 class BengalScreen(Screen):
     """
     Base screen for Bengal unified dashboard.
-
+    
     All screens share common bindings and styling.
     Subscribes to config_changed_signal for reactive updates.
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -82,12 +83,13 @@ class BengalScreen(Screen):
 class LandingScreen(BengalScreen):
     """
     Landing screen with site overview and quick actions.
-
+    
     Shows:
     - Bengal branding with version
     - Site summary (pages, assets, last build)
     - Quick action grid (Build, Serve, Health)
     - Recent activity log
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -228,13 +230,14 @@ Static Site Generator
 class BuildScreen(BengalScreen):
     """
     Build screen for the unified dashboard.
-
+    
     Shows build progress, phase timing, and output log.
     Integrates BengalThrobber for animated loading and BuildFlash for status.
-
+    
     Dashboard API Integration (RFC: rfc-dashboard-api-integration):
     - PhaseProgress widget with real-time streaming updates
     - Deep BuildStats display after completion
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -478,14 +481,15 @@ class BuildScreen(BengalScreen):
 class ServeScreen(BengalScreen):
     """
     Serve screen for the unified dashboard.
-
+    
     Shows dev server status, file changes, and build history.
     Reuses components from BengalServeDashboard.
-
+    
     Dashboard API Integration (RFC: rfc-dashboard-api-integration):
     - FileWatcherLog for real-time file change display
     - RequestLog for HTTP request logging
     - ContentBrowser for page/section navigation
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -612,15 +616,16 @@ class ServeScreen(BengalScreen):
 class HealthScreen(BengalScreen):
     """
     Health screen for the unified dashboard.
-
+    
     Shows health issues in a tree with details panel.
     Reuses components from BengalHealthDashboard.
-
+    
     Dashboard API Integration (RFC: rfc-dashboard-api-integration):
     - ContentBrowser for page/section navigation
     - AssetExplorer for asset inspection
     - TaxonomyExplorer for taxonomy drill-down
     - Deep HealthReport integration with issue categorization
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -790,6 +795,7 @@ class HealthScreen(BengalScreen):
 class HelpScreen(Screen):
     """
     Help screen showing keyboard shortcuts.
+        
     """
 
     BINDINGS: ClassVar[list[Binding]] = [

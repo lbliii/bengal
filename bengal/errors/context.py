@@ -9,25 +9,25 @@ Key Components
 ==============
 
 **BuildPhase**
-    Enum indicating which build phase the error occurred in
-    (INITIALIZATION, DISCOVERY, PARSING, RENDERING, etc.).
-    Each phase maps to primary Bengal modules for investigation.
+Enum indicating which build phase the error occurred in
+(INITIALIZATION, DISCOVERY, PARSING, RENDERING, etc.).
+Each phase maps to primary Bengal modules for investigation.
 
 **ErrorSeverity**
-    Enum for error severity classification (FATAL, ERROR, WARNING, HINT).
-    Determines whether the build can continue and if errors should aggregate.
+Enum for error severity classification (FATAL, ERROR, WARNING, HINT).
+Determines whether the build can continue and if errors should aggregate.
 
 **ErrorContext**
-    Dataclass capturing all available context about an error including
-    file location, operation, build phase, related files, and debug payload.
+Dataclass capturing all available context about an error including
+file location, operation, build phase, related files, and debug payload.
 
 **ErrorDebugPayload**
-    Machine-readable debug context designed for AI troubleshooting.
-    Includes processing item, template context, config keys, error
-    patterns, and suggested investigation paths.
+Machine-readable debug context designed for AI troubleshooting.
+Includes processing item, template context, config keys, error
+patterns, and suggested investigation paths.
 
 **RelatedFile**
-    A file related to an error with its role (e.g., "template", "page").
+A file related to an error with its role (e.g., "template", "page").
 
 Factory Functions
 =================
@@ -43,39 +43,40 @@ Usage
 
 Create and apply error context::
 
-    from bengal.errors.context import (
-        ErrorContext,
-        BuildPhase,
-        enrich_error,
-    )
+from bengal.errors.context import (
+    ErrorContext,
+    BuildPhase,
+    enrich_error,
+)
 
     try:
-        parse_file(path)
-    except Exception as e:
-        context = ErrorContext(
-            file_path=path,
-            operation="parsing file",
-            build_phase=BuildPhase.PARSING,
-        )
-        enriched = enrich_error(e, context)
-        raise enriched
+    parse_file(path)
+except Exception as e:
+    context = ErrorContext(
+        file_path=path,
+        operation="parsing file",
+        build_phase=BuildPhase.PARSING,
+    )
+    enriched = enrich_error(e, context)
+    raise enriched
 
 Use factory functions for common scenarios::
 
-    from bengal.errors.context import create_rendering_context
+from bengal.errors.context import create_rendering_context
 
     context = create_rendering_context(
-        page_path="content/post.md",
-        template_name="single.html",
-        template_line=45,
-        context_vars=["page", "site"],
-    )
+    page_path="content/post.md",
+    template_name="single.html",
+    template_line=45,
+    context_vars=["page", "site"],
+)
 
 See Also
 ========
 
 - ``bengal/errors/exceptions.py`` - Exception classes using this context
 - ``bengal/errors/aggregation.py`` - Error aggregation using context
+
 """
 
 from __future__ import annotations
@@ -95,12 +96,12 @@ if TYPE_CHECKING:
 class BuildPhase(Enum):
     """
     Build phase where an error occurred.
-
+    
     Helps narrow down which part of the codebase to investigate.
     Each phase maps to specific Bengal modules for targeted debugging.
-
+    
     Phases follow the Bengal build pipeline order:
-
+    
     1. **INITIALIZATION** - Config loading, CLI parsing
     2. **DISCOVERY** - Content and section discovery
     3. **PARSING** - Frontmatter and markdown parsing
@@ -110,11 +111,12 @@ class BuildPhase(Enum):
     7. **CACHE** - Cache read/write operations
     8. **SERVER** - Dev server operations
     9. **OUTPUT** - Final output writing
-
+    
     Example:
-        >>> phase = BuildPhase.RENDERING
-        >>> phase.primary_modules
+            >>> phase = BuildPhase.RENDERING
+            >>> phase.primary_modules
         ['bengal/rendering/', 'bengal/orchestration/render.py']
+        
     """
 
     INITIALIZATION = "initialization"
@@ -154,23 +156,24 @@ class BuildPhase(Enum):
 class ErrorSeverity(Enum):
     """
     Error severity classification.
-
+    
     Determines how errors are handled and whether the build can continue.
     Severity levels affect logging, aggregation, and user presentation.
-
+    
     Levels (highest to lowest):
-
+    
     - **FATAL** - Build cannot continue at all. Raises immediately.
     - **ERROR** - This item failed, but build may continue with others.
     - **WARNING** - Something is off but recoverable. Item processed.
     - **HINT** - Suggestion for improvement. No functional impact.
-
+    
     Example:
-        >>> severity = ErrorSeverity.ERROR
-        >>> severity.can_continue
+            >>> severity = ErrorSeverity.ERROR
+            >>> severity.can_continue
         True
-        >>> severity.should_aggregate
+            >>> severity.should_aggregate
         True
+        
     """
 
     FATAL = "fatal"  # Build cannot continue at all
@@ -205,11 +208,12 @@ class ErrorSeverity(Enum):
 class RelatedFile:
     """
     A file related to an error for debugging context.
-
+    
     Attributes:
         role: What role this file plays (e.g., "template", "page", "config")
         path: Path to the file
         line_number: Optional line number of interest
+        
     """
 
     role: str
@@ -227,9 +231,10 @@ class RelatedFile:
 class ErrorDebugPayload:
     """
     Machine-parseable debug context for AI troubleshooting.
-
+    
     This provides structured data that can be immediately used
     to investigate errors programmatically.
+        
     """
 
     # What was being processed
@@ -286,11 +291,11 @@ class ErrorDebugPayload:
 class ErrorContext:
     """
     Standardized error context for enriching exceptions.
-
+    
     Captures all available context about where and why an error occurred,
     including build phase, related files, and debug payload. Used by
     ``enrich_error()`` to add context to exceptions.
-
+    
     Attributes:
         file_path: Path to the file where the error occurred.
         line_number: Line number in the file.
@@ -310,16 +315,17 @@ class ErrorContext:
         template_context_keys: Available template context variable names.
         config_keys_accessed: Config keys being accessed (for config errors).
         debug_payload: Full machine-readable debug context.
-
+    
     Example:
-        >>> context = ErrorContext(
-        ...     file_path=Path("content/post.md"),
-        ...     line_number=10,
-        ...     operation="parsing frontmatter",
-        ...     build_phase=BuildPhase.PARSING,
-        ...     suggestion="Check YAML syntax",
-        ... )
-        >>> context.add_related_file("config", "config/_default/site.yaml")
+            >>> context = ErrorContext(
+            ...     file_path=Path("content/post.md"),
+            ...     line_number=10,
+            ...     operation="parsing frontmatter",
+            ...     build_phase=BuildPhase.PARSING,
+            ...     suggestion="Check YAML syntax",
+            ... )
+            >>> context.add_related_file("config", "config/_default/site.yaml")
+        
     """
 
     # Location info
@@ -410,31 +416,32 @@ def enrich_error(
 ) -> BengalError:
     """
     Enrich exception with standardized context.
-
+    
     If error is already a BengalError, adds missing context fields.
     Otherwise, wraps error in a new BengalError instance.
-
+    
     Args:
         error: Exception to enrich
         context: Error context to add
         error_class: Class to use for wrapping (defaults to BengalError)
-
+    
     Returns:
         Enriched BengalError instance
-
+    
     Example:
-        >>> from bengal.errors import BengalError, ErrorContext, enrich_error
-        >>>
-        >>> try:
-        ...     parse_file(path)
-        ... except Exception as e:
-        ...     context = ErrorContext(
-        ...         file_path=path,
-        ...         operation="parsing file",
-        ...         build_phase=BuildPhase.PARSING,
-        ...     )
-        ...     enriched = enrich_error(e, context)
-        ...     raise enriched
+            >>> from bengal.errors import BengalError, ErrorContext, enrich_error
+            >>>
+            >>> try:
+            ...     parse_file(path)
+            ... except Exception as e:
+            ...     context = ErrorContext(
+            ...         file_path=path,
+            ...         operation="parsing file",
+            ...         build_phase=BuildPhase.PARSING,
+            ...     )
+            ...     enriched = enrich_error(e, context)
+            ...     raise enriched
+        
     """
     from bengal.errors.exceptions import BengalError as BaseBengalError
 
@@ -483,15 +490,16 @@ def enrich_error(
 def get_context_from_exception(error: Exception) -> ErrorContext:
     """
     Extract error context from an exception if available.
-
+    
     Attempts to extract file_path, line_number, and other context
     from various exception types.
-
+    
     Args:
         error: Exception to extract context from
-
+    
     Returns:
         ErrorContext with any available information
+        
     """
     context = ErrorContext()
 
@@ -539,17 +547,18 @@ def create_rendering_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for rendering errors.
-
+    
     Convenience function for the common case of rendering errors.
-
+    
     Args:
         page_path: Path to the page being rendered
         template_name: Name of the template being used
         template_line: Line number in template where error occurred
         context_vars: Template context variable names available
-
+    
     Returns:
         Pre-configured ErrorContext for rendering
+        
     """
     context = ErrorContext(
         file_path=Path(page_path) if isinstance(page_path, str) else page_path,
@@ -582,13 +591,14 @@ def create_discovery_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for discovery errors.
-
+    
     Args:
         file_path: Path to file being discovered
         operation: Operation being performed
-
+    
     Returns:
         Pre-configured ErrorContext for discovery
+        
     """
     return ErrorContext(
         file_path=Path(file_path) if isinstance(file_path, str) else file_path,
@@ -612,13 +622,14 @@ def create_config_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for config errors.
-
+    
     Args:
         config_file: Path to config file
         config_key: Config key being accessed
-
+    
     Returns:
         Pre-configured ErrorContext for config
+        
     """
     context = ErrorContext(
         file_path=Path(config_file) if isinstance(config_file, str) else config_file,

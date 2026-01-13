@@ -353,9 +353,10 @@ validate_build = false
 def run_build_with_workers(site_dir: Path, max_workers: int) -> tuple[float, int, float]:
     """
     Run a build with specific worker count.
-
+    
     Returns:
         Tuple of (build_time_seconds, pages_rendered, init_overhead_ms)
+        
     """
     # Import here to get fresh state
     from bengal.core.site import Site

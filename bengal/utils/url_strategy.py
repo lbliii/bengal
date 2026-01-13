@@ -7,17 +7,17 @@ All path computation logic is centralized here to ensure consistency and
 prevent path-related bugs across different parts of the system.
 
 Key Features:
-    - Output path computation for regular pages, archives, and taxonomy pages
-    - Version-aware path transformations for multi-version documentation
-    - i18n-aware URL prefixing for multilingual sites
-    - Virtual path generation for dynamically generated pages (archives, tags)
-    - URL generation from output paths with pretty URL support
+- Output path computation for regular pages, archives, and taxonomy pages
+- Version-aware path transformations for multi-version documentation
+- i18n-aware URL prefixing for multilingual sites
+- Virtual path generation for dynamically generated pages (archives, tags)
+- URL generation from output paths with pretty URL support
 
 Design Principles:
-    - **Pure Functions**: No side effects, no state mutation
-    - **No Global State**: All inputs passed explicitly via parameters
-    - **Easy Testing**: Static methods can be tested in isolation
-    - **Reusable**: Used by render orchestrator, taxonomy builder, etc.
+- **Pure Functions**: No side effects, no state mutation
+- **No Global State**: All inputs passed explicitly via parameters
+- **Easy Testing**: Static methods can be tested in isolation
+- **Reusable**: Used by render orchestrator, taxonomy builder, etc.
 
 Usage:
     >>> from bengal.utils.url_strategy import URLStrategy
@@ -25,10 +25,11 @@ Usage:
     >>> url = URLStrategy.url_from_output_path(output_path, site)
 
 Related:
-    - `bengal.orchestration.render_orchestrator`: Uses for output path computation
-    - `bengal.core.page`: Page objects passed to compute methods
-    - `bengal.core.site`: Site object provides configuration and output directory
-    - `bengal.utils.url_normalization`: URL validation and normalization utilities
+- `bengal.orchestration.render_orchestrator`: Uses for output path computation
+- `bengal.core.page`: Page objects passed to compute methods
+- `bengal.core.site`: Site object provides configuration and output directory
+- `bengal.utils.url_normalization`: URL validation and normalization utilities
+
 """
 
 from __future__ import annotations
@@ -45,36 +46,37 @@ if TYPE_CHECKING:
 class URLStrategy:
     """
     Pure utility for URL and output path computation.
-
+    
     Centralizes all path/URL logic to ensure consistency and prevent bugs.
     All methods are static - no state, pure logic.
-
+    
     Design Principles:
         - Pure functions (no side effects)
         - No dependencies on global state
         - Easy to test in isolation
         - Reusable across orchestrators
-
+    
     Usage:
-        >>> from bengal.utils.url_strategy import URLStrategy
-        >>> # Compute output path for a page
-        >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
-        >>> # PosixPath('/path/to/site/public/docs/guide/index.html')
-
-        >>> # Generate URL from output path
-        >>> url = URLStrategy.url_from_output_path(output_path, site)
-        >>> # '/docs/guide/'
-
-        >>> # Compute archive page path
-        >>> archive_path = URLStrategy.compute_archive_output_path(section, page_num=1, site=site)
-        >>> # PosixPath('/path/to/site/public/blog/index.html')
-
+            >>> from bengal.utils.url_strategy import URLStrategy
+            >>> # Compute output path for a page
+            >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
+            >>> # PosixPath('/path/to/site/public/docs/guide/index.html')
+    
+            >>> # Generate URL from output path
+            >>> url = URLStrategy.url_from_output_path(output_path, site)
+            >>> # '/docs/guide/'
+    
+            >>> # Compute archive page path
+            >>> archive_path = URLStrategy.compute_archive_output_path(section, page_num=1, site=site)
+            >>> # PosixPath('/path/to/site/public/blog/index.html')
+    
     See Also:
         - `compute_regular_page_output_path`: For regular content pages
         - `compute_archive_output_path`: For section archive pages
         - `compute_tag_output_path`: For tag listing pages
         - `url_from_output_path`: For generating URLs from paths
         - `make_virtual_path`: For generated/virtual pages
+        
     """
 
     @staticmethod

@@ -23,11 +23,12 @@ logger = get_logger(__name__)
 class TaxonomyChangeDetector:
     """
     Detects changes in taxonomies (tags) and autodoc sources.
-
+    
     Handles:
     - Tag changes on pages (added/removed tags)
     - Autodoc source file changes
     - Archive page rebuilds when sections change
+        
     """
 
     def __init__(

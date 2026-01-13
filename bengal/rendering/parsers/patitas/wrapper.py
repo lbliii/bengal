@@ -6,11 +6,12 @@ This allows Patitas to be used as a drop-in replacement for MistuneParser.
 Usage:
     parser = PatitasParser()
     html = parser.parse("# Hello", {})
-    html, toc = parser.parse_with_toc("## Section 1\\n## Section 2", {})
+html, toc = parser.parse_with_toc("## Section 1\n## Section 2", {})
 
 Thread Safety:
-    PatitasParser is thread-safe. Each parse() call creates independent
-    parser/renderer instances with no shared state.
+PatitasParser is thread-safe. Each parse() call creates independent
+parser/renderer instances with no shared state.
+
 """
 
 from __future__ import annotations
@@ -27,13 +28,13 @@ logger = get_logger(__name__)
 
 class PatitasParser(BaseMarkdownParser):
     """Parser using Patitas library (modern Markdown parser).
-
+    
     Provides:
     - O(n) guaranteed parsing (no regex backtracking)
     - Thread-safe by design (immutable AST)
     - Typed AST with frozen dataclasses
     - StringBuilder O(n) rendering
-
+    
     Supported features:
     - ATX/setext headings
     - Fenced/indented code blocks
@@ -45,13 +46,14 @@ class PatitasParser(BaseMarkdownParser):
     - Inline code
     - Hard/soft breaks
     - Raw HTML
-
+    
     Supported features (via plugins):
     - Tables (GFM)
     - Strikethrough
     - Task lists
     - Math (inline and block)
     - Cross-references ([[link]] syntax)
+        
     """
 
     # Default plugins to enable (matches mistune's plugins)

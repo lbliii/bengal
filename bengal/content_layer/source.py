@@ -24,26 +24,27 @@ if TYPE_CHECKING:
 class ContentSource(ABC):
     """
     Abstract base class for content sources.
-
+    
     Implementations fetch content from various origins (local files,
     remote APIs, databases) and return unified ContentEntry objects.
-
+    
     Subclasses must implement:
         - source_type property
         - fetch_all() async generator
         - fetch_one() async method
-
+    
     Example:
-        >>> class MySource(ContentSource):
-        ...     source_type = "my-api"
-        ...
-        ...     async def fetch_all(self):
-        ...         for item in await self._fetch_items():
-        ...             yield self._to_entry(item)
-        ...
-        ...     async def fetch_one(self, id: str):
-        ...         item = await self._fetch_item(id)
-        ...         return self._to_entry(item) if item else None
+            >>> class MySource(ContentSource):
+            ...     source_type = "my-api"
+            ...
+            ...     async def fetch_all(self):
+            ...         for item in await self._fetch_items():
+            ...             yield self._to_entry(item)
+            ...
+            ...     async def fetch_one(self, id: str):
+            ...         item = await self._fetch_item(id)
+            ...         return self._to_entry(item) if item else None
+        
     """
 
     def __init__(self, name: str, config: dict[str, Any]) -> None:

@@ -37,19 +37,20 @@ def detect_nested_block_in_content(
     content_indent: int,
 ) -> bool:
     """Detect if paragraph line content is actually a nested block marker.
-
+    
     CommonMark: If the first content after a list marker is itself a block
     marker (list, blockquote, heading, etc.), it should be parsed as a nested
     block, BUT only if it's indented appropriately (not 4+ spaces beyond
     content indent).
-
+    
     Args:
         line: The stripped line content
         line_indent: Indent of the line (from tok.line_indent)
         content_indent: Content indent of the current list item
-
+    
     Returns:
         True if this should be parsed as a nested block
+        
     """
     if not line:
         return False
@@ -98,9 +99,9 @@ def parse_nested_list_inline(
     task_lists_enabled: bool,
 ) -> list[Block]:
     """Parse a nested list from inline content.
-
+    
     Used when a paragraph line turns out to be a nested list marker.
-
+    
     Args:
         line: The content line that is a list marker
         token_location: Location of the token
@@ -110,9 +111,10 @@ def parse_nested_list_inline(
         tables_enabled: Whether tables are enabled
         strikethrough_enabled: Whether strikethrough is enabled
         task_lists_enabled: Whether task lists are enabled
-
+    
     Returns:
         List of parsed blocks
+        
     """
     # Import here to avoid circular dependency
     from bengal.rendering.parsers.patitas.parser import Parser
@@ -135,18 +137,19 @@ def parse_nested_list_from_indented_code(
     parser: ParserProtocol,
 ) -> List | None:
     """Parse a nested list from an INDENTED_CODE token containing a list marker.
-
+    
     When the lexer produces INDENTED_CODE for 4+ space indented lines, those
     lines may actually be nested list markers in list context.
-
+    
     Args:
         token: The INDENTED_CODE token containing the list marker
         original_indent: The original indentation of the line in source
         parent_content_indent: The content indent of the parent list item
         parser: The parser instance
-
+    
     Returns:
         A List node containing the nested list, or None if parsing fails.
+        
     """
     stripped = token.value.lstrip()
 

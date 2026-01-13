@@ -41,18 +41,19 @@ KnowledgeGraph = None  # type: ignore
 class ConnectivityValidator(BaseValidator):
     """
     Validates site connectivity using semantic link model and knowledge graph analysis.
-
+    
     Checks:
     - Isolated pages (weighted score < 0.25)
     - Lightly linked pages (score 0.25-1.0, only structural links)
     - Over-connected hubs (too many incoming references)
     - Overall connectivity health (average weighted score)
     - Content discovery issues
-
+    
     Uses weighted scoring based on link types (explicit, menu, taxonomy, etc.)
     to provide nuanced analysis beyond binary orphan detection.
-
+    
     This helps writers improve SEO, content discoverability, and site structure.
+        
     """
 
     name = "Connectivity"

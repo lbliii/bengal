@@ -6,19 +6,20 @@ Coordinates parallel asset processing, generates asset manifest for
 cache-busting, and manages fingerprint cleanup.
 
 Key Concepts:
-    - Parallel processing: Concurrent asset processing for performance
-    - Asset manifest: JSON manifest mapping logical paths to fingerprinted files
-    - Fingerprinting: Hash-based cache-busting via filename suffixes
-    - Cleanup: Removal of stale fingerprinted files
+- Parallel processing: Concurrent asset processing for performance
+- Asset manifest: JSON manifest mapping logical paths to fingerprinted files
+- Fingerprinting: Hash-based cache-busting via filename suffixes
+- Cleanup: Removal of stale fingerprinted files
 
 Related Modules:
-    - bengal.core.asset: Asset representation and processing (package)
-    - bengal.assets.manifest: Asset manifest generation
-    - bengal.rendering.template_engine: Template access to asset manifest
+- bengal.core.asset: Asset representation and processing (package)
+- bengal.assets.manifest: Asset manifest generation
+- bengal.rendering.template_engine: Template access to asset manifest
 
 See Also:
-    - bengal/orchestration/asset.py:AssetOrchestrator for orchestration logic
-    - plan/active/rfc-asset-fingerprinting.md: Asset fingerprinting design
+- bengal/orchestration/asset.py:AssetOrchestrator for orchestration logic
+- plan/active/rfc-asset-fingerprinting.md: Asset fingerprinting design
+
 """
 
 from __future__ import annotations
@@ -48,36 +49,37 @@ _print_lock = Lock()
 class AssetOrchestrator:
     """
     Orchestrates asset processing for static files.
-
+    
     Handles asset copying, minification, optimization, and fingerprinting.
     Supports parallel processing for performance and maintains CSS entry point
     cache for efficient incremental builds.
-
+    
     Creation:
         Direct instantiation: AssetOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with assets populated
-
+    
     Attributes:
         site: Site instance containing assets and configuration
         logger: Logger instance for asset processing events
         _cached_css_entry_points: Cached CSS entry points (invalidated on asset changes)
         _cached_assets_id: Asset list identity for cache invalidation
         _cached_assets_len: Asset list length for cache invalidation
-
+    
     Relationships:
         - Uses: Asset class for asset representation and processing
         - Uses: AssetManifest for cache-busting manifest generation
         - Used by: BuildOrchestrator for asset processing phase
         - Uses: ThreadPoolExecutor for parallel asset processing
-
+    
     Thread Safety:
         Thread-safe for parallel asset processing. Uses thread-safe locks
         for output operations and maintains thread-local state where needed.
-
+    
     Examples:
         orchestrator = AssetOrchestrator(site)
         orchestrator.process(site.assets, parallel=True, progress_manager=progress)
+        
     """
 
     def __init__(self, site: Site):

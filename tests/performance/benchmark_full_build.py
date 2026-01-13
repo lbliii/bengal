@@ -15,14 +15,15 @@ from bengal.orchestration.build.options import BuildOptions
 def create_realistic_site(num_pages: int, num_assets: int, num_tags: int = 10) -> Path:
     """
     Create a temporary test site with realistic content.
-
+    
     Args:
         num_pages: Number of pages/posts to create
         num_assets: Number of assets (CSS, JS, images)
         num_tags: Number of unique tags to distribute across posts
-
+    
     Returns:
         Path to temporary site directory
+        
     """
     temp_dir = Path(tempfile.mkdtemp())
 
@@ -222,14 +223,15 @@ per_page = 10
 def benchmark_site_build(num_pages: int, num_assets: int, label: str) -> dict:
     """
     Benchmark a full site build and return timing breakdown.
-
+    
     Args:
         num_pages: Number of pages to generate
         num_assets: Number of assets to generate
         label: Label for this benchmark
-
+    
     Returns:
         Dictionary with timing information
+        
     """
     print(f"\n{label.upper()} ({num_pages} pages, {num_assets} assets)")
     print("-" * 80)

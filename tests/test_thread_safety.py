@@ -298,7 +298,7 @@ class TestDirectiveRegistryThreadSafety:
 class TestLockOrdering:
     """
     Document and verify lock acquisition order to prevent deadlocks.
-
+    
     Lock order (acquire in this order to prevent deadlocks):
     1. _icon_lock (icons/resolver.py)
     2. DirectiveCache._lock (directives/cache.py)
@@ -306,6 +306,7 @@ class TestLockOrdering:
     4. _context_lock (rendering/context/__init__.py)
     5. _registry_lock (directives/registry.py)
     6. _reload_condition (server/live_reload.py)
+        
     """
 
     def test_no_circular_lock_dependencies(self) -> None:

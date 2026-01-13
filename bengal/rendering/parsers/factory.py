@@ -26,10 +26,11 @@ class ParserBackend:
 class ParserFactory:
     """
     Factory for HTML parsers used in Bengal.
-
+    
     Currently returns NativeHTMLParser, which is optimized for build-time
     validation and health checks. Replaced BeautifulSoup4 for performance
     (~5-10x faster for text extraction).
+        
     """
 
     @staticmethod

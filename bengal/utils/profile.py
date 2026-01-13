@@ -29,11 +29,12 @@ from typing import Any
 class BuildProfile(Enum):
     """
     Build profiles for different user personas.
-
+    
     Each profile optimizes observability features for a specific workflow:
     - WRITER: Content authors who want fast, clean builds
     - THEME_DEV: Theme developers who need template debugging
     - DEVELOPER: Framework contributors who need full observability
+        
     """
 
     WRITER = "writer"
@@ -232,12 +233,13 @@ _current_profile: BuildProfile | None = None
 def set_current_profile(profile: BuildProfile) -> None:
     """
     Set the current build profile.
-
+    
     This is used by helper functions to determine behavior without
     passing profile through every function call.
-
+    
     Args:
         profile: BuildProfile to set as current
+        
     """
     global _current_profile
     _current_profile = profile
@@ -246,9 +248,10 @@ def set_current_profile(profile: BuildProfile) -> None:
 def get_current_profile() -> BuildProfile:
     """
     Get the current build profile.
-
+    
     Returns:
         Current profile, or WRITER if not set
+        
     """
     return _current_profile or BuildProfile.WRITER
 
@@ -256,16 +259,17 @@ def get_current_profile() -> BuildProfile:
 def should_show_debug() -> bool:
     """
     Check if debug output should be shown.
-
+    
     This is a helper for conditional debug output without passing
     profile through every function.
-
+    
     Returns:
         True if debug output should be shown
-
+    
     Example:
         if should_show_debug():
             print(f"[Debug] Processing {item}", file=sys.stderr)
+        
     """
     profile = get_current_profile()
     config: dict[str, Any] = profile.get_config()
@@ -275,9 +279,10 @@ def should_show_debug() -> bool:
 def should_track_memory() -> bool:
     """
     Check if memory tracking should be enabled.
-
+    
     Returns:
         True if memory should be tracked
+        
     """
     profile = get_current_profile()
     config: dict[str, Any] = profile.get_config()
@@ -287,9 +292,10 @@ def should_track_memory() -> bool:
 def should_collect_metrics() -> bool:
     """
     Check if metrics collection should be enabled.
-
+    
     Returns:
         True if metrics should be collected
+        
     """
     profile = get_current_profile()
     config: dict[str, Any] = profile.get_config()
@@ -299,13 +305,14 @@ def should_collect_metrics() -> bool:
 def get_enabled_health_checks() -> list[str]:
     """
     Get list of enabled health check validators for current profile.
-
+    
     Returns:
         List of validator names that should run, or 'all' string
-
+    
     Example:
-        >>> get_enabled_health_checks()
+            >>> get_enabled_health_checks()
         ['config', 'output', 'links']
+        
     """
     profile = get_current_profile()
     config: dict[str, Any] = profile.get_config()
@@ -325,16 +332,17 @@ def get_enabled_health_checks() -> list[str]:
 def is_validator_enabled(validator_name: str) -> bool:
     """
     Check if a specific validator should run.
-
+    
     Args:
         validator_name: Name of validator (e.g., 'config', 'links')
-
+    
     Returns:
         True if validator should run
-
+    
     Example:
-        >>> is_validator_enabled('performance')
+            >>> is_validator_enabled('performance')
         False  # In writer mode
+        
     """
     enabled = get_enabled_health_checks()
 

@@ -19,14 +19,15 @@ if TYPE_CHECKING:
 class AutodocValidator(BaseValidator):
     """
     Validates autodoc HTML page generation.
-
+    
     Checks:
     - All autodoc directories have index.html files
     - HTML and TXT file counts match (1:1 parity)
     - Page types are correctly set for nav tree
     - No orphan TXT files without corresponding HTML
-
+    
     Implements HasStats protocol for observability.
+        
     """
 
     name = "Autodoc"

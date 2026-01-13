@@ -19,12 +19,12 @@ Configuration Sources (in priority order)
 
    .. code-block:: yaml
 
-       dev:
-         traceback:
-           style: compact
-           show_locals: false
-           max_frames: 10
-           suppress: [click, jinja2]
+   dev:
+     traceback:
+       style: compact
+       show_locals: false
+       max_frames: 10
+       suppress: [click, jinja2]
 
 3. **Defaults**: Compact style with reasonable settings
 
@@ -32,34 +32,35 @@ Helper Functions
 ================
 
 **set_effective_style_from_cli(style_value)**
-    Set BENGAL_TRACEBACK env var from CLI flag.
+Set BENGAL_TRACEBACK env var from CLI flag.
 
 **map_debug_flag_to_traceback(debug, current)**
-    Map --debug flag to traceback=full.
+Map --debug flag to traceback=full.
 
 **apply_file_traceback_to_env(site_config)**
-    Apply file-based config to environment (only if not already set).
+Apply file-based config to environment (only if not already set).
 
 Usage
 =====
 
 Load config and install handler::
 
-    from bengal.errors.traceback import TracebackConfig
+from bengal.errors.traceback import TracebackConfig
 
     config = TracebackConfig.from_environment()
-    config.install()  # Install Rich traceback handler
+config.install()  # Install Rich traceback handler
 
 Get a renderer for manual display::
 
     renderer = config.get_renderer()
-    renderer.display_exception(error)
+renderer.display_exception(error)
 
 CLI integration::
 
-    from bengal.errors.traceback import set_effective_style_from_cli
+from bengal.errors.traceback import set_effective_style_from_cli
 
-    set_effective_style_from_cli(ctx.params.get("traceback"))
+set_effective_style_from_cli(ctx.params.get("traceback"))
+
 """
 
 from __future__ import annotations
@@ -93,10 +94,10 @@ if TYPE_CHECKING:
 class TracebackConfig:
     """
     Configuration for traceback display and Rich installation.
-
+    
     Controls how exceptions are rendered in Bengal CLI output. Can be
     loaded from environment variables via ``from_environment()``.
-
+    
     Attributes:
         style: Traceback verbosity style (default: COMPACT).
         show_locals: Whether to show local variables in tracebacks
@@ -105,13 +106,14 @@ class TracebackConfig:
             (default: 10, 25 for FULL, 5 for MINIMAL).
         suppress: Module names to suppress from tracebacks
             (default: click, jinja2).
-
+    
     Example:
-        >>> config = TracebackConfig.from_environment()
-        >>> config.style
+            >>> config = TracebackConfig.from_environment()
+            >>> config.style
         <TracebackStyle.COMPACT: 'compact'>
-        >>> config.install()  # Install Rich handler
-        >>> renderer = config.get_renderer()
+            >>> config.install()  # Install Rich handler
+            >>> renderer = config.get_renderer()
+        
     """
 
     style: TracebackStyle = TracebackStyle.COMPACT
@@ -238,9 +240,10 @@ class TracebackConfig:
 
 def set_effective_style_from_cli(style_value: str | None) -> None:
     """Helper to set the process env for traceback style from a CLI flag.
-
+    
     This allows downstream code that calls TracebackConfig.from_environment()
     to see the user choice consistently.
+        
     """
     if not style_value:
         return
@@ -257,7 +260,7 @@ def map_debug_flag_to_traceback(debug: bool, current: str | None = None) -> None
 
 def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
     """Apply file-based traceback config ([dev.traceback]) to environment.
-
+    
     Precedence: existing env vars win. Only set if not already present.
     Expected structure:
         site_config["dev"]["traceback"] = {
@@ -266,6 +269,7 @@ def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
             "max_frames": int,
             "suppress": ["click", "jinja2"],
         }
+        
     """
     if not isinstance(site_config, dict):
         return

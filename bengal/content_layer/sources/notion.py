@@ -50,10 +50,10 @@ logger = get_logger(__name__)
 class NotionSource(ContentSource):
     """
     Content source for Notion databases.
-
+    
     Fetches pages from a Notion database and converts them to markdown.
     Requires a Notion integration token with read access to the database.
-
+    
     Configuration:
         database_id: str - Notion database ID (required)
         token: str - Notion integration token (or NOTION_TOKEN env var)
@@ -61,27 +61,28 @@ class NotionSource(ContentSource):
             Defaults: {"title": "Name", "date": "Date", "tags": "Tags"}
         filter: dict - Notion filter object (optional)
         sorts: list - Notion sorts array (optional)
-
+    
     Performance:
         Pages are processed in parallel with a configurable concurrency limit.
         Block content is cached in-memory with TTL to reduce API calls.
         Results are streamed as they complete (order is non-deterministic).
-
+    
     Setup:
         1. Create a Notion integration at https://www.notion.so/my-integrations
         2. Share your database with the integration
         3. Set NOTION_TOKEN environment variable or pass token in config
-
+    
     Example:
-        >>> source = NotionSource("blog", {
-        ...     "database_id": "abc123...",
-        ...     "property_mapping": {
-        ...         "title": "Name",
-        ...         "date": "Published",
-        ...         "tags": "Tags",
-        ...         "author": "Author",
-        ...     },
-        ... })
+            >>> source = NotionSource("blog", {
+            ...     "database_id": "abc123...",
+            ...     "property_mapping": {
+            ...         "title": "Name",
+            ...         "date": "Published",
+            ...         "tags": "Tags",
+            ...         "author": "Author",
+            ...     },
+            ... })
+        
     """
 
     source_type = "notion"

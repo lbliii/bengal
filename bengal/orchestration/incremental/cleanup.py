@@ -5,13 +5,14 @@ Handles cleanup of deleted source files and their corresponding output files.
 Ensures stale content is removed when source files are deleted.
 
 Key Concepts:
-    - Source file tracking: Track which source files produced which output
-    - Output cleanup: Remove output when source is deleted
-    - Autodoc cleanup: Handle autodoc pages when Python source files deleted
+- Source file tracking: Track which source files produced which output
+- Output cleanup: Remove output when source is deleted
+- Autodoc cleanup: Handle autodoc pages when Python source files deleted
 
 Related Modules:
-    - bengal.cache.build_cache: Build cache with output_sources mapping
-    - bengal.orchestration.incremental: Incremental build coordination
+- bengal.cache.build_cache: Build cache with output_sources mapping
+- bengal.orchestration.incremental: Incremental build coordination
+
 """
 
 from __future__ import annotations
@@ -31,17 +32,18 @@ logger = get_logger(__name__)
 def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
     """
     Clean up output files for deleted source files.
-
+    
     Checks cache for source files that no longer exist and deletes
     their corresponding output files. This prevents stale content
     from remaining in the output directory after source deletion.
-
+    
     Args:
         site: Site instance for output directory access
         cache: BuildCache instance with source mappings
-
+    
     Returns:
         Count of deleted output files
+        
     """
     # Also clean up deleted autodoc source files
     _cleanup_deleted_autodoc_sources(site, cache)
@@ -116,14 +118,15 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
 def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
     """
     Clean up autodoc pages when their source files are deleted.
-
+    
     Checks tracked autodoc source files and removes corresponding output
     when the source no longer exists. This prevents stale autodoc pages
     from remaining when Python/OpenAPI source files are deleted.
-
+    
     Args:
         site: Site instance for output directory access
         cache: BuildCache instance with autodoc mappings
+        
     """
     if not hasattr(cache, "autodoc_dependencies"):
         return

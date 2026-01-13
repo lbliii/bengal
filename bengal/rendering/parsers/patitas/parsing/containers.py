@@ -43,10 +43,10 @@ class ContainerType(Enum):
 @dataclass(slots=True)
 class ContainerFrame:
     """A frame on the container stack representing a parsing context.
-
+    
     Each container "claims" an indent range. Tokens are routed to
     the deepest container that claims their indent.
-
+    
     Attributes:
         container_type: The type of container (LIST, LIST_ITEM, etc.)
         start_indent: Where this container started (marker position)
@@ -59,6 +59,7 @@ class ContainerFrame:
         ordered: For lists, whether the list is ordered
         bullet_char: For unordered lists, the bullet character
         start_number: For ordered lists, the starting number
+        
     """
 
     container_type: ContainerType
@@ -126,14 +127,15 @@ class ContainerFrame:
 @dataclass
 class ContainerStack:
     """Manages the stack of active containers during parsing.
-
+    
     Invariant: stack[0] is always DOCUMENT, stack[-1] is innermost container.
-
+    
     Usage:
         stack = ContainerStack()  # Initializes with DOCUMENT frame
         stack.push(frame)         # Push new container
         stack.pop()               # Pop and propagate state
         stack.find_owner(indent)  # Find container owning this indent
+        
     """
 
     _stack: list[ContainerFrame] = field(default_factory=list)

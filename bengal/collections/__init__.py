@@ -6,7 +6,7 @@ frontmatter and early error detection during content discovery. Collections
 are opt-in and backward compatible with existing Bengal sites.
 
 Quick Start:
-    Create a ``collections.py`` file in your project root:
+Create a ``collections.py`` file in your project root:
 
     >>> from dataclasses import dataclass, field
     >>> from datetime import datetime
@@ -24,43 +24,44 @@ Quick Start:
     ... }
 
 Key Features:
-    - **Type-safe frontmatter**: Validate content against dataclass or Pydantic schemas
-    - **Early error detection**: Catch schema violations during discovery, not rendering
-    - **IDE support**: Get autocompletion for frontmatter fields
-    - **Flexible validation**: Strict mode rejects unknown fields; lenient mode allows them
-    - **Remote content**: Fetch content from GitHub, Notion, or custom sources
+- **Type-safe frontmatter**: Validate content against dataclass or Pydantic schemas
+- **Early error detection**: Catch schema violations during discovery, not rendering
+- **IDE support**: Get autocompletion for frontmatter fields
+- **Flexible validation**: Strict mode rejects unknown fields; lenient mode allows them
+- **Remote content**: Fetch content from GitHub, Notion, or custom sources
 
 Public API:
-    - :func:`define_collection`: Create a collection configuration
-    - :class:`CollectionConfig`: Collection configuration dataclass
-    - :class:`SchemaValidator`: Validate data against schemas
-    - :class:`ValidationResult`: Result of schema validation
-    - :exc:`ContentValidationError`: Raised when content fails validation
-    - :exc:`ValidationError`: Single field validation error
+- :func:`define_collection`: Create a collection configuration
+- :class:`CollectionConfig`: Collection configuration dataclass
+- :class:`SchemaValidator`: Validate data against schemas
+- :class:`ValidationResult`: Result of schema validation
+- :exc:`ContentValidationError`: Raised when content fails validation
+- :exc:`ValidationError`: Single field validation error
 
 Standard Schemas:
-    Ready-to-use schemas for common content types:
-    - :class:`BlogPost`: Blog posts with title, date, author, tags
-    - :class:`DocPage`: Documentation pages with weight, category, toc
-    - :class:`APIReference`: API endpoint documentation
-    - :class:`Tutorial`: Tutorial/guide pages with difficulty, duration
-    - :class:`Changelog`: Release changelog entries
+Ready-to-use schemas for common content types:
+- :class:`BlogPost`: Blog posts with title, date, author, tags
+- :class:`DocPage`: Documentation pages with weight, category, toc
+- :class:`APIReference`: API endpoint documentation
+- :class:`Tutorial`: Tutorial/guide pages with difficulty, duration
+- :class:`Changelog`: Release changelog entries
 
 Architecture:
-    Collections integrate with Bengal's discovery phase. When content is
-    discovered, frontmatter is validated against the collection's schema.
-    Invalid content raises :exc:`ContentValidationError` with details.
+Collections integrate with Bengal's discovery phase. When content is
+discovered, frontmatter is validated against the collection's schema.
+Invalid content raises :exc:`ContentValidationError` with details.
 
-    Validation supports:
-    - Python dataclasses (recommended)
-    - Pydantic models (auto-detected)
-    - Type coercion for datetime, date, lists
-    - Nested dataclass validation
+Validation supports:
+- Python dataclasses (recommended)
+- Pydantic models (auto-detected)
+- Type coercion for datetime, date, lists
+- Nested dataclass validation
 
 Related Modules:
-    - ``bengal.discovery.content_discovery``: Collection integration point
-    - ``bengal.content_layer``: Remote content sources (GitHub, Notion)
-    - ``bengal.core.page.metadata``: Page frontmatter access
+- ``bengal.discovery.content_discovery``: Collection integration point
+- ``bengal.content_layer``: Remote content sources (GitHub, Notion)
+- ``bengal.core.page.metadata``: Page frontmatter access
+
 """
 
 from __future__ import annotations
@@ -98,13 +99,13 @@ if TYPE_CHECKING:
 class CollectionConfig[T]:
     """
     Configuration for a content collection.
-
+    
     Defines how content in a directory (or remote source) maps to a typed
     schema. Created via :func:`define_collection` rather than direct instantiation.
-
+    
     Type Parameters:
         T: The schema type (dataclass or Pydantic model)
-
+    
     Attributes:
         schema: Dataclass or Pydantic model class defining the frontmatter
             structure. Required fields in the schema become required frontmatter.
@@ -120,21 +121,22 @@ class CollectionConfig[T]:
         loader: Optional :class:`ContentSource` for fetching remote content.
             When provided, content is fetched from the remote source instead
             of the local filesystem. Requires extras: ``pip install bengal[github]``
-
+    
     Example:
-        >>> config = CollectionConfig(
-        ...     schema=BlogPost,
-        ...     directory=Path("content/blog"),
-        ...     glob="**/*.md",
-        ...     strict=True,
-        ... )
-        >>> config.is_remote
+            >>> config = CollectionConfig(
+            ...     schema=BlogPost,
+            ...     directory=Path("content/blog"),
+            ...     glob="**/*.md",
+            ...     strict=True,
+            ... )
+            >>> config.is_remote
         False
-        >>> config.source_type
-        'local'
-
+            >>> config.source_type
+            'local'
+    
     See Also:
         :func:`define_collection`: Preferred way to create configurations.
+        
     """
 
     schema: type[T]
@@ -200,11 +202,11 @@ def define_collection[T](
 ) -> CollectionConfig[T]:
     """
     Define a content collection with a typed schema.
-
+    
     Collections provide type-safe frontmatter validation during content
     discovery. Errors are caught early, and IDEs provide autocompletion
     for frontmatter fields.
-
+    
     Args:
         schema: Dataclass or Pydantic model class defining the frontmatter
             structure. Fields without defaults are required; fields with
@@ -219,45 +221,46 @@ def define_collection[T](
             dict on the validated instance. Only effective when ``strict=False``.
         loader: Optional :class:`ContentSource` for fetching remote content.
             Requires extras: ``pip install bengal[github]`` or ``bengal[notion]``.
-
+    
     Returns:
         A :class:`CollectionConfig` instance for use in the project's
         ``collections`` dictionary.
-
+    
     Raises:
         BengalConfigError: If neither ``directory`` nor ``loader`` is provided.
-
+    
     Example:
         Basic local collection:
-
-        >>> from dataclasses import dataclass, field
-        >>> from datetime import datetime
-        >>>
-        >>> @dataclass
-        ... class BlogPost:
-        ...     title: str
-        ...     date: datetime
-        ...     author: str = "Anonymous"
-        ...     tags: list[str] = field(default_factory=list)
-        ...
-        >>> blog = define_collection(
-        ...     schema=BlogPost,
-        ...     directory="content/blog",
-        ... )
-
+    
+            >>> from dataclasses import dataclass, field
+            >>> from datetime import datetime
+            >>>
+            >>> @dataclass
+            ... class BlogPost:
+            ...     title: str
+            ...     date: datetime
+            ...     author: str = "Anonymous"
+            ...     tags: list[str] = field(default_factory=list)
+            ...
+            >>> blog = define_collection(
+            ...     schema=BlogPost,
+            ...     directory="content/blog",
+            ... )
+    
     Example:
         Remote content from GitHub:
-
-        >>> from bengal.content_layer import github_loader
-        >>>
-        >>> api_docs = define_collection(
-        ...     schema=APIDoc,
-        ...     loader=github_loader(repo="myorg/api-docs", path="docs/"),
-        ... )
-
+    
+            >>> from bengal.content_layer import github_loader
+            >>>
+            >>> api_docs = define_collection(
+            ...     schema=APIDoc,
+            ...     loader=github_loader(repo="myorg/api-docs", path="docs/"),
+            ... )
+    
     See Also:
         - :class:`CollectionConfig`: The returned configuration class
         - :class:`SchemaValidator`: How validation is performed
+        
     """
     return CollectionConfig(
         schema=schema,

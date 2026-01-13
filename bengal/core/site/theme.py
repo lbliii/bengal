@@ -4,9 +4,10 @@ Theme integration mixin for Site.
 Provides methods for theme resolution and asset chain discovery.
 
 Related Modules:
-    - bengal.core.site.core: Main Site dataclass using this mixin
-    - bengal.core.theme: Theme configuration
-    - bengal.utils.theme_resolution: Theme inheritance chain resolution
+- bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.core.theme: Theme configuration
+- bengal.utils.theme_resolution: Theme inheritance chain resolution
+
 """
 
 from __future__ import annotations
@@ -23,10 +24,11 @@ if TYPE_CHECKING:
 class ThemeIntegrationMixin:
     """
     Mixin providing theme integration methods.
-
+    
     Requires these attributes on the host class:
         - root_path: Path
         - theme: str | None
+        
     """
 
     # Type hints for mixin attributes (provided by host class)

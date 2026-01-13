@@ -7,22 +7,23 @@ Provides the actual image processing using Pillow, with:
 - Multiple output formats (WebP, AVIF, JPEG, PNG)
 
 Cache Structure:
-    .bengal/image-cache/
-    ├── v1_abc123_fill_def456.webp    # Processed images
-    ├── v1_abc123_fill_def456.json    # Metadata (dimensions, etc.)
-    └── ...
+.bengal/image-cache/
+├── v1_abc123_fill_def456.webp    # Processed images
+├── v1_abc123_fill_def456.json    # Metadata (dimensions, etc.)
+└── ...
 
 Cache Key Format:
-    v{schema}_{source_hash}_{operation}_{spec_hash}.{ext}
+v{schema}_{source_hash}_{operation}_{spec_hash}.{ext}
 
 Thread Safety:
-    Uses atomic file writes (tempfile + rename) to prevent corruption
-    during parallel builds where multiple workers might process the
-    same image simultaneously.
+Uses atomic file writes (tempfile + rename) to prevent corruption
+during parallel builds where multiple workers might process the
+same image simultaneously.
 
 Memory Management:
-    For images >10MP, uses PIL.Image.draft() to reduce memory usage
-    by loading at reduced resolution.
+For images >10MP, uses PIL.Image.draft() to reduce memory usage
+by loading at reduced resolution.
+
 """
 
 from __future__ import annotations
@@ -66,21 +67,22 @@ class CachedResult:
 
 class ImageProcessor:
     """Image processing with caching.
-
+    
     Uses Pillow for processing, with optional libvips for performance.
     Caches processed images in .bengal/image-cache/.
-
+    
     Thread Safety:
         Uses atomic file writes to prevent corruption during parallel builds.
         Cache reads are lock-free; writes use tempfile + rename pattern.
-
+    
     Memory Management:
         For images >10MP, uses chunked processing via PIL.Image.draft()
         to reduce peak memory usage.
-
+    
     Attributes:
         site: Site instance for configuration
         cache_dir: Path to image cache directory
+        
     """
 
     CACHE_DIR = ".bengal/image-cache"
@@ -523,12 +525,13 @@ class ImageProcessor:
 
 def get_cache_stats(site: Any) -> dict[str, Any]:
     """Get image cache statistics.
-
+    
     Args:
         site: Site instance
-
+    
     Returns:
         Dict with cache stats (count, size, etc.)
+        
     """
     cache_dir = site.root_path / ImageProcessor.CACHE_DIR
 
@@ -558,12 +561,13 @@ def get_cache_stats(site: Any) -> dict[str, Any]:
 
 def clear_cache(site: Any) -> int:
     """Clear the image cache.
-
+    
     Args:
         site: Site instance
-
+    
     Returns:
         Number of files deleted
+        
     """
     import shutil
 

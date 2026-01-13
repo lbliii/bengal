@@ -11,17 +11,18 @@ Access patterns:
     >>> cfg.site.title           # Attribute access (preferred)
     'My Site'
     >>> cfg.build.parallel       # Nested sections
-    True
+True
     >>> cfg["theme"]["name"]     # Dict access for dynamic keys
     'default'
     >>> cfg.site.get("custom")   # Optional keys (returns None)
-    None
+None
     >>> cfg.site.typo            # Typos raise AttributeError!
-    AttributeError: No config key 'typo' in section
+AttributeError: No config key 'typo' in section
 
 See Also:
-    - :mod:`bengal.config.loader`: Configuration loading.
-    - :mod:`bengal.config.defaults`: Default configuration values.
+- :mod:`bengal.config.loader`: Configuration loading.
+- :mod:`bengal.config.defaults`: Default configuration values.
+
 """
 
 from __future__ import annotations
@@ -77,19 +78,20 @@ class DevConfig(Protocol):
 class Config:
     """
     Configuration accessor with structured access.
-
+    
     Access patterns:
-        >>> cfg = Config(loaded_dict)
-        >>> cfg.site.title           # Attribute access (preferred)
-        'My Site'
-        >>> cfg.build.parallel       # Nested sections
+            >>> cfg = Config(loaded_dict)
+            >>> cfg.site.title           # Attribute access (preferred)
+            'My Site'
+            >>> cfg.build.parallel       # Nested sections
         True
-        >>> cfg["theme"]["name"]     # Dict access for dynamic keys
-        'default'
-        >>> cfg.site.get("custom")   # Optional keys (returns None)
+            >>> cfg["theme"]["name"]     # Dict access for dynamic keys
+            'default'
+            >>> cfg.site.get("custom")   # Optional keys (returns None)
         None
-        >>> cfg.site.typo            # Typos raise AttributeError!
+            >>> cfg.site.typo            # Typos raise AttributeError!
         AttributeError: No config key 'typo' in section
+        
     """
 
     __slots__ = ("_data", "__dict__")  # __dict__ needed for cached_property
@@ -215,15 +217,16 @@ class Config:
 class ConfigSection:
     """
     Accessor for a config section with attribute access.
-
+    
     Design decisions:
         1. Missing keys raise AttributeError (typos fail loudly)
         2. Use .get(key) for optional keys that may not exist
         3. Nested dicts become cached ConfigSection for chaining
         4. Nested sections are cached to avoid repeated object creation
-
+    
     Example:
         config.theme.syntax_highlighting.css_class_style  # Cached at each level
+        
     """
 
     __slots__ = ("_data", "_path", "_cache")

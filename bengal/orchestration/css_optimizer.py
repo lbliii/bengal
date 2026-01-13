@@ -6,25 +6,26 @@ then generates an optimized style.css with only necessary imports.
 This can reduce CSS bundle size by 50%+ for single-purpose sites.
 
 Key Features:
-    - Zero external dependencies (pure Python)
-    - Automatic detection of content types and features
-    - Preserves CSS @layer structure for proper cascade
-    - Graceful fallback if no manifest available
-    - Full reporting for build output
+- Zero external dependencies (pure Python)
+- Automatic detection of content types and features
+- Preserves CSS @layer structure for proper cascade
+- Graceful fallback if no manifest available
+- Full reporting for build output
 
 Usage:
-    from bengal.orchestration.css_optimizer import CSSOptimizer
+from bengal.orchestration.css_optimizer import CSSOptimizer
 
     optimizer = CSSOptimizer(site)
-    optimized_css, report = optimizer.generate(report=True)
+optimized_css, report = optimizer.generate(report=True)
 
-    # Or use convenience function
-    from bengal.orchestration.css_optimizer import optimize_css_for_site
+# Or use convenience function
+from bengal.orchestration.css_optimizer import optimize_css_for_site
     css = optimize_css_for_site(site)
 
 See Also:
-    - bengal/themes/default/css_manifest.py: Default theme manifest
-    - plan/drafted/rfc-css-tree-shaking.md: Design rationale
+- bengal/themes/default/css_manifest.py: Default theme manifest
+- plan/drafted/rfc-css-tree-shaking.md: Design rationale
+
 """
 
 from __future__ import annotations
@@ -43,24 +44,25 @@ logger = get_logger(__name__)
 class CSSOptimizer:
     """
     Generates optimized CSS bundles based on site content.
-
+    
     Analyzes pages and sections to detect:
     - Content types in use (blog, doc, tutorial, etc.)
     - Features enabled (graph, search, mermaid, etc.)
-
+    
     Then generates a minimal style.css containing only needed imports.
-
+    
     Attributes:
         site: Site instance to analyze
         _manifest: Loaded CSS manifest from theme
-
+    
     Example:
         optimizer = CSSOptimizer(site)
         optimized_css = optimizer.generate()
-
+    
         # Or with reporting
         optimized_css, report = optimizer.generate(report=True)
         print(f"Included {report['included_count']} of {report['total_count']} CSS files")
+        
     """
 
     def __init__(self, site: Site) -> None:
@@ -475,12 +477,13 @@ class CSSOptimizer:
 def optimize_css_for_site(site: Site) -> str:
     """
     Convenience function to generate optimized CSS.
-
+    
     Args:
         site: Site instance
-
+    
     Returns:
         Optimized CSS content (empty string if optimization not applicable)
+        
     """
     optimizer = CSSOptimizer(site)
     result = optimizer.generate()

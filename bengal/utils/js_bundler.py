@@ -32,21 +32,22 @@ def bundle_js_files(
 ) -> str:
     """
     Bundle multiple JavaScript files into a single string.
-
+    
     Files are concatenated in the order provided. Each file's content
     is separated by a newline. Source comments can be added for debugging.
-
+    
     Args:
         files: List of JS file paths in load order (dependencies first)
         minify: Whether to minify the bundled output
         add_source_comments: Whether to add /* source: filename */ comments
-
+    
     Returns:
         Bundled JavaScript content as a single string
-
+    
     Example:
-        >>> files = [Path("js/utils.js"), Path("js/main.js")]
-        >>> bundled = bundle_js_files(files, minify=True)
+            >>> files = [Path("js/utils.js"), Path("js/main.js")]
+            >>> bundled = bundle_js_files(files, minify=True)
+        
     """
     if not files:
         return ""
@@ -97,7 +98,7 @@ def bundle_js_files(
 def get_theme_js_bundle_order() -> list[str]:
     """
     Return the canonical load order for Bengal default theme JS files.
-
+    
     This order ensures dependencies are loaded before dependents:
     1. utils.js - Core utilities (BengalUtils namespace)
     2. bengal-enhance.js - Enhancement registry (load second)
@@ -116,9 +117,10 @@ def get_theme_js_bundle_order() -> list[str]:
     15. enhancements/copy-link.js - Copy link functionality
     16. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
     17. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
-
+    
     Returns:
         List of JS filenames in load order (with paths relative to js/ directory)
+        
     """
     return [
         "utils.js",
@@ -144,14 +146,15 @@ def get_theme_js_bundle_order() -> list[str]:
 def get_theme_js_excluded() -> set[str]:
     """
     Return JS files that should NOT be bundled.
-
+    
     These are either:
     - Third-party minified libraries (already optimized)
     - Conditionally loaded scripts (loaded via lazy-loaders.js)
     - Feature-specific scripts that may not be enabled
-
+    
     Returns:
         Set of filenames to exclude from bundling
+        
     """
     return {
         # Third-party libraries (in vendor/)
@@ -176,17 +179,18 @@ def discover_js_files(
 ) -> list[Path]:
     """
     Discover and order JS files for bundling from a directory.
-
+    
     Files are ordered according to bundle_order if provided,
     with any remaining files appended at the end.
-
+    
     Args:
         js_dir: Directory containing JS files
         bundle_order: Explicit load order (filenames only)
         excluded: Set of filenames to skip
-
+    
     Returns:
         List of file paths in bundling order
+        
     """
     if not js_dir.exists():
         return []
@@ -240,25 +244,26 @@ def create_js_bundle(
 ) -> str:
     """
     Create a JavaScript bundle from a theme's JS directory.
-
+    
     High-level function that discovers files and bundles them.
-
+    
     Args:
         js_dir: Directory containing JS files
         output_path: Optional path to write bundle (if None, returns string only)
         minify: Whether to minify output
         bundle_order: Explicit load order (filenames only)
         excluded: Set of filenames to skip
-
+    
     Returns:
         Bundled JavaScript content
-
+    
     Example:
-        >>> content = create_js_bundle(
-        ...     js_dir=Path("themes/default/assets/js"),
-        ...     output_path=Path("public/assets/js/bundle.js"),
-        ...     minify=True,
-        ... )
+            >>> content = create_js_bundle(
+            ...     js_dir=Path("themes/default/assets/js"),
+            ...     output_path=Path("public/assets/js/bundle.js"),
+            ...     minify=True,
+            ... )
+        
     """
     files = discover_js_files(js_dir, bundle_order=bundle_order, excluded=excluded)
 

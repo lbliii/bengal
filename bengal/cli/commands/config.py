@@ -35,12 +35,13 @@ from bengal.output import CLIOutput
 def config_cli() -> None:
     """
     Configuration management and introspection.
-
+    
     Commands:
         show     Display merged configuration
         doctor   Validate and lint configuration
         diff     Compare configurations
         init     Initialize config structure
+        
     """
     pass
 
@@ -97,22 +98,23 @@ def show(
 ) -> None:
     """
     📋 Display merged configuration.
-
+    
     Shows the effective configuration after merging defaults, environment,
     and profile settings.
-
+    
     Use --origin to see which file contributed each config key, useful
     for debugging configuration issues.
-
+    
     Examples:
         bengal config show
         bengal config show --environment production
         bengal config show --profile dev --origin
         bengal config show --section site
-
+    
     See also:
         bengal config doctor - Validate configuration
         bengal config diff - Compare configurations
+        
     """
     cli = get_cli_output()
 
@@ -200,7 +202,7 @@ def doctor(
 ) -> None:
     """
     Validate and lint configuration.
-
+    
     Checks for:
     - Valid YAML syntax
     - Type errors (bool, int, str)
@@ -208,17 +210,18 @@ def doctor(
     - Required fields
     - Value ranges
     - Deprecated keys
-
+    
     Run this before deploying to catch configuration errors early.
     Exits with non-zero code if errors are found (useful for CI/CD).
-
+    
     Examples:
         bengal config doctor
         bengal config doctor --environment production
-
+    
     See also:
         bengal config show - View merged configuration
         bengal config diff - Compare configurations
+        
     """
     cli = get_cli_output()
 
@@ -308,17 +311,18 @@ def diff(
 ) -> None:
     """
     Compare configurations.
-
+    
     Shows differences between two configurations (environments, profiles, or files).
     Useful for verifying that production settings differ correctly from local/preview.
-
+    
     Examples:
         bengal config diff --against production
         bengal config diff --environment local --against production
-
+    
     See also:
         bengal config show - View merged configuration
         bengal config doctor - Validate configuration
+        
     """
     cli = get_cli_output()
 
@@ -441,18 +445,19 @@ def init(
 ) -> None:
     """
     Initialize configuration structure.
-
+    
     Creates config directory with examples, or a single config file.
     Use --template to choose a preset (docs, blog, minimal).
-
+    
     Examples:
         bengal config init
         bengal config init --type file
         bengal config init --template blog
-
+    
     See also:
         bengal config show - View configuration
         bengal config doctor - Validate configuration
+        
     """
     cli = get_cli_output()
 

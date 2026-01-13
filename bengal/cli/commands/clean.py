@@ -42,18 +42,19 @@ def clean(
 ) -> None:
     """
     Clean generated files and stale processes.
-
+    
     By default, removes only the output directory (public/).
-
+    
     Options:
       --cache         Also remove build cache
       --all           Remove both output and cache
       --stale-server  Clean up stale 'bengal serve' processes
-
+    
     Examples:
       bengal clean                  # Clean output only
       bengal clean --cache          # Clean output and cache
       bengal clean --stale-server   # Clean up stale server processes
+        
     """
     cli = get_cli_output()
 

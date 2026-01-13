@@ -5,20 +5,21 @@ This module provides utility functions for page field handling and synthetic
 page creation. Key functions support the Component Model field separation.
 
 Key Functions:
-    - separate_standard_and_custom_fields(): Separate frontmatter into standard
-      fields (title, date, etc.) and custom props for PageCore
-    - create_synthetic_page(): Create a Page-like object for special pages
-      (404, search, sitemap) without backing markdown files
+- separate_standard_and_custom_fields(): Separate frontmatter into standard
+  fields (title, date, etc.) and custom props for PageCore
+- create_synthetic_page(): Create a Page-like object for special pages
+  (404, search, sitemap) without backing markdown files
 
 Constants:
-    - STANDARD_FIELDS: Set of field names treated as standard PageCore fields
+- STANDARD_FIELDS: Set of field names treated as standard PageCore fields
 
 Related Modules:
-    - bengal.core.page.page_core: PageCore dataclass that uses separated fields
-    - bengal.rendering.special_pages: Uses create_synthetic_page()
+- bengal.core.page.page_core: PageCore dataclass that uses separated fields
+- bengal.rendering.special_pages: Uses create_synthetic_page()
 
 See Also:
-    - bengal/core/page/__init__.py: Page class that uses these utilities
+- bengal/core/page/__init__.py: Page class that uses these utilities
+
 """
 
 from __future__ import annotations
@@ -86,36 +87,37 @@ def separate_standard_and_custom_fields(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Separate standard frontmatter fields from custom props.
-
+    
     Standard fields are extracted to PageCore fields.
     Custom fields go into props.
-
+    
     Note: For markdown files, frontmatter should be flat (no props: nesting).
     The props: key is primarily for skeleton manifests (bengal skeleton apply),
     where it helps group custom data separately from structural fields.
-
+    
     Args:
         metadata: Full frontmatter metadata dict (will be modified in place)
-
+    
     Returns:
         Tuple of (standard_fields_dict, custom_props_dict)
-
+    
     Example:
-        >>> # Markdown file (flat)
-        >>> metadata = {"title": "Page", "icon": "code"}
-        >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
-        >>> standard
+            >>> # Markdown file (flat)
+            >>> metadata = {"title": "Page", "icon": "code"}
+            >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
+            >>> standard
         {'title': 'Page'}
-        >>> props
+            >>> props
         {'icon': 'code'}
-
-        >>> # Skeleton manifest (can use props:)
-        >>> metadata = {"type": "doc", "props": {"icon": "code"}}
-        >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
-        >>> standard
+    
+            >>> # Skeleton manifest (can use props:)
+            >>> metadata = {"type": "doc", "props": {"icon": "code"}}
+            >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
+            >>> standard
         {'type': 'doc'}
-        >>> props
+            >>> props
         {'icon': 'code'}
+        
     """
     # Work with a copy to avoid mutating original
     metadata = metadata.copy()
@@ -155,10 +157,10 @@ def create_synthetic_page(
 ) -> SimpleNamespace:
     """
     Create a synthetic page object (SimpleNamespace) that mimics the Page interface.
-
+    
     Used for special pages like 404, search, and sitemap which don't have
     backing markdown files but need to be rendered using theme templates.
-
+    
     Args:
         title: Page title
         description: Page description
@@ -171,9 +173,10 @@ def create_synthetic_page(
         tags: List of tags
         keywords: List of keywords
         content: Page content
-
+    
     Returns:
         SimpleNamespace object with Page-like attributes
+        
     """
     # Derive slug from URL or title
     slug = url.strip("/").split("/")[-1] if url else title.lower().replace(" ", "-")

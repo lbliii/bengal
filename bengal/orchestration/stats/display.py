@@ -18,13 +18,14 @@ if TYPE_CHECKING:
 def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None) -> None:
     """
     Display simple build statistics for writers.
-
+    
     Clean, minimal output focused on success/failure and critical issues only.
     Perfect for content authors who just want to know "did it work?"
-
+    
     Args:
         stats: Build statistics to display
         output_dir: Output directory path to display
+        
     """
     cli = CLIOutput()
 
@@ -100,11 +101,12 @@ def display_build_stats(
 ) -> None:
     """
     Display build statistics in a colorful table.
-
+    
     Args:
         stats: Build statistics to display
         show_art: Whether to show ASCII art
         output_dir: Output directory path to display
+        
     """
     cli = CLIOutput()
 

@@ -31,10 +31,10 @@ if TYPE_CHECKING:
 class ReleaseView:
     """
     Normalized view of a changelog release for templates.
-
+    
     Unifies data-driven (from changelog.yaml) and page-driven (from markdown
     files) releases into a single consistent interface.
-
+    
     Attributes:
         version: Version string (e.g., "1.2.0")
         name: Release name/codename
@@ -51,6 +51,7 @@ class ReleaseView:
         breaking: List of breaking changes
         has_structured_changes: Whether release has categorized changes
         change_types: List of change type names present
+        
     """
 
     version: str
@@ -228,27 +229,28 @@ def _to_tuple(value: Any) -> tuple[str, ...]:
 def releases_filter(source: Any) -> list[ReleaseView]:
     """
     Convert releases from data or pages to normalized ReleaseView objects.
-
+    
     Handles both modes:
     - Data-driven: Pass site.data.changelog.releases
     - Page-driven: Pass section.pages or pages list
-
+    
     Args:
         source: List of release dicts or Page objects
-
+    
     Returns:
         List of ReleaseView objects
-
+    
     Example (data-driven):
         {% let changelog = site.data.changelog %}
         {% for rel in changelog.releases | releases %}
           {{ rel.version }}
         {% end %}
-
+    
     Example (page-driven):
         {% for rel in pages | releases %}
           {{ rel.version }}
         {% end %}
+        
     """
     if not source:
         return []
@@ -272,16 +274,17 @@ def releases_filter(source: Any) -> list[ReleaseView]:
 def release_view_filter(item: Any) -> ReleaseView | None:
     """
     Convert a single release item to a ReleaseView.
-
+    
     Args:
         item: Release dict or Page object
-
+    
     Returns:
         ReleaseView object or None if conversion fails
-
+    
     Example:
         {% let rel = release | release_view %}
         <h2>{{ rel.version }}</h2>
+        
     """
     if not item:
         return None

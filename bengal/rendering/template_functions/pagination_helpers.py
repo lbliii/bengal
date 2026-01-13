@@ -32,20 +32,21 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) -> dict[str, Any]:
     """
     Paginate a list of items.
-
+    
     Args:
         items: List to paginate
         per_page: Items per page (default: 10)
         current_page: Current page number (1-indexed)
-
+    
     Returns:
         Dictionary with pagination data
-
+    
     Example:
         {% set pagination = posts | paginate(10, current_page) %}
         {% for post in pagination.items %}
-          ...
+              ...
         {% endfor %}
+        
     """
     if not items or per_page <= 0:
         return {
@@ -79,17 +80,18 @@ def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) 
 def page_url(base_path: str, page_num: int) -> str:
     """
     Generate URL for a pagination page.
-
+    
     Args:
         base_path: Base path (e.g., "/posts/")
         page_num: Page number
-
+    
     Returns:
         URL for that page
-
+    
     Example:
         <a href="{{ page_url('/posts/', 2) }}">Page 2</a>
         # <a href="/posts/page/2/">Page 2</a>
+        
     """
     base_path = base_path.rstrip("/")
 
@@ -102,15 +104,15 @@ def page_url(base_path: str, page_num: int) -> str:
 def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int | None]:
     """
     Generate page range with ellipsis for pagination controls.
-
+    
     Args:
         current_page: Current page number
         total_pages: Total number of pages
         window: Number of pages to show around current (default: 2)
-
+    
     Returns:
         List of page numbers with None for ellipsis
-
+    
     Example:
         {% for page_num in page_range(5, 20, window=2) %}
           {% if page_num is none %}
@@ -120,6 +122,7 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
           {% endif %}
         {% endfor %}
         # Outputs: 1 ... 3 4 5 6 7 ... 20
+        
     """
     if total_pages <= 1:
         return [1]

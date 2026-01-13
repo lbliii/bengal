@@ -11,23 +11,24 @@ Frontmatter Format:
     category: reference
 
 Template Usage:
-    {# Get all tutorials #}
-    {% set tutorials = site.indexes.category.get('tutorial') %}
+{# Get all tutorials #}
+{% set tutorials = site.indexes.category.get('tutorial') %}
 
-    {# List all categories #}
-    {% for category in site.indexes.category.keys() %}
-      {{ category }}: {{ site.indexes.category.get(category)|length }} pages
-    {% endfor %}
+{# List all categories #}
+{% for category in site.indexes.category.keys() %}
+  {{ category }}: {{ site.indexes.category.get(category)|length }} pages
+{% endfor %}
 
 Common Patterns:
-    Documentation: 'tutorial', 'guide', 'reference', 'howto', 'explanation'
-    Blog: 'tech', 'business', 'personal', 'news'
-    Recipes: 'appetizer', 'main-course', 'dessert', 'beverage'
+Documentation: 'tutorial', 'guide', 'reference', 'howto', 'explanation'
+Blog: 'tech', 'business', 'personal', 'news'
+Recipes: 'appetizer', 'main-course', 'dessert', 'beverage'
 
 Related:
-    - bengal.cache.query_index: Base QueryIndex class
-    - bengal.cache.indexes.author_index: Similar single-valued index
-    - bengal.cache.taxonomy_index: For multi-valued tags
+- bengal.cache.query_index: Base QueryIndex class
+- bengal.cache.indexes.author_index: Similar single-valued index
+- bengal.cache.taxonomy_index: For multi-valued tags
+
 """
 
 from __future__ import annotations
@@ -44,20 +45,21 @@ if TYPE_CHECKING:
 class CategoryIndex(QueryIndex):
     """
     Index pages by category (single-valued taxonomy).
-
+    
     Unlike tags (multi-valued), categories are typically single-valued:
         category: tutorial
         category: autodoc/python
         category: guide
-
+    
     Provides O(1) lookup:
         site.indexes.category.get('tutorial')      # All tutorials
         site.indexes.category.get('autodoc/python') # All API docs
-
+    
     Common patterns:
         - Documentation: 'tutorial', 'guide', 'reference', 'howto'
         - Blog: 'tech', 'business', 'personal'
         - Recipes: 'appetizer', 'main-course', 'dessert'
+        
     """
 
     def __init__(self, cache_path: Path):

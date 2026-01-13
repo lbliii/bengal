@@ -5,54 +5,54 @@ Provides a local HTTP server with file watching and automatic rebuilds
 for a smooth development experience.
 
 Components:
-    Core Server:
-    - DevServer: Main orchestrator with HTTP serving and file watching
-    - BengalRequestHandler: HTTP handler with live reload and custom 404s
-    - ResourceManager: Graceful cleanup of resources on shutdown
-    - PIDManager: Process tracking and stale process recovery
+Core Server:
+- DevServer: Main orchestrator with HTTP serving and file watching
+- BengalRequestHandler: HTTP handler with live reload and custom 404s
+- ResourceManager: Graceful cleanup of resources on shutdown
+- PIDManager: Process tracking and stale process recovery
 
-    File Watching:
-    - FileWatcher: Rust-based file watching (watchfiles backend)
-    - WatcherRunner: Async-to-sync bridge with debouncing
-    - IgnoreFilter: Configurable ignore patterns (glob + regex)
+File Watching:
+- FileWatcher: Rust-based file watching (watchfiles backend)
+- WatcherRunner: Async-to-sync bridge with debouncing
+- IgnoreFilter: Configurable ignore patterns (glob + regex)
 
-    Build System:
-    - BuildTrigger: Build orchestration with pre/post hooks
-    - BuildExecutor: Process-isolated build execution for crash resilience
-    - ReloadController: Smart reload decisions (CSS-only vs full)
+Build System:
+- BuildTrigger: Build orchestration with pre/post hooks
+- BuildExecutor: Process-isolated build execution for crash resilience
+- ReloadController: Smart reload decisions (CSS-only vs full)
 
-    Live Reload:
-    - LiveReloadMixin: SSE endpoint and HTML script injection
-    - notify_clients_reload: Trigger browser refresh
-    - send_reload_payload: Send structured reload events
+Live Reload:
+- LiveReloadMixin: SSE endpoint and HTML script injection
+- notify_clients_reload: Trigger browser refresh
+- send_reload_payload: Send structured reload events
 
-    Utilities:
-    - RequestLogger: Beautiful, filtered HTTP request logging
+Utilities:
+- RequestLogger: Beautiful, filtered HTTP request logging
 
 Features:
-    - Automatic incremental rebuilds on file changes
-    - Event type detection (created/modified/deleted) for smart rebuild decisions
-    - CSS-only hot reload (no page refresh for style changes)
-    - Beautiful, minimal request logging with filtering
-    - Custom 404 error pages (serves user's 404.html if present)
-    - Graceful shutdown handling (Ctrl+C, SIGTERM)
-    - Stale process detection and cleanup
-    - Automatic port fallback if port is in use
-    - Optional browser auto-open
-    - Pre/post build hooks for custom workflows
-    - Process-isolated builds for crash resilience
-    - Configurable ignore patterns (exclude_patterns, exclude_regex)
-    - Fast file watching via watchfiles (Rust-based, 10-50x faster)
-    - Rebuilding placeholder page during active builds
+- Automatic incremental rebuilds on file changes
+- Event type detection (created/modified/deleted) for smart rebuild decisions
+- CSS-only hot reload (no page refresh for style changes)
+- Beautiful, minimal request logging with filtering
+- Custom 404 error pages (serves user's 404.html if present)
+- Graceful shutdown handling (Ctrl+C, SIGTERM)
+- Stale process detection and cleanup
+- Automatic port fallback if port is in use
+- Optional browser auto-open
+- Pre/post build hooks for custom workflows
+- Process-isolated builds for crash resilience
+- Configurable ignore patterns (exclude_patterns, exclude_regex)
+- Fast file watching via watchfiles (Rust-based, 10-50x faster)
+- Rebuilding placeholder page during active builds
 
 Architecture:
-    The dev server coordinates several subsystems in a pipeline:
+The dev server coordinates several subsystems in a pipeline:
 
-    FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor
-                                       ↓
-                              ReloadController → LiveReload → Browser
+FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor
+                                   ↓
+                          ReloadController → LiveReload → Browser
 
-    All resources are managed by ResourceManager for reliable cleanup.
+All resources are managed by ResourceManager for reliable cleanup.
 
 Usage:
     ```python
@@ -72,16 +72,17 @@ Usage:
     ```
 
 Watched Directories:
-    - content/ - Markdown content files
-    - assets/ - CSS, JS, images
-    - templates/ - Jinja2 templates
-    - data/ - YAML/JSON data files
-    - themes/ - Theme files
-    - bengal.toml - Configuration file
+- content/ - Markdown content files
+- assets/ - CSS, JS, images
+- templates/ - Jinja2 templates
+- data/ - YAML/JSON data files
+- themes/ - Theme files
+- bengal.toml - Configuration file
 
 Related:
-    - bengal/cli/serve.py: CLI command for starting dev server
-    - bengal/orchestration/build_orchestrator.py: Build logic
+- bengal/cli/serve.py: CLI command for starting dev server
+- bengal/orchestration/build_orchestrator.py: Build logic
+
 """
 
 from __future__ import annotations
@@ -117,15 +118,16 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """
     Lazy import pattern for server components.
-
+    
     Args:
         name: The attribute name being accessed
-
+    
     Returns:
         The requested attribute
-
+    
     Raises:
         AttributeError: If the attribute is not found
+        
     """
     if name == "DevServer":
         from bengal.server.dev_server import DevServer

@@ -22,9 +22,10 @@ Example:
     >>> display_bengal_error(error, CLIOutput())
 
 See Also:
-    - bengal/errors/exceptions.py: BengalError exception hierarchy
-    - bengal/errors/codes.py: Error code definitions
-    - bengal/cli/helpers/error_handling.py: CLI error decorator
+- bengal/errors/exceptions.py: BengalError exception hierarchy
+- bengal/errors/codes.py: Error code definitions
+- bengal/cli/helpers/error_handling.py: CLI error decorator
+
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
 def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
     """
     Display a BengalError with beautiful, structured formatting.
-
+    
     Formats the error with:
     - Error code and category header
     - Main error message
@@ -47,13 +48,13 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
     - Related files for debugging
     - Actionable suggestion
     - Documentation link
-
+    
     Args:
         error: The BengalError instance to display.
         cli: CLI output helper for formatted printing.
-
+    
     Example:
-        >>> display_bengal_error(error, cli)
+            >>> display_bengal_error(error, cli)
         #
         #   ✖ [C001] Config Error
         #
@@ -64,6 +65,7 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
         #   Tip: Check for missing colons, incorrect indentation
         #
         #   Docs: https://lbliii.github.io/bengal/docs/reference/errors/#c001
+        
     """
     icons = cli.icons
 
@@ -153,24 +155,25 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
 def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:
     """
     Return (message, suggestion) for common exceptions, or None.
-
+    
     Handles exceptions from yaml, toml, jinja2, and filesystem operations
     to provide user-friendly error messages.
-
+    
     Args:
         e: The exception to beautify.
-
+    
     Returns:
         Tuple of (message, suggestion) if the exception is recognized,
         None otherwise.
-
+    
     Example:
-        >>> result = beautify_common_exception(FileNotFoundError("config.yaml"))
-        >>> if result:
-        ...     message, suggestion = result
-        ...     print(f"Error: {message}")
-        ...     if suggestion:
-        ...         print(f"Tip: {suggestion}")
+            >>> result = beautify_common_exception(FileNotFoundError("config.yaml"))
+            >>> if result:
+            ...     message, suggestion = result
+            ...     print(f"Error: {message}")
+            ...     if suggestion:
+            ...         print(f"Tip: {suggestion}")
+        
     """
     # Handle file not found
     if isinstance(e, FileNotFoundError):

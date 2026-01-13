@@ -43,15 +43,16 @@ logger = get_logger(__name__)
 def _strip_bom(content: str, file_path: Path, encoding: str, caller: str | None = None) -> str:
     """
     Strip UTF-8 BOM from content if present.
-
+    
     Args:
         content: File content
         file_path: Path to file (for logging)
         encoding: Encoding used (for logging)
         caller: Caller identifier for logging
-
+    
     Returns:
         Content with BOM removed if present, otherwise unchanged
+        
     """
     if content and content[0] == "\ufeff":
         logger.debug(
@@ -74,12 +75,12 @@ def read_text_file(
 ) -> str | None:
     """
     Read text file with robust error handling and encoding fallback.
-
+    
     Consolidates patterns from:
     - bengal/discovery/content_discovery.py:192 (UTF-8 with latin-1 fallback)
     - bengal/rendering/template_functions/files.py:78 (file reading with logging)
     - bengal/config/loader.py:137 (config file reading)
-
+    
     Args:
         file_path: Path to file to read
         encoding: Primary encoding to try (default: 'utf-8')
@@ -89,23 +90,24 @@ def read_text_file(
             - 'return_empty': Return empty string on error
             - 'return_none': Return None on error
         caller: Caller identifier for logging context
-
+    
     Returns:
         File contents as string, or None/empty string based on on_error.
-
+    
     Encoding notes:
     - Strips UTF-8 BOM when present.
     - If primary decode fails, tries `utf-8-sig` before the configured fallback.
-
+    
     Raises:
         FileNotFoundError: If file doesn't exist and on_error='raise'
         ValueError: If path is not a file and on_error='raise'
         IOError: If file cannot be read and on_error='raise'
-
+    
     Examples:
-        >>> content = read_text_file('config.txt')
-        >>> content = read_text_file('data.txt', fallback_encoding='latin-1')
-        >>> content = read_text_file('optional.txt', on_error='return_empty')
+            >>> content = read_text_file('config.txt')
+            >>> content = read_text_file('data.txt', fallback_encoding='latin-1')
+            >>> content = read_text_file('optional.txt', on_error='return_empty')
+        
     """
     file_path = Path(file_path)
 
@@ -235,25 +237,26 @@ def load_json(
 ) -> Any:
     """
     Load JSON file with error handling.
-
+    
     Consolidates patterns from:
     - bengal/rendering/template_functions/data.py:80 (JSON loading)
-
+    
     Args:
         file_path: Path to JSON file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-
+    
     Returns:
         Parsed JSON data, or {} / None based on on_error
-
+    
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         json.JSONDecodeError: If JSON is invalid and on_error='raise'
-
+    
     Examples:
-        >>> data = load_json('config.json')
-        >>> data = load_json('optional.json', on_error='return_none')
+            >>> data = load_json('config.json')
+            >>> data = load_json('optional.json', on_error='return_none')
+        
     """
     file_path = Path(file_path)
 
@@ -296,27 +299,28 @@ def load_yaml(
 ) -> dict[str, Any] | None:
     """
     Load YAML file with error handling.
-
+    
     Consolidates patterns from:
     - bengal/config/loader.py:142 (YAML config loading)
     - bengal/rendering/template_functions/data.py:94 (YAML data loading)
-
+    
     Args:
         file_path: Path to YAML file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-
+    
     Returns:
         Parsed YAML data, or {} / None based on on_error
-
+    
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         yaml.YAMLError: If YAML is invalid and on_error='raise'
         ImportError: If PyYAML not installed and on_error='raise'
-
+    
     Examples:
-        >>> data = load_yaml('config.yaml')
-        >>> data = load_yaml('optional.yml', on_error='return_none')
+            >>> data = load_yaml('config.yaml')
+            >>> data = load_yaml('optional.yml', on_error='return_none')
+        
     """
     file_path = Path(file_path)
 
@@ -378,25 +382,26 @@ def load_toml(
 ) -> dict[str, Any] | None:
     """
     Load TOML file with error handling.
-
+    
     Consolidates patterns from:
     - bengal/config/loader.py:137 (TOML config loading)
-
+    
     Args:
         file_path: Path to TOML file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-
+    
     Returns:
         Parsed TOML data, or {} / None based on on_error
-
+    
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         toml.TomlDecodeError: If TOML is invalid and on_error='raise'
-
+    
     Examples:
-        >>> data = load_toml('config.toml')
-        >>> data = load_toml('optional.toml', on_error='return_none')
+            >>> data = load_toml('config.toml')
+            >>> data = load_toml('optional.toml', on_error='return_none')
+        
     """
     file_path = Path(file_path)
 
@@ -442,25 +447,26 @@ def load_data_file(
 ) -> dict[str, Any] | None:
     """
     Auto-detect and load JSON/YAML/TOML file.
-
+    
     Consolidates pattern from:
     - bengal/rendering/template_functions/data.py:40 (get_data function)
-
+    
     Args:
         file_path: Path to data file (.json, .yaml, .yml, .toml)
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-
+    
     Returns:
         Parsed data, or {} / None based on on_error
-
+    
     Raises:
         ValueError: If file format is unsupported and on_error='raise'
-
+    
     Examples:
-        >>> data = load_data_file('config.json')
-        >>> data = load_data_file('settings.yaml')
-        >>> data = load_data_file('pyproject.toml')
+            >>> data = load_data_file('config.json')
+            >>> data = load_data_file('settings.yaml')
+            >>> data = load_data_file('pyproject.toml')
+        
     """
     file_path = Path(file_path)
     suffix = file_path.suffix.lower()
@@ -501,20 +507,21 @@ def write_text_file(
 ) -> None:
     """
     Write text to file with parent directory creation.
-
+    
     Args:
         file_path: Path to file to write
         content: Text content to write
         encoding: Text encoding (default: 'utf-8')
         create_parents: Create parent directories if they don't exist
         caller: Caller identifier for logging
-
+    
     Raises:
         IOError: If write fails
-
+    
     Examples:
-        >>> write_text_file('output/data.txt', 'Hello World')
-        >>> write_text_file('result.json', json.dumps(data))
+            >>> write_text_file('output/data.txt', 'Hello World')
+            >>> write_text_file('result.json', json.dumps(data))
+        
     """
     file_path = Path(file_path)
 
@@ -552,23 +559,24 @@ def write_json(
 ) -> None:
     """
     Write data as JSON file.
-
+    
     Writes data as JSON to a file.
-
+    
     Args:
         file_path: Path to JSON file
         data: Data to serialize as JSON
         indent: JSON indentation (None for compact)
         create_parents: Create parent directories if needed
         caller: Caller identifier for logging
-
+    
     Raises:
         TypeError: If data is not JSON serializable
         IOError: If write fails
-
+    
     Examples:
-        >>> write_json('output.json', {'key': 'value'})
-        >>> write_json('data.json', data, indent=None)  # Compact
+            >>> write_json('output.json', {'key': 'value'})
+            >>> write_json('data.json', data, indent=None)  # Compact
+        
     """
     try:
         content = json.dumps(data, indent=indent)
@@ -592,15 +600,16 @@ _RETRY_DELAY_BASE = 0.1  # seconds
 def _remove_hidden_files(dir_path: Path) -> int:
     """
     Remove macOS hidden files that may prevent directory deletion.
-
+    
     Targets .DS_Store, ._* files, and other dotfiles that macOS creates
     and can interfere with shutil.rmtree.
-
+    
     Args:
         dir_path: Directory to clean hidden files from
-
+    
     Returns:
         Number of hidden files removed
+        
     """
     removed = 0
     for hidden in dir_path.rglob(".*"):
@@ -627,28 +636,29 @@ def rmtree_robust(
 ) -> None:
     """
     Remove directory tree with robust error handling for filesystem quirks.
-
+    
     On macOS, shutil.rmtree can fail with Errno 66 (Directory not empty)
     due to race conditions with Spotlight indexing, Finder metadata files
     (.DS_Store, ._*), or other processes briefly accessing the directory.
-
+    
     Strategy:
         1. Try normal shutil.rmtree
         2. On ENOTEMPTY, remove hidden files (.DS_Store, ._*) and retry
         3. Fall back to subprocess `rm -rf` on macOS as last resort
-
+    
     Args:
         path: Directory to remove
         max_retries: Number of retry attempts (default 3)
         caller: Caller identifier for logging
-
+    
     Raises:
         OSError: If deletion fails after all retries
         FileNotFoundError: If path does not exist
-
+    
     Examples:
-        >>> rmtree_robust(Path('/path/to/output'))
-        >>> rmtree_robust(Path('.bengal'), max_retries=5)
+            >>> rmtree_robust(Path('/path/to/output'))
+            >>> rmtree_robust(Path('.bengal'), max_retries=5)
+        
     """
     caller = caller or "file_io"
 

@@ -8,13 +8,13 @@ Functions
 =========
 
 **format_error_report()**
-    Format a comprehensive multi-line error report from BuildStats.
-    Groups errors by category, shows file paths and suggestions in
-    verbose mode.
+Format a comprehensive multi-line error report from BuildStats.
+Groups errors by category, shows file paths and suggestions in
+verbose mode.
 
 **format_error_summary()**
-    Format a brief one-line summary suitable for build completion
-    messages (e.g., "Build completed with 2 errors, 3 warnings").
+Format a brief one-line summary suitable for build completion
+messages (e.g., "Build completed with 2 errors, 3 warnings").
 
 Output Format
 =============
@@ -31,23 +31,24 @@ Usage
 
 Format a full error report::
 
-    from bengal.errors import format_error_report
+from bengal.errors import format_error_report
 
     report = format_error_report(stats, verbose=True)
-    print(report)
+print(report)
 
 Format a brief summary::
 
-    from bengal.errors import format_error_summary
+from bengal.errors import format_error_summary
 
     summary = format_error_summary(stats)
-    print(summary)  # "✓ Build completed successfully" or "⚠ Build completed with 2 errors"
+print(summary)  # "✓ Build completed successfully" or "⚠ Build completed with 2 errors"
 
 See Also
 ========
 
 - ``bengal/orchestration/stats/`` - BuildStats implementation
 - ``bengal/cli/commands/build.py`` - CLI usage
+
 """
 
 from __future__ import annotations
@@ -64,18 +65,19 @@ if TYPE_CHECKING:
 def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
     """
     Format comprehensive error report from BuildStats.
-
+    
     Args:
         stats: BuildStats instance with collected errors
         verbose: If True, include detailed file paths and suggestions
-
+    
     Returns:
         Formatted error report string
-
+    
     Example:
-        >>> from bengal.errors import format_error_report
-        >>> report = format_error_report(stats, verbose=True)
-        >>> print(report)
+            >>> from bengal.errors import format_error_report
+            >>> report = format_error_report(stats, verbose=True)
+            >>> print(report)
+        
     """
     summary = stats.get_error_summary()
 
@@ -145,15 +147,16 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
 def _get_error_message(error: Any) -> str:
     """
     Extract error message from an error object.
-
+    
     Handles both BengalError instances (which have a ``message`` attribute)
     and standard exceptions (which use ``str()``).
-
+    
     Args:
         error: Error object to extract message from.
-
+    
     Returns:
         Human-readable error message string.
+        
     """
     if hasattr(error, "message"):
         return str(error.message)
@@ -163,12 +166,13 @@ def _get_error_message(error: Any) -> str:
 def format_error_summary(stats: BuildStats) -> str:
     """
     Format brief error summary (one line).
-
+    
     Args:
         stats: BuildStats instance
-
+    
     Returns:
         Brief summary string
+        
     """
     icons = get_icon_set(should_use_emoji())
     summary = stats.get_error_summary()

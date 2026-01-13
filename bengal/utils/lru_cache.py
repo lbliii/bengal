@@ -5,10 +5,10 @@ This is Bengal's standard LRU cache implementation. Use it for any
 in-memory caching with size limits and optional time-based expiry.
 
 Design Goals:
-    - Zero dependencies on Bengal internals (portable to Kida or elsewhere)
-    - Generic type parameters for type safety
-    - Full-featured: stats, TTL, enable/disable, get_or_set
-    - Thread-safe with RLock for reentrant access
+- Zero dependencies on Bengal internals (portable to Kida or elsewhere)
+- Generic type parameters for type safety
+- Full-featured: stats, TTL, enable/disable, get_or_set
+- Thread-safe with RLock for reentrant access
 
 Example:
     >>> from bengal.utils.lru_cache import LRUCache
@@ -17,7 +17,8 @@ Example:
     >>> cache.get("key")
     >>> template = cache.get_or_set("other", lambda: compile_template())
     >>> cache.stats()
-    {'hits': 10, 'misses': 2, 'hit_rate': 0.83, ...}
+{'hits': 10, 'misses': 2, 'hit_rate': 0.83, ...}
+
 """
 
 from __future__ import annotations
@@ -31,27 +32,28 @@ from typing import Any, overload
 
 class LRUCache[K, V]:
     """Thread-safe LRU cache with optional TTL support.
-
+    
     Uses OrderedDict + RLock for O(1) operations with thread safety.
-
+    
     Eviction Strategy:
         True LRU - move_to_end() on every access, popitem(last=False) for eviction.
         This provides better hit rates than FIFO for workloads with temporal locality.
-
+    
     Args:
         maxsize: Maximum number of entries (0 = unlimited)
         ttl: Time-to-live in seconds (None = no expiry)
         name: Optional name for debugging/logging
-
+    
     Thread-Safety:
         All operations are protected by an RLock (reentrant).
         Safe for concurrent access from multiple threads.
-
+    
     Complexity:
         - get: O(1) average
         - set: O(1) average
         - get_or_set: O(1) + factory cost on miss
         - clear: O(n)
+        
     """
 
     __slots__ = (

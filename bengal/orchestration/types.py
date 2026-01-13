@@ -6,13 +6,14 @@ enabling type-safe build context, phase tracking, and inter-orchestrator
 communication.
 
 Note:
-    BuildStats is defined as a dataclass in bengal.orchestration.stats.models.
-    This module provides complementary TypedDicts for dict-based patterns.
+BuildStats is defined as a dataclass in bengal.orchestration.stats.models.
+This module provides complementary TypedDicts for dict-based patterns.
 
 See Also:
-    - :mod:`bengal.orchestration.stats.models`: BuildStats dataclass
-    - :mod:`bengal.utils.progress`: ProgressReporter protocol
-    - :mod:`bengal.utils.stats_protocol`: CoreStats, DisplayableStats protocols
+- :mod:`bengal.orchestration.stats.models`: BuildStats dataclass
+- :mod:`bengal.utils.progress`: ProgressReporter protocol
+- :mod:`bengal.utils.stats_protocol`: CoreStats, DisplayableStats protocols
+
 """
 
 from __future__ import annotations
@@ -160,9 +161,10 @@ class AssetManifest(TypedDict, total=False):
 class ProgressManagerProtocol(Protocol):
     """
     Protocol for progress manager objects.
-
+    
     Used by orchestrators for live progress display.
     More flexible than ProgressReporter - includes task management.
+        
     """
 
     def add_task(self, description: str, total: int | None = None) -> object:
@@ -194,8 +196,9 @@ class ProgressManagerProtocol(Protocol):
 class SectionLike(Protocol):
     """
     Protocol for section-like objects in menu building.
-
+    
     Enables menu orchestrator to work with any section-compatible object.
+        
     """
 
     @property

@@ -82,13 +82,14 @@ BENCHMARKS = {
 def run_benchmark(script_name: str, output_file=None) -> dict:
     """
     Run a single benchmark script.
-
+    
     Args:
         script_name: Name of the benchmark script
         output_file: Optional file to write output to
-
+    
     Returns:
         Dict with execution results
+        
     """
     script_path = Path(__file__).parent / script_name
 
@@ -144,10 +145,11 @@ def run_benchmark(script_name: str, output_file=None) -> dict:
 def run_benchmark_suite(benchmarks_to_run: list[str], output_path: str = None):
     """
     Run a suite of benchmarks and generate summary.
-
+    
     Args:
         benchmarks_to_run: List of benchmark keys to run
         output_path: Optional file path to write results
+        
     """
     # Use context manager for file handling
     with open(output_path, "w") if output_path else contextlib.nullcontext() as output_file:

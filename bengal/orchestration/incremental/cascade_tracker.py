@@ -5,13 +5,14 @@ Tracks cascade metadata changes in section index pages and identifies
 descendant pages that need rebuilding when cascade metadata changes.
 
 Key Concepts:
-    - Cascade metadata: Frontmatter values that propagate to descendant pages
-    - Section rebuilds: When cascade changes, all descendants need rebuild
-    - Root cascade: Site-wide cascade affects all pages
+- Cascade metadata: Frontmatter values that propagate to descendant pages
+- Section rebuilds: When cascade changes, all descendants need rebuild
+- Root cascade: Site-wide cascade affects all pages
 
 Related Modules:
-    - bengal.core.section: Section model with cascade support
-    - bengal.orchestration.incremental: Incremental build coordination
+- bengal.core.section: Section model with cascade support
+- bengal.orchestration.incremental: Incremental build coordination
+
 """
 
 from __future__ import annotations
@@ -32,18 +33,19 @@ logger = get_logger(__name__)
 class CascadeTracker:
     """
     Tracks cascade metadata dependencies for incremental builds.
-
+    
     When a section index page with cascade metadata changes, all descendant
     pages inherit the metadata and must be rebuilt. This class identifies
     which pages are affected by cascade changes.
-
+    
     Attributes:
         site: Site instance for page lookup
-
+    
     Example:
-        >>> tracker = CascadeTracker(site)
-        >>> affected = tracker.find_cascade_affected_pages(index_page)
-        >>> pages_to_rebuild.update(affected)
+            >>> tracker = CascadeTracker(site)
+            >>> affected = tracker.find_cascade_affected_pages(index_page)
+            >>> pages_to_rebuild.update(affected)
+        
     """
 
     def __init__(self, site: Site) -> None:

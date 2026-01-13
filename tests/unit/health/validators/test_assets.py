@@ -268,10 +268,11 @@ def test_asset_validator_name_and_description():
 class TestCriticalAssetChecks:
     """
     Tests for critical asset checks that FAIL the build when essential assets are missing.
-
+    
     Regression tests for: Theme assets skipped when Bengal installed in .venv
-
+    
     These tests are theme-agnostic - they should work for any theme, not just the default.
+        
     """
 
     def test_no_css_files_is_error(self, mock_site, tmp_path):
@@ -378,9 +379,10 @@ class TestCriticalAssetChecks:
 class TestEmptyAssetDetection:
     """
     Tests for empty (0-byte) asset file detection.
-
+    
     Empty CSS/JS files are almost always a bug - they load but do nothing,
     causing silent failures that are hard to debug.
+        
     """
 
     def test_empty_css_is_error(self, mock_site, tmp_path):

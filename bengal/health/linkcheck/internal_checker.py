@@ -6,14 +6,15 @@ output directory. Handles relative paths, baseurl stripping, and anchor
 validation.
 
 Features:
-    - Page existence checking via output directory scan
-    - Anchor validation against page headings
-    - Source file reference filtering (autodoc .py links)
-    - Baseurl path stripping for proper resolution
+- Page existence checking via output directory scan
+- Anchor validation against page headings
+- Source file reference filtering (autodoc .py links)
+- Baseurl path stripping for proper resolution
 
 Related:
-    - bengal.health.linkcheck.orchestrator: Coordinates with external checker
-    - bengal.health.linkcheck.models: LinkCheckResult data model
+- bengal.health.linkcheck.orchestrator: Coordinates with external checker
+- bengal.health.linkcheck.models: LinkCheckResult data model
+
 """
 
 from __future__ import annotations
@@ -35,25 +36,26 @@ logger = get_logger(__name__)
 class InternalLinkChecker:
     """
     Validates internal links within a built site.
-
+    
     Scans the output directory for HTML files and builds an index of valid
     URLs. Checks links against this index and validates anchors when present.
-
+    
     Validation Coverage:
         - Page-to-page links (absolute site paths)
         - Anchor links (#section-id)
         - Handles baseurl stripping
         - Filters source file references (autodoc)
-
+    
     Attributes:
         site: Site instance with output_dir
         ignore_policy: IgnorePolicy for filtering certain links
         output_dir: Path to built HTML files
         baseurl_path: Base URL path to strip from links
-
+    
     Note:
         Relative links are currently passed as OK with a metadata note,
         as full resolution requires tracking the referencing page context.
+        
     """
 
     def __init__(

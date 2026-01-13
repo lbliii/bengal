@@ -24,12 +24,13 @@ logger = get_logger(__name__)
 class VersionChangeDetector:
     """
     Handles version-related change detection.
-
+    
     RFC: rfc-versioned-docs-pipeline-integration
-
+    
     Provides:
     - Cross-version link dependency tracking
     - Version scope filtering for focused rebuilds
+        
     """
 
     def __init__(

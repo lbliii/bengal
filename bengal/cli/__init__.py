@@ -6,39 +6,39 @@ for the Bengal SSG. It assembles all command groups and registers
 aliases for convenient access.
 
 Alias System:
-    Bengal supports intuitive command aliases for faster workflows:
+Bengal supports intuitive command aliases for faster workflows:
 
-    Top-level shortcuts (most common operations):
-        bengal build     → bengal site build
-        bengal serve     → bengal site serve
-        bengal dev       → bengal site serve (alias)
-        bengal clean     → bengal site clean
-        bengal check     → bengal validate
+Top-level shortcuts (most common operations):
+    bengal build     → bengal site build
+    bengal serve     → bengal site serve
+    bengal dev       → bengal site serve (alias)
+    bengal clean     → bengal site clean
+    bengal check     → bengal validate
 
-    Short aliases (single letter for power users):
-        bengal b         → bengal build
-        bengal s         → bengal serve
-        bengal c         → bengal clean
-        bengal v         → bengal validate
+Short aliases (single letter for power users):
+    bengal b         → bengal build
+    bengal s         → bengal serve
+    bengal c         → bengal clean
+    bengal v         → bengal validate
 
-    All original nested commands still work for discoverability.
+All original nested commands still work for discoverability.
 
 Command Groups:
-    - site: Core site operations (build, serve, clean)
-    - config: Configuration management
-    - collections: Content collections
-    - health: Site health checks and diagnostics
-    - debug: Developer debugging tools
-    - engine: Template engine management
-    - new: Project scaffolding
-    - assets: Asset pipeline management
-    - sources: Content source management
-    - graph: Site structure analysis
-    - version: Documentation versioning
+- site: Core site operations (build, serve, clean)
+- config: Configuration management
+- collections: Content collections
+- health: Site health checks and diagnostics
+- debug: Developer debugging tools
+- engine: Template engine management
+- new: Project scaffolding
+- assets: Asset pipeline management
+- sources: Content source management
+- graph: Site structure analysis
+- version: Documentation versioning
 
 Architecture:
-    The CLI uses Click with custom BengalGroup and BengalCommand classes
-    that provide themed help output and fuzzy command matching for typos.
+The CLI uses Click with custom BengalGroup and BengalCommand classes
+that provide themed help output and fuzzy command matching for typos.
 
 Example:
     >>> # From command line
@@ -47,9 +47,10 @@ Example:
     >>> bengal new site my-blog --template blog
 
 Related:
-    - bengal/cli/base.py: Custom Click classes
-    - bengal/cli/commands/: Individual command implementations
-    - bengal/cli/dashboard/: Interactive TUI dashboard
+- bengal/cli/base.py: Custom Click classes
+- bengal/cli/commands/: Individual command implementations
+- bengal/cli/dashboard/: Interactive TUI dashboard
+
 """
 
 from __future__ import annotations
@@ -127,10 +128,11 @@ def main(
 ) -> None:
     """
     Bengal Static Site Generator CLI.
-
+    
     Build fast, modern static sites with Python.
-
+    
     For more information, see: https://lbliii.github.io/bengal/docs
+        
     """
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults

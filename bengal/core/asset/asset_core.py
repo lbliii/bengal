@@ -5,7 +5,7 @@ Provides the Asset class representing a static file (image, CSS, JS, font)
 with methods for processing, optimization, fingerprinting, and output writing.
 
 Public API:
-    Asset: Static file with processing capabilities
+Asset: Static file with processing capabilities
 
 Key Methods:
     minify(): Minify CSS/JS content (removes whitespace, comments)
@@ -24,16 +24,17 @@ Asset Types:
     other: Unknown file types
 
 Processing Pipeline:
-    1. Create Asset(source_path=path)
-    2. For CSS: bundle_css() to resolve @imports
-    3. minify() to reduce size
-    4. hash() to generate fingerprint
-    5. copy_to_output() to write with fingerprinted filename
+1. Create Asset(source_path=path)
+2. For CSS: bundle_css() to resolve @imports
+3. minify() to reduce size
+4. hash() to generate fingerprint
+5. copy_to_output() to write with fingerprinted filename
 
 Related Modules:
-    bengal.core.asset.css_transforms: CSS nesting and minification
-    bengal.orchestration.asset: Asset discovery and build coordination
-    bengal.assets.manifest: Asset manifest for fingerprint tracking
+bengal.core.asset.css_transforms: CSS nesting and minification
+bengal.orchestration.asset: Asset discovery and build coordination
+bengal.assets.manifest: Asset manifest for fingerprint tracking
+
 """
 
 from __future__ import annotations
@@ -54,7 +55,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 class Asset:
     """
     Represents a static asset file (image, CSS, JS, etc.).
-
+    
     Attributes:
         source_path: Path to the source asset file
         output_path: Path where the asset will be copied
@@ -63,6 +64,7 @@ class Asset:
         minified: Whether the asset has been minified
         optimized: Whether the asset has been optimized
         bundled: Whether CSS @import statements have been inlined
+        
     """
 
     source_path: Path

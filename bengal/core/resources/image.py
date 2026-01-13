@@ -9,28 +9,29 @@ Processing Methods:
     fill(spec): Resize and crop to exact dimensions
     fit(spec): Resize to fit within dimensions
     resize(spec): Resize by width or height
-    filter(*filters): Apply image filters
+filter(*filters): Apply image filters
 
 Spec String Format:
-    "WIDTHxHEIGHT [format] [quality] [anchor]"
+"WIDTHxHEIGHT [format] [quality] [anchor]"
 
-    Examples:
-        "800x600"           - dimensions only
-        "800x600 webp"      - with format conversion
-        "800x600 webp q80"  - with quality
-        "800x600 center"    - with anchor point
-        "800x"              - width only (height auto)
-        "x600"              - height only (width auto)
+Examples:
+    "800x600"           - dimensions only
+    "800x600 webp"      - with format conversion
+    "800x600 webp q80"  - with quality
+    "800x600 center"    - with anchor point
+    "800x"              - width only (height auto)
+    "x600"              - height only (width auto)
 
 Anchor Points:
-    center, top, bottom, left, right
-    topleft, topright, bottomleft, bottomright
-    smart (face detection, requires smartcrop)
+center, top, bottom, left, right
+topleft, topright, bottomleft, bottomright
+smart (face detection, requires smartcrop)
 
 Dependencies:
-    - Pillow: Required for image processing
-    - smartcrop: Optional for smart cropping
-    - pillow-avif-plugin: Optional for AVIF output
+- Pillow: Required for image processing
+- smartcrop: Optional for smart cropping
+- pillow-avif-plugin: Optional for AVIF output
+
 """
 
 from __future__ import annotations
@@ -51,8 +52,9 @@ logger = get_logger(__name__)
 @dataclass
 class ProcessParams:
     """Parsed image processing parameters.
-
+    
     Parsed from Hugo-style spec strings like "800x600 webp q80 center".
+        
     """
 
     width: int | None = None
@@ -75,8 +77,9 @@ class ProcessParams:
 @dataclass
 class ProcessedImage:
     """Result of image processing operation.
-
+    
     Contains the processed image path and metadata.
+        
     """
 
     source: ImageResource
@@ -97,18 +100,19 @@ class ProcessedImage:
 
 def parse_spec(spec: str) -> ProcessParams | None:
     """Parse Hugo-style spec string.
-
+    
     Args:
         spec: Spec string like "800x600 webp q80 center"
-
+    
     Returns:
         ProcessParams if valid, None if invalid
-
+    
     Examples:
-        >>> parse_spec("800x600")
+            >>> parse_spec("800x600")
         ProcessParams(width=800, height=600)
-        >>> parse_spec("800x webp q80")
+            >>> parse_spec("800x webp q80")
         ProcessParams(width=800, height=None, format='webp', quality=80)
+        
     """
     parts = spec.split()
     params = ProcessParams()
@@ -165,19 +169,20 @@ def parse_spec(spec: str) -> ProcessParams | None:
 @dataclass
 class ImageResource:
     """Image resource with processing and caching.
-
+    
     Provides methods for resizing, cropping, and format conversion
     with automatic caching of processed results.
-
+    
     Attributes:
         source_path: Path to source image file
         site: Site instance for output configuration
-
+    
     Example:
-        >>> img = ImageResource(source_path=Path("hero.jpg"), site=site)
-        >>> processed = img.fill("800x600 webp q80")
-        >>> print(processed.rel_permalink)
-        '/assets/images/hero_800x600_q80.webp'
+            >>> img = ImageResource(source_path=Path("hero.jpg"), site=site)
+            >>> processed = img.fill("800x600 webp q80")
+            >>> print(processed.rel_permalink)
+            '/assets/images/hero_800x600_q80.webp'
+        
     """
 
     source_path: Path

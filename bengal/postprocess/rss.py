@@ -5,19 +5,20 @@ Generates RSS/Atom feeds for blog content, enabling readers to subscribe to
 site updates via RSS readers. Creates rss.xml with recent pages sorted by date.
 
 Key Concepts:
-    - RSS format: Standard RSS 2.0 format for content syndication
-    - Recent pages: Limited to 20 most recent pages with dates
-    - Heap selection: O(n log 20) instead of O(n log n) for top-20
-    - RFC 822 dates: Standard date formatting for RSS feeds
+- RSS format: Standard RSS 2.0 format for content syndication
+- Recent pages: Limited to 20 most recent pages with dates
+- Heap selection: O(n log 20) instead of O(n log n) for top-20
+- RFC 822 dates: Standard date formatting for RSS feeds
 
 Related Modules:
-    - bengal.orchestration.postprocess: Post-processing orchestration
-    - bengal.core.site: Site container with pages
-    - bengal.core.page: Page objects with dates
+- bengal.orchestration.postprocess: Post-processing orchestration
+- bengal.core.site: Site container with pages
+- bengal.core.page: Page objects with dates
 
 See Also:
-    - bengal/postprocess/rss.py:RSSGenerator for RSS generation
-    - https://www.rssboard.org/rss-specification: RSS 2.0 specification
+- bengal/postprocess/rss.py:RSSGenerator for RSS generation
+- https://www.rssboard.org/rss-specification: RSS 2.0 specification
+
 """
 
 from __future__ import annotations
@@ -36,24 +37,24 @@ if TYPE_CHECKING:
 class RSSGenerator:
     """
     Generates RSS/Atom feeds for content syndication.
-
+    
     Creates rss.xml files with recent pages sorted by date, enabling readers
     to subscribe to site updates via RSS readers. Supports i18n per-locale feeds
     and respects page visibility settings.
-
+    
     Creation:
         Direct instantiation: RSSGenerator(site)
             - Created by PostprocessOrchestrator for RSS generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages and configuration
         logger: Logger instance for RSS generation events
-
+    
     Relationships:
         - Used by: PostprocessOrchestrator for RSS generation
         - Uses: Site for page access and configuration
-
+    
     Features:
         - Includes title, link, description for each item
         - Sorted by date (newest first)
@@ -61,10 +62,11 @@ class RSSGenerator:
         - RFC 822 date formatting
         - i18n per-locale feeds (if i18n enabled)
         - Respects page visibility (draft, rss visibility)
-
+    
     Examples:
         generator = RSSGenerator(site)
         generator.generate()  # Writes rss.xml to output directory
+        
     """
 
     def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:

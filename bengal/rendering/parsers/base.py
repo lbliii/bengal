@@ -10,14 +10,15 @@ class BaseMarkdownParser(ABC):
     """
     Abstract base class for Markdown parsers.
     All parser implementations must implement this interface.
-
+    
     AST Support (Phase 3):
         Parsers may optionally support true AST output via:
         - parse_to_ast(): Parse content to AST tokens
         - render_ast(): Render AST tokens to HTML
         - supports_ast: Property indicating AST support
-
+    
         See: plan/active/rfc-content-ast-architecture.md
+        
     """
 
     @property

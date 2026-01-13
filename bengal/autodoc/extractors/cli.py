@@ -23,15 +23,16 @@ logger = get_logger(__name__)
 def _is_sentinel_value(value: Any) -> bool:
     """
     Check if a value is a Click sentinel (like UNSET).
-
+    
     Click uses sentinel objects to distinguish between "not provided" and None.
     These should not appear in user-facing documentation.
-
+    
     Args:
         value: Value to check
-
+    
     Returns:
         True if value is a sentinel that should be filtered
+        
     """
     if value is None:
         return False
@@ -52,12 +53,13 @@ def _is_sentinel_value(value: Any) -> bool:
 def _format_default_value(value: Any) -> str | None:
     """
     Format a default value for display, filtering sentinel values.
-
+    
     Args:
         value: The default value to format
-
+    
     Returns:
         Formatted string or None if value should not be displayed
+        
     """
     if value is None:
         return None
@@ -71,20 +73,21 @@ def _format_default_value(value: Any) -> str | None:
 class CLIExtractor(Extractor):
     """
     Extract CLI documentation from Click/argparse/typer applications.
-
+    
     This extractor introspects CLI frameworks to build comprehensive documentation
     for commands, options, arguments, and their relationships.
-
+    
     Currently supported frameworks:
     - Click (full support)
     - argparse (planned)
     - Typer (planned)
-
+    
     Example:
-        >>> from bengal.cli import main
-        >>> extractor = CLIExtractor(framework='click')
-        >>> elements = extractor.extract(main)
-        >>> # Returns list of DocElements for all commands
+            >>> from bengal.cli import main
+            >>> extractor = CLIExtractor(framework='click')
+            >>> elements = extractor.extract(main)
+            >>> # Returns list of DocElements for all commands
+        
     """
 
     def __init__(self, framework: str = "click", include_hidden: bool = False):

@@ -7,19 +7,20 @@ rendering on standard Python. Integrates with dependency tracking for
 incremental builds.
 
 Key Concepts:
-    - Parallel rendering: ThreadPoolExecutor for concurrent page rendering
-    - Free-threaded detection: Automatic detection of GIL-disabled Python
-    - Dependency tracking: Template dependency tracking for incremental builds
-    - Error handling: Graceful error handling with page-level isolation
+- Parallel rendering: ThreadPoolExecutor for concurrent page rendering
+- Free-threaded detection: Automatic detection of GIL-disabled Python
+- Dependency tracking: Template dependency tracking for incremental builds
+- Error handling: Graceful error handling with page-level isolation
 
 Related Modules:
-    - bengal.rendering.template_engine: Template rendering implementation
-    - bengal.rendering.renderer: Individual page rendering logic
-    - bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.rendering.template_engine: Template rendering implementation
+- bengal.rendering.renderer: Individual page rendering logic
+- bengal.cache.dependency_tracker: Dependency graph construction
 
 See Also:
-    - bengal/orchestration/render.py:render_pages() for rendering entry point
-    - plan/active/rfc-template-performance-optimization.md: Performance RFC
+- bengal/orchestration/render.py:render_pages() for rendering entry point
+- plan/active/rfc-template-performance-optimization.md: Performance RFC
+
 """
 
 from __future__ import annotations
@@ -42,12 +43,13 @@ logger = get_logger(__name__)
 def _is_free_threaded() -> bool:
     """
     Detect if running on free-threaded Python (PEP 703).
-
+    
     Free-threaded Python (python3.13t+) has the GIL disabled, allowing
     true parallel execution with ThreadPoolExecutor.
-
+    
     Returns:
         True if running on free-threaded Python, False otherwise
+        
     """
     # Check if sys._is_gil_enabled() exists and returns False
     if hasattr(sys, "_is_gil_enabled"):
@@ -93,9 +95,10 @@ _active_render_lock = threading.Lock()
 def _increment_active_renders() -> None:
     """
     Increment active render count (call at render start).
-
+    
     RFC: Cache Lifecycle Hardening - Phase 4
     Thread-safe counter for tracking active render operations.
+        
     """
     global _active_render_count
     with _active_render_lock:
@@ -105,9 +108,10 @@ def _increment_active_renders() -> None:
 def _decrement_active_renders() -> None:
     """
     Decrement active render count (call at render end).
-
+    
     RFC: Cache Lifecycle Hardening - Phase 4
     Thread-safe counter for tracking active render operations.
+        
     """
     global _active_render_count
     with _active_render_lock:
@@ -117,9 +121,10 @@ def _decrement_active_renders() -> None:
 def get_active_render_count() -> int:
     """
     Get current active render count (for debugging/testing).
-
+    
     Returns:
         Number of active render operations
+        
     """
     with _active_render_lock:
         return _active_render_count
@@ -128,18 +133,19 @@ def get_active_render_count() -> int:
 def clear_thread_local_pipelines() -> None:
     """
     Invalidate thread-local pipeline caches across all threads.
-
+    
     IMPORTANT: Call this at the start of each build to prevent stale
     TemplateEngine/Jinja2 environments from persisting across rebuilds.
     Without this, template changes may not be reflected because the old
     Jinja2 environment with its internal cache would be reused.
-
+    
     This works by incrementing a global generation counter. Worker threads
     check this counter and recreate their pipelines when it changes.
-
+    
     RFC: Cache Lifecycle Hardening - Phase 4
     Warning: Should not be called while renders are active. If called during
     active renders, logs a warning but proceeds (defensive behavior).
+        
     """
     global _build_generation
 
@@ -185,35 +191,36 @@ except ImportError:
 class RenderOrchestrator:
     """
     Orchestrates page rendering in sequential or parallel modes.
-
+    
     Handles page rendering with support for free-threaded Python for true
     parallelism. Manages thread-local rendering pipelines and integrates
     with dependency tracking for incremental builds.
-
+    
     Creation:
         Direct instantiation: RenderOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with pages populated
-
+    
     Attributes:
         site: Site instance containing pages and configuration
         _free_threaded: Whether running on free-threaded Python (GIL disabled)
         _block_cache: Cache for site-wide template blocks (Kida only)
-
+    
     Relationships:
         - Uses: RenderingPipeline for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Uses: BuildStats for build statistics collection
         - Uses: BlockCache for site-wide block caching
         - Used by: BuildOrchestrator for rendering phase
-
+    
     Thread Safety:
         Thread-safe for parallel rendering. Uses thread-local pipelines
         to avoid contention. Detects free-threaded Python automatically.
-
+    
     Examples:
         orchestrator = RenderOrchestrator(site)
         orchestrator.process(pages, parallel=True, tracker=tracker, stats=stats)
+        
     """
 
     def __init__(self, site: Site):

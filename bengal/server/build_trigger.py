@@ -5,44 +5,45 @@ Coordinates the complete rebuild workflow when file changes are detected,
 from pre-build hooks through build execution to client reload notification.
 
 Features:
-    - Event type classification (created/modified/deleted → full/incremental)
-    - Pre/post build hook execution with timeout handling
-    - Process-isolated build submission via BuildExecutor
-    - Smart reload decisions (CSS-only vs full page reload)
-    - Navigation change detection for taxonomy rebuilds
-    - Build state tracking for UI feedback (rebuilding page)
+- Event type classification (created/modified/deleted → full/incremental)
+- Pre/post build hook execution with timeout handling
+- Process-isolated build submission via BuildExecutor
+- Smart reload decisions (CSS-only vs full page reload)
+- Navigation change detection for taxonomy rebuilds
+- Build state tracking for UI feedback (rebuilding page)
 
 Classes:
-    BuildTrigger: Main orchestrator coordinating the rebuild pipeline
+BuildTrigger: Main orchestrator coordinating the rebuild pipeline
 
 Architecture:
-    BuildTrigger is the central coordinator in the rebuild pipeline:
+BuildTrigger is the central coordinator in the rebuild pipeline:
 
-    WatcherRunner → BuildTrigger → BuildExecutor
-                        ↓
-                   ReloadController → LiveReload → Browser
+WatcherRunner → BuildTrigger → BuildExecutor
+                    ↓
+               ReloadController → LiveReload → Browser
 
-    Rebuild Flow:
-    1. WatcherRunner detects file changes, calls on_file_change()
-    2. BuildTrigger classifies event types (structural vs content-only)
-    3. Pre-build hooks execute (e.g., npm build, tailwind)
-    4. BuildExecutor runs Site.build() in subprocess
-    5. Post-build hooks execute
-    6. ReloadController decides reload type (CSS-only vs full)
-    7. LiveReload notifies connected browsers
+Rebuild Flow:
+1. WatcherRunner detects file changes, calls on_file_change()
+2. BuildTrigger classifies event types (structural vs content-only)
+3. Pre-build hooks execute (e.g., npm build, tailwind)
+4. BuildExecutor runs Site.build() in subprocess
+5. Post-build hooks execute
+6. ReloadController decides reload type (CSS-only vs full)
+7. LiveReload notifies connected browsers
 
-    Rebuild Decisions:
-    - Created/deleted files → Full rebuild (structural change)
-    - Modified content files → Incremental rebuild
-    - Modified CSS/assets → CSS-only hot reload (if no template changes)
-    - Navigation frontmatter changes → Full rebuild (affects menus/breadcrumbs)
+Rebuild Decisions:
+- Created/deleted files → Full rebuild (structural change)
+- Modified content files → Incremental rebuild
+- Modified CSS/assets → CSS-only hot reload (if no template changes)
+- Navigation frontmatter changes → Full rebuild (affects menus/breadcrumbs)
 
 Related:
-    - bengal/server/watcher_runner.py: Calls BuildTrigger on changes
-    - bengal/server/build_executor.py: Executes builds in subprocess
-    - bengal/server/build_hooks.py: Pre/post build hook execution
-    - bengal/server/reload_controller.py: Reload type decisions
-    - bengal/server/live_reload.py: Client notification
+- bengal/server/watcher_runner.py: Calls BuildTrigger on changes
+- bengal/server/build_executor.py: Executes builds in subprocess
+- bengal/server/build_hooks.py: Pre/post build hook execution
+- bengal/server/reload_controller.py: Reload type decisions
+- bengal/server/live_reload.py: Client notification
+
 """
 
 from __future__ import annotations
@@ -71,12 +72,12 @@ logger = get_logger(__name__)
 class BuildTrigger:
     """
     Triggers builds when file changes are detected.
-
+    
     All builds are executed via BuildExecutor in a subprocess for:
     - Crash resilience (build crash doesn't kill server)
     - Clean isolation (no stale state between builds)
     - Future-ready (supports free-threaded Python)
-
+    
     Features:
         - Pre/post build hooks
         - Incremental vs full rebuild detection
@@ -84,14 +85,15 @@ class BuildTrigger:
         - Template change detection (with directory caching)
         - Autodoc source change detection
         - Live reload notification
-
+    
     Caching:
         - Frontmatter cache: (path, mtime) -> has_nav_keys (avoids re-parsing)
         - Template dirs cache: Resolved template directories (avoids exists() calls)
-
+    
     Example:
-        >>> trigger = BuildTrigger(site, host="localhost", port=5173)
-        >>> trigger.trigger_build(changed_paths, event_types)
+            >>> trigger = BuildTrigger(site, host="localhost", port=5173)
+            >>> trigger.trigger_build(changed_paths, event_types)
+        
     """
 
     # Class-level caches (shared across instances for efficiency)

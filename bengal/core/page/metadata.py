@@ -7,32 +7,33 @@ implements the Component Model properties (type, variant, props) and the
 visibility system for controlling page inclusion in listings/sitemap/search.
 
 Key Properties:
-    Metadata:
-        - title, nav_title: Page titles for display and navigation
-        - date, slug: Publication date and URL slug
-        - href, _path: Public URL and internal path
-        - toc_items: Structured table of contents data
+Metadata:
+    - title, nav_title: Page titles for display and navigation
+    - date, slug: Publication date and URL slug
+    - href, _path: Public URL and internal path
+    - toc_items: Structured table of contents data
 
-    Type Checking:
-        - is_home, is_section, is_page: Page type predicates
-        - kind: Returns 'home', 'section', or 'page'
+Type Checking:
+    - is_home, is_section, is_page: Page type predicates
+    - kind: Returns 'home', 'section', or 'page'
 
-    Component Model:
-        - type: Page type (routing/template selection)
-        - variant: Visual variant (CSS/layout customization)
-        - props: Custom properties dictionary
+Component Model:
+    - type: Page type (routing/template selection)
+    - variant: Visual variant (CSS/layout customization)
+    - props: Custom properties dictionary
 
-    Visibility:
-        - hidden, draft: Basic visibility flags
-        - visibility: Granular visibility settings
-        - in_listings, in_sitemap, in_search, in_rss: Inclusion checks
+Visibility:
+    - hidden, draft: Basic visibility flags
+    - visibility: Granular visibility settings
+    - in_listings, in_sitemap, in_search, in_rss: Inclusion checks
 
 Related Modules:
-    - bengal.core.page.page_core: PageCore with cached metadata
-    - bengal.utils.dates: Date parsing utilities
+- bengal.core.page.page_core: PageCore with cached metadata
+- bengal.utils.dates: Date parsing utilities
 
 See Also:
-    - bengal/core/page/__init__.py: Page class that uses this mixin
+- bengal/core/page/__init__.py: Page class that uses this mixin
+
 """
 
 from __future__ import annotations
@@ -52,13 +53,14 @@ if TYPE_CHECKING:
 class PageMetadataMixin:
     """
     Mixin providing metadata properties and type checking for pages.
-
+    
     This mixin handles:
     - Basic properties: title, date, slug, url
     - Type checking: is_home, is_section, is_page, kind
     - Simple metadata: description, draft, keywords
     - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
+        
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into

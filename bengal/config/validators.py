@@ -9,17 +9,17 @@ The validator follows Bengal's minimal dependencies principle by avoiding
 external validation libraries in favor of straightforward Python validation.
 
 Validation Categories:
-    - **Type validation**: Ensures boolean, integer, and string fields have
-      correct types. Performs sensible coercion where appropriate (e.g.,
-      ``"true"`` → ``True``).
-    - **Range validation**: Checks numeric fields are within acceptable bounds
-      (e.g., ``max_workers >= 0``, ``port`` between 1-65535).
-    - **Dependency validation**: Validates logical consistency between related
-      configuration options (reserved for future use).
+- **Type validation**: Ensures boolean, integer, and string fields have
+  correct types. Performs sensible coercion where appropriate (e.g.,
+  ``"true"`` → ``True``).
+- **Range validation**: Checks numeric fields are within acceptable bounds
+  (e.g., ``max_workers >= 0``, ``port`` between 1-65535).
+- **Dependency validation**: Validates logical consistency between related
+  configuration options (reserved for future use).
 
 Classes:
-    ConfigValidationError: Raised when validation fails.
-    ConfigValidator: Main validator class.
+ConfigValidationError: Raised when validation fails.
+ConfigValidator: Main validator class.
 
 Example:
     >>> from bengal.config.validators import ConfigValidator
@@ -27,11 +27,12 @@ Example:
     >>> config = {"parallel": "yes", "max_workers": 8}
     >>> validated = validator.validate(config)
     >>> validated["parallel"]
-    True
+True
 
 See Also:
-    - :mod:`bengal.config.loader`: Uses validator during configuration loading.
-    - :mod:`bengal.errors`: Base error classes.
+- :mod:`bengal.config.loader`: Uses validator during configuration loading.
+- :mod:`bengal.errors`: Base error classes.
+
 """
 
 from __future__ import annotations
@@ -48,15 +49,16 @@ logger = get_logger(__name__)
 class ConfigValidationError(BengalConfigError, ValueError):
     """
     Raised when configuration validation fails.
-
+    
     This exception is raised when one or more configuration values fail
     validation. It extends both :class:`~bengal.errors.BengalConfigError`
     for consistent error handling and :class:`ValueError` for backward
     compatibility with code that catches standard value errors.
-
+    
     The error message includes the count of validation errors found.
     Detailed error messages are printed to the console before the
     exception is raised.
+        
     """
 
     pass
@@ -65,27 +67,28 @@ class ConfigValidationError(BengalConfigError, ValueError):
 class ConfigValidator:
     """
     Validate configuration with helpful error messages.
-
+    
     This validator checks configuration values for type correctness, valid
     ranges, and logical consistency. It performs sensible type coercion
     where appropriate (e.g., string ``"true"`` → boolean ``True``).
-
+    
     Validation Checks:
         - **Type correctness**: Boolean, integer, and string fields.
         - **Range validation**: Numeric bounds (min/max workers, port numbers).
         - **Dependency validation**: Related field consistency (future).
-
+    
     Class Attributes:
         BOOLEAN_FIELDS: Set of field names expected to be boolean.
         INTEGER_FIELDS: Set of field names expected to be integers.
         STRING_FIELDS: Set of field names expected to be strings.
-
+    
     Example:
-        >>> validator = ConfigValidator()
-        >>> config = {"parallel": "yes", "max_workers": 8}
-        >>> validated = validator.validate(config)
-        >>> validated["parallel"]
+            >>> validator = ConfigValidator()
+            >>> config = {"parallel": "yes", "max_workers": 8}
+            >>> validated = validator.validate(config)
+            >>> validated["parallel"]
         True
+        
     """
 
     # Define expected types for known fields

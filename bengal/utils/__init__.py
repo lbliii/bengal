@@ -6,55 +6,55 @@ Utilities are organized by function and follow Bengal's design principles of sep
 of concerns, no global mutable state, and comprehensive error handling.
 
 Categories:
-    **Async & Concurrency**:
-        - async_compat: uvloop integration for Rust-accelerated async I/O
-        - concurrent_locks: Per-key locking for parallel builds
-        - thread_local: Thread-local caching for expensive objects
-        - retry: Exponential backoff retry utilities
+**Async & Concurrency**:
+    - async_compat: uvloop integration for Rust-accelerated async I/O
+    - concurrent_locks: Per-key locking for parallel builds
+    - thread_local: Thread-local caching for expensive objects
+    - retry: Exponential backoff retry utilities
 
-    **File Operations**:
-        - file_io: Robust file reading/writing with encoding fallback
-        - atomic_write: Crash-safe file writes using temp-then-rename
-        - file_lock: Cross-platform file locking for concurrent builds
+**File Operations**:
+    - file_io: Robust file reading/writing with encoding fallback
+    - atomic_write: Crash-safe file writes using temp-then-rename
+    - file_lock: Cross-platform file locking for concurrent builds
 
-    **Path Management**:
-        - paths: Directory structure management (BengalPaths)
-        - path_resolver: CWD-independent path resolution (PathResolver)
-        - url_normalization: URL path normalization and validation
-        - url_strategy: URL and output path computation
+**Path Management**:
+    - paths: Directory structure management (BengalPaths)
+    - path_resolver: CWD-independent path resolution (PathResolver)
+    - url_normalization: URL path normalization and validation
+    - url_strategy: URL and output path computation
 
-    **Data Processing**:
-        - hashing: Cryptographic hashing for cache keys and fingerprinting
-        - text: Text processing (slugify, truncate, HTML strip)
-        - dates: Date parsing, formatting, and "time ago"
-        - dotdict: Dictionary with dot notation access for templates
-        - json_compat: JSON serialization with atomic file writes
+**Data Processing**:
+    - hashing: Cryptographic hashing for cache keys and fingerprinting
+    - text: Text processing (slugify, truncate, HTML strip)
+    - dates: Date parsing, formatting, and "time ago"
+    - dotdict: Dictionary with dot notation access for templates
+    - json_compat: JSON serialization with atomic file writes
 
-    **Build Infrastructure**:
-        - build_context: Shared state across build phases
-        - progress: Protocol-based progress reporting
-        - profile: Build profiles (Writer/Theme-Dev/Developer)
-        - observability: Standardized stats collection
-        - logger: Structured logging with phase tracking
+**Build Infrastructure**:
+    - build_context: Shared state across build phases
+    - progress: Protocol-based progress reporting
+    - profile: Build profiles (Writer/Theme-Dev/Developer)
+    - observability: Standardized stats collection
+    - logger: Structured logging with phase tracking
 
-    **Asset Processing**:
-        - css_minifier: Safe CSS minification preserving modern features
-        - js_bundler: Pure Python JavaScript bundling
+**Asset Processing**:
+    - css_minifier: Safe CSS minification preserving modern features
+    - js_bundler: Pure Python JavaScript bundling
 
-    **Performance & Metrics**:
-        - performance_collector: Build metrics collection
-        - performance_report: Metrics analysis and reporting
+**Performance & Metrics**:
+    - performance_collector: Build metrics collection
+    - performance_report: Metrics analysis and reporting
 
-    **Theme & Versioning**:
-        - swizzle: Safe theme template override management
-        - version_diff: Documentation version comparison
-        - metadata: Build metadata generation for templates
+**Theme & Versioning**:
+    - swizzle: Safe theme template override management
+    - version_diff: Documentation version comparison
+    - metadata: Build metadata generation for templates
 
 Key Design Principles:
-    - No global mutable state (see bengal/.cursor/rules/no-globals.mdc)
-    - Graceful error handling with actionable suggestions
-    - Thread-safety where concurrent access is expected
-    - Pure functions where possible for testability
+- No global mutable state (see bengal/.cursor/rules/no-globals.mdc)
+- Graceful error handling with actionable suggestions
+- Thread-safety where concurrent access is expected
+- Pure functions where possible for testability
 
 Example:
     >>> from bengal.utils import hash_str, humanize_slug, run_async
@@ -70,14 +70,15 @@ Example:
     >>> result = run_async(fetch_data())
 
 Related Modules:
-    - bengal/core/: Data models (Page, Site, Section)
-    - bengal/orchestration/: Build operations
-    - bengal/rendering/: Template rendering
-    - bengal/cache/: Caching infrastructure
+- bengal/core/: Data models (Page, Site, Section)
+- bengal/orchestration/: Build operations
+- bengal/rendering/: Template rendering
+- bengal/cache/: Caching infrastructure
 
 See Also:
-    - architecture/file-organization.md: File organization patterns
-    - bengal/.cursor/rules/python-style.mdc: Python coding standards
+- architecture/file-organization.md: File organization patterns
+- bengal/.cursor/rules/python-style.mdc: Python coding standards
+
 """
 
 from __future__ import annotations
@@ -148,9 +149,10 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """
     Lazy import for heavy dependencies.
-
+    
     This avoids pulling in bengal.core.section (which triggers the full core infra)
     and async_compat (which loads uvloop) until they're actually needed.
+        
     """
     if name == "resolve_page_section_path":
         from bengal.core.section import resolve_page_section_path

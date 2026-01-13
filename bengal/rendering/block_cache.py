@@ -31,13 +31,14 @@ Usage:
     ```
 
 Thread-Safety:
-    - Site-wide cache is populated once at build start
-    - Read-only during parallel page rendering
-    - Page-level cache is per-build (cleared between builds)
-    - Block hash updates use threading.Lock for safety
+- Site-wide cache is populated once at build start
+- Read-only during parallel page rendering
+- Page-level cache is per-build (cleared between builds)
+- Block hash updates use threading.Lock for safety
 
 RFC: kida-template-introspection
 RFC: block-level-incremental-builds
+
 """
 
 from __future__ import annotations
@@ -57,20 +58,21 @@ logger = get_logger(__name__)
 
 class BlockCache:
     """Cache for rendered template blocks.
-
+    
     Caches blocks based on their introspection-determined cache scope:
     - "site": Cached once per build, reused for all pages
     - "page": Cached per-page (cleared between pages)
     - "none"/"unknown": Not cached
-
+    
     Attributes:
         _site_blocks: Site-wide cached blocks {template:block -> html}
         _cacheable_blocks: Analysis results {template -> {block -> scope}}
         _stats: Cache hit/miss statistics
-
+    
     Thread-Safety:
         Site blocks are populated before parallel rendering starts.
         During rendering, only reads occur (thread-safe).
+        
     """
 
     # Multiplier for time savings estimation.

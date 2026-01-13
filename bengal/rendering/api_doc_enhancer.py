@@ -5,10 +5,10 @@ This module operates on parsed HTML after Markdown rendering but before template
 It's designed to work around Mistune's HTML escaping while maintaining clean, maintainable code.
 
 Architecture:
-    - Operates at the rendering pipeline stage (after Markdown → HTML)
-    - Uses marker syntax in templates (@async, @property, etc.)
-    - Injects HTML badges via regex replacement
-    - Opt-in via page type (python-module, autodoc/python)
+- Operates at the rendering pipeline stage (after Markdown → HTML)
+- Uses marker syntax in templates (@async, @property, etc.)
+- Injects HTML badges via regex replacement
+- Opt-in via page type (python-module, autodoc/python)
 
 Usage:
 
@@ -18,6 +18,7 @@ from bengal.rendering.api_doc_enhancer import APIDocEnhancer
 enhancer = APIDocEnhancer()
 enhanced_html = enhancer.enhance(html, page_type='python-module')
 ```
+
 """
 
 from __future__ import annotations
@@ -32,16 +33,17 @@ logger = get_logger(__name__)
 class APIDocEnhancer:
     """
     Post-processes API documentation HTML to inject badges and visual enhancements.
-
+    
     This enhancer transforms marker syntax (e.g., @async, @property) into styled
     HTML badges. It operates on already-parsed HTML, avoiding Mistune's escaping issues.
-
+    
     Markers are placed in templates after method names and get replaced with proper
     HTML during post-processing.
-
+    
     Example:
         Input:  <h4>build @async</h4>
         Output: <h4>build <span class="api-badge api-badge-async">async</span></h4>
+        
     """
 
     # Badge patterns: (marker_pattern, replacement)
@@ -171,9 +173,10 @@ _enhancer = None
 def get_enhancer() -> APIDocEnhancer:
     """
     Get or create the singleton APIDocEnhancer instance.
-
+    
     Returns:
         Shared APIDocEnhancer instance
+        
     """
     global _enhancer
     if _enhancer is None:

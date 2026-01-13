@@ -4,14 +4,14 @@ Mistune plugins package for Bengal SSG.
 Provides custom Mistune plugins for enhanced markdown processing:
 
 Core Plugins:
-    - VariableSubstitutionPlugin: {{ variable }} substitution in content
-    - CrossReferencePlugin: [[link]] syntax for internal references
+- VariableSubstitutionPlugin: {{ variable }} substitution in content
+- CrossReferencePlugin: [[link]] syntax for internal references
 
 Documentation Directives:
-    - Admonitions: note, warning, tip, danger, etc.
-    - Tabs: Tabbed content sections
-    - Dropdown: Collapsible sections
-    - Code Tabs: Multi-language code examples
+- Admonitions: note, warning, tip, danger, etc.
+- Tabs: Tabbed content sections
+- Dropdown: Collapsible sections
+- Code Tabs: Multi-language code examples
 
 Usage:
 
@@ -33,9 +33,10 @@ md = mistune.create_markdown(
 ```
 
 For detailed documentation on each plugin, see:
-    - variable_substitution.py
-    - cross_references.py
-    - directives/ package
+- variable_substitution.py
+- cross_references.py
+- directives/ package
+
 """
 
 from __future__ import annotations

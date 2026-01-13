@@ -6,14 +6,15 @@ decorator to extract page context automatically.
 
 This adapter bridges pure Python functions to Jinja2's context mechanism:
 
-    Pure function:
-        def translate(site, key, lang=None, page=None) -> str
+Pure function:
+    def translate(site, key, lang=None, page=None) -> str
 
-    Jinja2 adapter:
-        @pass_context
-        def t(ctx, key, lang=None):
-            page = ctx.get("page")
-            return translate(site, key, lang=lang, page=page)
+Jinja2 adapter:
+    @pass_context
+    def t(ctx, key, lang=None):
+        page = ctx.get("page")
+        return translate(site, key, lang=lang, page=page)
+
 """
 
 from __future__ import annotations
@@ -30,12 +31,13 @@ if TYPE_CHECKING:
 
 def register_context_functions(env: Environment, site: Site) -> None:
     """Register context-dependent template functions for Jinja2.
-
+    
     These functions use @pass_context to extract page from the template context.
-
+    
     Args:
         env: Jinja2 Environment instance
         site: Site instance
+        
     """
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (

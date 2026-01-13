@@ -13,10 +13,11 @@ Use cases:
 - Section labels without heading semantics
 
 Thread Safety:
-    Stateless handlers. Safe for concurrent use across threads.
+Stateless handlers. Safe for concurrent use across threads.
 
 HTML Output:
-    Matches Bengal's inline directives exactly for parity.
+Matches Bengal's inline directives exactly for parity.
+
 """
 
 from __future__ import annotations
@@ -54,21 +55,22 @@ class BadgeOptions(DirectiveOptions):
 class BadgeDirective:
     """
     Badge directive for inline pill/badge elements.
-
+    
     Syntax:
         :::{badge} Command
         :class: badge-cli-command
         :::
-
+    
         :::{badge} Deprecated
         :class: badge-danger
         :::
-
+    
     Output:
         <span class="badge badge-danger">Deprecated</span>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("badge", "bdg")
@@ -164,21 +166,22 @@ class IconOptions(DirectiveOptions):
 class IconDirective:
     """
     Icon directive for inline SVG icons.
-
+    
     Syntax:
         :::{icon} terminal
         :::
-
+    
         :::{icon} docs
         :size: 16
         :class: text-muted
         :::
-
+    
     Output:
         <svg width="24" height="24" class="bengal-icon icon-terminal" ...>...</svg>
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("icon", "svg-icon")
@@ -288,10 +291,11 @@ TARGET_ID_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
 @dataclass(frozen=True, slots=True)
 class TargetOptions(DirectiveOptions):
     """Options for target directive.
-
+    
     Attributes:
         id: Anchor ID (computed from title)
         error: Validation error message (if any)
+        
     """
 
     id: str | None = None  # Computed from title
@@ -301,21 +305,22 @@ class TargetOptions(DirectiveOptions):
 class TargetDirective:
     """
     Create an explicit anchor target at any location.
-
+    
     Syntax:
         :::{target} my-anchor-id
         :::
-
+    
     Output:
         <span id="my-anchor-id" class="target-anchor"></span>
-
+    
     Use Cases:
         - Anchor before a note/warning that users should link to
         - Stable anchor that survives content restructuring
         - Migration from Sphinx's ``.. _label:`` syntax
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("target", "anchor")
@@ -398,19 +403,20 @@ class RubricOptions(DirectiveOptions):
 class RubricDirective:
     """
     Rubric directive for pseudo-headings.
-
+    
     Syntax:
         :::{rubric} Parameters
         :class: rubric-parameters
         :::
-
+    
     Output:
         <div class="rubric rubric-parameters" role="heading" aria-level="5">Parameters</div>
-
+    
     Creates styled text that looks like a heading but doesn't appear in TOC.
-
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("rubric",)

@@ -235,9 +235,10 @@ class TestAtomicFile:
 @pytest.mark.parallel_unsafe
 class TestRealWorldScenarios:
     """Test real-world crash scenarios.
-
+    
     Marked parallel_unsafe: Uses ThreadPoolExecutor for concurrent writes, which conflicts
     with pytest-xdist's parallel test execution (nested parallelism causes worker crashes).
+        
     """
 
     def test_multiple_rapid_writes(self, tmp_path):

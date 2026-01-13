@@ -5,28 +5,28 @@ This module extracts structured TOC data from rendered HTML, enabling
 custom TOC rendering in templates with proper hierarchy and navigation.
 
 Supported Formats:
-    The extractor handles TOC HTML from multiple markdown parsers:
+The extractor handles TOC HTML from multiple markdown parsers:
 
-    - **Mistune (flat)**: Indentation-based hierarchy using whitespace
-    - **Python-Markdown (nested)**: Nested ``<ul>`` structure
+- **Mistune (flat)**: Indentation-based hierarchy using whitespace
+- **Python-Markdown (nested)**: Nested ``<ul>`` structure
 
 Output Structure:
-    Returns a list of dictionaries, each representing a heading:
+Returns a list of dictionaries, each representing a heading:
 
-    .. code-block:: python
+.. code-block:: python
 
-        [
-            {"id": "introduction", "title": "Introduction", "level": 1},
-            {"id": "getting-started", "title": "Getting Started", "level": 2},
-            {"id": "installation", "title": "Installation", "level": 2},
-        ]
+    [
+        {"id": "introduction", "title": "Introduction", "level": 1},
+        {"id": "getting-started", "title": "Getting Started", "level": 2},
+        {"id": "installation", "title": "Installation", "level": 2},
+    ]
 
-    Levels map to heading depths: 1=H2, 2=H3, 3=H4, etc. (H1 is typically
-    the page title and excluded from TOC).
+Levels map to heading depths: 1=H2, 2=H3, 3=H4, etc. (H1 is typically
+the page title and excluded from TOC).
 
 Version Tracking:
-    ``TOC_EXTRACTION_VERSION`` is incremented when extraction logic changes,
-    enabling cache invalidation in incremental builds.
+``TOC_EXTRACTION_VERSION`` is incremented when extraction logic changes,
+enabling cache invalidation in incremental builds.
 
 Usage:
     >>> from bengal.rendering.pipeline.toc import extract_toc_structure
@@ -36,9 +36,10 @@ Usage:
     'Intro'
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Calls extraction during rendering
-    - bengal.core.page: Page.toc_items property uses this function
-    - bengal.rendering.parsers.mistune.toc: Mistune TOC plugin
+- bengal.rendering.pipeline.core: Calls extraction during rendering
+- bengal.core.page: Page.toc_items property uses this function
+- bengal.rendering.parsers.mistune.toc: Mistune TOC plugin
+
 """
 
 from __future__ import annotations
@@ -58,18 +59,19 @@ logger = get_logger(__name__)
 def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
     """
     Parse TOC HTML into structured data for custom rendering.
-
+    
     Handles both nested <ul> structures (python-markdown style) and flat lists (mistune style).
     For flat lists from mistune, parses indentation to infer heading levels.
-
+    
     This is a standalone function so it can be called from Page.toc_items
     property for lazy evaluation.
-
+    
     Args:
         toc_html: HTML table of contents
-
+    
     Returns:
         List of TOC items with id, title, and level (1=H2, 2=H3, 3=H4, etc.)
+        
     """
     if not toc_html:
         return []

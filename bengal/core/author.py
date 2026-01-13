@@ -5,43 +5,44 @@ Provides a structured dataclass for representing content authors with support
 for rich metadata like social links, avatars, and bios.
 
 Public API:
-    Author: Content author representation with social links and avatar
+Author: Content author representation with social links and avatar
 
 Frontmatter Formats:
-    Single author (string):
-        author: "Jane Smith"
+Single author (string):
+    author: "Jane Smith"
 
-    Single author (dict with details):
-        author:
-          name: "Jane Smith"
-          email: "jane@example.com"
-          bio: "Python enthusiast and tech writer"
-          avatar: "/images/authors/jane.jpg"
-          social:
-            twitter: "janesmith"
-            github: "janesmith"
+Single author (dict with details):
+    author:
+      name: "Jane Smith"
+      email: "jane@example.com"
+      bio: "Python enthusiast and tech writer"
+      avatar: "/images/authors/jane.jpg"
+      social:
+        twitter: "janesmith"
+        github: "janesmith"
 
-    Multiple authors:
-        authors:
-          - name: "Jane Smith"
-            email: "jane@example.com"
-          - name: "Bob Jones"
-            github: "bobjones"
+Multiple authors:
+    authors:
+      - name: "Jane Smith"
+        email: "jane@example.com"
+      - name: "Bob Jones"
+        github: "bobjones"
 
 Template Usage:
-    {{ page.author.name }}
-    {{ page.author.avatar }}
-    {% if page.author.social.twitter %}
-      <a href="https://twitter.com/{{ page.author.social.twitter }}">Twitter</a>
-    {% endif %}
+{{ page.author.name }}
+{{ page.author.avatar }}
+{% if page.author.social.twitter %}
+  <a href="https://twitter.com/{{ page.author.social.twitter }}">Twitter</a>
+{% endif %}
 
-    {% for author in page.authors %}
-      <span class="author">{{ author.name }}</span>
-    {% endfor %}
+{% for author in page.authors %}
+  <span class="author">{{ author.name }}</span>
+{% endfor %}
 
 Related Modules:
-    - bengal.core.page.computed: Page computed properties using Author
-    - bengal.cache.indexes.author_index: Author-based page index
+- bengal.core.page.computed: Page computed properties using Author
+- bengal.cache.indexes.author_index: Author-based page index
+
 """
 
 from __future__ import annotations
@@ -54,14 +55,14 @@ from typing import Any
 class Author:
     """
     Content author with structured metadata.
-
+    
     This dataclass represents a content author with support for:
     - Basic info: name, email, bio
     - Avatar image for visual identification
     - Social links for various platforms
-
+    
     The class is frozen (immutable) for hashability and cache safety.
-
+    
     Attributes:
         name: Display name (required)
         email: Contact email (optional)
@@ -69,19 +70,20 @@ class Author:
         avatar: Path to avatar image (optional)
         social: Dictionary of social platform handles (optional)
         url: Personal website URL (optional)
-
+    
     Example:
-        >>> author = Author(
-        ...     name="Jane Smith",
-        ...     email="jane@example.com",
-        ...     bio="Python enthusiast",
-        ...     avatar="/images/authors/jane.jpg",
-        ...     social={"twitter": "janesmith", "github": "janesmith"},
-        ... )
-        >>> author.name
-        'Jane Smith'
-        >>> author.social.get("twitter")
-        'janesmith'
+            >>> author = Author(
+            ...     name="Jane Smith",
+            ...     email="jane@example.com",
+            ...     bio="Python enthusiast",
+            ...     avatar="/images/authors/jane.jpg",
+            ...     social={"twitter": "janesmith", "github": "janesmith"},
+            ... )
+            >>> author.name
+            'Jane Smith'
+            >>> author.social.get("twitter")
+            'janesmith'
+        
     """
 
     name: str

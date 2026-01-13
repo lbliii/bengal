@@ -7,43 +7,44 @@ orphan detection with a spectrum of connectivity levels that reveal
 improvement opportunities.
 
 Link Types (by editorial intent):
-    High Intent (human-authored):
-        - EXPLICIT: Markdown links [text](url) in content
-        - MENU: Navigation menu items
+High Intent (human-authored):
+    - EXPLICIT: Markdown links [text](url) in content
+    - MENU: Navigation menu items
 
-    Medium Intent (algorithmic):
-        - TAXONOMY: Shared tags/categories
-        - RELATED: Computed related posts
+Medium Intent (algorithmic):
+    - TAXONOMY: Shared tags/categories
+    - RELATED: Computed related posts
 
-    Low Intent (structural):
-        - TOPICAL: Section hierarchy (parent → children)
-        - SEQUENTIAL: Next/prev navigation
+Low Intent (structural):
+    - TOPICAL: Section hierarchy (parent → children)
+    - SEQUENTIAL: Next/prev navigation
 
 Default Weights:
-    MENU: 10.0, EXPLICIT: 1.0, TAXONOMY: 1.0,
-    RELATED: 0.75, TOPICAL: 0.5, SEQUENTIAL: 0.25
+MENU: 10.0, EXPLICIT: 1.0, TAXONOMY: 1.0,
+RELATED: 0.75, TOPICAL: 0.5, SEQUENTIAL: 0.25
 
 Connectivity Levels:
-    - WELL_CONNECTED (🟢): Score >= 2.0 - No action needed
-    - ADEQUATELY_LINKED (🟡): Score 1.0-2.0 - Could improve
-    - LIGHTLY_LINKED (🟠): Score 0.25-1.0 - Should improve
-    - ISOLATED (🔴): Score < 0.25 - Needs attention
+- WELL_CONNECTED (🟢): Score >= 2.0 - No action needed
+- ADEQUATELY_LINKED (🟡): Score 1.0-2.0 - Could improve
+- LIGHTLY_LINKED (🟠): Score 0.25-1.0 - Should improve
+- ISOLATED (🔴): Score < 0.25 - Needs attention
 
 Classes:
-    LinkType: Enum of semantic link relationships
-    LinkMetrics: Detailed link breakdown for weighted scoring
-    ConnectivityLevel: Classification based on score thresholds
-    ConnectivityReport: Site-wide connectivity analysis
+LinkType: Enum of semantic link relationships
+LinkMetrics: Detailed link breakdown for weighted scoring
+ConnectivityLevel: Classification based on score thresholds
+ConnectivityReport: Site-wide connectivity analysis
 
 Example:
     >>> metrics = LinkMetrics(explicit=2, taxonomy=1, topical=1)
     >>> score = metrics.connectivity_score()
     >>> level = ConnectivityLevel.from_score(score)
     >>> print(f"Score: {score}, Level: {level.label}")
-    Score: 3.5, Level: Well-Connected
+Score: 3.5, Level: Well-Connected
 
 See Also:
-    - bengal/analysis/knowledge_graph.py: Uses link types for graph building
+- bengal/analysis/knowledge_graph.py: Uses link types for graph building
+
 """
 
 from __future__ import annotations
@@ -59,10 +60,10 @@ if TYPE_CHECKING:
 class LinkType(Enum):
     """
     Semantic relationship types between pages.
-
+    
     Links carry meaning beyond simple connectivity. The type indicates
     the editorial intent and discoverability value of the relationship.
-
+    
     Attributes:
         EXPLICIT: Human-authored markdown links [text](url) in content
         MENU: Navigation menu item (deliberate prominence)
@@ -70,6 +71,7 @@ class LinkType(Enum):
         RELATED: Algorithm-computed related posts (automated)
         TOPICAL: Section hierarchy parent → child (topical context)
         SEQUENTIAL: Next/prev navigation within section (reading order)
+        
     """
 
     # Human-authored (high editorial intent)
@@ -100,10 +102,10 @@ DEFAULT_WEIGHTS: dict[LinkType, float] = {
 class LinkMetrics:
     """
     Detailed link breakdown for a page.
-
+    
     Tracks the count of each link type pointing to a page,
     enabling weighted connectivity scoring.
-
+    
     Attributes:
         explicit: Count of explicit markdown links
         menu: Count of menu item references
@@ -111,13 +113,14 @@ class LinkMetrics:
         related: Count of related post links
         topical: Count of section hierarchy links (parent → child)
         sequential: Count of next/prev navigation links
-
+    
     Example:
-        >>> metrics = LinkMetrics(explicit=2, taxonomy=1, topical=1)
-        >>> metrics.connectivity_score()
+            >>> metrics = LinkMetrics(explicit=2, taxonomy=1, topical=1)
+            >>> metrics.connectivity_score()
         3.5
-        >>> metrics.has_human_links()
+            >>> metrics.has_human_links()
         True
+        
     """
 
     explicit: int = 0
@@ -194,22 +197,23 @@ DEFAULT_THRESHOLDS: dict[str, float] = {
 class ConnectivityLevel(Enum):
     """
     Connectivity classification based on weighted score thresholds.
-
+    
     Replaces binary orphan/not-orphan with nuanced levels that
     reveal opportunities for improvement.
-
+    
     Levels (from best to worst):
         - WELL_CONNECTED: Score >= 2.0 (no action needed)
         - ADEQUATELY_LINKED: Score 1.0-2.0 (could improve)
         - LIGHTLY_LINKED: Score 0.25-1.0 (should improve)
         - ISOLATED: Score < 0.25 (needs attention)
-
+    
     Example:
-        >>> level = ConnectivityLevel.from_score(1.5)
-        >>> print(level.value)
+            >>> level = ConnectivityLevel.from_score(1.5)
+            >>> print(level.value)
         adequately
-        >>> level.emoji
-        '🟡'
+            >>> level.emoji
+            '🟡'
+        
     """
 
     WELL_CONNECTED = "well_connected"
@@ -276,9 +280,9 @@ class ConnectivityLevel(Enum):
 class ConnectivityReport:
     """
     Complete connectivity report for a site.
-
+    
     Groups pages by connectivity level and provides distribution statistics.
-
+    
     Attributes:
         isolated: Pages with score < 0.25
         lightly_linked: Pages with score 0.25-1.0
@@ -286,6 +290,7 @@ class ConnectivityReport:
         well_connected: Pages with score >= 2.0
         total_pages: Total number of pages analyzed
         avg_score: Average connectivity score across all pages
+        
     """
 
     isolated: list = field(default_factory=list)

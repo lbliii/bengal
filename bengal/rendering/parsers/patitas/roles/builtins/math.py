@@ -3,7 +3,8 @@
 Provides the {math} role as an alternative to $...$ syntax.
 
 Example:
-    The equation {math}`E = mc^2` is famous.
+The equation {math}`E = mc^2` is famous.
+
 """
 
 from __future__ import annotations
@@ -20,16 +21,17 @@ if TYPE_CHECKING:
 
 class MathRole:
     """Handler for {math}`expression` role.
-
+    
     Renders inline mathematical expressions. The output format
     depends on the math rendering library configured (MathJax, KaTeX, etc.).
-
+    
     Syntax:
         {math}`E = mc^2`
-        {math}`\\sum_{i=1}^n x_i`
-
+        {math}`\sum_{i=1}^n x_i`
+    
     Thread Safety:
         Stateless handler. Safe for concurrent use.
+        
     """
 
     names: ClassVar[tuple[str, ...]] = ("math",)

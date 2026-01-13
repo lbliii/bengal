@@ -12,12 +12,13 @@ from ..base import SiteTemplate, TemplateFile
 
 def _load_template_file(relative_path: str) -> str:
     """Load a static page stub bundled with this template.
-
+    
     Args:
         relative_path: Path inside this template's ``pages/`` directory.
-
+    
     Returns:
         The raw file contents to write.
+        
     """
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
@@ -28,9 +29,10 @@ def _load_template_file(relative_path: str) -> str:
 
 def _create_docs_template() -> SiteTemplate:
     """Construct the documentation site template definition.
-
+    
     Returns:
         A :class:`SiteTemplate` with common docs scaffolding.
+        
     """
 
     files = [

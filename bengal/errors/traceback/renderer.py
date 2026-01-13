@@ -9,45 +9,46 @@ Renderer Classes
 ================
 
 **FullTracebackRenderer**
-    Uses Rich's full exception rendering with local variables.
-    Falls back to standard Python traceback if Rich unavailable.
+Uses Rich's full exception rendering with local variables.
+Falls back to standard Python traceback if Rich unavailable.
 
 **CompactTracebackRenderer**
-    Shows last 3 stack frames with context-aware help from
-    ``bengal.errors.handlers``. Best for development.
+Shows last 3 stack frames with context-aware help from
+``bengal.errors.handlers``. Best for development.
 
 **MinimalTracebackRenderer**
-    One-line output with error type, location, and hint.
-    Best for CI/CD or when many errors are expected.
+One-line output with error type, location, and hint.
+Best for CI/CD or when many errors are expected.
 
 **OffTracebackRenderer**
-    Standard Python traceback via ``traceback.print_exc()``.
-    For compatibility or when Rich is not desired.
+Standard Python traceback via ``traceback.print_exc()``.
+For compatibility or when Rich is not desired.
 
 Usage
 =====
 
 Get a renderer from config::
 
-    from bengal.errors.traceback import TracebackConfig
+from bengal.errors.traceback import TracebackConfig
 
     config = TracebackConfig.from_environment()
     renderer = config.get_renderer()
-    renderer.display_exception(error)
+renderer.display_exception(error)
 
 Direct instantiation::
 
-    from bengal.errors.traceback import CompactTracebackRenderer, TracebackConfig
+from bengal.errors.traceback import CompactTracebackRenderer, TracebackConfig
 
     config = TracebackConfig(style=TracebackStyle.COMPACT)
     renderer = CompactTracebackRenderer(config)
-    renderer.display_exception(error)
+renderer.display_exception(error)
 
 See Also
 ========
 
 - ``bengal/errors/handlers.py`` - Context-aware help for compact/minimal
 - ``bengal/output/`` - CLIOutput used for styled output
+
 """
 
 from __future__ import annotations
@@ -67,12 +68,13 @@ logger = get_logger(__name__)
 class TracebackRenderer:
     """
     Base class for traceback renderers.
-
+    
     Subclasses implement ``display_exception()`` to render exceptions
     at different verbosity levels.
-
+    
     Attributes:
         config: TracebackConfig controlling rendering behavior.
+        
     """
 
     config: Any
@@ -93,10 +95,11 @@ class TracebackRenderer:
 class FullTracebackRenderer(TracebackRenderer):
     """
     Full traceback renderer with local variables.
-
+    
     Uses Rich's ``print_exception()`` with ``show_locals=True`` for
     complete debugging information. Falls back to standard Python
     traceback if Rich is unavailable.
+        
     """
 
     def display_exception(self, error: BaseException) -> None:
@@ -124,15 +127,16 @@ class FullTracebackRenderer(TracebackRenderer):
 class CompactTracebackRenderer(TracebackRenderer):
     """
     Compact traceback renderer with context-aware help.
-
+    
     Shows the last 3 stack frames focused on user code, plus
     context-aware help from ``bengal.errors.handlers``. This is
     the default style, balancing detail with readability.
-
+    
     Output includes:
     - Error type and message
     - Last 3 frames with file:line and function name
     - Context-aware suggestions (if available)
+        
     """
 
     def display_exception(self, error: BaseException) -> None:
@@ -165,12 +169,13 @@ class CompactTracebackRenderer(TracebackRenderer):
 class MinimalTracebackRenderer(TracebackRenderer):
     """
     Minimal one-line traceback renderer.
-
+    
     Shows only the error type, location (last frame), and message
     on a single line, plus a one-line hint if available.
-
+    
     Best for CI/CD output or situations where many errors are
     expected and a compact summary is preferred.
+        
     """
 
     def display_exception(self, error: BaseException) -> None:
@@ -189,10 +194,11 @@ class MinimalTracebackRenderer(TracebackRenderer):
 class OffTracebackRenderer(TracebackRenderer):
     """
     Standard Python traceback renderer.
-
+    
     Uses ``traceback.print_exc()`` for default Python formatting.
     Useful when Rich styling is not desired or for maximum
     compatibility with existing tools and log parsers.
+        
     """
 
     def display_exception(self, error: BaseException) -> None:

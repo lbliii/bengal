@@ -19,109 +19,109 @@ Module Reference
 ================
 
 **Error Codes** (``codes.py``):
-    Unique error codes (e.g., R001, C002) for quick identification and
-    documentation linking. Codes are categorized by subsystem (Config,
-    Content, Rendering, Discovery, Cache, Server, Template, Parsing, Asset).
+Unique error codes (e.g., R001, C002) for quick identification and
+documentation linking. Codes are categorized by subsystem (Config,
+Content, Rendering, Discovery, Cache, Server, Template, Parsing, Asset).
 
 **Exception Classes** (``exceptions.py``):
-    Base ``BengalError`` and domain-specific subclasses with rich context
-    support including error codes, build phases, related files, debug
-    payloads, and investigation helpers. All Bengal exceptions inherit
-    from ``BengalError``.
+Base ``BengalError`` and domain-specific subclasses with rich context
+support including error codes, build phases, related files, debug
+payloads, and investigation helpers. All Bengal exceptions inherit
+from ``BengalError``.
 
 **Error Context** (``context.py``):
-    ``ErrorContext`` and ``ErrorDebugPayload`` for capturing comprehensive
-    error context. ``BuildPhase`` and ``ErrorSeverity`` enums classify
-    errors by location and severity.
+``ErrorContext`` and ``ErrorDebugPayload`` for capturing comprehensive
+error context. ``BuildPhase`` and ``ErrorSeverity`` enums classify
+errors by location and severity.
 
 **Suggestions** (``suggestions.py``):
-    ``ActionableSuggestion`` with fix descriptions, before/after code
-    snippets, documentation links, files to check, and grep patterns
-    for investigation.
+``ActionableSuggestion`` with fix descriptions, before/after code
+snippets, documentation links, files to check, and grep patterns
+for investigation.
 
 **Session Tracking** (``session.py``):
-    ``ErrorSession`` for tracking errors across builds, detecting recurring
-    patterns, identifying systemic issues, and providing investigation hints.
+``ErrorSession`` for tracking errors across builds, detecting recurring
+patterns, identifying systemic issues, and providing investigation hints.
 
 **Dev Server** (``dev_server.py``):
-    ``DevServerErrorContext`` for hot-reload aware error handling with
-    file change tracking, auto-fix suggestions, and rollback commands.
+``DevServerErrorContext`` for hot-reload aware error handling with
+file change tracking, auto-fix suggestions, and rollback commands.
 
 **Aggregation** (``aggregation.py``):
-    ``ErrorAggregator`` for batch processing to reduce log noise when
-    processing many items. Groups similar errors and provides summaries.
+``ErrorAggregator`` for batch processing to reduce log noise when
+processing many items. Groups similar errors and provides summaries.
 
 **Handlers** (``handlers.py``):
-    Context-aware help for common Python errors (``ImportError``,
-    ``AttributeError``, ``TypeError``) with suggestions and close matches.
+Context-aware help for common Python errors (``ImportError``,
+``AttributeError``, ``TypeError``) with suggestions and close matches.
 
 **Recovery** (``recovery.py``):
-    Graceful degradation patterns including ``with_error_recovery()``,
-    ``error_recovery_context()``, and ``recover_file_processing()``.
+Graceful degradation patterns including ``with_error_recovery()``,
+``error_recovery_context()``, and ``recover_file_processing()``.
 
 **Reporter** (``reporter.py``):
-    CLI error report formatting with ``format_error_report()`` and
-    ``format_error_summary()`` for build output.
+CLI error report formatting with ``format_error_report()`` and
+``format_error_summary()`` for build output.
 
 **Traceback** (``traceback/``):
-    Configurable traceback rendering with four verbosity levels:
-    full, compact, minimal, and off.
+Configurable traceback rendering with four verbosity levels:
+full, compact, minimal, and off.
 
 Quick Start
 ===========
 
 Raise a Bengal error with context::
 
-    from bengal.errors import BengalRenderingError, ErrorCode
+from bengal.errors import BengalRenderingError, ErrorCode
 
-    raise BengalRenderingError(
-        "Template not found: single.html",
-        code=ErrorCode.R001,
-        file_path=Path("content/post.md"),
-        suggestion="Check templates/ directory",
-    )
+raise BengalRenderingError(
+    "Template not found: single.html",
+    code=ErrorCode.R001,
+    file_path=Path("content/post.md"),
+    suggestion="Check templates/ directory",
+)
 
 Get actionable suggestion for an error pattern::
 
-    from bengal.errors import get_suggestion
+from bengal.errors import get_suggestion
 
     suggestion = get_suggestion("template", "not_found")
-    print(suggestion.fix)
-    print(suggestion.after_snippet)
+print(suggestion.fix)
+print(suggestion.after_snippet)
 
 Track errors across a build session::
 
-    from bengal.errors import record_error, get_session
+from bengal.errors import record_error, get_session
 
     pattern_info = record_error(error, file_path="content/post.md")
-    if pattern_info["is_recurring"]:
-        print("This error has occurred before")
+if pattern_info["is_recurring"]:
+    print("This error has occurred before")
 
     summary = get_session().get_summary()
 
 Create dev server error context::
 
-    from bengal.errors import create_dev_error
+from bengal.errors import create_dev_error
 
     context = create_dev_error(
-        error,
-        changed_files=[changed_file],
-        last_successful_build=last_build_time,
-    )
-    print(context.get_likely_cause())
-    print(context.quick_actions)
+    error,
+    changed_files=[changed_file],
+    last_successful_build=last_build_time,
+)
+print(context.get_likely_cause())
+print(context.quick_actions)
 
 Use investigation helpers::
 
     try:
-        render_page(page)
-    except BengalError as e:
-        print("Investigation commands:")
-        for cmd in e.get_investigation_commands():
-            print(f"  {cmd}")
-        print("Related test files:")
-        for path in e.get_related_test_files():
-            print(f"  {path}")
+    render_page(page)
+except BengalError as e:
+    print("Investigation commands:")
+    for cmd in e.get_investigation_commands():
+        print(f"  {cmd}")
+    print("Related test files:")
+    for path in e.get_related_test_files():
+        print(f"  {path}")
 
 Performance Note
 ================
@@ -136,6 +136,7 @@ See Also
 - ``bengal/orchestration/render.py`` - Error handling in rendering
 - ``bengal/orchestration/build.py`` - Build-level error aggregation
 - ``architecture/error-handling.md`` - Architecture documentation
+
 """
 
 from __future__ import annotations
@@ -396,10 +397,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
 def __getattr__(name: str) -> Any:
     """
     Lazy import for heavy error infrastructure.
-
+    
     This avoids loading context enrichment, session tracking, reporter,
     and other heavy modules until they are actually needed. Most code
     only needs ErrorCode and exception classes, which are loaded eagerly.
+        
     """
     if name in _LAZY_IMPORTS:
         module_path, attr_name = _LAZY_IMPORTS[name]

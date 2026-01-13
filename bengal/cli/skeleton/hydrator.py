@@ -6,19 +6,20 @@ The hydrator traverses the component tree, applies cascade inheritance, generate
 frontmatter from the Component Model, and writes files atomically.
 
 Process:
-    1. Traverse component tree depth-first
-    2. Merge cascade values (parent -> child inheritance)
-    3. Generate frontmatter from Component (type, variant, props)
-    4. Write markdown files with atomic operations
+1. Traverse component tree depth-first
+2. Merge cascade values (parent -> child inheritance)
+3. Generate frontmatter from Component (type, variant, props)
+4. Write markdown files with atomic operations
 
 Classes:
-    Hydrator: Main class for materializing skeletons to disk
+Hydrator: Main class for materializing skeletons to disk
 
 Example:
     skeleton = Skeleton.from_yaml(yaml_content)
     hydrator = Hydrator(root_path, dry_run=False)
-    hydrator.apply(skeleton)
-    print(f"Created {len(hydrator.created_files)} files")
+hydrator.apply(skeleton)
+print(f"Created {len(hydrator.created_files)} files")
+
 """
 
 from __future__ import annotations
@@ -38,20 +39,21 @@ logger = get_logger(__name__)
 class Hydrator:
     """
     Materializes a Skeleton definition into actual files on disk.
-
+    
     The hydrator walks the skeleton's component tree and creates the
     corresponding directory structure and markdown files. It supports:
     - Cascade inheritance for type/variant propagation
     - Frontmatter generation from component properties
     - Dry-run mode for previewing changes
     - Force mode to overwrite existing files
-
+    
     Attributes:
         root_path: Target directory for file generation
         dry_run: If True, only log what would be done
         force: If True, overwrite existing files
         created_files: List of files created during apply()
         skipped_files: List of existing files that were skipped
+        
     """
 
     def __init__(self, root_path: Path, dry_run: bool = False, force: bool = False):

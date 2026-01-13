@@ -29,9 +29,9 @@ def phase_postprocess(
 ) -> None:
     """
     Phase 17: Post-processing.
-
+    
     Runs post-build tasks: sitemap, RSS, output formats, validation.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -39,6 +39,7 @@ def phase_postprocess(
         ctx: Build context
         incremental: Whether this is an incremental build
         collector: Optional output collector for hot reload tracking
+        
     """
     # Post-processing doesn't use parallel processing
     with orchestrator.logger.phase("postprocessing", parallel=False):
@@ -68,16 +69,17 @@ def phase_cache_save(
 ) -> None:
     """
     Phase 18: Save Cache.
-
+    
     Persists build cache including URL claims for incremental build safety.
-
+    
     Saves build cache for future incremental builds.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: Pages that were built
         assets_to_process: Assets that were processed
         cli: CLI output (optional) for timing display
+        
     """
     with orchestrator.logger.phase("cache_save"):
         start = time.perf_counter()
@@ -93,13 +95,14 @@ def phase_collect_stats(
 ) -> None:
     """
     Phase 19: Collect Final Stats.
-
+    
     Collects final build statistics.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         build_start: Build start time for duration calculation
         cli: CLI output (optional) for timing display
+        
     """
     start = time.perf_counter()
     orchestrator.stats.total_pages = len(orchestrator.site.pages)
@@ -139,11 +142,12 @@ def phase_collect_stats(
 def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> None:
     """
     Write build-time artifacts into the output directory (opt-in).
-
+    
     Why this exists:
         `BuildStats.build_time_ms` is only finalized after templates render (Phase 19).
         Writing a small SVG/JSON artifact here allows templates to display build time
         accurately by referencing a static path like `/bengal/build.svg`.
+        
     """
     config = getattr(site, "config", {}) or {}
     build_badge_cfg = _normalize_build_badge_config(config.get("build_badge"))
@@ -230,8 +234,9 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
 def _write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> None:
     """
     Write file atomically, but only if content differs.
-
+    
     This prevents unnecessary touching of outputs across builds.
+        
     """
     try:
         if path.exists():
@@ -249,11 +254,12 @@ def _write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> N
 def _normalize_build_badge_config(value: Any) -> dict[str, Any]:
     """
     Normalize `build_badge` config.
-
+    
     Supported:
       - False / None: disabled
       - True: enabled with defaults
       - {enabled: bool, ...}: enabled with overrides
+        
     """
     if value is None or value is False:
         return {
@@ -296,11 +302,12 @@ def _normalize_build_badge_config(value: Any) -> dict[str, Any]:
 def _iter_output_roots(site: Any) -> list[Any]:
     """
     Determine which output roots should receive build artifacts.
-
+    
     For i18n prefix strategy, some sites render into language subdirectories.
     We mirror the behavior of site-wide outputs by also writing into those
     subdirectories so that `/en/bengal/build.svg` resolves when the site is
     deployed under a language prefix.
+        
     """
     output_dir = getattr(site, "output_dir", None)
     if not output_dir:
@@ -370,20 +377,21 @@ def run_health_check(
 ) -> None:
     """
     Run health check system with profile-based filtering.
-
+    
     Different profiles run different sets of validators:
     - WRITER: Basic checks (broken links, SEO)
     - THEME_DEV: Extended checks (performance, templates)
     - DEV: Full checks (all validators)
-
+    
     Args:
         orchestrator: Build orchestrator instance
         profile: Build profile to use for filtering validators
         incremental: Whether this is an incremental build (enables incremental validation)
         build_context: Optional BuildContext with cached artifacts (e.g., knowledge graph)
-
+    
     Raises:
         Exception: If strict_mode is enabled and health checks fail
+        
     """
     from bengal.config.defaults import get_feature_config
     from bengal.health import HealthCheck
@@ -496,13 +504,14 @@ def phase_finalize(
 ) -> None:
     """
     Phase 21: Finalize Build.
-
+    
     Performs final cleanup and logging.
-
+    
     Args:
         orchestrator: Build orchestrator instance
         verbose: Whether verbose mode is enabled
         collector: Performance collector (if enabled)
+        
     """
     # Collect memory metrics and save performance data (if enabled by profile)
     if collector:

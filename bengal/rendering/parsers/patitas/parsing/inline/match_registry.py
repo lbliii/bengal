@@ -4,8 +4,9 @@ Decouples match state from token objects, enabling immutable tokens.
 This is a prerequisite for using NamedTuples as inline tokens.
 
 Thread Safety:
-    MatchRegistry instances are single-use per _parse_inline() call.
-    All state is instance-local; no shared mutable state.
+MatchRegistry instances are single-use per _parse_inline() call.
+All state is instance-local; no shared mutable state.
+
 """
 
 from __future__ import annotations
@@ -16,11 +17,12 @@ from dataclasses import dataclass, field
 @dataclass(slots=True)
 class DelimiterMatch:
     """Record of a matched opener-closer pair.
-
+    
     Attributes:
         opener_idx: Index of the opener token in the token list.
         closer_idx: Index of the closer token in the token list.
         match_count: Number of delimiters matched (1 for emphasis, 2 for strong).
+        
     """
 
     opener_idx: int
@@ -31,22 +33,23 @@ class DelimiterMatch:
 @dataclass(slots=True)
 class MatchRegistry:
     """External tracking for delimiter matches.
-
+    
     Decouples match state from token objects, enabling immutable tokens.
     All delimiter matching state is tracked here instead of mutating tokens.
-
+    
     Usage:
         registry = MatchRegistry()
         registry.record_match(opener_idx=0, closer_idx=5, count=2)
         if registry.is_active(3):
-            ...
-
+                ...
+    
     Complexity:
         - record_match(): O(1)
         - is_active(): O(1)
         - deactivate(): O(1)
         - remaining_count(): O(1)
         - get_matches_for_opener(): O(1) amortized
+        
     """
 
     matches: list[DelimiterMatch] = field(default_factory=list)

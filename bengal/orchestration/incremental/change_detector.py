@@ -6,26 +6,27 @@ and full (post-taxonomy) change detection, replacing the separate find_work()
 and find_work_early() methods.
 
 Key Concepts:
-    - Phase-based detection: "early" for pre-taxonomy, "full" for post-taxonomy
-    - Section-level filtering: Skip entire unchanged sections
-    - Cascade dependencies: Rebuild descendants when cascade metadata changes
-    - Template dependencies: Track which pages use which templates
-    - Parallel change detection: ThreadPoolExecutor for large sites (>50 pages)
+- Phase-based detection: "early" for pre-taxonomy, "full" for post-taxonomy
+- Section-level filtering: Skip entire unchanged sections
+- Cascade dependencies: Rebuild descendants when cascade metadata changes
+- Template dependencies: Track which pages use which templates
+- Parallel change detection: ThreadPoolExecutor for large sites (>50 pages)
 
 Related Modules:
-    - bengal.orchestration.incremental.rebuild_filter: Page/asset filtering
-    - bengal.orchestration.incremental.cascade_tracker: Cascade dependencies
-    - bengal.orchestration.incremental.file_detector: Page/asset change detection
-    - bengal.orchestration.incremental.template_detector: Template change detection
-    - bengal.orchestration.incremental.taxonomy_detector: Taxonomy/autodoc detection
-    - bengal.orchestration.incremental.version_detector: Version-related detection
-    - bengal.cache.dependency_tracker: Template dependencies
+- bengal.orchestration.incremental.rebuild_filter: Page/asset filtering
+- bengal.orchestration.incremental.cascade_tracker: Cascade dependencies
+- bengal.orchestration.incremental.file_detector: Page/asset change detection
+- bengal.orchestration.incremental.template_detector: Template change detection
+- bengal.orchestration.incremental.taxonomy_detector: Taxonomy/autodoc detection
+- bengal.orchestration.incremental.version_detector: Version-related detection
+- bengal.cache.dependency_tracker: Template dependencies
 
 Performance:
-    RFC: rfc-parallel-change-detection
-    - Uses ThreadPoolExecutor for parallel filesystem operations
-    - Threshold-based: sequential for small workloads, parallel for large
-    - Thread-safe result collection with locks
+RFC: rfc-parallel-change-detection
+- Uses ThreadPoolExecutor for parallel filesystem operations
+- Threshold-based: sequential for small workloads, parallel for large
+- Thread-safe result collection with locks
+
 """
 
 from __future__ import annotations
@@ -58,13 +59,14 @@ logger = get_logger(__name__)
 class ChangeSet:
     """
     Result of change detection.
-
+    
     Contains all the information about what needs to be rebuilt.
-
+    
     Attributes:
         pages_to_build: Pages that need rebuilding
         assets_to_process: Assets that need processing
         change_summary: Detailed summary of changes
+        
     """
 
     pages_to_build: list[Page] = field(default_factory=list)
@@ -75,24 +77,25 @@ class ChangeSet:
 class ChangeDetector:
     """
     Unified change detection for incremental builds.
-
+    
     Replaces the separate find_work() and find_work_early() methods with
     a single detect_changes() method that takes a phase parameter.
-
+    
     Attributes:
         site: Site instance for content access
         cache: BuildCache for change detection
         tracker: DependencyTracker for template dependencies
         rebuild_filter: RebuildFilter for page/asset filtering
         cascade_tracker: CascadeTracker for cascade dependencies
-
+    
     Example:
-        >>> detector = ChangeDetector(site, cache, tracker)
-        >>> change_set = detector.detect_changes(
-        ...     phase="early",
-        ...     forced_changed_sources={changed_path},
-        ... )
-        >>> build_pages(change_set.pages_to_build)
+            >>> detector = ChangeDetector(site, cache, tracker)
+            >>> change_set = detector.detect_changes(
+            ...     phase="early",
+            ...     forced_changed_sources={changed_path},
+            ... )
+            >>> build_pages(change_set.pages_to_build)
+        
     """
 
     def __init__(

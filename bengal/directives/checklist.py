@@ -6,18 +6,19 @@ with optional titles and custom styling.
 
 
 Syntax (preferred - named closers):
-    :::{checklist} Prerequisites
-    :style: numbered
-    :show-progress:
-    - [x] Python 3.14+
-    - [x] Bengal installed
-    - [ ] Git configured
-    :::{/checklist}
+:::{checklist} Prerequisites
+:style: numbered
+:show-progress:
+- [x] Python 3.14+
+- [x] Bengal installed
+- [ ] Git configured
+:::{/checklist}
 
 Options:
-    :style: - Visual style (default, numbered)
-    :show-progress: - Display completion percentage for task lists
-    :compact: - Tighter spacing for dense lists
+:style: - Visual style (default, numbered)
+:show-progress: - Display completion percentage for task lists
+:compact: - Tighter spacing for dense lists
+
 """
 
 from __future__ import annotations
@@ -40,13 +41,13 @@ VALID_STYLES = frozenset(["default", "numbered", "minimal"])
 class ChecklistOptions(DirectiveOptions):
     """
     Options for checklist directive.
-
+    
     Attributes:
         style: Visual style (default, numbered)
         show_progress: Display completion percentage for task lists
         compact: Tighter spacing for dense lists
         css_class: Additional CSS classes
-
+    
     Example:
         :::{checklist} Prerequisites
         :style: numbered
@@ -56,6 +57,7 @@ class ChecklistOptions(DirectiveOptions):
         - [x] Bengal installed
         - [ ] Git configured
         :::{/checklist}
+        
     """
 
     style: str = "default"
@@ -72,7 +74,7 @@ class ChecklistOptions(DirectiveOptions):
 class ChecklistDirective(BengalDirective):
     """
     Checklist directive using Mistune's fenced syntax.
-
+    
     Syntax:
         :::{checklist} Optional Title
         :style: numbered
@@ -83,16 +85,17 @@ class ChecklistDirective(BengalDirective):
         - [x] Completed item
         - [ ] Unchecked item
         :::{/checklist}
-
+    
     Options:
         :style: - Visual style
             - default: Standard bullet list styling
             - numbered: Ordered list with numbers
         :show-progress: - Show completion bar for task lists
         :compact: - Tighter spacing between items
-
+    
     Supports both regular bullet lists and task lists (checkboxes).
     The directive wraps the list in a styled container.
+        
     """
 
     NAMES: ClassVar[list[str]] = ["checklist"]

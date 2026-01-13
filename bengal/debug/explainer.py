@@ -7,16 +7,16 @@ shortcode/directive usage, cache status, output information, and
 diagnostic checks for potential issues.
 
 Key Features:
-    - Read-only introspection with no side effects
-    - Full template chain resolution showing inheritance
-    - Dependency tracking across content, templates, data, and assets
-    - Cache status analysis (HIT/MISS/STALE) with detailed reasons
-    - Optional issue diagnosis (broken links, missing assets)
+- Read-only introspection with no side effects
+- Full template chain resolution showing inheritance
+- Dependency tracking across content, templates, data, and assets
+- Cache status analysis (HIT/MISS/STALE) with detailed reasons
+- Optional issue diagnosis (broken links, missing assets)
 
 Architecture:
-    PageExplainer is the main class that produces PageExplanation instances.
-    It requires a Site with discovered content and optionally accepts a
-    BuildCache for cache status and a TemplateEngine for template resolution.
+PageExplainer is the main class that produces PageExplanation instances.
+It requires a Site with discovered content and optionally accepts a
+BuildCache for cache status and a TemplateEngine for template resolution.
 
 Example:
     >>> from bengal.debug import PageExplainer, ExplanationReporter
@@ -26,13 +26,14 @@ Example:
     >>> reporter.print(explanation)
 
 Related Modules:
-    - bengal.debug.models: Data models (PageExplanation, SourceInfo, etc.)
-    - bengal.debug.reporter: Rich terminal formatting
-    - bengal.rendering.template_engine: Template resolution logic
-    - bengal.cache.build_cache: Cache status introspection
+- bengal.debug.models: Data models (PageExplanation, SourceInfo, etc.)
+- bengal.debug.reporter: Rich terminal formatting
+- bengal.rendering.template_engine: Template resolution logic
+- bengal.cache.build_cache: Cache status introspection
 
 See Also:
-    - bengal/cli/commands/explain.py: CLI integration
+- bengal/cli/commands/explain.py: CLI integration
+
 """
 
 from __future__ import annotations
@@ -75,27 +76,28 @@ DIRECTIVE_PATTERN = re.compile(
 class PageExplainer:
     """
     Generate explanations for how pages are built.
-
+    
     Provides complete traceability for any page including source info,
     template chain, dependencies, cache status, and diagnostics.
-
+    
     Creation:
         Direct instantiation: PageExplainer(site, cache=None, template_engine=None)
             - Created by CLI explain command
             - Requires Site instance with discovered content
-
+    
     Attributes:
         site: Site instance with pages and configuration
         cache: Optional BuildCache for cache status
         template_engine: Optional TemplateEngineProtocol for template resolution
-
+    
     Thread Safety:
         Thread-safe. Read-only operations only.
-
+    
     Examples:
         explainer = PageExplainer(site)
         explanation = explainer.explain("docs/guide.md")
         print(explanation.source.size_human)
+        
     """
 
     def __init__(

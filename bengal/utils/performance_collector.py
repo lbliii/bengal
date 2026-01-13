@@ -58,18 +58,19 @@ except ImportError:
 class PerformanceCollector:
     """
     Collects and persists build performance metrics.
-
+    
     Phase 1 implementation: Basic timing and memory collection.
     Future phases will add per-phase tracking, git info, and top allocators.
-
+    
     Usage:
         collector = PerformanceCollector()
         collector.start_build()
-
+    
         # ... execute build ...
-
+    
         stats = collector.end_build(build_stats)
         collector.save(stats)
+        
     """
 
     def __init__(self, metrics_dir: Path | None = None, track_memory: bool = False):
@@ -196,12 +197,13 @@ class PerformanceCollector:
 def format_memory(mb: float) -> str:
     """
     Format memory size for display.
-
+    
     Args:
         mb: Memory in megabytes
-
+    
     Returns:
         Formatted string (e.g., "125.3 MB" or "1.2 GB")
+        
     """
     if mb < 1:
         return f"{mb * 1024:.1f} KB"

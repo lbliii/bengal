@@ -5,15 +5,16 @@ This module provides Protocol definitions for section and site objects,
 enabling type-safe operations without depending on concrete implementations.
 
 Use Cases:
-    - Menu building: Accept SectionLike for flexible navigation
-    - Template rendering: Work with any site-like object
-    - Testing: Create minimal implementations for unit tests
-    - Decoupling: Break circular dependencies between modules
+- Menu building: Accept SectionLike for flexible navigation
+- Template rendering: Work with any site-like object
+- Testing: Create minimal implementations for unit tests
+- Decoupling: Break circular dependencies between modules
 
 See Also:
-    - :mod:`bengal.core.section`: Concrete Section class
-    - :mod:`bengal.core.site`: Concrete Site class
-    - :mod:`bengal.core.page.computed`: PageLike protocol
+- :mod:`bengal.core.section`: Concrete Section class
+- :mod:`bengal.core.site`: Concrete Site class
+- :mod:`bengal.core.page.computed`: PageLike protocol
+
 """
 
 from __future__ import annotations
@@ -35,14 +36,15 @@ if TYPE_CHECKING:
 class SectionLike(Protocol):
     """
     Protocol for section-like objects.
-
+    
     Provides a unified interface for content sections in templates,
     navigation, and menu building. Enables type-safe operations without
     depending on the concrete Section class.
-
+    
     Example:
-        >>> def build_nav(section: SectionLike) -> list[dict]:
-        ...     return [{"title": p.title, "href": p.href} for p in section.pages]
+            >>> def build_nav(section: SectionLike) -> list[dict]:
+            ...     return [{"title": p.title, "href": p.href} for p in section.pages]
+        
     """
 
     @property
@@ -100,14 +102,15 @@ class SectionLike(Protocol):
 class SiteLike(Protocol):
     """
     Protocol for site-like objects.
-
+    
     Provides a unified interface for site operations in templates,
     rendering, and orchestration. Enables type-safe site access without
     depending on the concrete Site class.
-
+    
     Example:
-        >>> def get_page_count(site: SiteLike) -> int:
-        ...     return len(site.pages)
+            >>> def get_page_count(site: SiteLike) -> int:
+            ...     return len(site.pages)
+        
     """
 
     @property
@@ -155,9 +158,10 @@ class SiteLike(Protocol):
 class NavigableSection(Protocol):
     """
     Protocol for sections with navigation support.
-
+    
     Extends SectionLike with navigation-specific methods for building
     menus, breadcrumbs, and prev/next navigation.
+        
     """
 
     @property
@@ -195,8 +199,9 @@ class NavigableSection(Protocol):
 class QueryableSection(Protocol):
     """
     Protocol for sections with query capabilities.
-
+    
     Provides methods for retrieving pages with filtering and sorting.
+        
     """
 
     def get_pages(

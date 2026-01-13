@@ -6,22 +6,23 @@ by their series membership, enabling efficient series navigation.
 
 Frontmatter Format:
     series:
-      name: "Building a Blog with Bengal"
-      part: 1
-      total: 5
+  name: "Building a Blog with Bengal"
+  part: 1
+  total: 5
 
 Template Usage:
-    {# Get all pages in a series #}
-    {% set series_pages = site.indexes.series.get('Building a Blog with Bengal') %}
+{# Get all pages in a series #}
+{% set series_pages = site.indexes.series.get('Building a Blog with Bengal') %}
 
-    {# List all series #}
-    {% for series_name in site.indexes.series.keys() %}
-      {{ series_name }}: {{ site.indexes.series.get(series_name)|length }} parts
-    {% endfor %}
+{# List all series #}
+{% for series_name in site.indexes.series.keys() %}
+  {{ series_name }}: {{ site.indexes.series.get(series_name)|length }} parts
+{% endfor %}
 
 Related:
-    - bengal.cache.query_index: Base QueryIndex class
-    - bengal.core.series: Series dataclass for structured series data
+- bengal.cache.query_index: Base QueryIndex class
+- bengal.core.series: Series dataclass for structured series data
+
 """
 
 from __future__ import annotations
@@ -38,20 +39,21 @@ if TYPE_CHECKING:
 class SeriesIndex(QueryIndex):
     """
     Index pages by series.
-
+    
     Supports series metadata from frontmatter:
         series:
           name: "Building a Blog with Bengal"
           part: 1
           total: 5
-
+    
     Provides O(1) lookup:
         site.indexes.series.get('Building a Blog with Bengal')
-
+    
     Metadata includes:
         - total: Total parts in series
         - description: Series description
         - slug: URL-safe series identifier
+        
     """
 
     def __init__(self, cache_path: Path):

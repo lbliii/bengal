@@ -5,7 +5,7 @@ Generates a comprehensive JSON index of all pages suitable for client-side
 search with Lunr.js, filtering, faceted navigation, and programmatic access.
 
 Output Format:
-    The index.json contains:
+The index.json contains:
 
     ```json
     {
@@ -34,21 +34,21 @@ Output Format:
     ```
 
 Features:
-    - Search-optimized page summaries with excerpts
-    - Section and tag aggregations for faceted search
-    - Enhanced metadata (author, category, difficulty, etc.)
-    - Version-scoped indexes when versioning is enabled
-    - i18n support with per-locale indexes
-    - Autodoc page flagging for result grouping
-    - Hash-based change detection: O(1) comparison instead of O(n) string compare
+- Search-optimized page summaries with excerpts
+- Section and tag aggregations for faceted search
+- Enhanced metadata (author, category, difficulty, etc.)
+- Version-scoped indexes when versioning is enabled
+- i18n support with per-locale indexes
+- Autodoc page flagging for result grouping
+- Hash-based change detection: O(1) comparison instead of O(n) string compare
 
 Versioning:
-    When versioning is enabled, generates per-version indexes:
-    - Latest version: output_dir/index.json
-    - Older versions: output_dir/docs/v1/index.json
+When versioning is enabled, generates per-version indexes:
+- Latest version: output_dir/index.json
+- Older versions: output_dir/docs/v1/index.json
 
 Configuration:
-    Controlled via [output_formats] in bengal.toml:
+Controlled via [output_formats] in bengal.toml:
 
     ```toml
     [output_formats]
@@ -64,9 +64,10 @@ Example:
     >>> print(f"Index written to: {path}")
 
 Related:
-    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
-    - bengal.postprocess.output_formats.lunr_index_generator: Pre-built Lunr index
-    - themes/*/static/js/search.js: Client-side search using index.json
+- bengal.postprocess.output_formats: OutputFormatsGenerator facade
+- bengal.postprocess.output_formats.lunr_index_generator: Pre-built Lunr index
+- themes/*/static/js/search.js: Client-side search using index.json
+
 """
 
 from __future__ import annotations
@@ -97,25 +98,25 @@ logger = get_logger(__name__)
 class SiteIndexGenerator:
     """
     Generates site-wide index.json for search and navigation.
-
+    
     Creates a comprehensive JSON index optimized for Lunr.js client-side
     search, faceted filtering, and programmatic access to site content.
-
+    
     Creation:
         Direct instantiation: SiteIndexGenerator(site, excerpt_length=200)
             - Created by OutputFormatsGenerator for index generation
             - Requires Site instance with rendered pages
-
+    
     Attributes:
         site: Site instance with pages and configuration
         excerpt_length: Character length for page excerpts (default: 200)
         json_indent: JSON indentation (None for compact)
         include_full_content: Include full content in index (default: False)
-
+    
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for pages, LunrIndexGenerator for pre-built search index
-
+    
     Features:
         - Search-optimized summaries with objectID for Lunr
         - Section and tag aggregations for faceted navigation
@@ -123,10 +124,11 @@ class SiteIndexGenerator:
         - Per-version indexes when versioning enabled
         - i18n support with per-locale indexes
         - Write-if-changed optimization
-
+    
     Example:
-        >>> generator = SiteIndexGenerator(site, excerpt_length=200)
-        >>> path = generator.generate(pages)  # Returns Path or list[Path]
+            >>> generator = SiteIndexGenerator(site, excerpt_length=200)
+            >>> path = generator.generate(pages)  # Returns Path or list[Path]
+        
     """
 
     def __init__(

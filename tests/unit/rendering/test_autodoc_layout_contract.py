@@ -18,13 +18,14 @@ from pathlib import Path
 
 def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
     """Ensure autodoc reference pages have prose constraints for readable content.
-
+    
     The CSS system uses data-type selectors on body with autodoc type names:
     - autodoc-python: Python API documentation
     - autodoc-cli: CLI command documentation
     - autodoc-rest: REST/OpenAPI documentation
-
+    
     All autodoc pages constrain their content to prose-width for readability.
+        
     """
     css_path = Path("bengal/themes/default/assets/css/composition/layouts.css")
     css = css_path.read_text(encoding="utf-8")
@@ -43,9 +44,10 @@ def test_default_theme_css_does_not_constrain_api_reference_prose() -> None:
 def test_base_template_does_not_render_none_variant_attribute() -> None:
     """
     Ensure `base.html` does not emit `data-variant="None"` when page.variant is None.
-
+    
     This is a contract check on the template expression itself; rendering base.html in a
     unit test requires a large mock surface because it includes many partials.
+        
     """
     base_path = Path("bengal/themes/default/templates/base.html")
     base = base_path.read_text(encoding="utf-8")
