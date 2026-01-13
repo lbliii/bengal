@@ -310,6 +310,11 @@ def parse_to_ast(
     Uses ContextVar pattern for configuration. Plugins are set via ParseConfig.
     """
     from patitas.parser import Parser
+    from patitas.config import (
+        ParseConfig as PatitasParseConfig,
+        set_parse_config as set_patitas_parse_config,
+        reset_parse_config as reset_patitas_parse_config,
+    )
 
     # Build config from plugins
     config = ParseConfig(
@@ -322,12 +327,25 @@ def parse_to_ast(
         text_transformer=text_transformer,
     )
 
-    # Set config and parse
+    # Set Bengal config
     parse_token = set_parse_config(config)
+    
+    # Also set external patitas's config (what Parser actually reads)
+    patitas_config = PatitasParseConfig(
+        tables_enabled=config.tables_enabled,
+        strikethrough_enabled=config.strikethrough_enabled,
+        task_lists_enabled=config.task_lists_enabled,
+        footnotes_enabled=config.footnotes_enabled,
+        math_enabled=config.math_enabled,
+        autolinks_enabled=config.autolinks_enabled,
+        text_transformer=config.text_transformer,
+    )
+    set_patitas_parse_config(patitas_config)
     try:
         parser = Parser(source, source_file)
         return parser.parse()
     finally:
+        reset_patitas_parse_config()
         reset_parse_config(parse_token)
 
 
@@ -516,15 +534,39 @@ class Markdown:
         """Parse source to AST with plugins applied.
 
         Uses ContextVar pattern - sets config before creating parser.
+        
+        Note: We set BOTH Bengal's ParseConfig AND external patitas's ParseConfig.
+        Bengal's config is for compatibility with Bengal's wrappers.
+        External patitas's config is what the Parser actually reads from.
         """
         from patitas.parser import Parser
+        from patitas.config import (
+            ParseConfig as PatitasParseConfig,
+            set_parse_config as set_patitas_parse_config,
+            reset_parse_config as reset_patitas_parse_config,
+        )
 
         config = self._get_parse_config(text_transformer)
         parse_token = set_parse_config(config)
+        
+        # Also set external patitas's config (what Parser actually reads)
+        patitas_config = PatitasParseConfig(
+            tables_enabled=config.tables_enabled,
+            strikethrough_enabled=config.strikethrough_enabled,
+            task_lists_enabled=config.task_lists_enabled,
+            footnotes_enabled=config.footnotes_enabled,
+            math_enabled=config.math_enabled,
+            autolinks_enabled=config.autolinks_enabled,
+            directive_registry=config.directive_registry,
+            strict_contracts=config.strict_contracts,
+            text_transformer=config.text_transformer,
+        )
+        set_patitas_parse_config(patitas_config)
         try:
             parser = Parser(source)
             return parser.parse()
         finally:
+            reset_patitas_parse_config()
             reset_parse_config(parse_token)
 
     def _render_ast(

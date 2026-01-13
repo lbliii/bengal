@@ -6,7 +6,7 @@ immutable inline tokens.
 
 from __future__ import annotations
 
-from bengal.rendering.parsers.patitas.parsing.inline.match_registry import (
+from patitas.parsing.inline.match_registry import (
     DelimiterMatch,
     MatchRegistry,
 )

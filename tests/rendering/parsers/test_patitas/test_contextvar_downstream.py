@@ -45,8 +45,15 @@ class TestParserPool:
             ast = parser.parse()
             assert len(ast) == 1
 
-    def test_acquire_reuses_parser(self):
-        """Pool reuses returned parser instances."""
+    def test_acquire_creates_new_parser(self):
+        """Pool creates new parser each time (pooling disabled for external patitas).
+        
+        Note: Parser pooling is disabled when using external patitas package
+        because external Parser doesn't support _reinit(). Each acquire
+        creates a new Parser instance.
+        
+        See: RFC rfc-patitas-external-migration.md, section "Parser Pooling Disabled"
+        """
         ParserPool.clear()
         
         # First acquire - creates new parser
@@ -54,12 +61,13 @@ class TestParserPool:
             id1 = id(parser1)
             _ = parser1.parse()
         
-        # Second acquire - should reuse the same parser
+        # Second acquire - creates another new parser (pooling disabled)
         with ParserPool.acquire("## World") as parser2:
             id2 = id(parser2)
             ast = parser2.parse()
         
-        assert id1 == id2  # Same object reused
+        # Different instances - pooling disabled for external patitas
+        assert id1 != id2
         assert len(ast) == 1
 
     def test_pool_respects_max_size(self):
@@ -499,29 +507,19 @@ print("test")
 class TestPoolPerformance:
     """Performance-related tests for pooling."""
 
-    def test_pool_reuses_instances(self):
-        """Verify pooling mechanism correctly reuses instances."""
-        ParserPool.clear()
+    def test_renderer_pool_reuses_instances(self):
+        """Verify RendererPool correctly reuses instances.
+        
+        Note: ParserPool is disabled for external patitas (no _reinit() support).
+        RendererPool still works because HtmlRenderer._reset() is Bengal-controlled.
+        
+        See: RFC rfc-patitas-external-migration.md, section "Parser Pooling Disabled"
+        """
         RendererPool.clear()
         
         source = "# Test content"
         
-        # Acquire and release a parser
-        with ParserPool.acquire(source) as parser:
-            id1 = id(parser)
-            _ = parser.parse()
-        
-        # Pool should have one instance now
-        assert ParserPool.size() == 1
-        
-        # Acquire again - should get the same instance back
-        with ParserPool.acquire(source) as parser:
-            id2 = id(parser)
-        
-        # Same instance was reused
-        assert id1 == id2
-        
-        # Test renderer pool similarly
+        # Test renderer pool
         with RendererPool.acquire(source) as renderer:
             rid1 = id(renderer)
         

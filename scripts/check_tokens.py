@@ -1,6 +1,6 @@
 import sys
 
-from bengal.rendering.parsers.patitas.lexer import Lexer
+from patitas.lexer import Lexer
 
 
 def print_tokens(markdown_input):

@@ -13,26 +13,42 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from bengal.rendering.parsers.patitas import (
-    ParseConfig,
     RenderConfig,
-    get_parse_config,
     get_render_config,
-    parse_config_context,
     render_config_context,
-    reset_parse_config,
     reset_render_config,
-    set_parse_config,
     set_render_config,
+)
+from bengal.rendering.parsers.patitas import (
+    ParseConfig as BengalParseConfig,
+    get_parse_config as get_bengal_parse_config,
+    parse_config_context as bengal_parse_config_context,
+    reset_parse_config as reset_bengal_parse_config,
+    set_parse_config as set_bengal_parse_config,
+)
+# For tests that use external patitas's Parser directly, we use patitas's config
+from patitas.config import (
+    ParseConfig,
+    get_parse_config,
+    parse_config_context,
+    reset_parse_config,
+    set_parse_config,
 )
 from patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
 
 class TestParseConfig:
-    """Tests for ParseConfig and parse_config_context."""
+    """Tests for ParseConfig and parse_config_context.
+    
+    Note: These tests use external patitas's ParseConfig and Parser directly
+    to validate the ContextVar pattern works correctly. Bengal wraps these
+    via its own config and Markdown class.
+    """
 
     def test_default_config(self):
         """Default config has all plugins disabled."""
+        reset_parse_config()  # Ensure clean state
         config = get_parse_config()
         assert config.tables_enabled is False
         assert config.strikethrough_enabled is False
@@ -46,53 +62,51 @@ class TestParseConfig:
 
     def test_context_manager_sets_config(self):
         """parse_config_context sets configuration correctly."""
-        with parse_config_context(ParseConfig(tables_enabled=True)) as cfg:
-            assert cfg.tables_enabled is True
+        with parse_config_context(ParseConfig(tables_enabled=True)):
             assert get_parse_config().tables_enabled is True
 
     def test_context_manager_restores_config(self):
         """parse_config_context restores previous config on exit."""
+        reset_parse_config()
         original = get_parse_config()
 
         with parse_config_context(ParseConfig(tables_enabled=True)):
             assert get_parse_config().tables_enabled is True
 
         # Should be restored to original
-        assert get_parse_config() is original
+        assert get_parse_config().tables_enabled == original.tables_enabled
 
     def test_nested_contexts(self):
         """Nested parse_config_context properly restores each level."""
         # Outer context
-        with parse_config_context(ParseConfig(tables_enabled=True)) as outer:
+        with parse_config_context(ParseConfig(tables_enabled=True)):
             assert get_parse_config().tables_enabled is True
             assert get_parse_config().math_enabled is False
 
             # Inner context
-            with parse_config_context(ParseConfig(math_enabled=True)) as inner:
+            with parse_config_context(ParseConfig(math_enabled=True)):
                 assert get_parse_config().tables_enabled is False  # Inner doesn't inherit
                 assert get_parse_config().math_enabled is True
-                assert inner.math_enabled is True
 
             # After inner exits, should restore to outer
             assert get_parse_config().tables_enabled is True
             assert get_parse_config().math_enabled is False
 
     def test_token_based_reset(self):
-        """Token-based reset properly handles nesting."""
-        token_a = set_parse_config(ParseConfig(tables_enabled=True))
-        assert get_parse_config().tables_enabled is True
+        """Token-based reset using context manager pattern."""
+        reset_parse_config()
+        with parse_config_context(ParseConfig(tables_enabled=True)):
+            assert get_parse_config().tables_enabled is True
 
-        token_b = set_parse_config(ParseConfig(math_enabled=True))
-        assert get_parse_config().tables_enabled is False
-        assert get_parse_config().math_enabled is True
+            with parse_config_context(ParseConfig(math_enabled=True)):
+                assert get_parse_config().tables_enabled is False
+                assert get_parse_config().math_enabled is True
 
-        # Reset to ConfigA
-        reset_parse_config(token_b)
-        assert get_parse_config().tables_enabled is True
-        assert get_parse_config().math_enabled is False
+            # After inner exits
+            assert get_parse_config().tables_enabled is True
+            assert get_parse_config().math_enabled is False
 
-        # Reset to default
-        reset_parse_config(token_a)
+        # After outer exits
         assert get_parse_config().tables_enabled is False
 
     def test_parser_reads_config(self):
@@ -163,7 +177,7 @@ class TestThreadIsolation:
         results = {}
 
         def worker(thread_id: int, config: ParseConfig):
-            token = set_parse_config(config)
+            set_parse_config(config)
             try:
                 parser = Parser("# Test")
                 results[thread_id] = {
@@ -171,7 +185,7 @@ class TestThreadIsolation:
                     "math": parser._math_enabled,
                 }
             finally:
-                reset_parse_config(token)
+                reset_parse_config()
 
         configs = [
             ParseConfig(tables_enabled=True, math_enabled=False),
@@ -229,7 +243,7 @@ class TestThreadIsolation:
         results = {}
 
         def worker(thread_id: int, parse_cfg: ParseConfig, render_cfg: RenderConfig):
-            parse_token = set_parse_config(parse_cfg)
+            set_parse_config(parse_cfg)
             render_token = set_render_config(render_cfg)
             try:
                 parser = Parser("# Test")
@@ -240,7 +254,7 @@ class TestThreadIsolation:
                 }
             finally:
                 reset_render_config(render_token)
-                reset_parse_config(parse_token)
+                reset_parse_config()
 
         configs = [
             (ParseConfig(tables_enabled=True), RenderConfig(highlight=True)),
@@ -298,6 +312,23 @@ class TestSubParserInheritance:
             assert not any(isinstance(block, Table) for block in ast)
 
 
+class TestBengalParseConfig:
+    """Tests for Bengal's ParseConfig wrapper (separate from external patitas)."""
+
+    def test_default_config(self):
+        """Default Bengal config has all plugins disabled."""
+        reset_bengal_parse_config()
+        config = get_bengal_parse_config()
+        assert config.tables_enabled is False
+        assert config.strikethrough_enabled is False
+
+    def test_context_manager_sets_config(self):
+        """Bengal parse_config_context sets configuration correctly."""
+        with bengal_parse_config_context(BengalParseConfig(tables_enabled=True)) as cfg:
+            assert cfg.tables_enabled is True
+            assert get_bengal_parse_config().tables_enabled is True
+
+
 class TestConfigImmutability:
     """Tests for config immutability (frozen dataclass)."""
 
@@ -321,7 +352,8 @@ class TestExceptionSafety:
 
     def test_parse_config_restored_on_exception(self):
         """ParseConfig is restored even if exception occurs."""
-        original = get_parse_config()
+        reset_parse_config()
+        original_tables = get_parse_config().tables_enabled
 
         with pytest.raises(ValueError):
             with parse_config_context(ParseConfig(tables_enabled=True)):
@@ -329,7 +361,7 @@ class TestExceptionSafety:
                 raise ValueError("Test exception")
 
         # Should be restored despite exception
-        assert get_parse_config() is original
+        assert get_parse_config().tables_enabled == original_tables
 
     def test_render_config_restored_on_exception(self):
         """RenderConfig is restored even if exception occurs."""

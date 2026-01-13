@@ -86,9 +86,14 @@ class TestCodeRendering:
         assert "</pre>" in html
 
     def test_fenced_code_language_class(self, parse_md):
-        """Fenced code includes language class."""
+        """Fenced code includes language class or data attribute.
+        
+        Note: With syntax highlighting enabled (default), rosettes adds
+        data-language attribute. Without highlighting, uses language-{lang} class.
+        """
         html = parse_md("```python\ncode\n```")
-        assert 'class="language-python"' in html
+        # Rosettes uses data-language, non-highlighted uses class="language-..."
+        assert 'data-language="python"' in html or 'class="language-python"' in html
 
     def test_fenced_code_content(self, parse_md):
         """Fenced code content is rendered."""

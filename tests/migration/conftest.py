@@ -240,14 +240,16 @@ def render_with_patitas() -> Callable[[str], str]:
         # Parse to AST
         ast = md.parse_to_ast(source)
 
-        # Render with directive registry
+        # Render with directive registry (via ContextVar config)
+        from bengal.rendering.parsers.patitas import (
+            RenderConfig,
+            render_config_context,
+        )
         from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
-        renderer = HtmlRenderer(
-            highlight=False,
-            directive_registry=registry,
-        )
-        return renderer.render(ast)
+        with render_config_context(RenderConfig(highlight=False, directive_registry=registry)):
+            renderer = HtmlRenderer(source)
+            return renderer.render(ast)
 
     return _render
 

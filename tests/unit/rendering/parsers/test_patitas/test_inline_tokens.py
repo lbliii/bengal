@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas.parsing.inline.tokens import (
+from patitas.parsing.inline.tokens import (
     CodeSpanToken,
     DelimiterToken,
     HardBreakToken,
@@ -24,48 +24,48 @@ class TestDelimiterToken:
 
     def test_create_asterisk_delimiter(self):
         """Test creating an asterisk delimiter token."""
-        token = DelimiterToken(char="*", count=2, can_open=True, can_close=False)
+        token = DelimiterToken(char="*", run_length=2, can_open=True, can_close=False)
         assert token.char == "*"
-        assert token.count == 2
+        assert token.run_length == 2
         assert token.can_open is True
         assert token.can_close is False
 
     def test_create_underscore_delimiter(self):
         """Test creating an underscore delimiter token."""
-        token = DelimiterToken(char="_", count=1, can_open=True, can_close=True)
+        token = DelimiterToken(char="_", run_length=1, can_open=True, can_close=True)
         assert token.char == "_"
-        assert token.count == 1
+        assert token.run_length == 1
         assert token.can_open is True
         assert token.can_close is True
 
     def test_create_tilde_delimiter(self):
         """Test creating a tilde delimiter token (strikethrough)."""
-        token = DelimiterToken(char="~", count=2, can_open=True, can_close=True)
+        token = DelimiterToken(char="~", run_length=2, can_open=True, can_close=True)
         assert token.char == "~"
-        assert token.count == 2
+        assert token.run_length == 2
 
     def test_type_property(self):
         """Test that type property returns 'delimiter'."""
-        token = DelimiterToken(char="*", count=1, can_open=True, can_close=False)
+        token = DelimiterToken(char="*", run_length=1, can_open=True, can_close=False)
         assert token.type == "delimiter"
 
     def test_original_count_property(self):
-        """Test original_count property returns count."""
-        token = DelimiterToken(char="*", count=3, can_open=True, can_close=False)
+        """Test original_count property returns run_length."""
+        token = DelimiterToken(char="*", run_length=3, can_open=True, can_close=False)
         assert token.original_count == 3
 
     def test_immutability(self):
         """Test that DelimiterToken is immutable."""
-        token = DelimiterToken(char="*", count=2, can_open=True, can_close=False)
+        token = DelimiterToken(char="*", run_length=2, can_open=True, can_close=False)
         with pytest.raises(AttributeError):
-            token.count = 5  # type: ignore[misc]
+            token.run_length = 5  # type: ignore[misc]
 
     def test_tuple_unpacking(self):
         """Test that NamedTuple supports unpacking."""
-        token = DelimiterToken(char="*", count=2, can_open=True, can_close=False)
-        char, count, can_open, can_close = token
+        token = DelimiterToken(char="*", run_length=2, can_open=True, can_close=False)
+        char, run_length, can_open, can_close, tag = token
         assert char == "*"
-        assert count == 2
+        assert run_length == 2
         assert can_open is True
         assert can_close is False
 
@@ -151,12 +151,12 @@ class TestPatternMatching:
 
     def test_match_delimiter_token(self):
         """Test pattern matching on DelimiterToken."""
-        token: InlineToken = DelimiterToken(char="*", count=2, can_open=True, can_close=False)
+        token: InlineToken = DelimiterToken(char="*", run_length=2, can_open=True, can_close=False)
 
         match token:
-            case DelimiterToken(char=char, count=count):
+            case DelimiterToken(char=char, run_length=run_length):
                 assert char == "*"
-                assert count == 2
+                assert run_length == 2
             case _:
                 pytest.fail("Should match DelimiterToken")
 
@@ -200,7 +200,7 @@ class TestPatternMatching:
     def test_exhaustive_matching(self):
         """Test exhaustive pattern matching over all token types."""
         tokens: list[InlineToken] = [
-            DelimiterToken(char="*", count=1, can_open=True, can_close=False),
+            DelimiterToken(char="*", run_length=1, can_open=True, can_close=False),
             TextToken(content="text"),
             CodeSpanToken(code="code"),
             NodeToken(node=None),

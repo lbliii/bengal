@@ -28,8 +28,8 @@ import pytest
 
 from bengal.rendering.parsers.patitas import create_markdown
 from bengal.rendering.parsers.patitas.directives import create_default_registry
-from bengal.rendering.parsers.patitas.nodes import Directive
-from bengal.rendering.parsers.patitas.parser import Parser
+from patitas.nodes import Directive
+from patitas.parser import Parser
 
 
 def bengal_site_root() -> Path:

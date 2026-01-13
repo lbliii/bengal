@@ -157,10 +157,10 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     from bengal.directives.cache import DirectiveCache
     from bengal.rendering.parsers.patitas import create_markdown
     from bengal.rendering.parsers.patitas.directives.registry import create_default_registry
-    from bengal.rendering.parsers.patitas.nodes import Directive
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
-    from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
     from bengal.utils.hashing import hash_str
+    from patitas.nodes import Directive
+    from patitas.stringbuilder import StringBuilder
 
     cache = DirectiveCache(max_size=500)
     registry = create_default_registry()
@@ -171,7 +171,7 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
         This extracts just the semantic content (text, structure) without
         line numbers or source locations.
         """
-        from bengal.rendering.parsers.patitas.nodes import (
+        from patitas.nodes import (
             CodeSpan,
             Emphasis,
             FencedCode,

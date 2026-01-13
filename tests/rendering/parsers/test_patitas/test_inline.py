@@ -423,10 +423,20 @@ class TestAutolinks:
         assert "Check out" in html
         assert "for more info" in html
 
-    def test_autolink_vs_html_tag(self):
-        """Autolink takes precedence over HTML tag matching."""
-        # <div> is HTML, but <http://example.com> is autolink
-        html = parse("<div>text</div> and <http://example.com>")
+    def test_autolink_in_paragraph(self):
+        """Autolinks are parsed when in paragraph context.
+        
+        Note: When a line starts with block-level HTML tags like <div>,
+        CommonMark treats the entire line as an HTML block (type 6/7).
+        Autolinks are only detected in inline contexts.
+        
+        See: https://spec.commonmark.org/0.31.2/#autolinks
+        See: https://spec.commonmark.org/0.31.2/#html-blocks
+        """
+        from bengal.rendering.parsers.patitas import create_markdown
+        md = create_markdown(plugins=["autolinks"])
+        # Autolink in paragraph context
+        html = md("text and <http://example.com>")
         assert '<a href="http://example.com">' in html
 
     def test_multiple_autolinks(self):
@@ -532,9 +542,13 @@ class TestAngleBracketURLs:
         assert "<" not in html.split('src="')[1].split('"')[0]
 
     def test_link_angle_bracket_with_spaces(self):
-        """Angle bracket URL can contain spaces."""
+        """Angle bracket URL can contain spaces.
+        
+        Note: External patitas percent-encodes spaces in URLs per RFC 3986.
+        """
         html = parse("[foo](<url with spaces>)")
-        assert 'href="url with spaces"' in html
+        # Spaces are percent-encoded
+        assert 'href="url%20with%20spaces"' in html
 
     def test_link_angle_bracket_with_title(self):
         """Angle bracket URL with title."""

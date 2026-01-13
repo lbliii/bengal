@@ -1,4 +1,4 @@
-from bengal.rendering.parsers.patitas.parser import Parser
+from patitas.parser import Parser
 
 markdown = "   > > 1.  one\n>>\n>>     two\n"
 parser = Parser(markdown)

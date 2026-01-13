@@ -48,7 +48,7 @@ This is a warning.
 
     def test_directive_with_options(self) -> None:
         """Parse directive with options."""
-        from bengal.rendering.parsers.patitas import ParseConfig, parse_config_context
+        from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
         from bengal.rendering.parsers.patitas.directives import create_default_registry
         from patitas.parser import Parser
 
@@ -62,7 +62,7 @@ Content here.
 """
         # Use parser with registry to get typed options (via ContextVar config)
         registry = create_default_registry()
-        with parse_config_context(ParseConfig(directive_registry=registry)):
+        with parse_config_context(PatitasParseConfig(directive_registry=registry)):
             parser = Parser(source.strip())
             ast = parser.parse()
 
@@ -294,10 +294,9 @@ Content here.
 
     def test_render_with_registry(self) -> None:
         """Render using custom directive registry."""
+        from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
         from bengal.rendering.parsers.patitas import (
-            ParseConfig,
             RenderConfig,
-            parse_config_context,
             render_config_context,
         )
         from patitas.parser import Parser
@@ -310,14 +309,15 @@ Content here.
 This is a note.
 :::
 """
+        source_str = source.strip()
         # Parse with registry to get typed options (via ContextVar config)
-        with parse_config_context(ParseConfig(directive_registry=registry)):
-            parser = Parser(source.strip())
+        with parse_config_context(PatitasParseConfig(directive_registry=registry)):
+            parser = Parser(source_str)
             ast = parser.parse()
 
         # Render with registry (via ContextVar config)
         with render_config_context(RenderConfig(directive_registry=registry)):
-            renderer = HtmlRenderer()
+            renderer = HtmlRenderer(source_str)
             html = renderer.render(ast)
 
         # Should use AdmonitionDirective's render method
