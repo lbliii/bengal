@@ -14,7 +14,7 @@ Inline math: $expression$
 Block math: $$expression$$ (on separate lines)
 
 Escaping:
-- \$ for literal dollar sign
+- ``\\$`` for literal dollar sign
 - Inside code spans, $ is literal
 
 Notes:

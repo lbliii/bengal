@@ -376,9 +376,11 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# Header #}
-    <header role="banner" class="header-appshell">
+    {% let _header_sticky = theme.header_sticky ?? true %}
+    {% let _header_nav_position = theme.header_nav_position ?? 'left' %}
+    <header role="banner" class="header-appshell" data-sticky="{{ _header_sticky | lower }}">
         <nav role="navigation" aria-label="Main navigation">
-            <div class="header-nav-content">
+            <div class="header-nav-content" data-nav-position="{{ _header_nav_position }}">
                 <a href="{{ '/' | absolute_url }}" class="logo">
                     {% match site.logo, site.logo_text %}
                     {% case logo, _ if logo %}<img src="{{ logo | absolute_url }}" alt="{{ _site_title }}"

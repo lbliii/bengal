@@ -64,7 +64,7 @@ def slugify(
             'café'
     
     Note:
-        Uses Python's \w regex pattern which includes Unicode letters and digits.
+        Uses Python's ``\\w`` regex pattern which includes Unicode letters and digits.
         This is intentional to support international content in URLs.
         
     """

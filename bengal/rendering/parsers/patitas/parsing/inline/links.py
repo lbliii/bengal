@@ -52,7 +52,7 @@ def _unescape_label(label: str) -> str:
     
     CommonMark: Backslash escapes are allowed in labels but only matter for
     backslash and bracket characters. Other escapes remain literal so that
-    labels like ``[foo\!]`` do not match ``[foo!]`` (spec example 545).
+    labels like ``[foo\\!]`` do not match ``[foo!]`` (spec example 545).
         
     """
     return label.replace("\\\\", "\\").replace("\\[", "[").replace("\\]", "]")

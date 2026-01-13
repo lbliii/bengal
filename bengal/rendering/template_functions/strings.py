@@ -472,7 +472,7 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
         Text with replacements made
     
     Example:
-        {{ text | replace_regex('\d+', 'NUM') }}
+        {{ text | replace_regex('\\d+', 'NUM') }}
         
     """
     if not text:

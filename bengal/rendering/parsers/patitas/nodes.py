@@ -144,7 +144,7 @@ class CodeSpan(Node):
 class LineBreak(Node):
     """Hard line break.
     
-    Markdown: \ at end of line or two trailing spaces
+    Markdown: ``\\`` at end of line or two trailing spaces
     HTML: <br />
         
     """

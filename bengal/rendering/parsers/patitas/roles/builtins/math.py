@@ -27,7 +27,7 @@ class MathRole:
     
     Syntax:
         {math}`E = mc^2`
-        {math}`\sum_{i=1}^n x_i`
+        {math}`\\sum_{i=1}^n x_i`
     
     Thread Safety:
         Stateless handler. Safe for concurrent use.

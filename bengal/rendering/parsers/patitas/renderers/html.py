@@ -810,7 +810,7 @@ def _escape_html(text: str) -> str:
     - " should be escaped to &quot; (for safety)
     - ' should remain literal in text content (not &#x27;)
     
-    Also strips internal   markers used for lazy continuation escaping.
+    Also strips internal  markers used for lazy continuation escaping.
         
     """
     # Strip internal \x00 markers (used to prevent block element detection in lazy continuation)

@@ -9,6 +9,14 @@ theme:
   default_appearance: "dark"     # Options: "light", "dark", "system"
   default_palette: "snow-lynx"   # Warm teal + cream (light), ice blue (dark)
 
+# Header Layout
+# =============
+# Controls header appearance and behavior
+header:
+  nav_position: center   # "left" (after logo) or "center" (centered in header)
+  sticky: true           # Whether header stays fixed at top
+  # autohide: false      # Hide on scroll down (requires sticky: true)
+
   # Syntax Highlighting
   # ===================
   # Controls how code blocks are styled.

@@ -285,8 +285,8 @@ def regex_search(text: str | None, pattern: str, group: int = 0) -> str | None:
         Matched text or None if no match
     
     Example:
-        {{ "Price: $99.99" | regex_search(r'\$[\d.]+') }}  # "$99.99"
-        {{ "v2.3.1" | regex_search(r'v(\d+)', group=1) }}  # "2"
+        {{ "Price: $99.99" | regex_search(r'\\$[\\d.]+') }}  # "$99.99"
+        {{ "v2.3.1" | regex_search(r'v(\\d+)', group=1) }}  # "2"
         
     """
     if text is None:
@@ -319,8 +319,8 @@ def regex_findall(text: str | None, pattern: str) -> list[str]:
         List of all matches
     
     Example:
-        {{ "a1 b2 c3" | regex_findall(r'\d+') }}  # ["1", "2", "3"]
-        {{ text | regex_findall(r'\b\w+@\w+\.\w+\b') }}  # Find emails
+        {{ "a1 b2 c3" | regex_findall(r'\\d+') }}  # ["1", "2", "3"]
+        {{ text | regex_findall(r'\\b\\w+@\\w+\\.\\w+\\b') }}  # Find emails
         
     """
     if text is None:

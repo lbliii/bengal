@@ -20,7 +20,7 @@ Alignment:
 Features:
 - Column alignment via :--- :--: ---:
 - Inline markdown in cells
-- Pipes can be escaped with \|
+- Pipes can be escaped with ``\\|``
 
 Thread Safety:
 This plugin is stateless and thread-safe.

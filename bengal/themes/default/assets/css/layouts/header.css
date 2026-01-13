@@ -121,6 +121,41 @@ header nav {
 }
 
 /* ============================================
+   HEADER CONFIGURATION VARIANTS
+   Controlled via data attributes set by theme config
+   ============================================ */
+
+/* Non-sticky header - scrolls away with content */
+header[role="banner"][data-sticky="false"] {
+  position: relative;
+}
+
+/* Centered navigation variant
+   Uses absolute positioning for true centering regardless of logo/actions width */
+@media (min-width: 768px) {
+  .header-nav-content[data-nav-position="center"] {
+    position: relative;
+  }
+
+  .header-nav-content[data-nav-position="center"] .nav-main {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Ensure nav doesn't overlap logo or actions */
+    max-width: calc(100% - 400px);
+  }
+
+  /* Ensure logo and actions stay at edges */
+  .header-nav-content[data-nav-position="center"] .logo {
+    z-index: 1;
+  }
+
+  .header-nav-content[data-nav-position="center"] .header-actions {
+    z-index: 1;
+  }
+}
+
+/* ============================================
    LOGO / SITE TITLE
    ============================================ */
 

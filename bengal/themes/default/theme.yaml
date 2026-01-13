@@ -24,12 +24,19 @@ features:
     suggest: true
     highlight: true
     share: false
-  header:
-    autohide: false
   footer:
     social: true
   accessibility:
     skip_link: true
+
+# Header layout and behavior configuration
+header:
+  # Navigation link alignment: "left" (after logo) or "center" (centered in header)
+  nav_position: left
+  # Whether header stays fixed at top on scroll
+  sticky: true
+  # Whether header hides on scroll down (only applies when sticky: true)
+  autohide: false
 
 appearance:
   default_mode: system
