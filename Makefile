@@ -4,7 +4,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run build serve clean test shell typecheck typecheck-strict deploy-test
+.PHONY: all help setup install run build serve clean test shell typecheck typecheck-strict deploy-test dist publish release
 
 all: help
 
@@ -23,6 +23,9 @@ help:
 	@echo "  make test     - Run the test suite"
 	@echo "  make typecheck - Run mypy type checking"
 	@echo "  make typecheck-strict - Run mypy with strict mode (for debugging)"
+	@echo "  make dist     - Build distribution packages"
+	@echo "  make publish  - Publish to PyPI (uses .env for token)"
+	@echo "  make release  - Build and publish in one step"
 	@echo "  make clean    - Remove venv, build artifacts, and site output"
 	@echo "  make shell    - Start a shell with the environment activated"
 
@@ -71,6 +74,33 @@ typecheck:
 typecheck-strict:
 	@echo "Running mypy with strict mode (for debugging)..."
 	uv run mypy bengal/ --strict --show-error-codes --show-error-context
+
+# =============================================================================
+# Build & Release
+# =============================================================================
+
+dist:
+	@echo "Building distribution packages..."
+	rm -rf dist/
+	uv build
+	@echo "✓ Built:"
+	@ls -la dist/
+
+publish:
+	@echo "Publishing to PyPI..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | xargs) && uv publish; \
+	else \
+		echo "Warning: No .env file found, trying without token..."; \
+		uv publish; \
+	fi
+
+release: dist publish
+	@echo "✓ Release complete"
+
+# =============================================================================
+# Cleanup
+# =============================================================================
 
 clean:
 	rm -rf $(VENV_DIR)
