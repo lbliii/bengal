@@ -12,6 +12,8 @@ from collections.abc import Callable
 from typing import Any
 
 from bengal.utils.logger import get_logger
+from bengal.rendering.pipeline.thread_local import get_thread_parser
+from bengal.rendering.template_functions.strings import first_sentence
 
 logger = get_logger(__name__)
 
@@ -370,12 +372,43 @@ def render_child_card(
 
     if description:
         parts.append('  <div class="card-content">')
-        parts.append(f"    <p>{escape_html(description)}</p>")
+        parts.append(f"    { _render_description_html(description) }")
         parts.append("  </div>")
 
     parts.append("</a>")
 
     return "\n".join(parts) + "\n"
+
+
+def _render_description_html(description: str) -> str:
+    """
+    Render a short markdown description safely for card content.
+
+    - Truncates to the first sentence to avoid dumping full docstrings.
+    - Parses with the configured markdown parser so inline code/bullets render.
+    - Falls back to HTML-escaped text if markdown parsing fails.
+    """
+    if not description:
+        return ""
+
+    # Keep cards succinct; docstrings can be long.
+    desc = first_sentence(description, max_length=240)
+
+    try:
+        parser = get_thread_parser()
+        html = parser.parse(desc, metadata={}).strip()
+
+        # If the parser wraps the content in a single <p>, strip the wrapper
+        # so we don't nest paragraphs inside the card-content block.
+        if html.startswith("<p>") and html.endswith("</p>"):
+            inner = html[3:-4].strip()
+            # Only strip if nothing else wraps the content
+            if "<p" not in inner and "</p>" not in inner:
+                return inner
+        return html
+    except Exception:
+        # Last-resort safe escape
+        return f"<p>{escape_html(desc)}</p>"
 
 
 def escape_html(text: str) -> str:

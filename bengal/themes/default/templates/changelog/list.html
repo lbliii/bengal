@@ -194,11 +194,12 @@ MAIN TEMPLATE
   </section>
 
   {# Page-driven mode: Use individual release pages with ReleaseView #}
+  {# Pages are pre-sorted by ChangelogStrategy (newest first) - no need to re-sort #}
   {% elif pages | length > 0 %}
   <section class="changelog-timeline">
     <div class="timeline">
       {% let section_href = section?.href ?? '' %}
-      {% let all_releases = pages | releases | sort_by('date', reverse=true) %}
+      {% let all_releases = pages | releases %}
       {% for rel in all_releases %}
       {% if rel.href != section_href %}
       {{ release_item(rel) }}

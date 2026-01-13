@@ -910,3 +910,37 @@ class TestChildCardsDirective:
         # Should include icon (📁 is the emoji for "folder")
         assert 'data-icon="folder"' in result
         assert "card-icon" in result
+
+    def test_child_cards_renders_markdown_description(self, parser):
+        """Child-cards should render markdown and truncate to first sentence."""
+
+        page = self._create_mock_page(
+            "Regular Page",
+            description="First sentence with **bold**.\n\n- item 1\n- item 2",
+            source_path="docs/page.md",
+            url="/docs/page/",
+            metadata={"description": "First sentence with **bold**.\n\n- item 1\n- item 2"},
+        )
+
+        section = self._create_mock_section(subsections=[], pages=[page])
+        current_page = self._create_mock_page("Index", source_path="docs/_index.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{child-cards}
+::include: pages
+::fields: title, description
+::layout: default
+::style: default
+::columns: 1
+::gap: medium
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Markdown should be rendered, not escaped
+        assert "<strong>bold</strong>" in result
+        # Only first sentence should appear (list is beyond truncation)
+        assert "item 1" not in result

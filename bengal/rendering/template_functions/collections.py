@@ -238,7 +238,7 @@ def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, 
 
 def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     """
-    Sort items by key.
+    Sort items by key with None-safe comparison.
     
     Args:
         items: List to sort
@@ -246,7 +246,7 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
         reverse: Sort in descending order (default: False)
     
     Returns:
-        Sorted list
+        Sorted list. Items with None values for the key are placed at the end.
     
     Example:
         {% set recent = posts | sort_by('date', reverse=true) %}
@@ -256,23 +256,37 @@ def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     if not items:
         return []
 
-    def get_sort_key(item: Any) -> Any:
+    def get_value(item: Any) -> Any:
         if isinstance(item, dict):
             return item.get(key)
         return getattr(item, key, None)
 
+    # Partition into items with values and items with None
+    with_values = []
+    with_none = []
+    for item in items:
+        if get_value(item) is None:
+            with_none.append(item)
+        else:
+            with_values.append(item)
+
+    # Sort items that have values
     try:
-        return sorted(items, key=get_sort_key, reverse=reverse)
+        sorted_with_values = sorted(with_values, key=get_value, reverse=reverse)
     except (TypeError, AttributeError) as e:
-        # Log debug for sort failures (expected edge case with heterogeneous data)
-        logger.debug(
+        # Log warning for sort failures - this indicates heterogeneous data types
+        logger.warning(
             "sort_by_failed",
             key=key,
             error=str(e),
-            item_count=len(items),
+            item_count=len(with_values),
             caller="template",
+            hint="Check that all items have comparable values for this key",
         )
-        return items
+        sorted_with_values = with_values
+
+    # None values always go at the end
+    return sorted_with_values + with_none
 
 
 def limit(items: list[Any], count: int) -> list[Any]:
