@@ -93,6 +93,52 @@ def _check_autodoc_output_missing(
     return False
 
 
+def _check_special_pages_missing(orchestrator: "BuildOrchestrator") -> bool:
+    """
+    Check if special pages (graph, search) are missing from output.
+    
+    This handles warm CI builds where the .bengal cache is restored but
+    special pages (graph/, search/) were not cached and are missing.
+    The cache thinks nothing changed, but special pages need to be generated.
+    
+    Only checks when main output exists (index.html) - if output is completely
+    missing, other checks already handle forcing a full rebuild.
+    
+    Args:
+        orchestrator: Build orchestrator instance
+    
+    Returns:
+        True if any enabled special page is missing from output
+        
+    """
+    from bengal.config.defaults import get_feature_config
+
+    output_dir = orchestrator.site.output_dir
+    
+    # Skip this check if output doesn't exist yet - the main output_html_missing
+    # check will handle triggering a full rebuild
+    if not output_dir.exists() or not (output_dir / "index.html").exists():
+        return False
+
+    # Check graph page (enabled by default)
+    graph_cfg = get_feature_config(orchestrator.site.config, "graph")
+    if graph_cfg.get("enabled", True):
+        graph_path = graph_cfg.get("path", "/graph/") or "/graph/"
+        graph_dir = output_dir / graph_path.strip("/")
+        if not (graph_dir / "index.html").exists():
+            return True
+
+    # Check search page (enabled by default)
+    search_cfg = get_feature_config(orchestrator.site.config, "search")
+    if search_cfg.get("enabled", True):
+        search_path = search_cfg.get("path", "/search/") or "/search/"
+        search_dir = output_dir / search_path.strip("/")
+        if not (search_dir / "index.html").exists():
+            return True
+
+    return False
+
+
 def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     """
     Phase 1: Font Processing.
@@ -598,6 +644,10 @@ def phase_incremental_filter(
             # This handles warm CI builds where cache is restored but public/api/ etc. is empty
             autodoc_output_missing = _check_autodoc_output_missing(orchestrator, cache)
 
+            # Check if special pages are missing (graph/, search/)
+            # This handles warm CI builds where cache is restored but special pages weren't cached
+            special_pages_missing = _check_special_pages_missing(orchestrator)
+
             if (
                 output_html_missing or output_assets_missing or autodoc_output_missing
             ) and orchestrator.site.pages:
@@ -612,7 +662,7 @@ def phase_incremental_filter(
                     assets_missing=output_assets_missing,
                     autodoc_missing=autodoc_output_missing,
                 )
-            elif not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
+            elif not pages_to_build and not assets_to_process and not needs_taxonomy_regen and not special_pages_missing:
                 cli.success("✓ No changes detected - build skipped")
                 cli.detail(
                     f"Cached: {len(orchestrator.site.pages)} pages, {len(orchestrator.site.assets)} assets",
@@ -626,6 +676,13 @@ def phase_incremental_filter(
                 orchestrator.stats.skipped = True
                 orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
                 return None  # Signal early exit
+            elif special_pages_missing and not pages_to_build and not assets_to_process:
+                # Special pages missing but no content changes - continue to postprocess
+                cli.info("  Special pages missing - regenerating (graph, search)")
+                orchestrator.logger.info(
+                    "special_pages_missing_regenerating",
+                    reason="postprocess_will_generate",
+                )
 
             # More informative incremental build message
             pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"

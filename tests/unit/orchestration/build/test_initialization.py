@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 from bengal.orchestration.build.initialization import (
+    _check_special_pages_missing,
     phase_cache_metadata,
     phase_config_check,
     phase_discovery,
@@ -381,6 +382,22 @@ class TestPhaseIncrementalFilter:
 
     def test_returns_none_when_no_changes(self, tmp_path):
         """Returns None when no changes detected (skip build)."""
+        # Create output directory with existing content to simulate a warm cache
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # Create minimal assets to pass the assets check
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").write_text("")
+        (assets_dir / "main.js").write_text("")
+        (assets_dir / "icons.svg").write_text("")
+        # Create special pages to pass special pages check
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+        (output_dir / "search").mkdir()
+        (output_dir / "search" / "index.html").write_text("<html></html>")
+
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.pages = [MagicMock()]
         orchestrator.site.assets = [MagicMock()]
@@ -488,3 +505,106 @@ class TestPhaseIncrementalFilter:
         # 3 total pages, 1 rebuilt, 2 cached
         assert orchestrator.stats.cache_hits == 2
         assert orchestrator.stats.cache_misses == 1
+
+
+class TestCheckSpecialPagesMissing:
+    """Tests for _check_special_pages_missing function."""
+
+    def test_returns_false_when_output_does_not_exist(self, tmp_path):
+        """Returns False when output directory doesn't exist yet."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        # output_dir = tmp_path / "public" does not exist
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is False
+
+    def test_returns_false_when_main_index_missing(self, tmp_path):
+        """Returns False when main index.html is missing (other checks handle this)."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        # No index.html
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is False
+
+    def test_returns_true_when_graph_page_missing(self, tmp_path):
+        """Returns True when graph page is enabled but missing."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # graph/ directory missing
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is True
+
+    def test_returns_true_when_search_page_missing(self, tmp_path):
+        """Returns True when search page is enabled but missing."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # Create graph but not search
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is True
+
+    def test_returns_false_when_all_special_pages_exist(self, tmp_path):
+        """Returns False when all special pages are present."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+        (output_dir / "search").mkdir()
+        (output_dir / "search" / "index.html").write_text("<html></html>")
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is False
+
+    def test_respects_graph_disabled_config(self, tmp_path):
+        """Respects graph:enabled=false in config."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # Only create search, not graph
+        (output_dir / "search").mkdir()
+        (output_dir / "search" / "index.html").write_text("<html></html>")
+
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path, config={"graph": {"enabled": False}}
+        )
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is False
+
+    def test_respects_search_disabled_config(self, tmp_path):
+        """Respects search:enabled=false in config."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # Only create graph, not search
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+
+        orchestrator = MockPhaseContext.create_orchestrator(
+            tmp_path, config={"search": {"enabled": False}}
+        )
+
+        result = _check_special_pages_missing(orchestrator)
+
+        assert result is False
