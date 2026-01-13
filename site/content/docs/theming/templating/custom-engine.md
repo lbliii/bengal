@@ -55,7 +55,7 @@ If your environment has `globals`, `filters`, and `tests` as dict-like attribute
 For a complete engine implementation:
 
 ```python
-from bengal.rendering.engines.protocol import TemplateEngineProtocol, EngineCapability
+from bengal.protocols import TemplateEngine, EngineCapability
 
 class MyEngine:
     """Custom template engine implementation."""
@@ -138,7 +138,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core import Site
-from bengal.rendering.engines.protocol import EngineCapability
+from bengal.protocols import EngineCapability
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.rendering.template_functions import register_all
 
@@ -265,7 +265,7 @@ site:
 Verify your environment satisfies the protocol:
 
 ```python
-from bengal.rendering.engines.protocol import TemplateEnvironment
+from bengal.protocols import TemplateEnvironment
 
 env = MyEnvironment()
 
@@ -301,7 +301,7 @@ Once your environment satisfies `TemplateEnvironment`, `register_all()` provides
 Declare optional capabilities your engine supports:
 
 ```python
-from bengal.rendering.engines.protocol import EngineCapability
+from bengal.protocols import EngineCapability
 
 @property
 def capabilities(self) -> EngineCapability:

@@ -61,7 +61,7 @@ Related Modules:
 - bengal.rendering.errors: Rich error objects for debugging
 
 See Also:
-- bengal.rendering.engines.protocol: TemplateEngineProtocol definition
+- bengal.protocols: Canonical protocol definitions (TemplateEngine, TemplateRenderer, etc.)
 - bengal.rendering.engines.jinja: Jinja2 implementation details
 
 """
@@ -75,7 +75,8 @@ from bengal.rendering.engines.errors import (
     TemplateError,
     TemplateNotFoundError,
 )
-from bengal.rendering.engines.protocol import TemplateEngineProtocol
+# Import from canonical location (bengal.protocols)
+from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 from bengal.rendering.errors import TemplateRenderError
 
 if TYPE_CHECKING:
