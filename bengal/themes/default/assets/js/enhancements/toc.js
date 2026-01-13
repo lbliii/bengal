@@ -162,16 +162,27 @@
     // Handle group expand/collapse (using native [open] attribute)
     if (activeParentGroup) {
       // Active link is inside a collapsible group
-      const groupId = getGroupId(activeParentGroup);
-
-      // Expand the active group
-      if (!activeParentGroup.open) {
-        expandGroup(activeParentGroup, groupId);
+      // Collect ALL ancestor groups (nested groups need parent groups open too)
+      const ancestorGroups = new Set();
+      let currentGroup = activeParentGroup;
+      while (currentGroup) {
+        ancestorGroups.add(currentGroup);
+        // Find next ancestor group
+        const parent = currentGroup.parentElement?.closest('details.toc-group');
+        currentGroup = parent;
       }
 
-      // Collapse all other groups for minimal view
+      // Expand all ancestor groups (from active up to root)
+      ancestorGroups.forEach(group => {
+        if (!group.open) {
+          const groupId = getGroupId(group);
+          expandGroup(group, groupId);
+        }
+      });
+
+      // Collapse groups that are NOT ancestors of active item
       tocGroups.forEach(group => {
-        if (group !== activeParentGroup) {
+        if (!ancestorGroups.has(group)) {
           const otherGroupId = getGroupId(group);
           if (group.open) {
             collapseGroup(group, otherGroupId);
