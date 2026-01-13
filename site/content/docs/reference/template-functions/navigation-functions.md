@@ -11,8 +11,6 @@ tags:
 category: reference
 ---
 
-(navigation-functions)=
-
 # Navigation Functions
 
 These global functions simplify common navigation patterns.

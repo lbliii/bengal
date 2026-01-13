@@ -144,23 +144,6 @@ Bengal provides two types of template capabilities: **functions** and **filters*
 
 :::{child-cards}
 :columns: 2
-:include: sections
-:fields: title, description, icon
-:::
-
-:::{toctree}
-:maxdepth: 1
-:hidden:
-
-Collection Filters <collection-filters>
-Navigation Functions <navigation-functions>
-Linking Functions <linking-functions>
-Internationalization <i18n-functions>
-String & Date Filters <string-date-filters>
-Page & Section Properties <page-properties>
-Math & Data Functions <math-data-filters>
-Content Filters <content-filters>
-View Filters <view-filters>
-SEO, Image & Theme Functions <seo-image-functions>
-Debug Filters <debug-filters>
+:include: pages
+:fields: title, description
 :::

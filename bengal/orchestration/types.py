@@ -191,35 +191,13 @@ class ProgressManagerProtocol(Protocol):
 # Section Protocol (for menu building)
 # =============================================================================
 
-
-@runtime_checkable
-class SectionLike(Protocol):
-    """
-    Protocol for section-like objects in menu building.
-    
-    Enables menu orchestrator to work with any section-compatible object.
-        
-    """
-
-    @property
-    def title(self) -> str:
-        """Section title."""
-        ...
-
-    @property
-    def pages(self) -> list[Page]:
-        """Pages in this section."""
-        ...
-
-    @property
-    def children(self) -> list[Section]:
-        """Child sections."""
-        ...
-
-    @property
-    def path(self) -> str:
-        """Section path (URL path segment)."""
-        ...
+# NOTE: SectionLike has been consolidated into bengal.protocols.core.SectionLike
+# The duplicate definition here was removed as part of the protocol consolidation.
+# Import from bengal.protocols instead:
+#
+#     from bengal.protocols import SectionLike
+#
+# See: plan/rfc-protocol-consolidation.md
 
 
 # =============================================================================
@@ -323,5 +301,5 @@ __all__ = [
     "AutodocResult",
     # Protocols
     "ProgressManagerProtocol",
-    "SectionLike",
+    # NOTE: SectionLike removed - use bengal.protocols.SectionLike instead
 ]

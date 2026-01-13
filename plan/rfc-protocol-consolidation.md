@@ -1,6 +1,6 @@
 # RFC: Protocol Consolidation and Cross-Package Contracts
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2026-01-12  
 **Author**: Bengal Team  
 **Related**: `rfc-patitas-extraction.md`, `rfc-rosettes-extraction.md`
@@ -12,9 +12,10 @@
 As Bengal extracts core components into standalone packages (Kida, Rosettes, Patitas), the protocol system needs consolidation. This RFC proposes:
 
 1. Removing protocol duplication
-2. Creating bridge protocols for clean package boundaries
+2. Creating bridge protocols for clean package boundaries (including Patitas handlers)
 3. Aligning extracted package protocols with Bengal's expectations
 4. Unifying ABC/Protocol patterns for infrastructure contracts
+5. Mandating thread-safety and dependency constraints for the protocol layer
 
 ---
 
@@ -72,6 +73,8 @@ Infrastructure contracts use mixed patterns:
 | `ContentSource` | ABC | `bengal/content_layer/source.py` |
 | `TemplateEngineProtocol` | Protocol | `bengal/rendering/engines/protocol.py` |
 | `HighlightBackend` | Protocol | `bengal/rendering/highlighting/protocol.py` |
+| `RoleHandler` | Protocol | `bengal/rendering/parsers/patitas/roles/protocol.py` |
+| `DirectiveHandler` | Protocol | `bengal/rendering/parsers/patitas/directives/protocol.py` |
 
 Both ABCs and Protocols work, but the inconsistency complicates documentation and understanding. Protocols are preferred for:
 - Duck typing without inheritance
@@ -110,6 +113,8 @@ class TemplateEngineProtocol(Protocol):
 | `SectionLike` (orchestration) | 0 direct | ~2 type hints | ~1 |
 | `HighlightBackend` | 2 files | ~4 references | ~2 |
 | `TemplateEngineProtocol` | 8 files | ~30 references | ~5 |
+| `RoleHandler` | 5 files | ~15 references | ~3 |
+| `DirectiveHandler` | 10 files | ~25 references | ~5 |
 
 ### Estimated Changes
 
@@ -153,6 +158,8 @@ from bengal.protocols.rendering import (
     TemplateIntrospector,
     TemplateEnvironment,
     HighlightService,
+    RoleHandler,
+    DirectiveHandler,
 )
 from bengal.protocols.infrastructure import (
     ProgressReporter,
@@ -174,6 +181,8 @@ __all__ = [
     "TemplateIntrospector",
     "TemplateEnvironment",
     "HighlightService",
+    "RoleHandler",
+    "DirectiveHandler",
     # Infrastructure
     "ProgressReporter",
     "Cacheable",
@@ -204,6 +213,14 @@ def __getattr__(name: str):
         return _SectionLike
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 ```
+
+#### 1.4 Dependency Constraints (Architecture)
+
+To prevent circular dependencies during the extraction process, the `bengal.protocols` package must adhere to a **Leaf-Node Strategy**:
+
+1.  **No Internal Imports**: `bengal.protocols` must NEVER import from `bengal.core`, `bengal.rendering`, or `bengal.orchestration`.
+2.  **Forward References**: All non-protocol type hints (e.g., `Site`, `Page`, `Section`) MUST use string forward references or the `TYPE_CHECKING` pattern with `from __future__ import annotations`.
+3.  **Primitive Consistency**: Use standard library types where possible (e.g., `pathlib.Path` instead of a custom `PathLike` if it avoids an internal import).
 
 ### Phase 2: Bridge Protocols
 
@@ -321,6 +338,10 @@ class ContentSourceProtocol(Protocol):
         The existing ContentSource ABC remains for implementations
         that prefer inheritance. Both satisfy this protocol.
     
+    Thread Safety:
+        Implementations MUST be thread-safe. fetch_all() and fetch_one()
+        may be called concurrently during parallel builds.
+    
     """
 
     @property
@@ -357,6 +378,11 @@ class OutputTarget(Protocol):
     - In-memory (testing, preview)
     - S3/Cloud storage (deployment)
     - ZIP archive (distribution)
+    
+    Thread Safety:
+        Implementations MUST be thread-safe. The write() and copy()
+        methods will be called concurrently by multiple render threads
+        when Bengal is configured with parallel=true.
     
     """
 
@@ -709,28 +735,36 @@ Leave protocols scattered across modules.
 
 **Implementation**: `bengal/rendering/highlighting/rosettes.py`
 
-### Deprecation Timeline: 2 Minor Versions
+### Deprecation Timeline: 3 Minor Versions
 
-**Decision**: Keep deprecated paths for 2 minor versions before removal.
+**Decision**: Keep deprecated paths for 3 minor versions before removal.
 
 **Rationale**:
-- Gives users time to migrate
-- Aligns with semver expectations
+- Gives users time to migrate across several release cycles
+- Aligns with the 1.0.0 roadmap for extracted packages
 - Warnings make migration path clear
 
 **Timeline**:
 - v0.2.0: Add `bengal.protocols`, deprecation warnings on old paths
 - v0.3.0: Continue warnings
-- v0.4.0: Remove deprecated paths
+- v0.4.0: Upgrade to `FutureWarning` for higher visibility
+- v1.0.0: Remove deprecated paths
 
-### Protocol vs ABC: Keep Both, Document
+### Protocol vs ABC: Inheritance-based Aliasing
 
-**Decision**: Keep existing ABCs (`ContentSource`, `BaseMarkdownParser`) and add Protocol equivalents.
+**Decision**: Keep existing ABCs but make them inherit from the new Protocols.
 
 **Rationale**:
-- ABCs work well for internal implementations requiring inheritance
-- Protocols better for external/duck-typed integrations
-- Document when to use which
+- Reduces code duplication while maintaining strict contracts
+- ABCs continue to provide shared utility logic (e.g., `ContentSource.cache_key`)
+- Satisfies the "Expert" and "Skeptic" personas by unifying the type hierarchy
+
+**Implementation Example**:
+```python
+class ContentSource(ContentSourceProtocol, ABC):
+    """ABC providing utilities while satisfying the protocol."""
+    # ... utilities ...
+```
 
 ---
 

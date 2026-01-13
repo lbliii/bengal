@@ -32,7 +32,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.rendering.highlighting.protocol import HighlightBackend
+# Import from canonical location
+from bengal.protocols import HighlightService
+
+# Backwards compatibility alias
+HighlightBackend = HighlightService
 from bengal.rendering.highlighting.theme_resolver import (
     PALETTE_INHERITANCE,
     resolve_css_class_style,
@@ -43,7 +47,11 @@ if TYPE_CHECKING:
     pass
 
 __all__ = [
+    # Protocol (new canonical name)
+    "HighlightService",
+    # Protocol (backwards compatibility alias)
     "HighlightBackend",
+    # Public API
     "highlight",
     "highlight_many",
     "get_highlighter",
@@ -58,10 +66,10 @@ __all__ = [
 
 
 # Registry pattern matching other Bengal systems
-_HIGHLIGHT_BACKENDS: dict[str, type[HighlightBackend]] = {}
+_HIGHLIGHT_BACKENDS: dict[str, type[HighlightService]] = {}
 
 
-def register_backend(name: str, backend_class: type[HighlightBackend]) -> None:
+def register_backend(name: str, backend_class: type[HighlightService]) -> None:
     """
     Register a syntax highlighting backend.
     
@@ -86,7 +94,7 @@ def register_backend(name: str, backend_class: type[HighlightBackend]) -> None:
     _HIGHLIGHT_BACKENDS[name.lower()] = backend_class
 
 
-def get_highlighter(name: str | None = None) -> HighlightBackend:
+def get_highlighter(name: str | None = None) -> HighlightService:
     """
     Get a highlighting backend instance.
     

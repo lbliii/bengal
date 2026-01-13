@@ -12,8 +12,6 @@ tags:
 category: reference
 ---
 
-(collection-filters)=
-
 # Collection Filters
 
 These filters work with lists of pages, dictionaries, or any iterable.
