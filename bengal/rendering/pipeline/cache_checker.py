@@ -97,7 +97,11 @@ class CacheChecker:
         if not cache or page.metadata.get("_generated"):
             return False
 
-        rendered_html = cache.get_rendered_output(page.source_path, template, page.metadata)
+        # Pass output_dir for asset manifest validation
+        output_dir = getattr(self.site, "output_dir", None)
+        rendered_html = cache.get_rendered_output(
+            page.source_path, template, page.metadata, output_dir=output_dir
+        )
         if not rendered_html or is_missing(rendered_html):
             return False
 
@@ -240,12 +244,15 @@ class CacheChecker:
         page_key = str(page.source_path)
         deps = list(cache.dependencies.get(page_key, []))
 
+        # Pass output_dir to capture asset manifest mtime for cache invalidation
+        output_dir = getattr(self.site, "output_dir", None)
         cache.store_rendered_output(
             page.source_path,
             page.rendered_html,
             template,
             page.metadata,
             dependencies=deps,
+            output_dir=output_dir,
         )
 
     def should_bypass_cache(self, page: Page, changed_sources: set[Path]) -> bool:

@@ -425,88 +425,109 @@ def phase_render(
     ):
         rendering_start = time.time()
 
-        # Use memory-optimized streaming if requested
-        if memory_optimized:
-            from bengal.orchestration.streaming import StreamingRenderOrchestrator
-            from bengal.utils.build_context import BuildContext
+        # Load asset manifest ONCE before rendering starts (thread-safe via ContextVar)
+        # RFC: rfc-global-build-state-dependencies.md (Phase 2)
+        from bengal.assets.manifest import AssetManifest
+        from bengal.rendering.assets import AssetManifestContext, asset_manifest_context
 
-            streaming_render = StreamingRenderOrchestrator(orchestrator.site)
-            ctx = BuildContext(
-                site=orchestrator.site,
-                pages=pages_to_build,
-                tracker=tracker,
-                stats=orchestrator.stats,
-                profile=profile,
-                progress_manager=progress_manager,
-                reporter=reporter,
-                profile_templates=profile_templates,
-                incremental=bool(incremental),
-                output_collector=collector,
-            )
-            # Transfer cached content from early context (build-integrated validation)
-            if early_context and early_context.has_cached_content:
-                ctx._page_contents = early_context._page_contents
-            # Transfer incremental state (changed pages) for validators.
-            if early_context is not None:
-                ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
-            # Compute parallel mode: use should_parallelize() unless force_sequential=True
-            from bengal.utils.workers import WorkloadType, should_parallelize
+        manifest_path = orchestrator.site.output_dir / "asset-manifest.json"
+        manifest = AssetManifest.load(manifest_path)
 
-            use_parallel = not force_sequential and should_parallelize(
-                len(pages_to_build), workload_type=WorkloadType.MIXED
-            )
-            streaming_render.process(
-                pages_to_build,
-                parallel=use_parallel,
-                quiet=quiet_mode,
-                tracker=tracker,
-                stats=orchestrator.stats,
-                progress_manager=progress_manager,
-                reporter=reporter,
-                build_context=ctx,
-                changed_sources=changed_sources,
-            )
+        # Create context with entries dict for fast lookups
+        if manifest is not None:
+            manifest_entries = {k: v.output_path for k, v in manifest.entries.items()}
+            manifest_mtime = manifest_path.stat().st_mtime if manifest_path.exists() else None
         else:
-            from bengal.utils.build_context import BuildContext
+            manifest_entries = {}
+            manifest_mtime = None
 
-            ctx = BuildContext(
-                site=orchestrator.site,
-                pages=pages_to_build,
-                tracker=tracker,
-                stats=orchestrator.stats,
-                profile=profile,
-                progress_manager=progress_manager,
-                reporter=reporter,
-                profile_templates=profile_templates,
-                incremental=bool(incremental),
-                output_collector=collector,
-            )
-            # Transfer cached content from early context (build-integrated validation)
-            if early_context and early_context.has_cached_content:
-                ctx._page_contents = early_context._page_contents
-            # Transfer incremental state (changed pages) for validators.
-            if early_context is not None:
-                ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
-        # Compute parallel mode: use should_parallelize() unless force_sequential=True
-        from bengal.utils.workers import WorkloadType, should_parallelize
+        asset_ctx = AssetManifestContext(entries=manifest_entries, mtime=manifest_mtime)
 
-        use_parallel = not force_sequential and should_parallelize(
-            len(pages_to_build), workload_type=WorkloadType.MIXED
-        )
-        # Update stats with actual execution mode
-        orchestrator.stats.parallel = use_parallel
+        # All rendering happens inside asset_manifest_context
+        # Each thread reads from ContextVar - no locks needed (thread-safe by design)
+        with asset_manifest_context(asset_ctx):
+            # Use memory-optimized streaming if requested
+            if memory_optimized:
+                from bengal.orchestration.streaming import StreamingRenderOrchestrator
+                from bengal.utils.build_context import BuildContext
 
-        orchestrator.render.process(
-            pages_to_build,
-            parallel=use_parallel,
-            quiet=quiet_mode,
-            tracker=tracker,
-            stats=orchestrator.stats,
-            progress_manager=progress_manager,
-            reporter=reporter,
-            build_context=ctx,
-            changed_sources=changed_sources,
-        )
+                streaming_render = StreamingRenderOrchestrator(orchestrator.site)
+                ctx = BuildContext(
+                    site=orchestrator.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=orchestrator.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    profile_templates=profile_templates,
+                    incremental=bool(incremental),
+                    output_collector=collector,
+                )
+                # Transfer cached content from early context (build-integrated validation)
+                if early_context and early_context.has_cached_content:
+                    ctx._page_contents = early_context._page_contents
+                # Transfer incremental state (changed pages) for validators.
+                if early_context is not None:
+                    ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+                # Compute parallel mode: use should_parallelize() unless force_sequential=True
+                from bengal.utils.workers import WorkloadType, should_parallelize
+
+                use_parallel = not force_sequential and should_parallelize(
+                    len(pages_to_build), workload_type=WorkloadType.MIXED
+                )
+                streaming_render.process(
+                    pages_to_build,
+                    parallel=use_parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=orchestrator.stats,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
+                    changed_sources=changed_sources,
+                )
+            else:
+                from bengal.utils.build_context import BuildContext
+
+                ctx = BuildContext(
+                    site=orchestrator.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=orchestrator.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    profile_templates=profile_templates,
+                    incremental=bool(incremental),
+                    output_collector=collector,
+                )
+                # Transfer cached content from early context (build-integrated validation)
+                if early_context and early_context.has_cached_content:
+                    ctx._page_contents = early_context._page_contents
+                # Transfer incremental state (changed pages) for validators.
+                if early_context is not None:
+                    ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+                # Compute parallel mode: use should_parallelize() unless force_sequential=True
+                from bengal.utils.workers import WorkloadType, should_parallelize
+
+                use_parallel = not force_sequential and should_parallelize(
+                    len(pages_to_build), workload_type=WorkloadType.MIXED
+                )
+                # Update stats with actual execution mode
+                orchestrator.stats.parallel = use_parallel
+
+                orchestrator.render.process(
+                    pages_to_build,
+                    parallel=use_parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=orchestrator.stats,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
+                    changed_sources=changed_sources,
+                )
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 

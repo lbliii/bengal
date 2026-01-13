@@ -579,6 +579,22 @@ def phase_incremental_filter(
             # Convert ChangeSummary to dict
             change_summary = change_summary_obj.to_dict()
 
+            # CRITICAL: If CSS/JS assets are changing, fingerprints will change.
+            # All pages embed fingerprinted asset URLs, so they must be rebuilt.
+            # This fixes the bug where pages serve stale CSS fingerprints.
+            fingerprint_assets_changed = any(
+                asset.suffix.lower() in {".css", ".js"}
+                for asset in assets_to_process
+            )
+            if fingerprint_assets_changed and not pages_to_build:
+                # Assets change but no content changes - force all pages to rebuild
+                pages_to_build = list(orchestrator.site.pages)
+                orchestrator.logger.info(
+                    "fingerprint_assets_changed_forcing_page_rebuild",
+                    assets_changed=len([a for a in assets_to_process if a.suffix.lower() in {".css", ".js"}]),
+                    pages_to_rebuild=len(pages_to_build),
+                )
+
             # Track which pages changed (for taxonomy updates)
             changed_page_paths = {
                 p.source_path for p in pages_to_build if not p.metadata.get("_generated")

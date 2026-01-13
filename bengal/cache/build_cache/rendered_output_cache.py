@@ -6,7 +6,7 @@ parsing AND template rendering. Optimization #3 from the cache RFC.
 
 Key Concepts:
 - Caches final HTML (post-template, ready to write)
-- Validates against content, metadata, template, and dependencies
+- Validates against content, metadata, template, dependencies, AND asset manifest
 - Expected 20-40% faster incremental builds
 
 Related Modules:
@@ -24,10 +24,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.hashing import hash_str
+from bengal.utils.logger import get_logger
 from bengal.utils.sentinel import MISSING
 
 if TYPE_CHECKING:
     pass
+
+logger = get_logger(__name__)
 
 
 class RenderedOutputCacheMixin:
@@ -54,6 +57,7 @@ class RenderedOutputCacheMixin:
         template: str,
         metadata: dict[str, Any],
         dependencies: list[str] | None = None,
+        output_dir: Path | None = None,
     ) -> None:
         """
         Store fully rendered HTML output in cache.
@@ -68,6 +72,7 @@ class RenderedOutputCacheMixin:
             template: Template name used for rendering
             metadata: Page metadata (frontmatter)
             dependencies: List of template/partial paths this page depends on
+            output_dir: Output directory for locating asset manifest
         """
         # Hash metadata to detect changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
@@ -75,6 +80,16 @@ class RenderedOutputCacheMixin:
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8"))
+
+        # Capture asset manifest mtime for invalidation when assets change
+        # This ensures cached HTML is invalidated when CSS/JS fingerprints change
+        asset_manifest_mtime: float | None = None
+        if output_dir:
+            manifest_path = output_dir / "asset-manifest.json"
+            try:
+                asset_manifest_mtime = manifest_path.stat().st_mtime
+            except (FileNotFoundError, OSError):
+                pass
 
         # Store as dict (will be serialized to JSON)
         self.rendered_output[str(file_path)] = {
@@ -84,10 +99,15 @@ class RenderedOutputCacheMixin:
             "dependencies": dependencies or [],
             "timestamp": datetime.now().isoformat(),
             "size_bytes": size_bytes,
+            "asset_manifest_mtime": asset_manifest_mtime,
         }
 
     def get_rendered_output(
-        self, file_path: Path, template: str, metadata: dict[str, Any]
+        self,
+        file_path: Path,
+        template: str,
+        metadata: dict[str, Any],
+        output_dir: Path | None = None,
     ) -> str | Any:
         """
         Get cached rendered HTML if still valid.
@@ -97,12 +117,14 @@ class RenderedOutputCacheMixin:
         2. Metadata hasn't changed (via metadata_hash)
         3. Template name matches
         4. Template files haven't changed (via dependencies)
-        5. Config hasn't changed (caller should validate config_hash)
+        5. Asset manifest hasn't changed (via mtime) - prevents stale fingerprints
+        6. Config hasn't changed (caller should validate config_hash)
 
         Args:
             file_path: Path to source file
             template: Current template name
             metadata: Current page metadata
+            output_dir: Output directory for locating asset manifest
 
         Returns:
             Cached HTML string if valid, MISSING if invalid or not found
@@ -133,6 +155,26 @@ class RenderedOutputCacheMixin:
             dep = Path(dep_path)
             if dep.exists() and self.is_changed(dep):
                 # A dependency changed - invalidate cache
+                return MISSING
+
+        # Validate asset manifest hasn't changed (prevents stale asset fingerprints)
+        # This is critical: cached HTML contains fingerprinted asset URLs like
+        # style.abc123.css - if assets are reprocessed, fingerprints change
+        cached_manifest_mtime = cached.get("asset_manifest_mtime")
+        if output_dir and cached_manifest_mtime is not None:
+            manifest_path = output_dir / "asset-manifest.json"
+            try:
+                current_mtime = manifest_path.stat().st_mtime
+                if current_mtime != cached_manifest_mtime:
+                    logger.debug(
+                        "rendered_cache_invalidated_asset_manifest",
+                        page=key,
+                        cached_mtime=cached_manifest_mtime,
+                        current_mtime=current_mtime,
+                    )
+                    return MISSING
+            except (FileNotFoundError, OSError):
+                # Manifest doesn't exist - invalidate to be safe
                 return MISSING
 
         return cached.get("html")

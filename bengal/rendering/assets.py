@@ -16,12 +16,22 @@ Benefits:
 - All engines get fingerprinting support automatically
 - Third-party engines don't need to understand manifest internals
 - Easier to add new features (CDN, versioning, etc.)
+
+Thread Safety (Free-Threading / PEP 703):
+    Asset manifest access uses ContextVar pattern for thread-local storage.
+    Each thread has independent access - no locks needed.
+    Set once per build via asset_manifest_context(), read many during render.
+
+RFC: rfc-global-build-state-dependencies.md (Phase 2)
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterator
 
 from bengal.utils.logger import get_logger
 
@@ -29,6 +39,124 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+
+# =============================================================================
+# Asset Manifest Context (Thread-Safe via ContextVar)
+# =============================================================================
+
+__all__ = [
+    "AssetManifestContext",
+    "get_asset_manifest",
+    "set_asset_manifest",
+    "reset_asset_manifest",
+    "asset_manifest_context",
+    "resolve_asset_url",
+    "clear_manifest_cache",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class AssetManifestContext:
+    """Immutable asset manifest context - set once per build, read many.
+
+    Thread Safety:
+        ContextVars are thread-local by design (PEP 567).
+        Each thread has independent storage - no locks needed.
+        Also async-safe (each task gets its own context).
+
+    Attributes:
+        entries: Mapping from logical_path to fingerprinted output_path.
+        mtime: Manifest file mtime for cache invalidation (optional).
+    """
+
+    entries: dict[str, str]  # logical_path -> fingerprinted_output_path
+    mtime: float | None = None  # For cache invalidation
+
+
+# Thread-local manifest via ContextVar (default None for graceful fallback)
+_asset_manifest: ContextVar[AssetManifestContext | None] = ContextVar(
+    "asset_manifest",
+    default=None,
+)
+
+
+def get_asset_manifest() -> AssetManifestContext | None:
+    """Get current asset manifest context (thread-local).
+
+    Returns:
+        The AssetManifestContext for the current thread/context, or None if not set.
+
+    Performance:
+        ~8M ops/sec (benchmarked in rfc-free-threading-patterns.md).
+    """
+    return _asset_manifest.get()
+
+
+def set_asset_manifest(ctx: AssetManifestContext) -> Token[AssetManifestContext | None]:
+    """Set asset manifest for current context.
+
+    Returns a token that can be used to restore the previous value.
+    Always use with try/finally or asset_manifest_context() for proper cleanup.
+
+    Args:
+        ctx: The AssetManifestContext to set for the current context.
+
+    Returns:
+        Token that can be passed to reset_asset_manifest() to restore previous value.
+    """
+    return _asset_manifest.set(ctx)
+
+
+def reset_asset_manifest(token: Token[AssetManifestContext | None] | None = None) -> None:
+    """Reset asset manifest context.
+
+    If token is provided, restores to the previous value (proper nesting).
+    Otherwise, resets to None.
+
+    Args:
+        token: Optional token from set_asset_manifest() for proper nesting support.
+    """
+    if token is not None:
+        _asset_manifest.reset(token)
+    else:
+        _asset_manifest.set(None)
+
+
+@contextmanager
+def asset_manifest_context(ctx: AssetManifestContext) -> Iterator[AssetManifestContext]:
+    """Context manager for scoped asset manifest usage.
+
+    Properly restores previous context on exit (supports nesting).
+
+    Usage:
+        manifest = AssetManifest.load(output_dir / "asset-manifest.json")
+        ctx = AssetManifestContext(
+            entries={k: v.output_path for k, v in manifest.entries.items()},
+            mtime=manifest_path.stat().st_mtime,
+        )
+
+        with asset_manifest_context(ctx):
+            # All parallel page rendering happens here
+            # Each thread reads from ContextVar - no locks needed
+            render_pages_parallel(pages)
+
+    Args:
+        ctx: The AssetManifestContext to use within the context.
+
+    Yields:
+        The context that was set (same as input).
+    """
+    token = set_asset_manifest(ctx)
+    try:
+        yield ctx
+    finally:
+        reset_asset_manifest(token)
+
+
+# =============================================================================
+# Asset URL Resolution
+# =============================================================================
 
 
 def resolve_asset_url(
@@ -87,36 +215,39 @@ def resolve_asset_url(
 def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
     """
     Resolve a logical asset path to its fingerprinted output path.
-    
-    Uses a cached manifest for efficient lookups across all template renders.
-    
+
+    Uses ContextVar for thread-safe manifest access (no locks needed).
+    Falls back to loading manifest from disk if ContextVar is not set.
+
+    Thread Safety (Free-Threading / PEP 703):
+        Primary path uses ContextVar - thread-local by design.
+        Fallback path loads from disk (safe but slower).
+
     Args:
         logical_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
-    
+
     Returns:
         Fingerprinted output path (e.g., 'assets/css/style.abc123.css') or None
-        
     """
+    # Primary path: Use ContextVar (thread-safe, no locks, ~8M ops/sec)
+    ctx = get_asset_manifest()
+    if ctx is not None:
+        return ctx.entries.get(logical_path)
+
+    # Fallback path: Load from disk (for dev server, tests, or when context not set)
+    # This is slower but safe - used when asset_manifest_context() wasn't set up
     from bengal.assets.manifest import AssetManifest
 
-    # Use a single cache on the site for all engines
-    cache_attr = "_asset_manifest_cache"
-    manifest_cache = getattr(site, cache_attr, None)
+    manifest_path = site.output_dir / "asset-manifest.json"
+    if not manifest_path.exists():
+        return None
 
-    if manifest_cache is None:
-        # Load manifest from output directory
-        manifest_path = site.output_dir / "asset-manifest.json"
-        manifest = AssetManifest.load(manifest_path)
-        if manifest is None:
-            # No manifest available - cache empty dict to avoid repeated loads
-            setattr(site, cache_attr, {})
-            return None
-        # Cache the entries dict for fast lookups
-        manifest_cache = dict(manifest.entries)
-        setattr(site, cache_attr, manifest_cache)
+    manifest = AssetManifest.load(manifest_path)
+    if manifest is None:
+        return None
 
-    entry = manifest_cache.get(logical_path)
+    entry = manifest.get(logical_path)
     if entry:
         return entry.output_path
     return None
@@ -156,16 +287,14 @@ def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str
     return f"./{asset_url_path}"
 
 
-def clear_manifest_cache(site: Site) -> None:
+def clear_manifest_cache(site: Site | None = None) -> None:
     """
-    Clear the asset manifest cache on the site.
-    
-    Call this when the manifest has been updated (e.g., after asset processing).
-    
+    Clear the asset manifest cache.
+
+    With ContextVar pattern, this resets the thread-local manifest to None.
+    The site parameter is kept for backward compatibility but is not used.
+
     Args:
-        site: Site instance
-        
+        site: Unused (kept for backward compatibility)
     """
-    cache_attr = "_asset_manifest_cache"
-    if hasattr(site, cache_attr):
-        delattr(site, cache_attr)
+    reset_asset_manifest()
