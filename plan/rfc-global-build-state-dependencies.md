@@ -638,4 +638,11 @@ Bengal's approach (Phase 3+) will be closest to Hugo: per-page validation with g
 | 2026-01-13 | Tactical fix: `asset_manifest_mtime` | Immediate bug fix for GH Pages |
 | 2026-01-13 | RFC approved for Phase 2 | ContextVar pattern aligns with existing Bengal patterns |
 | 2026-01-13 | Phase 2: ContextVar implementation ✅ | Fix race condition for free-threading |
+| 2026-01-13 | Created `rfc-asset-resolution-observability.md` | Observability gap discovered during Phase 2 implementation |
 | TBD | Phase 3: BuildStateHash | Unified global state tracking |
+
+---
+
+## Related RFCs
+
+- **`rfc-asset-resolution-observability.md`** - Structured logging and stats tracking for asset resolution (created during Phase 2)

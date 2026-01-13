@@ -1,6 +1,6 @@
 # RFC: Incremental Build Observability
 
-## Status: Draft
+## Status: Phase 1 Implemented
 ## Created: 2026-01-13
 ## Updated: 2026-01-13
 ## Origin: Debugging session for stale CSS fingerprints bug
@@ -333,7 +333,7 @@ Track which pages depend on which assets for smarter selective rebuilds.
 
 | Phase | Priority | LOC | Complexity | Value | Status |
 |-------|----------|-----|------------|-------|--------|
-| 1. Rebuild Reasons | 🟢 High | ~100 | Low | Immediate debugging help | **Implement now** |
+| 1. Rebuild Reasons | 🟢 High | ~100 | Low | Immediate debugging help | **✅ Implemented** |
 | 2. Explain Mode | 🟡 Medium | ~80 | Low | User-facing diagnostics | On user request |
 | 3. Asset Dependencies | ⛔ Deferred | ~400 | High | Smarter rebuilds | Not planned |
 
@@ -343,22 +343,24 @@ Track which pages depend on which assets for smarter selective rebuilds.
 
 ### Phase 1
 
-- [ ] Add `RebuildReasonCode` enum to `bengal/orchestration/build/results.py`
-- [ ] Add `SkipReasonCode` enum
-- [ ] Add `RebuildReason` dataclass
-- [ ] Add `IncrementalDecision` dataclass with `log_summary()` and `log_details()`
-- [ ] Update `phase_incremental_filter()` to create and populate `IncrementalDecision`
-- [ ] Track rebuild reasons for each code path:
-  - [ ] Content changes (from `ChangeDetector`)
-  - [ ] Template changes
-  - [ ] Asset fingerprint changes
-  - [ ] Cascade dependencies
-  - [ ] Nav changes
-  - [ ] Cross-version dependencies
-  - [ ] Forced rebuilds
-- [ ] Add `verbose` guard for skip_reasons population
-- [ ] Add INFO log for summary, DEBUG for details
-- [ ] Add unit tests for `RebuildReason` and `IncrementalDecision`
+- [x] Add `RebuildReasonCode` enum to `bengal/orchestration/build/results.py`
+- [x] Add `SkipReasonCode` enum
+- [x] Add `RebuildReason` dataclass
+- [x] Add `IncrementalDecision` dataclass with `log_summary()` and `log_details()`
+- [x] Update `phase_incremental_filter()` to create and populate `IncrementalDecision`
+- [x] Track rebuild reasons for each code path:
+  - [x] Content changes (from `ChangeDetector`)
+  - [x] Template changes
+  - [x] Asset fingerprint changes
+  - [x] Cascade dependencies
+  - [x] Nav changes
+  - [x] Cross-version dependencies
+  - [x] Forced rebuilds
+  - [x] Output missing (new reason added)
+  - [x] Full rebuild
+- [x] Add `verbose` guard for skip_reasons population
+- [x] Add INFO log for summary, DEBUG for details
+- [x] Add unit tests for `RebuildReason` and `IncrementalDecision`
 
 ### Phase 2
 
@@ -503,6 +505,8 @@ def test_explain_mode_output(tmp_project, capsys):
 | 2026-01-13 | Use enums for reason codes | Type safety, exhaustive handling, IDE support |
 | 2026-01-13 | Phase 3 deferred indefinitely | High effort (~400 LOC), low incremental value |
 | 2026-01-13 | Additive integration with ChangeDetector | Don't break existing structured logging |
+| 2026-01-13 | Phase 1 implemented | Added RebuildReasonCode, SkipReasonCode enums; IncrementalDecision dataclass; updated phase_incremental_filter(); 17 unit tests |
+| 2026-01-13 | Added OUTPUT_MISSING reason | Handle warm CI builds where output cleaned but cache present |
 
 ---
 
