@@ -229,6 +229,51 @@ with render_config_context(RenderConfig(highlight=True)):
 - **~1.65x faster instantiation**: Less attribute copying per instance
 - **Proper nesting**: Token-based reset supports nested config contexts
 
+### Downstream Patterns (RFC: rfc-contextvar-downstream-patterns)
+
+Additional ContextVar patterns for pooling, metadata, and request context:
+
+```python
+from bengal.rendering.parsers.patitas import (
+    ParserPool, RendererPool,  # Instance pooling
+    metadata_context,           # Render metadata accumulation
+    request_context,            # Request-scoped state
+)
+
+# Pattern 1: Parser/Renderer Pooling
+with ParserPool.acquire(source) as parser:
+    ast = parser.parse()
+
+with RendererPool.acquire(source) as renderer:
+    html = renderer.render(ast)
+
+# Pattern 2: Metadata Accumulator
+with metadata_context() as meta:
+    html = renderer.render(ast)
+    if meta.has_math:
+        include_mathjax()
+    print(f"Word count: {meta.word_count}")
+
+# Pattern 3: Request-Scoped Context
+with request_context(source_file=path, page=page, site=site):
+    html = render(page.content)
+```
+
+**Pooling Benefits:**
+- **Reduced GC pressure**: ~90% fewer allocations for large sites
+- **Thread-local pools**: 8 instances per thread (configurable)
+- **~78% faster instantiation**: Reuse vs create new
+
+**Metadata Accumulator:**
+- Single-pass extraction of: math, code blocks, tables, links, word count
+- Zero overhead when not in context
+- Enables conditional asset loading
+
+**Request Context:**
+- Eliminates parameter drilling for source_file, page, site
+- Provides error_handler, link_resolver, strict_mode
+- Thread/async safe via ContextVar
+
 ---
 
 ## Comparison
