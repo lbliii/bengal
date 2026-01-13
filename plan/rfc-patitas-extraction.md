@@ -1,8 +1,8 @@
 # RFC: Patitas Extraction to Standalone Package
 
-**Status**: Draft  
+**Status**: In Progress  
 **Created**: 2026-01-09  
-**Updated**: 2026-01-09  
+**Updated**: 2026-01-12  
 **Author**: Bengal Contributors
 
 ---
@@ -1201,21 +1201,319 @@ md = create_markdown(plugins=["directives"])  # MyST syntax
 
 | Phase | Effort | Dependencies | Status |
 |-------|--------|--------------|--------|
-| Phase 1: Prepare repo | 1 hour | None | ☐ Pending |
-| Phase 2: Extract core | 2 hours | Phase 1 | ☐ Pending |
-| Phase 3: Create utilities | 1 hour | Phase 2 | ☐ Pending |
-| Phase 4: Abstract features (protocols) | 2 hours | Phase 3 | ☐ Pending |
-| Phase 5: Handle directives (tiered) | 4 hours | Phase 4 | ☐ Pending |
-| Phase 5b: Package structure (extras) | 1 hour | Phase 5 | ☐ Pending |
-| Phase 6: Extract tests | 1.5 hours | Phase 5b | ☐ Pending |
+| Phase 1: Prepare repo | 1 hour | None | ✅ Complete |
+| Phase 2: Extract core | 2 hours | Phase 1 | ✅ Complete |
+| Phase 3: Create utilities | 1 hour | Phase 2 | ✅ Complete |
+| Phase 4: Abstract features (protocols) | 2 hours | Phase 3 | ✅ Complete |
+| Phase 5: Handle directives (tiered) | 4 hours | Phase 4 | ⏳ Stubbed |
+| Phase 6: Extract tests | 1.5 hours | Phase 5 | ✅ Complete |
 | Phase 7: Update Bengal (adapter) | 3 hours | Phase 6 | ☐ Pending |
 | Phase 8: Validation (all tiers) | 2 hours | Phase 7 | ☐ Pending |
-| **Total** | **~17.5 hours** | | |
+| Phase 9: CI/CD and PyPI | 2 hours | Phase 8 | ☐ Pending |
+| Phase 10: Documentation | 2 hours | Phase 9 | ☐ Pending |
+| **Total** | **~20.5 hours** | | |
 
 **Note**: The tiered architecture adds ~2.5 hours but provides significant value:
 - Users can choose their dependency footprint
 - Bengal directives stay in Bengal (simpler maintenance)
 - Clear upgrade path from core → directives → bengal
+
+---
+
+## Current Progress (2026-01-12)
+
+### ✅ Completed
+
+**Phase 1: Prepare repo** — Established package structure:
+- `pyproject.toml` with tiered extras (core, directives, syntax, bengal)
+- `README.md` with features, installation, usage examples
+- `LICENSE` (MIT), `CHANGELOG.md`, `Makefile`
+- Git repository initialized with 4 commits
+
+**Phase 2: Extract core** — 82 Python files extracted:
+- Lexer (state machine, classifiers, scanners)
+- Parser (blocks, inline, containers)
+- Nodes (30+ typed AST dataclasses)
+- Plugins (table, math, footnotes, strikethrough, task lists)
+- Roles (protocol, registry, builtins)
+- Stubs for Bengal-dependent modules (`parsing/blocks/directive.py`, `roles/builtins/icons.py`)
+
+**Phase 3: Create utilities**:
+- `utils/text.py` — `slugify`, `escape_html`
+- `utils/hashing.py` — `hash_str`, `hash_bytes`
+- `utils/logger.py` — `get_logger` (stdlib logging shim)
+- `errors.py` — `PatitasError`, `ParseError`, `DirectiveContractError`, `RenderError`, `PluginError`
+
+**Phase 4: Abstract features**:
+- `icons.py` — `IconResolver` protocol, `set_icon_resolver()`, `get_icon()`
+- `highlighting.py` — `Highlighter` protocol, `set_highlighter()`, auto-detects Rosettes
+
+**Phase 6: Extract tests** — 52 tests passing:
+- `test_api.py` — High-level API tests (`parse`, `render`, `Markdown`)
+- `test_core_imports.py` — Verify module imports
+- `test_renderer.py` — HtmlRenderer tests
+- `test_utils.py` — Utility function tests
+- `test_commonmark_spec.py` — 652 CommonMark examples (marked, ready for validation)
+- CommonMark spec fixture (`fixtures/commonmark_spec_0_31_2.json`)
+
+**Additional work**:
+- Created `renderers/html.py` — Full HtmlRenderer with heading IDs, TOC collection, footnotes
+- Created `__init__.py` — Exports `parse()`, `render()`, `Markdown`, all node types
+
+### ⏳ In Progress
+
+**Phase 5: Handle directives** — Stubs created, full extraction pending:
+- Directive registry framework exists
+- Stub files allow imports without errors
+- Full directive implementations need extraction with icon protocol integration
+
+### 📊 Metrics
+
+```
+Files extracted:  82 Python files in src/patitas/
+Tests passing:    52 tests
+Commits:          4 commits on main branch
+Package size:     ~500 KB (including CommonMark spec fixture)
+```
+
+**Commits:**
+1. `4329a0c` — Initial package setup with tiered extras (Phase 1)
+2. `9efdc8f` — Extract core parser files from Bengal; add stubs (Phase 2)
+3. `f8234b2` — Add utilities, errors, icons/highlighting protocols, CommonMark spec (Phase 3-6)
+4. `1979f3d` — Add HtmlRenderer, high-level API, API tests (52 passing)
+
+---
+
+## Next Phases
+
+### Phase 5 (Remaining): Extract Portable Directives
+
+**Goal**: Complete the `patitas[directives]` tier with portable directives.
+
+**Tasks**:
+1. [ ] Extract directive framework:
+   - `directives/__init__.py` — DirectiveRegistry, register_directive
+   - `directives/protocol.py` — DirectiveProtocol
+   - `directives/registry.py` — Runtime registry
+   - `directives/contracts.py` — Contract validation
+   - `directives/decorator.py` — @directive decorator
+
+2. [ ] Extract portable builtins:
+   - `directives/builtins/admonition.py` — note, warning, tip, caution, important
+   - `directives/builtins/container.py` — Generic wrapper
+   - `directives/builtins/dropdown.py` — Collapsible content
+   - `directives/builtins/tabs.py` — Tabbed content
+   - `directives/builtins/misc.py` — Small utilities
+
+3. [ ] Wire icon protocol:
+   - Replace `from bengal.directives._icons import` with `from patitas.icons import`
+   - Add graceful degradation when icons not available
+   - Document icon injection pattern
+
+4. [ ] Update `parsing/blocks/directive.py`:
+   - Remove stub, add real implementation
+   - Update imports to use `patitas.directives`
+
+**Effort**: ~3 hours
+
+### Phase 7: Update Bengal to Use External Patitas
+
+**Goal**: Bengal becomes a consumer of the external Patitas package.
+
+**Tasks**:
+1. [ ] Add patitas dependency to `bengal/pyproject.toml`:
+   ```toml
+   dependencies = [
+       "patitas>=0.1.0",
+       "kida>=0.1.0",
+       "rosettes>=0.1.0",
+       # ... existing deps
+   ]
+   ```
+
+2. [ ] Create Bengal adapter (`bengal/rendering/parsers/patitas_adapter.py`):
+   - Import from external patitas
+   - Inject Bengal's icon resolver
+   - Inject Rosettes highlighter
+   - Register Bengal-specific directives
+
+3. [ ] Move Bengal-specific directives to `bengal/patitas/directives/`:
+   - `cards.py` — Bengal card layout system
+   - `code_tabs.py` — Multi-language code examples
+   - `navigation.py` — Site navigation
+   - `versioning.py` — Version switcher
+   - `include.py` — File inclusion
+
+4. [ ] Update all Bengal imports:
+   ```python
+   # Before
+   from bengal.rendering.parsers.patitas import parse, Markdown
+   
+   # After
+   from patitas import parse, Markdown
+   # Or for Bengal-specific features:
+   from bengal.rendering.parsers.patitas_adapter import PatitasParser
+   ```
+
+5. [ ] Delete embedded patitas source:
+   ```bash
+   rm -rf bengal/rendering/parsers/patitas/
+   rm -rf tests/rendering/parsers/patitas/
+   rm -rf tests/unit/rendering/parsers/patitas/
+   ```
+
+6. [ ] Keep Bengal-specific tests:
+   ```bash
+   mv tests/rendering/parsers/patitas/test_page_context_directives.py \
+      tests/rendering/test_patitas_integration.py
+   ```
+
+**Effort**: ~3 hours
+
+### Phase 8: Validation
+
+**Goal**: Ensure both packages work correctly independently and together.
+
+**Tasks**:
+1. [ ] Patitas standalone validation:
+   ```bash
+   cd patitas && uv sync && pytest -v
+   # Expect: 52+ tests passing
+   ```
+
+2. [ ] CommonMark compliance:
+   ```bash
+   pytest tests/test_commonmark_spec.py -v -m commonmark
+   # Target: 600+ examples passing
+   ```
+
+3. [ ] Bengal validation:
+   ```bash
+   cd bengal && uv sync && pytest -v
+   # Expect: All existing tests pass
+   ```
+
+4. [ ] No Bengal imports in patitas:
+   ```bash
+   grep -r "from bengal\|import bengal" patitas/src/
+   # Should return empty
+   ```
+
+5. [ ] Type checking:
+   ```bash
+   cd patitas && pyright src/
+   # Should return 0 errors
+   ```
+
+6. [ ] Free-threading test:
+   ```bash
+   python -c "
+   from patitas import Markdown
+   from concurrent.futures import ThreadPoolExecutor
+   md = Markdown()
+   docs = ['# Test\\n\\nParagraph'] * 100
+   with ThreadPoolExecutor(max_workers=4) as ex:
+       results = list(ex.map(md, docs))
+   print(f'Parsed {len(results)} docs in parallel')
+   "
+   ```
+
+**Effort**: ~2 hours
+
+### Phase 9: CI/CD and PyPI
+
+**Goal**: Set up continuous integration and package publishing.
+
+**Tasks**:
+1. [ ] Create GitHub Actions workflow (`.github/workflows/ci.yml`):
+   ```yaml
+   name: CI
+   on: [push, pull_request]
+   jobs:
+     test:
+       runs-on: ubuntu-latest
+       strategy:
+         matrix:
+           python: ["3.14"]
+       steps:
+         - uses: actions/checkout@v4
+         - uses: astral-sh/setup-uv@v5
+         - run: uv sync --all-extras
+         - run: uv run pytest -v
+         - run: uv run pyright src/
+   ```
+
+2. [ ] Create release workflow (`.github/workflows/release.yml`):
+   - Trigger on version tag push
+   - Build wheel and sdist
+   - Publish to PyPI
+
+3. [ ] Set up PyPI project:
+   - Create `patitas` project on PyPI
+   - Add API token as repository secret
+   - Test with TestPyPI first
+
+4. [ ] Create initial release:
+   - Tag `v0.1.0`
+   - Build and publish
+
+**Effort**: ~2 hours
+
+### Phase 10: Documentation
+
+**Goal**: Create comprehensive documentation for Patitas users.
+
+**Tasks**:
+1. [ ] Expand README.md:
+   - Detailed API reference
+   - Plugin system documentation
+   - Directive authoring guide
+   - Performance benchmarks
+
+2. [ ] Create docs site (optional):
+   - Use Bengal to build docs (dogfooding!)
+   - Host on GitHub Pages
+
+3. [ ] Add docstrings to all public APIs:
+   - Ensure all exported functions/classes documented
+   - Include examples in docstrings
+
+4. [ ] Migration guide:
+   - From mistune to patitas
+   - From embedded patitas to external
+
+**Effort**: ~2 hours
+
+---
+
+## Success Criteria (Updated)
+
+### Core Package ✅
+1. ✅ `pip install patitas` works (zero dependencies)
+2. ✅ `from patitas import parse, Markdown` works
+3. ⏳ CommonMark spec passes (652 examples) — tests ready, need validation
+4. ✅ Patitas test suite passes (52 tests standalone)
+5. ⏳ No Bengal imports in patitas core — needs verification
+6. ⏳ Import overhead <50ms cold start — needs measurement
+7. ⏳ Type checking passes — needs pyright run
+8. ⏳ Free-threading test passes — needs validation
+
+### Optional Extras
+9. ⏳ `pip install patitas[directives]` enables directive parsing
+10. ✅ `pip install patitas[syntax]` enables Rosettes highlighting (protocol ready)
+11. ⏳ Directives work without icons (graceful degradation) — protocol in place
+12. ✅ Icon resolver injection works when provided
+
+### Bengal Integration (Pending)
+13. ☐ `pip install patitas[bengal]` installs Bengal
+14. ☐ Bengal test suite passes (with external patitas)
+15. ☐ Bengal directives (cards, code-tabs, etc.) work via adapter
+16. ☐ Backward compatibility: existing Bengal imports work
+
+### Verification (Pending)
+17. ☐ Benchmark shows patitas still 40-50% faster than mistune
+18. ☐ CI/CD pipeline passes
+19. ☐ Package published to PyPI
 
 ---
 
