@@ -1,6 +1,6 @@
 # RFC: Global Build State Dependencies
 
-## Status: Phase 2 Complete ✅
+## Status: Phase 1 Complete ✅
 ## Created: 2026-01-13
 ## Updated: 2026-01-13
 
@@ -8,36 +8,50 @@
 
 ## Summary
 
-**Problem**: Rendered HTML cache doesn't track global state changes (asset manifest), causing stale fingerprinted URLs after CSS updates.
+**Problem**: Incremental builds didn't rebuild pages when CSS/JS assets changed, causing stale fingerprinted URLs (e.g., `style.abc123.css` in HTML when actual file is `style.xyz789.css`).
 
 **Solution**: 
-- **Phase 1** ✅: `asset_manifest_mtime` validation (tactical fix, shipped v0.1.9)
-- **Phase 2** ✅: ContextVar pattern for thread-safe manifest access (free-threading fix)
+- **Phase 1** ✅: Force page rebuild when CSS/JS assets change (shipped v0.1.10)
+- **Phase 2**: ContextVar pattern for thread-safe manifest access (free-threading hardening)
 - **Phase 3**: `BuildStateHash` abstraction (unified global state tracking)
 
-**Key Decision**: Use ContextVar (not locks) for asset manifest—matches existing Patitas patterns, ~8M ops/sec, zero lock contention.
+**Key Insight**: The rendered HTML cache was never the issue—pages weren't being rebuilt AT ALL when only assets changed because the incremental filter only looked at content changes.
 
 ---
 
 ## Problem Statement
 
-The caching architecture has a blind spot for **global dependencies** - state that affects ALL cached HTML but isn't tracked as a per-page dependency.
+The incremental build system has a blind spot for **asset fingerprint changes** - when CSS/JS assets change, pages must be rebuilt because they embed fingerprinted asset URLs.
 
 ### The Bug That Exposed This
 
-Home page served from rendered HTML cache with stale CSS fingerprint:
+Home page served with stale CSS fingerprint after CSS-only change:
 - CSS changed → new fingerprint (`style.4df19bd5.css`)
-- Asset manifest updated
-- Rendered cache validation checked: content, metadata, template, dependencies ✅
-- Rendered cache validation **didn't check**: asset manifest ❌
-- Result: Home page served with old `style.9b0fa869.css` reference → broken styles
+- Asset manifest updated correctly
+- Incremental filter checked: "Did `index.md` change?" → No
+- Result: `index.md` not in `pages_to_build` → page NOT rebuilt
+- Old HTML with `style.9b0fa869.css` remained on disk → 404 for CSS
+
+### Root Cause Analysis
+
+The bug was **NOT** in the rendered HTML cache validation—it was earlier in the pipeline:
+
+```
+phase_incremental_filter():
+  pages_to_build = find_work_early()  # Only content changes!
+  # CSS/JS changes → assets_to_process, but NOT pages_to_build
+```
+
+Pages embed fingerprinted asset URLs (`style.abc123.css`). When CSS changes:
+- Assets phase correctly creates new fingerprint
+- But pages weren't in `pages_to_build` → never rebuilt → old fingerprint remains
 
 ### Why This Class of Bugs Is Hard to Catch
 
-1. **Test coverage gap**: Tests focus on content edits, not global state changes
-2. **Phase ordering assumption**: Assets processed before rendering in same build (holds for fresh builds, breaks for incremental)
-3. **Missing abstraction**: No concept of "global build state" that all caches depend on
-4. **Cache boundary confusion**: "Rendered HTML" stored without tracking what state it depends on
+1. **Full builds work fine**: Assets → Manifest → Render → Correct fingerprints
+2. **Test focus**: Tests check content changes, not CSS-only changes
+3. **Phase ordering illusion**: "Assets run before render" is true, but pages must be IN the render list
+4. **Incremental filter scope**: `find_work_early()` looks at content, not asset dependencies
 
 ## Free-Threading Considerations (Python 3.14+)
 
@@ -512,12 +526,42 @@ def test_asset_manifest_contextvar_thread_isolation():
 
 ## Migration Path
 
-1. **v0.1.9**: Tactical fix (asset_manifest_mtime tracking) ✅
-2. **v0.1.10**: Free-threading fix (ContextVar pattern for asset manifest)
-3. **v0.2.0**: BuildStateHash abstraction
-4. **v0.2.x**: Additional global dependencies as needed
+1. **v0.1.10**: CSS/JS change detection in incremental filter ✅ (this fix)
+2. **v0.2.0**: ContextVar pattern for asset manifest (free-threading hardening)
+3. **v0.2.x**: BuildStateHash abstraction
+4. **v0.3.x**: Additional global dependencies as needed
 
-### v0.1.10 Changes (Free-Threading via ContextVar)
+### v0.1.10 Changes (CSS/JS Detection) ✅
+
+**Files Changed**:
+- `bengal/orchestration/build/initialization.py` - Add fingerprint asset change detection
+- `bengal/core/page/proxy.py` - Add `links` setter for PageProxy
+
+**Key Code Addition** (`phase_incremental_filter`):
+
+```python
+# CRITICAL: If CSS/JS assets are changing, fingerprints will change.
+# All pages embed fingerprinted asset URLs, so they must be rebuilt.
+fingerprint_assets_changed = any(
+    asset.source_path.suffix.lower() in {".css", ".js"}
+    for asset in assets_to_process
+)
+if fingerprint_assets_changed and not pages_to_build:
+    # Assets change but no content changes - force all pages to rebuild
+    pages_to_build = list(orchestrator.site.pages)
+    orchestrator.logger.info(
+        "fingerprint_assets_changed_forcing_page_rebuild",
+        assets_changed=len([a for a in assets_to_process if a.source_path.suffix.lower() in {".css", ".js"}]),
+        pages_to_rebuild=len(pages_to_build),
+    )
+```
+
+**Test Coverage**: `tests/integration/test_warm_build_virtual_page_assets.py`
+- `test_css_change_triggers_page_rebuild` - Core regression test
+- `test_js_change_triggers_page_rebuild` - JS variant
+- `test_output_cleared_cache_retained_css_changed` - CI scenario
+
+### v0.2.0 Changes (Free-Threading via ContextVar)
 
 ```python
 # rendering/assets.py - BEFORE (race condition)
@@ -555,7 +599,8 @@ def phase_render(site: Site, ...):
 
 ## Related Issues
 
-- Home page missing assets on GH Pages (this bug) → **Fixed in v0.1.9**
+- Home page missing assets on GH Pages (this bug) → **Fixed in v0.1.10** ✅
+- `api/` and `cli/` autodoc pages missing on warm builds → Verified NOT an issue (existing `_check_autodoc_output_missing` handles this)
 - Potential: Theme changes not reflected in cached pages
 - Potential: Parser version changes not clearing rendered cache
 
