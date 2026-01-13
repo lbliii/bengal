@@ -300,7 +300,7 @@ Don't use `asdict(page.core)` directly—it won't convert `datetime` to ISO-8601
 The `@runtime_checkable` decorator allows `isinstance()` checks:
 
 ```python
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 
 if isinstance(obj, Cacheable):
     data = obj.to_cache_dict()
@@ -308,5 +308,3 @@ if isinstance(obj, Cacheable):
 ```
 
 However, static type checking via mypy is the primary validation method.
-
-Refer to `bengal.protocols.Cacheable` (canonical location) or `bengal/cache/cacheable.py` for the protocol definition and examples.

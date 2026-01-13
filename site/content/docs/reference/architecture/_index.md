@@ -62,6 +62,10 @@ graph TB
         NavTree[NavTree<br/>bengal/core/nav_tree.py]
     end
 
+    subgraph "Contracts"
+        Protocols[Protocols<br/>bengal/protocols/]
+    end
+
     subgraph "Supporting Systems"
         Cache[Build Cache<br/>bengal/cache/]
         Health[Health Checks<br/>bengal/health/]
@@ -100,6 +104,9 @@ graph TB
     ContentLayer -.->|"remote sources"| Collections
     Output -.->|"terminal output"| CLI
     Debug -.->|"diagnostics"| Site
+    Protocols -.->|"contracts"| Rendering
+    Protocols -.->|"contracts"| Cache
+    Protocols -.->|"contracts"| Orchestration
 ```
 
 ## Key Flows
@@ -117,4 +124,5 @@ graph TB
 | Data models (Site, Page, Section) | [Object Model](core/object-model/) |
 | Build coordination | [Orchestration](core/orchestration/) |
 | Markdown → HTML | [Rendering Pipeline](rendering/rendering/) |
+| Interface contracts | [Protocol Layer](meta/protocols/) |
 | Design guidelines | [Design Principles](design-principles/) |

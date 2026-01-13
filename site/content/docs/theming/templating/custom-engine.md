@@ -50,7 +50,7 @@ If your environment has `globals`, `filters`, and `tests` as dict-like attribute
 - **SEO/sharing functions** (meta tags, Open Graph, social sharing URLs)
 - **And much more...**
 
-### TemplateEngineProtocol
+### TemplateEngine Protocol
 
 For a complete engine implementation:
 
