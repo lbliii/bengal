@@ -236,7 +236,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jinja2", specifier = ">=3.1.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.1.1" },
+    { name = "kida-templates", specifier = ">=0.1.2" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "markupsafe", specifier = ">=3.0.0" },
     { name = "mistune", specifier = ">=3.0.0" },
@@ -544,11 +544,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/02/7d/81f5d8d93f91f75e7eff52548dca33120bd74dfbb3a33716adbb5f19a523/kida_templates-0.1.1.tar.gz", hash = "sha256:23b180173cb6014201ee43b8489b89ea5a60513b082246ebcc2591e70182ddec", size = 239095, upload-time = "2026-01-12T18:53:52.365Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/59/38f1862fb0bbea99f28f6817c9bfe4dea09681461bc1ac57ab86b4d97673/kida_templates-0.1.2.tar.gz", hash = "sha256:4e9c2b3dba5196e5237b0dda3daa81f0b52a64202606f69f52af436294204fa9", size = 245434, upload-time = "2026-01-13T19:59:07.791Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/bb/3c03843d12ad44a084585114eaf0fb9485f9dfa9ce4ef8cd749d1eded562/kida_templates-0.1.1-py3-none-any.whl", hash = "sha256:289feac40b040566201e5d08011f9d4778f92ed0c830b434433969df7dda71d7", size = 170969, upload-time = "2026-01-12T18:53:50.995Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/72/c96b8ba697ba5a8a963e0bcb3db3b000036800438edeb1bcbf4d886ade87/kida_templates-0.1.2-py3-none-any.whl", hash = "sha256:1fb5028befd0e8ed6d02652981fbd71ffeb4ac696fb06994192fd6fc4ddcb5b2", size = 176293, upload-time = "2026-01-13T19:59:06.335Z" },
 ]
 
 [[package]]
