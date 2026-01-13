@@ -23,6 +23,7 @@ Thread Safety (Free-Threading / PEP 703):
     Set once per build via asset_manifest_context(), read many during render.
 
 RFC: rfc-global-build-state-dependencies.md (Phase 2)
+RFC: rfc-asset-resolution-observability.md (Observability)
 """
 
 from __future__ import annotations
@@ -34,11 +35,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
 from bengal.utils.logger import get_logger
+from bengal.utils.observability import ComponentStats
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+# =============================================================================
+# Observability: Fallback Warning Deduplication
+# RFC: rfc-asset-resolution-observability.md (Phase 1)
+# =============================================================================
+
+# Track paths that have already warned about fallback (avoid log spam)
+_fallback_warned: set[str] = set()
 
 
 # =============================================================================
@@ -53,7 +63,44 @@ __all__ = [
     "asset_manifest_context",
     "resolve_asset_url",
     "clear_manifest_cache",
+    # Observability exports (Phase 2)
+    "get_resolution_stats",
 ]
+
+# =============================================================================
+# Observability: Stats Tracking (ContextVar-based)
+# RFC: rfc-asset-resolution-observability.md (Phase 2)
+# =============================================================================
+
+# Thread-safe stats via ContextVar (matches manifest pattern)
+_resolution_stats: ContextVar[ComponentStats | None] = ContextVar(
+    "resolution_stats", default=None
+)
+
+
+def get_resolution_stats() -> ComponentStats | None:
+    """Get resolution stats for current context (thread-safe).
+
+    Returns:
+        ComponentStats instance if resolution has occurred, None otherwise.
+
+    Thread Safety:
+        Uses ContextVar - each thread/context has independent stats.
+    """
+    return _resolution_stats.get()
+
+
+def _ensure_resolution_stats() -> ComponentStats:
+    """Get or create resolution stats for current context.
+
+    Returns:
+        ComponentStats instance for tracking resolution metrics.
+    """
+    stats = _resolution_stats.get()
+    if stats is None:
+        stats = ComponentStats()
+        _resolution_stats.set(stats)
+    return stats
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,6 +269,9 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
     Thread Safety (Free-Threading / PEP 703):
         Primary path uses ContextVar - thread-local by design.
         Fallback path loads from disk (safe but slower).
+        Stats tracking uses ContextVar - no global mutable state.
+
+    RFC: rfc-asset-resolution-observability.md
 
     Args:
         logical_path: Logical asset path (e.g., 'css/style.css')
@@ -230,13 +280,46 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
     Returns:
         Fingerprinted output path (e.g., 'assets/css/style.abc123.css') or None
     """
+    global _fallback_warned
+
     # Primary path: Use ContextVar (thread-safe, no locks, ~8M ops/sec)
     ctx = get_asset_manifest()
+    stats = _ensure_resolution_stats()
+
     if ctx is not None:
+        # Primary path: ContextVar (fast, thread-safe)
+        stats.cache_hits += 1
         return ctx.entries.get(logical_path)
 
-    # Fallback path: Load from disk (for dev server, tests, or when context not set)
-    # This is slower but safe - used when asset_manifest_context() wasn't set up
+    # Fallback path: Disk I/O
+    stats.cache_misses += 1
+
+    dev_mode = getattr(site, "dev_mode", False)
+    if not dev_mode:
+        # Unexpected fallback - warn (suggests missing context setup)
+        stats.items_skipped["unexpected_fallback"] = (
+            stats.items_skipped.get("unexpected_fallback", 0) + 1
+        )
+        # Warn once per unique path to avoid log spam during render
+        if logical_path not in _fallback_warned:
+            _fallback_warned.add(logical_path)
+            logger.warning(
+                "asset_manifest_disk_fallback",
+                logical_path=logical_path,
+                output_dir=str(site.output_dir),
+                hint="ContextVar not set - was asset_manifest_context() called?",
+            )
+    else:
+        # Expected fallback in dev mode
+        stats.items_skipped["dev_mode_fallback"] = (
+            stats.items_skipped.get("dev_mode_fallback", 0) + 1
+        )
+        logger.debug(
+            "asset_manifest_dev_mode_fallback",
+            logical_path=logical_path,
+        )
+
+    # Load from disk (for dev server, tests, or when context not set)
     from bengal.assets.manifest import AssetManifest
 
     manifest_path = site.output_dir / "asset-manifest.json"
@@ -289,12 +372,18 @@ def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str
 
 def clear_manifest_cache(site: Site | None = None) -> None:
     """
-    Clear the asset manifest cache.
+    Clear the asset manifest cache and reset observability state.
 
     With ContextVar pattern, this resets the thread-local manifest to None.
+    Also resets resolution stats and fallback warning deduplication.
     The site parameter is kept for backward compatibility but is not used.
+
+    RFC: rfc-asset-resolution-observability.md
 
     Args:
         site: Unused (kept for backward compatibility)
     """
+    global _fallback_warned
     reset_asset_manifest()
+    _resolution_stats.set(None)
+    _fallback_warned = set()

@@ -11,7 +11,13 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.section import resolve_page_section_path
-from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
+from bengal.orchestration.build.results import (
+    ConfigCheckResult,
+    FilterResult,
+    IncrementalDecision,
+    RebuildReasonCode,
+    SkipReasonCode,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -557,6 +563,7 @@ def phase_incremental_filter(
     
     Side effects:
         - Updates orchestrator.stats with cache hit/miss statistics
+        - Logs incremental decision summary and details
         - May return early if no changes detected
         
     """
@@ -566,6 +573,12 @@ def phase_incremental_filter(
         affected_tags = set()
         changed_page_paths = set()
         affected_sections = None  # Track for selective section finalization
+
+        # Initialize decision tracker for observability
+        decision = IncrementalDecision(
+            pages_to_build=[],
+            pages_skipped_count=0,
+        )
 
         if incremental:
             # Find what changed BEFORE generating taxonomies/menus
@@ -579,19 +592,41 @@ def phase_incremental_filter(
             # Convert ChangeSummary to dict
             change_summary = change_summary_obj.to_dict()
 
+            # Track rebuild reasons from change summary
+            _track_reasons_from_change_summary(
+                decision, pages_to_build, change_summary_obj, change_summary
+            )
+
             # CRITICAL: If CSS/JS assets are changing, fingerprints will change.
             # All pages embed fingerprinted asset URLs, so they must be rebuilt.
             # This fixes the bug where pages serve stale CSS fingerprints.
-            fingerprint_assets_changed = any(
-                asset.source_path.suffix.lower() in {".css", ".js"}
+            fingerprint_assets = [
+                asset
                 for asset in assets_to_process
-            )
-            if fingerprint_assets_changed and not pages_to_build:
-                # Assets change but no content changes - force all pages to rebuild
-                pages_to_build = list(orchestrator.site.pages)
+                if asset.source_path.suffix.lower() in {".css", ".js"}
+            ]
+            fingerprint_assets_changed = len(fingerprint_assets) > 0
+
+            if fingerprint_assets_changed:
+                # Track fingerprint change info
+                decision.fingerprint_changes = True
+                decision.asset_changes = [a.source_path.name for a in fingerprint_assets]
+
+                if not pages_to_build:
+                    # Assets change but no content changes - force all pages to rebuild
+                    pages_to_build = list(orchestrator.site.pages)
+
+                # Add rebuild reason for all pages due to fingerprint change
+                for page in pages_to_build:
+                    decision.add_rebuild_reason(
+                        str(page.source_path),
+                        RebuildReasonCode.ASSET_FINGERPRINT_CHANGED,
+                        {"assets": decision.asset_changes},
+                    )
+
                 orchestrator.logger.info(
                     "fingerprint_assets_changed_forcing_page_rebuild",
-                    assets_changed=len([a for a in assets_to_process if a.source_path.suffix.lower() in {".css", ".js"}]),
+                    assets_changed=len(fingerprint_assets),
                     pages_to_rebuild=len(pages_to_build),
                 )
 
@@ -670,6 +705,19 @@ def phase_incremental_filter(
                 # Output was cleaned but cache thinks nothing changed - force full rebuild
                 pages_to_build = list(orchestrator.site.pages)
                 assets_to_process = list(orchestrator.site.assets)
+
+                # Track output_missing reason for all pages
+                for page in pages_to_build:
+                    decision.add_rebuild_reason(
+                        str(page.source_path),
+                        RebuildReasonCode.OUTPUT_MISSING,
+                        {
+                            "html_missing": output_html_missing,
+                            "assets_missing": output_assets_missing,
+                            "autodoc_missing": autodoc_output_missing,
+                        },
+                    )
+
                 orchestrator.logger.info(
                     "output_missing_forcing_full_rebuild",
                     pages_count=len(pages_to_build),
@@ -700,6 +748,26 @@ def phase_incremental_filter(
                     reason="postprocess_will_generate",
                 )
 
+            # Update decision tracker with final state
+            decision.pages_to_build = pages_to_build
+            decision.pages_skipped_count = len(orchestrator.site.pages) - len(pages_to_build)
+
+            # Track skip reasons only when verbose (avoid O(n) overhead)
+            if verbose:
+                pages_to_build_paths = {str(p.source_path) for p in pages_to_build}
+                for page in orchestrator.site.pages:
+                    page_path = str(page.source_path)
+                    if page_path not in pages_to_build_paths:
+                        decision.skip_reasons[page_path] = SkipReasonCode.NO_CHANGES
+
+            # Log decision summary (INFO) and details (DEBUG when verbose)
+            decision.log_summary(orchestrator.logger)
+            if verbose:
+                decision.log_details(orchestrator.logger)
+
+            # Store decision for potential CLI explain mode (Phase 2)
+            orchestrator.stats.incremental_decision = decision
+
             # More informative incremental build message
             pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"
             assets_msg = (
@@ -729,6 +797,16 @@ def phase_incremental_filter(
                         if len(items) > 5:
                             cli.info(f"      ... and {len(items) - 5} more")
                 cli.blank()
+        else:
+            # Full build - track all pages as FULL_REBUILD
+            for page in pages_to_build:
+                decision.add_rebuild_reason(
+                    str(page.source_path),
+                    RebuildReasonCode.FULL_REBUILD,
+                )
+            decision.pages_to_build = list(pages_to_build)
+            decision.pages_skipped_count = 0
+            orchestrator.stats.incremental_decision = decision
 
         return FilterResult(
             pages_to_build=pages_to_build,
@@ -737,3 +815,69 @@ def phase_incremental_filter(
             changed_page_paths=changed_page_paths,
             affected_sections=affected_sections,
         )
+
+
+def _track_reasons_from_change_summary(
+    decision: IncrementalDecision,
+    pages_to_build: list,
+    change_summary_obj: "ChangeSummary",
+    change_summary: dict,
+) -> None:
+    """
+    Track rebuild reasons from the change summary.
+
+    Maps ChangeSummary categories to RebuildReasonCodes for observability.
+    """
+    from bengal.orchestration.build.results import ChangeSummary
+
+    # Build a set of changed content paths for quick lookup
+    modified_content_paths = {str(p) for p in change_summary_obj.modified_content}
+    modified_template_paths = {str(p) for p in change_summary_obj.modified_templates}
+
+    # Map extra_changes keys to reason codes
+    extra_reason_map = {
+        "Cascade changes": RebuildReasonCode.CASCADE_DEPENDENCY,
+        "Navigation changes": RebuildReasonCode.NAV_CHANGED,
+        "Cross-version changes": RebuildReasonCode.CROSS_VERSION_DEPENDENCY,
+        "Adjacent navigation": RebuildReasonCode.ADJACENT_NAV_CHANGED,
+    }
+
+    # Collect pages from extra_changes
+    extra_change_paths: dict[str, RebuildReasonCode] = {}
+    for change_type, reason_code in extra_reason_map.items():
+        if change_type in change_summary:
+            for path in change_summary[change_type]:
+                path_str = str(path) if hasattr(path, "__str__") else path
+                extra_change_paths[path_str] = reason_code
+
+    # Assign reasons to pages
+    for page in pages_to_build:
+        page_path = str(page.source_path)
+
+        # Check if page is in modified content (CONTENT_CHANGED)
+        if page_path in modified_content_paths:
+            decision.add_rebuild_reason(page_path, RebuildReasonCode.CONTENT_CHANGED)
+        # Check if page needs rebuild due to template change
+        elif any(t in modified_template_paths for t in [page_path]):
+            decision.add_rebuild_reason(page_path, RebuildReasonCode.TEMPLATE_CHANGED)
+        # Check extra change categories
+        elif page_path in extra_change_paths:
+            decision.add_rebuild_reason(page_path, extra_change_paths[page_path])
+        # Default to content changed if in pages_to_build but no specific reason
+        else:
+            # Check if it might be a cascade/nav/cross-version dependency
+            # by looking at change_summary extra_changes
+            found_reason = False
+            for change_type, reason_code in extra_reason_map.items():
+                if change_type in change_summary_obj.extra_changes:
+                    for changed_path in change_summary_obj.extra_changes[change_type]:
+                        if str(changed_path) == page_path:
+                            decision.add_rebuild_reason(page_path, reason_code)
+                            found_reason = True
+                            break
+                if found_reason:
+                    break
+
+            if not found_reason:
+                # Fallback: mark as content changed
+                decision.add_rebuild_reason(page_path, RebuildReasonCode.CONTENT_CHANGED)
