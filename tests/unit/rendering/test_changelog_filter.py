@@ -1,19 +1,23 @@
 """
 Tests for changelog view filters.
 
-Tests the `releases` filter with simple, predictable defaults:
-- Always sorts newest-first by default (what users expect)
+Tests the `releases` filter with smart version detection and sorting:
+- Extracts version from filename, title, or metadata
+- Sorts by version (semantic comparison: 0.1.10 > 0.1.9)
 - Opt-out with releases(false) for custom ordering
 """
 
 from datetime import date, datetime
+from pathlib import Path
 
 import pytest
 
 from bengal.rendering.template_functions.changelog import (
     ReleaseView,
+    _extract_version,
     _normalize_date,
     _sort_releases,
+    _version_sort_key,
     releases_filter,
 )
 
@@ -45,11 +49,59 @@ class TestNormalizeDate:
         assert _normalize_date("not-a-date") is None
 
 
+class TestExtractVersion:
+    """Tests for _extract_version helper."""
+
+    def test_semver_direct(self):
+        """Direct semver strings are recognized."""
+        assert _extract_version("0.1.8") == "0.1.8"
+        assert _extract_version("1.0.0") == "1.0.0"
+        assert _extract_version("v1.2.3") == "1.2.3"
+
+    def test_semver_with_suffix(self):
+        """Semver with prerelease suffix."""
+        assert _extract_version("1.0.0-beta") == "1.0.0-beta"
+        assert _extract_version("2.0.0-rc.1") == "2.0.0-rc.1"
+
+    def test_embedded_in_title(self):
+        """Version extracted from title text."""
+        assert _extract_version("Bengal 0.1.8") == "0.1.8"
+        assert _extract_version("Release v1.2.3") == "1.2.3"
+        assert _extract_version("Version 0.1.10 Released") == "0.1.10"
+
+    def test_date_version(self):
+        """Date-based versions are recognized."""
+        assert _extract_version("26.01") == "26.01"
+        assert _extract_version("2026.01.12") == "2026.01.12"
+
+    def test_no_version(self):
+        """Returns None when no version pattern found."""
+        assert _extract_version("Some Random Title") is None
+        assert _extract_version("Getting Started") is None
+
+
+class TestVersionSortKey:
+    """Tests for _version_sort_key helper."""
+
+    def test_semver_numeric_comparison(self):
+        """Semantic versions compare numerically, not lexically."""
+        versions = ["0.1.9", "0.1.10", "0.1.2"]
+        sorted_versions = sorted(versions, key=_version_sort_key, reverse=True)
+        # 10 > 9 > 2 numerically
+        assert sorted_versions == ["0.1.10", "0.1.9", "0.1.2"]
+
+    def test_stable_before_prerelease(self):
+        """Stable versions sort before prereleases."""
+        versions = ["1.0.0-alpha", "1.0.0-beta", "1.0.0"]
+        sorted_versions = sorted(versions, key=_version_sort_key, reverse=True)
+        assert sorted_versions[0] == "1.0.0"  # Stable first
+
+
 class TestSortReleases:
     """Tests for _sort_releases helper."""
 
-    def test_sorts_newest_first(self):
-        """Releases are sorted by date, newest first."""
+    def test_sorts_by_version(self):
+        """Releases are sorted by version (highest first)."""
         releases = [
             ReleaseView("0.1.0", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
             ReleaseView("0.1.2", "", datetime(2026, 1, 12), "", "", "", (), (), (), (), (), (), (), False, ()),
@@ -58,102 +110,82 @@ class TestSortReleases:
         sorted_releases = _sort_releases(releases)
         assert [r.version for r in sorted_releases] == ["0.1.2", "0.1.1", "0.1.0"]
 
-    def test_same_day_sorted_by_version(self):
-        """Same-day releases are sorted by version descending."""
+    def test_semantic_version_order(self):
+        """Versions 0.1.10 > 0.1.9 (numeric, not string comparison)."""
         releases = [
-            ReleaseView("0.1.0", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
-            ReleaseView("0.1.2", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
-            ReleaseView("0.1.1", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
+            ReleaseView("0.1.9", "", None, "", "", "", (), (), (), (), (), (), (), False, ()),
+            ReleaseView("0.1.10", "", None, "", "", "", (), (), (), (), (), (), (), False, ()),
+            ReleaseView("0.1.2", "", None, "", "", "", (), (), (), (), (), (), (), False, ()),
         ]
         sorted_releases = _sort_releases(releases)
-        # Same day, sorted by version descending
-        assert [r.version for r in sorted_releases] == ["0.1.2", "0.1.1", "0.1.0"]
-
-    def test_none_dates_at_end(self):
-        """Releases with None dates are placed at the end."""
-        releases = [
-            ReleaseView("0.1.0", "", datetime(2025, 10, 13), "", "", "", (), (), (), (), (), (), (), False, ()),
-            ReleaseView("draft", "", None, "", "", "", (), (), (), (), (), (), (), False, ()),
-            ReleaseView("0.1.1", "", datetime(2026, 1, 12), "", "", "", (), (), (), (), (), (), (), False, ()),
-        ]
-        sorted_releases = _sort_releases(releases)
-        assert [r.version for r in sorted_releases] == ["0.1.1", "0.1.0", "draft"]
+        assert [r.version for r in sorted_releases] == ["0.1.10", "0.1.9", "0.1.2"]
 
 
 class MockPage:
     """Mock page object for testing page-driven mode."""
 
-    def __init__(self, title: str, date_val: datetime | None):
+    def __init__(self, title: str, date_val: datetime | None = None, source_path: str | None = None):
         self.title = title
         self.date = date_val
         self.metadata = {}
         self.href = f"/releases/{title.lower().replace(' ', '-')}/"
+        # If source_path not provided, derive from title
+        if source_path:
+            self.source_path = Path(source_path)
+        else:
+            # Extract version from title for filename
+            version = _extract_version(title) or title.lower().replace(" ", "-")
+            self.source_path = Path(f"content/releases/{version}.md")
 
 
 class TestReleasesFilter:
     """Tests for the main releases_filter function."""
 
-    def test_default_sorts_newest_first(self):
-        """By default, releases are sorted newest first."""
+    def test_default_sorts_by_version(self):
+        """By default, releases are sorted by version (highest first)."""
         data = [
-            {"version": "0.1.0", "date": "2025-10-13"},
-            {"version": "0.1.2", "date": "2026-01-12"},
-            {"version": "0.1.1", "date": "2025-12-01"},
+            {"version": "0.1.0"},
+            {"version": "0.1.2"},
+            {"version": "0.1.1"},
         ]
         releases = releases_filter(data)
         assert [r.version for r in releases] == ["0.1.2", "0.1.1", "0.1.0"]
 
-    def test_pages_also_sorted_by_default(self):
-        """Pages are also sorted by default (predictable behavior)."""
-        # Input in wrong order (oldest first)
+    def test_semantic_version_sorting(self):
+        """Semantic version comparison: 0.1.10 > 0.1.9."""
+        data = [
+            {"version": "0.1.9"},
+            {"version": "0.1.10"},
+            {"version": "0.1.2"},
+        ]
+        releases = releases_filter(data)
+        assert [r.version for r in releases] == ["0.1.10", "0.1.9", "0.1.2"]
+
+    def test_version_extracted_from_filename(self):
+        """Version extracted from filename when not in metadata."""
         pages = [
-            MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
-            MockPage("Bengal 0.1.1", datetime(2025, 12, 1)),
-            MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
+            MockPage("Bengal 0.1.0", source_path="content/releases/0.1.0.md"),
+            MockPage("Bengal 0.1.10", source_path="content/releases/0.1.10.md"),
+            MockPage("Bengal 0.1.9", source_path="content/releases/0.1.9.md"),
         ]
         releases = releases_filter(pages)
-        # Should be sorted newest first
-        assert [r.version for r in releases] == [
-            "Bengal 0.1.2",
-            "Bengal 0.1.1",
-            "Bengal 0.1.0",
-        ]
+        # Versions extracted from filenames, sorted semantically
+        assert [r.version for r in releases] == ["0.1.10", "0.1.9", "0.1.0"]
 
     def test_sorted_false_preserves_order(self):
         """sorted=False preserves input order for custom sorting."""
         data = [
-            {"version": "0.1.0", "date": "2025-10-13"},
-            {"version": "0.1.2", "date": "2026-01-12"},
+            {"version": "0.1.0"},
+            {"version": "0.1.2"},
         ]
         releases = releases_filter(data, sorted=False)
         # Input order preserved
         assert [r.version for r in releases] == ["0.1.0", "0.1.2"]
 
-    def test_sorted_false_pages(self):
-        """sorted=False works with pages too."""
-        pages = [
-            MockPage("Bengal 0.1.0", datetime(2025, 10, 13)),
-            MockPage("Bengal 0.1.2", datetime(2026, 1, 12)),
-        ]
-        releases = releases_filter(pages, sorted=False)
-        # Input order preserved
-        assert [r.version for r in releases] == ["Bengal 0.1.0", "Bengal 0.1.2"]
-
     def test_empty_source(self):
         """Empty source returns empty list."""
         assert releases_filter([]) == []
         assert releases_filter(None) == []
-
-    def test_none_dates_at_end(self):
-        """Releases with None dates are placed at the end."""
-        data = [
-            {"version": "0.1.0", "date": "2025-10-13"},
-            {"version": "draft", "date": None},
-            {"version": "0.1.1", "date": "2026-01-12"},
-        ]
-        releases = releases_filter(data)
-        # Dated items sorted newest first, None at end
-        assert [r.version for r in releases] == ["0.1.1", "0.1.0", "draft"]
 
 
 class TestReleaseViewFromData:

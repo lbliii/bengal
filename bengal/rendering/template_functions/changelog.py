@@ -5,23 +5,27 @@ Provides normalized ReleaseView dataclass and `releases` filter to unify
 data-driven (changelog.yaml) and page-driven (individual markdown files)
 changelog modes.
 
-Design Principle:
-    **Simple, predictable defaults.** The `releases` filter always sorts
-    by date (newest first) by default. This "just works" for the 99% case
-    and matches what users expect from changelog pages.
+Smart Version Detection:
+    The filter intelligently extracts version from multiple sources:
     
-    For custom ordering, use `releases(false)` to preserve input order.
+    1. Explicit `version` field in frontmatter (highest priority)
+    2. Filename if versioned (e.g., `0.1.8.md` → "0.1.8")
+    3. Version pattern in title (e.g., "Bengal 0.1.8" → "0.1.8")
+    4. Full title as fallback
+    
+    Supports semver (0.1.8, 1.0.0-beta) and date versioning (26.01).
+
+Sorting:
+    Releases are sorted by **version** using semantic comparison, so
+    "0.1.10" correctly comes before "0.1.9". Same-version releases
+    fall back to date sorting.
+    
+    Use `releases(false)` to preserve input order for custom sorting.
 
 Example:
-    {# Standard usage - newest first, no thinking required #}
+    {# Standard - sorted by version, highest first #}
     {% for rel in pages | releases %}
       <h2>{{ rel.version }}</h2>
-      <span>{{ rel.date }}</span>
-    {% end %}
-    
-    {# Custom order - explicit opt-out #}
-    {% for rel in pages | releases(false) | sort_by('version') %}
-      ...
     {% end %}
 """
 
@@ -38,6 +42,80 @@ if TYPE_CHECKING:
     from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
+
+
+import re
+
+# Pattern for semantic version: 0.1.8, v1.2.3, 1.0.0-beta, etc.
+_SEMVER_PATTERN = re.compile(
+    r'^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[.-](.+))?$',
+    re.IGNORECASE
+)
+
+# Pattern for date-based version: 26.01, 2026.01, etc.
+_DATEVER_PATTERN = re.compile(
+    r'^(\d{2,4})[.-](\d{1,2})(?:[.-](\d{1,2}))?$'
+)
+
+
+def _extract_version(text: str) -> str | None:
+    """
+    Extract a version string from text (title, filename, etc.).
+    
+    Recognizes:
+    - Semver: "0.1.8", "v1.2.3", "1.0.0-beta"
+    - Date versions: "26.01", "2026.01.12"
+    - Prefixed: "Bengal 0.1.8" → "0.1.8"
+    
+    Returns None if no version pattern found.
+    """
+    # Try direct match first
+    if _SEMVER_PATTERN.match(text) or _DATEVER_PATTERN.match(text):
+        return text.lstrip('v').lstrip('V')
+    
+    # Look for version embedded in text (e.g., "Bengal 0.1.8")
+    # Search for semver-like pattern anywhere in the text
+    match = re.search(r'v?(\d+\.\d+(?:\.\d+)?(?:[.-][a-zA-Z0-9]+)?)', text)
+    if match:
+        return match.group(1)
+    
+    return None
+
+
+def _version_sort_key(version: str) -> tuple:
+    """
+    Parse version string into tuple for proper numeric sorting.
+    
+    Handles:
+    - Semantic versioning: "1.2.3", "0.1.10", "2.0.0-beta"
+    - Date versioning: "26.01", "2026.01.12"
+    
+    Examples:
+        "0.1.9"  → (0, 1, 9, True, "")     # Stable
+        "0.1.10" → (0, 1, 10, True, "")    # 10 > 9 numerically
+        "1.0.0-beta" → (1, 0, 0, False, "beta")  # Prerelease
+    """
+    # Try semver pattern
+    match = _SEMVER_PATTERN.match(version)
+    if match:
+        major = int(match.group(1)) if match.group(1) else 0
+        minor = int(match.group(2)) if match.group(2) else 0
+        patch = int(match.group(3)) if match.group(3) else 0
+        suffix = match.group(4) or ""
+        # Stable (no suffix) sorts before prerelease
+        is_stable = suffix == ""
+        return (major, minor, patch, is_stable, suffix)
+    
+    # Try date-based pattern (26.01 = year 26, month 01)
+    match = _DATEVER_PATTERN.match(version)
+    if match:
+        year = int(match.group(1))
+        month = int(match.group(2))
+        day = int(match.group(3)) if match.group(3) else 0
+        return (year, month, day, True, "")
+    
+    # Fallback: use string as-is (will sort lexically)
+    return (0, 0, 0, False, version)
 
 
 def _normalize_date(value: Any) -> datetime | None:
@@ -186,13 +264,11 @@ class ReleaseView:
         """
         Create a ReleaseView from a page-driven release.
 
-        Extracts release metadata from page frontmatter:
-            ---
-            title: "v1.2.0"
-            date: 2024-01-15
-            added:
-              - "Feature 1"
-            ---
+        Version extraction priority:
+            1. Explicit metadata.version field
+            2. Filename if it's a version (e.g., "0.1.8.md")
+            3. Version extracted from title (e.g., "Bengal 0.1.8" → "0.1.8")
+            4. Full title as fallback
 
         Args:
             page: Page object representing a release
@@ -233,8 +309,39 @@ class ReleaseView:
 
         has_structured = bool(change_types)
 
-        # Version: from title or metadata
-        version = metadata.get("version") or getattr(page, "title", None) or "Unknown"
+        # Version extraction with smart priority:
+        # 1. Explicit metadata.version (highest priority)
+        # 2. Filename if it looks like a version (e.g., "0.1.8.md")
+        # 3. Extract version from title (e.g., "Bengal 0.1.8" → "0.1.8")
+        # 4. Full title as fallback
+        version = None
+        title = getattr(page, "title", None) or "Unknown"
+        
+        # Priority 1: Explicit version in metadata
+        if metadata.get("version"):
+            version = metadata["version"]
+        
+        # Priority 2: Filename is a version (e.g., "0.1.8.md" → "0.1.8")
+        if not version:
+            source_path = getattr(page, "source_path", None)
+            if source_path:
+                # Get filename without extension
+                filename = source_path.stem if hasattr(source_path, "stem") else str(source_path).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+                # Check if filename IS a version (not _index, not a regular name)
+                if filename and filename not in ("_index", "index"):
+                    extracted = _extract_version(filename)
+                    if extracted:
+                        version = extracted
+        
+        # Priority 3: Extract version from title (e.g., "Bengal 0.1.8" → "0.1.8")
+        if not version:
+            extracted = _extract_version(title)
+            if extracted:
+                version = extracted
+        
+        # Priority 4: Full title as fallback
+        if not version:
+            version = title
 
         # Summary: from description, summary, or excerpt
         summary = (
@@ -280,53 +387,53 @@ def _to_tuple(value: Any) -> tuple[str, ...]:
 
 def _sort_releases(releases: list[ReleaseView]) -> list[ReleaseView]:
     """
-    Sort releases by date (newest first), then version (descending).
+    Sort releases by version (highest first) using semantic comparison.
     
-    Matches ChangelogStrategy's sorting logic so results are consistent
-    whether releases come from pages or YAML data.
+    Version is the primary sort key because version IS the release identity.
+    Date is secondary (for same-version edge cases).
     
-    None dates are placed at the end to keep dated releases prominent.
+    Uses proper numeric comparison so "0.1.10" > "0.1.9" > "0.1.2".
+    Stable versions sort before prereleases: "1.0.0" > "1.0.0-beta".
+    
+    Sort order:
+        1. By version (highest first, semantic comparison)
+        2. For same version: by date (newest first)
     """
-    # Partition into dated and undated
-    with_date = [r for r in releases if r.date is not None]
-    without_date = [r for r in releases if r.date is None]
-    
-    # Sort dated releases: by date desc, then version desc (matches ChangelogStrategy)
-    sorted_with_date = sorted(
-        with_date,
-        key=lambda r: (r.date, r.version),
+    return sorted(
+        releases,
+        key=lambda r: (
+            _version_sort_key(r.version),
+            r.date or datetime.min,  # Dated releases before undated
+        ),
         reverse=True,
     )
-    
-    # Undated releases go at the end, sorted by version desc
-    sorted_without_date = sorted(without_date, key=lambda r: r.version, reverse=True)
-    
-    return sorted_with_date + sorted_without_date
 
 
 def releases_filter(source: Any, sorted: bool = True) -> list[ReleaseView]:
     """
-    Convert releases to normalized ReleaseView objects, sorted newest-first.
+    Convert releases to normalized ReleaseView objects, sorted by version.
     
-    By default, releases are **always sorted** by date (newest first), then
-    by version for same-day releases. This provides predictable, ergonomic
-    behavior for both theme developers and content writers.
+    By default, releases are **sorted by version** (highest first) using
+    semantic comparison. This means "0.1.10" correctly comes before "0.1.9".
+    
+    Version is extracted intelligently:
+        1. Explicit `version` field in metadata
+        2. Filename if versioned (e.g., `0.1.8.md`)
+        3. Version pattern in title (e.g., "Bengal 0.1.8")
+        4. Full title as fallback
     
     Args:
         source: List of release dicts (from YAML) or Page objects (from section)
-        sorted: Sort by date newest-first (default: True). Set to False to
-                preserve input order for custom sorting.
+        sorted: Sort by version (default: True). Set to False to preserve
+                input order for custom sorting.
     
     Returns:
-        List of ReleaseView objects, sorted newest-first by default
+        List of ReleaseView objects, sorted by version (highest first)
     
-    Example (standard usage - newest first):
+    Example:
         {% for rel in pages | releases %}
-          {{ rel.version }} - {{ rel.date }}
+          {{ rel.version }}  {# 0.1.10, 0.1.9, 0.1.8, ... #}
         {% end %}
-    
-    Example (preserve input order for custom sorting):
-        {% let custom_order = pages | releases(false) | sort_by('version') %}
         
     """
     if not source:

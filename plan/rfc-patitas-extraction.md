@@ -1205,7 +1205,7 @@ md = create_markdown(plugins=["directives"])  # MyST syntax
 | Phase 2: Extract core | 2 hours | Phase 1 | ✅ Complete |
 | Phase 3: Create utilities | 1 hour | Phase 2 | ✅ Complete |
 | Phase 4: Abstract features (protocols) | 2 hours | Phase 3 | ✅ Complete |
-| Phase 5: Handle directives (tiered) | 4 hours | Phase 4 | ⏳ Stubbed |
+| Phase 5: Handle directives (tiered) | 4 hours | Phase 4 | ✅ Complete |
 | Phase 6: Extract tests | 1.5 hours | Phase 5 | ✅ Complete |
 | Phase 7: Update Bengal (adapter) | 3 hours | Phase 6 | ☐ Pending |
 | Phase 8: Validation (all tiers) | 2 hours | Phase 7 | ☐ Pending |
@@ -1260,20 +1260,27 @@ md = create_markdown(plugins=["directives"])  # MyST syntax
 - Created `renderers/html.py` — Full HtmlRenderer with heading IDs, TOC collection, footnotes
 - Created `__init__.py` — Exports `parse()`, `render()`, `Markdown`, all node types
 
-### ⏳ In Progress
+### ✅ Completed (continued)
 
-**Phase 5: Handle directives** — Stubs created, full extraction pending:
-- Directive registry framework exists
-- Stub files allow imports without errors
-- Full directive implementations need extraction with icon protocol integration
+**Phase 5: Handle directives** — Full directive framework extracted:
+- `directives/__init__.py` — Exports all directive components
+- `directives/protocol.py` — `DirectiveHandler`, `DirectiveParseOnly`, `DirectiveRenderOnly`
+- `directives/registry.py` — `DirectiveRegistry`, `DirectiveRegistryBuilder`, `create_default_registry()`
+- `directives/contracts.py` — `DirectiveContract`, `ContractViolation`, pre-defined contracts
+- `directives/builtins/admonition.py` — note, warning, tip, danger, error, info, example, success, caution, seealso
+- `directives/builtins/container.py` — Generic wrapper div
+- `directives/builtins/dropdown.py` — Collapsible content with icon/badge support
+- `directives/builtins/tabs.py` — Tab-set and tab-item with sync support
+- `parsing/blocks/directive.py` — Full implementation with contract validation
+- 13 directive tests added (65 total tests passing)
 
 ### 📊 Metrics
 
 ```
-Files extracted:  82 Python files in src/patitas/
-Tests passing:    52 tests
-Commits:          4 commits on main branch
-Package size:     ~500 KB (including CommonMark spec fixture)
+Files extracted:  90+ Python files in src/patitas/
+Tests passing:    65 tests
+Commits:          6 commits on main branch
+Package size:     ~600 KB (including CommonMark spec fixture)
 ```
 
 **Commits:**
@@ -1281,40 +1288,12 @@ Package size:     ~500 KB (including CommonMark spec fixture)
 2. `9efdc8f` — Extract core parser files from Bengal; add stubs (Phase 2)
 3. `f8234b2` — Add utilities, errors, icons/highlighting protocols, CommonMark spec (Phase 3-6)
 4. `1979f3d` — Add HtmlRenderer, high-level API, API tests (52 passing)
+5. `05d8bdd` — Add Phase 5 directive framework; admonition, dropdown, tabs, container builtins (65 tests)
+6. `d7108bf` — Replace directive.py stub with full DirectiveParsingMixin implementation
 
 ---
 
 ## Next Phases
-
-### Phase 5 (Remaining): Extract Portable Directives
-
-**Goal**: Complete the `patitas[directives]` tier with portable directives.
-
-**Tasks**:
-1. [ ] Extract directive framework:
-   - `directives/__init__.py` — DirectiveRegistry, register_directive
-   - `directives/protocol.py` — DirectiveProtocol
-   - `directives/registry.py` — Runtime registry
-   - `directives/contracts.py` — Contract validation
-   - `directives/decorator.py` — @directive decorator
-
-2. [ ] Extract portable builtins:
-   - `directives/builtins/admonition.py` — note, warning, tip, caution, important
-   - `directives/builtins/container.py` — Generic wrapper
-   - `directives/builtins/dropdown.py` — Collapsible content
-   - `directives/builtins/tabs.py` — Tabbed content
-   - `directives/builtins/misc.py` — Small utilities
-
-3. [ ] Wire icon protocol:
-   - Replace `from bengal.directives._icons import` with `from patitas.icons import`
-   - Add graceful degradation when icons not available
-   - Document icon injection pattern
-
-4. [ ] Update `parsing/blocks/directive.py`:
-   - Remove stub, add real implementation
-   - Update imports to use `patitas.directives`
-
-**Effort**: ~3 hours
 
 ### Phase 7: Update Bengal to Use External Patitas
 
