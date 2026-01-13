@@ -71,6 +71,15 @@ bengal build --fast
 
 # Memory-optimized for large sites (5K+ pages)
 bengal build --memory-optimized
+
+# Preview build without writing files (see what WOULD happen)
+bengal build --dry-run
+
+# Show detailed breakdown of why pages are rebuilt/skipped
+bengal build --explain
+
+# Machine-readable explain output (for tooling)
+bengal build --explain --explain-json
 ```
 
 **Development Commands** {#serve-commands}:

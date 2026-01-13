@@ -24,6 +24,12 @@ bengal build --verbose
 
 # Full debug mode
 bengal build --dev
+
+# Explain incremental build decisions (why pages rebuilt/skipped)
+bengal build --explain
+
+# Preview build without writing files
+bengal build --dry-run
 ```
 
 ## Common Issues
@@ -85,6 +91,28 @@ bengal build --no-incremental
 
 ### Incremental build not detecting changes
 
-1. Check file timestamps
-2. Run `bengal clean --cache` to reset
-3. Verify `.bengal/` directory exists
+1. Run `bengal build --explain` to see why pages are rebuilt or skipped
+2. Check file timestamps
+3. Run `bengal clean --cache` to reset
+4. Verify `.bengal/` directory exists
+
+### Too many pages rebuilding
+
+Use `--explain` to diagnose why pages are being rebuilt:
+
+```bash
+bengal build --explain
+```
+
+Output shows rebuild reasons per page:
+- **content_changed** — Page content was modified
+- **template_changed** — Template file was updated
+- **asset_fingerprint_changed** — CSS/JS assets changed
+- **cascade_dependency** — Parent section changed
+- **nav_changed** — Navigation structure updated
+
+For machine-readable output (CI/tooling):
+
+```bash
+bengal build --explain --explain-json
+```

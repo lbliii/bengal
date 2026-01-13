@@ -30,6 +30,9 @@ bengal build --dashboard               # Interactive TUI dashboard
 bengal build --strict                  # Fail on template errors (CI/CD)
 bengal build --validate                # Validate templates before build
 bengal build --memory-optimized        # Streaming build (5K+ pages)
+bengal build --dry-run                 # Preview build without writing files
+bengal build --explain                 # Show why pages rebuilt/skipped
+bengal build --explain --explain-json  # Machine-readable explain output
 PYTHON_GIL=0 bengal build --fast       # Free-threaded mode (Python 3.13+)
 
 # Development server
@@ -358,6 +361,8 @@ weight = 2
 |------|---------|
 | Build site | `bengal build` |
 | Fast build | `bengal build --fast` |
+| Preview build | `bengal build --dry-run` |
+| Debug incremental | `bengal build --explain` |
 | Dev server | `bengal serve` |
 | New page | `bengal new page <name>` |
 | Validate | `bengal validate` |
