@@ -45,14 +45,13 @@ class TestParserPool:
             ast = parser.parse()
             assert len(ast) == 1
 
-    def test_acquire_creates_new_parser(self):
-        """Pool creates new parser each time (pooling disabled for external patitas).
+    def test_acquire_reuses_parser(self):
+        """Pool reuses parser instances via _reinit().
         
-        Note: Parser pooling is disabled when using external patitas package
-        because external Parser doesn't support _reinit(). Each acquire
-        creates a new Parser instance.
+        Parser pooling is enabled with patitas>=0.1.1 which provides
+        the Parser._reinit() method for instance reuse.
         
-        See: RFC rfc-patitas-external-migration.md, section "Parser Pooling Disabled"
+        See: RFC rfc-patitas-external-migration.md
         """
         ParserPool.clear()
         
@@ -61,13 +60,13 @@ class TestParserPool:
             id1 = id(parser1)
             _ = parser1.parse()
         
-        # Second acquire - creates another new parser (pooling disabled)
+        # Second acquire - should reuse the parser from pool
         with ParserPool.acquire("## World") as parser2:
             id2 = id(parser2)
             ast = parser2.parse()
         
-        # Different instances - pooling disabled for external patitas
-        assert id1 != id2
+        # Same instance - pooling reuses via _reinit()
+        assert id1 == id2
         assert len(ast) == 1
 
     def test_pool_respects_max_size(self):
@@ -507,17 +506,29 @@ print("test")
 class TestPoolPerformance:
     """Performance-related tests for pooling."""
 
-    def test_renderer_pool_reuses_instances(self):
-        """Verify RendererPool correctly reuses instances.
+    def test_pool_reuses_instances(self):
+        """Verify both ParserPool and RendererPool correctly reuse instances.
         
-        Note: ParserPool is disabled for external patitas (no _reinit() support).
-        RendererPool still works because HtmlRenderer._reset() is Bengal-controlled.
-        
-        See: RFC rfc-patitas-external-migration.md, section "Parser Pooling Disabled"
+        Both pools are enabled with patitas>=0.1.1:
+        - ParserPool uses Parser._reinit() for reuse
+        - RendererPool uses HtmlRenderer._reset() for reuse
         """
+        ParserPool.clear()
         RendererPool.clear()
         
         source = "# Test content"
+        
+        # Test parser pool
+        with ParserPool.acquire(source) as parser:
+            pid1 = id(parser)
+            parser.parse()
+        
+        assert ParserPool.size() == 1
+        
+        with ParserPool.acquire(source) as parser:
+            pid2 = id(parser)
+        
+        assert pid1 == pid2, "ParserPool should reuse instances"
         
         # Test renderer pool
         with RendererPool.acquire(source) as renderer:
@@ -528,4 +539,4 @@ class TestPoolPerformance:
         with RendererPool.acquire(source) as renderer:
             rid2 = id(renderer)
         
-        assert rid1 == rid2
+        assert rid1 == rid2, "RendererPool should reuse instances"
