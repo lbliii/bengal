@@ -93,12 +93,12 @@ def get_layer(module: str) -> tuple[int, str]:
     return 0, "unknown"
 
 
-def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int]]:
+def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int, bool]]:
     """
     Extract import statements from a Python file.
 
     Yields:
-        Tuples of (importing_module, imported_module, line_number)
+        Tuples of (importing_module, imported_module, line_number, is_type_checking)
     """
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -114,14 +114,27 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int]]:
     else:
         return
 
+    # First, collect line numbers that are inside TYPE_CHECKING blocks
+    type_checking_lines: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If):
+            test = node.test
+            if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
+                # Mark all lines in this block as TYPE_CHECKING
+                for child in ast.walk(node):
+                    if hasattr(child, "lineno"):
+                        type_checking_lines.add(child.lineno)
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name.startswith("bengal."):
-                    yield (module_name, alias.name, node.lineno)
+                    is_tc = node.lineno in type_checking_lines
+                    yield (module_name, alias.name, node.lineno, is_tc)
         elif isinstance(node, ast.ImportFrom):
             if node.module and node.module.startswith("bengal."):
-                yield (module_name, node.module, node.lineno)
+                is_tc = node.lineno in type_checking_lines
+                yield (module_name, node.module, node.lineno, is_tc)
 
 
 def is_allowed_violation(importer: str, imported: str) -> bool:
@@ -186,13 +199,18 @@ def main() -> int:
     args = parser.parse_args()
 
     violations: list[tuple[str, str, int, str]] = []
+    type_checking_skipped = 0
 
     root = Path(args.path)
     for py_file in root.rglob("*.py"):
         if "__pycache__" in py_file.parts:
             continue
 
-        for importer, imported, line in extract_imports(py_file):
+        for importer, imported, line, is_type_checking in extract_imports(py_file):
+            # Skip TYPE_CHECKING imports - they don't create runtime violations
+            if is_type_checking:
+                type_checking_skipped += 1
+                continue
             is_violation, desc = check_violation(importer, imported)
             if is_violation:
                 violations.append((importer, imported, line, desc))

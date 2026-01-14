@@ -424,6 +424,8 @@ DEFAULTS: dict[str, Any] = {
         "allowed_hosts": [],  # Empty = same-origin only (default)
         "allowed_schemes": ["https"],  # Reject non-HTTPS by default
         "host_failure_threshold": 3,  # Disable host after N consecutive failures
+        # Dead link detection
+        "show_dead_links": True,  # Show indicator when page JSON returns 404
     },
     # -------------------------------------------------------------------------
     # Document Application (RFC: Document Applications)

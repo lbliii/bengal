@@ -27,7 +27,8 @@
     "excludeSelectors": {{ (_lp.exclude_selectors ?? []) | tojson }},
     "allowedHosts": {{ (_lp.allowed_hosts ?? []) | tojson }},
     "allowedSchemes": {{ (_lp.allowed_schemes ?? ['https']) | tojson }},
-    "hostFailureThreshold": {{ _lp.host_failure_threshold ?? 3 }}
+    "hostFailureThreshold": {{ _lp.host_failure_threshold ?? 3 }},
+    "showDeadLinks": {{ (_lp.show_dead_links ?? true) | lower }}
   }
 }
 </script>

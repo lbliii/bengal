@@ -149,3 +149,50 @@
     outline: none;
   }
 }
+
+/* ============================================================
+   Dead Link Indicator
+   Shows when a link's page data cannot be fetched (404, etc.)
+   ============================================================ */
+
+.link-preview--dead {
+  border-color: var(--color-warning, #f59e0b);
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 5%, var(--color-bg-elevated));
+}
+
+.link-preview__dead-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-3);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 15%, transparent);
+  color: var(--color-warning, #f59e0b);
+}
+
+.link-preview__title--dead {
+  text-align: center;
+  color: var(--color-warning, #f59e0b);
+}
+
+.link-preview__excerpt--dead {
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.link-preview__dead-path {
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-small);
+  text-align: center;
+}
+
+.link-preview__dead-path code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  word-break: break-all;
+}

@@ -84,6 +84,8 @@
     allowedHosts: userConfig.allowedHosts ?? [],
     allowedSchemes: userConfig.allowedSchemes ?? ['https'],
     hostFailureThreshold: userConfig.hostFailureThreshold ?? 3,
+    // Dead link detection (shows indicator when page JSON returns 404)
+    showDeadLinks: userConfig.showDeadLinks ?? true,
   };
 
   // ============================================================
@@ -355,6 +357,13 @@
         console.warn('[LinkPreviews] Fetch failed:', cacheKey, error.message);
       }
 
+      // Return a dead link indicator instead of null (if enabled)
+      if (CONFIG.showDeadLinks && !isCross) {
+        const deadLinkData = { _dead: true, _url: cacheKey, _error: error.message };
+        cacheSet(cacheKey, deadLinkData);
+        return deadLinkData;
+      }
+
       cacheSet(cacheKey, null);
       return null;
     }
@@ -378,6 +387,11 @@
   function createPreviewCard(data, link) {
     if (!data) return null;
     if (activePreview && activeLink === link) return activePreview;
+
+    // Handle dead links
+    if (data._dead) {
+      return createDeadLinkCard(data, link);
+    }
 
     const preview = document.createElement('div');
     preview.className = 'link-preview';
@@ -423,6 +437,47 @@
       ).join('');
       html += `<div class="link-preview__tags">${tagsHtml}</div>`;
     }
+
+    preview.innerHTML = html;
+    document.body.appendChild(preview);
+    positionPreview(link, preview);
+
+    preview.addEventListener('pointerenter', cancelHide);
+    preview.addEventListener('pointerleave', scheduleHide);
+
+    return preview;
+  }
+
+  /**
+   * Create a dead link indicator card
+   * Shows when a link's JSON file returns 404 or other errors
+   */
+  function createDeadLinkCard(data, link) {
+    const preview = document.createElement('div');
+    preview.className = 'link-preview link-preview--dead';
+    preview.id = generateId();
+    preview.setAttribute('role', 'tooltip');
+    link.setAttribute('aria-describedby', preview.id);
+
+    // Extract readable path from URL
+    const linkPath = link.pathname || data._url || 'Unknown';
+
+    let html = `
+      <div class="link-preview__dead-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h4 class="link-preview__title link-preview__title--dead">Page Not Found</h4>
+      <p class="link-preview__excerpt link-preview__excerpt--dead">
+        This link may be broken or the page may have moved.
+      </p>
+      <div class="link-preview__dead-path">
+        <code>${escapeHtml(linkPath)}</code>
+      </div>
+    `;
 
     preview.innerHTML = html;
     document.body.appendChild(preview);

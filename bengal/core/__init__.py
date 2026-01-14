@@ -53,6 +53,7 @@ Example:
 from __future__ import annotations
 
 from bengal.core.asset import Asset
+from bengal.core.build_state import BuildState
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeCache, NavTreeContext
 from bengal.core.page import Page
@@ -70,6 +71,7 @@ from bengal.core.version import (
 __all__ = [
     # Primary models
     "Asset",
+    "BuildState",
     "Page",
     "Section",
     "Site",

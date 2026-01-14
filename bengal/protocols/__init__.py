@@ -71,6 +71,9 @@ from bengal.protocols.rendering import (
     TemplateRenderer,
     TemplateValidator,
 )
+from bengal.protocols.analysis import (
+    KnowledgeGraphProtocol,
+)
 
 __all__ = [
     # Build
@@ -108,4 +111,6 @@ __all__ = [
     "OutputCollector",
     "ContentSourceProtocol",
     "OutputTarget",
+    # Analysis
+    "KnowledgeGraphProtocol",
 ]
