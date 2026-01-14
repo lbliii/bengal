@@ -239,6 +239,11 @@ class BuildTrigger:
             cli.file_change_notice(file_name=file_name, timestamp=timestamp)
             show_building_indicator("Rebuilding")
 
+            # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
+            # This enables accurate change detection vs regeneration noise
+            if controller._use_content_hashes:
+                controller.capture_content_hash_baseline(self.site.output_dir)
+
             # Run pre-build hooks
             config = getattr(self.site, "config", {}) or {}
             # run_pre_build_hooks expects a dict, use .raw for serialization
@@ -887,6 +892,37 @@ class BuildTrigger:
         if decision is None:
             decision = ReloadDecision(action="none", reason="no-source-change", changed_paths=[])
             decision_source = "suppressed"
+
+        # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
+        # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
+        if (
+            decision.action == "reload"
+            and controller._use_content_hashes
+            and hasattr(controller, "_baseline_content_hashes")
+            and controller._baseline_content_hashes
+        ):
+            enhanced = controller.decide_with_content_hashes(self.site.output_dir)
+            if enhanced.meaningful_change_count == 0:
+                # All changes are aggregate-only (sitemap, feeds, search index)
+                decision = ReloadDecision(
+                    action="none",
+                    reason="aggregate-only",
+                    changed_paths=[],
+                )
+                decision_source = "content-hash-filtered"
+                logger.info(
+                    "reload_filtered_aggregate_only",
+                    total_changes=len(enhanced.aggregate_changes),
+                )
+            else:
+                # Update with accurate change count
+                decision_source = f"{decision_source}+content-hash"
+                logger.debug(
+                    "content_hash_breakdown",
+                    content_changes=len(enhanced.content_changes),
+                    aggregate_changes=len(enhanced.aggregate_changes),
+                    asset_changes=len(enhanced.asset_changes),
+                )
 
         # Log decision source for observability
         logger.debug(

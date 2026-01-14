@@ -397,10 +397,13 @@ class DevServer:
             incremental=True,
         )
 
-        # Capture baseline before build for comparison
+        # RFC: Output Cache Architecture - Capture content hash baseline before build
         from bengal.server.reload_controller import controller
 
-        controller.decide_and_update(self.site.output_dir)  # Set baseline
+        if controller._use_content_hashes:
+            controller.capture_content_hash_baseline(self.site.output_dir)
+        else:
+            controller.decide_and_update(self.site.output_dir)  # Set baseline (legacy)
 
         stats = self.site.build(build_opts)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -421,20 +424,26 @@ class DevServer:
         # Initialize reload controller with post-build state
         self._init_reload_controller()
 
-        # Check if anything changed and trigger hot reload
-        decision = controller.decide_and_update(self.site.output_dir)
+        # RFC: Output Cache Architecture - Use content-hash detection for accurate change counts
+        if controller._use_content_hashes:
+            decision = controller.decide_with_content_hashes(self.site.output_dir)
+            # Report actual content changes, not regeneration noise
+            actual_changes = decision.meaningful_change_count
+        else:
+            decision = controller.decide_and_update(self.site.output_dir)
+            actual_changes = len(decision.changed_paths)
 
         if decision.action != "none":
             logger.info(
                 "validation_found_stale_content",
                 action=decision.action,
                 reason=decision.reason,
-                changed_count=len(decision.changed_paths),
+                changed_count=actual_changes,
             )
             # Trigger hot reload
             send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
             icons = get_icon_set(should_use_emoji())
-            print(f"\n  {icons.success} Cache validated - {len(decision.changed_paths)} files updated, browser reloading...")
+            print(f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading...")
         else:
             icons = get_icon_set(should_use_emoji())
             print(f"\n  {icons.success} Cache validated - content is fresh")

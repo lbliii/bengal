@@ -739,4 +739,5 @@ class ReloadController:
 
 
 # Global controller for dev server
-controller = ReloadController()
+# RFC: Output Cache Architecture - Enable content-hash mode by default for accurate change detection
+controller = ReloadController(use_content_hashes=True)
