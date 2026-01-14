@@ -118,6 +118,31 @@ def phase_taxonomies(
                 pages_to_build, cache
             )
 
+            # RFC: rfc-incremental-build-dependency-gaps - Phase 2
+            # METADATA CASCADE: When a page's metadata (title, date, summary) changes,
+            # taxonomy pages that list it must be rebuilt even if tags didn't change.
+            # Add tags from modified pages to ensure their taxonomy pages are regenerated.
+            for page in pages_to_build:
+                if page.metadata.get("_generated"):
+                    continue
+                if page.tags:
+                    for tag in page.tags:
+                        if tag is not None:
+                            tag_slug = str(tag).lower().replace(" ", "-")
+                            if tag_slug not in affected_tags:
+                                affected_tags.add(tag_slug)
+                                orchestrator.logger.debug(
+                                    "metadata_cascade_tag_added",
+                                    tag=tag_slug,
+                                    page=str(page.source_path.name),
+                                )
+
+            # Generate tag pages for cascaded tags that weren't already generated
+            if affected_tags:
+                orchestrator.taxonomy.generate_dynamic_pages_for_tags_with_cache(
+                    affected_tags, taxonomy_index=None
+                )
+
             # Store affected tags for later use (related posts, etc.)
             orchestrator.site._affected_tags = affected_tags
 
@@ -384,6 +409,7 @@ def phase_query_indexes(
 
 def phase_update_pages_list(
     orchestrator: BuildOrchestrator,
+    cache: Any,
     incremental: bool,
     pages_to_build: list[Any],
     affected_tags: set[str],
@@ -393,8 +419,12 @@ def phase_update_pages_list(
     
     Updates the pages_to_build list to include newly generated taxonomy pages.
     
+    Handles metadata cascade: when a page's title/date/summary changes, taxonomy
+    pages that list it must be rebuilt to show updated content.
+    
     Args:
         orchestrator: Build orchestrator instance
+        cache: BuildCache instance for cache invalidation
         incremental: Whether this is an incremental build
         pages_to_build: Current list of pages to build
         affected_tags: Set of affected tag slugs
@@ -404,6 +434,7 @@ def phase_update_pages_list(
     
     Side effects:
         - Invalidates page caches
+        - Invalidates rendered output cache for cascaded taxonomy pages
         
     """
     # Convert to set for O(1) membership and automatic deduplication
@@ -412,6 +443,32 @@ def phase_update_pages_list(
     # Ensure cache is fresh before accessing generated_pages
     # (Tag pages were just added in Phase 4, so cache might be stale)
     orchestrator.site.invalidate_page_caches()
+
+    # METADATA CASCADE: For incremental builds, cascade metadata changes to taxonomy pages
+    # RFC: rfc-incremental-build-dependency-gaps Phase 2
+    # When a page's metadata (title, date, summary) changes, taxonomy listing pages
+    # that include that page must be rebuilt to reflect the updated metadata.
+    if incremental and pages_to_build:
+        cascaded_tags: set[str] = set()
+        for page in pages_to_build:
+            # Skip generated pages (taxonomy pages themselves)
+            if page.metadata.get("_generated"):
+                continue
+            # If page has tags, cascade to those tag pages
+            if page.tags:
+                for tag in page.tags:
+                    if tag is not None:
+                        tag_slug = str(tag).lower().replace(" ", "-")
+                        cascaded_tags.add(tag_slug)
+        
+        # Merge cascaded tags with affected_tags
+        if cascaded_tags:
+            affected_tags = affected_tags | cascaded_tags
+            orchestrator.logger.debug(
+                "metadata_cascade_tags",
+                cascaded_tags=len(cascaded_tags),
+                total_affected_tags=len(affected_tags),
+            )
 
     # Add newly generated tag pages to rebuild set
     # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
@@ -428,6 +485,10 @@ def phase_update_pages_list(
 
             if should_include:
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
+                # CRITICAL: Invalidate rendered output cache for taxonomy pages
+                # This ensures fresh rendering with updated member metadata
+                if cache and hasattr(cache, 'invalidate_rendered_output'):
+                    cache.invalidate_rendered_output(page.source_path)
 
     # Freeze content registry before rendering
     # This enables thread-safe reads during parallel rendering

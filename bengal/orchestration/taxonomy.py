@@ -206,14 +206,18 @@ class TaxonomyOrchestrator:
             affected_tags.update(page_affected)
 
         # STEP 2: Rebuild taxonomy structure from current Page objects
-        # OPTIMIZATION: Only rebuild if tags were actually affected
-        # This saves ~100ms when page changes don't affect any tags
-        if affected_tags or not changed_pages:
-            # Rebuild only if: (1) tags changed OR (2) no pages changed (dev server case)
+        # RFC: rfc-incremental-build-dependency-gaps - Phase 2 fix
+        # ALWAYS rebuild when pages are changing, not just when tags change.
+        # This ensures taxonomy listing pages use current Page objects with
+        # up-to-date metadata (title, date, summary) even if tags didn't change.
+        # The rebuild is O(tags * pages_per_tag) but typically fast (<50ms).
+        pages_with_tags = [p for p in changed_pages if p.tags and not p.metadata.get("_generated")]
+        if affected_tags or not changed_pages or pages_with_tags:
+            # Rebuild if: (1) tags changed OR (2) no pages changed OR (3) pages with tags changed
             self._rebuild_taxonomy_structure_from_cache(cache)
         else:
-            # No tags affected - skip expensive O(n) rebuild
-            logger.info("taxonomy_rebuild_skipped", reason="no_tags_affected")
+            # Only skip if pages changed but none of them have tags
+            logger.info("taxonomy_rebuild_skipped", reason="no_tagged_pages_affected")
 
         # STEP 3: Load TaxonomyIndex for Phase 2c.2 optimization (skip unchanged tags)
         taxonomy_index = None

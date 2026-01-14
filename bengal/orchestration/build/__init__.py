@@ -436,7 +436,7 @@ class BuildOrchestrator:
 
         # Phase 12: Update Pages List (add generated taxonomy pages)
         pages_to_build = content.phase_update_pages_list(
-            self, incremental, pages_to_build, affected_tags
+            self, cache, incremental, pages_to_build, affected_tags
         )
 
         # Phase 12.5: URL Collision Detection (proactive validation)
@@ -696,10 +696,10 @@ class BuildOrchestrator:
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
 
     def _phase_update_pages_list(
-        self, incremental: bool, pages_to_build: list[Page], affected_tags: set[str]
+        self, cache: BuildCache, incremental: bool, pages_to_build: list[Page], affected_tags: set[str]
     ) -> list[Page]:
         """Phase 12: Update Pages List."""
-        return content.phase_update_pages_list(self, incremental, pages_to_build, affected_tags)
+        return content.phase_update_pages_list(self, cache, incremental, pages_to_build, affected_tags)
 
     def _phase_assets(
         self,
