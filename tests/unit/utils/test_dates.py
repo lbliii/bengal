@@ -86,10 +86,8 @@ class TestParseDate:
         assert result is None
 
     def test_invalid_string_raise(self):
-        """Test invalid string raises BengalError when on_error='raise'."""
-        from bengal.errors import BengalError
-
-        with pytest.raises(BengalError, match="Could not parse date"):
+        """Test invalid string raises ValueError when on_error='raise'."""
+        with pytest.raises(ValueError, match="Could not parse date"):
             parse_date("not a date", on_error="raise")
 
     def test_invalid_string_return_original(self):

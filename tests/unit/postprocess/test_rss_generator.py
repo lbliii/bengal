@@ -145,7 +145,7 @@ class TestRSSGeneratorWithPages:
             site.description = ""
         return site
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_generates_rss_with_pages(self, mock_atomic: MagicMock, tmp_path: Path) -> None:
         """Test RSS generation with pages that have dates."""
         from bengal.postprocess.rss import RSSGenerator

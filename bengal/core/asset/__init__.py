@@ -36,7 +36,7 @@ Processing Pipeline:
 Related Packages:
 bengal.orchestration.asset: Asset discovery and build orchestration
 bengal.utils.css_minifier: CSS minification implementation
-bengal.utils.atomic_write: Atomic file writing utilities
+bengal.utils.io.atomic_write: Atomic file writing utilities
 
 Package Structure:
 asset_core.py: Asset dataclass with processing methods

@@ -9,7 +9,7 @@ description = "A high-performance static site generator with modular architectur
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
-authors = [{ name = "Bengal Contributors", email = "lbeeze@icloud.com" }]
+authors = [{ name = "Bengal Contributors", email = "lbeezr@icloud.com" }]
 keywords = [
     "static-site-generator",
     "ssg",

@@ -146,7 +146,7 @@ Bengal uses several established patterns across the codebase. Follow these when 
 Always use atomic writes for file operations to prevent data corruption on crashes:
 
 ```python
-from bengal.utils.atomic_write import atomic_write_text, atomic_write_bytes
+from bengal.utils.io.atomic_write import atomic_write_text, atomic_write_bytes
 
 # Text files
 atomic_write_text(path, content)

@@ -27,7 +27,7 @@ Related Modules:
 - bengal.rendering.pipeline.core: Main pipeline orchestration
 - bengal.rendering.pipeline.thread_local: Directory creation tracking
 - bengal.utils.url_strategy: URL and path computation
-- bengal.utils.atomic_write: Atomic file operations
+- bengal.utils.io.atomic_write: Atomic file operations
 - bengal.postprocess.html_output: HTML formatting implementation
 
 """

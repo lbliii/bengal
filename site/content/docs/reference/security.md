@@ -512,7 +512,7 @@ Found a security vulnerability in Bengal?
 
 **Do NOT open a public GitHub issue.**
 
-Email security concerns to: [security@bengal.dev](mailto:security@bengal.dev)
+Email security concerns to: [lbeezr@icloud.com](mailto:lbeezr@icloud.com)
 
 We'll respond within 48 hours and work with you on a fix before public disclosure.
 

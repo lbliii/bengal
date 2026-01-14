@@ -97,7 +97,7 @@ class TestSitemapGeneratorWithPages:
         site.output_dir = output_dir or Path("/tmp/output")
         return site
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_generates_sitemap_with_pages(self, mock_atomic: MagicMock, tmp_path: Path) -> None:
         """Test sitemap generation with valid pages."""
         from bengal.postprocess.sitemap import SitemapGenerator
@@ -547,7 +547,7 @@ class TestSitemapGeneratorHreflangRegression:
         page.date = None
         return page
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_hreflang_output_matches_expected(self, mock_atomic: MagicMock, tmp_path: Path) -> None:
         """Test hreflang links are correct for translated pages."""
         from bengal.postprocess.sitemap import SitemapGenerator
@@ -586,7 +586,7 @@ class TestSitemapGeneratorHreflangRegression:
         # Verify AtomicFile was called (sitemap was generated)
         assert mock_atomic.called
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_hreflang_includes_x_default(self, mock_atomic: MagicMock, tmp_path: Path) -> None:
         """Test x-default is added correctly for default language."""
         from bengal.postprocess.sitemap import SitemapGenerator
@@ -647,7 +647,7 @@ class TestSitemapGeneratorHreflangEdgeCases:
         page.date = None
         return page
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_skips_translation_without_output_path(
         self, mock_atomic: MagicMock, tmp_path: Path
     ) -> None:
@@ -687,7 +687,7 @@ class TestSitemapGeneratorHreflangEdgeCases:
         generator.generate()
         assert mock_atomic.called
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_lang_fallback_to_default(
         self, mock_atomic: MagicMock, tmp_path: Path
     ) -> None:
@@ -721,7 +721,7 @@ class TestSitemapGeneratorHreflangEdgeCases:
         generator.generate()
         assert mock_atomic.called
 
-    @patch("bengal.utils.atomic_write.AtomicFile")
+    @patch("bengal.utils.io.atomic_write.AtomicFile")
     def test_multiple_translation_groups_in_sitemap(
         self, mock_atomic: MagicMock, tmp_path: Path
     ) -> None:
