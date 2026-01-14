@@ -207,6 +207,69 @@ class TestPhaseTaxonomies:
 
         orchestrator.site.invalidate_regular_pages_cache.assert_called_once()
 
+    def test_metadata_cascade_does_not_duplicate_already_generated_tags(self, tmp_path):
+        """Metadata cascade only regenerates NEW tags, not ones already handled.
+
+        Regression test for bug where tags from pages_to_build that were already
+        returned by collect_and_generate_incremental were being regenerated twice,
+        causing URL collisions.
+        """
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        cache = MagicMock()
+
+        # Page with tags that overlap with already-generated tags
+        mock_page = MagicMock()
+        mock_page.metadata = {}  # Not generated
+        mock_page.tags = ["python", "new-tag"]  # "python" will be already generated
+        mock_page.source_path = MagicMock()
+        mock_page.source_path.name = "test.md"
+
+        # collect_and_generate_incremental already handled "python"
+        orchestrator.taxonomy.collect_and_generate_incremental.return_value = {"python"}
+
+        phase_taxonomies(
+            orchestrator, cache, incremental=True, parallel=True, pages_to_build=[mock_page]
+        )
+
+        # Should only call generate_dynamic_pages_for_tags_with_cache with NEW tags
+        # (not "python" which was already generated)
+        calls = orchestrator.taxonomy.generate_dynamic_pages_for_tags_with_cache.call_args_list
+        if calls:
+            # If called, should only have the cascaded tag, not already-handled ones
+            for call in calls:
+                cascaded_tags = call[0][0]  # First positional arg
+                assert "python" not in cascaded_tags, (
+                    "Should not regenerate 'python' - already handled by collect_and_generate_incremental"
+                )
+                assert "new-tag" in cascaded_tags, "Should include new cascaded tag"
+
+    def test_metadata_cascade_no_call_when_all_tags_already_generated(self, tmp_path):
+        """No regeneration call when all page tags were already handled.
+
+        If a page has tags that were ALL already returned by collect_and_generate_incremental,
+        generate_dynamic_pages_for_tags_with_cache should not be called again.
+        """
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        cache = MagicMock()
+
+        # Page with tags that are ALL already generated
+        mock_page = MagicMock()
+        mock_page.metadata = {}
+        mock_page.tags = ["python", "rust"]  # Both already generated
+        mock_page.source_path = MagicMock()
+        mock_page.source_path.name = "test.md"
+
+        # collect_and_generate_incremental already handled both tags
+        orchestrator.taxonomy.collect_and_generate_incremental.return_value = {"python", "rust"}
+
+        phase_taxonomies(
+            orchestrator, cache, incremental=True, parallel=True, pages_to_build=[mock_page]
+        )
+
+        # Should NOT call generate_dynamic_pages_for_tags_with_cache
+        # since there are no NEW cascaded tags
+        orchestrator.taxonomy.generate_dynamic_pages_for_tags_with_cache.assert_not_called()
+
 
 class TestPhaseTaxonomyIndex:
     """Tests for phase_taxonomy_index function."""
