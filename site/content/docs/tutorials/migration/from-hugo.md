@@ -479,7 +479,7 @@ bengal serve
 | Go templates | [[ext:kida:|Kida]] templates | Similar concepts, different syntax |
 | Hugo Modules | Local themes | Copy theme files or use Git submodules |
 | `.GetPage` function | Template functions | Different API, similar functionality |
-| Image processing | External tools | Use ImageMagick, Sharp, or pre-process images |
+| Image processing | `fill`, `fit`, `resize` | Similar API: `image.fill("800x600 webp q80")` |
 | Multilingual i18n | `lang` frontmatter | Simpler approach, less feature-rich |
 
 ### Template Syntax Differences
@@ -674,7 +674,22 @@ Convert them to Bengal directives or [[ext:kida:docs/syntax/functions|Kida funct
 :::{dropdown} What about Hugo's image processing?
 :icon: question
 
-Bengal doesn't include built-in image processing. Use external tools (ImageMagick, Sharp) in your build process, or pre-process images before adding them to `assets/`.
+Bengal includes image processing with similar capabilities to Hugo:
+
+```kida
+{# Resize and crop to exact dimensions #}
+{% let processed = image.fill("800x600 webp q80") %}
+<img src="{{ processed.rel_permalink }}" width="{{ processed.width }}">
+
+{# Fit within dimensions (preserve aspect ratio) #}
+{% let thumb = image.fit("400x400") %}
+
+{# Generate responsive srcset #}
+<img srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}"
+     sizes="(max-width: 640px) 400px, 800px">
+```
+
+Supported operations: `fill`, `fit`, `resize`, format conversion (WebP, AVIF), quality control, and anchor points for cropping. See [[docs/theming/templating/image-processing|Image Processing]] for details.
 :::
 
 ---

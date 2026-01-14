@@ -9,6 +9,8 @@ Key Functions:
 - determine_template(): Select template based on page type and metadata
 - write_output(): Write rendered HTML with atomic writes and caching
 - format_html(): Apply HTML minification or pretty-printing
+- embed_content_hash(): Embed content hash in HTML meta tag
+- extract_content_hash(): Extract content hash from HTML
 
 Write Strategies:
 The module supports two write modes controlled by ``build.fast_writes``:
@@ -18,6 +20,11 @@ The module supports two write modes controlled by ``build.fast_writes``:
 
 - **Fast writes**: Direct file writes without atomicity. Used by dev server
   for maximum performance during rapid iteration.
+
+Content Hash Embedding (RFC: Output Cache Architecture):
+HTML pages include a content hash meta tag for accurate change detection.
+This enables the ReloadController to detect meaningful content changes vs
+regeneration noise, reducing unnecessary hot reloads.
 
 Directory Caching:
 Uses thread-safe directory tracking to minimize syscalls during parallel

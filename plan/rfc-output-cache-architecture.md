@@ -1,9 +1,19 @@
 # RFC: Output Cache Architecture
 
-**Status**: Draft  
+**Status**: Draft (Revised)  
 **Created**: 2026-01-14  
+**Revised**: 2026-01-14  
 **Author**: AI Assistant  
 **Related**: `rfc-incremental-build-observability.md`, `rfc-rebuild-decision-hardening.md`
+
+---
+
+### Revision History
+
+| Date | Version | Changes |
+|------|---------|---------|
+| 2026-01-14 | 1.2 | Added: thread-safety architecture (RWLock), zstandard compression for HTML cache, dependency-aware template tracking via `DependencyTracker`, unification with legacy `TaxonomyIndex`. Improved: hash extraction regex performance, error recovery state machine. |
+| 2026-01-14 | 1.1 | Added: timestamp exclusion strategy, template hash tracking, cache format versioning, corruption recovery logging, race condition risk, open questions. Improved: hash embedding via `format_html()` integration, ReloadController extension (not replacement), performance claims marked as estimates. |
 
 ---
 
@@ -46,12 +56,14 @@ When running `bengal serve`, the validation build exhibits several inefficiencie
 
 ### Impact
 
-| Metric | Current | Target |
-|--------|---------|--------|
-| Validation build time | ~14s | <2s |
-| Files reported changed | 2744 | ~20 (actual changes) |
-| Unnecessary hot reloads | Frequent | Rare |
-| Generated page render time | 12s | <500ms |
+| Metric | Current | Target | Speedup/Note |
+|--------|---------|--------|--------------|
+| Validation build time | ~14s | <2s | **7-10x faster** |
+| Files reported changed | 2744 | ~20 | 99% noise reduction |
+| Unnecessary hot reloads | Frequent | Rare | Better DX |
+| Generated page render time | 12s | <500ms | **24x faster** |
+| **Cache Efficiency** | 0% hit rate | **~95% hit rate** | - |
+| **Reliability** | mtime-based | **content-hashed** | - |
 
 ---
 
@@ -89,6 +101,14 @@ When running `bengal serve`, the validation build exhibits several inefficiencie
 ```
 
 ### Core Components
+
+#### 0. Thread Safety and Concurrency
+
+The caching architecture must be thread-safe to support Bengal's parallel rendering.
+
+- **ContentHashRegistry**: Uses a reader-writer lock (`threading.RLock` or `threading.Lock` for simplicity, as writes happen at the end of the build).
+- **GeneratedPageCache**: Uses `threading.Lock` for atomic updates to `entries`.
+- **Parallel Reads**: Baseline capture and validation can run in parallel with the initial build setup.
 
 #### 1. Output Type Classification
 
@@ -296,20 +316,27 @@ class GeneratedPageCacheEntry:
     page_type: str              # "tag", "section-archive", "api-doc"
     page_id: str                # "python", "docs/reference", "Site.build"
     
-    # Content hash (computed from rendered HTML, excluding timestamps)
+    # Content hash (computed from combined member hashes)
     content_hash: str
+    
+    # Template hash - invalidates cache if template changes
+    # Computed from the template file(s) used to render this page
+    template_hash: str = ""
     
     # Dependencies (pages that affect this generated page's content)
     # For tag page: all pages with this tag
     # For section archive: all pages in section
-    member_hashes: dict[str, str]  # source_path → content_hash
+    member_hashes: dict[str, str] = field(default_factory=dict)  # source_path → content_hash
     
     # Cached output (optional, for fast regeneration)
-    cached_html: str | None = None
+    # Only stored for pages under 100KB to limit memory usage
+    # Compressed using zstandard (bengal.cache.compression)
+    cached_html: bytes | None = None
     
     # Metadata
     last_generated: str = ""    # ISO timestamp
     generation_time_ms: int = 0
+    is_compressed: bool = True
 
 
 class GeneratedPageCache:
@@ -317,6 +344,9 @@ class GeneratedPageCache:
     
     Generated pages (tag pages, section archives, API docs) are expensive
     to render but their content is deterministic based on member pages.
+    
+    UNIFICATION: This replaces the legacy `TaxonomyIndex` by tracking
+    both membership AND content hashes.
     
     Cache Strategy:
     1. Compute hash of all member page content hashes
@@ -329,17 +359,22 @@ class GeneratedPageCache:
     def __init__(self, cache_path: Path):
         self.cache_path = cache_path
         self.entries: dict[str, GeneratedPageCacheEntry] = {}
+        self._lock = threading.Lock()
         self._load()
     
     def _load(self) -> None:
-        """Load cache from disk."""
+        """Load cache from disk using load_auto (supports zst)."""
+        from bengal.cache.compression import load_auto
         if not self.cache_path.exists():
             return
-        # Implementation: Load from JSON/msgpack
+        # Implementation: Load from compressed JSON
+        data = load_auto(self.cache_path)
+        # ... deserialization ...
     
     def _save(self) -> None:
-        """Persist cache to disk."""
-        # Implementation: Save to JSON/msgpack with compression
+        """Persist cache to disk using save_compressed."""
+        from bengal.cache.compression import save_compressed
+        # Implementation: Save to .json.zst
     
     def get_cache_key(self, page_type: str, page_id: str) -> str:
         """Generate cache key for generated page."""
@@ -372,18 +407,31 @@ class GeneratedPageCache:
         page_id: str,
         member_pages: list[Any],
         content_cache: dict[str, str],
+        template_hash: str = "",
     ) -> bool:
         """Check if generated page needs regeneration.
         
         Returns True if:
         - No cache entry exists
         - Member content has changed
+        - Template has changed (Risk 6 mitigation)
         - Cache entry is corrupted
+        
+        Args:
+            page_type: Type of generated page ("tag", "section-archive", etc.)
+            page_id: Unique identifier for this page
+            member_pages: List of Page objects contributing to this page
+            content_cache: Mapping of source_path → content_hash
+            template_hash: Hash of template used for rendering (optional)
         """
         key = self.get_cache_key(page_type, page_id)
         entry = self.entries.get(key)
         
         if entry is None:
+            return True
+        
+        # Check template hash first (fast path for template changes)
+        if template_hash and entry.template_hash and template_hash != entry.template_hash:
             return True
         
         current_hash = self.compute_member_hash(member_pages, content_cache)
@@ -397,8 +445,19 @@ class GeneratedPageCache:
         content_cache: dict[str, str],
         rendered_html: str,
         generation_time_ms: int,
+        template_hash: str = "",
     ) -> None:
-        """Update cache after regeneration."""
+        """Update cache after regeneration.
+        
+        Args:
+            page_type: Type of generated page
+            page_id: Unique identifier
+            member_pages: Pages contributing to this generated page
+            content_cache: Source path → content hash mapping
+            rendered_html: Rendered HTML output
+            generation_time_ms: Time taken to render
+            template_hash: Hash of template(s) used for rendering
+        """
         from datetime import datetime
         
         key = self.get_cache_key(page_type, page_id)
@@ -408,6 +467,7 @@ class GeneratedPageCache:
             page_type=page_type,
             page_id=page_id,
             content_hash=member_hash,
+            template_hash=template_hash,
             member_hashes={
                 str(p.source_path): content_cache.get(str(p.source_path), "")
                 for p in member_pages
@@ -630,13 +690,22 @@ class ReloadController:
 
 #### 5. Content Hash Registry
 
-Central registry for all content hashes:
+Central registry for all content hashes with format versioning and corruption recovery:
 
 ```python
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 import json
+import threading
+
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Cache format version - increment when schema changes
+REGISTRY_FORMAT_VERSION = 1
+
 
 @dataclass
 class ContentHashRegistry:
@@ -648,7 +717,14 @@ class ContentHashRegistry:
     - Computing aggregate hashes for cache keys
     
     Persisted to .bengal/content_hashes.json for cross-build validation.
+    
+    THREAD SAFETY:
+        Internal mappings are protected by an RLock for safe concurrent access
+        during parallel rendering updates.
     """
+    
+    # Format version for compatibility checking
+    version: int = REGISTRY_FORMAT_VERSION
     
     # Source file → content hash (for content pages)
     source_hashes: dict[str, str] = field(default_factory=dict)
@@ -656,15 +732,14 @@ class ContentHashRegistry:
     # Output file → content hash (for all outputs)
     output_hashes: dict[str, str] = field(default_factory=dict)
     
-    # Output file → output type classification
-    output_types: dict[str, str] = field(default_factory=dict)
+    # ... other fields ...
     
-    # Generated page → member source paths
-    generated_dependencies: dict[str, list[str]] = field(default_factory=dict)
-    
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
+
     def update_source(self, source_path: Path, content_hash: str) -> None:
         """Update hash for a source file."""
-        self.source_hashes[str(source_path)] = content_hash
+        with self._lock:
+            self.source_hashes[str(source_path)] = content_hash
     
     def update_output(
         self,
@@ -702,8 +777,9 @@ class ContentHashRegistry:
         return compute_content_hash(combined)
     
     def save(self, path: Path) -> None:
-        """Persist registry to disk."""
+        """Persist registry to disk with version metadata."""
         data = {
+            "version": REGISTRY_FORMAT_VERSION,
             "source_hashes": self.source_hashes,
             "output_hashes": self.output_hashes,
             "output_types": self.output_types,
@@ -714,20 +790,96 @@ class ContentHashRegistry:
     
     @classmethod
     def load(cls, path: Path) -> "ContentHashRegistry":
-        """Load registry from disk."""
+        """Load registry from disk with version check and corruption recovery.
+        
+        Recovery Behavior:
+        - Missing file: Return empty registry (normal for first build)
+        - Corrupted JSON: Log warning, return empty registry
+        - Version mismatch: Log info, return empty registry (will rebuild)
+        - Missing fields: Use defaults for forward compatibility
+        """
         if not path.exists():
             return cls()
         
         try:
             data = json.loads(path.read_text())
+            
+            # Check format version
+            file_version = data.get("version", 0)
+            if file_version < REGISTRY_FORMAT_VERSION:
+                logger.info(
+                    "content_hash_registry_version_mismatch",
+                    file_version=file_version,
+                    current_version=REGISTRY_FORMAT_VERSION,
+                    action="rebuilding_registry",
+                )
+                return cls()
+            
             return cls(
+                version=file_version,
                 source_hashes=data.get("source_hashes", {}),
                 output_hashes=data.get("output_hashes", {}),
                 output_types=data.get("output_types", {}),
                 generated_dependencies=data.get("generated_dependencies", {}),
             )
-        except Exception:
+            
+        except json.JSONDecodeError as e:
+            logger.warning(
+                "content_hash_registry_corrupted",
+                path=str(path),
+                error=str(e),
+                action="starting_fresh",
+            )
             return cls()
+            
+        except Exception as e:
+            logger.warning(
+                "content_hash_registry_load_failed",
+                path=str(path),
+                error_type=type(e).__name__,
+                error=str(e),
+                action="starting_fresh",
+            )
+            return cls()
+    
+    @classmethod
+    def validate(cls, path: Path) -> tuple[bool, str]:
+        """Validate registry file integrity.
+        
+        Use with `bengal cache validate` for explicit verification.
+        
+        Returns:
+            Tuple of (is_valid, message)
+        """
+        if not path.exists():
+            return True, "No registry file (will be created on build)"
+        
+        try:
+            data = json.loads(path.read_text())
+            
+            # Check version
+            version = data.get("version", 0)
+            if version != REGISTRY_FORMAT_VERSION:
+                return False, f"Version mismatch: {version} != {REGISTRY_FORMAT_VERSION}"
+            
+            # Check required fields
+            required = ["source_hashes", "output_hashes"]
+            missing = [f for f in required if f not in data]
+            if missing:
+                return False, f"Missing fields: {missing}"
+            
+            # Check data types
+            if not isinstance(data.get("source_hashes"), dict):
+                return False, "source_hashes is not a dict"
+            if not isinstance(data.get("output_hashes"), dict):
+                return False, "output_hashes is not a dict"
+            
+            return True, f"Valid (version {version}, {len(data['source_hashes'])} sources)"
+            
+        except json.JSONDecodeError as e:
+            return False, f"JSON parse error: {e}"
+        except Exception as e:
+            return False, f"Validation error: {e}"
 ```
 
 ---
@@ -739,20 +891,50 @@ class ContentHashRegistry:
 **Goal**: Embed content hashes in HTML output for validation.
 
 **Tasks**:
-- [ ] Add `compute_content_hash()` utility
-- [ ] Add `embed_content_hash()` to HTML writer
-- [ ] Add `extract_content_hash()` for fast validation
-- [ ] Update `BengalRequestHandler` to preserve hash in live reload injection
+- [ ] Extend `bengal/utils/primitives/hashing.py` with `compute_content_hash()` wrapper
+- [ ] Add `_embed_content_hash_safe()` and `extract_content_hash()` functions
+- [ ] Integrate hash embedding into `format_html()` in `bengal/rendering/pipeline/output.py`
+- [ ] Update `LiveReloadMixin` to preserve hash when injecting reload script
+- [ ] Add `build.content_hash_in_html` config option (default: true)
+- [ ] Create benchmark script to validate performance estimates
 
-**Files**:
-- `bengal/utils/primitives/hashing.py` - Hash utilities
-- `bengal/orchestration/build/rendering.py` - HTML output
-- `bengal/server/live_reload.py` - Preserve hash during injection
+**Files** (based on codebase analysis):
+- `bengal/utils/primitives/hashing.py` - Already has `hash_str()`, add wrapper
+- `bengal/rendering/pipeline/output.py` - Integration point: `format_html()` (line 229)
+- `bengal/server/live_reload.py` - `LiveReloadMixin` injects script into HTML
+- `bengal/server/request_handler.py` - `BengalRequestHandler` serves files
+
+**Integration Point**:
+```python
+# bengal/rendering/pipeline/output.py:229
+def format_html(html: str, page: Page, site: Site) -> str:
+    # NEW: Compute and embed content hash BEFORE formatting
+    if site.config.get("build", {}).get("content_hash_in_html", True):
+        content_hash = hash_str(html, truncate=16)
+        html = _embed_content_hash_safe(html, content_hash)
+    
+    # ... existing formatting logic ...
+```
 
 **Validation**:
 ```bash
 # Check hash is present in output
 grep 'bengal:content-hash' public/docs/index.html
+# Expected: <meta name="bengal:content-hash" content="a1b2c3d4e5f6g7h8">
+
+# Verify hash is deterministic (same content = same hash)
+bengal build && grep 'content-hash' public/docs/index.html > hash1.txt
+bengal build && grep 'content-hash' public/docs/index.html > hash2.txt
+diff hash1.txt hash2.txt  # Should be identical
+```
+
+**Benchmark**:
+```bash
+# Run performance benchmark to validate estimates
+python scripts/benchmark_output_cache.py --phase 1
+# Expected output:
+#   Hash embedding overhead: <5ms per 1000 pages
+#   Hash extraction: <1ms per 1000 files
 ```
 
 ### Phase 2: Output Type Classification (Week 1)
@@ -809,24 +991,49 @@ bengal build --verbose
 
 **Goal**: Use content hashes for accurate change detection.
 
+**Approach**: Extend existing `ReloadController` class (don't replace).
+The current implementation in `bengal/server/reload_controller.py` already has:
+- Throttling (`min_notify_interval_ms`)
+- Ignore patterns (`ignored_globs`) 
+- Suspect hash verification (`hash_on_suspect`)
+- Thread-safe configuration
+
 **Tasks**:
-- [ ] Implement `ContentHashReloadController`
-- [ ] Replace mtime-based detection with hash-based
+- [ ] Add `use_content_hashes` config option to existing `ReloadController`
+- [ ] Add `capture_content_hash_baseline()` method
+- [ ] Add `decide_with_content_hashes()` method returning `EnhancedReloadDecision`
+- [ ] Update `BuildTrigger` to use content-hash mode when enabled
 - [ ] Filter aggregate files from change reports
-- [ ] Update CLI output to show meaningful changes only
+- [ ] Update CLI output to show categorized changes
 
 **Files**:
-- `bengal/server/reload_controller.py` - Hash-based detection
+- `bengal/server/reload_controller.py` - Extend existing class
+- `bengal/server/build_trigger.py` - Use new content-hash methods
 - `bengal/server/dev_server.py` - Updated reporting
+
+**Key Changes to Existing Code**:
+```python
+# bengal/server/reload_controller.py - ADD to existing class
+class ReloadController:
+    def __init__(self, ..., use_content_hashes: bool = False):
+        # ... existing init ...
+        self._use_content_hashes = use_content_hashes
+        self._baseline_content_hashes: dict[str, str] = {}
+    
+    # NEW methods (don't modify existing decide_and_update)
+    def capture_content_hash_baseline(self, output_dir: Path) -> None: ...
+    def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision: ...
+```
 
 **Validation**:
 ```
-# Before: noisy
+# Before: noisy (mtime-based)
 ! RELOAD TRIGGERED: 2744 files changed
 
-# After: accurate
-✓ Cache validated - 3 content pages updated
+# After: accurate (content-hash based)
+✓ Build complete - 3 content pages changed
   Changed: docs/api/site.html, docs/api/page.html, docs/api/config.html
+  Aggregates updated: sitemap.xml, index.json (no reload)
 ```
 
 ### Phase 5: Content Hash Registry (Week 4)
@@ -856,7 +1063,9 @@ bengal serve
 
 ## Performance Analysis
 
-### Current Performance
+### Current Performance (Measured)
+
+Data from actual Bengal site (1063 pages, 2026-01-14):
 
 ```
 Validation Build (1063 pages):
@@ -869,32 +1078,62 @@ Validation Build (1063 pages):
 └── Total:         ~14,000ms
 ```
 
-### Target Performance
+### Target Performance (Estimated)
+
+**Note**: These are estimates based on analysis, not measured benchmarks.
+Actual performance will be validated during Phase 1 implementation.
 
 ```
 Validation Build (1063 pages, with output cache):
-├── Discovery:        450ms
-├── Incremental:       50ms
-├── Hash validation:  200ms  ← Compare member hashes
-├── Rendering:        300ms  ← Only changed pages
-├── Post-process:     200ms  ← Skip unchanged aggregates
-├── Cache save:       100ms  ← Incremental update
-└── Total:         ~1,300ms
+├── Discovery:        450ms     (unchanged)
+├── Incremental:       50ms     (unchanged)
+├── Hash validation:  200ms  ← Compare member hashes (estimate)
+├── Rendering:        300ms  ← Only changed pages (estimate)
+├── Post-process:     200ms  ← Skip unchanged aggregates (estimate)
+├── Cache save:       100ms  ← Incremental update (estimate)
+└── Total:         ~1,300ms  (ESTIMATED)
 ```
 
-### Scaling Characteristics
+### Assumptions Behind Estimates
 
-| Site Size | Current | With Output Cache | Speedup |
-|-----------|---------|-------------------|---------|
-| 100 pages | 2s | 0.5s | 4x |
-| 500 pages | 8s | 1s | 8x |
-| 1000 pages | 14s | 1.3s | 11x |
-| 5000 pages | 60s | 3s | 20x |
+1. **Hash extraction is O(1)**: Regex match on first 500 bytes of file
+2. **~95% cache hit rate**: Most builds don't change generated page content
+3. **Member hash comparison is fast**: ~838 lookups in dict = ~1ms
+4. **Aggregate skip saves ~600ms**: sitemap/index.json/feeds generation
+5. **Incremental cache save**: Only write changed entries
+
+### Scaling Characteristics (Projected)
+
+| Site Size | Current | With Output Cache | Speedup | Confidence |
+|-----------|---------|-------------------|---------|------------|
+| 100 pages | 2s | 0.5s | 4x | High |
+| 500 pages | 8s | 1s | 8x | Medium |
+| 1000 pages | 14s | 1.3s | 11x | Medium |
+| 5000 pages | 60s | 3s | 20x | Low (extrapolated) |
+
+**Confidence Levels**:
+- **High**: Based on similar optimization patterns in existing Bengal cache
+- **Medium**: Reasonable extrapolation from measured data
+- **Low**: Extrapolated, may vary based on page complexity and dependencies
 
 The speedup increases with site size because:
 1. More generated pages benefit from caching
 2. Hash comparison is O(1) regardless of page content size
 3. Aggregate file regeneration becomes proportionally smaller
+
+### Validation Plan
+
+Performance claims will be validated in Phase 1:
+
+```bash
+# Benchmark script to validate estimates
+python -m bengal.benchmarks.output_cache \
+    --site site/ \
+    --iterations 5 \
+    --output reports/output-cache-benchmark.json
+```
+
+Results will be added to this RFC before Phase 2 begins.
 
 ---
 
@@ -903,11 +1142,11 @@ The speedup increases with site size because:
 ### Public API
 
 ```python
-# Content hash utilities
-from bengal.utils.hashing import (
-    compute_content_hash,
-    embed_content_hash,
-    extract_content_hash,
+# Content hash utilities (extends existing hashing module)
+from bengal.utils.primitives.hashing import hash_str  # Existing
+from bengal.rendering.pipeline.output import (
+    extract_content_hash,  # NEW
+    _embed_content_hash_safe,  # Internal, used by format_html
 )
 
 # Output type classification
@@ -920,9 +1159,11 @@ from bengal.orchestration.output_types import (
 from bengal.cache import GeneratedPageCache
 
 cache = GeneratedPageCache(site.paths.generated_cache)
-if cache.should_regenerate("tag", "python", member_pages, content_cache):
+template_hash = hash_str(template_content, truncate=16)
+
+if cache.should_regenerate("tag", "python", member_pages, content_cache, template_hash):
     html = render_tag_page(tag="python", pages=member_pages)
-    cache.update("tag", "python", member_pages, content_cache, html, time_ms)
+    cache.update("tag", "python", member_pages, content_cache, html, time_ms, template_hash)
 else:
     html = cache.get_cached_html("tag", "python")
 
@@ -934,15 +1175,20 @@ registry.update_source(page.source_path, content_hash)
 registry.update_output(output_path, output_hash, OutputType.CONTENT_PAGE)
 registry.save(site.paths.content_registry)
 
-# Enhanced reload controller
-from bengal.server.reload_controller import ContentHashReloadController
+# Validate cache integrity
+is_valid, message = ContentHashRegistry.validate(site.paths.content_registry)
 
-controller = ContentHashReloadController()
-controller.capture_baseline(output_dir)
+# Enhanced reload controller (extends existing class)
+from bengal.server.reload_controller import ReloadController
+
+controller = ReloadController(use_content_hashes=True)
+controller.capture_content_hash_baseline(output_dir)
 # ... build ...
-decision = controller.analyze_changes(output_dir)
+decision = controller.decide_with_content_hashes(output_dir)
 if decision.action == "reload":
     print(f"Changed: {decision.meaningful_change_count} pages")
+    print(f"  Content: {len(decision.content_changes)}")
+    print(f"  Aggregates (no reload): {len(decision.aggregate_changes)}")
 ```
 
 ### Configuration
@@ -1027,15 +1273,50 @@ def test_generated_page_cache_skips_unchanged():
 
 def test_reload_controller_ignores_aggregate_changes():
     """ReloadController doesn't trigger reload for aggregate-only changes."""
-    controller = ContentHashReloadController()
-    controller.capture_baseline(output_dir)
+    controller = ReloadController(use_content_hashes=True)
+    controller.capture_content_hash_baseline(output_dir)
     
     # Only modify sitemap.xml
     (output_dir / "sitemap.xml").write_text("<sitemap>new</sitemap>")
     
-    decision = controller.analyze_changes(output_dir)
+    decision = controller.decide_with_content_hashes(output_dir)
     assert decision.action == "none"
     assert decision.reason == "aggregate-only-changes"
+
+def test_generated_page_cache_invalidates_on_template_change():
+    """Cache invalidates when template hash changes."""
+    cache = GeneratedPageCache(tmp_path / "cache.json")
+    members = [mock_page("a.md"), mock_page("b.md")]
+    hashes = {"a.md": "hash1", "b.md": "hash2"}
+    
+    # Initial cache with template v1
+    cache.update("tag", "python", members, hashes, "<html>v1</html>", 100, "template_v1")
+    
+    # Same member hashes, same template → no regeneration
+    assert not cache.should_regenerate("tag", "python", members, hashes, "template_v1")
+    
+    # Same member hashes, different template → regenerate
+    assert cache.should_regenerate("tag", "python", members, hashes, "template_v2")
+
+def test_registry_version_migration():
+    """Registry returns empty on version mismatch."""
+    # Write old version
+    old_data = {"version": 0, "source_hashes": {"a.md": "hash1"}}
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(json.dumps(old_data))
+    
+    # Load should return empty (version mismatch)
+    registry = ContentHashRegistry.load(registry_path)
+    assert registry.source_hashes == {}  # Fresh start
+
+def test_registry_corruption_recovery():
+    """Registry recovers gracefully from corruption."""
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text("{ invalid json }")
+    
+    # Should not raise, returns empty registry
+    registry = ContentHashRegistry.load(registry_path)
+    assert registry.source_hashes == {}
 ```
 
 ### Integration Tests
@@ -1108,6 +1389,42 @@ def test_generated_page_cache_integration():
 - Gradually populate hashes over builds
 - No breaking changes to cache format
 
+### Risk 5: Race Conditions in Baseline Capture
+
+**Risk**: If `capture_content_hash_baseline()` runs concurrently with file writes,
+partial reads or missed files could cause incorrect change detection.
+
+**Mitigation**:
+- Document sequencing requirement: baseline capture MUST complete before build starts
+- Add assertion in dev server: `assert not self._build_in_progress` before capture
+- For parallel builds, capture baseline in main thread before spawning workers
+- Files deleted during scan are safely skipped (try/except around reads)
+
+**Call Sequence** (enforced in dev server):
+```python
+# Correct order - baseline before build
+controller.capture_content_hash_baseline(output_dir)  # 1. Capture
+build_result = site.build()                            # 2. Build  
+decision = controller.decide_with_content_hashes(output_dir)  # 3. Decide
+```
+
+### Risk 6: Template Changes Not Tracked
+
+**Risk**: Template changes affect output but aren't reflected in member page hashes.
+A template change would not invalidate generated page cache.
+
+**Mitigation**:
+- Include template hash in generated page cache key
+- Track template dependencies in `GeneratedPageCacheEntry.template_hash`
+- Invalidate all generated pages when base templates change
+
+```python
+@dataclass
+class GeneratedPageCacheEntry:
+    # ... existing fields ...
+    template_hash: str = ""  # Hash of template used for rendering
+```
+
 ---
 
 ## Success Criteria
@@ -1129,12 +1446,84 @@ def test_generated_page_cache_integration():
 - [ ] Clear CLI output showing cache utilization
 - [ ] Accurate "X files changed" reporting
 - [ ] Easy cache inspection with `bengal debug cache`
+- [ ] Cache validation command: `bengal cache validate`
+
+**CLI Examples**:
+```bash
+# Validate cache integrity
+$ bengal cache validate
+✓ Content hash registry: Valid (version 1, 1063 sources)
+✓ Generated page cache: Valid (526 entries, 480 with cached HTML)
+✓ No corruption detected
+
+# Clear generated page cache
+$ bengal cache clear-generated
+✓ Cleared 526 generated page cache entries
+
+# Show cache stats
+$ bengal debug cache
+Content Hash Registry:
+  Source hashes: 225
+  Output hashes: 1063
+  Generated deps: 526
+  
+Generated Page Cache:
+  Entries: 526
+  Cached HTML: 480 (91%)
+  Total size: 12.4 MB
+```
 
 ### Maintainability
 
 - [ ] <500 lines of new code per phase
 - [ ] >90% test coverage for new modules
 - [ ] No changes to public API surface
+
+---
+
+## Open Questions
+
+Questions to resolve during implementation:
+
+### Q1: Live Reload Script Injection
+
+**Question**: Does `LiveReloadMixin` inject the reload script after `format_html()`?
+If so, the injected script would not be in the content hash.
+
+**Resolution Needed**: Verify injection order. If script is injected after hashing,
+this is correct behavior (reload script shouldn't affect content hash).
+
+### Q2: Template Hash Granularity
+
+**Question**: Should template hash include:
+- Just the immediate template file?
+- All inherited templates (base.html, etc.)?
+- Included partials?
+
+**Proposed Resolution**: Leverage the existing `DependencyTracker` in `BuildContext`. 
+When rendering a generated page, the tracker records all template dependencies.
+The hash should be computed from the combined content of all tracked template files.
+This ensures perfect invalidation even when a deeply nested partial changes.
+
+### Q3: Memory vs Speed Tradeoff for Cached HTML
+
+**Question**: The 100KB threshold for caching HTML is arbitrary. Should this be:
+- Configurable?
+- Based on available memory?
+- Always off (re-render is cheap compared to memory)?
+
+**Proposed Resolution**: Make configurable with sensible default (100KB). Add
+`build.cache_generated_html_threshold` config option.
+
+### Q4: Hash Collision Probability
+
+**Question**: Is 16-character truncated SHA-256 sufficient? 
+
+**Analysis**: 16 hex chars = 64 bits. Birthday paradox: collision at ~2^32 items.
+A 65,000-page site has ~0.0002% collision chance per build.
+
+**Resolution**: 16 chars is sufficient. Document in Glossary that collisions are
+theoretically possible but practically negligible.
 
 ---
 

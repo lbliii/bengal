@@ -12,23 +12,43 @@ tags:
 
 ## No Server-Side Rendering
 
-Bengal generates static HTML at build time. There's no runtime server.
+Bengal generates static HTML at build time. There's no runtime server for dynamic content.
 
-For dynamic content, use client-side JavaScript or edge functions.
+For dynamic features, use client-side JavaScript or edge functions (Cloudflare Workers, Vercel Edge Functions, etc.).
 
-## No Image Resizing
+## No Theme Browse UI
 
-Bengal compresses images (using Pillow with quality optimization) but doesn't resize them or generate responsive variants. Use external tools like `sharp` or a CDN for resizing and responsive image generation.
+Bengal supports installing themes from PyPI (`bengal theme install bengal-theme-minimal`) and discovering installed themes (`bengal theme list`), but there's no built-in gallery to browse available themes. Check PyPI for packages prefixed with `bengal-theme-`.
 
 ## Large Sites
 
-Sites with 10,000+ pages will have slower full builds. Incremental builds stay fast.
+Sites with 10,000+ pages have slower full builds (~35s for 10K pages). Incremental builds remain fast (35-80ms for single-page edits) regardless of site size.
+
+For very large sites:
+- Use `--fast` mode for maximum performance
+- Enable free-threading (`PYTHON_GIL=0`) for additional speedup
+- Use `--memory-optimized` if RAM is constrained
 
 ## Windows
 
-Developed on macOS/Linux. Windows works but may have edge cases.
+Developed primarily on macOS/Linux. Windows works but may have edge cases with path handling or file watching.
+
+## No Automatic Responsive Image Generation at Build Time
+
+Bengal provides image processing functions (`fill`, `fit`, `resize`, format conversion, srcset generation) that work in templates, but doesn't automatically generate responsive variants during the build phase. You call these functions explicitly in templates:
+
+```kida
+{# Generate srcset in templates #}
+<img srcset="{{ image | image_srcset([400, 800, 1200]) }}" />
+
+{# Or use the responsive_image macro #}
+{{ responsive_image('hero.jpg', alt='Hero', widths=[320, 640, 1024]) }}
+```
+
+For automatic build-time generation, pre-process images or use a CDN with on-the-fly resizing.
 
 :::{seealso}
-- [Comparison](/docs/about/comparison/)
-- [FAQ](/docs/about/faq/)
+- [[docs/about/comparison|Key Capabilities]]
+- [[docs/about/faq|FAQ]]
+- [[docs/theming/templating/image-processing|Image Processing]]
 :::
