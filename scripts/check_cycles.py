@@ -29,8 +29,9 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, bool]]:
     Extract import statements from a Python file.
 
     Yields:
-        Tuples of (importing_module, imported_module, is_type_checking)
-        is_type_checking is True if import is inside TYPE_CHECKING block
+        Tuples of (importing_module, imported_module, is_deferred)
+        is_deferred is True if import is inside TYPE_CHECKING block or inside a function
+        (both are "safe" from circular import issues at module load time)
     """
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -46,43 +47,50 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, bool]]:
     else:
         return
 
-    # Track if we're inside a TYPE_CHECKING block
-    in_type_checking = False
-
+    # Collect all TYPE_CHECKING block node IDs
+    type_checking_nodes: set[int] = set()
     for node in ast.walk(tree):
-        # Check for TYPE_CHECKING blocks
         if isinstance(node, ast.If):
             test = node.test
             if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
-                # Process imports inside this block
+                # Mark all child nodes as TYPE_CHECKING
                 for child in ast.walk(node):
-                    if isinstance(child, ast.Import):
-                        for alias in child.names:
-                            if alias.name.startswith("bengal."):
-                                yield (module_name, alias.name, True)
-                    elif isinstance(child, ast.ImportFrom):
-                        if child.module and child.module.startswith("bengal."):
-                            yield (module_name, child.module, True)
+                    type_checking_nodes.add(id(child))
 
-        # Regular imports (not in TYPE_CHECKING)
+    # Collect all function/method body node IDs (lazy imports)
+    function_nodes: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            # Mark all child nodes as inside function
+            for child in ast.walk(node):
+                function_nodes.add(id(child))
+
+    # Extract imports
+    for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name.startswith("bengal."):
-                    # Check if this node is inside TYPE_CHECKING (handled above)
-                    yield (module_name, alias.name, False)
+                    is_deferred = id(node) in type_checking_nodes or id(node) in function_nodes
+                    yield (module_name, alias.name, is_deferred)
         elif isinstance(node, ast.ImportFrom):
             if node.module and node.module.startswith("bengal."):
-                yield (module_name, node.module, False)
+                is_deferred = id(node) in type_checking_nodes or id(node) in function_nodes
+                yield (module_name, node.module, is_deferred)
 
 
 def find_cycles(
-    edges: dict[str, set[str]], type_checking_edges: dict[str, set[str]]
+    edges: dict[str, set[str]], deferred_edges: dict[str, set[str]]
 ) -> list[tuple[list[str], bool]]:
     """
     Find all cycles in the import graph using DFS.
 
+    Args:
+        edges: All import edges
+        deferred_edges: Edges that are deferred (TYPE_CHECKING or lazy imports inside functions)
+
     Returns:
-        List of (cycle_path, is_type_checking_only) tuples
+        List of (cycle_path, is_deferred_only) tuples
+        is_deferred_only is True if ALL edges in the cycle are deferred (safe at runtime)
     """
     cycles = []
     visited = set()
@@ -101,13 +109,13 @@ def find_cycles(
                 # Found a cycle - extract it
                 cycle_start = path.index(neighbor)
                 cycle = path[cycle_start:] + [neighbor]
-                # Check if all edges in cycle are type-checking only
+                # Check if all edges in cycle are deferred (TYPE_CHECKING or lazy imports)
                 cycle_edges = list(zip(cycle[:-1], cycle[1:]))
-                is_tc_only = all(
-                    dst in type_checking_edges.get(src, set())
+                is_deferred_only = all(
+                    dst in deferred_edges.get(src, set())
                     for src, dst in cycle_edges
                 )
-                cycles.append((cycle, is_tc_only))
+                cycles.append((cycle, is_deferred_only))
 
         path.pop()
         rec_stack.remove(node)
@@ -136,19 +144,19 @@ def main() -> int:
 
     # Build import graph
     edges: dict[str, set[str]] = defaultdict(set)
-    type_checking_edges: dict[str, set[str]] = defaultdict(set)
+    deferred_edges: dict[str, set[str]] = defaultdict(set)  # TYPE_CHECKING + lazy imports
 
     root = Path(args.path)
     for py_file in root.rglob("*.py"):
         if "__pycache__" in py_file.parts:
             continue
-        for importer, imported, is_tc in extract_imports(py_file):
+        for importer, imported, is_deferred in extract_imports(py_file):
             edges[importer].add(imported)
-            if is_tc:
-                type_checking_edges[importer].add(imported)
+            if is_deferred:
+                deferred_edges[importer].add(imported)
 
     # Find cycles
-    cycles = find_cycles(edges, type_checking_edges)
+    cycles = find_cycles(edges, deferred_edges)
 
     # Deduplicate cycles (same cycle can be found starting from different nodes)
     seen_cycles: set[tuple[str, ...]] = set()
@@ -183,14 +191,14 @@ def main() -> int:
                 print(f"  • {' → '.join(cycle)}")
 
     if tc_cycles:
-        print(f"\n⚠️  Found {len(tc_cycles)} TYPE_CHECKING-only cycle(s) (safe):")
+        print(f"\n⚠️  Found {len(tc_cycles)} deferred-only cycle(s) (safe):")
         for cycle, _ in tc_cycles:
             if args.format == "detailed":
-                print(f"\n  Cycle ({len(cycle) - 1} modules, TYPE_CHECKING only):")
+                print(f"\n  Cycle ({len(cycle) - 1} modules, deferred imports only):")
                 for mod in cycle[:-1]:
                     print(f"    {mod}")
             else:
-                print(f"  • {' → '.join(cycle)} (TYPE_CHECKING)")
+                print(f"  • {' → '.join(cycle)} (deferred)")
 
     return 1 if real_cycles else 0
 

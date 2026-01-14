@@ -1,0 +1,69 @@
+"""Protocols for patitas renderer mixins.
+
+Defines protocols that mixin classes can depend on, avoiding circular imports
+between blocks/directives and html modules.
+
+Thread-safe: Protocols are type-only constructs, no runtime overhead.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Protocol
+
+from patitas.nodes import Block, Inline
+from patitas.stringbuilder import StringBuilder
+
+if TYPE_CHECKING:
+    from bengal.directives.cache import DirectiveCache
+    from bengal.rendering.parsers.patitas.protocols import LexerDelegate
+    from bengal.rendering.parsers.patitas.renderers.utils import HeadingInfo
+
+
+class HtmlRendererProtocol(Protocol):
+    """Protocol for HtmlRenderer, used by block/directive mixins.
+    
+    Defines the interface that mixin methods expect when using `self: HtmlRendererProtocol`.
+    This breaks the circular import between html.py and the mixin modules.
+    """
+    
+    # Source document
+    _source: str
+    
+    # Heading tracking for TOC
+    _headings: list[HeadingInfo]
+    _seen_slugs: dict[str, int]
+    
+    # Configuration (read from ContextVar at render time)
+    @property
+    def _highlight(self) -> bool: ...
+    
+    @property
+    def _highlight_style(self) -> str: ...
+    
+    @property
+    def _rosettes_available(self) -> bool: ...
+    
+    @property
+    def _delegate(self) -> LexerDelegate | None: ...
+    
+    @property
+    def _directive_registry(self) -> Any | None: ...
+    
+    @property
+    def _directive_cache(self) -> DirectiveCache | None: ...
+    
+    # Methods that mixins call
+    def _slugify(self, text: str) -> str: ...
+    
+    def _get_unique_slug(self, base: str) -> str: ...
+    
+    def _render_inline_children(
+        self, children: list[Inline], sb: StringBuilder
+    ) -> None: ...
+    
+    def _render_directive(self, node: Any, sb: StringBuilder) -> None: ...
+    
+    def _render_block(self, node: Block, sb: StringBuilder) -> None: ...
+    
+    def _extract_plain_text(self, children: list[Inline]) -> str: ...

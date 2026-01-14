@@ -48,10 +48,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.analysis.graph_analysis import GraphAnalyzer
 from bengal.analysis.graph_builder import GraphBuilder
 from bengal.analysis.graph_metrics import GraphMetrics, MetricsCalculator, PageConnectivity
-from bengal.analysis.graph_reporting import GraphReporter
 from bengal.analysis.link_types import (
     DEFAULT_THRESHOLDS,
     DEFAULT_WEIGHTS,
@@ -65,6 +63,8 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.community_detection import CommunityDetectionResults
+    from bengal.analysis.graph_analysis import GraphAnalyzer
+    from bengal.analysis.graph_reporting import GraphReporter
     from bengal.analysis.link_suggestions import LinkSuggestionResults
     from bengal.analysis.page_rank import PageRankResults
     from bengal.analysis.path_analysis import PathAnalysisResults
@@ -205,7 +205,10 @@ class KnowledgeGraph:
 
         self._built = True
 
-        # Initialize delegated analyzers
+        # Initialize delegated analyzers (lazy imports to break cycle)
+        from bengal.analysis.graph_analysis import GraphAnalyzer
+        from bengal.analysis.graph_reporting import GraphReporter
+
         self._analyzer = GraphAnalyzer(self)
         self._reporter = GraphReporter(self)
 

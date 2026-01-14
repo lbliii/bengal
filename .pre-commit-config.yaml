@@ -51,3 +51,20 @@ repos:
         entry: bash -c "! rg -n 'from\\s+bengal\\.cli\\.(bengal_command|bengal_group)\\s+import' || (echo 'Import BengalCommand/BengalGroup from bengal.cli.base' && exit 1)"
         language: system
         files: ^bengal/.*\.py$
+
+      # Module coupling checks (RFC: rfc-remaining-coupling-fixes)
+      # Run as warnings - these report issues but don't block commits
+      # Remove '|| true' to make blocking once violations are resolved
+      - id: check-cycles
+        name: Check circular imports (warning)
+        entry: bash -c 'uv run python scripts/check_cycles.py --format=simple || true'
+        language: system
+        pass_filenames: false
+        verbose: true
+
+      - id: check-deps
+        name: Check dependency layers (warning)
+        entry: bash -c 'uv run python scripts/check_dependencies.py --format=simple || true'
+        language: system
+        pass_filenames: false
+        verbose: true

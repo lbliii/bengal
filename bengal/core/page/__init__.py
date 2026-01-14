@@ -16,9 +16,9 @@ navigation.py: PageNavigationMixin (URL, breadcrumbs)
 computed.py: PageComputedMixin (derived properties)
 content.py: PageContentMixin (AST, TOC, excerpts)
 relationships.py: PageRelationshipsMixin (prev/next, related)
-operations.py: PageOperationsMixin (read, save)
 proxy.py: PageProxy for lazy loading
 utils.py: Field separation utilities
+(PageOperationsMixin moved to bengal.rendering.page_operations)
 
 Key Concepts:
 Mixin Architecture: Page combines focused mixins for separation of
@@ -63,10 +63,14 @@ from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
-from .operations import PageOperationsMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
+
+# Import PageOperationsMixin from rendering layer where it logically belongs.
+# This is an intentional cross-layer import - the mixin contains rendering logic
+# that is mixed into the Page class for API convenience.
+from bengal.rendering.page_operations import PageOperationsMixin
 
 
 @dataclass

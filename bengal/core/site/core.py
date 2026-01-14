@@ -61,12 +61,12 @@ from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
-from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
+    from bengal.orchestration.stats import BuildStats
 
 
 # Thread-safe output lock for parallel processing.
@@ -354,12 +354,7 @@ class Site(
         from bengal.orchestration import BuildOrchestrator
 
         orchestrator = BuildOrchestrator(self)
-        result = orchestrator.build(options)
-        # Ensure we return BuildStats (orchestrator.build returns Any)
-        # BuildStats is already imported at top of file
-        if isinstance(result, BuildStats):
-            return result
-        return BuildStats()
+        return orchestrator.build(options)
 
     def serve(
         self,

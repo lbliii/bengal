@@ -74,6 +74,9 @@ from bengal.protocols.rendering import (
 from bengal.protocols.analysis import (
     KnowledgeGraphProtocol,
 )
+from bengal.protocols.stats import (
+    BuildStatsProtocol,
+)
 
 __all__ = [
     # Build
@@ -113,4 +116,6 @@ __all__ = [
     "OutputTarget",
     # Analysis
     "KnowledgeGraphProtocol",
+    # Stats
+    "BuildStatsProtocol",
 ]

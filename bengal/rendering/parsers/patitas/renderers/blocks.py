@@ -37,7 +37,7 @@ from bengal.rendering.parsers.patitas.renderers.utils import (
 )
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+    from bengal.rendering.parsers.patitas.renderers.protocols import HtmlRendererProtocolProtocol
 
 
 class BlockRendererMixin:
@@ -58,7 +58,7 @@ class BlockRendererMixin:
     - _get_unique_slug(text): method
     """
 
-    def _render_block(self: HtmlRenderer, node: Block, sb: StringBuilder) -> None:
+    def _render_block(self: HtmlRendererProtocol, node: Block, sb: StringBuilder) -> None:
         """Render a block node to StringBuilder."""
         match node:
             case Heading(level=level, children=children, explicit_id=explicit_id):
@@ -148,7 +148,7 @@ class BlockRendererMixin:
                     self._render_directive(node, sb)
 
     def _render_list_item(
-        self: HtmlRenderer, item: ListItem, sb: StringBuilder, tight: bool
+        self: HtmlRendererProtocol, item: ListItem, sb: StringBuilder, tight: bool
     ) -> None:
         """Render a list item.
 
@@ -195,7 +195,7 @@ class BlockRendererMixin:
 
         sb.append("</li>\n")
 
-    def _render_table(self: HtmlRenderer, table: Table, sb: StringBuilder) -> None:
+    def _render_table(self: HtmlRendererProtocol, table: Table, sb: StringBuilder) -> None:
         """Render a table with thead and tbody."""
         # Accumulate metadata if context is active
         meta = get_metadata()
@@ -222,7 +222,7 @@ class BlockRendererMixin:
         sb.append("</table></div>")
 
     def _render_table_row(
-        self: HtmlRenderer,
+        self: HtmlRendererProtocol,
         row: TableRow,
         alignments: tuple[str | None, ...],
         sb: StringBuilder,
@@ -244,7 +244,7 @@ class BlockRendererMixin:
         sb.append("</tr>\n")
 
     def _render_footnotes_section(
-        self: HtmlRenderer, footnotes: list[FootnoteDef], sb: StringBuilder
+        self: HtmlRendererProtocol, footnotes: list[FootnoteDef], sb: StringBuilder
     ) -> None:
         """Render footnote definitions as a section at the end of the document."""
         sb.append('<section class="footnotes">\n<ol>\n')
@@ -270,7 +270,7 @@ class BlockRendererMixin:
         sb.append("</ol>\n</section>\n")
 
     def _render_fenced_code(
-        self: HtmlRenderer,
+        self: HtmlRendererProtocol,
         node: FencedCode,
         sb: StringBuilder,
     ) -> None:
@@ -338,7 +338,7 @@ class BlockRendererMixin:
             sb.append("</code></pre>\n")
 
     def _render_highlighted_tokens(
-        self: HtmlRenderer,
+        self: HtmlRendererProtocol,
         tokens: Any,
         language: str,
         sb: StringBuilder,
@@ -363,7 +363,7 @@ class BlockRendererMixin:
         sb.append("\n</code></pre></div>\n")
 
     def _try_highlight_range(
-        self: HtmlRenderer, start: int, end: int, info: str
+        self: HtmlRendererProtocol, start: int, end: int, info: str
     ) -> str | None:
         """Try to highlight a source range using internal rosettes.
 

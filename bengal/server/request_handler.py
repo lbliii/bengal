@@ -340,13 +340,13 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     Class Attributes:
         server_version: HTTP server version header ("Bengal/1.0")
         protocol_version: HTTP protocol version ("HTTP/1.1" for keep-alive)
-        _html_cache: LRU cache for injected HTML responses
+        _html_cache: LRU cache for injected HTML (inherited from LiveReloadMixin)
         _build_in_progress: Flag indicating active rebuild
         _active_palette: Theme for rebuilding page styling
         _on_request: Optional callback for request logging (method, path, status_code, duration_ms)
     
     Thread Safety:
-        - _html_cache is protected by _html_cache_lock
+        - _html_cache is protected by _html_cache_lock (from LiveReloadMixin)
         - _build_in_progress is protected by _build_lock
         - Safe for use with ThreadingTCPServer
     
@@ -363,11 +363,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # Ensure HTTP/1.1 for proper keep-alive behavior on SSE
     protocol_version = "HTTP/1.1"
 
-    # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
-    # Key: (file_path_str, mtime), Value: modified_content bytes
-    _html_cache: dict[tuple[str, float], bytes] = {}
-    _html_cache_max_size = 50  # Keep last 50 pages in cache
-    _html_cache_lock = threading.Lock()
+    # Note: _html_cache, _html_cache_max_size, _html_cache_lock are inherited from LiveReloadMixin
+    # to avoid circular import. Access via BengalRequestHandler._html_cache still works.
 
     # Build state tracking - set by BuildHandler during rebuilds
     # When True, directory listings show "rebuilding" page instead

@@ -214,6 +214,11 @@ class LiveReloadMixin:
         resolves this mixin BEFORE SimpleHTTPRequestHandler, so stubs would shadow
         the real implementations.
     
+    Class Attributes:
+        _html_cache: LRU cache for injected HTML responses
+        _html_cache_max_size: Maximum number of pages to keep in cache
+        _html_cache_lock: Thread lock protecting the cache
+    
     Example:
             >>> class CustomHandler(LiveReloadMixin, SimpleHTTPRequestHandler):
             ...     def do_GET(self):
@@ -231,6 +236,13 @@ class LiveReloadMixin:
     path: str
     client_address: tuple[str, int]
     wfile: BufferedIOBase
+
+    # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
+    # Key: (file_path_str, mtime), Value: modified_content bytes
+    # Defined here in the mixin to avoid circular import with request_handler.py
+    _html_cache: dict[tuple[str, float], bytes] = {}
+    _html_cache_max_size = 50  # Keep last 50 pages in cache
+    _html_cache_lock = threading.Lock()
 
     # NOTE: Do NOT add stub methods here for send_response, send_header, etc.!
     # Python MRO resolves this mixin BEFORE SimpleHTTPRequestHandler, so stubs
@@ -397,12 +409,13 @@ class LiveReloadMixin:
             mtime = Path(path).stat().st_mtime
             cache_key = (path, mtime)
 
-            # Check cache (defined in BengalRequestHandler)
-            from bengal.server.request_handler import BengalRequestHandler
+            # Check cache (class attribute defined in this mixin)
+            # Use type(self) to access class attributes through inheritance chain
+            cls = type(self)
 
             # Fast path: try cache under lock
-            with BengalRequestHandler._html_cache_lock:
-                cached = BengalRequestHandler._html_cache.get(cache_key)
+            with cls._html_cache_lock:
+                cached = cls._html_cache.get(cache_key)
             if cached is not None:
                 modified_content = cached
                 logger.debug("html_cache_hit", path=path)
@@ -440,18 +453,15 @@ class LiveReloadMixin:
                         modified_content = content + script_bytes
 
                 # Store in cache under lock (with size control)
-                with BengalRequestHandler._html_cache_lock:
+                with cls._html_cache_lock:
                     # Double-check if another thread populated it while we were working
-                    if cache_key not in BengalRequestHandler._html_cache:
-                        BengalRequestHandler._html_cache[cache_key] = modified_content
+                    if cache_key not in cls._html_cache:
+                        cls._html_cache[cache_key] = modified_content
                         # Limit cache size (simple FIFO eviction)
-                        if (
-                            len(BengalRequestHandler._html_cache)
-                            > BengalRequestHandler._html_cache_max_size
-                        ):
-                            first_key = next(iter(BengalRequestHandler._html_cache))
-                            del BengalRequestHandler._html_cache[first_key]
-                    cache_size = len(BengalRequestHandler._html_cache)
+                        if len(cls._html_cache) > cls._html_cache_max_size:
+                            first_key = next(iter(cls._html_cache))
+                            del cls._html_cache[first_key]
+                    cache_size = len(cls._html_cache)
                 logger.debug("html_cache_miss", path=path, cache_size=cache_size)
 
             # Send response with injected script

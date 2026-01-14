@@ -102,6 +102,9 @@ class IncrementalOrchestrator:
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
         # Expose coordinator for use by detectors
         self.coordinator = self._cache_manager.coordinator
+        # Reset change detector so it picks up the new cache
+        # (fixes stale reference bug where detector kept old cache)
+        self._change_detector = None
         return self.cache, self.tracker
 
     def check_config_changed(self) -> bool:
