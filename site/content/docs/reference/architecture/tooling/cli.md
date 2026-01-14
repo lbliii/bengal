@@ -197,6 +197,23 @@ bengal --version
 bengal --help
 ```
 
+**Upgrade Commands**:
+```bash
+# Check for updates and upgrade interactively
+bengal upgrade
+
+# Skip confirmation prompt
+bengal upgrade -y
+
+# Show what would be done without executing
+bengal upgrade --dry-run
+
+# Force upgrade even if already on latest
+bengal upgrade --force
+```
+
+The upgrade command automatically detects how Bengal was installed (uv, pip, pipx, conda) and runs the appropriate upgrade command. It checks PyPI for the latest version with a 24-hour cache to avoid repeated network requests.
+
 ## Command Registration
 
 Commands are registered in `bengal/cli/__init__.py`. The CLI uses command groups for organization and top-level aliases for convenience:

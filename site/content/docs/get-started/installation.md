@@ -83,7 +83,31 @@ This installs Bengal in editable mode with development dependencies.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version 0.1.7`
+You should see output like: `Bengal SSG, version 0.1.8`
+
+## Upgrade Bengal
+
+Bengal includes a built-in upgrade command that automatically detects how it was installed:
+
+```bash
+# Interactive upgrade (recommended)
+bengal upgrade
+
+# Skip confirmation
+bengal upgrade -y
+
+# Preview changes without executing
+bengal upgrade --dry-run
+```
+
+The upgrade command:
+- Detects your installer (uv, pip, pipx, conda)
+- Checks PyPI for the latest version (cached for 24 hours)
+- Shows a confirmation before making changes
+
+:::{tip}
+Bengal will show a notification after commands when a new version is available. You can disable this by setting `BENGAL_NO_UPDATE_CHECK=1` in your environment.
+:::
 
 ## Python Version Setup
 
