@@ -197,13 +197,35 @@ class AutodocTrackingMixin:
         from bengal.utils.primitives.hashing import hash_file
 
         # Handle cache migration: old caches have dependencies but no metadata
+        # Instead of marking all as stale (which triggers full autodoc rebuild),
+        # use file fingerprints as fallback if they exist.
         if not self.autodoc_source_metadata and self.autodoc_dependencies:
-            logger.info(
-                "autodoc_cache_migration",
-                msg="No source metadata found (pre-v0.1.8 cache), marking all autodoc stale",
-                source_count=len(self.autodoc_dependencies),
-            )
-            return set(self.autodoc_dependencies.keys())
+            # Check if we have fingerprints to use as fallback
+            has_fingerprints = hasattr(self, 'file_fingerprints') and self.file_fingerprints
+            if has_fingerprints:
+                # Use fingerprint-based change detection instead
+                stale_sources: set[str] = set()
+                for source_key in self.autodoc_dependencies:
+                    source = Path(source_key)
+                    # Use is_changed() which checks fingerprints
+                    if hasattr(self, 'is_changed') and self.is_changed(source):
+                        stale_sources.add(source_key)
+                if stale_sources:
+                    logger.debug(
+                        "autodoc_cache_migration_with_fingerprints",
+                        msg="Using fingerprints for change detection (metadata unavailable)",
+                        stale_count=len(stale_sources),
+                        total_sources=len(self.autodoc_dependencies),
+                    )
+                return stale_sources
+            else:
+                # No fingerprints either - mark all stale (truly cold cache)
+                logger.info(
+                    "autodoc_cache_migration",
+                    msg="No source metadata or fingerprints found, marking all autodoc stale",
+                    source_count=len(self.autodoc_dependencies),
+                )
+                return set(self.autodoc_dependencies.keys())
 
         stale_sources: set[str] = set()
 

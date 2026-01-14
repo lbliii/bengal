@@ -91,16 +91,40 @@ class FileChangeDetector:
         For smaller sets, sequential is faster due to thread overhead.
         """
         # Filter pages first (cheap in-memory operations)
+        # Build set of changed section paths for subsection matching
+        changed_section_paths: set[Path] | None = None
+        if changed_sections is not None:
+            changed_section_paths = {s.path for s in changed_sections}
+
+        def is_in_changed_section(page_section_path: Path | None) -> bool:
+            """Check if page's section is under any changed section."""
+            if changed_section_paths is None:
+                return True  # No section filtering
+            if page_section_path is None:
+                return False  # No section path - can't match
+            # Exact match
+            if page_section_path in changed_section_paths:
+                return True
+            # Subsection match - check if page's section is under a changed section
+            for changed_path in changed_section_paths:
+                try:
+                    page_section_path.relative_to(changed_path)
+                    return True  # page_section_path is under changed_path
+                except ValueError:
+                    continue
+            return False
+
         pages_to_scan: list[Page] = []
         for page in pages_to_check:
             if page.metadata.get("_generated"):
                 continue
-            # Skip if page is in an unchanged section
+            # Skip if page is in an unchanged section (including subsections)
             if (
                 changed_sections is not None
                 and hasattr(page, "_section")
                 and page._section
-                and page._section not in changed_sections
+                and hasattr(page._section, "path")
+                and not is_in_changed_section(page._section.path)
             ):
                 continue
             pages_to_scan.append(page)

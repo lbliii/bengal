@@ -387,13 +387,35 @@ class ContentOrchestrator:
                     self._log_autodoc_summary(run_result)
 
                 # Register autodoc dependencies with cache for selective rebuilds
+                # CRITICAL: Pass source_hash and source_mtime for incremental detection.
+                # Without these, autodoc_source_metadata stays empty, causing all autodoc
+                # pages to be marked stale on every incremental build.
                 if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                    from bengal.utils.primitives.hashing import hash_file
+
                     for source_file, page_paths in run_result.autodoc_dependencies.items():
                         src_path = Path(source_file)
                         if _is_external_autodoc_source(src_path):
                             continue
+
+                        # Compute source metadata for self-validation
+                        source_hash = None
+                        source_mtime = None
+                        if src_path.exists():
+                            try:
+                                source_hash = hash_file(src_path)
+                                source_mtime = src_path.stat().st_mtime
+                            except OSError:
+                                pass
+
                         for page_path in page_paths:
-                            cache.add_autodoc_dependency(source_file, page_path)
+                            cache.add_autodoc_dependency(
+                                source_file,
+                                page_path,
+                                site_root=self.site.root_path,
+                                source_hash=source_hash,
+                                source_mtime=source_mtime,
+                            )
 
                     if run_result.autodoc_dependencies:
                         logger.debug(

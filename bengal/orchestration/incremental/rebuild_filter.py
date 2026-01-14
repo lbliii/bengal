@@ -105,27 +105,49 @@ class RebuildFilter:
             except (ValueError, TypeError):
                 pass
 
-        for section in sections:
-            # Get max mtime of all pages in this section
-            section_mtime = 0.0
+        def check_pages(
+            pages: list[Page],
+        ) -> tuple[float, bool, bool]:
+            """Check pages and return (max_mtime, has_pages, has_stale)."""
+            max_mtime = 0.0
             has_pages = False
-
-            for page in section.pages:
+            has_stale = False
+            for page in pages:
                 if page.metadata.get("_generated"):
                     continue
-
                 try:
                     if page.source_path.exists():
                         stat = page.source_path.stat()
-                        section_mtime = max(section_mtime, stat.st_mtime)
+                        max_mtime = max(max_mtime, stat.st_mtime)
                         has_pages = True
+                        # Also check fingerprint staleness - catches cases where
+                        # file was modified but mtime is older than last_build
+                        if self.cache.is_changed(page.source_path):
+                            has_stale = True
                 except OSError:
-                    # File doesn't exist or can't stat - treat as changed
-                    changed_sections.add(section)
-                    break
+                    has_stale = True  # Can't stat - treat as stale
+            return max_mtime, has_pages, has_stale
 
-            # If section has pages and max mtime > last build, section changed
-            if has_pages and section_mtime > last_build_time:
+        def check_section_recursive(section: Section) -> tuple[float, bool, bool]:
+            """Recursively check section and all subsections."""
+            mtime, has_pages, has_stale = check_pages(section.pages)
+            # Also check subsections
+            for subsection in getattr(section, "subsections", []):
+                sub_mtime, sub_pages, sub_stale = check_section_recursive(subsection)
+                mtime = max(mtime, sub_mtime)
+                has_pages = has_pages or sub_pages
+                has_stale = has_stale or sub_stale
+            return mtime, has_pages, has_stale
+
+        for section in sections:
+            section_mtime, has_pages, has_stale_fingerprint = check_section_recursive(
+                section
+            )
+
+            # Section is changed if:
+            # 1. Any page mtime > last_build, OR
+            # 2. Any page has stale fingerprint (cache mismatch)
+            if has_pages and (section_mtime > last_build_time or has_stale_fingerprint):
                 changed_sections.add(section)
 
         return changed_sections
@@ -156,12 +178,34 @@ class RebuildFilter:
 
         changed_section_paths = {s.path for s in changed_sections}
         forced_paths = forced_changed | nav_changed
+
+        def is_in_changed_section(page_section_path: Path | None) -> bool:
+            """Check if page's section is under any changed section."""
+            if page_section_path is None:
+                return False  # No section path - can't match
+            # Exact match
+            if page_section_path in changed_section_paths:
+                return True
+            # Subsection match - check if page's section is under a changed section
+            for changed_path in changed_section_paths:
+                try:
+                    page_section_path.relative_to(changed_path)
+                    return True  # page_section_path is under changed_path
+                except ValueError:
+                    continue
+            return False
+
         return [
             p
             for p in self.site.pages
             if p.metadata.get("_generated")
             or p.source_path in forced_paths
-            or (hasattr(p, "_section") and p._section and p._section.path in changed_section_paths)
+            or (
+                hasattr(p, "_section")
+                and p._section
+                and hasattr(p._section, "path")
+                and is_in_changed_section(p._section.path)
+            )
             or (
                 # Handle pages without section (root level)
                 not hasattr(p, "_section") or p._section is None
