@@ -10,6 +10,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
+from bengal.autodoc.hashing import compute_doc_content_hash
 from bengal.autodoc.orchestration.result import AutodocRunResult
 from bengal.autodoc.orchestration.utils import format_source_file_for_display
 from bengal.autodoc.utils import (
@@ -259,7 +260,9 @@ def create_pages(
 
         # Track source file → autodoc page dependency for incremental builds
         if source_file_for_tracking:
-            result.add_dependency(str(source_file_for_tracking), source_id)
+            doc_hash = compute_doc_content_hash(element)
+            page.metadata["doc_content_hash"] = doc_hash
+            result.add_dependency(str(source_file_for_tracking), source_id, content_hash=doc_hash)
 
     # Note: HTML rendering is now DEFERRED to the rendering phase
     # This ensures menus and full template context are available.

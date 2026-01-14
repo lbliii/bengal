@@ -393,7 +393,7 @@ class ContentOrchestrator:
                 if cache is not None and hasattr(cache, "add_autodoc_dependency"):
                     from bengal.utils.primitives.hashing import hash_file
 
-                    for source_file, page_paths in run_result.autodoc_dependencies.items():
+                    for source_file, page_hashes in run_result.autodoc_dependencies.items():
                         src_path = Path(source_file)
                         if _is_external_autodoc_source(src_path):
                             continue
@@ -408,13 +408,14 @@ class ContentOrchestrator:
                             except OSError:
                                 pass
 
-                        for page_path in page_paths:
+                        for page_path, content_hash in page_hashes.items():
                             cache.add_autodoc_dependency(
                                 source_file,
                                 page_path,
                                 site_root=self.site.root_path,
                                 source_hash=source_hash,
                                 source_mtime=source_mtime,
+                                content_hash=content_hash,
                             )
 
                     if run_result.autodoc_dependencies:

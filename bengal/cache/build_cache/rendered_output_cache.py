@@ -137,7 +137,12 @@ class RenderedOutputCacheMixin:
             return MISSING
 
         # Validate file hasn't changed (uses fast mtime+size first)
-        if self.is_changed(file_path):
+        # RFC: Autodoc Incremental Caching Enhancement
+        # For autodoc pages, the "source file" is a virtual path that doesn't exist on disk.
+        # Instead of checking if the virtual file changed (which it always "does"),
+        # we rely on the metadata_hash which now contains the doc_content_hash.
+        is_autodoc = metadata.get("is_autodoc", False)
+        if not is_autodoc and self.is_changed(file_path):
             return MISSING
 
         # Validate metadata hasn't changed

@@ -1,387 +1,466 @@
-# RFC: Autodoc Incremental Caching
+# RFC: Autodoc Incremental Caching Enhancement
 
-**Status**: Draft  
+**Status**: Draft (Revised - Post-Evaluation)  
 **Author**: AI Assistant  
 **Created**: 2026-01-14  
+**Revised**: 2026-01-14  
 **Related**: rfc-output-cache-architecture.md
 
-## Problem Statement
+---
 
-Autodoc pages (Python API docs, CLI reference, REST API docs) are rebuilt on **every incremental build**, even when:
-- No Python source files changed
-- No CLI command definitions changed
-- The output HTML already exists and is valid
+## Revision History
 
-### Evidence
+| Date | Version | Changes |
+|------|---------|---------|
+| 2026-01-14 | 2.1 | Improved based on evaluation: Added Design Options, Normalization Strategy, and Non-Goals |
+| 2026-01-14 | 2.0 | Complete rewrite: Acknowledged existing selective rebuild infrastructure, refocused on docstring-level hashing gap, corrected file paths |
+| 2026-01-14 | 1.0 | Initial draft (superseded - proposed features that already existed) |
 
-```bash
-# After simple text edit to _index.md:
-Incremental build: 847 pages, 0 assets (skipped 224 cached)
+---
 
-# Breakdown:
-# - 224 content pages: CACHED ✅
-# - 726 autodoc-python pages: REBUILT ❌
-# - 96 autodoc-cli pages: REBUILT ❌  
-# - 23 autodoc-rest pages: REBUILT ❌
-# Total autodoc: 845 pages rebuilt unnecessarily
-```
+## Executive Summary
 
-### Impact
+Bengal's autodoc system has **existing** selective rebuild infrastructure that tracks source→page dependencies. However, the current implementation uses **file-level hashing**, meaning any change to a Python file (imports, comments, formatting) triggers autodoc page rebuilds even when docstrings are unchanged.
 
-| Metric | Current | Target |
-|--------|---------|--------|
-| Incremental build time | ~15s | <2s |
-| Pages rebuilt (no code change) | 845 | ~5 |
-| Dev server responsiveness | Poor | Instant |
+This RFC proposes **docstring-level content hashing** to reduce unnecessary rebuilds when Python files change in ways that don't affect documentation.
 
-## Root Cause Analysis
+**Target**: Reduce autodoc rebuilds from "any file change" to "only docstring/signature changes".
 
-### Current Autodoc Flow
+---
 
-```
-1. Discovery phase scans Python files
-2. AutodocOrchestrator generates virtual pages for every symbol
-3. ALL autodoc pages added to pages_to_build
-4. ALL autodoc pages rendered (even if unchanged)
-5. ~12 seconds spent rendering unchanged API docs
-```
+## Current State Analysis
 
-### Why Autodoc Pages Always Rebuild
+### What Already Exists ✅
 
-Location: `bengal/orchestration/incremental/taxonomy_detector.py:351-376`
+Bengal already has comprehensive autodoc incremental build support:
+
+| Feature | Location | Status |
+|---------|----------|--------|
+| Source→page dependency tracking | `bengal/cache/build_cache/autodoc_tracking.py:54` | ✅ Implemented |
+| Selective page rebuild | `bengal/orchestration/incremental/taxonomy_detector.py:396` | ✅ Implemented |
+| File-level content hashing | `bengal/orchestration/content.py:406` | ✅ Implemented |
+| Self-validation (hash mismatch detection) | `autodoc_tracking.py:180-313` | ✅ Implemented |
+| mtime-first optimization | `autodoc_tracking.py:280-282` | ✅ Implemented |
+
+**Evidence** - Selective rebuild already works:
 
 ```python
-def check_autodoc_changes(...) -> set[str]:
-    """Check for autodoc source file changes."""
-    # Returns ALL autodoc pages if ANY source file changed
-    # No granular tracking of which symbols are affected
+# taxonomy_detector.py:396
+affected_pages = self.cache.get_affected_autodoc_pages(source_path)
+if affected_pages:
+    autodoc_pages_to_rebuild.update(affected_pages)
 ```
-
-Location: `bengal/orchestration/incremental/change_detector.py:301-308`
 
 ```python
-# Check autodoc changes
-autodoc_pages = self._taxonomy_detector.check_autodoc_changes(...)
-
-# Convert to Page objects - adds ALL autodoc pages
-pages_to_build = self._collect_pages(pages_to_rebuild, autodoc_pages)
+# autodoc_tracking.py:54-58
+autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
+autodoc_source_metadata: dict[str, tuple[str, float]] = field(default_factory=dict)
 ```
 
-**Problem**: The autodoc system lacks:
-1. **Source → Symbol mapping**: No tracking of which Python file affects which autodoc page
-2. **Output validation**: No check if existing HTML is still valid
-3. **Content hashing**: No hash of source docstrings to detect actual changes
+### The Actual Gap ❌
+
+The current system hashes **entire Python files**, not just the documentation-relevant content:
+
+```python
+# content.py:406 - Current implementation
+source_hash = hash_file(src_path)  # Hashes ENTIRE file
+```
+
+**Problem**: Non-documentation changes trigger unnecessary rebuilds:
+
+| Change Type | Current Behavior | Ideal Behavior |
+|-------------|------------------|----------------|
+| Docstring edit | Rebuild ✅ | Rebuild ✅ |
+| Signature change | Rebuild ✅ | Rebuild ✅ |
+| Import added | Rebuild ❌ | Skip |
+| Comment changed | Rebuild ❌ | Skip |
+| Code formatting | Rebuild ❌ | Skip |
+| Type hint in body | Rebuild ❌ | Skip |
+
+### Impact Assessment
+
+| Scenario | Current | With Docstring Hashing |
+|----------|---------|------------------------|
+| Python file reformatted | All affected pages rebuild | 0 pages rebuild |
+| Import added | All affected pages rebuild | 0 pages rebuild |
+| Docstring edited | Affected pages rebuild | Affected pages rebuild |
+| Full rebuild (cold cache) | All pages | All pages (no change) |
+
+**Estimated improvement**: 30-50% reduction in unnecessary autodoc rebuilds during development.
+
+---
+
+## Design Options
+
+### Option 1: Docstring & Signature Hashing (Recommended)
+
+Focus on hashing exactly what the user sees in the documentation. This is high-impact and relatively simple to implement.
+
+**Pros**:
+- Directly correlates with documentation visual changes.
+- Implementation is straightforward within the existing `DocElement` structure.
+- Low performance overhead.
+
+**Cons**:
+- May miss subtle implementation changes that affect dynamic doc generation (if any).
+
+### Option 2: Full AST-based Symbol Hashing
+
+Parse the AST for each symbol and hash the entire subtree related to that symbol (excluding function bodies).
+
+**Pros**:
+- Extremely robust; catches any change in the symbol's definition.
+- Future-proof for more complex documentation generators.
+
+**Cons**:
+- Higher complexity to implement.
+- Potentially slower due to extensive AST traversal and normalization.
+- Diminishing returns over Option 1.
+
+---
 
 ## Proposed Solution
 
-### Phase 1: Source-Symbol Dependency Tracking
+### Phase 1: Symbol Content Hashing
 
-Track which autodoc pages depend on which source files:
+Add docstring-level hashing that only considers documentation-relevant content.
 
-```python
-# New: bengal/cache/autodoc_dependencies.py
-@dataclass
-class AutodocDependency:
-    """Tracks source → autodoc page dependencies."""
-    
-    # Source file path → set of autodoc page paths
-    source_to_pages: dict[str, set[str]]
-    
-    # Autodoc page path → source file hash
-    page_source_hashes: dict[str, str]
-    
-    # Autodoc page path → output content hash  
-    page_output_hashes: dict[str, str]
-```
-
-**Integration points**:
-- `bengal/orchestration/content.py:phase_autodoc()` — Build dependency map during discovery
-- `bengal/orchestration/incremental/taxonomy_detector.py:check_autodoc_changes()` — Use dependency map for selective rebuild
-
-### Phase 2: Docstring Content Hashing
-
-Hash the actual docstring content, not just file mtime:
+**Normalization Strategy**:
+- All docstrings are stripped of leading/trailing whitespace.
+- Multiple internal newlines are collapsed to a single newline for hashing purposes.
+- Signatures are normalized by removing optional whitespace between parameters.
+- Decorators are sorted alphabetically before hashing.
 
 ```python
-def compute_symbol_hash(symbol: Any) -> str:
-    """Compute hash of symbol's docstring and signature."""
-    parts = [
-        symbol.__doc__ or "",
-        str(getattr(symbol, "__annotations__", {})),
-        str(getattr(symbol, "__signature__", "")),
-    ]
-    return hash_str("|".join(parts), truncate=16)
+# New: bengal/autodoc/hashing.py
+
+def compute_doc_content_hash(
+    element: DocElement,
+    *,
+    include_signature: bool = True,
+) -> str:
+    """
+    Compute hash of documentation-relevant content only.
+    
+    Normalization:
+    - Docstrings: strip(), collapse redundant newlines.
+    - Signatures: strip(), remove param spacing.
+    - Decorators: sorted() alphabetically.
+    
+    Does NOT hash (Non-Goals):
+    - Implementation code (function/method bodies)
+    - Import statements not part of signatures
+    - Comments outside docstrings
+    - Internal type hints in function bodies
+    """
+    parts: list[str] = []
+    
+    # Docstring (the primary documentation content)
+    if element.docstring:
+        normalized_doc = "\n".join(l.strip() for l in element.docstring.strip().splitlines() if l.strip())
+        parts.append(normalized_doc)
+    
+    # Signature (affects documentation display)
+    if include_signature and element.signature:
+        parts.append(element.signature.replace(" ", ""))
+    
+    # For classes: bases affect inheritance documentation
+    if element.element_type == "class" and element.bases:
+        parts.append("|".join(sorted(element.bases)))
+    
+    # Decorators (may affect documentation)
+    if element.decorators:
+        parts.append("|".join(sorted(element.decorators)))
+
+    # Cross-file inheritance handling: 
+    # If this is a child class, the MRO is included to detect parent changes
+    if hasattr(element, "mro") and element.mro:
+        parts.append("|".join(element.mro))
+    
+    content = "\n".join(parts)
+    return hash_str(content, truncate=16)
 ```
 
-**Why this matters**: A Python file can change (imports, formatting) without affecting the docstring that becomes the API doc content.
+### Phase 2: Integration with Dependency Tracking
 
-### Phase 3: Output Validation Cache
-
-Before regenerating, check if existing output is valid:
+Modify `page_builders.py` to use doc content hash instead of file hash:
 
 ```python
-class AutodocOutputCache:
-    """Cache for autodoc output validation."""
-    
-    def should_regenerate(
-        self,
-        page_path: Path,
-        source_hash: str,
-        template_hash: str,
-    ) -> bool:
-        """Check if autodoc page needs regeneration."""
-        entry = self.entries.get(str(page_path))
-        if not entry:
-            return True
-        
-        # Check source content changed
-        if entry.source_hash != source_hash:
-            return True
-            
-        # Check template changed
-        if entry.template_hash != template_hash:
-            return True
-            
-        # Check output exists
-        if not self._output_exists(page_path):
-            return True
-            
-        return False
+# bengal/autodoc/orchestration/page_builders.py
+
+# Current (file-level):
+result.add_dependency(str(source_file_for_tracking), source_id)
+
+# Enhanced (doc-content-level):
+doc_hash = compute_doc_content_hash(element)
+result.add_dependency(
+    str(source_file_for_tracking),
+    source_id,
+    content_hash=doc_hash,  # New parameter
+)
 ```
 
-### Phase 4: Selective Autodoc Rebuild
+### Phase 3: Cache Structure Update
 
-Modify `check_autodoc_changes()` to return only affected pages:
+Extend `AutodocTrackingMixin` to store doc content hashes:
 
 ```python
-def check_autodoc_changes(self, ...) -> set[str]:
-    """Check for autodoc source file changes - SELECTIVE."""
-    
-    affected_pages: set[str] = set()
-    
-    # Get changed Python files
-    changed_sources = self._get_changed_python_files()
-    
-    if not changed_sources:
-        return affected_pages  # Nothing changed → skip all autodoc
-    
-    # Use dependency map to find affected pages
-    for source_path in changed_sources:
-        affected = self.autodoc_deps.source_to_pages.get(str(source_path), set())
-        affected_pages.update(affected)
-    
-    return affected_pages
+# autodoc_tracking.py - Add to metadata
+
+# Current: source_file → (file_hash, mtime)
+autodoc_source_metadata: dict[str, tuple[str, float]]
+
+# Enhanced: source_file → (file_hash, mtime, doc_hashes)
+# Where doc_hashes = {page_path: doc_content_hash}
+autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]]
 ```
+
+**Validation logic update**:
+
+```python
+def is_doc_content_changed(
+    self,
+    source_key: str,
+    page_path: str,
+    current_doc_hash: str,
+) -> bool:
+    """Check if documentation content changed (not just file)."""
+    entry = self.autodoc_source_metadata.get(source_key)
+    if not entry or len(entry) < 3:
+        return True  # No doc hashes stored, assume changed
+    
+    _file_hash, _mtime, doc_hashes = entry
+    stored_hash = doc_hashes.get(page_path)
+    
+    return stored_hash != current_doc_hash
+```
+
+---
 
 ## Implementation Plan
 
-### Sprint 1: Dependency Tracking (3-4 hours)
+### Sprint 1: Doc Content Hashing (2-3 hours)
 
-1. Create `AutodocDependencyTracker` class
-2. Build source → page mapping during autodoc discovery
-3. Persist mapping to `.bengal/autodoc_deps.json.zst`
-4. Add unit tests for dependency tracking
+**Files to create/modify**:
+- `bengal/autodoc/hashing.py` (new) — `compute_doc_content_hash()`
+- `bengal/autodoc/orchestration/result.py` — Extend `add_dependency()` signature
 
-**Files to modify**:
-- `bengal/cache/autodoc_dependencies.py` (new)
-- `bengal/orchestration/content.py` (integrate tracker)
-- `bengal/cache/paths.py` (add path)
+**Tasks**:
+1. Create `compute_doc_content_hash()` function
+2. Add unit tests for hash stability
+3. Verify hash changes only for doc-relevant changes
 
-### Sprint 2: Source Hashing (2-3 hours)
-
-1. Implement `compute_symbol_hash()` for docstrings
-2. Store hashes in dependency cache
-3. Compare hashes before rebuild decision
-4. Add unit tests
+### Sprint 2: Integration (2-3 hours)
 
 **Files to modify**:
-- `bengal/utils/primitives/hashing.py` (add symbol hashing)
-- `bengal/cache/autodoc_dependencies.py` (store hashes)
+- `bengal/autodoc/orchestration/page_builders.py` — Call `compute_doc_content_hash()`
+- `bengal/cache/build_cache/autodoc_tracking.py` — Store doc hashes
+- `bengal/orchestration/content.py` — Pass doc hashes to cache
 
-### Sprint 3: Selective Rebuild (2-3 hours)
+**Tasks**:
+1. Extend `add_dependency()` to accept content hash
+2. Modify cache structure to store doc hashes
+3. Update serialization for backward compatibility
 
-1. Modify `check_autodoc_changes()` to use dependency map
-2. Only return affected autodoc pages
-3. Add integration tests
-4. Verify with real site
-
-**Files to modify**:
-- `bengal/orchestration/incremental/taxonomy_detector.py`
-- `bengal/orchestration/incremental/change_detector.py`
-
-### Sprint 4: Output Validation (2 hours)
-
-1. Add output existence check
-2. Skip regeneration if output exists and source unchanged
-3. Add behavioral test
+### Sprint 3: Validation Logic (2-3 hours)
 
 **Files to modify**:
-- `bengal/orchestration/incremental/filter_engine.py`
+- `bengal/cache/build_cache/autodoc_tracking.py` — `is_doc_content_changed()`
+- `bengal/orchestration/incremental/taxonomy_detector.py` — Use doc content check
 
-## Performance Analysis
+**Tasks**:
+1. Implement `is_doc_content_changed()` method
+2. Integrate with `check_autodoc_changes()` 
+3. Add fallback to file-level hash when doc hash unavailable
 
-### Expected Improvement
+### Sprint 4: Testing (2 hours)
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| No Python changes | 845 pages rebuilt | 0 pages rebuilt |
-| One file changed | 845 pages rebuilt | ~10 pages rebuilt |
-| Template changed | 845 pages rebuilt | 845 pages rebuilt |
-| Full build | 845 pages | 845 pages (no change) |
+**Files to create/modify**:
+- `tests/unit/autodoc/test_hashing.py` (new)
+- `tests/unit/cache/test_autodoc_tracking.py` — Extend for doc hashes
+- `tests/integration/test_incremental_cache_stability.py` — Add doc-level tests
 
-### Incremental Build Time
-
+**Test cases**:
+```python
+class TestDocContentHashing:
+    def test_hash_stable_for_same_docstring(self): ...
+    def test_hash_changes_for_docstring_edit(self): ...
+    def test_hash_changes_for_signature_change(self): ...
+    def test_hash_unchanged_for_import_change(self): ...
+    def test_hash_unchanged_for_comment_change(self): ...
+    def test_hash_unchanged_for_code_formatting(self): ...
 ```
-Before: 15s (845 autodoc pages @ 18ms each)
-After:  <2s (hash checks only, no rendering)
-Improvement: 87% reduction
-```
+
+---
 
 ## API Design
 
-### AutodocDependencyTracker
+### compute_doc_content_hash
 
 ```python
-class AutodocDependencyTracker:
-    """Tracks autodoc source → page dependencies."""
+def compute_doc_content_hash(
+    element: DocElement,
+    *,
+    include_signature: bool = True,
+    include_decorators: bool = True,
+) -> str:
+    """
+    Compute hash of documentation-relevant content.
     
-    def __init__(self, cache_path: Path) -> None:
-        """Initialize tracker, loading from cache if exists."""
-    
-    def track_symbol(
-        self,
-        source_file: Path,
-        symbol_name: str,
-        page_path: Path,
-        docstring_hash: str,
-    ) -> None:
-        """Track a symbol's source → page dependency."""
-    
-    def get_affected_pages(
-        self,
-        changed_sources: set[Path],
-    ) -> set[Path]:
-        """Get autodoc pages affected by source changes."""
-    
-    def should_regenerate(
-        self,
-        page_path: Path,
-        current_source_hash: str,
-    ) -> bool:
-        """Check if page needs regeneration based on source hash."""
-    
-    def save(self) -> None:
-        """Persist tracker to disk."""
+    Args:
+        element: DocElement with docstring, signature, etc.
+        include_signature: Include function/method signature in hash
+        include_decorators: Include decorators in hash
+        
+    Returns:
+        16-character truncated SHA-256 hash of doc content
+        
+    Example:
+        >>> element = DocElement(
+        ...     name="my_func",
+        ...     docstring="Does something.",
+        ...     signature="(x: int) -> str",
+        ... )
+        >>> compute_doc_content_hash(element)
+        'a1b2c3d4e5f6g7h8'
+    """
 ```
+
+### Extended add_dependency
+
+```python
+def add_dependency(
+    self,
+    source_file: str,
+    page_path: str,
+    *,
+    content_hash: str | None = None,  # NEW
+) -> None:
+    """
+    Register a dependency between a source file and an autodoc page.
+    
+    Args:
+        source_file: Path to the Python/OpenAPI source file
+        page_path: Path to the generated autodoc page
+        content_hash: Optional doc content hash for fine-grained detection
+    """
+```
+
+---
 
 ## Migration Path
 
 ### Backward Compatibility
 
-- First build after upgrade: Full autodoc rebuild (no cache yet)
-- Subsequent builds: Selective rebuild (cache populated)
-- No breaking changes to config or CLI
+- **First build after upgrade**: Uses file-level hash (no doc hashes in cache)
+- **Subsequent builds**: Uses doc-level hash (cache populated)
+- **Cache format**: Backward compatible — old caches work, just less optimal
 
-### Cache Invalidation
-
-The autodoc cache should invalidate when:
-1. Template files change (`autodoc.html`, etc.)
-2. Bengal version changes (format might differ)
-3. Autodoc config changes (`autodoc.exclude`, etc.)
-
-## Testing Strategy
-
-### Unit Tests
+### Fallback Behavior
 
 ```python
-class TestAutodocDependencyTracker:
-    def test_track_symbol_builds_mapping(self): ...
-    def test_get_affected_pages_returns_correct_set(self): ...
-    def test_should_regenerate_true_when_source_changed(self): ...
-    def test_should_regenerate_false_when_unchanged(self): ...
-    def test_cache_persistence(self): ...
+# When doc hash unavailable, fall back to file hash
+if doc_hash_available:
+    changed = is_doc_content_changed(source, page, current_doc_hash)
+else:
+    changed = is_file_changed(source)  # Existing behavior
 ```
 
-### Behavioral Tests
-
-```python
-class TestAutodocIncrementalBehavior:
-    def test_no_python_changes_skips_all_autodoc(self):
-        """When no Python files change, no autodoc pages rebuild."""
-        # Build site
-        # Edit content/_index.md (no Python)
-        # Rebuild
-        # Assert: 0 autodoc pages in pages_to_build
-    
-    def test_single_file_change_rebuilds_affected_only(self):
-        """When one Python file changes, only affected autodoc rebuilds."""
-        # Build site
-        # Edit bengal/core/page.py
-        # Rebuild
-        # Assert: Only Page-related autodoc pages rebuild
-```
+---
 
 ## Risks and Mitigations
 
-### Risk 1: Incorrect Dependency Tracking
+### Risk 1: Hash Instability
 
-**Risk**: Missing a dependency causes stale docs.
-
-**Mitigation**: 
-- Include all imports in dependency tracking
-- Add "last full rebuild" timestamp for periodic validation
-- Conservative fallback: rebuild all if tracking fails
-
-### Risk 2: Hash Collisions
-
-**Risk**: Different docstrings produce same hash.
+**Risk**: Different extraction runs produce different hashes for same content.
 
 **Mitigation**:
-- Use 16-char truncated SHA-256 (collision probability ~1 in 10^19)
-- Store full docstring hash, not truncated
+- Normalize whitespace in docstrings before hashing
+- Sort decorators alphabetically
+- Use stable representation for signatures
 
-### Risk 3: Complex Inheritance
+### Risk 2: Inheritance Changes
 
-**Risk**: Docstring inherited from parent class not tracked.
+**Risk**: Parent class docstring changes don't trigger child rebuild.
 
 **Mitigation**:
-- Track `__mro__` for classes
-- Include parent docstrings in hash computation
+- Include MRO in hash for classes
+- Track inheritance dependencies in `autodoc_dependencies`
+
+### Risk 3: External Type References
+
+**Risk**: Type hints referencing other modules not tracked.
+
+**Mitigation**:
+- Initially, consider this out of scope (file-level fallback handles it)
+- Future: Extend dependency tracking to cross-module types
+
+---
 
 ## Success Criteria
 
-1. **Incremental build with no Python changes**: 0 autodoc pages rebuilt
-2. **Single Python file change**: Only affected autodoc pages rebuilt
-3. **Build time reduction**: From 15s to <2s for no-Python-change builds
-4. **No false negatives**: Changing docstring always triggers rebuild
+1. **Formatting changes skip rebuild**: `black` reformatting a Python file → 0 autodoc pages rebuilt
+2. **Import changes skip rebuild**: Adding an import → 0 autodoc pages rebuilt  
+3. **Docstring changes rebuild**: Editing a docstring → Only affected pages rebuilt
+4. **No false negatives**: Signature changes always trigger rebuild
+5. **Backward compatible**: Old caches continue to work
 
-## Appendix: Current Autodoc Architecture
+---
 
-### File Locations
+## Appendix: Existing Architecture Reference
+
+### Autodoc File Structure (Actual)
 
 ```
-bengal/orchestration/autodoc/
-├── __init__.py           # Main AutodocOrchestrator
-├── python_inspector.py   # Python symbol discovery
-├── cli_inspector.py      # CLI command discovery
-└── rest_inspector.py     # REST API discovery
+bengal/autodoc/
+├── __init__.py           # Public API exports
+├── base.py               # DocElement, Extractor base class
+├── config.py             # Configuration loading
+├── docstring_parser.py   # Docstring parsing
+├── utils.py              # Utility functions
+├── extractors/
+│   ├── python/           # Python AST extraction
+│   │   ├── extractor.py  # Main PythonExtractor
+│   │   ├── signature.py  # Signature parsing
+│   │   └── ...
+│   ├── cli.py            # CLI command extraction
+│   └── openapi.py        # OpenAPI spec extraction
+├── models/               # Typed metadata dataclasses
+├── orchestration/
+│   ├── orchestrator.py   # VirtualAutodocOrchestrator
+│   ├── page_builders.py  # Page creation
+│   ├── section_builders.py
+│   └── result.py         # AutodocRunResult
+└── fallback/             # Fallback templates
+```
+
+### Incremental Build File Structure
+
+```
+bengal/cache/build_cache/
+├── autodoc_tracking.py   # AutodocTrackingMixin
+└── core.py               # BuildCache
 
 bengal/orchestration/incremental/
-├── taxonomy_detector.py  # check_autodoc_changes() lives here
-└── change_detector.py    # Calls check_autodoc_changes()
+├── taxonomy_detector.py  # check_autodoc_changes()
+├── change_detector.py    # IncrementalChangeDetector
+└── filter_engine.py      # IncrementalFilterEngine
 ```
 
-### Page Counts (Bengal site)
+### Current Page Counts (Bengal Site)
 
-| Type | Count | Template |
-|------|-------|----------|
-| autodoc-python | 726 | autodoc.html |
-| autodoc-cli | 96 | autodoc-cli.html |
-| autodoc-rest | 23 | autodoc-rest.html |
-| **Total** | **845** | |
+| Type | Count | Notes |
+|------|-------|-------|
+| autodoc-python | ~726 | API reference pages |
+| autodoc-cli | ~96 | CLI command pages |
+| autodoc-rest | ~23 | REST API pages |
+| **Total** | **~845** | |
+
+---
 
 ## References
 
-- [RFC: Output Cache Architecture](rfc-output-cache-architecture.md) — Parent RFC for caching strategy
-- [RFC: Behavioral Test Hardening](rfc-behavioral-test-hardening.md) — Testing approach
-- `bengal/orchestration/autodoc/` — Current autodoc implementation
+- [RFC: Output Cache Architecture](rfc-output-cache-architecture.md) — Parent caching strategy
+- `bengal/cache/build_cache/autodoc_tracking.py` — Existing dependency tracking
+- `bengal/orchestration/incremental/taxonomy_detector.py:351-442` — Existing selective rebuild
+- `tests/unit/cache/test_autodoc_tracking.py` — Existing unit tests

@@ -132,10 +132,10 @@ class BuildCache(
     # Enables selective rebuilding of autodoc pages when their sources change
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
-    # Autodoc source metadata: source_file → (content_hash, mtime)
-    # Enables self-validation of autodoc sources independent of CI cache keys
-    # See: plan/rfc-ci-cache-inputs.md (Phase 4: Self-Validating Cache)
-    autodoc_source_metadata: dict[str, tuple[str, float]] = field(default_factory=dict)
+    # Autodoc source metadata: source_file → (content_hash, mtime, {page_path: doc_hash})
+    # Enables fine-grained incremental builds and self-validation.
+    # See: plan/rfc-autodoc-incremental-caching.md
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
 
     # URL ownership claims: url → URLClaim dict
     # Persists URL claims for incremental build safety (prevents shadowing by new content)

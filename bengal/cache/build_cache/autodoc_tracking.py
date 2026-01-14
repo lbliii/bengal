@@ -44,18 +44,19 @@ class AutodocTrackingMixin:
     Attributes:
         autodoc_dependencies: Mapping of source_file path to set of autodoc page paths
             that are generated from that source file.
-        autodoc_source_metadata: Mapping of source_file path to (content_hash, mtime)
-            tuple for self-validation. The mtime-first optimization skips hash
-            computation when mtime is unchanged.
+        autodoc_source_metadata: Mapping of source_file path to metadata tuple:
+            (file_content_hash, mtime, {page_path: doc_content_hash}).
+            The mtime-first optimization skips hash computation when mtime is unchanged.
         
     """
 
     # Mixin expects these to be defined in the main dataclass
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
-    # NEW: source_file → (content_hash, mtime) for self-validation
-    # Using tuple allows mtime-first optimization (skip hash if mtime unchanged)
-    autodoc_source_metadata: dict[str, tuple[str, float]] = field(default_factory=dict)
+    # source_file → (content_hash, mtime, {page_path: doc_content_hash})
+    # Using tuple allows mtime-first optimization.
+    # The third element is a mapping of autodoc pages to their fine-grained content hashes.
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
 
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
@@ -87,6 +88,7 @@ class AutodocTrackingMixin:
         site_root: Path | None = None,
         source_hash: str | None = None,
         source_mtime: float | None = None,
+        content_hash: str | None = None,
     ) -> None:
         """
         Register that source_file produces autodoc_page.
@@ -95,8 +97,9 @@ class AutodocTrackingMixin:
             source_file: Path to the Python/OpenAPI source file
             autodoc_page: Path to the generated autodoc page (source_path)
             site_root: Site root path for normalization (optional, uses raw path if not provided)
-            source_hash: Content hash for self-validation (optional)
+            source_hash: File-level content hash for self-validation (optional)
             source_mtime: File mtime for fast staleness check (optional)
+            content_hash: Fine-grained doc content hash for selective rebuilds (optional)
         """
         if site_root is not None:
             source_key = self._normalize_source_path(source_file, site_root)
@@ -109,15 +112,27 @@ class AutodocTrackingMixin:
             self.autodoc_dependencies[source_key] = set()
         self.autodoc_dependencies[source_key].add(page_key)
 
-        # Store metadata for self-validation (if provided)
+        # Store metadata for self-validation and fine-grained change detection
         if source_hash is not None and source_mtime is not None:
-            self.autodoc_source_metadata[source_key] = (source_hash, source_mtime)
+            # Handle migration or existing entry
+            existing = self.autodoc_source_metadata.get(source_key)
+            doc_hashes = {}
+            if existing:
+                # If we have a 3-tuple, keep existing doc_hashes
+                if len(existing) >= 3:
+                    doc_hashes = existing[2]
+            
+            if content_hash:
+                doc_hashes[page_key] = content_hash
+
+            self.autodoc_source_metadata[source_key] = (source_hash, source_mtime, doc_hashes)
 
         logger.debug(
             "autodoc_dependency_registered",
             source_file=source_key,
             autodoc_page=page_key,
             has_metadata=source_hash is not None,
+            has_content_hash=content_hash is not None,
         )
 
     def get_affected_autodoc_pages(self, changed_source: Path | str) -> set[str]:
@@ -257,7 +272,11 @@ class AutodocTrackingMixin:
 
         stale_sources: set[str] = set()
 
-        for source_key, (stored_hash, stored_mtime) in self.autodoc_source_metadata.items():
+        for source_key, metadata in self.autodoc_source_metadata.items():
+            # Support both old (2-tuple) and new (3-tuple) metadata formats
+            stored_hash = metadata[0]
+            stored_mtime = metadata[1]
+            
             # Resolve path - keys are normalized relative to site PARENT
             # (since autodoc sources are typically outside site root, e.g., ../bengal/)
             if Path(source_key).is_absolute():
@@ -334,3 +353,33 @@ class AutodocTrackingMixin:
                 else 100.0
             ),
         }
+
+    def is_doc_content_changed(
+        self,
+        source_key: str,
+        page_path: str,
+        current_doc_hash: str,
+    ) -> bool:
+        """
+        Check if the documentation content for a specific page has changed.
+
+        Args:
+            source_key: Normalized source file key
+            page_path: Path to the autodoc page
+            current_doc_hash: Current doc content hash computed during extraction
+
+        Returns:
+            True if changed (or not in cache), False otherwise
+        """
+        metadata = self.autodoc_source_metadata.get(source_key)
+        if not metadata or len(metadata) < 3:
+            return True  # No metadata or old format, assume changed
+
+        # metadata is (file_hash, mtime, {page_path: doc_hash})
+        doc_hashes = metadata[2]
+        stored_hash = doc_hashes.get(page_path)
+
+        if stored_hash is None:
+            return True  # Page not in cache for this source
+
+        return stored_hash != current_doc_hash
