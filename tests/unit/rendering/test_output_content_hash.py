@@ -67,14 +67,15 @@ class TestEmbedContentHash:
 
     def test_embed_replaces_existing_hash(self) -> None:
         """Replaces existing hash with new one."""
+        # Note: Hashes must be valid hex (a-f0-9)
         html = '''<html><head>
-    <meta name="bengal:content-hash" content="oldhash">
+    <meta name="bengal:content-hash" content="abc123def456">
 </head></html>'''
-        result = embed_content_hash(html, content_hash="newhash")
+        result = embed_content_hash(html, content_hash="fedcba654321")
         
         # Should only have new hash
-        assert 'content="newhash"' in result
-        assert 'content="oldhash"' not in result
+        assert 'content="fedcba654321"' in result
+        assert 'content="abc123def456"' not in result
         # Only one hash meta tag
         assert result.count("bengal:content-hash") == 1
 
