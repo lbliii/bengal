@@ -8,21 +8,21 @@
 
 ## Summary
 
-**Problem**: Debugging incremental build issues is difficult due to:
-- Conservative fallbacks that obscure root causes without a unified trace
-- Several caching layers without an end-to-end decision view
-- Missing invariant tests for subsection behavior and fallback paths
-- No layer-by-layer decision trace tied to the incremental pipeline
+**Problem**: Debugging incremental build issues is difficult because:
+- Fallback paths work correctly but lack observability into *which* path was taken
+- The existing `--explain` flag shows what rebuilt, but not *why* decisions were made at each layer
+- Missing invariant tests for subsection behavior and fallback correctness
+- No unified layer-by-layer decision trace in CLI output
 
-**Solution**: Build a comprehensive observability system with:
-1. Extend `--explain` with a full decision trace (optionally alias `--trace-incremental`)
-2. Invariant-based tests that verify correctness properties
-3. Structured decision logging at each layer
-4. Fail-fast mode for development
+**Solution**: Enhance observability by extending existing infrastructure:
+1. Extend `FilterDecisionLog` with layer-specific trace fields
+2. Enhance `--explain` output to show the full decision trace
+3. Add invariant-based tests that verify correctness properties
+4. Add `BENGAL_STRICT_INCREMENTAL` mode for development
 
 **Priority**: High (incremental builds are core Bengal value proposition)
 
-**Scope**: ~400 LOC implementation + ~200 LOC tests
+**Scope**: ~350 LOC implementation + ~200 LOC tests
 
 ---
 
@@ -32,9 +32,9 @@ A simple "hello world" text change triggered a full rebuild. Diagnosing this req
 
 | Issue | Time to Find | Root Cause | Why Hard |
 |-------|--------------|------------|----------|
-| Data file fingerprints not saved | 20 min | `_update_data_file_fingerprints()` never called | No decision trace tying fallback to rebuild |
-| Python 3.12 vs 3.14 | 10 min | `compression.zstd` import failed | Warning existed in logs, no trace context |
-| `autodoc` metadata empty | 15 min | Metadata missing in cache | No trace for fallback path selection |
+| Data file fingerprints not saved | 20 min | `_update_data_file_fingerprints()` never called | No trace showing fallback triggered |
+| Python 3.12 vs 3.14 | 10 min | `compression.zstd` import failed | Warning in logs, but no trace context |
+| `autodoc` metadata empty | 15 min | Metadata missing in cache | Fallback worked, but no visibility |
 | Section optimization too strict | 20 min | Subsection changes not visible | No trace of section filtering |
 | Subsection path matching | 10 min | Path containment bug | No per-page section filter trace |
 
@@ -42,35 +42,54 @@ A simple "hello world" text change triggered a full rebuild. Diagnosing this req
 
 ---
 
+## Existing Infrastructure
+
+The codebase already has substantial observability infrastructure. This RFC **extends** rather than replaces it:
+
+### What We Have
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `--explain` flag | `bengal/cli/commands/build.py:147` | Show rebuild reasons |
+| `--explain-json` flag | `bengal/cli/commands/build.py:152` | Machine-readable output |
+| `IncrementalDecision` | `bengal/orchestration/build/results.py` | Track rebuild reasons per page |
+| `RebuildReasonCode` | `bengal/orchestration/build/results.py` | Structured reason codes |
+| `FilterDecisionLog` | `bengal/orchestration/incremental/filter_engine.py` | Decision pipeline logging |
+| `IncrementalFilterEngine` | `bengal/orchestration/incremental/filter_engine.py` | 7-step decision pipeline |
+| Autodoc fingerprint fallback | `bengal/cache/build_cache/autodoc_tracking.py:202-220` | Graceful degradation |
+
+### What's Missing
+
+The existing `--explain` output shows **what** was rebuilt and the immediate reason code, but doesn't expose:
+- Whether a **fallback path** was used (e.g., fingerprints instead of metadata)
+- Per-layer decision summaries (data files → autodoc → sections → pages)
+- Section filtering decisions (why "docs" was marked changed)
+- Whether observability data was **available** vs **missing**
+
+---
+
 ## Problem Analysis
 
-### 1. Silent Failures Mask Root Causes
+### 1. Observability Gap, Not Logic Gap
 
-Current behavior when cache loading fails:
-
-```python
-# In BuildCache.load()
-try:
-    return cls._load_from_file(cache_path)
-except Exception as e:
-    logger.warning("cache_load_failed", error=str(e), action="using_fresh_cache")
-    return cls()
-```
-
-When `autodoc` metadata is missing:
+The incremental build logic is **correct**—fallbacks work properly. The issue is **visibility**:
 
 ```python
-# In get_stale_autodoc_sources()
+# autodoc_tracking.py:202-220 - This works correctly!
 if not self.autodoc_source_metadata and self.autodoc_dependencies:
+    has_fingerprints = hasattr(self, 'file_fingerprints') and self.file_fingerprints
     if has_fingerprints:
-        return stale_sources  # Fingerprint fallback
-    return set(self.autodoc_dependencies.keys())
+        # Fingerprint fallback - works, but user doesn't know it fired
+        stale_sources: set[str] = set()
+        for source_key in self.autodoc_dependencies:
+            if hasattr(self, 'is_changed') and self.is_changed(source):
+                stale_sources.add(source_key)
+        return stale_sources
 ```
 
-**Result**: Failures are safer than before, but the lack of a single trace still makes
-root cause analysis slow and indirect.
+**The problem**: When debugging, there's no way to see that this fallback was used. The user only sees the final rebuild count, not *why* that count was computed.
 
-### 2. Several Caching Layers Without Unified View
+### 2. Layer Decisions Not Surfaced
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -80,157 +99,136 @@ root cause analysis slow and indirect.
 │  Layer 1: Data Files        Layer 2: autodoc         Layer 3: Sections
 │  ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
 │  │ Fingerprints    │  →    │ Source Metadata │  →    │ Section Opt     │
-│  │ (file_tracking) │       │ (autodoc_track) │       │ (rebuild_filter)│
+│  │ ✓ Available     │       │ ✗ Missing       │       │ ✓ Enabled       │
+│  │ 0 changed       │       │ ✓ Fallback used │       │ 1 section marked│
 │  └─────────────────┘       └─────────────────┘       └─────────────────┘
 │         │                         │                         │
 │         ↓                         ↓                         ↓
-│    [3 changes]              [empty → all]           [docs marked]
-│                                                            │
-│                                                            ↓
-│                                                   Layer 4: Page Filter
-│                                                   ┌─────────────────┐
-│                                                   │ file_detector   │
-│                                                   │ (pages_to_scan) │
-│                                                   └─────────────────┘
-│                                                            │
-│                                                            ↓
-│                                                      [0 pages!?]
+│  [Currently hidden]        [Currently hidden]        [Currently hidden]
 │                                                                      │
-│  ❌ No single place to see: "Why did we decide to rebuild X pages?" │
+│  ❌ `--explain` shows final count, but not layer-by-layer decisions │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Tests Test Implementation, Not Invariants
+### 3. Tests Verify Implementation, Not Invariants
 
-Current tests:
-```python
-def test_save_and_load(self, tmp_path):
-    cache = BuildCache()
-    cache.update_file(some_file)
-    cache.save(cache_path)
-    loaded = BuildCache.load(cache_path)
-    assert loaded.file_fingerprints  # Passes in-process, fails cross-process!
-```
+Current tests verify specific implementation behavior. Missing: tests that verify **invariants** regardless of implementation:
 
-Missing tests:
-- Subsection changes detected (parent section marked)
-- `autodoc` with missing metadata uses fingerprints
-- Page filtering includes subsection pages
+| Invariant | Current Coverage |
+|-----------|------------------|
+| Unchanged files are never rebuilt | ❌ Not tested |
+| Changed files are always rebuilt | ❌ Not tested |
+| Subsection changes mark parent section | ❌ Not tested |
+| Fallback to fingerprints works correctly | ✅ Unit test exists |
+| Cross-process cache consistency | ✅ Unit test exists |
 
 ---
 
 ## Proposed Solution
 
-### 1. Decision Trace System (`--explain` trace + optional `--trace-incremental`)
+### 1. Extend `FilterDecisionLog` with Layer Trace
 
-Add a structured trace that captures every decision point. Use `--explain` as the
-primary flag and add `--trace-incremental` if a dedicated name helps tooling.
+Rather than creating a parallel `IncrementalDecisionTrace`, extend the existing `FilterDecisionLog`:
 
 ```python
+# bengal/orchestration/incremental/filter_engine.py
+
 @dataclass
-class IncrementalDecisionTrace:
-    """Full trace of incremental build decision for debugging."""
+class FilterDecisionLog:
+    """Decision log with full layer-by-layer trace."""
     
-    # Timestamps for performance analysis
-    trace_started: float
-    trace_completed: float
+    # Existing fields (unchanged)
+    incremental_enabled: bool = False
+    decision_type: FilterDecisionType = FilterDecisionType.INCREMENTAL
+    full_rebuild_trigger: FullRebuildTrigger | None = None
+    pages_with_changes: int = 0
+    assets_with_changes: int = 0
+    # ... other existing fields ...
     
-    # Layer 1: Data files
+    # NEW: Layer 1 - Data files
     data_files_checked: int = 0
-    data_files_changed: list[str] = field(default_factory=list)
-    data_file_fingerprints_available: bool = False
+    data_files_changed: int = 0
+    data_file_fingerprints_available: bool = True
     data_file_fallback_used: bool = False
     
-    # Layer 2: autodoc
-    autodoc_metadata_available: bool = False
+    # NEW: Layer 2 - autodoc
+    autodoc_metadata_available: bool = True
     autodoc_fingerprint_fallback_used: bool = False
     autodoc_sources_total: int = 0
-    autodoc_sources_stale: list[str] = field(default_factory=list)
-    autodoc_stale_reason: str = ""  # "metadata" | "fingerprint" | "missing"
+    autodoc_sources_stale: int = 0
+    autodoc_stale_method: str = ""  # "metadata" | "fingerprint" | "all_stale"
     
-    # Layer 3: Section optimization
+    # NEW: Layer 3 - Section optimization
     sections_total: int = 0
-    sections_checked: int = 0
     sections_marked_changed: list[str] = field(default_factory=list)
     section_change_reasons: dict[str, str] = field(default_factory=dict)
-    # e.g., {"docs": "subsection_fingerprint_stale:about/glossary.md"}
     
-    # Layer 4: Page filtering
-    pages_total: int = 0
+    # NEW: Layer 4 - Page filtering
     pages_in_changed_sections: int = 0
-    pages_with_stale_fingerprints: int = 0
     pages_filtered_by_section: int = 0
-    pages_filtered_reasons: dict[str, str] = field(default_factory=dict)
     
-    # Layer 5: Final decision
-    pages_to_rebuild: int = 0
-    pages_skipped: int = 0
-    assets_to_process: int = 0
-    decision_type: Literal["full", "incremental", "skip"] = "incremental"
-    full_rebuild_reason: str | None = None
-    
-    def to_diagnostic(self) -> str:
-        """Generate human-readable diagnostic output."""
+    def to_trace_output(self) -> str:
+        """Generate human-readable layer trace for --explain."""
         lines = [
+            "",
             "═══════════════════════════════════════════════════════════════",
-            "                  INCREMENTAL BUILD TRACE                       ",
+            "                    DECISION TRACE                              ",
             "═══════════════════════════════════════════════════════════════",
             "",
-            f"Final Decision: {self.decision_type.upper()}",
-            f"  Pages to rebuild: {self.pages_to_rebuild}",
-            f"  Pages skipped:    {self.pages_skipped}",
-            "",
-            "─────────────────────────────────────────────────────────────────",
-            "Layer 1: Data Files",
-            "─────────────────────────────────────────────────────────────────",
-            f"  Checked: {self.data_files_checked}",
-            f"  Changed: {len(self.data_files_changed)}",
-            f"  Fingerprints available: {self.data_file_fingerprints_available}",
-            f"  Fallback used: {self.data_file_fallback_used}",
+            f"Decision: {self.decision_type.name}",
         ]
-        if self.data_files_changed:
-            lines.append("  Changed files:")
-            for f in self.data_files_changed[:5]:
-                lines.append(f"    - {f}")
-            if len(self.data_files_changed) > 5:
-                lines.append(f"    ... and {len(self.data_files_changed) - 5} more")
+        
+        if self.full_rebuild_trigger:
+            lines.append(f"  Trigger: {self.full_rebuild_trigger.value}")
         
         lines.extend([
             "",
-            "─────────────────────────────────────────────────────────────────",
-            "Layer 2: autodoc",
-            "─────────────────────────────────────────────────────────────────",
-            f"  Metadata available: {self.autodoc_metadata_available}",
-            f"  Fingerprint fallback used: {self.autodoc_fingerprint_fallback_used}",
-            f"  Sources total: {self.autodoc_sources_total}",
-            f"  Sources stale: {len(self.autodoc_sources_stale)}",
+            "───────────────────────────────────────────────────────────────",
+            "Layer 1: Data Files",
+            "───────────────────────────────────────────────────────────────",
+            f"  Checked:     {self.data_files_checked}",
+            f"  Changed:     {self.data_files_changed}",
+            f"  Fingerprints available: {'✓' if self.data_file_fingerprints_available else '✗'}",
         ])
-        if self.autodoc_stale_reason:
-            lines.append(f"  Stale reason: {self.autodoc_stale_reason}")
+        if self.data_file_fallback_used:
+            lines.append("  ⚠ Fallback used (fingerprints unavailable)")
         
         lines.extend([
             "",
-            "─────────────────────────────────────────────────────────────────",
+            "───────────────────────────────────────────────────────────────",
+            "Layer 2: autodoc",
+            "───────────────────────────────────────────────────────────────",
+            f"  Sources tracked: {self.autodoc_sources_total}",
+            f"  Sources stale:   {self.autodoc_sources_stale}",
+            f"  Metadata available: {'✓' if self.autodoc_metadata_available else '✗'}",
+        ])
+        if self.autodoc_fingerprint_fallback_used:
+            lines.append("  ⚠ Using fingerprint fallback (metadata unavailable)")
+        if self.autodoc_stale_method:
+            lines.append(f"  Detection method: {self.autodoc_stale_method}")
+        
+        lines.extend([
+            "",
+            "───────────────────────────────────────────────────────────────",
             "Layer 3: Section Optimization",
-            "─────────────────────────────────────────────────────────────────",
-            f"  Sections total: {self.sections_total}",
+            "───────────────────────────────────────────────────────────────",
+            f"  Sections total:   {self.sections_total}",
             f"  Sections changed: {len(self.sections_marked_changed)}",
         ])
         if self.sections_marked_changed:
-            lines.append("  Changed sections:")
-            for s in self.sections_marked_changed:
-                reason = self.section_change_reasons.get(s, "unknown")
-                lines.append(f"    - {s} ({reason})")
+            for section in self.sections_marked_changed[:5]:
+                reason = self.section_change_reasons.get(section, "content_changed")
+                lines.append(f"    • {section} ({reason})")
+            if len(self.sections_marked_changed) > 5:
+                lines.append(f"    ... and {len(self.sections_marked_changed) - 5} more")
         
         lines.extend([
             "",
-            "─────────────────────────────────────────────────────────────────",
+            "───────────────────────────────────────────────────────────────",
             "Layer 4: Page Filtering",
-            "─────────────────────────────────────────────────────────────────",
-            f"  Pages total: {self.pages_total}",
+            "───────────────────────────────────────────────────────────────",
             f"  In changed sections: {self.pages_in_changed_sections}",
-            f"  With stale fingerprints: {self.pages_with_stale_fingerprints}",
-            f"  Filtered by section: {self.pages_filtered_by_section}",
+            f"  Filtered out:        {self.pages_filtered_by_section}",
             "",
             "═══════════════════════════════════════════════════════════════",
         ])
@@ -238,119 +236,277 @@ class IncrementalDecisionTrace:
         return "\n".join(lines)
 ```
 
-**CLI Integration**:
+### 2. Enhance `--explain` Output
 
-```bash
-$ bengal build --trace-incremental
+Extend the existing `_print_explain_output()` to include the layer trace:
 
-═══════════════════════════════════════════════════════════════
-                  INCREMENTAL BUILD TRACE                       
-═══════════════════════════════════════════════════════════════
+```python
+# bengal/cli/commands/build.py
 
-Final Decision: INCREMENTAL
-  Pages to rebuild: 3
-  Pages skipped:    1060
-
-─────────────────────────────────────────────────────────────────
-Layer 1: Data Files
-─────────────────────────────────────────────────────────────────
-  Checked: 3
-  Changed: 0
-  Fingerprints available: True
-  Fallback used: False
-
-─────────────────────────────────────────────────────────────────
-Layer 2: autodoc
-─────────────────────────────────────────────────────────────────
-  Metadata available: False
-  Fingerprint fallback used: True    ← Would have been "all stale" before fix
-  Sources total: 448
-  Sources stale: 0
-
-─────────────────────────────────────────────────────────────────
-Layer 3: Section Optimization
-─────────────────────────────────────────────────────────────────
-  Sections total: 5
-  Sections changed: 1
-  Changed sections:
-    - docs (subsection_fingerprint_stale:about/glossary.md)
-
-─────────────────────────────────────────────────────────────────
-Layer 4: Page Filtering
-─────────────────────────────────────────────────────────────────
-  Pages total: 1063
-  In changed sections: 35
-  With stale fingerprints: 3
-  Filtered by section: 1028
-
-═══════════════════════════════════════════════════════════════
+def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
+    """Print detailed incremental build decision breakdown."""
+    decision = stats.incremental_decision
+    if decision is None:
+        return
+    
+    # Existing output (rebuild reasons, page lists, etc.)
+    # ...
+    
+    # NEW: Add layer trace if available
+    filter_log = getattr(stats, 'filter_decision_log', None)
+    if filter_log is not None:
+        click.echo(filter_log.to_trace_output())
 ```
 
-### 2. Invariant-Based Tests
+**CLI Example**:
 
-Add tests that verify correctness properties, not implementation details:
+```bash
+$ bengal build --explain
+
+Building site...
+✓ Built 3 pages (1060 skipped)
+
+═══════════════════════════════════════════════════════════════
+                    DECISION TRACE                              
+═══════════════════════════════════════════════════════════════
+
+Decision: INCREMENTAL
+
+───────────────────────────────────────────────────────────────
+Layer 1: Data Files
+───────────────────────────────────────────────────────────────
+  Checked:     3
+  Changed:     0
+  Fingerprints available: ✓
+
+───────────────────────────────────────────────────────────────
+Layer 2: autodoc
+───────────────────────────────────────────────────────────────
+  Sources tracked: 448
+  Sources stale:   0
+  Metadata available: ✗
+  ⚠ Using fingerprint fallback (metadata unavailable)
+  Detection method: fingerprint
+
+───────────────────────────────────────────────────────────────
+Layer 3: Section Optimization
+───────────────────────────────────────────────────────────────
+  Sections total:   5
+  Sections changed: 1
+    • docs (subsection_changed:about/glossary.md)
+
+───────────────────────────────────────────────────────────────
+Layer 4: Page Filtering
+───────────────────────────────────────────────────────────────
+  In changed sections: 35
+  Filtered out:        1028
+
+═══════════════════════════════════════════════════════════════
+
+Rebuild Reasons:
+  content_changed: 3 pages
+```
+
+### 3. Invariant-Based Tests with Fixtures
+
+Add test fixtures and invariant tests:
+
+```python
+# tests/integration/conftest.py
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Generator
+import pytest
+
+from bengal.cli.helpers import load_site_from_cli
+from bengal.orchestration.build.options import BuildOptions
+
+
+@dataclass
+class WarmBuildTestSite:
+    """Test site with pre-warmed cache for incremental testing."""
+    
+    root: Path
+    content: Path
+    cache_path: Path
+    _site: "Site | None" = None
+    
+    @property
+    def site(self) -> "Site":
+        """Load or return cached site instance."""
+        if self._site is None:
+            self._site = load_site_from_cli(source=str(self.root))
+        return self._site
+    
+    def build(self, *, incremental: bool = True, explain: bool = True):
+        """Build the site and return stats."""
+        # Reload site to pick up file changes
+        self._site = load_site_from_cli(source=str(self.root))
+        options = BuildOptions(
+            incremental=incremental,
+            quiet=True,
+            explain=explain,
+        )
+        return self._site.build(options=options)
+    
+    def reload(self) -> None:
+        """Force site reload (picks up file changes)."""
+        self._site = None
+
+
+@pytest.fixture
+def warm_site(tmp_path: Path) -> Generator[WarmBuildTestSite, None, None]:
+    """Create a minimal site and warm its cache."""
+    # Create site structure
+    root = tmp_path / "site"
+    root.mkdir()
+    
+    config = root / "bengal.toml"
+    config.write_text('''
+[site]
+title = "Test Site"
+baseURL = "http://localhost"
+
+[build]
+output_dir = "public"
+''')
+    
+    content = root / "content"
+    content.mkdir()
+    (content / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
+    (content / "page1.md").write_text("---\ntitle: Page 1\n---\n# Page 1")
+    (content / "page2.md").write_text("---\ntitle: Page 2\n---\n# Page 2")
+    
+    site = WarmBuildTestSite(
+        root=root,
+        content=content,
+        cache_path=root / ".bengal" / "cache.json",
+    )
+    
+    # Warm the cache with initial build
+    site.build(incremental=False)
+    
+    yield site
+
+
+@pytest.fixture
+def warm_site_with_sections(tmp_path: Path) -> Generator[WarmBuildTestSite, None, None]:
+    """Create a site with nested sections and warm its cache."""
+    root = tmp_path / "site"
+    root.mkdir()
+    
+    config = root / "bengal.toml"
+    config.write_text('''
+[site]
+title = "Test Site"
+baseURL = "http://localhost"
+
+[build]
+output_dir = "public"
+''')
+    
+    content = root / "content"
+    content.mkdir()
+    (content / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
+    
+    # Create nested section: docs/about/
+    docs = content / "docs"
+    docs.mkdir()
+    (docs / "_index.md").write_text("---\ntitle: Docs\n---\n# Docs")
+    
+    about = docs / "about"
+    about.mkdir()
+    (about / "_index.md").write_text("---\ntitle: About\n---\n# About")
+    (about / "glossary.md").write_text("---\ntitle: Glossary\n---\n# Glossary")
+    
+    site = WarmBuildTestSite(
+        root=root,
+        content=content,
+        cache_path=root / ".bengal" / "cache.json",
+    )
+    
+    # Warm the cache
+    site.build(incremental=False)
+    
+    yield site
+```
 
 ```python
 # tests/integration/test_incremental_invariants.py
 
+"""
+Invariant tests for incremental build correctness.
+
+These tests verify behavioral contracts that must hold regardless of
+implementation details. They catch regressions that unit tests might miss.
+"""
+
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+from bengal.cache.build_cache import BuildCache
+
+
 class TestIncrementalInvariants:
     """Tests that verify incremental build correctness invariants."""
     
-    def test_unchanged_file_never_rebuilt(self, warm_site: WarmBuildTestSite):
+    def test_unchanged_file_never_rebuilt(self, warm_site):
         """INVARIANT: Unchanged files must never be rebuilt."""
-        # Build once to warm cache
-        first_stats = warm_site.build()
-        first_pages = {p.source_path for p in first_stats.pages_built}
+        # First incremental build (should rebuild nothing)
+        stats = warm_site.build(incremental=True)
         
-        # Build again with no changes
-        second_stats = warm_site.build()
-        second_pages = {p.source_path for p in second_stats.pages_to_build}
-        
-        # INVARIANT: No overlap
-        assert second_pages == set(), (
-            f"Unchanged files were rebuilt: {second_pages & first_pages}"
+        # INVARIANT: No pages should be rebuilt
+        pages_rebuilt = len(stats.incremental_decision.pages_to_build)
+        assert pages_rebuilt == 0, (
+            f"Unchanged files were rebuilt: {pages_rebuilt} pages. "
+            f"Expected 0 rebuilds on warm cache with no changes."
         )
     
-    def test_changed_file_always_rebuilt(self, warm_site: WarmBuildTestSite):
+    def test_changed_file_always_rebuilt(self, warm_site):
         """INVARIANT: Changed files must always be rebuilt."""
-        warm_site.build()
-        
         # Modify a file
-        test_file = warm_site.content / "test.md"
-        test_file.write_text(test_file.read_text() + "\n<!-- changed -->")
+        test_file = warm_site.content / "page1.md"
+        original = test_file.read_text()
+        time.sleep(0.01)  # Ensure mtime changes
+        test_file.write_text(original + "\n<!-- modified -->")
         
-        stats = warm_site.build()
-        rebuilt_paths = {p.source_path for p in stats.pages_to_build}
+        stats = warm_site.build(incremental=True)
         
-        # INVARIANT: Changed file must be rebuilt
-        assert test_file in rebuilt_paths, (
-            f"Changed file {test_file} was not rebuilt"
+        # INVARIANT: Modified file must be in rebuild list
+        rebuilt_paths = {
+            str(p.source_path) for p in stats.incremental_decision.pages_to_build
+        }
+        assert any("page1" in p for p in rebuilt_paths), (
+            f"Changed file page1.md was not rebuilt. "
+            f"Rebuilt: {rebuilt_paths}"
         )
     
-    def test_subsection_change_marks_parent_section(
-        self, warm_site_with_sections: WarmBuildTestSite
-    ):
+    def test_subsection_change_marks_parent_section(self, warm_site_with_sections):
         """INVARIANT: Subsection changes must mark parent section as changed."""
-        warm_site_with_sections.build()
-        
         # Modify file in subsection
-        subsection_file = warm_site_with_sections.content / "docs/about/glossary.md"
-        subsection_file.write_text(subsection_file.read_text() + "\n<!-- changed -->")
+        glossary = warm_site_with_sections.content / "docs" / "about" / "glossary.md"
+        original = glossary.read_text()
+        time.sleep(0.01)
+        glossary.write_text(original + "\n<!-- modified -->")
         
-        # Get changed sections (internal API for testing)
-        cache = BuildCache.load(warm_site_with_sections.cache_path)
-        filter = RebuildFilter(warm_site_with_sections.site, cache)
-        changed_sections = filter.get_changed_sections()
+        stats = warm_site_with_sections.build(incremental=True)
         
-        # INVARIANT: Parent section "docs" must be in changed_sections
-        docs_changed = any("docs" in str(s.path) for s in changed_sections)
-        assert docs_changed, (
-            f"Parent section 'docs' not marked changed. "
-            f"Changed sections: {[str(s.path) for s in changed_sections]}"
+        # INVARIANT: glossary.md must be rebuilt
+        rebuilt_paths = {
+            str(p.source_path) for p in stats.incremental_decision.pages_to_build
+        }
+        assert any("glossary" in p for p in rebuilt_paths), (
+            f"Changed file glossary.md was not rebuilt. "
+            f"Rebuilt: {rebuilt_paths}"
         )
     
     def test_cross_process_cache_consistency(self, tmp_path: Path):
-        """INVARIANT: Cache saved in one process must load correctly in another."""
+        """INVARIANT: Cache saved in process A must load correctly in process B."""
         cache_path = tmp_path / "cache.json"
         test_file = tmp_path / "test.md"
         test_file.write_text("# Test")
@@ -358,241 +514,233 @@ class TestIncrementalInvariants:
         # Save cache in subprocess
         save_script = f'''
 import sys
-sys.path.insert(0, "{Path(__file__).parent.parent.parent}")
 from pathlib import Path
+sys.path.insert(0, "{Path(__file__).parent.parent.parent}")
 from bengal.cache.build_cache import BuildCache
 
 cache = BuildCache()
 cache.update_file(Path("{test_file}"))
-cache.save(Path("{cache_path}"))
-print(f"Saved {{len(cache.file_fingerprints)}} fingerprints")
+cache.save(Path("{cache_path}"), use_lock=False)
+print(f"saved:{{len(cache.file_fingerprints)}}")
 '''
         result = subprocess.run(
             [sys.executable, "-c", save_script],
             capture_output=True,
             text=True,
+            cwd=str(tmp_path),
         )
-        assert "Saved 1 fingerprints" in result.stdout
+        assert "saved:1" in result.stdout, f"Save failed: {result.stderr}"
         
         # Load in current process
-        loaded = BuildCache.load(cache_path)
+        loaded = BuildCache.load(cache_path, use_lock=False)
         
         # INVARIANT: Fingerprints must survive cross-process round-trip
-        assert str(test_file) in loaded.file_fingerprints, (
+        assert len(loaded.file_fingerprints) == 1, (
             f"Fingerprint lost in cross-process round-trip. "
-            f"Available: {list(loaded.file_fingerprints.keys())}"
+            f"Expected 1, got {len(loaded.file_fingerprints)}"
         )
     
-    def test_autodoc_with_missing_metadata_uses_fingerprints(
-        self, warm_site_with_autodoc: WarmBuildTestSite
-    ):
-        """INVARIANT: Missing autodoc metadata must fallback to fingerprints."""
-        warm_site_with_autodoc.build()
+    def test_second_build_without_changes_is_skip(self, warm_site):
+        """INVARIANT: Consecutive builds without changes should skip or rebuild 0."""
+        stats1 = warm_site.build(incremental=True)
+        stats2 = warm_site.build(incremental=True)
         
-        # Simulate missing metadata (old cache format)
-        cache = BuildCache.load(warm_site_with_autodoc.cache_path)
-        cache.autodoc_source_metadata = {}  # Clear metadata
-        cache.save(warm_site_with_autodoc.cache_path)
-        
-        # Build again
-        stats = warm_site_with_autodoc.build()
-        
-        # INVARIANT: Should NOT rebuild all autodoc (fingerprints should work)
-        autodoc_rebuilt = sum(
-            1 for p in stats.pages_to_build if p.metadata.get("is_autodoc")
-        )
-        assert autodoc_rebuilt == 0, (
-            f"autodoc pages unnecessarily rebuilt: {autodoc_rebuilt}. "
-            f"Fingerprint fallback should have prevented this."
+        # INVARIANT: Second build should have 0 pages to rebuild
+        pages_rebuilt = len(stats2.incremental_decision.pages_to_build)
+        assert pages_rebuilt == 0, (
+            f"Second build without changes rebuilt {pages_rebuilt} pages. "
+            f"Cache should be stable."
         )
 ```
 
-### 3. Structured Decision Logging
+### 4. Strict Mode for Development
 
-Replace ad-hoc logging with structured decision events:
-
-```python
-# bengal/orchestration/incremental/decision_logger.py
-
-from enum import Enum
-from typing import Any
-
-class DecisionEvent(Enum):
-    """Incremental build decision events."""
-    
-    # Layer 1: Data files
-    DATA_FILE_CHECK_START = "data_file_check_start"
-    DATA_FILE_CHANGED = "data_file_changed"
-    DATA_FILE_FINGERPRINT_MISSING = "data_file_fingerprint_missing"
-    DATA_FILE_FALLBACK_TRIGGERED = "data_file_fallback_triggered"
-    
-    # Layer 2: autodoc
-    AUTODOC_CHECK_START = "autodoc_check_start"
-    AUTODOC_METADATA_MISSING = "autodoc_metadata_missing"
-    AUTODOC_FINGERPRINT_FALLBACK = "autodoc_fingerprint_fallback"
-    AUTODOC_SOURCE_STALE = "autodoc_source_stale"
-    AUTODOC_ALL_STALE_FALLBACK = "autodoc_all_stale_fallback"
-    
-    # Layer 3: Sections
-    SECTION_CHECK_START = "section_check_start"
-    SECTION_MARKED_CHANGED = "section_marked_changed"
-    SECTION_SKIPPED = "section_skipped"
-    SUBSECTION_STALE_DETECTED = "subsection_stale_detected"
-    
-    # Layer 4: Page filtering
-    PAGE_FILTER_START = "page_filter_start"
-    PAGE_INCLUDED = "page_included"
-    PAGE_EXCLUDED_BY_SECTION = "page_excluded_by_section"
-    PAGE_STALE_FINGERPRINT = "page_stale_fingerprint"
-    
-    # Final
-    DECISION_COMPLETE = "decision_complete"
-
-
-def log_decision(
-    event: DecisionEvent,
-    *,
-    decision: str | None = None,
-    reason: str | None = None,
-    impact: str | None = None,
-    context: dict[str, Any] | None = None,
-) -> None:
-    """
-    Log an incremental build decision event.
-    
-    Args:
-        event: The decision event type
-        decision: What was decided (e.g., "include", "exclude", "rebuild_all")
-        reason: Why this decision was made
-        impact: Effect of this decision (e.g., "3 pages added to rebuild")
-        context: Additional context (file paths, counts, etc.)
-    """
-    logger.debug(
-        event.value,
-        decision=decision,
-        reason=reason,
-        impact=impact,
-        **(context or {}),
-    )
-```
-
-**Usage in code**:
-
-```python
-# Before (hard to trace):
-logger.debug("autodoc_cache_migration", msg="No source metadata found...")
-
-# After (structured and traceable):
-log_decision(
-    DecisionEvent.AUTODOC_METADATA_MISSING,
-    decision="use_fingerprint_fallback",
-    reason="autodoc_source_metadata empty but fingerprints available",
-    impact=f"{len(self.autodoc_dependencies)} sources to check via fingerprints",
-    context={"source_count": len(self.autodoc_dependencies)},
-)
-```
-
-### 4. Fail-Fast Mode for Development
-
-Add an environment variable or flag to surface errors instead of silent fallbacks:
+Add a strict mode that surfaces fallback usage as warnings or errors:
 
 ```python
 # bengal/config/environment.py
 
 import os
-
-def is_development_mode() -> bool:
-    """Check if running in development mode (fail-fast)."""
-    return os.environ.get("BENGAL_DEV_MODE", "").lower() in ("1", "true", "yes")
+from enum import Enum
 
 
-# Usage in autodoc_tracking.py
+class StrictIncrementalMode(Enum):
+    """Strict mode levels for incremental build debugging."""
+    OFF = "off"          # Normal operation (silent fallbacks)
+    WARN = "warn"        # Log warnings when fallbacks are used
+    ERROR = "error"      # Raise errors when fallbacks are used
+
+
+def get_strict_incremental_mode() -> StrictIncrementalMode:
+    """Get the strict incremental mode from environment."""
+    value = os.environ.get("BENGAL_STRICT_INCREMENTAL", "off").lower()
+    try:
+        return StrictIncrementalMode(value)
+    except ValueError:
+        return StrictIncrementalMode.OFF
+
+
+def is_strict_incremental() -> bool:
+    """Check if strict incremental mode is enabled (warn or error)."""
+    return get_strict_incremental_mode() != StrictIncrementalMode.OFF
+```
+
+**Usage**:
+
+```python
+# In autodoc_tracking.py
+from bengal.config.environment import get_strict_incremental_mode, StrictIncrementalMode
+
 if not self.autodoc_source_metadata and self.autodoc_dependencies:
-    if is_development_mode():
+    mode = get_strict_incremental_mode()
+    
+    if mode == StrictIncrementalMode.ERROR:
         raise IncrementalCacheError(
             "autodoc source metadata empty but dependencies present.\n"
-            "This will cause full autodoc rebuilds on every incremental build.\n"
-            "Fix: Ensure autodoc metadata is saved via add_autodoc_dependency().\n"
-            "Workaround: Run `bengal cache clear` to reset cache."
+            "This triggers fingerprint fallback which may be slower.\n"
+            "Fix: Ensure metadata is saved via add_autodoc_dependency().\n"
+            "Disable check: unset BENGAL_STRICT_INCREMENTAL"
+        )
+    elif mode == StrictIncrementalMode.WARN:
+        logger.warning(
+            "autodoc_metadata_fallback",
+            msg="Using fingerprint fallback (metadata unavailable)",
+            source_count=len(self.autodoc_dependencies),
         )
     
-    # Production: use fingerprint fallback
-    if has_fingerprints:
-        log_decision(
-            DecisionEvent.AUTODOC_FINGERPRINT_FALLBACK,
-            decision="use_fingerprints",
-            reason="metadata_missing_fingerprints_available",
-            impact="incremental detection via fingerprints",
-        )
-        return self._check_via_fingerprints()
-    else:
-        log_decision(
-            DecisionEvent.AUTODOC_ALL_STALE_FALLBACK,
-            decision="mark_all_stale",
-            reason="metadata_missing_no_fingerprints",
-            impact=f"full autodoc rebuild ({len(self.autodoc_dependencies)} sources)",
-        )
-        return set(self.autodoc_dependencies.keys())
+    # Continue with fallback logic...
+```
+
+**CLI Usage**:
+
+```bash
+# Normal operation (default)
+bengal build
+
+# Warn when fallbacks are used (debugging)
+BENGAL_STRICT_INCREMENTAL=warn bengal build
+
+# Error on any fallback (CI, strict debugging)
+BENGAL_STRICT_INCREMENTAL=error bengal build
 ```
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Foundation (2 days)
+### Phase 1: Invariant Tests (1 day) — Highest ROI
 
-1. **Add `IncrementalDecisionTrace` data class** with all fields
-2. **Wire trace collection** through existing decision points
-3. **Extend `--explain` output** to include full decision trace
-4. **Add Python version warning** in CLI entry point ✅ (already done)
+1. **Add test fixtures** in `tests/integration/conftest.py`
+   - `WarmBuildTestSite` dataclass
+   - `warm_site` fixture
+   - `warm_site_with_sections` fixture
 
-### Phase 2: Tests (1 day)
+2. **Add invariant tests** in `tests/integration/test_incremental_invariants.py`
+   - `test_unchanged_file_never_rebuilt`
+   - `test_changed_file_always_rebuilt`
+   - `test_subsection_change_marks_parent_section`
+   - `test_cross_process_cache_consistency`
+   - `test_second_build_without_changes_is_skip`
 
-1. **Add invariant tests** in `tests/integration/test_incremental_invariants.py`
-2. **Add subsection detection test**
-3. **Add cross-process cache test** ✅ (already done, unit test)
-4. **Add `autodoc` fallback test** (metadata missing but fingerprints present)
+### Phase 2: Extend FilterDecisionLog (1.5 days)
 
-### Phase 3: Structured Logging (1 day)
+1. **Add layer trace fields** to `FilterDecisionLog`
+2. **Wire trace collection** through decision points:
+   - Data file checking
+   - Autodoc staleness detection
+   - Section optimization
+   - Page filtering
+3. **Add `to_trace_output()` method**
 
-1. **Add `DecisionEvent` enumeration**
-2. **Add `log_decision()` helper**
-3. **Replace ad-hoc logging** in key decision points
-4. **Add development mode flag**
+### Phase 3: Enhance --explain Output (0.5 day)
 
-### Phase 4: Documentation (0.5 day)
+1. **Extend `_print_explain_output()`** to include layer trace
+2. **Extend `_print_explain_json()`** with trace fields
+3. **Update CLI help text**
 
-1. **Document caching layers** in architecture doc
-2. **Add troubleshooting guide** for incremental build issues
-3. **Document `--explain` trace output**
+### Phase 4: Strict Mode (0.5 day)
+
+1. **Add `StrictIncrementalMode` enum**
+2. **Add `get_strict_incremental_mode()` helper**
+3. **Integrate into autodoc tracking** (warn/error on fallback)
+4. **Integrate into data file tracking**
+
+### Phase 5: Documentation (0.5 day)
+
+1. **Update troubleshooting guide** with `--explain` trace examples
+2. **Document `BENGAL_STRICT_INCREMENTAL`** environment variable
+3. **Add architecture section** on caching layers
 
 ---
 
 ## Success Criteria
 
-1. **Debugging time < 10 minutes** for incremental build issues (vs 60+ today)
-2. **`--explain` identifies root cause** in single command
-3. **Invariant tests catch regressions** before release
-4. **No silent failures** in development mode
-5. **Clear documentation** for troubleshooting
+| Criterion | Metric | Target |
+|-----------|--------|--------|
+| Debugging time | Minutes to identify root cause | < 10 min (vs 60+ today) |
+| Single-command diagnosis | `--explain` shows layer decisions | All 4 layers visible |
+| Regression prevention | Invariant tests catch bugs | 5+ invariant tests passing |
+| Development feedback | Strict mode surfaces issues | WARN/ERROR modes work |
+| Documentation | Troubleshooting guide exists | Complete with examples |
 
 ---
 
-## Appendix: Bugs This Would Catch
+## Appendix A: Bugs This Would Have Caught Faster
 
-| Bug | Catch With |
-|-----|-------------------|
-| Data file fingerprints not saved | Invariant test: unchanged file rebuilt |
+| Bug | Would Catch With |
+|-----|------------------|
+| Data file fingerprints not saved | Invariant: unchanged file rebuilt |
 | Python version mismatch | CLI warning ✅ (implemented) |
-| `autodoc` metadata empty | Trace: "Fingerprint fallback used: True" |
-| Section optimization skipped subsections | Invariant test: subsection change marks parent |
-| Subsection path matching broken | Invariant test: changed file always rebuilt |
+| `autodoc` metadata empty | Trace: "⚠ Using fingerprint fallback" |
+| Section optimization skipped subsections | Invariant: subsection marks parent |
+| Subsection path matching broken | Invariant: changed file always rebuilt |
+
+---
+
+## Appendix B: JSON Output Extension
+
+The `--explain-json` output will include the layer trace:
+
+```json
+{
+  "decision_type": "incremental",
+  "pages_to_build": 3,
+  "pages_skipped": 1060,
+  "rebuild_reasons": { ... },
+  "layer_trace": {
+    "data_files": {
+      "checked": 3,
+      "changed": 0,
+      "fingerprints_available": true,
+      "fallback_used": false
+    },
+    "autodoc": {
+      "sources_total": 448,
+      "sources_stale": 0,
+      "metadata_available": false,
+      "fingerprint_fallback_used": true,
+      "stale_method": "fingerprint"
+    },
+    "sections": {
+      "total": 5,
+      "changed": ["docs"],
+      "change_reasons": {
+        "docs": "subsection_changed:about/glossary.md"
+      }
+    },
+    "page_filtering": {
+      "in_changed_sections": 35,
+      "filtered_out": 1028
+    }
+  }
+}
+```
 
 ---
 
 ## Related
 
-- `plan/rfc-rebuild-decision-hardening.md` - Prior RFC on incremental filter consolidation
-- `bengal/orchestration/incremental/filter_engine.py` - Current decision logic
-- `tests/integration/test_incremental_cache_stability.py` - Existing tests
-
+- `plan/rfc-rebuild-decision-hardening.md` — Prior RFC on `IncrementalFilterEngine` (implemented ✅)
+- `bengal/orchestration/incremental/filter_engine.py` — Current decision logic
+- `bengal/cache/build_cache/autodoc_tracking.py` — Autodoc fallback handling
+- `tests/integration/test_incremental_observability.py` — Existing `--explain` tests

@@ -5,6 +5,8 @@ Provides a complete local development environment for Bengal sites with
 HTTP serving, file watching, incremental builds, and browser live reload.
 
 Features:
+- Serve-first startup: Serves cached content immediately for instant first paint
+- Background validation: Validates cache and hot-reloads if stale
 - HTTP server for viewing the built site locally
 - File watching with automatic incremental rebuilds
 - Live reload via Server-Sent Events (no full page refresh for CSS)
@@ -22,11 +24,24 @@ DevServer: Main entry point orchestrating all server components
 Architecture:
 The DevServer coordinates several subsystems:
 
-1. Initial Build: Runs a full site build before starting the server
-2. HTTP Server: ThreadingTCPServer with BengalRequestHandler
-3. File Watcher: WatcherRunner with watchfiles backend
-4. Build Trigger: Handles file changes and triggers rebuilds
-5. Resource Manager: Ensures cleanup on all exit scenarios
+1. Serve-First Check: If cached output exists, serve immediately
+2. Background Validation: Run incremental build to detect stale content
+3. HTTP Server: ThreadingTCPServer with BengalRequestHandler
+4. File Watcher: WatcherRunner with watchfiles backend
+5. Build Trigger: Handles file changes and triggers rebuilds
+6. Resource Manager: Ensures cleanup on all exit scenarios
+
+Startup Flow (serve-first, when cache exists):
+1. Check for cached output in public/
+2. Start HTTP server immediately (instant first paint)
+3. Open browser
+4. Run validation build in background
+5. Hot reload if stale content detected
+
+Startup Flow (build-first, when no cache):
+1. Run full build
+2. Start HTTP server
+3. Open browser
 
 Build Pipeline:
 FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor → Site.build()
@@ -72,9 +87,11 @@ logger = get_logger(__name__)
 
 class DevServer:
     """
-    Development server with file watching and auto-rebuild.
+    Development server with file watching, auto-rebuild, and serve-first startup.
     
     Provides a complete development environment for Bengal sites with:
+    - Serve-first startup: Serves cached content immediately for instant first paint
+    - Background validation: Validates cache and hot-reloads if stale
     - HTTP server for viewing the site locally
     - File watching for automatic rebuilds
     - Graceful shutdown handling
@@ -82,10 +99,15 @@ class DevServer:
     - Automatic port fallback
     - Optional browser auto-open
     
-    The server performs an initial build, then watches for changes and
-    automatically rebuilds only what's needed using incremental builds.
+    The server uses serve-first when cached output exists: it starts serving
+    immediately while validating in the background. If validation finds stale
+    content, it triggers a hot reload. This provides instant first paint for
+    returning users.
+    
+    When no cache exists, the server falls back to build-first mode.
     
     Features:
+    - Serve-first startup (instant first paint when cache exists)
     - Incremental + parallel builds (5-10x faster than full builds)
     - Beautiful, minimal request logging
     - Custom 404 error pages
@@ -139,16 +161,20 @@ class DevServer:
 
     def start(self) -> None:
         """
-        Start the development server with robust resource cleanup.
+        Start the development server with serve-first optimization.
 
-        This method:
+        Uses serve-first startup when cached output exists:
         1. Checks for and handles stale processes
         2. Prepares dev-specific configuration
-        3. Performs an initial build
-        4. Creates HTTP server (with port fallback if needed)
+        3. If cache exists: Start server immediately, validate in background
+        4. If no cache: Build first, then start server
         5. Starts file watcher (if enabled)
         6. Opens browser (if requested)
         7. Runs until interrupted (Ctrl+C, SIGTERM, etc.)
+
+        Serve-first provides instant first paint by serving cached content
+        while validating in the background. Any stale content triggers
+        automatic hot reload.
 
         The server uses ResourceManager for comprehensive cleanup handling,
         ensuring all resources are properly released on shutdown regardless
@@ -184,147 +210,302 @@ class DevServer:
 
             baseurl_was_cleared = self._prepare_dev_config()
 
-            # 3. Initial build
-            # Use WRITER profile for fast builds (can enable specific validators via config)
-            # Config can override profile to enable directives validator without full THEME_DEV overhead
-            show_building_indicator("Initial build")
-            from bengal.orchestration.build.options import BuildOptions
-
-            build_opts = BuildOptions(
-                profile=BuildProfile.WRITER,
-                incremental=not baseurl_was_cleared,
-            )
-            stats = self.site.build(build_opts)
-            display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
-
-            logger.debug(
-                "initial_build_complete",
-                pages_built=stats.total_pages,
-                duration_ms=stats.build_time_ms,
+            # 3. Determine startup strategy: serve-first or build-first
+            # Serve-first when: cache exists AND baseurl wasn't cleared
+            can_serve_first = (
+                not baseurl_was_cleared
+                and self._has_cached_output()
             )
 
-            # Clear HTML cache after initial build to ensure fresh pages with live reload script
-            try:
-                with BengalRequestHandler._html_cache_lock:
-                    BengalRequestHandler._html_cache.clear()
-                logger.debug("html_cache_cleared_after_initial_build")
-            except Exception as e:
-                logger.debug("html_cache_clear_failed", error=str(e))
-                pass  # Cache might not be initialized yet, ignore
+            if can_serve_first:
+                # SERVE-FIRST: Instant first paint, validate in background
+                logger.info("serve_first_mode", reason="cached_output_exists")
 
-            # Set active palette for rebuilding page styling
-            # Uses the site's default_palette config or falls back to built-in default
-            try:
-                default_palette = self.site.config.get("default_palette")
-                if default_palette:
-                    BengalRequestHandler._active_palette = default_palette
-                    logger.debug("rebuilding_page_palette_set", palette=default_palette)
-            except Exception:
-                pass  # Use default palette if config access fails
+                # Create and register PID file
+                pid_file = PIDManager.get_pid_file(self.site.root_path)
+                PIDManager.write_pid_file(pid_file)
+                rm.register_pidfile(pid_file)
 
-            # Initialize reload controller baseline after initial build
-            # This prevents the first file change from being treated as "baseline" (which skips reload)
-            try:
-                from bengal.server.reload_controller import controller
-                from bengal.server.utils import get_dev_config
+                # Create HTTP server immediately
+                httpd, actual_port = self._create_server()
+                rm.register_server(httpd)
+                rm.register_sse_shutdown()
 
-                # Apply runtime controller configuration from dev config
-                cfg = getattr(self.site, "config", {}) or {}
+                # Start file watcher if enabled
+                if self.watch:
+                    watcher_runner, build_trigger = self._create_watcher(actual_port)
+                    rm.register_watcher_runner(watcher_runner)
+                    rm.register_build_trigger(build_trigger)
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+                # Open browser immediately (instant first paint!)
+                if self.open_browser:
+                    self._open_browser_delayed(actual_port)
+                    logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
+
+                # Print startup message
+                self._print_startup_message(actual_port, serve_first=True)
+
+                # Start serving in background thread while we validate
+                server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                server_thread.start()
+
+                # Run validation build in foreground (shows progress)
+                self._run_validation_build(BuildProfile.WRITER, actual_port)
+
+                # Now wait for server to be interrupted
+                logger.info(
+                    "dev_server_started",
+                    host=self.host,
+                    port=actual_port,
+                    output_dir=str(self.site.output_dir),
+                    watch_enabled=self.watch,
+                    mode="serve_first",
+                )
+
                 try:
-                    min_interval = get_dev_config(
-                        cfg, "reload", "min_notify_interval_ms", default=300
-                    )
-                    controller.set_min_notify_interval_ms(int(min_interval))
-                except Exception as e:
-                    logger.warning("reload_config_min_interval_failed", error=str(e))
-                    pass
+                    # Wait for server thread (blocks until interrupted)
+                    while server_thread.is_alive():
+                        server_thread.join(timeout=1.0)
+                except KeyboardInterrupt:
+                    print("\n  👋 Shutting down server...")
+                    logger.info("dev_server_shutdown", reason="keyboard_interrupt")
+                    httpd.shutdown()
+
+            else:
+                # BUILD-FIRST: No cache, must build before serving
+                logger.info(
+                    "build_first_mode",
+                    reason="no_cache" if not self._has_cached_output() else "baseurl_cleared",
+                )
+
+                # Initial build (blocking)
+                show_building_indicator("Initial build")
+                from bengal.orchestration.build.options import BuildOptions
+
+                build_opts = BuildOptions(
+                    profile=BuildProfile.WRITER,
+                    incremental=not baseurl_was_cleared,
+                )
+                stats = self.site.build(build_opts)
+                display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+
+                logger.debug(
+                    "initial_build_complete",
+                    pages_built=stats.total_pages,
+                    duration_ms=stats.build_time_ms,
+                )
+
+                # Clear HTML cache after build
+                self._clear_html_cache_after_build()
+
+                # Set active palette for rebuilding page styling
+                self._set_active_palette()
+
+                # Initialize reload controller baseline
+                self._init_reload_controller()
+
+                # Create and register PID file
+                pid_file = PIDManager.get_pid_file(self.site.root_path)
+                PIDManager.write_pid_file(pid_file)
+                rm.register_pidfile(pid_file)
+
+                # Create HTTP server
+                httpd, actual_port = self._create_server()
+                rm.register_server(httpd)
+                rm.register_sse_shutdown()
+
+                # Start file watcher if enabled
+                if self.watch:
+                    watcher_runner, build_trigger = self._create_watcher(actual_port)
+                    rm.register_watcher_runner(watcher_runner)
+                    rm.register_build_trigger(build_trigger)
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+                # Open browser
+                if self.open_browser:
+                    self._open_browser_delayed(actual_port)
+                    logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
+
+                # Print startup message
+                self._print_startup_message(actual_port)
+
+                logger.info(
+                    "dev_server_started",
+                    host=self.host,
+                    port=actual_port,
+                    output_dir=str(self.site.output_dir),
+                    watch_enabled=self.watch,
+                    mode="build_first",
+                )
+
+                # Run until interrupted
                 try:
-                    # Provide sensible defaults to suppress known benign churn in dev
-                    default_ignores = [
-                        "index.json",
-                        "index.txt",
-                        "search/**",
-                        "llm-full.txt",
-                    ]
-                    ignore_paths = get_dev_config(
-                        cfg, "reload", "ignore_paths", default=default_ignores
-                    )
-                    controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
-                except Exception as e:
-                    logger.warning("reload_config_ignores_failed", error=str(e))
-                    pass
-                try:
-                    suspect_hash_limit = get_dev_config(
-                        cfg, "reload", "suspect_hash_limit", default=200
-                    )
-                    suspect_size_limit = get_dev_config(
-                        cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
-                    )
-                    controller.set_hashing_options(
-                        hash_on_suspect=bool(
-                            get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
-                        ),
-                        suspect_hash_limit=int(suspect_hash_limit)
-                        if suspect_hash_limit is not None
-                        else None,
-                        suspect_size_limit_bytes=int(suspect_size_limit)
-                        if suspect_size_limit is not None
-                        else None,
-                    )
-                except Exception as e:
-                    logger.warning("reload_config_hashing_failed", error=str(e))
-                    pass
-
-                controller.decide_and_update(self.site.output_dir)
-                logger.debug("reload_controller_baseline_initialized")
-            except Exception as e:
-                logger.warning("reload_controller_init_failed", error=str(e))
-
-            # 4. Create and register PID file for this process
-            pid_file = PIDManager.get_pid_file(self.site.root_path)
-            PIDManager.write_pid_file(pid_file)
-            rm.register_pidfile(pid_file)
-
-            # 5. Create HTTP server (determines actual port)
-            httpd, actual_port = self._create_server()
-            # Register server first, then SSE shutdown
-            # Cleanup happens in LIFO order, so SSE shutdown (last registered)
-            # runs FIRST, allowing SSE handlers to exit before server shutdown
-            rm.register_server(httpd)
-            rm.register_sse_shutdown()
-
-            # 6. Start file watcher if enabled (needs actual_port for rebuild messages)
-            if self.watch:
-                watcher_runner, build_trigger = self._create_watcher(actual_port)
-                rm.register_watcher_runner(watcher_runner)
-                rm.register_build_trigger(build_trigger)
-                watcher_runner.start()
-                logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
-
-            # 7. Open browser if requested
-            if self.open_browser:
-                self._open_browser_delayed(actual_port)
-                logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
-
-            # Print startup message (keep for UX)
-            self._print_startup_message(actual_port)
-
-            logger.info(
-                "dev_server_started",
-                host=self.host,
-                port=actual_port,
-                output_dir=str(self.site.output_dir),
-                watch_enabled=self.watch,
-            )
-
-            # 8. Run until interrupted (cleanup happens automatically via ResourceManager)
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                # KeyboardInterrupt caught by serve_forever (backup to signal handler)
-                print("\n  👋 Shutting down server...")
-                logger.info("dev_server_shutdown", reason="keyboard_interrupt")
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    print("\n  👋 Shutting down server...")
+                    logger.info("dev_server_shutdown", reason="keyboard_interrupt")
             # ResourceManager cleanup happens automatically via __exit__
+
+    def _has_cached_output(self) -> bool:
+        """
+        Check if the output directory has cached content that can be served.
+
+        Returns:
+            True if output directory exists and contains HTML files
+        """
+        output_dir = self.site.output_dir
+        if not output_dir.exists():
+            return False
+
+        # Check for index.html as a proxy for "has content"
+        index_file = output_dir / "index.html"
+        if index_file.exists():
+            return True
+
+        # Also check for any HTML files
+        try:
+            return any(output_dir.rglob("*.html"))
+        except Exception:
+            return False
+
+    def _run_validation_build(self, profile: Any, port: int) -> None:
+        """
+        Run a validation build in the foreground while server is already running.
+
+        This validates cached content and triggers hot reload if stale.
+
+        Args:
+            profile: Build profile to use
+            port: Server port for display
+        """
+        from bengal.orchestration.build.options import BuildOptions
+        from bengal.server.live_reload import send_reload_payload
+
+        show_building_indicator("Validating cache")
+
+        build_opts = BuildOptions(
+            profile=profile,
+            incremental=True,
+        )
+
+        # Capture baseline before build for comparison
+        from bengal.server.reload_controller import controller
+
+        controller.decide_and_update(self.site.output_dir)  # Set baseline
+
+        stats = self.site.build(build_opts)
+        display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+
+        logger.debug(
+            "validation_build_complete",
+            pages_built=stats.total_pages,
+            pages_rebuilt=getattr(stats, "pages_rebuilt", 0),
+            duration_ms=stats.build_time_ms,
+        )
+
+        # Clear HTML cache after validation
+        self._clear_html_cache_after_build()
+
+        # Set active palette
+        self._set_active_palette()
+
+        # Initialize reload controller with post-build state
+        self._init_reload_controller()
+
+        # Check if anything changed and trigger hot reload
+        decision = controller.decide_and_update(self.site.output_dir)
+
+        if decision.action != "none":
+            logger.info(
+                "validation_found_stale_content",
+                action=decision.action,
+                reason=decision.reason,
+                changed_count=len(decision.changed_paths),
+            )
+            # Trigger hot reload
+            send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
+            icons = get_icon_set(should_use_emoji())
+            print(f"\n  {icons.success} Cache validated - {len(decision.changed_paths)} files updated, browser reloading...")
+        else:
+            icons = get_icon_set(should_use_emoji())
+            print(f"\n  {icons.success} Cache validated - content is fresh")
+
+    def _clear_html_cache_after_build(self) -> None:
+        """Clear HTML injection cache after a build to ensure fresh pages."""
+        try:
+            with BengalRequestHandler._html_cache_lock:
+                BengalRequestHandler._html_cache.clear()
+            logger.debug("html_cache_cleared_after_build")
+        except Exception as e:
+            logger.debug("html_cache_clear_failed", error=str(e))
+
+    def _set_active_palette(self) -> None:
+        """Set active palette for rebuilding page styling."""
+        try:
+            default_palette = self.site.config.get("default_palette")
+            if default_palette:
+                BengalRequestHandler._active_palette = default_palette
+                logger.debug("rebuilding_page_palette_set", palette=default_palette)
+        except Exception:
+            pass
+
+    def _init_reload_controller(self) -> None:
+        """Initialize reload controller with configuration."""
+        try:
+            from bengal.server.reload_controller import controller
+            from bengal.server.utils import get_dev_config
+
+            cfg = getattr(self.site, "config", {}) or {}
+
+            try:
+                min_interval = get_dev_config(
+                    cfg, "reload", "min_notify_interval_ms", default=300
+                )
+                controller.set_min_notify_interval_ms(int(min_interval))
+            except Exception as e:
+                logger.warning("reload_config_min_interval_failed", error=str(e))
+
+            try:
+                default_ignores = [
+                    "index.json",
+                    "index.txt",
+                    "search/**",
+                    "llm-full.txt",
+                ]
+                ignore_paths = get_dev_config(
+                    cfg, "reload", "ignore_paths", default=default_ignores
+                )
+                controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
+            except Exception as e:
+                logger.warning("reload_config_ignores_failed", error=str(e))
+
+            try:
+                suspect_hash_limit = get_dev_config(
+                    cfg, "reload", "suspect_hash_limit", default=200
+                )
+                suspect_size_limit = get_dev_config(
+                    cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
+                )
+                controller.set_hashing_options(
+                    hash_on_suspect=bool(
+                        get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
+                    ),
+                    suspect_hash_limit=int(suspect_hash_limit)
+                    if suspect_hash_limit is not None
+                    else None,
+                    suspect_size_limit_bytes=int(suspect_size_limit)
+                    if suspect_size_limit is not None
+                    else None,
+                )
+            except Exception as e:
+                logger.warning("reload_config_hashing_failed", error=str(e))
+
+            logger.debug("reload_controller_initialized")
+        except Exception as e:
+            logger.warning("reload_controller_init_failed", error=str(e))
 
     def _prepare_dev_config(self) -> bool:
         """
@@ -740,7 +921,7 @@ class DevServer:
 
         return httpd, actual_port
 
-    def _print_startup_message(self, port: int) -> None:
+    def _print_startup_message(self, port: int, serve_first: bool = False) -> None:
         """
         Print server startup message using Rich for stable borders.
 
@@ -748,10 +929,12 @@ class DevServer:
         - Server URL
         - Output directory being served
         - File watching status
+        - Serve-first status (if applicable)
         - Shutdown instructions
 
         Args:
             port: Port number the server is listening on
+            serve_first: Whether server started in serve-first mode
         """
         from rich.console import Console
         from rich.panel import Panel
@@ -777,6 +960,12 @@ class DevServer:
         lines.append("")  # Blank line
 
         icons = get_icon_set(should_use_emoji())
+
+        # Serve-first status
+        if serve_first:
+            lines.append(
+                f"   [green]{icons.success}[/green]  Serving cached content (validating in background...)"
+            )
 
         # Watching status
         if self.watch:
