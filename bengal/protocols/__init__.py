@@ -34,6 +34,16 @@ Migration:
 
 """
 
+from bengal.protocols.build import (
+    BuildContextDict,
+    BuildOptionsDict,
+    BuildPhase,
+    BuildStateProtocol,
+    PhaseStats,
+    PhaseTiming,
+    RenderContext,
+    RenderResult,
+)
 from bengal.protocols.core import (
     NavigableSection,
     PageLike,
@@ -63,6 +73,15 @@ from bengal.protocols.rendering import (
 )
 
 __all__ = [
+    # Build
+    "BuildPhase",
+    "PhaseStats",
+    "PhaseTiming",
+    "BuildContextDict",
+    "BuildOptionsDict",
+    "RenderContext",
+    "RenderResult",
+    "BuildStateProtocol",
     # Core
     "PageLike",
     "SectionLike",

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from markupsafe import Markup
+from kida import Markup
 
 from bengal.utils.observability.logger import get_logger
 

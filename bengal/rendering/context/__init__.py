@@ -47,7 +47,7 @@ import threading
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
-from markupsafe import Markup
+from kida import Markup
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext as BuildContextType

@@ -34,6 +34,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: ty
+        name: ty type checker
+        entry: uv run ty check bengal/
+        language: system
+        types: [python]
+        pass_filenames: false
+
       - id: block-string-based-click-cls
         name: Block string-based Click cls usage
         entry: bash -c "! rg -n 'cls=\"bengal\\.cli\\.(Bengal(Group|Command))\"' bengal/cli || (echo 'Use direct class references from bengal.cli.base for Click cls' && exit 1)"

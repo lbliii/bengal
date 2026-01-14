@@ -5,14 +5,17 @@ This module provides TypedDict and Protocol definitions for orchestration types,
 enabling type-safe build context, phase tracking, and inter-orchestrator
 communication.
 
+Common build types (PhaseStats, PhaseTiming, BuildContextDict, etc.) are
+defined in bengal.protocols.build and re-exported here for convenience.
+
 Note:
 BuildStats is defined as a dataclass in bengal.orchestration.stats.models.
 This module provides complementary TypedDicts for dict-based patterns.
 
 See Also:
+- :mod:`bengal.protocols.build`: Canonical location for shared build types
 - :mod:`bengal.orchestration.stats.models`: BuildStats dataclass
-- :mod:`bengal.utils.progress`: ProgressReporter protocol
-- :mod:`bengal.utils.stats_protocol`: CoreStats, DisplayableStats protocols
+- :mod:`bengal.utils.observability.progress`: ProgressReporter protocol
 
 """
 
@@ -20,51 +23,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, runtime_checkable
 
+# Re-export shared build types from protocols
+from bengal.protocols.build import (
+    BuildContextDict,
+    BuildOptionsDict,
+    PhaseStats,
+    PhaseTiming,
+    RenderContext,
+    RenderResult,
+)
+
 if TYPE_CHECKING:
     from bengal.core import Page, Section
 
 
 # =============================================================================
-# Phase Statistics (dict form for JSON serialization)
+# Last Build Stats (site-specific)
 # =============================================================================
-
-
-class PhaseStats(TypedDict, total=False):
-    """Statistics for a single build phase."""
-
-    name: str
-    duration_ms: float
-    items_processed: int
-    errors: int
-    warnings: int
-
-
-class PhaseTiming(TypedDict):
-    """Timing record for a build phase."""
-
-    phase: str
-    start_ms: float
-    end_ms: float
-    duration_ms: float
-
-
-# =============================================================================
-# Build Context Types
-# =============================================================================
-
-
-class BuildContextDict(TypedDict, total=False):
-    """Dict representation of build context for serialization."""
-
-    parallel: bool
-    incremental: bool
-    strict_mode: bool
-    verbose: bool
-    quiet: bool
-    profile: str | None
-    changed_sources: list[str]
-    nav_changed_sources: list[str]
-    structural_changed: bool
 
 
 class LastBuildStats(TypedDict, total=False):
@@ -101,34 +76,6 @@ class CacheStats(TypedDict, total=False):
 
 
 # =============================================================================
-# Render Context Types
-# =============================================================================
-
-
-class RenderContext(TypedDict, total=False):
-    """Context passed to template rendering."""
-
-    page: object  # Page instance
-    site: object  # Site instance
-    section: object  # Section instance
-    baseurl: str
-    now: str
-    build_date: str
-    is_production: bool
-
-
-class RenderResult(TypedDict, total=False):
-    """Result of rendering a single page."""
-
-    page_path: str
-    output_path: str
-    success: bool
-    duration_ms: float
-    from_cache: bool
-    error: str | None
-
-
-# =============================================================================
 # Asset Processing Types
 # =============================================================================
 
@@ -161,10 +108,10 @@ class AssetManifest(TypedDict, total=False):
 class ProgressManagerProtocol(Protocol):
     """
     Protocol for progress manager objects.
-    
+
     Used by orchestrators for live progress display.
     More flexible than ProgressReporter - includes task management.
-        
+
     """
 
     def add_task(self, description: str, total: int | None = None) -> object:
@@ -185,38 +132,6 @@ class ProgressManagerProtocol(Protocol):
     def remove_task(self, task_id: object) -> None:
         """Remove a completed task."""
         ...
-
-
-# =============================================================================
-# Section Protocol (for menu building)
-# =============================================================================
-
-# NOTE: SectionLike has been consolidated into bengal.protocols.core.SectionLike
-# The duplicate definition here was removed as part of the protocol consolidation.
-# Import from bengal.protocols instead:
-#
-#     from bengal.protocols import SectionLike
-#
-# See: plan/rfc-protocol-consolidation.md
-
-
-# =============================================================================
-# Build Options Type
-# =============================================================================
-
-
-class BuildOptionsDict(TypedDict, total=False):
-    """Dict form of build options for serialization."""
-
-    parallel: bool
-    incremental: bool
-    verbose: bool
-    quiet: bool
-    strict: bool
-    full_output: bool
-    profile_templates: bool
-    memory_optimized: bool
-    profile: Literal["writer", "developer", "operator", "custom"] | None
 
 
 # =============================================================================
@@ -277,29 +192,23 @@ class AutodocResult(TypedDict, total=False):
 # =============================================================================
 
 __all__ = [
-    # Phase stats
+    # Re-exported from protocols.build
     "PhaseStats",
     "PhaseTiming",
-    # Build context
     "BuildContextDict",
-    "LastBuildStats",
     "BuildOptionsDict",
-    # Cache
-    "CacheEntry",
-    "CacheStats",
-    # Render
     "RenderContext",
     "RenderResult",
-    # Assets
+    # Local types
+    "LastBuildStats",
+    "CacheEntry",
+    "CacheStats",
     "AssetResult",
     "AssetManifest",
-    # Output
     "OutputStats",
     "OutputRecord",
-    # Autodoc
     "AutodocModuleInfo",
     "AutodocResult",
     # Protocols
     "ProgressManagerProtocol",
-    # NOTE: SectionLike removed - use bengal.protocols.SectionLike instead
 ]

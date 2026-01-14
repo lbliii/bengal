@@ -4,7 +4,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run build serve clean test shell typecheck typecheck-strict deploy-test dist publish release
+.PHONY: all help setup install run build serve clean test shell ty typecheck typecheck-strict deploy-test dist publish release
 
 all: help
 
@@ -21,7 +21,8 @@ help:
 	@echo "  make deploy-test - Build production & serve (simulates GitHub Pages)"
 	@echo "  make run      - Run bengal CLI (use ARGS='...' to pass arguments)"
 	@echo "  make test     - Run the test suite"
-	@echo "  make typecheck - Run mypy type checking"
+	@echo "  make ty        - Run ty type checker (fast, Rust-based)"
+	@echo "  make typecheck - Run mypy type checking (legacy)"
 	@echo "  make typecheck-strict - Run mypy with strict mode (for debugging)"
 	@echo "  make dist     - Build distribution packages"
 	@echo "  make publish  - Publish to PyPI (uses .env for token)"
@@ -67,8 +68,12 @@ run:
 test:
 	uv run pytest
 
+ty:
+	@echo "Running ty type checker (Astral, Rust-based)..."
+	uv run ty check bengal/
+
 typecheck:
-	@echo "Running mypy type checking..."
+	@echo "Running mypy type checking (legacy)..."
 	uv run mypy bengal/ --show-error-codes
 
 typecheck-strict:
@@ -109,6 +114,7 @@ clean:
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	find . -type d -name ".ty_cache" -exec rm -rf {} +
 
 shell:
 	@echo "Activating environment with GIL disabled..."

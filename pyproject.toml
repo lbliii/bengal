@@ -34,7 +34,6 @@ dependencies = [
     "rosettes>=0.1.0",
     "kida-templates>=0.1.2",                   # Kida template engine (AST-native, free-threading ready)
     "patitas>=0.1.1",                          # Modern Markdown parser (CommonMark, free-threading ready)
-    "markupsafe>=3.0.0",                       # HTML escaping and safe string handling
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",
     "jsmin>=3.0.1",
@@ -123,6 +122,12 @@ strict_optional = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
 
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.src]
+exclude = ["tests/roots/", "MagicMock/", "dist/", "build/"]
+
 [dependency-groups]
 dev = [
     # Testing
@@ -137,6 +142,7 @@ dev = [
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "mypy>=1.11.0",
+    "ty>=0.0.11",   # Astral type checker (Rust-based, 10-100x faster than mypy)
     "ruff>=0.14.0", # 0.14+ required for Python 3.14 support
     # Test Utilities
     "beautifulsoup4>=4.12.0", # HTML validation in integration tests

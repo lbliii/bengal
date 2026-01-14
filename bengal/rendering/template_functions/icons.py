@@ -19,7 +19,7 @@ import re
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from markupsafe import Markup
+from kida import Markup
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

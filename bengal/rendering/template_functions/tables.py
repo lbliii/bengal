@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from jinja2 import pass_environment
-from markupsafe import Markup
+from kida import Markup
 
 from bengal.directives.data_table import (
     DataTableDirective,

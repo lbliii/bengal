@@ -92,65 +92,8 @@ if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
     from bengal.errors.exceptions import BengalError
 
-
-class BuildPhase(Enum):
-    """
-    Build phase where an error occurred.
-    
-    Helps narrow down which part of the codebase to investigate.
-    Each phase maps to specific Bengal modules for targeted debugging.
-    
-    Phases follow the Bengal build pipeline order:
-    
-    1. **INITIALIZATION** - Config loading, CLI parsing
-    2. **DISCOVERY** - Content and section discovery
-    3. **PARSING** - Frontmatter and markdown parsing
-    4. **RENDERING** - Template rendering
-    5. **POSTPROCESSING** - Sitemap, RSS, search index
-    6. **ASSET_PROCESSING** - Static asset copying/processing
-    7. **CACHE** - Cache read/write operations
-    8. **SERVER** - Dev server operations
-    9. **OUTPUT** - Final output writing
-    
-    Example:
-            >>> phase = BuildPhase.RENDERING
-            >>> phase.primary_modules
-        ['bengal/rendering/', 'bengal/orchestration/render.py']
-        
-    """
-
-    INITIALIZATION = "initialization"
-    DISCOVERY = "discovery"
-    PARSING = "parsing"
-    RENDERING = "rendering"
-    POSTPROCESSING = "postprocessing"
-    ASSET_PROCESSING = "asset_processing"
-    CACHE = "cache"
-    SERVER = "server"
-    OUTPUT = "output"
-    ANALYSIS = "analysis"
-
-    @property
-    def primary_modules(self) -> list[str]:
-        """
-        Primary Bengal modules to investigate for errors in this phase.
-
-        Returns:
-            List of module paths relative to Bengal package root.
-        """
-        module_map = {
-            BuildPhase.INITIALIZATION: ["bengal/config/", "bengal/cli/"],
-            BuildPhase.DISCOVERY: ["bengal/discovery/", "bengal/content_layer/"],
-            BuildPhase.PARSING: ["bengal/rendering/markdown_parser.py", "bengal/core/page/"],
-            BuildPhase.RENDERING: ["bengal/rendering/", "bengal/orchestration/render.py"],
-            BuildPhase.POSTPROCESSING: ["bengal/postprocess/"],
-            BuildPhase.ASSET_PROCESSING: ["bengal/assets/", "bengal/orchestration/asset.py"],
-            BuildPhase.CACHE: ["bengal/cache/"],
-            BuildPhase.SERVER: ["bengal/server/"],
-            BuildPhase.OUTPUT: ["bengal/output/"],
-            BuildPhase.ANALYSIS: ["bengal/analysis/"],
-        }
-        return module_map.get(self, [])
+# Import BuildPhase from protocols (canonical location)
+from bengal.protocols.build import BuildPhase
 
 
 class ErrorSeverity(Enum):

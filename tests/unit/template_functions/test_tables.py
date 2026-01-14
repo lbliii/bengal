@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 from jinja2 import Environment
-from markupsafe import Markup
+from kida import Markup
 
 from bengal.rendering.template_functions.tables import data_table, register
 
