@@ -78,12 +78,17 @@ if TYPE_CHECKING:
         load_compressed,
         save_compressed,
     )
+    from bengal.cache.content_hash_registry import ContentHashRegistry
     from bengal.cache.coordinator import (
         CacheCoordinator,
         InvalidationEvent,
         PageInvalidationReason,
     )
     from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.cache.generated_page_cache import (
+        GeneratedPageCache,
+        GeneratedPageCacheEntry,
+    )
     from bengal.cache.manifest import RebuildEntry, RebuildManifest
     from bengal.cache.path_registry import PathRegistry
     from bengal.cache.query_index import IndexEntry, QueryIndex
@@ -101,7 +106,10 @@ __all__ = [
     "CacheCoordinator",
     "CacheStore",
     "COMPRESSION_LEVEL",
+    "ContentHashRegistry",
     "DependencyTracker",
+    "GeneratedPageCache",
+    "GeneratedPageCacheEntry",
     "IndexEntry",
     "InvalidationEvent",
     "PageInvalidationReason",
@@ -133,12 +141,17 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "COMPRESSION_LEVEL": ("bengal.cache.compression", "COMPRESSION_LEVEL"),
     "load_compressed": ("bengal.cache.compression", "load_compressed"),
     "save_compressed": ("bengal.cache.compression", "save_compressed"),
+    # Content hash registry (RFC: Output Cache Architecture)
+    "ContentHashRegistry": ("bengal.cache.content_hash_registry", "ContentHashRegistry"),
     # Cache coordinator (RFC: Cache Invalidation Architecture)
     "CacheCoordinator": ("bengal.cache.coordinator", "CacheCoordinator"),
     "InvalidationEvent": ("bengal.cache.coordinator", "InvalidationEvent"),
     "PageInvalidationReason": ("bengal.cache.coordinator", "PageInvalidationReason"),
     # Dependency tracker
     "DependencyTracker": ("bengal.cache.dependency_tracker", "DependencyTracker"),
+    # Generated page cache (RFC: Output Cache Architecture)
+    "GeneratedPageCache": ("bengal.cache.generated_page_cache", "GeneratedPageCache"),
+    "GeneratedPageCacheEntry": ("bengal.cache.generated_page_cache", "GeneratedPageCacheEntry"),
     # Rebuild manifest (RFC: Cache Invalidation Architecture)
     "RebuildEntry": ("bengal.cache.manifest", "RebuildEntry"),
     "RebuildManifest": ("bengal.cache.manifest", "RebuildManifest"),

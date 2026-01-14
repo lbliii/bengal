@@ -11,12 +11,14 @@ Features:
 - Glob-based ignore patterns for output paths
 - Optional content hashing for suspected false positives
 - Thread-safe configuration updates
+- Content-hash based change detection (RFC: Output Cache Architecture)
 
 Classes:
 ReloadController: Main decision engine with snapshot diffing
 SnapshotEntry: Immutable file metadata (size, mtime)
 OutputSnapshot: Directory state at a point in time
 ReloadDecision: Action recommendation with reason and changed paths
+EnhancedReloadDecision: Extended decision with output type breakdown
 
 Constants:
 MAX_CHANGED_PATHS_TO_SEND: Limit paths sent to client (20)
@@ -34,10 +36,19 @@ After each build, it takes a new snapshot and diffs against baseline:
 CSS-only reload is chosen when ALL changed files are CSS. Any non-CSS
 change triggers a full page reload.
 
+RFC: Output Cache Architecture Enhancement:
+When use_content_hashes=True, the controller uses embedded content hashes
+from bengal:content-hash meta tags for accurate change detection:
+
+1. capture_content_hash_baseline(): Capture hashes BEFORE build starts
+2. decide_with_content_hashes(): Compare hashes to detect real changes
+3. Aggregate-only changes (sitemap, feeds) don't trigger reload
+
 Related:
 - bengal/server/build_trigger.py: Calls decide_and_update after builds
 - bengal/server/live_reload.py: Sends reload events to connected clients
 - bengal/utils/hashing.py: Content hashing for suspect verification
+- bengal/rendering/pipeline/output.py: Content hash embedding
 
 """
 
@@ -105,6 +116,37 @@ class ReloadDecision:
     changed_paths: list[str]
 
 
+@dataclass
+class EnhancedReloadDecision:
+    """
+    Extended reload decision with output type breakdown.
+    
+    RFC: Output Cache Architecture - Categorizes changes by output type for
+    smarter hot reload decisions.
+    
+    Attributes:
+        action: One of 'none', 'reload-css', or 'reload'
+        reason: Machine-readable reason
+        changed_paths: List of changed output paths
+        content_changes: Paths to changed content pages
+        aggregate_changes: Paths to changed aggregate files (sitemap, feeds)
+        asset_changes: Paths to changed assets
+        
+    """
+
+    action: str  # 'none' | 'reload-css' | 'reload'
+    reason: str
+    changed_paths: list[str]
+    content_changes: list[str]
+    aggregate_changes: list[str]
+    asset_changes: list[str]
+
+    @property
+    def meaningful_change_count(self) -> int:
+        """Count of changes that affect user-visible content."""
+        return len(self.content_changes) + len(self.asset_changes)
+
+
 MAX_CHANGED_PATHS_TO_SEND = 20
 
 
@@ -141,6 +183,7 @@ class ReloadController:
         hash_on_suspect: bool = True,
         suspect_hash_limit: int = 200,
         suspect_size_limit_bytes: int = 2_000_000,
+        use_content_hashes: bool = False,
     ) -> None:
         """
         Initialize the reload controller.
@@ -153,6 +196,8 @@ class ReloadController:
                             Catches false positives from mtime-only changes.
             suspect_hash_limit: Maximum files to hash per decision (performance cap).
             suspect_size_limit_bytes: Skip hashing files larger than this (2MB default).
+            use_content_hashes: Enable content-hash based change detection
+                               (RFC: Output Cache Architecture).
         """
         self._previous: OutputSnapshot | None = None
         self._last_notify_time_ms: int = 0
@@ -167,6 +212,11 @@ class ReloadController:
         self._hash_cache: dict[str, tuple[int, str]] = {}
         # Config lock for thread-safe updates during dev server runtime
         self._config_lock = threading.RLock()
+        
+        # RFC: Output Cache Architecture - Content hash mode
+        self._use_content_hashes: bool = use_content_hashes
+        self._baseline_content_hashes: dict[str, str] = {}
+        self._output_types: dict[str, str] = {}  # Store type name as string
 
     # --- Runtime configuration setters ---
     def set_min_notify_interval_ms(self, value: int) -> None:
@@ -193,6 +243,172 @@ class ReloadController:
             if suspect_size_limit_bytes is not None:
                 with suppress(Exception):
                     self._suspect_size_limit_bytes = int(suspect_size_limit_bytes)
+
+    def set_use_content_hashes(self, value: bool) -> None:
+        """Enable or disable content-hash based change detection."""
+        with self._config_lock:
+            self._use_content_hashes = bool(value)
+
+    # --- RFC: Output Cache Architecture - Content hash methods ---
+
+    def capture_content_hash_baseline(self, output_dir: Path) -> None:
+        """
+        Capture content hashes before build for comparison.
+        
+        RFC: Output Cache Architecture - MUST be called BEFORE build starts
+        to establish baseline. Build writes may overlap with this scan if
+        called during build.
+        
+        Args:
+            output_dir: Path to output directory (e.g., public/)
+            
+        """
+        from bengal.rendering.pipeline.output import extract_content_hash
+        from bengal.orchestration.build.output_types import OutputType, classify_output
+        from bengal.utils.primitives.hashing import hash_str
+        
+        self._baseline_content_hashes.clear()
+        self._output_types.clear()
+        
+        if not output_dir.exists():
+            return
+        
+        for html_file in output_dir.rglob("*.html"):
+            rel_path = str(html_file.relative_to(output_dir))
+            try:
+                content = html_file.read_text(errors="ignore")
+                
+                # Extract embedded hash (O(1) regex) or compute (O(n) hash)
+                hash_val = extract_content_hash(content)
+                if hash_val is None:
+                    hash_val = hash_str(content, truncate=16)
+                
+                self._baseline_content_hashes[rel_path] = hash_val
+                self._output_types[rel_path] = classify_output(html_file).name
+            except OSError:
+                # File may have been deleted during scan - skip
+                continue
+
+    def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision:
+        """
+        Analyze changes using content hashes for accurate detection.
+        
+        RFC: Output Cache Architecture - Compares content hashes instead of
+        mtimes for accurate change detection. Categorizes changes by output
+        type for clear reporting.
+        
+        Args:
+            output_dir: Path to output directory (e.g., public/)
+        
+        Returns:
+            EnhancedReloadDecision with action and categorized changes.
+            
+        """
+        from bengal.rendering.pipeline.output import extract_content_hash
+        from bengal.orchestration.build.output_types import OutputType, classify_output
+        from bengal.utils.primitives.hashing import hash_str
+        
+        content_changes: list[str] = []
+        aggregate_changes: list[str] = []
+        asset_changes: list[str] = []
+        
+        for html_file in output_dir.rglob("*.html"):
+            rel_path = str(html_file.relative_to(output_dir))
+            try:
+                content = html_file.read_text(errors="ignore")
+            except OSError:
+                continue
+            
+            current_hash = extract_content_hash(content)
+            if current_hash is None:
+                current_hash = hash_str(content, truncate=16)
+            
+            baseline_hash = self._baseline_content_hashes.get(rel_path)
+            
+            # New file or changed content
+            if baseline_hash is None or current_hash != baseline_hash:
+                output_type_name = self._output_types.get(rel_path)
+                if output_type_name is None:
+                    output_type = classify_output(html_file)
+                    output_type_name = output_type.name
+                
+                if output_type_name in ("CONTENT_PAGE", "GENERATED_PAGE"):
+                    content_changes.append(rel_path)
+                elif output_type_name in ("AGGREGATE_INDEX", "AGGREGATE_FEED", "AGGREGATE_TEXT"):
+                    aggregate_changes.append(rel_path)
+                elif output_type_name == "ASSET":
+                    asset_changes.append(rel_path)
+        
+        # Apply throttling (reuse existing mechanism)
+        now = self._now_ms()
+        if now - self._last_notify_time_ms < self._min_interval_ms:
+            return EnhancedReloadDecision(
+                action="none",
+                reason="throttled",
+                changed_paths=[],
+                content_changes=[],
+                aggregate_changes=[],
+                asset_changes=[],
+            )
+        
+        # CSS-only reload
+        css_changes = self._check_css_changes_hashed(output_dir)
+        if not content_changes and not aggregate_changes and css_changes:
+            self._last_notify_time_ms = now
+            return EnhancedReloadDecision(
+                action="reload-css",
+                reason="css-only",
+                changed_paths=css_changes[:MAX_CHANGED_PATHS_TO_SEND],
+                content_changes=[],
+                aggregate_changes=[],
+                asset_changes=css_changes,
+            )
+        
+        # Content changed - full reload
+        if content_changes:
+            self._last_notify_time_ms = now
+            all_changes = content_changes + aggregate_changes + asset_changes
+            return EnhancedReloadDecision(
+                action="reload",
+                reason="content-changed",
+                changed_paths=all_changes[:MAX_CHANGED_PATHS_TO_SEND],
+                content_changes=content_changes,
+                aggregate_changes=aggregate_changes,
+                asset_changes=asset_changes,
+            )
+        
+        # Aggregate-only changes - no reload needed
+        if aggregate_changes and not content_changes:
+            return EnhancedReloadDecision(
+                action="none",
+                reason="aggregate-only-changes",
+                changed_paths=[],
+                content_changes=[],
+                aggregate_changes=aggregate_changes,
+                asset_changes=[],
+            )
+        
+        return EnhancedReloadDecision(
+            action="none",
+            reason="no-changes",
+            changed_paths=[],
+            content_changes=[],
+            aggregate_changes=[],
+            asset_changes=[],
+        )
+
+    def _check_css_changes_hashed(self, output_dir: Path) -> list[str]:
+        """Check CSS files for content changes using hashes."""
+        changed: list[str] = []
+        for css_file in output_dir.rglob("*.css"):
+            rel_path = str(css_file.relative_to(output_dir))
+            try:
+                current_hash = hash_file(css_file, truncate=16)
+                if self._baseline_content_hashes.get(rel_path) != current_hash:
+                    changed.append(rel_path)
+            except OSError:
+                continue
+        return changed
 
     def _now_ms(self) -> int:
         # Use monotonic clock for interval measurement to avoid wall-clock jumps

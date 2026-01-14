@@ -77,6 +77,7 @@ from bengal.cli.commands.serve import serve as serve_cmd
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
+from bengal.cli.commands.upgrade.command import upgrade as upgrade_cmd
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.cli.commands.version import version_cli
 from bengal.errors.traceback import TracebackConfig
@@ -238,6 +239,9 @@ main.add_command(graph_cli)
 # Version management for documentation
 main.add_command(version_cli)
 
+# Upgrade command - self-update
+main.add_command(upgrade_cmd)
+
 # =============================================================================
 # TOP-LEVEL ALIASES (most common operations - no nesting required!)
 # =============================================================================
@@ -292,6 +296,40 @@ main.add_command(graph_cli, name="g")
 
 # analyze → graph report (unified site analysis)
 main.add_command(graph_analyze_cmd, name="analyze")
+
+
+# =============================================================================
+# UPGRADE NOTIFICATION HOOK
+# =============================================================================
+
+
+@main.result_callback()
+@click.pass_context
+def _show_upgrade_notification_after_command(
+    ctx: click.Context, result: object, **kwargs: object
+) -> None:
+    """
+    Show upgrade notification after command completion.
+    
+    This is called after every command finishes. It checks for available
+    upgrades and shows a non-intrusive banner if one is available.
+    
+    The notification is:
+    - Cached (only checks PyPI once per 24h)
+    - Skipped in CI environments
+    - Skipped for non-TTY output
+    - Silent on any error
+    """
+    # Don't show for certain commands
+    if ctx.invoked_subcommand in ("upgrade", "version", None):
+        return
+
+    try:
+        from bengal.cli.commands.upgrade.command import show_upgrade_notification
+
+        show_upgrade_notification()
+    except Exception:
+        pass  # Never fail CLI due to upgrade check
 
 
 if __name__ == "__main__":

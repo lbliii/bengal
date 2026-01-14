@@ -118,6 +118,22 @@ class BengalPaths:
         """Taxonomy index cache file (.bengal/taxonomy_index.json or .json.zst)."""
         return self.state_dir / "taxonomy_index.json"
 
+    @property
+    def generated_page_cache(self) -> Path:
+        """Generated page cache file (.bengal/generated_page_cache.json or .json.zst).
+        
+        RFC: Output Cache Architecture - Caches rendered output for generated pages.
+        """
+        return self.state_dir / "generated_page_cache.json"
+
+    @property
+    def content_hash_registry(self) -> Path:
+        """Content hash registry file (.bengal/content_hashes.json or .json.zst).
+        
+        RFC: Output Cache Architecture - Central registry for all content hashes.
+        """
+        return self.state_dir / "content_hashes.json"
+
     # =========================================================================
     # INDEXES
     # =========================================================================

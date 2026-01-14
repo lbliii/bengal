@@ -76,13 +76,11 @@ Current: 0.1.8 → Latest: 0.2.0
 ### Architecture
 
 ```
-bengal/cli/
-├── __init__.py          # Main CLI entry point (add notification hook)
-├── upgrade/
-│   ├── __init__.py      # Package exports
-│   ├── check.py         # PyPI version checking + caching
-│   ├── command.py       # `bengal upgrade` command implementation
-│   └── installers.py    # Installer detection (uv, pip, pipx, etc.)
+bengal/cli/commands/upgrade/
+├── __init__.py          # Package exports
+├── check.py         # PyPI version checking + caching
+├── command.py       # `bengal upgrade` command implementation
+└── installers.py    # Installer detection (uv, pip, pipx, etc.)
 ```
 
 ### Component Responsibilities
@@ -182,7 +180,7 @@ Detection priority (check in order):
 
 ### Phase 1: Core Infrastructure (~80 LOC)
 
-**File: `bengal/cli/upgrade/check.py`**
+**File: `bengal/cli/commands/upgrade/check.py`**
 
 ```python
 """
@@ -328,7 +326,7 @@ def check_for_upgrade() -> UpgradeInfo | None:
 
 ### Phase 2: Installer Detection (~60 LOC)
 
-**File: `bengal/cli/upgrade/installers.py`**
+**File: `bengal/cli/commands/upgrade/installers.py`**
 
 ```python
 """
@@ -440,7 +438,7 @@ def _is_pipx_install() -> bool:
 
 ### Phase 3: Upgrade Command (~80 LOC)
 
-**File: `bengal/cli/upgrade/command.py`**
+**File: `bengal/cli/commands/upgrade/command.py`**
 
 ```python
 """
@@ -453,12 +451,13 @@ import subprocess
 import sys
 
 import click
+import questionary
 
 from bengal import __version__
 from bengal.cli.base import BengalCommand
-from bengal.cli.output import CLIOutput
-from bengal.cli.upgrade.check import PYPI_URL, fetch_latest_version
-from bengal.cli.upgrade.installers import detect_installer
+from bengal.output import CLIOutput
+from bengal.cli.commands.upgrade.check import PYPI_URL, fetch_latest_version
+from bengal.cli.commands.upgrade.installers import detect_installer
 
 
 @click.command(cls=BengalCommand, name="upgrade")
@@ -526,7 +525,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
     
     # Confirm with user
     if not yes:
-        if not click.confirm("Proceed with upgrade?", default=True):
+        if not questionary.confirm("Proceed with upgrade?", default=True).ask():
             cli.info("Upgrade cancelled")
             return
     
@@ -560,7 +559,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
 
 ```python
 # Add import at top
-from bengal.cli.upgrade.command import upgrade as upgrade_cmd
+from bengal.cli.commands.upgrade.command import upgrade as upgrade_cmd
 
 # Add command registration (after other main.add_command calls)
 main.add_command(upgrade_cmd, name="upgrade")
@@ -570,7 +569,7 @@ main.add_command(upgrade_cmd, name="upgrade")
 def _show_upgrade_notification() -> None:
     """Show upgrade notification if available (non-blocking)."""
     try:
-        from bengal.cli.upgrade.check import check_for_upgrade
+        from bengal.cli.commands.upgrade.check import check_for_upgrade
         
         info = check_for_upgrade()
         if info and info.is_outdated:
@@ -621,10 +620,10 @@ def test_cache_ttl_respected(tmp_path, monkeypatch):
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }))
     
-    monkeypatch.setattr("bengal.cli.upgrade.check.get_cache_path", lambda: cache)
+    monkeypatch.setattr("bengal.cli.commands.upgrade.check.get_cache_path", lambda: cache)
     
     # Should use cache, not fetch
-    with patch("bengal.cli.upgrade.check.fetch_latest_version") as mock:
+    with patch("bengal.cli.commands.upgrade.check.fetch_latest_version") as mock:
         check_for_upgrade()
         mock.assert_not_called()
 
@@ -652,7 +651,7 @@ def test_upgrade_dry_run(cli_runner):
 def test_upgrade_already_latest(cli_runner, monkeypatch):
     """Shows success when already on latest."""
     monkeypatch.setattr(
-        "bengal.cli.upgrade.check.fetch_latest_version",
+        "bengal.cli.commands.upgrade.check.fetch_latest_version",
         lambda: __version__
     )
     result = cli_runner.invoke(main, ["upgrade"])
@@ -709,10 +708,11 @@ def test_upgrade_already_latest(cli_runner, monkeypatch):
 | Dependency | Purpose | Status |
 |------------|---------|--------|
 | `httpx` | PyPI API requests | ✅ Already installed |
-| `packaging` | Version comparison | ✅ Already installed (via pip) |
+| `packaging` | Version comparison | ⚠️ Needs addition to pyproject.toml |
 | `click` | CLI framework | ✅ Already installed |
+| `questionary` | Interactive prompts | ✅ Already installed |
 
-No new dependencies required.
+No new external dependencies required (beyond declarative addition of `packaging`).
 
 ---
 

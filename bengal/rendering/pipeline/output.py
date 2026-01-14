@@ -235,12 +235,16 @@ def _track_and_record(
 
 def format_html(html: str, page: Page, site: Site) -> str:
     """
-    Format HTML output (minify/pretty).
+    Format HTML output (minify/pretty) with content hash embedding.
+    
+    RFC: Output Cache Architecture - Content hash is computed BEFORE formatting
+    to ensure deterministic results. This enables accurate change detection.
     
     Respects page-level and site-level configuration:
     - page.metadata.no_format: Skip formatting
     - site.config.html_output.mode: 'minify', 'pretty', or 'raw'
     - site.config.minify_html: Option
+    - site.config.build.content_hash_in_html: Embed content hash (default: true)
     
     Args:
         html: Rendered HTML content
@@ -248,9 +252,15 @@ def format_html(html: str, page: Page, site: Site) -> str:
         site: Site instance for config
     
     Returns:
-        Formatted HTML
+        Formatted HTML with content hash embedded
         
     """
+    # RFC: Output Cache Architecture - Embed content hash BEFORE formatting
+    # This ensures identical content always produces identical hash
+    build_cfg = site.config.get("build", {}) or {}
+    if build_cfg.get("content_hash_in_html", True):
+        html = embed_content_hash(html)
+    
     try:
         from bengal.postprocess.html_output import format_html_output
 
@@ -279,3 +289,98 @@ def format_html(html: str, page: Page, site: Site) -> str:
             action="falling_back_to_raw_html",
         )
         return html
+
+
+# =============================================================================
+# CONTENT HASH EMBEDDING (RFC: Output Cache Architecture)
+# =============================================================================
+
+# Pre-compiled regex patterns for hash extraction (O(1) lookup)
+import re
+
+_CONTENT_HASH_PATTERN_NAME_FIRST = re.compile(
+    r'<meta\s+name="bengal:content-hash"\s+content="([a-f0-9]+)"',
+    re.IGNORECASE,
+)
+_CONTENT_HASH_PATTERN_CONTENT_FIRST = re.compile(
+    r'<meta\s+content="([a-f0-9]+)"\s+name="bengal:content-hash"',
+    re.IGNORECASE,
+)
+_CONTENT_HASH_REMOVE_PATTERN = re.compile(
+    r'<meta\s+name="bengal:content-hash"\s+content="[a-f0-9]+"[^>]*>\s*',
+    re.IGNORECASE,
+)
+_HEAD_TAG_PATTERN = re.compile(r'<head[^>]*>', re.IGNORECASE)
+
+
+def embed_content_hash(html: str, content_hash: str | None = None) -> str:
+    """
+    Embed content hash in HTML using safe template-aware insertion.
+    
+    RFC: Output Cache Architecture - Embeds a content hash meta tag in the
+    <head> section for accurate change detection during hot reload.
+    
+    Handles edge cases:
+    - Missing <head> tag → skip embedding (don't break output)
+    - Uppercase/whitespace variants → normalize matching
+    - Already has hash → update existing
+    
+    Args:
+        html: HTML content to embed hash into
+        content_hash: Pre-computed hash (if None, computes from html)
+    
+    Returns:
+        HTML with content hash meta tag embedded
+        
+    """
+    from bengal.utils.primitives.hashing import hash_str
+    
+    # Compute hash if not provided
+    if content_hash is None:
+        content_hash = hash_str(html, truncate=16)
+    
+    meta_tag = f'<meta name="bengal:content-hash" content="{content_hash}">'
+    
+    # Remove existing hash if present (for rebuilds)
+    html = _CONTENT_HASH_REMOVE_PATTERN.sub('', html)
+    
+    # Find <head> tag (case-insensitive, handle attributes)
+    head_match = _HEAD_TAG_PATTERN.search(html)
+    if head_match:
+        insert_pos = head_match.end()
+        return html[:insert_pos] + f"\n    {meta_tag}" + html[insert_pos:]
+    
+    # No <head> tag found - log warning and return unchanged
+    # (This shouldn't happen for valid HTML, but don't break output)
+    logger.debug("content_hash_embed_skipped", reason="no_head_tag")
+    return html
+
+
+def extract_content_hash(html: str) -> str | None:
+    """
+    Extract content hash from HTML meta tag.
+    
+    RFC: Output Cache Architecture - Extracts embedded content hash for
+    comparison during hot reload change detection.
+    
+    Returns None if no hash found (old/external content).
+    Handles case-insensitive matching and attribute order variations.
+    
+    Args:
+        html: HTML content to extract hash from
+    
+    Returns:
+        Content hash string, or None if not found
+        
+    """
+    # Try name-first pattern (most common)
+    match = _CONTENT_HASH_PATTERN_NAME_FIRST.search(html)
+    if match:
+        return match.group(1)
+    
+    # Try content-first pattern (alternate attribute order)
+    match = _CONTENT_HASH_PATTERN_CONTENT_FIRST.search(html)
+    if match:
+        return match.group(1)
+    
+    return None
