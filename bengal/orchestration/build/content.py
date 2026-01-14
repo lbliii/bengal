@@ -2,15 +2,19 @@
 Content phases for build orchestration.
 
 Phases 6-11: Sections, taxonomies, menus, related posts, query indexes, update pages list.
+
+RFC: Output Cache Architecture - Integrates GeneratedPageCache for tag page caching.
 """
 
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
+    from bengal.cache.generated_page_cache import GeneratedPageCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
 
@@ -418,6 +422,7 @@ def phase_update_pages_list(
     incremental: bool,
     pages_to_build: list[Any],
     affected_tags: set[str],
+    generated_page_cache: "GeneratedPageCache | None" = None,
 ) -> list[Any]:
     """
     Phase 12: Update Pages List.
@@ -427,12 +432,16 @@ def phase_update_pages_list(
     Handles metadata cascade: when a page's title/date/summary changes, taxonomy
     pages that list it must be rebuilt to show updated content.
     
+    RFC: Output Cache Architecture - Uses GeneratedPageCache to skip unchanged
+    tag pages based on member content hashes.
+    
     Args:
         orchestrator: Build orchestrator instance
         cache: BuildCache instance for cache invalidation
         incremental: Whether this is an incremental build
         pages_to_build: Current list of pages to build
         affected_tags: Set of affected tag slugs
+        generated_page_cache: GeneratedPageCache for skipping unchanged tag pages
     
     Returns:
         Updated pages_to_build list including generated taxonomy pages
@@ -444,6 +453,16 @@ def phase_update_pages_list(
     """
     # Convert to set for O(1) membership and automatic deduplication
     pages_to_build_set = set(pages_to_build) if pages_to_build else set()
+    
+    # RFC: Output Cache Architecture - Build content hash lookup from parsed_content cache
+    content_hash_lookup: dict[str, str] = {}
+    if cache and hasattr(cache, 'parsed_content'):
+        for path_str, entry in cache.parsed_content.items():
+            if isinstance(entry, dict):
+                # The content hash is stored as metadata_hash in parsed_content
+                content_hash = entry.get("metadata_hash", "")
+                if content_hash:
+                    content_hash_lookup[path_str] = content_hash
 
     # Ensure cache is fresh before accessing generated_pages
     # (Tag pages were just added in Phase 4, so cache might be stale)
@@ -477,16 +496,42 @@ def phase_update_pages_list(
 
     # Add newly generated tag pages to rebuild set
     # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
+    # RFC: Output Cache Architecture - Use GeneratedPageCache to skip unchanged pages
+    skipped_by_cache = 0
     for page in orchestrator.site.generated_pages:
         if page.metadata.get("type") in ("tag", "tag-index"):
             # For full builds, add all taxonomy pages
             # For incremental builds, add only affected tag pages + tag index
             tag_slug = page.metadata.get("_tag_slug")
+            page_type = page.metadata.get("type")
+            
+            # Base inclusion logic
             should_include = (
                 not incremental  # Full build: include all
-                or page.metadata.get("type") == "tag-index"  # Always include tag index
+                or page_type == "tag-index"  # Always include tag index
                 or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
             )
+            
+            # RFC: Output Cache Architecture - Check if page actually needs regeneration
+            # This is the KEY optimization: skip if member content hasn't changed
+            if should_include and incremental and generated_page_cache and page_type == "tag":
+                member_pages = page.metadata.get("_posts", [])
+                if member_pages and content_hash_lookup:
+                    # Check if this tag page needs regeneration based on member hashes
+                    needs_regen = generated_page_cache.should_regenerate(
+                        page_type="tag",
+                        page_id=tag_slug or "",
+                        member_pages=member_pages,
+                        content_cache=content_hash_lookup,
+                    )
+                    if not needs_regen:
+                        skipped_by_cache += 1
+                        orchestrator.logger.debug(
+                            "tag_page_cache_hit",
+                            tag_slug=tag_slug,
+                            member_count=len(member_pages),
+                        )
+                        should_include = False
 
             if should_include:
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
@@ -503,6 +548,14 @@ def phase_update_pages_list(
                     )
                 elif cache and hasattr(cache, 'invalidate_rendered_output'):
                     cache.invalidate_rendered_output(page.source_path)
+    
+    # Log cache effectiveness
+    if skipped_by_cache > 0:
+        orchestrator.logger.info(
+            "generated_page_cache_hits",
+            skipped=skipped_by_cache,
+            reason="member_content_unchanged",
+        )
 
     # Freeze content registry before rendering
     # This enables thread-safe reads during parallel rendering

@@ -307,6 +307,12 @@ class BuildOrchestrator:
         # We need cache for cleanup of deleted files and auto-mode decision
         with logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
+        
+        # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
+        # This enables skipping unchanged tag pages based on member content hashes
+        from bengal.cache.generated_page_cache import GeneratedPageCache
+        generated_page_cache = GeneratedPageCache(self.site.paths.state_dir / "generated_page_cache.json")
+        # Note: GeneratedPageCache loads automatically in __init__
 
         # Resolve incremental mode (auto when None)
         auto_reason = None
@@ -434,8 +440,10 @@ class BuildOrchestrator:
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
 
         # Phase 12: Update Pages List (add generated taxonomy pages)
+        # RFC: Output Cache Architecture - Pass GeneratedPageCache to skip unchanged tag pages
         pages_to_build = content.phase_update_pages_list(
-            self, cache, incremental, pages_to_build, affected_tags
+            self, cache, incremental, pages_to_build, affected_tags,
+            generated_page_cache=generated_page_cache,
         )
 
         # Phase 12.5: URL Collision Detection (proactive validation)
@@ -536,9 +544,57 @@ class BuildOrchestrator:
         finalization.phase_postprocess(
             self, cli, False, ctx, incremental, collector=output_collector
         )
+        
+        # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
+        # This enables skipping them on future builds if member content hasn't changed
+        # Note: Update on ALL builds (not just incremental) to populate cache for first build
+        if generated_page_cache:
+            # Build content hash lookup from parsed_content cache
+            content_hash_lookup: dict[str, str] = {}
+            if cache and hasattr(cache, 'parsed_content'):
+                for path_str, entry in cache.parsed_content.items():
+                    if isinstance(entry, dict):
+                        content_hash = entry.get("metadata_hash", "")
+                        if content_hash:
+                            content_hash_lookup[path_str] = content_hash
+            
+            # Update cache for rendered tag pages
+            updated_entries = 0
+            tag_pages_found = 0
+            tag_pages_with_posts = 0
+            for page in pages_to_build:
+                if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
+                    tag_pages_found += 1
+                    tag_slug = page.metadata.get("_tag_slug", "")
+                    member_pages = page.metadata.get("_posts", [])
+                    if tag_slug and member_pages:
+                        tag_pages_with_posts += 1
+                        # Note: We don't have rendered_html here, pass empty string
+                        # The cache is primarily for member hash comparison, not HTML caching
+                        generated_page_cache.update(
+                            page_type="tag",
+                            page_id=tag_slug,
+                            member_pages=member_pages,
+                            content_cache=content_hash_lookup,
+                            rendered_html="",  # HTML caching optional
+                            generation_time_ms=0,  # Not tracked here
+                        )
+                        updated_entries += 1
+            
+            logger.info(
+                "generated_page_cache_updated",
+                entries=updated_entries,
+                tag_pages_found=tag_pages_found,
+                tag_pages_with_posts=tag_pages_with_posts,
+                content_hash_count=len(content_hash_lookup),
+            )
 
         # Phase 18: Save Cache
         finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
+        
+        # RFC: Output Cache Architecture - Save GeneratedPageCache
+        if generated_page_cache:
+            generated_page_cache.save()
 
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)

@@ -1,8 +1,9 @@
 """
 Custom pytest markers for Bengal test suite.
 
-Provides @pytest.mark.bengal marker that works with site_factory fixture
-to automatically set up test sites from test roots.
+Provides:
+- @pytest.mark.bengal: Works with site_factory fixture to set up test sites
+- @pytest.mark.needs_hardening: Mark tests that need behavioral assertion refactoring
 
 Usage:
     @pytest.mark.bengal(testroot="test-basic")
@@ -14,18 +15,34 @@ Usage:
     def test_with_overrides(site):
         # 'site' will have custom baseurl
         assert site.baseurl == "/custom"
+
+    @pytest.mark.needs_hardening
+    def test_uses_mocks():
+        # TODO: Replace mock verification with behavioral assertions
+        ...
+
+RFC: rfc-behavioral-test-hardening
 """
 
 import pytest
 
 
 def pytest_configure(config):
-    """Register the bengal marker."""
+    """Register custom markers."""
+    # Bengal test root marker
     config.addinivalue_line(
         "markers",
         "bengal(testroot, confoverrides): "
         "Mark test to use Bengal test root infrastructure. "
         "Requires 'site' fixture parameter in test function.",
+    )
+
+    # Test hardening marker (RFC: rfc-behavioral-test-hardening)
+    config.addinivalue_line(
+        "markers",
+        "needs_hardening: "
+        "Mark test as needing refactoring from mock-based to behavioral assertions. "
+        "Track progress with: pytest --collect-only -m needs_hardening | wc -l",
     )
 
 

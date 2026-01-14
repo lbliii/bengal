@@ -1,0 +1,11 @@
+# Golden test: simple_site
+# A minimal Bengal site with home and about pages.
+# Used to verify basic build behavior.
+
+[site]
+title = "Golden Test Site"
+baseURL = "https://example.com"
+description = "A site for golden file testing"
+
+[build]
+output_dir = "public"

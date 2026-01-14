@@ -1,0 +1,177 @@
+# Mutation Testing Workflow
+#
+# RFC: rfc-behavioral-test-hardening (Phase 4)
+#
+# Validates test suite effectiveness by introducing mutations (bugs)
+# into the code and checking if tests catch them.
+#
+# A high mutation score (>70%) indicates tests catch real bugs.
+# A low score indicates tests may pass even when bugs are introduced.
+#
+# Runs weekly and on manual trigger (too slow for per-PR).
+
+name: Mutation Testing
+
+on:
+  schedule:
+    # Run weekly on Sunday at 3 AM UTC (after regular tests)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: 'Paths to mutate (comma-separated, e.g., "bengal/orchestration/")'
+        required: false
+        default: 'bengal/orchestration/,bengal/cache/'
+
+concurrency:
+  group: mutation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # Mutation testing can be slow
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        python-version: "3.14t"
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-mutation-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-mutation-${{ runner.os }}-
+          uv-${{ runner.os }}-
+
+    - name: Cache mutation results
+      uses: actions/cache@v4
+      with:
+        path: .mutmut-cache
+        key: mutmut-${{ github.sha }}
+        restore-keys: |
+          mutmut-
+
+    - name: Install dependencies
+      run: |
+        uv sync --group dev
+        uv pip install mutmut
+
+    - name: Configure mutation targets
+      id: targets
+      run: |
+        # Use input if provided, otherwise use defaults
+        PATHS="${{ github.event.inputs.paths || 'bengal/orchestration/,bengal/cache/' }}"
+        echo "paths=$PATHS" >> $GITHUB_OUTPUT
+        echo "Mutation paths: $PATHS"
+
+    - name: Run mutation testing
+      env:
+        CI: true
+        BENGAL_CI_FAST: "1"
+        OMP_NUM_THREADS: "1"
+        PYTHON_GIL: "0"
+      run: |
+        echo "Running mutation testing on: ${{ steps.targets.outputs.paths }}"
+
+        # Run mutmut with targeted paths
+        # --runner: Use pytest with fast options
+        # --paths-to-mutate: Only mutate critical paths
+        # --tests-dir: Only run relevant tests
+        uv run mutmut run \
+          --paths-to-mutate "${{ steps.targets.outputs.paths }}" \
+          --tests-dir "tests/unit/orchestration/,tests/unit/cache/" \
+          --runner "pytest -x -q --tb=line" \
+          --no-progress \
+          || true  # Don't fail workflow on mutant survival
+
+    - name: Generate mutation report
+      run: |
+        echo "# Mutation Testing Report" > mutation-report.md
+        echo "" >> mutation-report.md
+        echo "**Date:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> mutation-report.md
+        echo "**Commit:** ${{ github.sha }}" >> mutation-report.md
+        echo "" >> mutation-report.md
+
+        # Get summary
+        echo "## Summary" >> mutation-report.md
+        echo "" >> mutation-report.md
+        echo "\`\`\`" >> mutation-report.md
+        uv run mutmut results >> mutation-report.md 2>&1 || echo "No results available" >> mutation-report.md
+        echo "\`\`\`" >> mutation-report.md
+        echo "" >> mutation-report.md
+
+        # Get detailed results
+        echo "## Survived Mutants" >> mutation-report.md
+        echo "" >> mutation-report.md
+        echo "These mutations were NOT caught by tests:" >> mutation-report.md
+        echo "\`\`\`" >> mutation-report.md
+        uv run mutmut show >> mutation-report.md 2>&1 || echo "No survived mutants or results not available" >> mutation-report.md
+        echo "\`\`\`" >> mutation-report.md
+
+    - name: Check mutation score threshold
+      id: score
+      run: |
+        # Extract mutation score
+        RESULTS=$(uv run mutmut results 2>&1 || echo "")
+
+        # Parse killed/total from results
+        KILLED=$(echo "$RESULTS" | grep -oP 'Killed: \K\d+' || echo "0")
+        TOTAL=$(echo "$RESULTS" | grep -oP 'Total: \K\d+' || echo "1")
+
+        if [ "$TOTAL" -gt 0 ]; then
+          SCORE=$((KILLED * 100 / TOTAL))
+        else
+          SCORE=0
+        fi
+
+        echo "score=$SCORE" >> $GITHUB_OUTPUT
+        echo "killed=$KILLED" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+        echo "Mutation Score: $SCORE% ($KILLED/$TOTAL killed)"
+
+        # Warn if below threshold (don't fail workflow)
+        if [ "$SCORE" -lt 70 ]; then
+          echo "::warning::Mutation score $SCORE% is below 70% target"
+        else
+          echo "✅ Mutation score $SCORE% meets 70% target"
+        fi
+
+    - name: Upload mutation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: mutation-report
+        path: mutation-report.md
+        retention-days: 30
+
+    - name: Update mutation tracking
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Append to tracking file (if it exists in repo)
+        if [ -f "tests/TEST_COVERAGE.md" ]; then
+          echo "" >> tests/TEST_COVERAGE.md
+          echo "| $(date -u +%Y-%m-%d) | orchestration/, cache/ | ${{ steps.score.outputs.total }} | ${{ steps.score.outputs.killed }} | ${{ steps.score.outputs.score }}% |" >> tests/TEST_COVERAGE.md
+        fi
+
+    - name: Post summary
+      run: |
+        echo "## Mutation Testing Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Score:** ${{ steps.score.outputs.score }}%" >> $GITHUB_STEP_SUMMARY
+        echo "- **Killed:** ${{ steps.score.outputs.killed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total:** ${{ steps.score.outputs.total }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Target: 70%" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.score.outputs.score }}" -lt 70 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Below target** - tests may not catch all bugs" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Meets target** - tests effectively catch bugs" >> $GITHUB_STEP_SUMMARY
+        fi
