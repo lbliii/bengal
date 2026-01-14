@@ -6,7 +6,8 @@ Creates virtual Page objects and handles rendering for autodoc elements.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration.result import AutodocRunResult
@@ -32,7 +33,7 @@ def compute_element_urls(
     element: DocElement,
     site: Site,
     doc_type: str,
-    resolve_output_prefix: callable,
+    resolve_output_prefix: Callable[..., Any],
 ) -> None:
     """
     Compute _path and href for an element and all its children.
@@ -83,9 +84,9 @@ def create_pages(
     sections: dict[str, Section],
     site: Site,
     doc_type: str,
-    resolve_output_prefix: callable,
-    get_element_metadata: callable,
-    find_parent_section: callable,
+    resolve_output_prefix: Callable[..., Any],
+    get_element_metadata: Callable[..., Any],
+    find_parent_section: Callable[..., Any],
     result: AutodocRunResult | None = None,
     consolidate: bool = False,
 ) -> tuple[list[Page], AutodocRunResult]:
@@ -272,7 +273,7 @@ def find_parent_section(
     element: DocElement,
     sections: dict[str, Section],
     doc_type: str,
-    resolve_output_prefix: callable,
+    resolve_output_prefix: Callable[..., Any],
 ) -> Section:
     """Find the appropriate parent section for an element."""
     prefix = resolve_output_prefix(doc_type)
@@ -318,7 +319,7 @@ def find_parent_section(
 
 
 def get_element_metadata(
-    element: DocElement, doc_type: str, resolve_output_prefix: callable
+    element: DocElement, doc_type: str, resolve_output_prefix: Callable[..., Any]
 ) -> tuple[str, str, str]:
     """Get template name, URL path, and page type for an element."""
     prefix = resolve_output_prefix(doc_type)

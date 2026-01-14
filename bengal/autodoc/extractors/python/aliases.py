@@ -8,13 +8,15 @@ and extracting __all__ exports.
 from __future__ import annotations
 
 import ast
+from collections.abc import Callable
+from typing import Any
 
 
 def detect_aliases(
     tree: ast.Module,
     module_name: str,
     defined_names: set[str],
-    expr_to_string: callable,
+    expr_to_string: Callable[..., Any],
 ) -> dict[str, str]:
     """
     Detect simple assignment aliases at module level.

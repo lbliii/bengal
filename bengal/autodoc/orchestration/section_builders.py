@@ -6,7 +6,8 @@ Creates virtual Section hierarchies for Python, CLI, and OpenAPI documentation.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.utils import get_openapi_tags, resolve_cli_url_path

@@ -13,7 +13,7 @@ Key Components:
 - CascadeTracker: Cascade dependency tracking
 - BlockChangeDetector: Block-level template change detection
 - RebuildDecisionEngine: Smart rebuild decisions based on block changes
-- IncrementalFilterEngine: Filter decision engine (RFC: rfc-rebuild-decision-hardening)
+- IncrementalFilterEngine: Filter decision engine with explicit 7-step pipeline
 - cleanup: Deleted file cleanup
 
 Architecture:
@@ -26,16 +26,33 @@ components following the single responsibility principle:
 4. CascadeTracker - Tracks cascade metadata dependencies
 5. BlockChangeDetector - Block-level template change detection (RFC)
 6. RebuildDecisionEngine - Smart rebuild decisions (RFC)
-7. cleanup - Handles cleanup of deleted files
+7. IncrementalFilterEngine - Filter decision pipeline (RFC: rfc-rebuild-decision-hardening)
+8. cleanup - Handles cleanup of deleted files
 
 The IncrementalOrchestrator coordinates these components but delegates
 the actual work to each specialized module.
+
+IncrementalFilterEngine (RFC: rfc-rebuild-decision-hardening):
+Consolidates filter decision logic with explicit 7-step pipeline:
+1. Check incremental mode
+2. Detect changes (via ChangeDetector)
+3. Check fingerprint cascade (CSS/JS changes)
+4. Check output presence
+5. Check autodoc output
+6. Check taxonomy/special pages
+7. Check skip condition
+
+Uses protocol-based composition for testability:
+- OutputChecker: Check if build output exists
+- AutodocOutputChecker: Check autodoc output
+- SpecialPagesChecker: Check graph/search pages
 
 Related Modules:
 - bengal.cache.build_cache: Build cache persistence
 - bengal.cache.dependency_tracker: Dependency graph construction
 
 See Also:
+- plan/rfc-rebuild-decision-hardening.md: Filter engine RFC
 - plan/ready/plan-architecture-refactoring.md: Sprint 4 design
 - plan/drafted/rfc-block-level-incremental-builds.md: Block-level RFC
 

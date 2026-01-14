@@ -1,8 +1,9 @@
 # RFC: Incremental Filter Consolidation
 
-## Status: Approved
+## Status: Implemented ✅
 ## Created: 2026-01-14
 ## Updated: 2026-01-14
+## Implemented: 2026-01-14
 ## Origin: Debugging session for flaky incremental build tests
 
 ---
@@ -784,6 +785,7 @@ Without this architecture, each enhancement requires:
 | 2026-01-14 | Protocol for OutputChecker | Explicit contract, easy to mock in tests |
 | 2026-01-14 | Rename to `IncrementalFilterEngine` | Avoid collision with existing `RebuildDecisionEngine` |
 | 2026-01-14 | Approve for implementation | Incremental builds are core value prop; hardening is strategic investment |
+| 2026-01-14 | **Implemented** | Phase 1+2 complete: Engine created, integrated into `phase_incremental_filter()`, 28 unit tests |
 
 ---
 

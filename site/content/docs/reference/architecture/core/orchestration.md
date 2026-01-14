@@ -126,6 +126,28 @@ The `IncrementalOrchestrator` manages cache-related components:
 
 The coordinator ensures that when a dependency changes (data file, template, taxonomy), all affected cache layers are invalidated consistently. See [Cache](cache.md#cache-invalidation-architecture) for details.
 
+### IncrementalFilterEngine
+
+Phase 5 (`phase_incremental_filter`) uses the `IncrementalFilterEngine` to make rebuild decisions with explicit ordering:
+
+```python
+# Decision pipeline (7 steps)
+1. _check_incremental_mode()      # → may return full
+2. _detect_changes()              # → baseline incremental list
+3. _check_fingerprint_cascade()   # → may expand pages (CSS/JS changes)
+4. _check_output_presence()       # → may force full (html/assets missing)
+5. _check_autodoc_output()        # → may force full
+6. _check_taxonomy_and_special()  # → blocks skip when graph/search missing
+7. _check_skip_condition()        # → may return skip
+```
+
+**Key types**:
+- `FilterDecision`: Immutable result with pages/assets to build
+- `FilterDecisionLog`: Complete audit trail of all checks
+- `FullRebuildTrigger`: Enum of distinct full-rebuild triggers for diagnostics
+
+The engine uses protocol-based composition for testability: `OutputChecker`, `AutodocOutputChecker`, `SpecialPagesChecker`.
+
 ## BuildContext
 
 Shared context passed through rendering and post-processing (simplified view):
