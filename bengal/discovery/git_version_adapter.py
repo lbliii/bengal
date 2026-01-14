@@ -381,7 +381,7 @@ class GitVersionAdapter:
             )
             record_error(error, file_path=str(self.repo_path))
             # Display user-friendly error with suggestion
-            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.errors.display import display_bengal_error
             from bengal.output import CLIOutput
 
             display_bengal_error(error, CLIOutput())
@@ -422,7 +422,7 @@ class GitVersionAdapter:
             )
             record_error(error, file_path=str(self.repo_path))
             # Display user-friendly error with suggestion
-            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.errors.display import display_bengal_error
             from bengal.output import CLIOutput
 
             display_bengal_error(error, CLIOutput())

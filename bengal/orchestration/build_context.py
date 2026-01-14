@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.dependency_tracker import DependencyTracker
-    from bengal.cli.progress import LiveProgressManager
+    from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page

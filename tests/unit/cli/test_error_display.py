@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from bengal.cli.helpers.error_display import (
+from bengal.errors.display import (
     beautify_common_exception,
     display_bengal_error,
 )

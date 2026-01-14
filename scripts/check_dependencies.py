@@ -61,6 +61,23 @@ LAYER_ORDER = {
     "bengal.server": 9,
 }
 
+# Acceptable cross-layer imports (documented exceptions)
+# Format: (importer_prefix, imported_prefix) - if import matches, it's allowed
+ALLOWED_VIOLATIONS: set[tuple[str, str]] = {
+    # Logging is a cross-cutting concern - error modules need logging
+    ("bengal.errors", "bengal.utils.observability.logger"),
+    ("bengal.errors", "bengal.utils.observability.rich_console"),
+    # Error aggregation needs error types from all modules (by design)
+    ("bengal.errors.aggregation", "bengal.rendering.errors"),
+    # CLI naturally imports server for coordination
+    ("bengal.cli", "bengal.server"),
+    # Core page needs utils for caching (cross-cutting concern)
+    ("bengal.core", "bengal.utils.cache_registry"),
+    ("bengal.core", "bengal.utils.lru_cache"),
+    ("bengal.core", "bengal.utils.concurrency"),
+    ("bengal.core", "bengal.utils.observability.logger"),
+}
+
 
 def get_layer(module: str) -> tuple[int, str]:
     """
@@ -107,6 +124,23 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int]]:
                 yield (module_name, node.module, node.lineno)
 
 
+def is_allowed_violation(importer: str, imported: str) -> bool:
+    """
+    Check if this import is in the allowed violations list.
+
+    Args:
+        importer: The importing module path
+        imported: The imported module path
+
+    Returns:
+        True if this is an allowed (documented) exception
+    """
+    for allowed_importer, allowed_imported in ALLOWED_VIOLATIONS:
+        if importer.startswith(allowed_importer) and imported.startswith(allowed_imported):
+            return True
+    return False
+
+
 def check_violation(importer: str, imported: str) -> tuple[bool, str]:
     """
     Check if an import violates the layer hierarchy.
@@ -123,6 +157,10 @@ def check_violation(importer: str, imported: str) -> tuple[bool, str]:
 
     # Unknown layers are allowed (might be tests or scripts)
     if importer_layer == 0 or imported_layer == 0:
+        return False, ""
+
+    # Check if this is an allowed exception
+    if is_allowed_violation(importer, imported):
         return False, ""
 
     # Violation: importing from a higher layer

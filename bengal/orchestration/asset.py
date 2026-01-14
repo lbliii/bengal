@@ -37,7 +37,7 @@ from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.cli.progress import LiveProgressManager
+    from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.site import Site

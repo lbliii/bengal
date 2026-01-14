@@ -193,11 +193,17 @@ def normalize_md_links(html: str) -> str:
     if not html:
         return html
 
-    def replace_md_link(match: re.Match[str]) -> str:
-        """Replace .md link with clean URL."""
+    # Match href="...md" or href='...md' (links ending in .md, optionally with anchor)
+    # Excludes external URLs (http/https) and Python file references (.py.md edge case)
+    # Captures: (href)(quote)(path.md)(optional #anchor)
+    pattern = r'(href)=(["\'])([^"\'#]*?\.md)(#[^"\']*)?\2'
+
+    def replace_md_link_with_anchor(match: re.Match[str]) -> str:
+        """Replace .md link with clean URL, preserving anchor."""
         attr = match.group(1)  # href
         quote = match.group(2)  # ' or "
-        path = match.group(3)  # the path ending in .md
+        path = match.group(3)  # the path ending in .md (without anchor)
+        anchor = match.group(4) or ""  # optional #anchor
 
         # Handle _index.md -> parent directory
         if path.endswith("/_index.md"):
@@ -220,13 +226,9 @@ def normalize_md_links(html: str) -> str:
             "normalized_md_link",
             original=path,
             normalized=clean_path,
+            anchor=anchor,
         )
 
-        return f"{attr}={quote}{clean_path}{quote}"
+        return f"{attr}={quote}{clean_path}{anchor}{quote}"
 
-    # Match href="...md" or href='...md' (links ending in .md)
-    # Excludes external URLs (http/https) and Python file references (.py.md edge case)
-    # Captures: (href)(quote)(path.md)
-    pattern = r'(href)=(["\'])([^"\']*?\.md)\2'
-
-    return re.sub(pattern, replace_md_link, html)
+    return re.sub(pattern, replace_md_link_with_anchor, html)

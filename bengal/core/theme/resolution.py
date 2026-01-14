@@ -114,6 +114,11 @@ def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
     Resolve theme inheritance chain starting from the active theme.
     
     Order: child first → parent → ... (does not duplicate 'default').
+    
+    When active_theme is "default" (or None), returns ["default"] so that
+    the bundled default theme assets are discovered. For child themes that
+    extend "default", filters out "default" since it's added as a fallback
+    separately in template loaders.
         
     """
     chain: list[str] = []
@@ -131,7 +136,11 @@ def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
         current = extends
         depth += 1
 
-    # Do not include 'default' twice; caller may add fallback separately
+    # When active_theme is "default" itself, keep it so assets are discovered.
+    # For child themes extending default, filter out "default" since the caller
+    # adds it as a fallback separately.
+    if (active_theme or "default") == "default":
+        return chain
     return [t for t in chain if t != "default"]
 
 

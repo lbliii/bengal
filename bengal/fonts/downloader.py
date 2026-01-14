@@ -213,7 +213,7 @@ class GoogleFontsDownloader:
                 )
                 record_error(error, file_path=None)
                 # Display user-friendly error with suggestion
-                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.errors.display import display_bengal_error
                 from bengal.output import CLIOutput
 
                 display_bengal_error(error, CLIOutput())
@@ -259,7 +259,7 @@ class GoogleFontsDownloader:
             )
             record_error(error, file_path=None)
             # Display user-friendly error with suggestion
-            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.errors.display import display_bengal_error
             from bengal.output import CLIOutput
 
             display_bengal_error(error, CLIOutput())
@@ -336,7 +336,7 @@ class GoogleFontsDownloader:
                 )
                 record_error(error, file_path=None)
                 # Display user-friendly error with suggestion
-                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.errors.display import display_bengal_error
                 from bengal.output import CLIOutput
 
                 display_bengal_error(error, CLIOutput())
@@ -382,7 +382,7 @@ class GoogleFontsDownloader:
             )
             record_error(error, file_path=None)
             # Display user-friendly error with suggestion
-            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.errors.display import display_bengal_error
             from bengal.output import CLIOutput
 
             display_bengal_error(error, CLIOutput())

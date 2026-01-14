@@ -63,6 +63,11 @@ from bengal.utils.observability.progress import (
     NoopReporter,
     ProgressReporter,
 )
+from bengal.utils.observability.cli_progress import (
+    LiveProgressManager,
+    PhaseProgress,
+    PhaseStatus,
+)
 from bengal.utils.observability.rich_console import (
     PALETTE,
     bengal_theme,
@@ -101,6 +106,10 @@ __all__ = [
     "ProgressReporter",
     "NoopReporter",
     "LiveProgressReporterAdapter",
+    # cli_progress (moved from cli.progress)
+    "LiveProgressManager",
+    "PhaseProgress",
+    "PhaseStatus",
     # observability
     "ComponentStats",
     "HasStats",

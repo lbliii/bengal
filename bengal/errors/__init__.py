@@ -220,6 +220,12 @@ if TYPE_CHECKING:
         format_error_summary,
     )
 
+    # Display (moved from cli.helpers.error_display)
+    from bengal.errors.display import (
+        beautify_common_exception,
+        display_bengal_error,
+    )
+
     # Session tracking
     from bengal.errors.session import (
         ErrorOccurrence,
@@ -328,6 +334,11 @@ __all__ = [
     # ============================================================
     "format_error_report",
     "format_error_summary",
+    # ============================================================
+    # Display (lazy, moved from cli.helpers.error_display)
+    # ============================================================
+    "display_bengal_error",
+    "beautify_common_exception",
 ]
 
 
@@ -391,6 +402,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Reporter
     "format_error_report": ("bengal.errors.reporter", "format_error_report"),
     "format_error_summary": ("bengal.errors.reporter", "format_error_summary"),
+    # Display (moved from cli.helpers.error_display)
+    "display_bengal_error": ("bengal.errors.display", "display_bengal_error"),
+    "beautify_common_exception": ("bengal.errors.display", "beautify_common_exception"),
 }
 
 

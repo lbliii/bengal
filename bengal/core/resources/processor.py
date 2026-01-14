@@ -121,7 +121,8 @@ class ImageProcessor:
         - Source path + mtime
         - Operation + spec
         """
-        from bengal.core.resources.image import ProcessedImage, parse_spec
+        from bengal.core.resources.types import parse_spec
+        from bengal.core.resources.image import ProcessedImage
 
         try:
             # Check if source exists

@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.cache import DependencyTracker
-    from bengal.cli.progress import LiveProgressManager
+    from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
