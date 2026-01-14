@@ -2,7 +2,7 @@
 
 ## Status: Draft
 ## Created: 2026-01-13
-## Updated: 2026-01-13
+## Updated: 2026-01-14
 
 ---
 
@@ -15,7 +15,9 @@
 2. **Taxonomy listing pages** don't update when member post metadata changes
 3. **Sitemap** doesn't include new pages during incremental builds
 
-**Solution**: Extend `DependencyTracker` to capture implicit dependencies from data files, taxonomy relationships, and global output files.
+**Solution**: Extend existing `DependencyTracker` infrastructure to capture implicit dependencies from data files and taxonomy relationships. Use "always regenerate" for sitemap (fast, correct).
+
+**Estimated Effort**: 4 days (revised from 6 days by leveraging existing infrastructure)
 
 ---
 
@@ -45,7 +47,7 @@ Bengal's incremental build system optimizes rebuilds by tracking explicit depend
 3. Run incremental build
 4. **Result**: Team page still shows "Engineer" ❌
 
-**Root Cause**: `find_work_early()` in `phase_incremental_filter` checks content file mtime, not data file access during rendering.
+**Root Cause**: `find_work_early()` in `phase_incremental_filter` checks content file mtime, not data file changes. Data files are loaded once at startup (`DataLoadingMixin._load_data_directory()`), so changes aren't detected.
 
 ### Gap 2: Taxonomy Metadata Propagation
 
@@ -63,7 +65,7 @@ tags: [python]
 3. Run incremental build
 4. **Result**: `/tags/python/` still shows old title "My Python Post" ❌
 
-**Root Cause**: Taxonomy term pages are generated from collected page metadata. When a member page changes, the incremental filter correctly rebuilds `post.md` but doesn't mark `/tags/python/` as stale since its "source" (`tags/python/_index.md` or virtual) didn't change.
+**Root Cause**: `DependencyTracker.track_taxonomy()` records page → tag relationships (forward direction), but not tag → page relationships (reverse direction). When a member page changes, the incremental filter correctly rebuilds the post but doesn't mark `/tags/python/` as stale.
 
 ### Gap 3: Sitemap Incremental Updates
 
@@ -73,7 +75,7 @@ tags: [python]
 3. Run incremental build
 4. **Result**: sitemap.xml still has 10 URLs ❌
 
-**Root Cause**: Sitemap generation in post-processing uses `site.pages`, but the sitemap output isn't triggered for regeneration when new pages are discovered.
+**Root Cause**: `SitemapGenerator.generate()` reads `site.pages` at generation time, but post-processing phase isn't triggered during incremental builds when only new pages are added (no existing content changed).
 
 ---
 
@@ -93,7 +95,7 @@ phase_incremental_filter()
 phase_assets()
     └─► Process changed CSS/JS/images
     └─► Update asset-manifest.json
-    └─► (Gap: doesn't notify pages of data file changes)
+    └─► (Gap: doesn't check data file mtimes)
     
 phase_rendering()
     └─► Render only pages_to_build
@@ -101,272 +103,295 @@ phase_rendering()
     
 phase_post_processing()
     └─► Generate sitemap, RSS, llm-full.txt
-    └─► (Gap: uses cached page list, not fresh discovery)
+    └─► (Gap: not always triggered on incremental)
 ```
 
-### Existing Dependency Tracking
+### Existing Dependency Tracking Infrastructure
 
-`DependencyTracker` in `bengal/core/dependencies.py` tracks:
+`DependencyTracker` in `bengal/cache/dependency_tracker.py` already tracks multiple dependency types:
 
-| Dependency Type | Tracked? | Notes |
-|-----------------|----------|-------|
-| Content file → Page | ✅ | `content_hash` comparison |
-| Template → Page | ✅ | Template mtime triggers rebuild |
-| Partial → Page | ✅ | Partial include detection |
-| Asset → Page | ✅ | `rfc-global-build-state-dependencies` |
-| **Data file → Page** | ❌ | Not tracked |
-| **Taxonomy term → Member pages** | ❌ | Not tracked |
-| **Page discovery → Sitemap** | ❌ | Not tracked |
+| Dependency Type | Tracked? | Method | Notes |
+|-----------------|----------|--------|-------|
+| Content file → Page | ✅ | `cache.is_changed()` | Content hash comparison |
+| Template → Page | ✅ | `track_template()` | Template mtime triggers rebuild |
+| Partial → Page | ✅ | `track_partial()` | Partial include detection |
+| Asset → Page | ✅ | `track_asset()` | Per `rfc-global-build-state-dependencies` |
+| Config → Page | ✅ | `track_config()` | Config hash triggers full rebuild |
+| Taxonomy (forward) | ✅ | `track_taxonomy()` | Page → tags mapping |
+| Cross-version links | ✅ | `track_cross_version_link()` | Version link dependencies |
+| **Data file → Page** | ❌ | — | Not tracked |
+| **Taxonomy (reverse)** | ❌ | — | Tags → pages not tracked |
+| **Page discovery → Sitemap** | ❌ | — | Not tracked |
+
+**Key Insight**: The existing `dependencies` and `reverse_dependencies` dicts in `DependencyTracker` can be extended for data file tracking without adding parallel data structures.
 
 ---
 
 ## Proposed Solution
 
-### Phase 1: Data File Dependency Tracking
+### Phase 1: Data File Dependency Tracking (Simplified)
 
-**Goal**: When `data/team.yaml` changes, rebuild pages that access `site.data.team`.
+**Goal**: When `data/team.yaml` changes, rebuild pages that accessed `site.data.team`.
+
+**Approach**: Use mtime-based invalidation with cached dependency sets. This is simpler than runtime access proxying and matches the existing "load once at startup" pattern.
 
 **Implementation**:
 
-1. **Track data file access during rendering**:
+1. **Extend DependencyTracker with data file methods**:
 
 ```python
-# bengal/core/dependencies.py
+# bengal/cache/dependency_tracker.py
 class DependencyTracker:
-    def __init__(self):
-        self._content_deps: dict[str, set[Path]] = {}
-        self._template_deps: dict[str, set[Path]] = {}
-        self._data_deps: dict[str, set[Path]] = {}  # NEW
+    # Existing infrastructure (reuse these)
+    # self.dependencies: dict[Path, set[Path]] = {}
+    # self.reverse_dependencies: dict[Path, set[Path]] = {}
     
-    def record_data_access(self, page_path: str, data_file: Path) -> None:
-        """Record that a page accessed a data file during rendering."""
-        if page_path not in self._data_deps:
-            self._data_deps[page_path] = set()
-        self._data_deps[page_path].add(data_file)
+    def track_data_file(self, page_path: Path, data_file: Path) -> None:
+        """Record that a page depends on a data file."""
+        # Use existing dependency infrastructure with data: prefix
+        dep_key = Path(f"data:{data_file}")
+        self.cache.add_dependency(page_path, dep_key)
+        self._update_dependency_file_once(data_file)
     
-    def get_pages_using_data_file(self, data_file: Path) -> set[str]:
+    def get_pages_using_data_file(self, data_file: Path) -> set[Path]:
         """Find all pages that depend on a data file."""
+        dep_key = f"data:{data_file}"
         return {
-            page for page, deps in self._data_deps.items()
-            if data_file in deps
+            Path(page) for page, deps in self.cache.dependencies.items()
+            if dep_key in deps
         }
 ```
 
-2. **Instrument data access in Site**:
+2. **Record data usage during template rendering**:
 
 ```python
-# bengal/core/site.py
-class Site:
-    @property
-    def data(self) -> DataProxy:
-        """Returns proxy that tracks data file access."""
-        return DataProxy(self._data, self._dependency_tracker, self._current_page)
+# bengal/rendering/template_functions/data.py
+def get_data(path: str, root_path: Any, tracker: DependencyTracker | None = None,
+             current_page: Path | None = None) -> Any:
+    """Load data from JSON or YAML file, tracking dependency."""
+    file_path = Path(root_path) / path
     
-class DataProxy:
-    """Proxy for site.data that records access for dependency tracking."""
+    # Track dependency if tracker available
+    if tracker and current_page:
+        tracker.track_data_file(current_page, file_path)
     
-    def __getattr__(self, name: str) -> Any:
-        data_file = self._data_dir / f"{name}.yaml"
-        if self._tracker and self._current_page:
-            self._tracker.record_data_access(self._current_page, data_file)
-        return self._data.get(name)
+    return load_data_file(file_path, on_error="return_empty", caller="template")
 ```
 
-3. **Include data-dependent pages in incremental filter**:
+3. **Check data file changes in find_work_early()**:
 
 ```python
-# bengal/build/incremental.py
-def find_work_early(site: Site, cache: BuildCache) -> list[Page]:
+# bengal/orchestration/incremental/orchestrator.py
+def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
     pages_to_build = []
     
     # Existing: content changes
-    for page in site.pages:
-        if content_changed(page, cache):
+    for page in self._site.pages:
+        if self._change_detector.content_changed(page):
             pages_to_build.append(page)
     
     # NEW: data file changes
-    for data_file in site.data_dir.glob("*.yaml"):
-        if data_file_changed(data_file, cache):
-            dependent_pages = site.dependency_tracker.get_pages_using_data_file(data_file)
-            pages_to_build.extend(site.get_pages(dependent_pages))
+    data_dir = self._site.root_path / "data"
+    if data_dir.exists():
+        for data_file in data_dir.rglob("*"):
+            if data_file.suffix in (".yaml", ".yml", ".json", ".toml"):
+                if self.cache.is_changed(data_file):
+                    # Find pages that used this data file in previous build
+                    dependent_pages = self.tracker.get_pages_using_data_file(data_file)
+                    for page_path in dependent_pages:
+                        page = self._site.get_page_by_source(page_path)
+                        if page and page not in pages_to_build:
+                            pages_to_build.append(page)
+                            self._change_summary.data_file_triggered.append(page_path)
     
-    return pages_to_build
+    return pages_to_build, assets_to_process, self._change_summary
 ```
 
-**Challenge**: Data access happens during rendering, but we need to know dependencies BEFORE rendering to decide what to rebuild.
-
-**Solution**: Use cached dependencies from previous build:
-
-```python
-def find_work_early(site: Site, cache: BuildCache) -> list[Page]:
-    # Load dependency graph from previous build
-    prev_deps = cache.load_dependencies()
-    
-    # Check data file mtimes
-    changed_data_files = [
-        f for f in site.data_dir.glob("*.yaml")
-        if cache.data_mtime(f) != f.stat().st_mtime
-    ]
-    
-    # Find pages that used changed data files (from previous build)
-    for data_file in changed_data_files:
-        pages_to_build.extend(prev_deps.get_pages_using_data_file(data_file))
-```
+**Alternative Considered**: Runtime `DataProxy` with `__getattr__` tracking. Rejected because:
+- Adds proxy overhead on every `site.data` access
+- Requires thread-local `_current_page` tracking
+- Data files are loaded once at startup, making mtime-based detection sufficient
 
 ---
 
-### Phase 2: Taxonomy Metadata Propagation
+### Phase 2: Taxonomy Metadata Propagation (Extend Existing)
 
 **Goal**: When post metadata changes, rebuild taxonomy term pages that list that post.
 
+**Approach**: Extend existing `track_taxonomy()` to record the reverse relationship (term → member pages).
+
 **Implementation**:
 
-1. **Track taxonomy term → member page relationships**:
+1. **Add reverse taxonomy tracking to existing method**:
 
 ```python
-# bengal/core/dependencies.py
+# bengal/cache/dependency_tracker.py
 class DependencyTracker:
-    def __init__(self):
-        # ... existing ...
-        self._taxonomy_deps: dict[str, set[str]] = {}  # term_path -> {member_paths}
+    def track_taxonomy(self, page_path: Path, tags: set[str]) -> None:
+        """Record taxonomy (tags/categories) dependencies (both directions)."""
+        for tag in tags:
+            if tag is None:
+                continue
+            tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
+            
+            # Existing: forward mapping (tag → pages that have this tag)
+            self.cache.add_taxonomy_dependency(tag_key, page_path)
+            
+            # NEW: reverse mapping (page → term pages that list it)
+            term_page_path = f"_generated/tags/{tag_key}/index.html"
+            self._record_reverse_taxonomy(page_path, term_page_path)
     
-    def record_taxonomy_membership(self, term_path: str, member_path: str) -> None:
-        """Record that a taxonomy term page lists a member page."""
-        if term_path not in self._taxonomy_deps:
-            self._taxonomy_deps[term_path] = set()
-        self._taxonomy_deps[term_path].add(member_path)
+    def _record_reverse_taxonomy(self, member_path: Path, term_path: str) -> None:
+        """Record that a term page depends on a member page's metadata."""
+        # When member changes, term page needs rebuild
+        with self.lock:
+            if term_path not in self.reverse_dependencies:
+                self.reverse_dependencies[term_path] = set()
+            self.reverse_dependencies[term_path].add(str(member_path))
     
-    def get_taxonomy_terms_for_page(self, page_path: str) -> set[str]:
-        """Find all taxonomy term pages that list this page."""
+    def get_term_pages_for_member(self, member_path: Path) -> set[str]:
+        """Find all taxonomy term pages that list this member page."""
         return {
-            term for term, members in self._taxonomy_deps.items()
-            if page_path in members
+            term for term, members in self.reverse_dependencies.items()
+            if str(member_path) in members and term.startswith("_generated/tags/")
         }
 ```
 
 2. **Cascade rebuilds to taxonomy pages**:
 
 ```python
-# bengal/build/incremental.py
-def find_work_early(site: Site, cache: BuildCache) -> list[Page]:
+# bengal/orchestration/incremental/orchestrator.py
+def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
     pages_to_build = []
     
     # Existing: content changes
-    changed_pages = [p for p in site.pages if content_changed(p, cache)]
+    changed_pages = [p for p in self._site.pages if self._change_detector.content_changed(p)]
     pages_to_build.extend(changed_pages)
     
-    # NEW: cascade to taxonomy pages
-    prev_deps = cache.load_dependencies()
+    # NEW: cascade to taxonomy term pages
     for page in changed_pages:
-        affected_terms = prev_deps.get_taxonomy_terms_for_page(page.source_path)
+        affected_terms = self.tracker.get_term_pages_for_member(page.source_path)
         for term_path in affected_terms:
-            term_page = site.get_page(term_path)
+            term_page = self._get_or_create_term_page(term_path)
             if term_page and term_page not in pages_to_build:
                 pages_to_build.append(term_page)
+                self._change_summary.taxonomy_cascade.append(term_path)
     
-    return pages_to_build
+    return pages_to_build, assets_to_process, self._change_summary
 ```
 
-3. **Optimization: Metadata-only changes**
-
-Full page content changes already trigger taxonomy rebuilds via the cascade. But what about metadata-only changes?
+3. **Detect metadata-only changes**:
 
 ```python
-def metadata_changed(page: Page, cache: BuildCache) -> bool:
+# bengal/orchestration/incremental/change_detector.py
+def metadata_changed(self, page: Page) -> bool:
     """Check if page frontmatter changed (title, tags, date, etc.)."""
-    prev_meta = cache.get_metadata_hash(page.source_path)
-    curr_meta = hash_frontmatter(page.frontmatter)
-    return prev_meta != curr_meta
+    prev_hash = self.cache.get_metadata_hash(page.source_path)
+    if prev_hash is None:
+        return True  # New page
+    
+    curr_hash = self._hash_frontmatter(page.metadata)
+    return prev_hash != curr_hash
+
+def _hash_frontmatter(self, metadata: dict) -> str:
+    """Hash frontmatter fields that affect taxonomy listings."""
+    # Only hash fields that appear in taxonomy term pages
+    relevant = {
+        "title": metadata.get("title"),
+        "date": str(metadata.get("date", "")),
+        "summary": metadata.get("summary"),
+        "tags": sorted(metadata.get("tags", [])),
+    }
+    return hashlib.sha256(json.dumps(relevant, sort_keys=True).encode()).hexdigest()[:16]
 ```
 
 ---
 
-### Phase 3: Sitemap Incremental Updates
+### Phase 3: Sitemap Incremental Updates (Simplified)
 
 **Goal**: Sitemap includes new pages discovered during incremental builds.
 
+**Approach**: Always regenerate sitemap during incremental builds. Sitemap generation is fast (~10ms for 1000 pages), so the complexity of conditional regeneration isn't worth the minimal savings.
+
 **Implementation**:
 
-1. **Detect page count changes**:
-
 ```python
-# bengal/build/post_processing.py
-def should_regenerate_sitemap(site: Site, cache: BuildCache) -> bool:
-    """Check if sitemap needs regeneration."""
-    prev_page_count = cache.get("sitemap_page_count", 0)
-    curr_page_count = len(site.pages)
+# bengal/orchestration/build/finalization.py
+def phase_post_processing(
+    orchestrator: BuildOrchestrator,
+    cache: BuildCache,
+    incremental: bool,
+) -> None:
+    """Run post-processing tasks."""
+    site = orchestrator.site
     
-    # New pages added
-    if curr_page_count > prev_page_count:
-        return True
-    
-    # Pages deleted (handled by full rebuild, but check anyway)
-    if curr_page_count < prev_page_count:
-        return True
-    
-    # URL changes (slug, permalink)
-    prev_urls = set(cache.get("sitemap_urls", []))
-    curr_urls = {p.permalink for p in site.pages}
-    if prev_urls != curr_urls:
-        return True
-    
-    return False
-```
-
-2. **Trigger sitemap regeneration in post-processing**:
-
-```python
-# bengal/build/phases.py
-def phase_post_processing(site: Site, state: BuildState, cache: BuildCache):
-    # Existing sitemap generation
+    # Sitemap: always regenerate for correctness (fast: ~10ms for 1K pages)
     if site.config.build.generate_sitemap:
-        if state.is_full_build or should_regenerate_sitemap(site, cache):
-            generate_sitemap(site)
-            cache.set("sitemap_page_count", len(site.pages))
-            cache.set("sitemap_urls", [p.permalink for p in site.pages])
+        SitemapGenerator(site).generate()
+    
+    # RSS: regenerate if any pages changed or new pages added
+    if site.config.build.generate_rss:
+        if not incremental or orchestrator.has_content_changes():
+            RSSGenerator(site).generate()
+    
+    # llm-full.txt: regenerate if any content changed
+    if site.config.build.generate_llm_txt:
+        if not incremental or orchestrator.has_content_changes():
+            LLMFullGenerator(site).generate()
 ```
 
-3. **Alternative: Always regenerate on incremental**
-
-Sitemap generation is fast (~10ms for 1000 pages). Consider always regenerating:
-
-```python
-if site.config.build.generate_sitemap:
-    # Sitemap is cheap - always regenerate for correctness
-    generate_sitemap(site)
-```
+**Alternative Considered**: Conditional regeneration with page count/URL tracking. Rejected because:
+- Adds complexity for ~10ms savings
+- Edge cases (URL changes, page visibility changes) make conditional logic fragile
+- "Always correct" is better than "usually correct but sometimes stale"
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Data File Dependencies (3 days)
+### Phase 0: Test Infrastructure (0.5 day)
 
 | Task | Effort | Priority |
 |------|--------|----------|
-| Add `_data_deps` to DependencyTracker | 0.5 day | P1 |
-| Create `DataProxy` with access tracking | 1 day | P1 |
-| Update `find_work_early()` for data changes | 1 day | P1 |
-| Add tests for data file warm builds | 0.5 day | P1 |
+| Identify test cases from `rfc-warm-build-test-expansion.md` that validate each gap | 0.25 day | P0 |
+| Create test skeleton with `@pytest.mark.xfail` for gaps | 0.25 day | P0 |
 
-### Phase 2: Taxonomy Metadata Propagation (2 days)
+**Test Mapping**:
+| Gap | Test File | Test Name |
+|-----|-----------|-----------|
+| Data files | `test_warm_build_data_files.py` | `test_data_file_change_rebuilds_dependent_pages` |
+| Taxonomy | `test_warm_build_taxonomy.py` | `test_taxonomy_term_page_updates_on_member_title_change` |
+| Sitemap | `test_warm_build_output_formats.py` | `test_sitemap_includes_new_pages_incremental` |
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Add `_taxonomy_deps` to DependencyTracker | 0.5 day | P1 |
-| Record taxonomy membership during taxonomy generation | 0.5 day | P1 |
-| Cascade metadata changes to term pages | 0.5 day | P1 |
-| Add tests for taxonomy warm builds | 0.5 day | P1 |
-
-### Phase 3: Sitemap Incremental Updates (1 day)
+### Phase 1: Data File Dependencies (2 days)
 
 | Task | Effort | Priority |
 |------|--------|----------|
-| Add `should_regenerate_sitemap()` | 0.5 day | P2 |
-| Update post-processing phase | 0.25 day | P2 |
-| Add tests for sitemap warm builds | 0.25 day | P2 |
+| Add `track_data_file()` to DependencyTracker | 0.25 day | P1 |
+| Add `get_pages_using_data_file()` query method | 0.25 day | P1 |
+| Update `get_data()` template function with tracking | 0.5 day | P1 |
+| Update `find_work_early()` for data file changes | 0.5 day | P1 |
+| Add data file mtime to cache fingerprints | 0.25 day | P1 |
+| Tests pass: `test_data_file_change_rebuilds_dependent_pages` | 0.25 day | P1 |
 
-### Total Effort: 6 days
+### Phase 2: Taxonomy Metadata Propagation (1.5 days)
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| Extend `track_taxonomy()` with reverse mapping | 0.25 day | P1 |
+| Add `get_term_pages_for_member()` query method | 0.25 day | P1 |
+| Add metadata hash tracking to cache | 0.25 day | P1 |
+| Cascade metadata changes in `find_work_early()` | 0.5 day | P1 |
+| Tests pass: `test_taxonomy_term_page_updates_on_member_title_change` | 0.25 day | P1 |
+
+### Phase 3: Sitemap Always-Regenerate (0.5 day)
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| Update `phase_post_processing()` to always run sitemap | 0.25 day | P2 |
+| Tests pass: `test_sitemap_includes_new_pages_incremental` | 0.25 day | P2 |
+
+### Total Effort: 4.5 days
 
 ---
 
@@ -384,30 +409,43 @@ if site.config.build.generate_sitemap:
 - [ ] Dependency tracking adds < 5% overhead to full builds
 - [ ] Incremental builds remain faster than full builds for targeted changes
 - [ ] Memory overhead for dependency graph < 10MB for 10K page sites
+- [ ] Sitemap regeneration < 50ms for 1K pages
 
 ### Test Coverage
 
+- [ ] All xfail tests from Phase 0 pass after implementation
 - [ ] Tests from `rfc-warm-build-test-expansion.md` pass without workarounds
-- [ ] Specifically: `test_data_file_change_rebuilds_dependent_pages` uses incremental
-- [ ] Specifically: `test_taxonomy_term_page_title_change` uses incremental
-- [ ] Specifically: `test_sitemap_updated_on_page_add` uses incremental
+- [ ] Integration tests cover: data change → rebuild, metadata change → taxonomy rebuild, new page → sitemap
 
 ---
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Circular dependencies in data files | Medium | Detect cycles, warn user |
-| Over-invalidation (rebuild too much) | Low | Start conservative, optimize later |
-| Dependency graph too large | Low | Prune stale entries, use weak refs |
-| Breaking change to cache format | Medium | Version cache, invalidate on upgrade |
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| Circular dependencies in data files | Medium | Low | Detect cycles during tracking, warn user, skip circular refs |
+| Over-invalidation (rebuild too much) | Low | Medium | Start conservative; optimize with finer-grained tracking in v2 |
+| Cache format breaking change | Medium | Medium | Increment cache version, force full rebuild on upgrade |
+| Template data access not instrumented | High | Low | Audit all data access paths; add observability logging |
+| Performance regression from tracking | Medium | Low | Benchmark before/after; use lazy tracking if needed |
 
 ---
 
 ## Alternatives Considered
 
-### Alternative 1: Always Full Rebuild for Data/Taxonomy
+### Alternative 1: Runtime DataProxy with Access Tracking
+
+**Approach**: Wrap `site.data` in a proxy that records attribute access during rendering.
+
+**Pros**: Fine-grained tracking at key level (e.g., `site.data.team.members[0].name`)
+**Cons**: 
+- Proxy overhead on every access
+- Thread-local state for `_current_page`
+- Complex implementation for marginal benefit
+
+**Decision**: Rejected - mtime-based file-level tracking is sufficient for real-world usage patterns.
+
+### Alternative 2: Always Full Rebuild for Data/Taxonomy
 
 **Approach**: Detect data file or taxonomy-related content changes → trigger full rebuild.
 
@@ -416,7 +454,7 @@ if site.config.build.generate_sitemap:
 
 **Decision**: Rejected - dependency tracking is worth the complexity.
 
-### Alternative 2: Hash-Based Invalidation Only
+### Alternative 3: Hash-Based Invalidation Only
 
 **Approach**: Hash all inputs (content + data + templates), rebuild if hash changes.
 
@@ -425,38 +463,46 @@ if site.config.build.generate_sitemap:
 
 **Decision**: Rejected - too coarse-grained for large sites.
 
-### Alternative 3: Lazy Regeneration
+### Alternative 4: Conditional Sitemap Regeneration
 
-**Approach**: Don't rebuild taxonomy pages incrementally; regenerate on next full build.
+**Approach**: Track page count/URLs, only regenerate sitemap when changed.
 
-**Pros**: No dependency tracking needed
-**Cons**: Stale content visible to users until manual full rebuild
+**Pros**: Saves ~10ms per build
+**Cons**: Adds complexity, edge cases (URL changes, visibility changes)
 
-**Decision**: Rejected - user experience is poor.
+**Decision**: Rejected - "always correct" beats "usually correct".
 
 ---
 
 ## Related Work
 
-- `rfc-global-build-state-dependencies.md` - Asset fingerprint tracking (Phase 1 complete)
+- `rfc-global-build-state-dependencies.md` - Asset fingerprint tracking (implemented)
 - `rfc-warm-build-test-expansion.md` - Test coverage that discovered these gaps
 - `rfc-incremental-build-observability.md` - Logging for debugging incremental issues
 
 ---
 
+## Decisions Made
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| Data file granularity | File-level, not key-level | Simpler; data files typically change atomically |
+| Sitemap regeneration | Always regenerate | Fast (~10ms); correctness over optimization |
+| Leverage existing infra | Reuse `DependencyTracker` structures | Less code; proven patterns |
+| Cascade frontmatter | Track cascade inheritance as dependency | Ensures children rebuild when cascade changes |
+
+---
+
 ## Open Questions
 
-1. **Should we track nested data file access?** (e.g., `site.data.config.feature.enabled`)
-   - Proposal: Track at file level, not key level (simpler, sufficient)
+1. ~~**Should we track nested data file access?**~~ **Resolved**: Track at file level, not key level. Simpler and sufficient for real-world usage.
 
 2. **How to handle taxonomy changes in cascade frontmatter?**
    - When `_index.md` cascade sets `tags: [featured]`, all children inherit
-   - Proposal: Track cascade inheritance as dependency
+   - Proposal: Track cascade source as dependency; cascade change → rebuild children
+   - Status: Deferred to Phase 2 implementation
 
-3. **Should sitemap regeneration be configurable?**
-   - Option A: Always regenerate (simple, correct)
-   - Option B: User config `build.incremental_sitemap = true`
-   - Proposal: Option A (sitemap is cheap)
+3. ~~**Should sitemap regeneration be configurable?**~~ **Resolved**: No. Always regenerate. It's fast and correctness matters for SEO.
 
 ---
 
@@ -466,6 +512,36 @@ if site.config.build.generate_sitemap:
 |------|----------|-----------|
 | 2026-01-13 | RFC created | Warm build testing revealed gaps |
 | 2026-01-13 | Phase 1-3 scoped | Prioritize data files (most common), then taxonomy, then sitemap |
+| 2026-01-14 | Simplified Phase 1 | Mtime-based tracking instead of runtime proxy |
+| 2026-01-14 | Simplified Phase 3 | Always-regenerate instead of conditional |
+| 2026-01-14 | Added Phase 0 | Test-first approach with xfail markers |
+| 2026-01-14 | Effort revised to 4.5 days | Leveraging existing DependencyTracker infrastructure |
+| TBD | Phase 0 approved | Test infrastructure first |
 | TBD | Phase 1 approved | Data file dependencies most impactful |
 | TBD | Phase 2 approved | Taxonomy propagation common workflow |
 | TBD | Phase 3 approved | Sitemap correctness important for SEO |
+
+---
+
+## Appendix: Code References
+
+### Existing Infrastructure to Leverage
+
+| File | Class/Function | Reuse For |
+|------|----------------|-----------|
+| `bengal/cache/dependency_tracker.py` | `DependencyTracker` | Add `track_data_file()` |
+| `bengal/cache/dependency_tracker.py` | `track_taxonomy()` | Extend with reverse mapping |
+| `bengal/cache/build_cache/taxonomy_index_mixin.py` | `TaxonomyIndexMixin` | Query term → pages |
+| `bengal/orchestration/incremental/orchestrator.py` | `find_work_early()` | Add data/taxonomy checks |
+| `bengal/rendering/template_functions/data.py` | `get_data()` | Instrument with tracker |
+| `bengal/postprocess/sitemap.py` | `SitemapGenerator` | No changes needed |
+
+### New Code Locations
+
+| Feature | File | Notes |
+|---------|------|-------|
+| Data file tracking | `bengal/cache/dependency_tracker.py` | New methods in existing class |
+| Data change detection | `bengal/orchestration/incremental/orchestrator.py` | Extend `find_work_early()` |
+| Taxonomy reverse deps | `bengal/cache/dependency_tracker.py` | Extend `track_taxonomy()` |
+| Metadata hash | `bengal/orchestration/incremental/change_detector.py` | New method |
+| Sitemap always-run | `bengal/orchestration/build/finalization.py` | Simplify conditional |

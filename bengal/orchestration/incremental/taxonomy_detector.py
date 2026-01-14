@@ -1,18 +1,25 @@
 """
 Taxonomy and autodoc change detection for incremental builds.
 
-Handles checking for tag changes and autodoc source file changes.
+Handles checking for tag changes, autodoc source file changes,
+and taxonomy metadata propagation.
+
+RFC: rfc-incremental-build-dependency-gaps (Phase 2)
+- Metadata changes on member pages cascade to term pages
+- Title/date/summary changes trigger term page rebuild
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache
+    from bengal.cache import BuildCache, DependencyTracker
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary
@@ -26,15 +33,20 @@ class TaxonomyChangeDetector:
     
     Handles:
     - Tag changes on pages (added/removed tags)
+    - Metadata changes on member pages (title/date/summary)
     - Autodoc source file changes
     - Archive page rebuilds when sections change
-        
+    
+    RFC: rfc-incremental-build-dependency-gaps (Phase 2)
+    - When a page's listing-relevant metadata changes, term pages
+      that list that page need to be rebuilt.
     """
 
     def __init__(
         self,
         site: Site,
         cache: BuildCache,
+        tracker: DependencyTracker | None = None,
     ) -> None:
         """
         Initialize taxonomy change detector.
@@ -42,9 +54,11 @@ class TaxonomyChangeDetector:
         Args:
             site: Site instance for content access
             cache: BuildCache for change detection
+            tracker: Optional DependencyTracker for reverse taxonomy lookup
         """
         self.site = site
         self.cache = cache
+        self.tracker = tracker
 
     def check_taxonomy_changes(
         self,
@@ -95,6 +109,223 @@ class TaxonomyChangeDetector:
                     page_section = page.metadata.get("_section")
                     if page_section and page_section in affected_sections:
                         pages_to_rebuild.add(page.source_path)
+
+    def check_metadata_cascades(
+        self,
+        *,
+        pages_to_rebuild: set[Path],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> int:
+        """
+        Check for member page metadata changes that cascade to term pages.
+        
+        RFC: rfc-incremental-build-dependency-gaps (Phase 2)
+        
+        When a page's listing-relevant metadata (title, date, summary) changes,
+        taxonomy term pages that list that page need to be rebuilt so they
+        display the updated metadata.
+        
+        Args:
+            pages_to_rebuild: Set of pages already marked for rebuild
+            change_summary: ChangeSummary for logging
+            verbose: Whether to log detailed information
+            
+        Returns:
+            Number of additional pages added for rebuild
+        """
+        if not self.tracker:
+            return 0
+
+        pages_added = 0
+        term_pages_to_add: set[str] = set()
+
+        # DEBUG: Trace execution
+        import sys
+        print(f"[DEBUG] check_metadata_cascades called: {len(pages_to_rebuild)} pages to rebuild", file=sys.stderr)
+        if self.tracker:
+            print(f"[DEBUG] reverse_dependencies: {dict(list(self.tracker.reverse_dependencies.items())[:3])}", file=sys.stderr)
+
+        # DEBUG: Log reverse_dependencies state
+        logger.debug(
+            "check_metadata_cascades_start",
+            pages_to_rebuild_count=len(pages_to_rebuild),
+            reverse_dependencies_count=len(self.tracker.reverse_dependencies) if self.tracker else 0,
+        )
+
+        # Check each page being rebuilt for metadata changes
+        for page_path in list(pages_to_rebuild):
+            # Find the page object
+            page = self._get_page_by_path(page_path)
+            if not page:
+                logger.debug("check_metadata_cascades_skip_no_page", page_path=str(page_path))
+                continue
+
+            # Only check pages with tags (they're listed on term pages)
+            if not page.tags:
+                logger.debug("check_metadata_cascades_skip_no_tags", page_path=str(page_path))
+                continue
+
+            # Check if listing-relevant metadata changed
+            if self._listing_metadata_changed(page):
+                # Find term pages that list this page
+                term_keys = self.tracker.get_term_pages_for_member(page_path)
+                logger.debug(
+                    "check_metadata_cascades_term_keys",
+                    page_path=str(page_path),
+                    term_keys_found=len(term_keys),
+                    term_keys=list(term_keys)[:5],  # First 5
+                )
+                term_pages_to_add.update(term_keys)
+
+                if verbose and term_keys:
+                    logger.debug(
+                        "metadata_cascade_triggered",
+                        page=str(page_path.name),
+                        term_pages=len(term_keys),
+                    )
+
+        # Add term pages to rebuild set
+        if term_pages_to_add:
+            for term_key in term_pages_to_add:
+                # Convert term key to page path
+                term_page = self._find_term_page_by_key(term_key)
+                if term_page and term_page.source_path not in pages_to_rebuild:
+                    pages_to_rebuild.add(term_page.source_path)
+                    # Invalidate rendered output cache for term page
+                    # (RFC: rfc-incremental-build-dependency-gaps)
+                    self.cache.invalidate_rendered_output(term_page.source_path)
+                    pages_added += 1
+
+            if verbose:
+                if "Metadata cascades" not in change_summary.extra_changes:
+                    change_summary.extra_changes["Metadata cascades"] = []
+                change_summary.extra_changes["Metadata cascades"].append(
+                    f"{pages_added} term pages need rebuild due to member metadata changes"
+                )
+
+            logger.info(
+                "taxonomy_metadata_cascade",
+                term_pages_rebuilt=pages_added,
+                reason="member_metadata_changed",
+            )
+
+        return pages_added
+
+    def _listing_metadata_changed(self, page: Any) -> bool:
+        """
+        Check if a page's listing-relevant metadata may have changed.
+        
+        Conservative approach: If the page is being rebuilt, assume its
+        listing-relevant metadata (title, date, summary) may have changed.
+        This ensures term pages are always updated when member pages change.
+        
+        Note: A more precise approach would store a separate listing_metadata_hash
+        in the cache, but the conservative approach guarantees correctness with
+        minimal rebuild overhead (term pages are cheap to rebuild).
+        
+        Args:
+            page: Page object
+            
+        Returns:
+            True if page is being rebuilt (listing metadata may have changed)
+        """
+        # Conservative: If the page has changed at all, assume listing metadata
+        # may have changed. This ensures correctness.
+        # 
+        # Future optimization: Store listing_metadata_hash separately and compare.
+        return True
+
+    def _hash_listing_metadata(self, metadata: dict[str, Any]) -> str:
+        """
+        Hash metadata fields that affect taxonomy listing pages.
+        
+        Only includes fields that appear in term page listings:
+        - title: Displayed in listing
+        - date: Used for sorting and display
+        - summary/description: May be shown in listing
+        - tags: Which term pages list this page
+        
+        Args:
+            metadata: Page metadata dict
+            
+        Returns:
+            16-char hex hash of relevant fields
+        """
+        # Normalize date to string for consistent hashing
+        date_val = metadata.get("date")
+        if date_val is not None:
+            date_str = str(date_val)
+        else:
+            date_str = ""
+
+        # Only hash fields that affect term page listings
+        relevant = {
+            "title": metadata.get("title", ""),
+            "date": date_str,
+            "summary": metadata.get("summary", "") or metadata.get("description", ""),
+            "tags": sorted(str(t) for t in (metadata.get("tags") or []) if t is not None),
+        }
+
+        content = json.dumps(relevant, sort_keys=True)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+    def _get_page_by_path(self, path: Path) -> Any:
+        """Get page object by source path."""
+        for page in self.site.pages:
+            if page.source_path == path:
+                return page
+        return None
+
+    def _find_term_page_by_key(self, term_key: str) -> Any:
+        """
+        Find the generated term page for a term key.
+        
+        During incremental change detection, the actual generated page
+        objects may not exist yet (they're created during the build phase).
+        So we also create a synthetic page if not found in site.generated_pages.
+        
+        Args:
+            term_key: Key like "_generated/tags/tag:python"
+            
+        Returns:
+            Page object if found, or synthetic page for path tracking
+        """
+        # Extract tag slug from key
+        # term_key format: "_generated/tags/tag:slug"
+        if not term_key.startswith("_generated/tags/tag:"):
+            return None
+
+        tag_slug = term_key.split("tag:")[-1]
+
+        # First, try to find the actual generated tag page
+        for page in self.site.generated_pages:
+            if page.metadata.get("type") == "tag":
+                if page.metadata.get("_tag_slug") == tag_slug:
+                    return page
+
+        # If not found (common during early incremental detection),
+        # create a synthetic page object for path tracking.
+        # The actual page will be created during the build phase.
+        from types import SimpleNamespace
+        
+        # Build the expected source path for the tag page
+        # Match the format used by make_virtual_path():
+        # .bengal/generated/tags/{tag_slug}/index.md
+        generated_dir = self.site.paths.generated_dir
+        source_path = generated_dir / "tags" / tag_slug / "index.md"
+        
+        # Create minimal page-like object with required attributes
+        synthetic_page = SimpleNamespace(
+            source_path=source_path,
+            metadata={
+                "type": "tag",
+                "_tag_slug": tag_slug,
+                "_generated": True,
+            },
+        )
+        
+        return synthetic_page
 
     def check_autodoc_changes(
         self,

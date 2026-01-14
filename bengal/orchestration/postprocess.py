@@ -155,11 +155,23 @@ class PostprocessOrchestrator:
             )
 
         # OPTIMIZATION: For incremental builds, skip expensive post-processing
-        # This is safe because:
+        # except for sitemap which must always be regenerated for correctness.
+        #
+        # RFC: rfc-incremental-build-dependency-gaps (Phase 3)
+        # Sitemap is always regenerated because:
+        # - It's fast (~10ms for 1K pages)
+        # - New pages must appear in sitemap for SEO
+        # - Correctness matters more than the minimal time savings
+        #
+        # Skip these on incremental:
         # - Social cards: Only needed for production (OG images don't change during dev)
-        # - Sitemaps: Update on full builds (periodic refresh)
         # - RSS: Regenerated on content rebuild (not layout changes)
         # - Redirects: Regenerated on full builds (aliases rarely change)
+        
+        # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
+        if self.site.config.get("generate_sitemap", True):
+            tasks.append(("sitemap", self._generate_sitemap))
+
         if not incremental:
             # Full build: run all expensive tasks
 
@@ -168,9 +180,6 @@ class PostprocessOrchestrator:
             social_cards_config = parse_social_cards_config(self.site.config)
             if social_cards_config.enabled:
                 tasks.append(("social cards", self._generate_social_cards))
-
-            if self.site.config.get("generate_sitemap", True):
-                tasks.append(("sitemap", self._generate_sitemap))
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
@@ -184,10 +193,11 @@ class PostprocessOrchestrator:
                 tasks.append(("xref index", self._generate_xref_index))
         else:
             # Incremental: skip expensive tasks for dev server responsiveness
-            # Note: Output formats ARE still generated (above) because search requires it
+            # Note: Output formats and sitemap ARE still generated (above)
             logger.info(
                 "postprocessing_incremental",
-                reason="skipping_social_cards_sitemap_rss_for_speed",
+                reason="skipping_social_cards_rss_for_speed",
+                sitemap="always_generated",
             )
 
         if not tasks:

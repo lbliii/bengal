@@ -1,0 +1,542 @@
+"""
+Integration tests for incremental build dependency gaps.
+
+Tests that verify the fixes for RFC: rfc-incremental-build-dependency-gaps.
+
+Gap 1: Data file changes don't trigger page rebuilds
+Gap 2: Taxonomy listing pages don't update when member post metadata changes
+Gap 3: Sitemap doesn't include new pages during incremental builds
+
+See: plan/rfc-incremental-build-dependency-gaps.md
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from tests.integration.warm_build.conftest import WarmBuildTestSite
+
+
+class TestDataFileDependencyGap:
+    """
+    Gap 1: Data file changes should trigger dependent page rebuilds.
+    
+    When data/team.yaml changes, pages that accessed site.data.team
+    should be rebuilt with the new data.
+    """
+
+    def test_data_file_change_triggers_incremental_rebuild(
+        self, site_with_data_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Data file change triggers incremental rebuild of dependent pages.
+        
+        Scenario:
+        1. Full build with data/team.yaml and about.md that uses the data
+        2. Modify data/team.yaml to change a team member's role
+        3. Run incremental build
+        4. Assert: about page is rebuilt with new role value
+        
+        This is the core gap: incremental builds should detect data file
+        changes and rebuild pages that depend on that data.
+        """
+        # Build 1: Full build
+        stats1 = site_with_data_tracking.full_build()
+        assert stats1.pages_built >= 1, "Initial build should create pages"
+        
+        # Verify initial content
+        site_with_data_tracking.assert_output_contains(
+            "about/index.html", "Developer"
+        )
+        
+        # Modify data file to change role
+        site_with_data_tracking.modify_file(
+            "data/team.yaml",
+            """
+members:
+  - name: Alice
+    role: Senior Developer
+  - name: Bob
+    role: Designer
+""",
+        )
+        
+        site_with_data_tracking.wait_for_fs()
+        
+        # Build 2: Incremental build should detect data change
+        stats2 = site_with_data_tracking.incremental_build()
+        
+        # Assert: About page was rebuilt with new data
+        site_with_data_tracking.assert_output_contains(
+            "about/index.html", "Senior Developer"
+        )
+        
+        # Assert: At least the about page was rebuilt (not skipped)
+        assert stats2.pages_built >= 1, (
+            "Data file change should trigger rebuild of dependent pages"
+        )
+
+
+class TestTaxonomyMetadataPropagationGap:
+    """
+    Gap 2: Taxonomy term pages should update when member post metadata changes.
+    
+    When a post's title/date/summary changes, the /tags/X/ listing page
+    should be rebuilt with the updated metadata.
+    """
+
+    def test_taxonomy_term_page_updates_on_member_title_change(
+        self, site_with_taxonomy_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Taxonomy term page updates when a member post's title changes.
+        
+        Scenario:
+        1. Full build with posts tagged [python]
+        2. Change the title of a python-tagged post
+        3. Run incremental build  
+        4. Assert: /tags/python/ listing shows the new title
+        
+        This is the core gap: when a member page's metadata changes,
+        the taxonomy term page listing it should also rebuild.
+        """
+        # Build 1: Full build
+        stats1 = site_with_taxonomy_tracking.full_build()
+        assert stats1.pages_built >= 1, "Initial build should create pages"
+        
+        # Verify initial title appears in tag page
+        site_with_taxonomy_tracking.assert_output_contains(
+            "tags/python/index.html", "Python Tutorial"
+        )
+        
+        # Modify post title
+        site_with_taxonomy_tracking.modify_file(
+            "content/blog/post1.md",
+            """---
+title: Advanced Python Techniques
+date: 2026-01-01
+tags: [python, tutorial]
+categories: [tutorials]
+---
+
+An advanced Python tutorial.
+""",
+        )
+        
+        site_with_taxonomy_tracking.wait_for_fs()
+        
+        # Build 2: Incremental build
+        stats2 = site_with_taxonomy_tracking.incremental_build()
+        
+        # Assert: Tag page shows new title
+        site_with_taxonomy_tracking.assert_output_contains(
+            "tags/python/index.html", "Advanced Python Techniques"
+        )
+        site_with_taxonomy_tracking.assert_output_not_contains(
+            "tags/python/index.html", "Python Tutorial"
+        )
+
+    def test_taxonomy_term_page_updates_on_member_date_change(
+        self, site_with_taxonomy_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Taxonomy term page ordering updates when a member post's date changes.
+        
+        Scenario:
+        1. Full build with multiple posts tagged [python]
+        2. Change a post's date to make it the most recent
+        3. Run incremental build
+        4. Assert: /tags/python/ listing shows posts in new order
+        """
+        # Create additional post for ordering test
+        site_with_taxonomy_tracking.create_file(
+            "content/blog/post3.md",
+            """---
+title: Older Python Post
+date: 2025-12-01
+tags: [python]
+---
+
+Older post content.
+""",
+        )
+        
+        # Build 1: Full build
+        stats1 = site_with_taxonomy_tracking.full_build()
+        assert stats1.pages_built >= 1
+        
+        # Modify date to make older post newest
+        site_with_taxonomy_tracking.modify_file(
+            "content/blog/post3.md",
+            """---
+title: Now The Newest Python Post
+date: 2026-12-01
+tags: [python]
+---
+
+Now the newest content.
+""",
+        )
+        
+        site_with_taxonomy_tracking.wait_for_fs()
+        
+        # Build 2: Incremental build
+        stats2 = site_with_taxonomy_tracking.incremental_build()
+        
+        # Assert: Tag page shows updated title
+        site_with_taxonomy_tracking.assert_output_contains(
+            "tags/python/index.html", "Now The Newest Python Post"
+        )
+
+
+class TestSitemapIncrementalGap:
+    """
+    Gap 3: Sitemap should include new pages during incremental builds.
+    
+    When a new page is added during an incremental build, the sitemap
+    should be regenerated to include the new page.
+    """
+
+    def test_sitemap_includes_new_pages_on_incremental_build(
+        self, site_with_sitemap: WarmBuildTestSite
+    ) -> None:
+        """
+        Sitemap includes new pages added during incremental build.
+        
+        Scenario:
+        1. Full build with 3 pages → sitemap has 3 URLs
+        2. Add a new page
+        3. Run incremental build
+        4. Assert: sitemap now has 4 URLs including the new page
+        """
+        # Build 1: Full build
+        stats1 = site_with_sitemap.full_build()
+        assert stats1.pages_built >= 1
+        
+        # Verify sitemap exists and has initial pages
+        site_with_sitemap.assert_output_exists("sitemap.xml")
+        initial_sitemap = site_with_sitemap.read_output("sitemap.xml")
+        assert "<url>" in initial_sitemap
+        
+        # Count initial URLs
+        initial_url_count = initial_sitemap.count("<loc>")
+        
+        # Add a new page
+        site_with_sitemap.create_file(
+            "content/new-page.md",
+            """---
+title: New Page
+---
+
+New page content.
+""",
+        )
+        
+        site_with_sitemap.wait_for_fs()
+        
+        # Build 2: Incremental build
+        stats2 = site_with_sitemap.incremental_build()
+        
+        # Assert: New page was built
+        site_with_sitemap.assert_output_exists("new-page/index.html")
+        
+        # Assert: Sitemap includes new page
+        updated_sitemap = site_with_sitemap.read_output("sitemap.xml")
+        assert "new-page" in updated_sitemap, (
+            "Sitemap should include new page after incremental build"
+        )
+        
+        # Assert: URL count increased
+        updated_url_count = updated_sitemap.count("<loc>")
+        assert updated_url_count > initial_url_count, (
+            f"Sitemap URL count should increase from {initial_url_count} "
+            f"but got {updated_url_count}"
+        )
+
+    def test_sitemap_excludes_deleted_pages_on_full_rebuild(
+        self, site_with_sitemap: WarmBuildTestSite
+    ) -> None:
+        """
+        Sitemap excludes deleted pages after full rebuild.
+        
+        Scenario:
+        1. Full build with 3 pages
+        2. Delete one page
+        3. Run full rebuild
+        4. Assert: sitemap no longer has the deleted page URL
+        
+        Note: Deletion typically requires full rebuild for cleanup.
+        """
+        # Build 1: Full build with extra page
+        site_with_sitemap.create_file(
+            "content/to-delete.md",
+            """---
+title: Page To Delete
+---
+
+This page will be deleted.
+""",
+        )
+        stats1 = site_with_sitemap.full_build()
+        
+        # Verify page exists in sitemap
+        initial_sitemap = site_with_sitemap.read_output("sitemap.xml")
+        assert "to-delete" in initial_sitemap
+        
+        # Delete the page
+        site_with_sitemap.delete_file("content/to-delete.md")
+        
+        site_with_sitemap.wait_for_fs()
+        
+        # Build 2: Full rebuild for deletion cleanup
+        stats2 = site_with_sitemap.full_build()
+        
+        # Assert: Deleted page not in sitemap
+        updated_sitemap = site_with_sitemap.read_output("sitemap.xml")
+        assert "to-delete" not in updated_sitemap, (
+            "Sitemap should not include deleted page after rebuild"
+        )
+
+
+# =============================================================================
+# FIXTURES
+# =============================================================================
+
+
+def create_data_tracking_site_structure(site_dir) -> None:
+    """
+    Create a site structure that uses data files in templates.
+    
+    This fixture creates a page that explicitly uses site.data in its template
+    so we can verify data file dependency tracking.
+    
+    Note: site.data must be accessed in the template, not in markdown content.
+    Markdown content is rendered first, then passed to templates as {{ content }}.
+    
+    Important: Use `template:` in frontmatter (not `layout:`) for explicit
+    template selection in Bengal.
+    """
+    from pathlib import Path
+    
+    # Config
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Data Tracking Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = false
+generate_rss = false
+""")
+    
+    # Data directory
+    data_dir = site_dir / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    
+    (data_dir / "team.yaml").write_text("""
+members:
+  - name: Alice
+    role: Developer
+  - name: Bob
+    role: Designer
+""")
+    
+    # Content directory
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Home page
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    
+    # About page - uses custom template that accesses site.data
+    # Note: Use `template:` not `layout:` for explicit template selection
+    (content_dir / "about.md").write_text("""---
+title: About Us
+template: team.html
+---
+
+# About Us
+
+Meet our team!
+""")
+    
+    # Templates with data access - put team.html at root of templates/
+    templates_dir = site_dir / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Team template that accesses site.data.team (at templates/team.html)
+    (templates_dir / "team.html").write_text("""<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }}</title></head>
+<body>
+<main>
+{{ content }}
+<ul class="team-members">
+{% for member in site.data.team.members %}
+<li>{{ member.name }}: {{ member.role }}</li>
+{% endfor %}
+</ul>
+</main>
+</body>
+</html>
+""")
+
+
+def create_taxonomy_tracking_site_structure(site_dir) -> None:
+    """
+    Create a site structure with taxonomy for metadata propagation testing.
+    """
+    from pathlib import Path
+    
+    # Config with taxonomies
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Taxonomy Tracking Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = false
+generate_rss = false
+
+[taxonomies]
+tag = "tags"
+category = "categories"
+""")
+    
+    # Content directory
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Home page
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    
+    # Blog section with tagged posts
+    blog_dir = content_dir / "blog"
+    blog_dir.mkdir()
+    (blog_dir / "_index.md").write_text("""---
+title: Blog
+---
+
+# Blog
+""")
+    (blog_dir / "post1.md").write_text("""---
+title: Python Tutorial
+date: 2026-01-01
+tags: [python, tutorial]
+categories: [tutorials]
+---
+
+A Python tutorial.
+""")
+    (blog_dir / "post2.md").write_text("""---
+title: Rust Guide
+date: 2026-01-02
+tags: [rust]
+categories: [guides]
+---
+
+A Rust guide.
+""")
+
+
+def create_sitemap_site_structure(site_dir) -> None:
+    """
+    Create a site structure with sitemap enabled for incremental testing.
+    """
+    from pathlib import Path
+    
+    # Config with sitemap enabled
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Sitemap Test Site"
+baseurl = "https://example.com"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = true
+generate_rss = false
+""")
+    
+    # Content directory
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Home page
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    
+    # A few pages
+    (content_dir / "about.md").write_text("""---
+title: About
+---
+
+# About Us
+""")
+    
+    (content_dir / "contact.md").write_text("""---
+title: Contact
+---
+
+# Contact Us
+""")
+
+
+@pytest.fixture
+def site_with_data_tracking(tmp_path) -> WarmBuildTestSite:
+    """
+    Create a test site with data file dependency tracking.
+    
+    Returns:
+        WarmBuildTestSite helper with data tracking structure
+    """
+    site_dir = tmp_path / "data_tracking_site"
+    site_dir.mkdir()
+    create_data_tracking_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)
+
+
+@pytest.fixture
+def site_with_taxonomy_tracking(tmp_path) -> WarmBuildTestSite:
+    """
+    Create a test site with taxonomy metadata tracking.
+    
+    Returns:
+        WarmBuildTestSite helper with taxonomy structure
+    """
+    site_dir = tmp_path / "taxonomy_tracking_site"
+    site_dir.mkdir()
+    create_taxonomy_tracking_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)
+
+
+@pytest.fixture
+def site_with_sitemap(tmp_path) -> WarmBuildTestSite:
+    """
+    Create a test site with sitemap generation enabled.
+    
+    Returns:
+        WarmBuildTestSite helper with sitemap enabled
+    """
+    site_dir = tmp_path / "sitemap_site"
+    site_dir.mkdir()
+    create_sitemap_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)

@@ -291,11 +291,79 @@ class DependencyTracker:
         """
         self.cache.update_file(asset_path)
 
+    def track_data_file(self, page_path: Path, data_file: Path) -> None:
+        """
+        Record that a page depends on a data file.
+
+        When a data file changes, pages that used that data file should
+        be rebuilt to pick up the new data.
+
+        Args:
+            page_path: Path to the page being rendered
+            data_file: Path to the data file being accessed
+
+        Thread Safety:
+            Uses existing lock for thread-safe dependency tracking.
+
+        Example:
+            When page "content/about.md" uses {{ site.data.team }}:
+            >>> tracker.track_data_file(
+            ...     page_path=Path("content/about.md"),
+            ...     data_file=Path("data/team.yaml"),
+            ... )
+        """
+        # Use a data: prefix to distinguish from other dependencies
+        dep_key = f"data:{data_file}"
+
+        self.cache.add_dependency(page_path, Path(dep_key))
+        self._update_dependency_file_once(data_file)
+
+        logger.debug(
+            "data_file_dependency_tracked",
+            page=str(page_path),
+            data_file=str(data_file),
+        )
+
+    def get_pages_using_data_file(self, data_file: Path) -> set[Path]:
+        """
+        Find all pages that depend on a data file.
+
+        Used during incremental builds to determine which pages need
+        rebuilding when a data file changes.
+
+        Args:
+            data_file: Path to the data file that changed
+
+        Returns:
+            Set of page paths that should be rebuilt
+
+        Performance:
+            O(n) scan of dependencies. For sites with many pages,
+            consider maintaining a reverse index if this becomes a bottleneck.
+        """
+        dep_key = f"data:{data_file}"
+        pages: set[Path] = set()
+
+        for page_str, deps in self.cache.dependencies.items():
+            if dep_key in deps:
+                pages.add(Path(page_str))
+
+        if pages:
+            logger.debug(
+                "data_file_dependents_found",
+                data_file=str(data_file),
+                dependent_pages=len(pages),
+            )
+
+        return pages
+
     def track_taxonomy(self, page_path: Path, tags: set[str]) -> None:
         """
-        Record taxonomy (tags/categories) dependencies.
+        Record taxonomy (tags/categories) dependencies (both directions).
 
         When a page's tags change, tag pages need to be regenerated.
+        Also records reverse mapping so that when a member page's metadata
+        changes, the term pages listing it can be rebuilt.
 
         Args:
             page_path: Path to the page
@@ -308,6 +376,64 @@ class DependencyTracker:
             # Normalize tag (convert to str for int/bool/date types)
             tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
             self.cache.add_taxonomy_dependency(tag_key, page_path)
+
+            # NEW: Record reverse mapping (page → term pages that list it)
+            # When this page changes, term pages need to be rebuilt
+            term_page_key = f"_generated/tags/{tag_key}"
+            self._record_reverse_taxonomy(page_path, term_page_key)
+
+    def _record_reverse_taxonomy(self, member_path: Path, term_key: str) -> None:
+        """
+        Record that a term page depends on a member page's metadata.
+
+        When the member page changes (title, date, summary), the term page
+        listing it should be rebuilt.
+
+        Args:
+            member_path: Path to the member page (e.g., content/blog/post.md)
+            term_key: Key for the term page (e.g., _generated/tags/tag:python)
+
+        Thread Safety:
+            Uses existing lock for thread-safe updates.
+        """
+        with self.lock:
+            if term_key not in self.reverse_dependencies:
+                self.reverse_dependencies[term_key] = set()
+            self.reverse_dependencies[term_key].add(str(member_path))
+
+    def get_term_pages_for_member(self, member_path: Path) -> set[str]:
+        """
+        Find all taxonomy term pages that list this member page.
+
+        When a member page's metadata changes (title, date, summary),
+        the term pages listing it need to be rebuilt.
+
+        Args:
+            member_path: Path to the member page that changed
+
+        Returns:
+            Set of term page keys that should be rebuilt
+
+        Example:
+            >>> term_keys = tracker.get_term_pages_for_member(Path("content/blog/post.md"))
+            >>> # Returns {"_generated/tags/tag:python", "_generated/tags/tag:tutorial"}
+        """
+        member_key = str(member_path)
+        term_pages: set[str] = set()
+
+        with self.lock:
+            for term_key, members in self.reverse_dependencies.items():
+                if member_key in members and term_key.startswith("_generated/tags/"):
+                    term_pages.add(term_key)
+
+        if term_pages:
+            logger.debug(
+                "term_pages_for_member_found",
+                member=str(member_path),
+                term_pages=len(term_pages),
+            )
+
+        return term_pages
 
     def track_cross_version_link(
         self,

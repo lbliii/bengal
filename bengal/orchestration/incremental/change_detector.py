@@ -38,6 +38,7 @@ from typing import TYPE_CHECKING, Literal
 
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cascade_tracker import CascadeTracker
+from bengal.orchestration.incremental.data_detector import DataFileDetector
 from bengal.orchestration.incremental.file_detector import FileChangeDetector
 from bengal.orchestration.incremental.rebuild_filter import RebuildFilter
 from bengal.orchestration.incremental.taxonomy_detector import TaxonomyChangeDetector
@@ -121,8 +122,9 @@ class ChangeDetector:
         # Initialize sub-detectors
         self._file_detector = FileChangeDetector(site, cache, tracker)
         self._template_detector = TemplateChangeDetector(site, cache)
-        self._taxonomy_detector = TaxonomyChangeDetector(site, cache)
+        self._taxonomy_detector = TaxonomyChangeDetector(site, cache, tracker)
         self._version_detector = VersionChangeDetector(site, tracker)
+        self._data_detector = DataFileDetector(site, cache, tracker)
 
     def detect_changes(
         self,
@@ -259,6 +261,20 @@ class ChangeDetector:
             verbose=verbose,
         )
 
+        # RFC: rfc-incremental-build-dependency-gaps (Phase 1)
+        # Check data file changes
+        data_pages_count = self._data_detector.check_data_files(
+            pages_to_rebuild=pages_to_rebuild,
+            change_summary=change_summary,
+            verbose=verbose,
+        )
+        if data_pages_count > 0:
+            logger.info(
+                "data_file_dependencies_detected",
+                additional_pages=data_pages_count,
+                reason="data_files_changed",
+            )
+
         # Phase-specific logic
         if phase == "full":
             # Post-taxonomy: Handle tag page rebuilds
@@ -267,6 +283,20 @@ class ChangeDetector:
                 change_summary=change_summary,
                 verbose=verbose,
             )
+
+            # RFC: rfc-incremental-build-dependency-gaps (Phase 2)
+            # Check for member page metadata changes that cascade to term pages
+            metadata_cascade_count = self._taxonomy_detector.check_metadata_cascades(
+                pages_to_rebuild=pages_to_rebuild,
+                change_summary=change_summary,
+                verbose=verbose,
+            )
+            if metadata_cascade_count > 0:
+                logger.info(
+                    "metadata_cascades_detected",
+                    additional_pages=metadata_cascade_count,
+                    reason="member_page_metadata_changed",
+                )
 
         # Check autodoc changes
         autodoc_pages = self._taxonomy_detector.check_autodoc_changes(
