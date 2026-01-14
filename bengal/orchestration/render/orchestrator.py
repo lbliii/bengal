@@ -16,6 +16,8 @@ Related Modules:
 - bengal.rendering.template_engine: Template rendering implementation
 - bengal.rendering.renderer: Individual page rendering logic
 - bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.orchestration.render.parallel: Parallel rendering utilities
+- bengal.orchestration.render.tracking: Active render tracking
 
 See Also:
 - bengal/orchestration/render.py:render_pages() for rendering entry point
@@ -32,41 +34,24 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.errors import ErrorAggregator, extract_error_context
+from .parallel import (
+    get_or_create_pipeline,
+    is_free_threaded,
+    thread_local as _thread_local,
+)
+from .tracking import (
+    clear_thread_local_pipelines,
+    decrement_active_renders as _decrement_active_renders,
+    get_active_render_count,
+    get_current_generation as _get_current_generation,
+    increment_active_renders as _increment_active_renders,
+)
 from bengal.protocols import ProgressReporter
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
-
-
-def _is_free_threaded() -> bool:
-    """
-    Detect if running on free-threaded Python (PEP 703).
-    
-    Free-threaded Python (python3.13t+) has the GIL disabled, allowing
-    true parallel execution with ThreadPoolExecutor.
-    
-    Returns:
-        True if running on free-threaded Python, False otherwise
-        
-    """
-    # Check if sys._is_gil_enabled() exists and returns False
-    if hasattr(sys, "_is_gil_enabled"):
-        try:
-            return not sys._is_gil_enabled()
-        except (AttributeError, TypeError):
-            pass
-
-    # Fallback: check sysconfig for Py_GIL_DISABLED
-    try:
-        import sysconfig
-
-        return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
-    except (ImportError, AttributeError):
-        pass
-
-    return False
 
 
 if TYPE_CHECKING:
@@ -77,115 +62,11 @@ if TYPE_CHECKING:
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.build_context import BuildContext
 
-# Thread-local storage for pipelines (reuse per thread, not per page!)
-_thread_local = threading.local()
 
-# Build generation counter - incremented each render pass to invalidate stale pipelines
-# Each thread's pipeline stores the generation it was created for; if it doesn't match
-# the current generation, the pipeline is recreated with a fresh TemplateEngine.
-_build_generation: int = 0
-_generation_lock = threading.Lock()
-
-# Active render tracking (RFC: Cache Lifecycle Hardening - Phase 4)
-# Prevents cache invalidation during active render operations
-_active_render_count: int = 0
-_active_render_lock = threading.Lock()
-
-
-def _increment_active_renders() -> None:
-    """
-    Increment active render count (call at render start).
-    
-    RFC: Cache Lifecycle Hardening - Phase 4
-    Thread-safe counter for tracking active render operations.
-        
-    """
-    global _active_render_count
-    with _active_render_lock:
-        _active_render_count += 1
-
-
-def _decrement_active_renders() -> None:
-    """
-    Decrement active render count (call at render end).
-    
-    RFC: Cache Lifecycle Hardening - Phase 4
-    Thread-safe counter for tracking active render operations.
-        
-    """
-    global _active_render_count
-    with _active_render_lock:
-        _active_render_count -= 1
-
-
-def get_active_render_count() -> int:
-    """
-    Get current active render count (for debugging/testing).
-    
-    Returns:
-        Number of active render operations
-        
-    """
-    with _active_render_lock:
-        return _active_render_count
-
-
-def clear_thread_local_pipelines() -> None:
-    """
-    Invalidate thread-local pipeline caches across all threads.
-    
-    IMPORTANT: Call this at the start of each build to prevent stale
-    TemplateEngine/Jinja2 environments from persisting across rebuilds.
-    Without this, template changes may not be reflected because the old
-    Jinja2 environment with its internal cache would be reused.
-    
-    This works by incrementing a global generation counter. Worker threads
-    check this counter and recreate their pipelines when it changes.
-    
-    RFC: Cache Lifecycle Hardening - Phase 4
-    Warning: Should not be called while renders are active. If called during
-    active renders, logs a warning but proceeds (defensive behavior).
-        
-    """
-    global _build_generation
-
-    # Check for active renders (RFC: Cache Lifecycle Hardening)
-    with _active_render_lock:
-        if _active_render_count > 0:
-            logger.warning(
-                "clear_pipelines_during_active_render",
-                active_count=_active_render_count,
-                hint="This may cause inconsistent render results",
-            )
-            # In strict mode, could raise RuntimeError here
-            # For now, log warning and proceed (defensive)
-
-    with _generation_lock:
-        _build_generation += 1
-
-
-def _get_current_generation() -> int:
-    """Get the current build generation (thread-safe)."""
-    with _generation_lock:
-        return _build_generation
-
-
-# Register thread-local pipeline cache with centralized cache registry
-try:
-    from bengal.utils.cache_registry import InvalidationReason, register_cache
-
-    register_cache(
-        "thread_local_pipelines",
-        clear_thread_local_pipelines,
-        invalidate_on={
-            InvalidationReason.TEMPLATE_CHANGE,
-            InvalidationReason.FULL_REBUILD,
-            InvalidationReason.TEST_CLEANUP,
-        },
-    )
-except ImportError:
-    # Cache registry not available (shouldn't happen in normal usage)
-    pass
+# Re-export for backward compatibility (deprecated, use render.tracking module)
+def _is_free_threaded() -> bool:
+    """Deprecated: Use bengal.orchestration.render.parallel.is_free_threaded instead."""
+    return is_free_threaded()
 
 
 class RenderOrchestrator:

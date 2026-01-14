@@ -150,4 +150,5 @@ dev = [
     "types-markdown>=3.5.0",
     "types-jinja2>=2.11.0",
     "pytest-benchmark>=5.2.3",
+    "radon>=6.0.1",
 ]
