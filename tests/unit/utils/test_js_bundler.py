@@ -22,14 +22,14 @@ class TestBundleJsFilesBasics:
 
     def test_empty_list_returns_empty_string(self) -> None:
         """Test that empty file list returns empty string."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         result = bundle_js_files([])
         assert result == ""
 
     def test_bundles_single_file(self, tmp_path: Path) -> None:
         """Test bundling a single file."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("console.log('hello');")
@@ -41,7 +41,7 @@ class TestBundleJsFilesBasics:
 
     def test_bundles_multiple_files(self, tmp_path: Path) -> None:
         """Test bundling multiple files."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         file1 = tmp_path / "utils.js"
         file1.write_text("const utils = {};")
@@ -56,7 +56,7 @@ class TestBundleJsFilesBasics:
 
     def test_preserves_file_order(self, tmp_path: Path) -> None:
         """Test that file order is preserved."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         file1 = tmp_path / "first.js"
         file1.write_text("// First file")
@@ -78,7 +78,7 @@ class TestBundleJsFilesSourceComments:
 
     def test_adds_source_comments_by_default(self, tmp_path: Path) -> None:
         """Test that source comments are added by default."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("var x = 1;")
@@ -89,7 +89,7 @@ class TestBundleJsFilesSourceComments:
 
     def test_skips_source_comments_when_disabled(self, tmp_path: Path) -> None:
         """Test that source comments can be disabled."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("var x = 1;")
@@ -105,7 +105,7 @@ class TestBundleJsFilesMinification:
 
     def test_minifies_when_requested(self, tmp_path: Path) -> None:
         """Test that minification is applied when requested."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("var x = 1;")
@@ -119,7 +119,7 @@ class TestBundleJsFilesMinification:
 
     def test_handles_missing_jsmin(self, tmp_path: Path) -> None:
         """Test graceful handling when jsmin is not available."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("var x = 1;")
@@ -135,7 +135,7 @@ class TestBundleJsFilesErrorHandling:
 
     def test_skips_nonexistent_files(self, tmp_path: Path) -> None:
         """Test that nonexistent files are skipped."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         existing = tmp_path / "exists.js"
         existing.write_text("var x = 1;")
@@ -148,7 +148,7 @@ class TestBundleJsFilesErrorHandling:
 
     def test_skips_empty_files(self, tmp_path: Path) -> None:
         """Test that empty files are skipped."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         empty_file = tmp_path / "empty.js"
         empty_file.write_text("")
@@ -166,7 +166,7 @@ class TestGetThemeJsBundleOrder:
 
     def test_returns_list(self) -> None:
         """Test that function returns a list."""
-        from bengal.utils.js_bundler import get_theme_js_bundle_order
+        from bengal.assets.js_bundler import get_theme_js_bundle_order
 
         result = get_theme_js_bundle_order()
 
@@ -174,7 +174,7 @@ class TestGetThemeJsBundleOrder:
 
     def test_includes_core_files(self) -> None:
         """Test that core files are included."""
-        from bengal.utils.js_bundler import get_theme_js_bundle_order
+        from bengal.assets.js_bundler import get_theme_js_bundle_order
 
         result = get_theme_js_bundle_order()
 
@@ -183,7 +183,7 @@ class TestGetThemeJsBundleOrder:
 
     def test_utils_before_main(self) -> None:
         """Test that utils.js comes before main.js."""
-        from bengal.utils.js_bundler import get_theme_js_bundle_order
+        from bengal.assets.js_bundler import get_theme_js_bundle_order
 
         result = get_theme_js_bundle_order()
 
@@ -198,7 +198,7 @@ class TestGetThemeJsExcluded:
 
     def test_returns_set(self) -> None:
         """Test that function returns a set."""
-        from bengal.utils.js_bundler import get_theme_js_excluded
+        from bengal.assets.js_bundler import get_theme_js_excluded
 
         result = get_theme_js_excluded()
 
@@ -206,7 +206,7 @@ class TestGetThemeJsExcluded:
 
     def test_includes_third_party_libs(self) -> None:
         """Test that third-party libraries are excluded."""
-        from bengal.utils.js_bundler import get_theme_js_excluded
+        from bengal.assets.js_bundler import get_theme_js_excluded
 
         result = get_theme_js_excluded()
 
@@ -214,7 +214,7 @@ class TestGetThemeJsExcluded:
 
     def test_includes_lazy_loaded_scripts(self) -> None:
         """Test that lazy-loaded scripts are excluded."""
-        from bengal.utils.js_bundler import get_theme_js_excluded
+        from bengal.assets.js_bundler import get_theme_js_excluded
 
         result = get_theme_js_excluded()
 
@@ -227,7 +227,7 @@ class TestDiscoverJsFiles:
 
     def test_returns_empty_for_nonexistent_dir(self, tmp_path: Path) -> None:
         """Test that nonexistent directory returns empty list."""
-        from bengal.utils.js_bundler import discover_js_files
+        from bengal.assets.js_bundler import discover_js_files
 
         result = discover_js_files(tmp_path / "nonexistent")
 
@@ -235,7 +235,7 @@ class TestDiscoverJsFiles:
 
     def test_discovers_js_files(self, tmp_path: Path) -> None:
         """Test discovering JS files in directory."""
-        from bengal.utils.js_bundler import discover_js_files
+        from bengal.assets.js_bundler import discover_js_files
 
         # Create JS files
         (tmp_path / "main.js").write_text("// main")
@@ -250,7 +250,7 @@ class TestDiscoverJsFiles:
 
     def test_respects_bundle_order(self, tmp_path: Path) -> None:
         """Test that bundle order is respected."""
-        from bengal.utils.js_bundler import discover_js_files
+        from bengal.assets.js_bundler import discover_js_files
 
         # Create JS files
         (tmp_path / "main.js").write_text("// main")
@@ -269,7 +269,7 @@ class TestDiscoverJsFiles:
 
     def test_excludes_specified_files(self, tmp_path: Path) -> None:
         """Test that excluded files are not included."""
-        from bengal.utils.js_bundler import discover_js_files
+        from bengal.assets.js_bundler import discover_js_files
 
         # Create JS files
         (tmp_path / "main.js").write_text("// main")
@@ -285,7 +285,7 @@ class TestDiscoverJsFiles:
 
     def test_adds_remaining_files_alphabetically(self, tmp_path: Path) -> None:
         """Test that files not in order are added alphabetically."""
-        from bengal.utils.js_bundler import discover_js_files
+        from bengal.assets.js_bundler import discover_js_files
 
         # Create JS files
         (tmp_path / "zebra.js").write_text("// zebra")
@@ -308,7 +308,7 @@ class TestCreateJsBundle:
 
     def test_returns_empty_for_no_files(self, tmp_path: Path) -> None:
         """Test that empty directory returns empty string."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
@@ -319,7 +319,7 @@ class TestCreateJsBundle:
 
     def test_bundles_files_in_directory(self, tmp_path: Path) -> None:
         """Test bundling files from directory."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         js_dir = tmp_path / "js"
         js_dir.mkdir()
@@ -331,7 +331,7 @@ class TestCreateJsBundle:
 
     def test_writes_to_output_path(self, tmp_path: Path) -> None:
         """Test writing bundle to output path."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         js_dir = tmp_path / "js"
         js_dir.mkdir()
@@ -346,7 +346,7 @@ class TestCreateJsBundle:
 
     def test_creates_parent_directories(self, tmp_path: Path) -> None:
         """Test that parent directories are created."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         js_dir = tmp_path / "js"
         js_dir.mkdir()
@@ -360,7 +360,7 @@ class TestCreateJsBundle:
 
     def test_applies_minification(self, tmp_path: Path) -> None:
         """Test that minification is applied."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         js_dir = tmp_path / "js"
         js_dir.mkdir()
@@ -378,7 +378,7 @@ class TestBundleHeader:
 
     def test_includes_header_comment(self, tmp_path: Path) -> None:
         """Test that bundle includes header comment."""
-        from bengal.utils.js_bundler import bundle_js_files
+        from bengal.assets.js_bundler import bundle_js_files
 
         js_file = tmp_path / "main.js"
         js_file.write_text("var x = 1;")
@@ -394,7 +394,7 @@ class TestJsBundlerIntegration:
 
     def test_full_workflow(self, tmp_path: Path) -> None:
         """Test complete bundling workflow."""
-        from bengal.utils.js_bundler import create_js_bundle
+        from bengal.assets.js_bundler import create_js_bundle
 
         # Setup
         js_dir = tmp_path / "js"

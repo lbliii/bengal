@@ -17,7 +17,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
 
@@ -126,7 +126,7 @@ class JsonAccumulator:
             get_page_relative_url,
             get_page_url,
         )
-        from bengal.utils.build_context import AccumulatedPageData
+        from bengal.orchestration.build_context import AccumulatedPageData
 
         try:
             # Compute URLs

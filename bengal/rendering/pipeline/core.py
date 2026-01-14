@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.utils.swizzle import SwizzleManager, SwizzleRecord
+from bengal.themes.swizzle import SwizzleManager, SwizzleRecord
 
 
 @pytest.fixture
@@ -281,7 +281,7 @@ class TestChecksumCalculation:
         local_file.write_text("<div>Different content</div>")
 
         # Re-calculate checksum
-        from bengal.utils.swizzle import _checksum_file
+        from bengal.themes.swizzle import _checksum_file
 
         new_checksum = _checksum_file(local_file)
 

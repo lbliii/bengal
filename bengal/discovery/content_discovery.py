@@ -54,7 +54,7 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 class ContentDiscovery:

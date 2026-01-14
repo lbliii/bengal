@@ -406,7 +406,7 @@ class Asset:
             # Transform CSS nesting first (for browser compatibility)
             css_content = transform_css_nesting(css_content)
 
-            from bengal.utils.css_minifier import minify_css
+            from bengal.assets.css_minifier import minify_css
 
             # Simple minification: remove comments and whitespace only
             # No transformations that could break CSS

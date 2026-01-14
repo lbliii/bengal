@@ -50,7 +50,7 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import Markup
 
 if TYPE_CHECKING:
-    from bengal.utils.build_context import BuildContext as BuildContextType
+    from bengal.orchestration.build_context import BuildContext as BuildContextType
 
 # Re-export all context classes
 from bengal.rendering.context.data_wrappers import (
@@ -268,7 +268,7 @@ def get_engine_globals(site: Site) -> dict[str, Any]:
 
     # Build metadata with fallback (local import prevents circularity)
     try:
-        from bengal.utils.metadata import build_template_metadata
+        from bengal.rendering.metadata import build_template_metadata
 
         bengal_metadata = build_template_metadata(site)
     except Exception:

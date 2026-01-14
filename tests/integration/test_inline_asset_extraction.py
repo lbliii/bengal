@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from bengal.orchestration.build.rendering import phase_track_assets
-from bengal.utils.build_context import BuildContext
+from bengal.orchestration.build_context import BuildContext
 
 
 class TestInlineAssetExtraction:

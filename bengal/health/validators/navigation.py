@@ -18,7 +18,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
 

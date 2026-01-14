@@ -583,7 +583,7 @@ class AssetOrchestrator:
             Asset representing the bundle.js file, or None if bundling fails
         """
         from bengal.core.asset import Asset
-        from bengal.utils.js_bundler import (
+        from bengal.assets.js_bundler import (
             bundle_js_files,
             get_theme_js_bundle_order,
             get_theme_js_excluded,

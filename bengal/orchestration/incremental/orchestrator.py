@@ -26,7 +26,7 @@ from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cache_manager import CacheManager
 from bengal.orchestration.incremental.change_detector import ChangeDetector
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
-from bengal.utils.build_context import BuildContext
+from bengal.orchestration.build_context import BuildContext
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 

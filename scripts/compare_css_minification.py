@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bengal.utils.css_minifier import minify_css
+from bengal.assets.css_minifier import minify_css
 
 
 def find_breaking_patterns(original: str, minified: str) -> list[str]:

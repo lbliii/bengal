@@ -15,7 +15,7 @@ from threading import Thread
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from bengal.utils.build_context import BuildContext
+from bengal.orchestration.build_context import BuildContext
 
 if TYPE_CHECKING:
     pass

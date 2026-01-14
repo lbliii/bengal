@@ -13,7 +13,7 @@ from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 class MenuValidator(BaseValidator):

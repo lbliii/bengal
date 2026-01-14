@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.utils.metadata import (
+from bengal.rendering.metadata import (
     _get_highlighter_version,
     _get_i18n_info,
     _get_markdown_engine_and_version,
@@ -59,7 +59,7 @@ class TestGetMarkdownEngineAndVersion:
 
         with (
             patch.dict("sys.modules", {"mistune": MagicMock(__version__="2.0.0")}),
-            patch("bengal.utils.metadata.mistune", create=True) as mock_mistune,
+            patch("bengal.rendering.metadata.mistune", create=True) as mock_mistune,
         ):
             mock_mistune.__version__ = "2.0.0"
             engine, version = _get_markdown_engine_and_version(config)
@@ -94,7 +94,7 @@ class TestGetHighlighterVersion:
 
     def test_returns_pygments_version_when_installed(self):
         """Returns pygments version when installed."""
-        with patch("bengal.utils.metadata.pygments", create=True) as mock_pygments:
+        with patch("bengal.rendering.metadata.pygments", create=True) as mock_pygments:
             mock_pygments.__version__ = "2.15.0"
             _get_highlighter_version()  # May return version or None
 
@@ -115,7 +115,7 @@ class TestGetThemeInfo:
         mock_site = MagicMock()
         mock_site.theme = None
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             info = _get_theme_info(mock_site)
 
         assert info["name"] == "default"
@@ -126,7 +126,7 @@ class TestGetThemeInfo:
         mock_site = MagicMock()
         mock_site.theme = "my-theme"
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             info = _get_theme_info(mock_site)
 
         assert info["name"] == "my-theme"
@@ -139,7 +139,7 @@ class TestGetThemeInfo:
         mock_pkg = MagicMock()
         mock_pkg.version = "1.2.3"
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=mock_pkg):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=mock_pkg):
             info = _get_theme_info(mock_site)
 
         assert info["name"] == "versioned-theme"
@@ -151,7 +151,7 @@ class TestGetThemeInfo:
         mock_site.theme = "error-theme"
 
         with patch(
-            "bengal.utils.metadata.get_theme_package",
+            "bengal.rendering.metadata.get_theme_package",
             side_effect=Exception("Lookup failed"),
         ):
             info = _get_theme_info(mock_site)
@@ -213,7 +213,7 @@ class TestBuildTemplateMetadata:
         """Minimal exposure returns only engine info."""
         mock_site.config = {"expose_metadata": "minimal"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "engine" in metadata
@@ -227,7 +227,7 @@ class TestBuildTemplateMetadata:
         """Standard exposure includes theme, build, i18n."""
         mock_site.config = {"expose_metadata": "standard"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "engine" in metadata
@@ -241,7 +241,7 @@ class TestBuildTemplateMetadata:
         """Extended exposure includes all metadata."""
         mock_site.config = {"expose_metadata": "extended"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "engine" in metadata
@@ -255,7 +255,7 @@ class TestBuildTemplateMetadata:
         """Default exposure level is minimal."""
         mock_site.config = {}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "engine" in metadata
@@ -265,7 +265,7 @@ class TestBuildTemplateMetadata:
         """Invalid exposure level falls back to minimal."""
         mock_site.config = {"expose_metadata": "invalid-level"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "engine" in metadata
@@ -276,7 +276,7 @@ class TestBuildTemplateMetadata:
         for level in ["STANDARD", "Standard", "STANDARD"]:
             mock_site.config = {"expose_metadata": level}
 
-            with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+            with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
                 metadata = build_template_metadata(mock_site)
 
             assert "theme" in metadata
@@ -285,7 +285,7 @@ class TestBuildTemplateMetadata:
         """Exposure level whitespace is trimmed."""
         mock_site.config = {"expose_metadata": "  standard  "}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert "theme" in metadata
@@ -294,7 +294,7 @@ class TestBuildTemplateMetadata:
         """Engine info includes Bengal version."""
         mock_site.config = {"expose_metadata": "minimal"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["engine"]["name"] == "Bengal SSG"
@@ -305,7 +305,7 @@ class TestBuildTemplateMetadata:
         mock_site.config = {"expose_metadata": "standard"}
         mock_site.build_time = datetime(2024, 1, 15, 12, 30, 45)
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["build"]["timestamp"] == "2024-01-15T12:30:45"
@@ -315,7 +315,7 @@ class TestBuildTemplateMetadata:
         mock_site.config = {"expose_metadata": "standard"}
         del mock_site.build_time  # Remove build_time attribute
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["build"]["timestamp"] is None
@@ -327,7 +327,7 @@ class TestBuildTemplateMetadata:
         mock_site.theme = None
         mock_site.baseurl = None
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         # Should use defaults and not crash
@@ -340,7 +340,7 @@ class TestBuildTemplateMetadata:
             "markdown_engine": "mistune",
         }
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["rendering"]["markdown"] == "mistune"
@@ -350,7 +350,7 @@ class TestBuildTemplateMetadata:
         """Extended exposure includes highlighter info."""
         mock_site.config = {"expose_metadata": "extended"}
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["rendering"]["highlighter"] == "rosettes"
@@ -361,7 +361,7 @@ class TestBuildTemplateMetadata:
         mock_site.config = {"expose_metadata": "extended"}
         mock_site.baseurl = "/blog"
 
-        with patch("bengal.utils.metadata.get_theme_package", return_value=None):
+        with patch("bengal.rendering.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
         assert metadata["site"]["baseurl"] == "/blog"

@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
     from bengal.output import CLIOutput
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
 
@@ -337,7 +337,7 @@ class BuildOrchestrator:
         # Create BuildContext early for content caching during discovery
         # This enables build-integrated validation: validators use cached content
         # instead of re-reading from disk, saving ~4 seconds on health checks.
-        from bengal.utils.build_context import BuildContext
+        from bengal.orchestration.build_context import BuildContext
 
         early_ctx = BuildContext(
             site=self.site,

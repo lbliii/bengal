@@ -49,7 +49,7 @@ from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.profile import BuildProfile
 
 

@@ -19,7 +19,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

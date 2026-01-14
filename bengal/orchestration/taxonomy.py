@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from bengal.cache.taxonomy_index import TaxonomyIndex
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 class TaxonomyOrchestrator:

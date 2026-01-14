@@ -35,7 +35,7 @@ from bengal.protocols import ProgressReporter
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
     from bengal.orchestration.types import ProgressManagerProtocol
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator

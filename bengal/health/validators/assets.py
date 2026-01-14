@@ -20,7 +20,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:

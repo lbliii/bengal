@@ -24,7 +24,7 @@ Currently uses naive update (only updates if local unchanged).
 Three-way merge support may be added in future versions.
 
 Usage:
-    >>> from bengal.utils.swizzle import SwizzleManager
+    >>> from bengal.themes.swizzle import SwizzleManager
     >>>
     >>> manager = SwizzleManager(site)
     >>>

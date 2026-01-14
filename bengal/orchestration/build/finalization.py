@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
 

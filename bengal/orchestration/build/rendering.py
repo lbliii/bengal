@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.profile import BuildProfile
     from bengal.protocols import ProgressReporter
 
@@ -449,7 +449,7 @@ def phase_render(
             # Use memory-optimized streaming if requested
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
-                from bengal.utils.build_context import BuildContext
+                from bengal.orchestration.build_context import BuildContext
 
                 streaming_render = StreamingRenderOrchestrator(orchestrator.site)
                 ctx = BuildContext(
@@ -488,7 +488,7 @@ def phase_render(
                     changed_sources=changed_sources,
                 )
             else:
-                from bengal.utils.build_context import BuildContext
+                from bengal.orchestration.build_context import BuildContext
 
                 ctx = BuildContext(
                     site=orchestrator.site,

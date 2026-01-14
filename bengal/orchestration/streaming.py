@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.render import RenderOrchestrator
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
 

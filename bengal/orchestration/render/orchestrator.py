@@ -60,7 +60,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 # Re-export for backward compatibility (deprecated, use render.tracking module)

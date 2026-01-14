@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 def _check_autodoc_output_missing(

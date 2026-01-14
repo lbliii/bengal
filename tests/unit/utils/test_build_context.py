@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from bengal.utils.build_context import BuildContext
+from bengal.orchestration.build_context import BuildContext
 
 
 class TestBuildContextInitialization:

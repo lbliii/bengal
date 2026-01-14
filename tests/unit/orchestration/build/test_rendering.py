@@ -204,7 +204,7 @@ class TestPhaseRender:
         cli = MockPhaseContext.create_cli()
         pages = [MagicMock(), MagicMock()]
 
-        with patch("bengal.utils.build_context.BuildContext") as MockContext:
+        with patch("bengal.orchestration.build_context.BuildContext") as MockContext:
             mock_ctx = MagicMock()
             MockContext.return_value = mock_ctx
 
@@ -232,7 +232,7 @@ class TestPhaseRender:
 
         with (
             patch("bengal.orchestration.streaming.StreamingRenderOrchestrator") as MockStreaming,
-            patch("bengal.utils.build_context.BuildContext"),
+            patch("bengal.orchestration.build_context.BuildContext"),
         ):
             mock_streaming = MagicMock()
             MockStreaming.return_value = mock_streaming
@@ -260,7 +260,7 @@ class TestPhaseRender:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
 
-        with patch("bengal.utils.build_context.BuildContext"):
+        with patch("bengal.orchestration.build_context.BuildContext"):
             phase_render(
                 orchestrator,
                 cli,
@@ -287,7 +287,7 @@ class TestPhaseRender:
         early_context.has_cached_content = True
         early_context._page_contents = {"test.md": "content"}
 
-        with patch("bengal.utils.build_context.BuildContext") as MockContext:
+        with patch("bengal.orchestration.build_context.BuildContext") as MockContext:
             mock_ctx = MagicMock()
             MockContext.return_value = mock_ctx
 
@@ -315,7 +315,7 @@ class TestPhaseRender:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
 
-        with patch("bengal.utils.build_context.BuildContext") as MockContext:
+        with patch("bengal.orchestration.build_context.BuildContext") as MockContext:
             mock_ctx = MagicMock()
             MockContext.return_value = mock_ctx
 
@@ -398,7 +398,7 @@ class TestPhaseTrackAssets:
 
     def test_persists_accumulated_assets(self, tmp_path):
         """Persists accumulated assets from BuildContext."""
-        from bengal.utils.build_context import BuildContext
+        from bengal.orchestration.build_context import BuildContext
 
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
 
@@ -425,7 +425,7 @@ class TestPhaseTrackAssets:
 
     def test_handles_multiple_pages(self, tmp_path):
         """Handles multiple pages with accumulated assets."""
-        from bengal.utils.build_context import BuildContext
+        from bengal.orchestration.build_context import BuildContext
 
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
 
@@ -451,7 +451,7 @@ class TestPhaseTrackAssets:
 
     def test_handles_empty_accumulated_assets(self, tmp_path):
         """Handles build context with no accumulated assets."""
-        from bengal.utils.build_context import BuildContext
+        from bengal.orchestration.build_context import BuildContext
 
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         ctx = BuildContext()  # Empty context

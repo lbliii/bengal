@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bengal.health.validators.directives.analysis import DirectiveAnalyzer
-from bengal.utils.build_context import BuildContext
+from bengal.orchestration.build_context import BuildContext
 
 
 def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: Path) -> None:

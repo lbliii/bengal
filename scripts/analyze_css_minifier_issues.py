@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bengal.utils.css_minifier import minify_css
+from bengal.assets.css_minifier import minify_css
 
 
 def test_problematic_patterns():

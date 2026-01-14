@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.health.report import CheckResult
-    from bengal.utils.build_context import BuildContext
+    from bengal.orchestration.build_context import BuildContext
 
 
 class BaseValidator(ABC):
