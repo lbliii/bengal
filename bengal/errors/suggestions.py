@@ -480,6 +480,121 @@ _SUGGESTIONS: dict[str, dict[str, ActionableSuggestion]] = {
             grep_patterns=["port_in_use", "bind_error"],
         ),
     },
+    # ============================================================
+    # Autodoc errors
+    # ============================================================
+    "autodoc": {
+        "extraction_failed": ActionableSuggestion(
+            fix="Check if the source module is importable and has no syntax errors",
+            explanation="Autodoc failed to extract elements from the specified source.",
+            docs_url="/docs/autodoc/",
+            before_snippet="# Module with syntax error or missing import",
+            after_snippet="# Fix syntax errors and ensure all imports are available",
+            check_files=["bengal/autodoc/", "bengal/autodoc/extractors/"],
+            related_codes=["O001"],
+            grep_patterns=["autodoc_extract", "AutodocExtractor"],
+        ),
+        "cache_corruption": ActionableSuggestion(
+            fix="Clear autodoc cache: rm -rf .bengal/cache/autodoc/",
+            explanation="Autodoc cache format is corrupted or incompatible with current version.",
+            docs_url="/docs/autodoc/cache/",
+            before_snippet="# Cache file has invalid format",
+            after_snippet="rm -rf .bengal/cache/autodoc/\nbengal build",
+            check_files=["bengal/autodoc/base.py", "bengal/autodoc/orchestration/"],
+            related_codes=["A001", "O001"],
+            grep_patterns=["autodoc_cache", "from_cache_dict", "CACHE_VERSION"],
+        ),
+        "syntax_error": ActionableSuggestion(
+            fix="Fix Python syntax errors in the source file",
+            explanation="Autodoc cannot parse files with syntax errors.",
+            docs_url="/docs/autodoc/",
+            before_snippet="# Python file with syntax error",
+            after_snippet="# Run: python -m py_compile <source_file>",
+            check_files=["bengal/autodoc/extractors/python.py"],
+            related_codes=["O002"],
+            grep_patterns=["SyntaxError", "parse_python"],
+        ),
+        "openapi_parse_failed": ActionableSuggestion(
+            fix="Check OpenAPI spec for valid YAML/JSON syntax",
+            explanation="OpenAPI specification file could not be parsed.",
+            docs_url="/docs/autodoc/openapi/",
+            before_snippet="# Invalid OpenAPI YAML/JSON",
+            after_snippet="# Validate with: npx @redocly/cli lint openapi.yaml",
+            check_files=["bengal/autodoc/extractors/openapi.py"],
+            related_codes=["O003"],
+            grep_patterns=["openapi_parse", "OpenAPIExtractor"],
+        ),
+    },
+    # ============================================================
+    # Validator/Health errors
+    # ============================================================
+    "validator": {
+        "crashed": ActionableSuggestion(
+            fix="Check validator implementation for unhandled exceptions",
+            explanation="A health validator raised an unhandled exception.",
+            docs_url="/docs/health/validators/",
+            before_snippet="# Validator raised exception",
+            after_snippet="# Check bengal/health/validators/ for the failing validator",
+            check_files=["bengal/health/validators/", "bengal/health/check.py"],
+            related_codes=["V001"],
+            grep_patterns=["Validator", "health_check"],
+        ),
+        "linkcheck_timeout": ActionableSuggestion(
+            fix="Increase timeout or check network connectivity",
+            explanation="External link check timed out while verifying URLs.",
+            docs_url="/docs/health/linkcheck/",
+            before_snippet="# Link check timed out",
+            after_snippet="bengal build --linkcheck-timeout 60\n# Or disable: --no-linkcheck",
+            check_files=["bengal/health/validators/links.py"],
+            related_codes=["V004"],
+            grep_patterns=["linkcheck", "timeout", "aiohttp"],
+        ),
+        "linkcheck_network_error": ActionableSuggestion(
+            fix="Check network connectivity and firewall settings",
+            explanation="Network error occurred while checking external links.",
+            docs_url="/docs/health/linkcheck/",
+            before_snippet="# Network error during link check",
+            after_snippet="# Check if URLs are accessible: curl -I <url>",
+            check_files=["bengal/health/validators/links.py"],
+            related_codes=["V005"],
+            grep_patterns=["linkcheck", "network_error", "ClientError"],
+        ),
+    },
+    # ============================================================
+    # Build errors
+    # ============================================================
+    "build": {
+        "phase_failed": ActionableSuggestion(
+            fix="Check build logs for the specific phase that failed",
+            explanation="A build phase failed to complete successfully.",
+            docs_url="/docs/build/",
+            before_snippet="# Build phase failure",
+            after_snippet="bengal build --verbose",
+            check_files=["bengal/orchestration/build.py"],
+            related_codes=["B001"],
+            grep_patterns=["build_phase", "BuildPhase"],
+        ),
+        "parallel_error": ActionableSuggestion(
+            fix="Try running with --jobs 1 to isolate the issue",
+            explanation="Parallel processing encountered an error.",
+            docs_url="/docs/build/performance/",
+            before_snippet="# Parallel build failure",
+            after_snippet="bengal build --jobs 1",
+            check_files=["bengal/orchestration/render.py"],
+            related_codes=["B002"],
+            grep_patterns=["parallel", "ProcessPoolExecutor", "ThreadPoolExecutor"],
+        ),
+        "write_behind_failed": ActionableSuggestion(
+            fix="Check disk space and file permissions in output directory",
+            explanation="Background file writer thread failed while writing output.",
+            docs_url="/docs/build/",
+            before_snippet="# Writer thread failure",
+            after_snippet="# Check disk space: df -h\n# Check permissions: ls -la public/",
+            check_files=["bengal/rendering/pipeline/write_behind.py"],
+            related_codes=["R010", "B001"],
+            grep_patterns=["write_behind", "WriteBehindWriter"],
+        ),
+    },
 }
 
 

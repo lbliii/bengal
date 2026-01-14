@@ -111,8 +111,66 @@ Output shows rebuild reasons per page:
 - **cascade_dependency** — Parent section changed
 - **nav_changed** — Navigation structure updated
 
+The `--explain` output also includes a **Decision Trace** showing layer-by-layer debugging info:
+
+```text
+═══════════════════════════════════════════════════════════════
+                    DECISION TRACE                              
+═══════════════════════════════════════════════════════════════
+
+Decision: INCREMENTAL
+
+───────────────────────────────────────────────────────────────
+Layer 1: Data Files
+───────────────────────────────────────────────────────────────
+  Checked:     3
+  Changed:     0
+  Fingerprints available: ✓
+
+───────────────────────────────────────────────────────────────
+Layer 2: Autodoc
+───────────────────────────────────────────────────────────────
+  Sources tracked: 448
+  Sources stale:   0
+  Metadata available: ✗
+  ⚠ Using fingerprint fallback (metadata unavailable)
+  Detection method: fingerprint
+
+───────────────────────────────────────────────────────────────
+Layer 3: Section Optimization
+───────────────────────────────────────────────────────────────
+  Sections total:   5
+  Sections changed: 1
+    • docs (subsection_changed:about/glossary.md)
+
+───────────────────────────────────────────────────────────────
+Layer 4: Page Filtering
+───────────────────────────────────────────────────────────────
+  In changed sections: 35
+  Filtered out:        1028
+
+═══════════════════════════════════════════════════════════════
+```
+
 For machine-readable output (CI/tooling):
 
 ```bash
 bengal build --explain --explain-json
 ```
+
+### Strict Incremental Mode (Debugging)
+
+For debugging cache issues, enable strict incremental mode to surface fallback paths:
+
+```bash
+# Log warnings when fallbacks are used
+BENGAL_STRICT_INCREMENTAL=warn bengal build
+
+# Fail when fallbacks are used (useful for CI)
+BENGAL_STRICT_INCREMENTAL=error bengal build
+```
+
+This helps identify when:
+- Autodoc metadata is missing (fingerprint fallback used)
+- Data file dependencies aren't tracked
+- Cache migration issues occur

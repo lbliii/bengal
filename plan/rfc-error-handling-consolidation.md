@@ -1,7 +1,8 @@
 # RFC: Error Handling Consolidation
 
-## Status: Draft
+## Status: Implemented
 ## Created: 2026-01-14
+## Implemented: 2026-01-14
 ## Origin: Audit of error handling coverage across Bengal codebase
 
 ---
@@ -364,20 +365,20 @@ def test_autodoc_cache_corruption_raises_bengal_error(tmp_path):
 ## Implementation Checklist
 
 ### Phase 1: Exception Classes
-- [ ] Add `BengalParsingError` class
-- [ ] Add `BengalBuildError` class
-- [ ] Add `BengalAutodocError` class
-- [ ] Add `BengalValidatorError` class
-- [ ] Add `BengalTemplateFunctionError` class
-- [ ] Update `__init__.py` exports
-- [ ] Add unit tests for new classes
+- [x] Add `BengalParsingError` class
+- [x] Add `BengalBuildError` class
+- [x] Add `BengalAutodocError` class
+- [x] Add `BengalValidatorError` class
+- [x] Add `BengalTemplateFunctionError` class
+- [x] Update `__init__.py` exports
+- [x] Add unit tests for new classes
 
 ### Phase 2: Convert Exceptions
-- [ ] Convert `autodoc/base.py` TypeErrors (5 instances)
-- [ ] Convert `autodoc/orchestration/orchestrator.py:186` ValueError
-- [ ] Convert `cache/compression.py:243` ValueError
-- [ ] Convert `rendering/pipeline/write_behind.py` RuntimeErrors (3 instances)
-- [ ] Add integration tests for converted errors
+- [x] Convert `autodoc/base.py` TypeErrors (5 instances)
+- [x] Convert `autodoc/orchestration/orchestrator.py:186` ValueError
+- [x] Convert `cache/compression.py:243` ValueError
+- [x] Convert `rendering/pipeline/write_behind.py` RuntimeErrors (3 instances)
+- [x] Add integration tests for converted errors
 
 ### Phase 3: Documentation
 - [ ] Update error documentation to list new exception classes

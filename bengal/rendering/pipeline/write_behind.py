@@ -28,6 +28,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -102,10 +103,15 @@ class WriteBehindCollector:
             content: Rendered HTML content
 
         Raises:
-            RuntimeError: If writer thread has failed
+            BengalRenderingError: If writer thread has failed
         """
         if self._error:
-            raise RuntimeError(f"Writer thread failed: {self._error}") from self._error
+            raise BengalRenderingError(
+                f"Background writer thread failed: {self._error}",
+                code=ErrorCode.R010,
+                original_error=self._error,
+                suggestion="Check disk space and file permissions in output directory",
+            ) from self._error
 
         self._queue.put((output_path, content))
 
@@ -170,7 +176,7 @@ class WriteBehindCollector:
             Number of files written
 
         Raises:
-            RuntimeError: If writer thread failed or timed out
+            BengalRenderingError: If writer thread failed or timed out
         """
         # Signal shutdown
         self._shutdown.set()
@@ -180,10 +186,19 @@ class WriteBehindCollector:
         self._writer_thread.join(timeout=timeout)
 
         if self._writer_thread.is_alive():
-            raise RuntimeError(f"Writer thread did not complete within {timeout}s")
+            raise BengalRenderingError(
+                f"Writer thread did not complete within {timeout}s",
+                code=ErrorCode.R010,
+                suggestion="Increase timeout or check for slow disk I/O",
+            )
 
         if self._error:
-            raise RuntimeError(f"Writer thread failed: {self._error}") from self._error
+            raise BengalRenderingError(
+                f"Background writer thread failed: {self._error}",
+                code=ErrorCode.R010,
+                original_error=self._error,
+                suggestion="Check disk space and file permissions in output directory",
+            ) from self._error
 
         return self._writes_completed
 

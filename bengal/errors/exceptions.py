@@ -300,6 +300,27 @@ class BengalError(Exception):
             BengalGraphError: [
                 "tests/unit/analysis/",
             ],
+            BengalParsingError: [
+                "tests/unit/rendering/test_markdown.py",
+                "tests/unit/core/test_page.py",
+                "tests/unit/config/",
+            ],
+            BengalAutodocError: [
+                "tests/unit/autodoc/",
+                "tests/integration/test_autodoc.py",
+            ],
+            BengalValidatorError: [
+                "tests/unit/health/",
+                "tests/integration/test_health.py",
+            ],
+            BengalBuildError: [
+                "tests/unit/orchestration/",
+                "tests/integration/test_build.py",
+            ],
+            BengalTemplateFunctionError: [
+                "tests/unit/rendering/",
+                "tests/unit/rendering/test_shortcodes.py",
+            ],
         }
 
         # Check error type hierarchy
@@ -679,3 +700,171 @@ class BengalGraphError(BengalError):
 
             kwargs["build_phase"] = BuildPhase.ANALYSIS
         super().__init__(message, **kwargs)
+
+
+class BengalParsingError(BengalError):
+    """
+    Parsing errors for YAML, JSON, TOML, or Markdown.
+    
+    Raised for issues during file parsing operations. Automatically sets
+    build phase to PARSING.
+    
+    Common Error Codes:
+        - P001: YAML parse error
+        - P002: JSON parse error
+        - P003: TOML parse error
+        - P004: Markdown parse error
+        - P005: Frontmatter delimiter missing
+        - P006: Glossary parse error
+    
+    Example:
+            >>> raise BengalParsingError(
+            ...     "Invalid YAML syntax at line 5",
+            ...     code=ErrorCode.P001,
+            ...     file_path=Path("config/site.yaml"),
+            ...     line_number=5,
+            ...     suggestion="Check for missing colons or invalid indentation",
+            ... )
+        
+    """
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        if "build_phase" not in kwargs:
+            from bengal.errors.context import BuildPhase
+
+            kwargs["build_phase"] = BuildPhase.PARSING
+        super().__init__(message, **kwargs)
+
+
+class BengalAutodocError(BengalError):
+    """
+    Autodoc extraction errors.
+    
+    Raised for issues during autodoc extraction and generation.
+    Automatically sets build phase to DISCOVERY.
+    
+    Common Error Codes:
+        - O001: Autodoc extraction failed
+        - O002: Python syntax error in source
+        - O003: OpenAPI YAML/JSON parse failure
+        - O004: CLI app import/load failure
+        - O005: Invalid source path/location
+        - O006: Extraction produced no elements
+    
+    Example:
+            >>> raise BengalAutodocError(
+            ...     "Failed to extract docstrings from module",
+            ...     code=ErrorCode.O001,
+            ...     file_path=Path("src/mymodule.py"),
+            ...     suggestion="Check if the source module is importable",
+            ... )
+        
+    """
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        if "build_phase" not in kwargs:
+            from bengal.errors.context import BuildPhase
+
+            kwargs["build_phase"] = BuildPhase.DISCOVERY
+        super().__init__(message, **kwargs)
+
+
+class BengalValidatorError(BengalError):
+    """
+    Validator and health check errors.
+    
+    Raised for issues during health checks and validation operations.
+    Automatically sets build phase to ANALYSIS.
+    
+    Common Error Codes:
+        - V001: Validator crashed
+        - V002: Health check failed
+        - V003: Autofix failed
+        - V004: Linkcheck timeout
+        - V005: Linkcheck network error
+        - V006: Graph analysis failed in health
+    
+    Example:
+            >>> raise BengalValidatorError(
+            ...     "Link check timed out after 30 seconds",
+            ...     code=ErrorCode.V004,
+            ...     suggestion="Increase timeout or check network connectivity",
+            ... )
+        
+    """
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        if "build_phase" not in kwargs:
+            from bengal.errors.context import BuildPhase
+
+            kwargs["build_phase"] = BuildPhase.ANALYSIS
+        super().__init__(message, **kwargs)
+
+
+class BengalBuildError(BengalError):
+    """
+    Build orchestration errors.
+    
+    Raised for issues during build orchestration and post-processing.
+    Automatically sets build phase to POSTPROCESSING.
+    
+    Common Error Codes:
+        - B001: Build phase failed
+        - B002: Parallel processing failure
+        - B003: Incremental build detection/cache failure
+        - B004: Menu building failure
+        - B005: Taxonomy collection failure
+        - B006: Taxonomy page generation failure
+        - B007: Asset processing failure
+        - B008: Post-processing task failure
+        - B009: Section finalization failure
+        - B010: Cache/tracker initialization failure
+    
+    Example:
+            >>> raise BengalBuildError(
+            ...     "Post-processing task 'minify' failed",
+            ...     code=ErrorCode.B008,
+            ...     suggestion="Check post-processor configuration",
+            ... )
+        
+    """
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        if "build_phase" not in kwargs:
+            from bengal.errors.context import BuildPhase
+
+            kwargs["build_phase"] = BuildPhase.POSTPROCESSING
+        super().__init__(message, **kwargs)
+
+
+class BengalTemplateFunctionError(BengalRenderingError):
+    """
+    Template function, shortcode, and directive errors.
+    
+    Raised for issues with shortcodes, directives, and other template
+    functions. Inherits from BengalRenderingError (BuildPhase.RENDERING).
+    
+    Common Error Codes:
+        - T001: Shortcode not found
+        - T002: Shortcode argument error
+        - T003: Shortcode render error
+        - T004: Directive not found
+        - T005: Directive argument error
+        - T006: Directive since empty
+        - T007: Directive deprecated empty
+        - T008: Directive changed empty
+        - T009: Directive include not found
+        - T010: Icon not found
+    
+    Example:
+            >>> raise BengalTemplateFunctionError(
+            ...     "Directive 'since' requires version argument",
+            ...     code=ErrorCode.T006,
+            ...     file_path=Path("content/docs/api.md"),
+            ...     line_number=45,
+            ...     suggestion="Add version: ```{since} 1.0.0```",
+            ... )
+        
+    """
+
+    pass

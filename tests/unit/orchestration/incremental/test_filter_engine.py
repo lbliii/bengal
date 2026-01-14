@@ -218,6 +218,102 @@ class TestFilterDecisionLog:
         assert result["decision_type"] == "full"
         assert result["full_rebuild_trigger"] == "output_dir_empty"
 
+    def test_to_dict_includes_layer_trace(self) -> None:
+        """Test that to_dict includes layer_trace field (RFC: rfc-incremental-build-observability)."""
+        log = FilterDecisionLog(
+            incremental_enabled=True,
+            decision_type=FilterDecisionType.INCREMENTAL,
+            # Layer 1: Data files
+            data_files_checked=5,
+            data_files_changed=2,
+            data_file_fingerprints_available=True,
+            # Layer 2: Autodoc
+            autodoc_sources_total=10,
+            autodoc_sources_stale=1,
+            autodoc_metadata_available=True,
+            autodoc_stale_method="metadata",
+            # Layer 3: Sections
+            sections_total=3,
+            sections_marked_changed=["docs"],
+            section_change_reasons={"docs": "content_changed"},
+            # Layer 4: Page filtering
+            pages_in_changed_sections=15,
+            pages_filtered_by_section=85,
+        )
+        
+        result = log.to_dict()
+        
+        # Verify layer_trace structure
+        assert "layer_trace" in result
+        trace = result["layer_trace"]
+        
+        # Layer 1
+        assert trace["data_files"]["checked"] == 5
+        assert trace["data_files"]["changed"] == 2
+        assert trace["data_files"]["fingerprints_available"] is True
+        
+        # Layer 2
+        assert trace["autodoc"]["sources_total"] == 10
+        assert trace["autodoc"]["sources_stale"] == 1
+        assert trace["autodoc"]["metadata_available"] is True
+        assert trace["autodoc"]["stale_method"] == "metadata"
+        
+        # Layer 3
+        assert trace["sections"]["total"] == 3
+        assert trace["sections"]["changed"] == ["docs"]
+        assert trace["sections"]["change_reasons"] == {"docs": "content_changed"}
+        
+        # Layer 4
+        assert trace["page_filtering"]["in_changed_sections"] == 15
+        assert trace["page_filtering"]["filtered_out"] == 85
+
+    def test_to_trace_output(self) -> None:
+        """Test human-readable trace output (RFC: rfc-incremental-build-observability)."""
+        log = FilterDecisionLog(
+            decision_type=FilterDecisionType.INCREMENTAL,
+            data_files_checked=3,
+            data_files_changed=0,
+            data_file_fingerprints_available=True,
+            autodoc_sources_total=448,
+            autodoc_sources_stale=0,
+            autodoc_metadata_available=False,
+            autodoc_fingerprint_fallback_used=True,
+            autodoc_stale_method="fingerprint",
+            sections_total=5,
+            sections_marked_changed=["docs"],
+            section_change_reasons={"docs": "subsection_changed:about/glossary.md"},
+            pages_in_changed_sections=35,
+            pages_filtered_by_section=1028,
+        )
+        
+        output = log.to_trace_output()
+        
+        # Verify key sections are present
+        assert "DECISION TRACE" in output
+        assert "Decision: INCREMENTAL" in output
+        
+        # Layer 1
+        assert "Layer 1: Data Files" in output
+        assert "Checked:     3" in output
+        assert "Changed:     0" in output
+        assert "Fingerprints available: ✓" in output
+        
+        # Layer 2
+        assert "Layer 2: Autodoc" in output
+        assert "Sources tracked: 448" in output
+        assert "⚠ Using fingerprint fallback" in output
+        assert "Detection method: fingerprint" in output
+        
+        # Layer 3
+        assert "Layer 3: Section Optimization" in output
+        assert "Sections total:   5" in output
+        assert "docs" in output
+        
+        # Layer 4
+        assert "Layer 4: Page Filtering" in output
+        assert "In changed sections: 35" in output
+        assert "Filtered out:        1028" in output
+
 
 # =============================================================================
 # FilterDecision Tests

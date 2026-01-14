@@ -156,14 +156,19 @@ from bengal.errors.codes import (
 # Exception classes - lightweight, only depends on codes
 from bengal.errors.exceptions import (
     BengalAssetError,
+    BengalAutodocError,
+    BengalBuildError,
     BengalCacheError,
     BengalConfigError,
     BengalContentError,
     BengalDiscoveryError,
     BengalError,
     BengalGraphError,
+    BengalParsingError,
     BengalRenderingError,
     BengalServerError,
+    BengalTemplateFunctionError,
+    BengalValidatorError,
     DirectiveContractError,
 )
 
@@ -269,6 +274,11 @@ __all__ = [
     "BengalServerError",
     "BengalAssetError",
     "BengalGraphError",
+    "BengalParsingError",
+    "BengalAutodocError",
+    "BengalValidatorError",
+    "BengalBuildError",
+    "BengalTemplateFunctionError",
     "DirectiveContractError",
     # ============================================================
     # Context (lazy)

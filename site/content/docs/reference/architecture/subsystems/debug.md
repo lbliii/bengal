@@ -288,6 +288,33 @@ bengal debug deps --blast-radius templates/base.html
 bengal debug migrate --move docs/old.md guides/new.md
 ```
 
+## Environment Variables
+
+### `BENGAL_STRICT_INCREMENTAL`
+
+Controls how Bengal handles fallback paths in incremental builds:
+
+| Value | Behavior |
+|-------|----------|
+| `off` | Normal operation (default) - silent fallbacks |
+| `warn` | Log warnings when fallbacks are used |
+| `error` | Raise error when fallbacks are used |
+
+**Usage**:
+
+```bash
+# Log warnings when fallbacks are used
+BENGAL_STRICT_INCREMENTAL=warn bengal build
+
+# Fail when fallbacks are used (useful for CI)
+BENGAL_STRICT_INCREMENTAL=error bengal build
+```
+
+**When fallbacks are triggered**:
+- Autodoc source metadata is missing (fingerprint fallback used)
+- Data file dependencies aren't tracked
+- Cache migration from older versions
+
 ## Related
 
 - [Orchestration](../core/orchestration.md) - How incremental builds work

@@ -33,6 +33,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import BengalCacheError, ErrorCode
+
 if TYPE_CHECKING:
     from bengal.autodoc.models import DocMetadata
 
@@ -313,50 +315,50 @@ class DocElement:
                     p.get("default"),
                     p.get("description"),
                 )
-            raise TypeError(
-                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}. "
-                f"Value: {p!r}. This usually means the cache was created with an older version. "
-                f"Clear the cache with: rm -rf .bengal/cache/"
+            raise BengalCacheError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}",
+                code=ErrorCode.A001,
+                suggestion="Clear the cache with: rm -rf .bengal/cache/",
             )
 
         def _to_raises_info(r: Any, context: str) -> RaisesInfo:
             """Convert raises data to RaisesInfo, failing loudly on format mismatch."""
             if isinstance(r, dict):
                 return RaisesInfo(**r)
-            raise TypeError(
-                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}. "
-                f"Value: {r!r}. This usually means the cache was created with an older version. "
-                f"Clear the cache with: rm -rf .bengal/cache/"
+            raise BengalCacheError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}",
+                code=ErrorCode.A001,
+                suggestion="Clear the cache with: rm -rf .bengal/cache/",
             )
 
         def _to_openapi_parameter(p: Any, context: str) -> OpenAPIParameterMetadata:
             """Convert OpenAPI parameter data to OpenAPIParameterMetadata, failing loudly on mismatch."""
             if isinstance(p, dict):
                 return OpenAPIParameterMetadata(**p)
-            raise TypeError(
-                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}. "
-                f"Value: {p!r}. This usually means the cache was created with an older version. "
-                f"Clear the cache with: rm -rf .bengal/cache/"
+            raise BengalCacheError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}",
+                code=ErrorCode.A001,
+                suggestion="Clear the cache with: rm -rf .bengal/cache/",
             )
 
         def _to_openapi_request_body(rb: Any, context: str) -> OpenAPIRequestBodyMetadata:
             """Convert OpenAPI request body data to OpenAPIRequestBodyMetadata, failing loudly on mismatch."""
             if isinstance(rb, dict):
                 return OpenAPIRequestBodyMetadata(**rb)
-            raise TypeError(
-                f"Autodoc cache format mismatch in {context}: expected dict, got {type(rb).__name__}. "
-                f"Value: {rb!r}. This usually means the cache was created with an older version. "
-                f"Clear the cache with: rm -rf .bengal/cache/"
+            raise BengalCacheError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(rb).__name__}",
+                code=ErrorCode.A001,
+                suggestion="Clear the cache with: rm -rf .bengal/cache/",
             )
 
         def _to_openapi_response(r: Any, context: str) -> OpenAPIResponseMetadata:
             """Convert OpenAPI response data to OpenAPIResponseMetadata, failing loudly on mismatch."""
             if isinstance(r, dict):
                 return OpenAPIResponseMetadata(**r)
-            raise TypeError(
-                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}. "
-                f"Value: {r!r}. This usually means the cache was created with an older version. "
-                f"Clear the cache with: rm -rf .bengal/cache/"
+            raise BengalCacheError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}",
+                code=ErrorCode.A001,
+                suggestion="Clear the cache with: rm -rf .bengal/cache/",
             )
 
         # Handle nested dataclasses

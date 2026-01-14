@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from bengal.autodoc.base import DocElement
+from bengal.errors import BengalCacheError, ErrorCode
 from bengal.autodoc.orchestration.extractors import (
     extract_cli,
     extract_openapi,
@@ -183,10 +184,11 @@ class VirtualAutodocOrchestrator:
         # This ensures corrupted cache entries are replaced with fresh data
         if deserialization_failures:
             failed_types = {t for t, _ in deserialization_failures}
-            raise ValueError(
+            raise BengalCacheError(
                 f"Autodoc cache corrupted: {len(deserialization_failures)} element(s) "
-                f"failed to deserialize in {', '.join(sorted(failed_types))}. "
-                f"Cache will be invalidated and re-extracted."
+                f"failed to deserialize in {', '.join(sorted(failed_types))}",
+                code=ErrorCode.A001,
+                suggestion="Cache will be invalidated automatically. If error persists, rm -rf .bengal/cache/",
             )
 
         # Reuse the normal generation pipeline, but skip extraction.

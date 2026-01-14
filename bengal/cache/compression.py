@@ -240,9 +240,11 @@ def load_auto(path: Path) -> dict[str, Any]:
         with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
             if not isinstance(data, dict):
-                raise ValueError(
-                    f"Cache file {json_path} contains invalid data type: {type(data).__name__}. "
-                    "Expected dict."
+                raise BengalCacheError(
+                    f"Cache file contains invalid data type: {type(data).__name__}",
+                    code=ErrorCode.A001,
+                    file_path=json_path,
+                    suggestion="Clear the cache with: rm -rf .bengal/cache/",
                 )
             return cast(dict[str, Any], data)
 
