@@ -579,6 +579,38 @@ class TestRenderedOutputCache:
         result = cache.get_rendered_output(test_file, "default.html", metadata)
         assert result is MISSING
 
+    def test_invalidate_rendered_output_returns_bool(self, tmp_path):
+        """Test invalidate_rendered_output returns True if entry existed."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            {"title": "Test"},
+        )
+
+        # First invalidation should return True
+        result = cache.invalidate_rendered_output(test_file)
+        assert result is True
+
+        # Second invalidation should return False (already removed)
+        result = cache.invalidate_rendered_output(test_file)
+        assert result is False
+
+    def test_invalidate_rendered_output_nonexistent_returns_false(self, tmp_path):
+        """Test invalidate_rendered_output returns False for nonexistent entry."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "never_cached.md"
+        result = cache.invalidate_rendered_output(test_file)
+        assert result is False
+
     def test_rendered_output_stats(self, tmp_path):
         """Test rendered output cache statistics."""
         cache = BuildCache()
@@ -713,3 +745,154 @@ class TestRenderedOutputCache:
         loaded_cache = BuildCache.load(cache_file)
 
         assert loaded_cache.rendered_output == {}
+
+
+class TestInvalidationMethods:
+    """Test suite for cache invalidation methods added by Cache Invalidation Architecture RFC."""
+
+    def test_invalidate_fingerprint_removes_entry(self, tmp_path):
+        """Test invalidate_fingerprint removes the fingerprint entry."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Content")
+        cache.update_file(test_file)
+
+        # Verify fingerprint exists
+        assert str(test_file) in cache.file_fingerprints
+
+        # Invalidate
+        result = cache.invalidate_fingerprint(test_file)
+
+        assert result is True
+        assert str(test_file) not in cache.file_fingerprints
+
+    def test_invalidate_fingerprint_returns_false_if_missing(self, tmp_path):
+        """Test invalidate_fingerprint returns False for nonexistent entry."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "never_tracked.md"
+        result = cache.invalidate_fingerprint(test_file)
+
+        assert result is False
+
+    def test_invalidate_fingerprint_idempotent(self, tmp_path):
+        """Test invalidate_fingerprint is idempotent."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Content")
+        cache.update_file(test_file)
+
+        # First invalidation
+        result1 = cache.invalidate_fingerprint(test_file)
+        assert result1 is True
+
+        # Second invalidation should return False
+        result2 = cache.invalidate_fingerprint(test_file)
+        assert result2 is False
+
+    def test_invalidate_parsed_content_removes_entry(self, tmp_path):
+        """Test invalidate_parsed_content removes the parsed content entry."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Content")
+        cache.update_file(test_file)
+
+        # Store some parsed content with full signature
+        cache.store_parsed_content(
+            test_file,
+            html="<p>Content</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Test"},
+            template="default.html",
+            parser_version="1.0",
+        )
+
+        # Verify parsed content exists
+        assert str(test_file) in cache.parsed_content
+
+        # Invalidate
+        result = cache.invalidate_parsed_content(test_file)
+
+        assert result is True
+        assert str(test_file) not in cache.parsed_content
+
+    def test_invalidate_parsed_content_returns_false_if_missing(self, tmp_path):
+        """Test invalidate_parsed_content returns False for nonexistent entry."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "never_parsed.md"
+        result = cache.invalidate_parsed_content(test_file)
+
+        assert result is False
+
+    def test_invalidate_parsed_content_idempotent(self, tmp_path):
+        """Test invalidate_parsed_content is idempotent."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Content")
+        cache.update_file(test_file)
+        cache.store_parsed_content(
+            test_file,
+            html="<p>Content</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Test"},
+            template="default.html",
+            parser_version="1.0",
+        )
+
+        # First invalidation
+        result1 = cache.invalidate_parsed_content(test_file)
+        assert result1 is True
+
+        # Second invalidation should return False
+        result2 = cache.invalidate_parsed_content(test_file)
+        assert result2 is False
+
+    def test_all_invalidation_methods_work_together(self, tmp_path):
+        """Test that all invalidation methods can be used together."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+        cache.store_parsed_content(
+            test_file,
+            html="<p>Test</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Test"},
+            template="default.html",
+            parser_version="1.0",
+        )
+        cache.store_rendered_output(
+            test_file, "<html>Test</html>", "default.html", {"title": "Test"}
+        )
+
+        # All caches should exist
+        assert str(test_file) in cache.file_fingerprints
+        assert str(test_file) in cache.parsed_content
+        assert str(test_file) in cache.rendered_output
+
+        # Invalidate all
+        r1 = cache.invalidate_fingerprint(test_file)
+        r2 = cache.invalidate_parsed_content(test_file)
+        r3 = cache.invalidate_rendered_output(test_file)
+
+        # All should return True
+        assert r1 is True
+        assert r2 is True
+        assert r3 is True
+
+        # All caches should be empty for this file
+        assert str(test_file) not in cache.file_fingerprints
+        assert str(test_file) not in cache.parsed_content
+        assert str(test_file) not in cache.rendered_output

@@ -106,12 +106,25 @@ flowchart LR
 | **ContentOrchestrator** | Find/organize content, apply cascades | `bengal/orchestration/content.py` |
 | **RenderOrchestrator** | Parallel rendering, write output | `bengal/orchestration/render.py` |
 | **StreamingRenderOrchestrator** | Memory-optimized batched rendering | `bengal/orchestration/streaming.py` |
-| **IncrementalOrchestrator** | Detect changes, filter work | `bengal/orchestration/incremental/` |
+| **IncrementalOrchestrator** | Detect changes, filter work, coordinate cache invalidation | `bengal/orchestration/incremental/` |
 | **SectionOrchestrator** | Validate section hierarchy | `bengal/orchestration/section.py` |
 | **TaxonomyOrchestrator** | Collect terms, generate pages | `bengal/orchestration/taxonomy.py` |
 | **MenuOrchestrator** | Build navigation menus | `bengal/orchestration/menu.py` |
 | **AssetOrchestrator** | Process static assets | `bengal/orchestration/asset.py` |
 | **PostprocessOrchestrator** | Sitemap, RSS, link validation | `bengal/orchestration/postprocess.py` |
+
+### IncrementalOrchestrator Details
+
+The `IncrementalOrchestrator` manages cache-related components:
+
+| Attribute | Type | Purpose |
+|-----------|------|---------|
+| `cache` | `BuildCache` | Main build cache for fingerprints, deps, outputs |
+| `tracker` | `DependencyTracker` | Tracks page → dependency relationships |
+| `cache_coordinator` | `CacheCoordinator` | Coordinates cache invalidation across layers |
+| `path_registry` | `PathRegistry` | Canonical path representation for cache keys |
+
+The coordinator ensures that when a dependency changes (data file, template, taxonomy), all affected cache layers are invalidated consistently. See [Cache](cache.md#cache-invalidation-architecture) for details.
 
 ## BuildContext
 
@@ -139,6 +152,8 @@ class BuildContext:
     # Cache and tracking
     cache: BuildCache = None
     tracker: DependencyTracker = None
+    cache_coordinator: CacheCoordinator = None  # Unified invalidation
+    path_registry: PathRegistry = None  # Canonical paths
 
     @property
     def knowledge_graph(self) -> KnowledgeGraph | None:

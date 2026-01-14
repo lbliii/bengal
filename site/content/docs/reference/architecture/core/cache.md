@@ -35,7 +35,9 @@ The build cache (`.bengal/cache.json.zst`) tracks the state of your project to d
 ```mermaid
 flowchart TD
     Start[Start Build] --> Load[Load Cache]
-    Load --> Detect[Detect Changes]
+    Load --> Coordinator[CacheCoordinator]
+    
+    Coordinator --> Detect[Detect Changes]
 
     Detect --> Config{Config Changed?}
     Config -->|Yes| Full[Full Rebuild]
@@ -43,7 +45,8 @@ flowchart TD
     Config -->|No| Hash[Check File Hashes]
     Hash --> DepGraph[Query Dependency Graph]
 
-    DepGraph --> Filter[Filter Work]
+    DepGraph --> Invalidate[Invalidate Affected Caches]
+    Invalidate --> Filter[Filter Work]
     Filter --> Render[Render Affected Pages]
 
     Render --> Update[Update Cache]
@@ -80,6 +83,91 @@ We store an inverted index of tags to avoid parsing all pages.
 - **Benefit**: O(1) lookup for taxonomy page generation.
 :::
 :::
+
+## Cache Invalidation Architecture
+
+Bengal uses a unified **CacheCoordinator** to manage page-level cache invalidation across all cache layers. This ensures consistent invalidation cascades and provides observability into why pages are rebuilt.
+
+### Components
+
+| Component | Module | Purpose |
+|-----------|--------|---------|
+| **CacheCoordinator** | `bengal/cache/coordinator.py` | Central service for coordinated cache invalidation |
+| **PathRegistry** | `bengal/cache/path_registry.py` | Canonical path representation for consistent cache keys |
+| **RebuildManifest** | `bengal/cache/manifest.py` | Tracks rebuilds with reasons and timing |
+
+### Page Invalidation Reasons
+
+When a page's caches are invalidated, the coordinator records **why**:
+
+```python
+class PageInvalidationReason(Enum):
+    CONTENT_CHANGED = auto()      # Page content modified
+    DATA_FILE_CHANGED = auto()    # Data file dependency changed
+    TEMPLATE_CHANGED = auto()     # Template dependency changed
+    TAXONOMY_CASCADE = auto()     # Tag/category member changed
+    ASSET_CHANGED = auto()        # Asset dependency changed
+    CONFIG_CHANGED = auto()       # Site config changed
+    MANUAL = auto()               # Explicit invalidation
+    FULL_BUILD = auto()           # Full rebuild requested
+    OUTPUT_MISSING = auto()       # Output file doesn't exist
+```
+
+### Cache Layers
+
+The coordinator invalidates multiple cache layers per page:
+
+1. **Fingerprint** (`file_fingerprints`) — File hash for change detection
+2. **Parsed Content** (`parsed_content`) — Markdown parsing results
+3. **Rendered Output** (`rendered_output`) — Final HTML output
+
+```python
+# Example: Data file change triggers cascade
+events = coordinator.invalidate_for_data_file(Path("data/team.yaml"))
+# Returns list of InvalidationEvent for each affected page
+```
+
+### Invalidation Events
+
+Each invalidation is recorded as an `InvalidationEvent`:
+
+```python
+@dataclass
+class InvalidationEvent:
+    page_path: Path              # Which page was invalidated
+    reason: PageInvalidationReason  # Why it was invalidated
+    trigger: str                 # What triggered it (e.g., "data/team.yaml")
+    caches_cleared: list[str]   # Which cache layers were cleared
+```
+
+### Integration Points
+
+The coordinator integrates with existing change detectors:
+
+| Detector | Uses |
+|----------|------|
+| `DataFileDetector` | `coordinator.invalidate_for_data_file()` |
+| `TaxonomyChangeDetector` | `coordinator.invalidate_taxonomy_cascade()` |
+| `phase_update_pages_list` | `coordinator.invalidate_page()` |
+
+### PathRegistry
+
+The `PathRegistry` ensures consistent path representation across cache layers:
+
+```python
+registry = PathRegistry(site)
+
+# Get canonical source path (relative to content dir)
+canonical = registry.canonical_source(page)  # e.g., "blog/post.md"
+
+# Get cache key for consistent lookups
+key = registry.cache_key(page)  # Used as dict key in all caches
+
+# Check if a path is for generated content
+is_gen = registry.is_generated(path)  # True for taxonomy pages, autodoc, etc.
+```
+
+This prevents cache key mismatches between different parts of the build (e.g., absolute vs relative paths, content vs generated pages).
 
 ## Zstandard Compression
 

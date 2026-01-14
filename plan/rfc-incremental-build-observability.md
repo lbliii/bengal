@@ -510,6 +510,21 @@ def test_explain_mode_output(tmp_project, capsys):
 | 2026-01-13 | Phase 1 implemented | Added RebuildReasonCode, SkipReasonCode enums; IncrementalDecision dataclass; updated phase_incremental_filter(); 17 unit tests |
 | 2026-01-13 | Added OUTPUT_MISSING reason | Handle warm CI builds where output cleaned but cache present |
 | 2026-01-13 | Phase 2 implemented | Added --explain, --dry-run, --explain-json CLI flags; _print_explain_output() and _print_explain_json() formatters; dry_run mode in orchestrator; 8 integration tests |
+| 2026-01-14 | CacheCoordinator integration | Cache Invalidation Architecture RFC provides complementary observability via `InvalidationEvent` tracking (reason, trigger, caches cleared). See `bengal/cache/coordinator.py`. |
+
+---
+
+## Related: Cache Invalidation Architecture
+
+The **Cache Invalidation Architecture RFC** (`rfc-cache-invalidation-architecture.md`) provides complementary observability:
+
+- **`CacheCoordinator`**: Logs which cache layers are invalidated and why
+- **`InvalidationEvent`**: Records page path, reason, trigger, and caches cleared
+- **`RebuildManifest`**: Tracks rebuilds with timing and invalidation summary
+
+Together these RFCs provide end-to-end observability:
+1. **This RFC**: Why pages are *included* in `pages_to_build` (content changed, template changed, etc.)
+2. **Cache RFC**: Why page *caches* were invalidated (data file changed, taxonomy cascade, etc.)
 
 ---
 
