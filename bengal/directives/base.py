@@ -63,8 +63,11 @@ if TYPE_CHECKING:
         DirectiveRenderer,
         MistuneBlockParser,
         MistuneBlockState,
+        MistuneDirectiveRegistry,
         MistuneMarkdown,
     )
+
+    from bengal.utils.observability.logger import BengalLogger
 
 # Re-export commonly used items for convenience
 from .contracts import (  # noqa: F401
@@ -179,7 +182,7 @@ class BengalDirective(DirectivePlugin):
     PRIORITY_LAST = 200  # Post-processing
 
     # Class-level logger, initialized per subclass
-    _class_logger: ClassVar[logging.Logger | None] = None
+    _class_logger: ClassVar[BengalLogger | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize class-level logger when subclass is defined.
@@ -195,7 +198,7 @@ class BengalDirective(DirectivePlugin):
     # -------------------------------------------------------------------------
 
     @property
-    def logger(self) -> logging.Logger:
+    def logger(self) -> BengalLogger:
         """Instance property that returns the class-level logger.
 
         This uses the class-level logger initialized in __init_subclass__,
@@ -221,7 +224,7 @@ class BengalDirective(DirectivePlugin):
     # Parse Flow with Contract Validation
     # -------------------------------------------------------------------------
 
-    def parse(
+    def parse(  # type: ignore[override]  # Uses protocol types compatible with mistune's types
         self, block: MistuneBlockParser, m: Match[str], state: MistuneBlockState
     ) -> dict[str, Any]:
         """Parse directive content with automatic contract validation.
@@ -281,7 +284,8 @@ class BengalDirective(DirectivePlugin):
         self._push_directive_stack(state, self.TOKEN_TYPE)
 
         try:
-            children = self.parse_tokens(block, content, state)
+            children_iter = self.parse_tokens(block, content, state)  # type: ignore[arg-type]
+            children = list(children_iter)
         finally:
             # Always pop, even on error
             self._pop_directive_stack(state)
@@ -354,9 +358,13 @@ class BengalDirective(DirectivePlugin):
                 return
 
         if isinstance(env, dict):
+            stack: list[str]
             if "directive_stack" not in env:
-                env["directive_stack"] = []
-            env["directive_stack"].append(directive_type)
+                stack = []
+                env["directive_stack"] = stack
+            else:
+                stack = env["directive_stack"]  # type: ignore[assignment]
+            stack.append(directive_type)
 
     def _pop_directive_stack(self, state: MistuneBlockState) -> None:
         """Pop the current directive from the nesting stack.
@@ -399,7 +407,7 @@ class BengalDirective(DirectivePlugin):
     def parse_directive(
         self,
         title: str,
-        options: DirectiveOptions,
+        options: Any,  # Subclasses may use specific option types
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -459,7 +467,9 @@ class BengalDirective(DirectivePlugin):
     # Registration
     # -------------------------------------------------------------------------
 
-    def __call__(self, directive: object, md: MistuneMarkdown) -> None:
+    def __call__(  # type: ignore[override]  # Uses protocol types compatible with mistune's types
+        self, directive: MistuneDirectiveRegistry, md: MistuneMarkdown
+    ) -> None:
         """Register directive names and the renderer with Mistune.
 
         Called when the directive is added to a Mistune markdown instance.

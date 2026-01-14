@@ -133,8 +133,9 @@ class TestResolveThemeChain:
         """None theme starts from default."""
         chain = resolve_theme_chain(tmp_path, None)
 
-        # When starting from "default", chain is empty since default is excluded
-        assert chain == []
+        # When starting from "default" (or None), returns ["default"] so that
+        # bundled default theme assets are discovered
+        assert chain == ["default"]
 
     def test_prevents_circular_inheritance(self, tmp_path):
         """Prevents infinite loops from circular extends."""
@@ -424,10 +425,11 @@ class TestThemeResolutionIntegration:
         # For template lookup:
         # - Templates in child theme override parent
         # - Chain order: child (highest priority) -> parent (lower)
-        # - Default theme is excluded (handled separately as ultimate fallback)
+        # - When no custom theme, returns ["default"] so bundled default
+        #   theme assets are discovered
 
-        # With no custom theme, chain is empty
-        assert chain == []
+        # With no custom theme, chain contains default for asset discovery
+        assert chain == ["default"]
 
     def test_resolve_templates_path_for_chain(self, tmp_path):
         """Test resolving template paths for entire theme chain.

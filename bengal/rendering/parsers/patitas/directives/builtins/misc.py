@@ -23,7 +23,7 @@ from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
 from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
-from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
+from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
 if TYPE_CHECKING:

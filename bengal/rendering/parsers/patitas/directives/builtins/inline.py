@@ -29,7 +29,7 @@ from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
 from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
-from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
+from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
 if TYPE_CHECKING:
@@ -50,6 +50,7 @@ class BadgeOptions(DirectiveOptions):
     """Options for badge directive."""
 
     css_class: str = "badge badge-secondary"
+    label: str = ""  # Computed from title
 
 
 class BadgeDirective:
@@ -93,11 +94,10 @@ class BadgeDirective:
         # Ensure base badge class is present
         badge_class = self._ensure_base_class(options.css_class)
 
-        # Store computed values as attributes
+        # Store computed values as attributes (use replace for frozen dataclass)
         from dataclasses import replace
 
-        computed_opts = replace(options, css_class=badge_class)
-        computed_opts.label = label
+        computed_opts = replace(options, css_class=badge_class, label=label)
 
         return Directive(
             location=location,
@@ -140,7 +140,7 @@ class BadgeDirective:
         """Render badge to HTML."""
         opts = node.options  # Direct typed access!
 
-        label = getattr(opts, "label", "")
+        label = opts.label
         badge_class = opts.css_class
 
         if not label:
@@ -161,6 +161,8 @@ class IconOptions(DirectiveOptions):
     size: int = 24
     css_class: str = ""
     aria_label: str = ""
+    icon_name: str = ""  # Computed from title
+    error: str = ""  # Validation error if any
 
 
 class IconDirective:
@@ -203,13 +205,12 @@ class IconDirective:
 
         # Ensure size is valid
         size = options.size if options.size > 0 else 24
+        error = "" if icon_name else "Icon directive requires a name"
 
-        # Store computed values as attributes
+        # Store computed values (use replace for frozen dataclass)
         from dataclasses import replace
 
-        computed_opts = replace(options, size=size)
-        computed_opts.name = icon_name
-        computed_opts.error = "" if icon_name else "Icon directive requires a name"
+        computed_opts = replace(options, size=size, icon_name=icon_name, error=error)
 
         return Directive(
             location=location,
@@ -228,8 +229,8 @@ class IconDirective:
         """Render icon to HTML."""
         opts = node.options  # Direct typed access!
 
-        icon_name = getattr(opts, "name", "")
-        error = getattr(opts, "error", "")
+        icon_name = opts.icon_name
+        error = opts.error
 
         if error or not icon_name:
             sb.append('<span class="bengal-icon bengal-icon--error" aria-hidden="true">⚠️</span>')

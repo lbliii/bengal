@@ -13,6 +13,7 @@ Key Components:
 - CascadeTracker: Cascade dependency tracking
 - BlockChangeDetector: Block-level template change detection
 - RebuildDecisionEngine: Smart rebuild decisions based on block changes
+- IncrementalFilterEngine: Filter decision engine (RFC: rfc-rebuild-decision-hardening)
 - cleanup: Deleted file cleanup
 
 Architecture:
@@ -50,6 +51,16 @@ from bengal.orchestration.incremental.cache_manager import CacheManager
 from bengal.orchestration.incremental.cascade_tracker import CascadeTracker
 from bengal.orchestration.incremental.change_detector import ChangeDetector
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
+from bengal.orchestration.incremental.filter_engine import (
+    DefaultOutputChecker,
+    FilterDecision,
+    FilterDecisionLog,
+    FilterDecisionType,
+    FullRebuildTrigger,
+    IncrementalFilterEngine,
+    OrchestratorAutodocChecker,
+    OrchestratorSpecialPagesChecker,
+)
 from bengal.orchestration.incremental.orchestrator import IncrementalOrchestrator
 from bengal.orchestration.incremental.rebuild_decision import (
     RebuildDecision,
@@ -68,4 +79,13 @@ __all__ = [
     "RebuildDecision",
     "RebuildDecisionEngine",
     "cleanup_deleted_files",
+    # Filter Engine (RFC: rfc-rebuild-decision-hardening)
+    "IncrementalFilterEngine",
+    "FilterDecision",
+    "FilterDecisionLog",
+    "FilterDecisionType",
+    "FullRebuildTrigger",
+    "DefaultOutputChecker",
+    "OrchestratorAutodocChecker",
+    "OrchestratorSpecialPagesChecker",
 ]

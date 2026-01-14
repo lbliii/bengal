@@ -25,7 +25,7 @@ Example:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.directives.contracts import DirectiveContract
@@ -69,35 +69,23 @@ class DirectiveHandler(Protocol):
         
     """
 
-    # Class-level attributes
-    names: ClassVar[tuple[str, ...]]
+    # Attribute declarations for structural typing
+    # Note: ClassVar attributes on implementing classes satisfy these
+    names: tuple[str, ...]
     """Directive names this handler responds to (e.g., ("note", "warning"))."""
 
-    token_type: ClassVar[str]
+    token_type: str
     """Token type identifier for AST dispatch (e.g., "admonition")."""
-
-    contract: ClassVar[DirectiveContract | None]
-    """Optional contract for nesting validation. None means no restrictions."""
-
-    options_class: ClassVar[type[DirectiveOptions]]
-    """Class for typed options parsing. Defaults to DirectiveOptions."""
-
-    preserves_raw_content: ClassVar[bool]
-    """If True, parser will preserve raw content string in node.raw_content.
-
-    Set this to True for directives that need to parse raw content themselves
-    (e.g., gallery parsing image URLs from content).
-    """
 
     def parse(
         self,
         name: str,
         title: str | None,
-        options: DirectiveOptions,
+        options: Any,  # Allows subclasses to use specific option types
         content: str,
         children: Sequence[Block],
         location: SourceLocation,
-    ) -> Directive:
+    ) -> Directive[Any]:  # Use Any to allow specific option types
         """Build the directive AST node.
 
         Called by the parser when a directive block is encountered.
@@ -122,7 +110,7 @@ class DirectiveHandler(Protocol):
 
     def render(
         self,
-        node: Directive,
+        node: Directive[Any],  # Use Any to allow specific option types
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -152,20 +140,18 @@ class DirectiveParseOnly(Protocol):
         
     """
 
-    names: ClassVar[tuple[str, ...]]
-    token_type: ClassVar[str]
-    contract: ClassVar[DirectiveContract | None]
-    options_class: ClassVar[type[DirectiveOptions]]
+    names: tuple[str, ...]
+    token_type: str
 
     def parse(
         self,
         name: str,
         title: str | None,
-        options: DirectiveOptions,
+        options: Any,
         content: str,
         children: Sequence[Block],
         location: SourceLocation,
-    ) -> Directive:
+    ) -> Directive[Any]:
         """Build the directive AST node."""
         ...
 
@@ -179,12 +165,12 @@ class DirectiveRenderOnly(Protocol):
         
     """
 
-    names: ClassVar[tuple[str, ...]]
-    token_type: ClassVar[str]
+    names: tuple[str, ...]
+    token_type: str
 
     def render(
         self,
-        node: Directive,
+        node: Directive[Any],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:

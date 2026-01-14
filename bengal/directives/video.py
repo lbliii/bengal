@@ -30,7 +30,7 @@ from __future__ import annotations
 import re
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
@@ -127,13 +127,13 @@ class VideoDirective(BengalDirective):
         ...
 
     @abstractmethod
-    def build_embed_url(self, source: str, options: VideoOptions) -> str:
+    def build_embed_url(self, source: str, options: Any) -> str:
         """
         Build the embed URL from source and options.
 
         Args:
             source: Validated video source
-            options: Parsed directive options
+            options: Parsed directive options (specific type depends on subclass)
 
         Returns:
             Full embed URL
@@ -229,13 +229,13 @@ class YouTubeDirective(VideoDirective):
     # YouTube video ID: 11 characters (alphanumeric, underscore, hyphen)
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 
-    def validate_source(self, video_id: str) -> str | None:
+    def validate_source(self, source: str) -> str | None:
         """Validate YouTube video ID (11 alphanumeric chars)."""
-        if not self.ID_PATTERN.match(video_id):
-            return f"Invalid YouTube video ID: {video_id!r}. Expected 11 alphanumeric characters."
+        if not self.ID_PATTERN.match(source):
+            return f"Invalid YouTube video ID: {source!r}. Expected 11 alphanumeric characters."
         return None
 
-    def build_embed_url(self, video_id: str, options: YouTubeOptions) -> str:
+    def build_embed_url(self, source: str, options: Any) -> str:
         """Build YouTube embed URL with options."""
         domain = "youtube-nocookie.com" if options.privacy else "youtube.com"
 
@@ -249,18 +249,18 @@ class YouTubeDirective(VideoDirective):
         if options.muted:
             params.append("mute=1")
         if options.loop:
-            params.append(f"loop=1&playlist={video_id}")
+            params.append(f"loop=1&playlist={source}")
         if not options.controls:
             params.append("controls=0")
 
         query = "&".join(params)
-        base_url = f"https://www.{domain}/embed/{video_id}"
+        base_url = f"https://www.{domain}/embed/{source}"
         return f"{base_url}?{query}" if query else base_url
 
     def parse_directive(
         self,
         title: str,
-        options: YouTubeOptions,  # type: ignore[override]
+        options: YouTubeOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -303,20 +303,20 @@ class YouTubeDirective(VideoDirective):
         """Render YouTube embed to HTML."""
         error = attrs.get("error")
         if error:
-            video_id = attrs.get("video_id", "unknown")
+            video_id = str(attrs.get("video_id", "unknown"))
             return (
                 f'<div class="video-embed youtube video-error">\n'
-                f'  <p class="error">YouTube Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">YouTube Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        embed_url = attrs.get("embed_url", "")
-        title = attrs.get("title", "YouTube Video")
-        width = attrs.get("width", "")
-        aspect = attrs.get("aspect", "16/9")
-        css_class = attrs.get("css_class", "")
-        video_id = attrs.get("video_id", "")
+        embed_url = str(attrs.get("embed_url", ""))
+        title = str(attrs.get("title", "YouTube Video"))
+        width = str(attrs.get("width", ""))
+        aspect = str(attrs.get("aspect", "16/9"))
+        css_class = str(attrs.get("css_class", ""))
+        video_id = str(attrs.get("video_id", ""))
 
         class_str = self.build_class_string("video-embed", "youtube", css_class)
         safe_title = self.escape_html(title)
@@ -414,13 +414,13 @@ class VimeoDirective(VideoDirective):
     # Vimeo video ID: 6-11 digits
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d{6,11}$")
 
-    def validate_source(self, video_id: str) -> str | None:
+    def validate_source(self, source: str) -> str | None:
         """Validate Vimeo video ID (6-11 digits)."""
-        if not self.ID_PATTERN.match(video_id):
-            return f"Invalid Vimeo video ID: {video_id!r}. Expected 6-11 digits."
+        if not self.ID_PATTERN.match(source):
+            return f"Invalid Vimeo video ID: {source!r}. Expected 6-11 digits."
         return None
 
-    def build_embed_url(self, video_id: str, options: VimeoOptions) -> str:
+    def build_embed_url(self, source: str, options: Any) -> str:
         """Build Vimeo embed URL with options."""
         params: list[str] = []
 
@@ -440,13 +440,13 @@ class VimeoDirective(VideoDirective):
             params.append("loop=1")
 
         query = "&".join(params)
-        base_url = f"https://player.vimeo.com/video/{video_id}"
+        base_url = f"https://player.vimeo.com/video/{source}"
         return f"{base_url}?{query}" if query else base_url
 
     def parse_directive(
         self,
         title: str,
-        options: VimeoOptions,  # type: ignore[override]
+        options: VimeoOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -488,20 +488,20 @@ class VimeoDirective(VideoDirective):
         """Render Vimeo embed to HTML."""
         error = attrs.get("error")
         if error:
-            video_id = attrs.get("video_id", "unknown")
+            video_id = str(attrs.get("video_id", "unknown"))
             return (
                 f'<div class="video-embed vimeo video-error">\n'
-                f'  <p class="error">Vimeo Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">Vimeo Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        embed_url = attrs.get("embed_url", "")
-        title = attrs.get("title", "Vimeo Video")
-        width = attrs.get("width", "")
-        aspect = attrs.get("aspect", "16/9")
-        css_class = attrs.get("css_class", "")
-        video_id = attrs.get("video_id", "")
+        embed_url = str(attrs.get("embed_url", ""))
+        title = str(attrs.get("title", "Vimeo Video"))
+        width = str(attrs.get("width", ""))
+        aspect = str(attrs.get("aspect", "16/9"))
+        css_class = str(attrs.get("css_class", ""))
+        video_id = str(attrs.get("video_id", ""))
 
         class_str = self.build_class_string("video-embed", "vimeo", css_class)
         safe_title = self.escape_html(title)
@@ -623,18 +623,18 @@ class SelfHostedVideoDirective(VideoDirective):
         ".mov": "video/quicktime",
     }
 
-    def validate_source(self, video_path: str) -> str | None:
+    def validate_source(self, source: str) -> str | None:
         """Validate video path/URL."""
-        if not self.ID_PATTERN.match(video_path):
+        if not self.ID_PATTERN.match(source):
             return (
-                f"Invalid video path: {video_path!r}. "
+                f"Invalid video path: {source!r}. "
                 f"Expected path starting with / or ./ ending with .mp4, .webm, .ogg, or .mov"
             )
         return None
 
-    def build_embed_url(self, video_path: str, options: SelfHostedVideoOptions) -> str:
+    def build_embed_url(self, source: str, options: Any) -> str:
         """Return video path (no transformation needed for self-hosted)."""
-        return video_path
+        return source
 
     def _get_mime_type(self, video_path: str) -> str:
         """Get MIME type from video path extension."""
@@ -646,7 +646,7 @@ class SelfHostedVideoDirective(VideoDirective):
     def parse_directive(
         self,
         title: str,
-        options: SelfHostedVideoOptions,  # type: ignore[override]
+        options: SelfHostedVideoOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -694,25 +694,25 @@ class SelfHostedVideoDirective(VideoDirective):
         """Render self-hosted video to HTML."""
         error = attrs.get("error")
         if error:
-            video_path = attrs.get("video_path", "unknown")
+            video_path = str(attrs.get("video_path", "unknown"))
             return (
                 f'<div class="video-embed self-hosted video-error">\n'
-                f'  <p class="error">Video Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">Video Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Path: <code>{self.escape_html(video_path)}</code></p>\n"
                 f"</div>\n"
             )
 
-        video_path = attrs.get("video_path", "")
-        mime_type = attrs.get("mime_type", "video/mp4")
-        title = attrs.get("title", "Video")
-        poster = attrs.get("poster", "")
+        video_path = str(attrs.get("video_path", ""))
+        mime_type = str(attrs.get("mime_type", "video/mp4"))
+        title = str(attrs.get("title", "Video"))
+        poster = str(attrs.get("poster", ""))
         controls = attrs.get("controls", True)
         autoplay = attrs.get("autoplay", False)
         muted = attrs.get("muted", False)
         loop = attrs.get("loop", False)
-        preload = attrs.get("preload", "metadata")
-        width = attrs.get("width", "100%")
-        css_class = attrs.get("css_class", "")
+        preload = str(attrs.get("preload", "metadata"))
+        width = str(attrs.get("width", "100%"))
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("video-embed", "self-hosted", css_class)
         safe_title = self.escape_html(title)
@@ -815,16 +815,16 @@ class TikTokDirective(VideoDirective):
     # TikTok video ID: 19 digits
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d{19}$")
 
-    def validate_source(self, video_id: str) -> str | None:
+    def validate_source(self, source: str) -> str | None:
         """Validate TikTok video ID (19 digits)."""
-        if not self.ID_PATTERN.match(video_id):
-            return f"Invalid TikTok video ID: {video_id!r}. Expected 19 digits."
+        if not self.ID_PATTERN.match(source):
+            return f"Invalid TikTok video ID: {source!r}. Expected 19 digits."
         return None
 
-    def build_embed_url(self, video_id: str, options: TikTokOptions) -> str:
+    def build_embed_url(self, source: str, options: Any) -> str:
         """Build TikTok embed URL."""
         # TikTok embed URL format
-        base_url = f"https://www.tiktok.com/embed/v2/{video_id}"
+        base_url = f"https://www.tiktok.com/embed/v2/{source}"
 
         params: list[str] = []
         if options.autoplay:
@@ -840,7 +840,7 @@ class TikTokDirective(VideoDirective):
     def parse_directive(
         self,
         title: str,
-        options: TikTokOptions,  # type: ignore[override]
+        options: TikTokOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -882,20 +882,20 @@ class TikTokDirective(VideoDirective):
         """Render TikTok embed to HTML."""
         error = attrs.get("error")
         if error:
-            video_id = attrs.get("video_id", "unknown")
+            video_id = str(attrs.get("video_id", "unknown"))
             return (
                 f'<div class="video-embed tiktok video-error">\n'
-                f'  <p class="error">TikTok Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">TikTok Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        embed_url = attrs.get("embed_url", "")
-        title = attrs.get("title", "TikTok Video")
-        width = attrs.get("width", "")
-        aspect = attrs.get("aspect", "9/16")
-        css_class = attrs.get("css_class", "")
-        video_id = attrs.get("video_id", "")
+        embed_url = str(attrs.get("embed_url", ""))
+        title = str(attrs.get("title", "TikTok Video"))
+        width = str(attrs.get("width", ""))
+        aspect = str(attrs.get("aspect", "9/16"))
+        css_class = str(attrs.get("css_class", ""))
+        video_id = str(attrs.get("video_id", ""))
 
         class_str = self.build_class_string("video-embed", "tiktok", css_class)
         safe_title = self.escape_html(title)

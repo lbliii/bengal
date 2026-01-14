@@ -548,6 +548,9 @@ def phase_incremental_filter(
     Determines which pages and assets need to be built based on what changed.
     This is the KEY optimization: filter BEFORE expensive operations.
     
+    Uses IncrementalFilterEngine for decision logic with explicit ordering
+    and observability. (RFC: rfc-rebuild-decision-hardening)
+    
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -567,12 +570,22 @@ def phase_incremental_filter(
         - May return early if no changes detected
         
     """
+    from bengal.orchestration.incremental.filter_engine import (
+        FilterDecisionType,
+        FilterDecisionLog,
+        FullRebuildTrigger,
+        IncrementalFilterEngine,
+        OrchestratorAutodocChecker,
+        OrchestratorSpecialPagesChecker,
+    )
+
     with orchestrator.logger.phase("incremental_filtering", enabled=incremental):
         pages_to_build = orchestrator.site.pages
         assets_to_process = orchestrator.site.assets
         affected_tags = set()
         changed_page_paths = set()
         affected_sections = None  # Track for selective section finalization
+        change_summary = {}
 
         # Initialize decision tracker for observability
         decision = IncrementalDecision(
@@ -582,6 +595,7 @@ def phase_incremental_filter(
 
         if incremental:
             # Find what changed BEFORE generating taxonomies/menus
+            # This delegates to ChangeDetector via IncrementalOrchestrator
             pages_to_build, assets_to_process, change_summary_obj = (
                 orchestrator.incremental.find_work_early(
                     verbose=verbose,
@@ -597,9 +611,18 @@ def phase_incremental_filter(
                 decision, pages_to_build, change_summary_obj, change_summary
             )
 
+            # Create filter engine for remaining decision logic
+            # RFC: rfc-rebuild-decision-hardening - Explicit decision pipeline
+            engine = IncrementalFilterEngine(
+                cache=cache,
+                output_dir=orchestrator.site.output_dir,
+                change_detector=None,  # We already have change results from find_work_early
+                autodoc_checker=OrchestratorAutodocChecker(orchestrator, cache),
+                special_pages_checker=OrchestratorSpecialPagesChecker(orchestrator),
+            )
+
             # CRITICAL: If CSS/JS assets are changing, fingerprints will change.
             # All pages embed fingerprinted asset URLs, so they must be rebuilt.
-            # This fixes the bug where pages serve stale CSS fingerprints.
             fingerprint_assets = [
                 asset
                 for asset in assets_to_process
@@ -608,15 +631,12 @@ def phase_incremental_filter(
             fingerprint_assets_changed = len(fingerprint_assets) > 0
 
             if fingerprint_assets_changed:
-                # Track fingerprint change info
                 decision.fingerprint_changes = True
                 decision.asset_changes = [a.source_path.name for a in fingerprint_assets]
 
                 if not pages_to_build:
-                    # Assets change but no content changes - force all pages to rebuild
                     pages_to_build = list(orchestrator.site.pages)
 
-                # Add rebuild reason for all pages due to fingerprint change
                 for page in pages_to_build:
                     decision.add_rebuild_reason(
                         str(page.source_path),
@@ -639,14 +659,11 @@ def phase_incremental_filter(
             affected_sections = set()
             for page in pages_to_build:
                 if not page.metadata.get("_generated"):
-                    # Safely check if page has a section (may be None for root-level pages)
-                    # Use shared helper to normalize section path
                     section_path = resolve_page_section_path(page)
                     if section_path:
                         affected_sections.add(section_path)
                     if page.tags:
                         for tag in page.tags:
-                            # Ensure tag is a string (YAML may parse 'null' as None, numbers as int)
                             if tag is not None:
                                 affected_tags.add(str(tag).lower().replace(" ", "-"))
 
@@ -658,7 +675,6 @@ def phase_incremental_filter(
             orchestrator.stats.cache_hits = pages_cached
             orchestrator.stats.cache_misses = pages_rebuilt
 
-            # Estimate time saved (approximate: 80% of rendering time for cached pages)
             if pages_rebuilt > 0 and total_pages > 0:
                 avg_time_per_page = (
                     (orchestrator.stats.rendering_time_ms / total_pages)
@@ -684,29 +700,33 @@ def phase_incremental_filter(
             output_dir = orchestrator.site.output_dir
             output_assets = output_dir / "assets"
 
-            # Check if output is missing (no index.html or no assets)
-            output_html_missing = not (output_dir / "index.html").exists()
+            # Check if output is missing (empty output dir or no assets)
+            # Note: We don't check for root index.html specifically since not all sites
+            # have a home page. Instead, check if output_dir has any content at all.
+            output_html_missing = (
+                not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+            )
             output_assets_missing = (
                 not output_assets.exists()
                 or len(list(output_assets.iterdir())) < 3  # Minimal check (css, js, icons)
             )
+            
+            # Check autodoc and special pages via engine's checkers
+            # (RFC: rfc-rebuild-decision-hardening - Protocol-based composition)
+            autodoc_output_missing = (
+                engine.autodoc_checker.check(orchestrator.site.output_dir)
+                if engine.autodoc_checker else False
+            )
+            special_pages_missing = (
+                engine.special_pages_checker.check(orchestrator.site.output_dir)
+                if engine.special_pages_checker else False
+            )
 
-            # Check if autodoc output is missing (virtual pages not regenerated)
-            # This handles warm CI builds where cache is restored but public/api/ etc. is empty
-            autodoc_output_missing = _check_autodoc_output_missing(orchestrator, cache)
-
-            # Check if special pages are missing (graph/, search/)
-            # This handles warm CI builds where cache is restored but special pages weren't cached
-            special_pages_missing = _check_special_pages_missing(orchestrator)
-
-            if (
-                output_html_missing or output_assets_missing or autodoc_output_missing
-            ) and orchestrator.site.pages:
+            if (output_html_missing or output_assets_missing or autodoc_output_missing) and orchestrator.site.pages:
                 # Output was cleaned but cache thinks nothing changed - force full rebuild
                 pages_to_build = list(orchestrator.site.pages)
                 assets_to_process = list(orchestrator.site.assets)
 
-                # Track output_missing reason for all pages
                 for page in pages_to_build:
                     decision.add_rebuild_reason(
                         str(page.source_path),
@@ -741,7 +761,6 @@ def phase_incremental_filter(
                 orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
                 return None  # Signal early exit
             elif special_pages_missing and not pages_to_build and not assets_to_process:
-                # Special pages missing but no content changes - continue to postprocess
                 cli.info("  Special pages missing - regenerating (graph, search)")
                 orchestrator.logger.info(
                     "special_pages_missing_regenerating",
@@ -752,7 +771,6 @@ def phase_incremental_filter(
             decision.pages_to_build = pages_to_build
             decision.pages_skipped_count = len(orchestrator.site.pages) - len(pages_to_build)
 
-            # Track skip reasons only when verbose (avoid O(n) overhead)
             if verbose:
                 pages_to_build_paths = {str(p.source_path) for p in pages_to_build}
                 for page in orchestrator.site.pages:
@@ -760,15 +778,12 @@ def phase_incremental_filter(
                     if page_path not in pages_to_build_paths:
                         decision.skip_reasons[page_path] = SkipReasonCode.NO_CHANGES
 
-            # Log decision summary (INFO) and details (DEBUG when verbose)
             decision.log_summary(orchestrator.logger)
             if verbose:
                 decision.log_details(orchestrator.logger)
 
-            # Store decision for potential CLI explain mode (Phase 2)
             orchestrator.stats.incremental_decision = decision
 
-            # More informative incremental build message
             pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"
             assets_msg = (
                 f"{len(assets_to_process)} asset{'s' if len(assets_to_process) != 1 else ''}"
@@ -777,7 +792,6 @@ def phase_incremental_filter(
 
             cli.info(f"  Incremental build: {pages_msg}, {assets_msg} (skipped {skipped_msg})")
 
-            # Show what changed (brief summary)
             if change_summary:
                 changed_items = []
                 for change_type, items in change_summary.items():
@@ -792,7 +806,7 @@ def phase_incremental_filter(
                 for change_type, items in change_summary.items():
                     if items:
                         cli.info(f"    • {change_type}: {len(items)} file(s)")
-                        for item in items[:5]:  # Show first 5
+                        for item in items[:5]:
                             cli.info(f"      - {item.name if hasattr(item, 'name') else item}")
                         if len(items) > 5:
                             cli.info(f"      ... and {len(items) - 5} more")

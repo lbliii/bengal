@@ -157,9 +157,10 @@ class ConfigCheckResult:
     incremental: bool
     config_changed: bool
 
-    def __iter__(self) -> tuple[bool, bool]:
+    def __iter__(self):
         """Allow tuple unpacking."""
-        return (self.incremental, self.config_changed)
+        yield self.incremental
+        yield self.config_changed
 
 
 @dataclass
@@ -185,17 +186,13 @@ class FilterResult:
     changed_page_paths: set[Path]
     affected_sections: set[str] | None
 
-    def __iter__(
-        self,
-    ) -> tuple[list[Page], list[Asset], set[str], set[Path], set[str] | None]:
+    def __iter__(self):
         """Allow tuple unpacking."""
-        return (
-            self.pages_to_build,
-            self.assets_to_process,
-            self.affected_tags,
-            self.changed_page_paths,
-            self.affected_sections,
-        )
+        yield self.pages_to_build
+        yield self.assets_to_process
+        yield self.affected_tags
+        yield self.changed_page_paths
+        yield self.affected_sections
 
 
 @dataclass

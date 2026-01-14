@@ -15,7 +15,7 @@ All directives access renderer._current_page to walk the object tree.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
@@ -93,7 +93,7 @@ class BreadcrumbsDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: BreadcrumbsOptions,  # type: ignore[override]
+        options: BreadcrumbsOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -112,10 +112,10 @@ class BreadcrumbsDirective(BengalDirective):
 
     def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render breadcrumb navigation from page ancestors."""
-        separator = attrs.get("separator", "›")
+        separator = str(attrs.get("separator", "›"))
         show_home = attrs.get("show_home", True)
-        home_text = attrs.get("home_text", "Home")
-        home_url = attrs.get("home_url", "/")
+        home_text = str(attrs.get("home_text", "Home"))
+        home_url = str(attrs.get("home_url", "/"))
 
         current_page = getattr(renderer, "_current_page", None)
         if not current_page:
@@ -202,7 +202,7 @@ class SiblingsDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: SiblingsOptions,  # type: ignore[override]
+        options: SiblingsOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -220,7 +220,7 @@ class SiblingsDirective(BengalDirective):
 
     def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render sibling pages in the same section."""
-        limit = attrs.get("limit", 0)
+        limit = cast(int, attrs.get("limit", 0))
         exclude_current = attrs.get("exclude_current", True)
         show_description = attrs.get("show_description", False)
 
@@ -324,7 +324,7 @@ class PrevNextDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: PrevNextOptions,  # type: ignore[override]
+        options: PrevNextOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -440,7 +440,7 @@ class RelatedDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: RelatedOptions,  # type: ignore[override]
+        options: RelatedOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -458,8 +458,8 @@ class RelatedDirective(BengalDirective):
 
     def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render related content based on tags."""
-        limit = attrs.get("limit", 5)
-        title = attrs.get("title", "Related Articles")
+        limit = cast(int, attrs.get("limit", 5))
+        title = str(attrs.get("title", "Related Articles"))
         show_tags = attrs.get("show_tags", False)
 
         current_page = getattr(renderer, "_current_page", None)

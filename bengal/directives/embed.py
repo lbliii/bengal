@@ -129,7 +129,7 @@ class GistDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: GistOptions,  # type: ignore[override]
+        options: GistOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -158,17 +158,17 @@ class GistDirective(BengalDirective):
         """Render gist embed to HTML."""
         error = attrs.get("error")
         if error:
-            gist_ref = attrs.get("gist_ref", "unknown")
+            gist_ref = str(attrs.get("gist_ref", "unknown"))
             return (
                 f'<div class="gist-embed gist-error">\n'
-                f'  <p class="error">Gist Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">Gist Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Reference: <code>{self.escape_html(gist_ref)}</code></p>\n"
                 f"</div>\n"
             )
 
-        gist_ref = attrs.get("gist_ref", "")
-        file = attrs.get("file", "")
-        css_class = attrs.get("css_class", "")
+        gist_ref = str(attrs.get("gist_ref", ""))
+        file = str(attrs.get("file", ""))
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("gist-embed", css_class)
 
@@ -292,7 +292,7 @@ class CodePenDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: CodePenOptions,  # type: ignore[override]
+        options: CodePenOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -339,23 +339,23 @@ class CodePenDirective(BengalDirective):
         """Render CodePen embed to HTML."""
         error = attrs.get("error")
         if error:
-            pen_ref = attrs.get("pen_ref", "unknown")
+            pen_ref = str(attrs.get("pen_ref", "unknown"))
             return (
                 f'<div class="code-embed codepen code-error">\n'
-                f'  <p class="error">CodePen Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">CodePen Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Reference: <code>{self.escape_html(pen_ref)}</code></p>\n"
                 f"</div>\n"
             )
 
-        username = attrs.get("username", "")
-        pen_id = attrs.get("pen_id", "")
-        title = attrs.get("title", "CodePen Embed")
-        default_tab = attrs.get("default_tab", "result")
+        username = str(attrs.get("username", ""))
+        pen_id = str(attrs.get("pen_id", ""))
+        title = str(attrs.get("title", "CodePen Embed"))
+        default_tab = str(attrs.get("default_tab", "result"))
         height = attrs.get("height", 300)
-        theme = attrs.get("theme", "dark")
+        theme = str(attrs.get("theme", "dark"))
         editable = attrs.get("editable", False)
         preview = attrs.get("preview", True)
-        css_class = attrs.get("css_class", "")
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("code-embed", "codepen", css_class)
         safe_title = self.escape_html(title)
@@ -480,7 +480,7 @@ class CodeSandboxDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: CodeSandboxOptions,  # type: ignore[override]
+        options: CodeSandboxOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -525,23 +525,23 @@ class CodeSandboxDirective(BengalDirective):
         """Render CodeSandbox embed to HTML."""
         error = attrs.get("error")
         if error:
-            sandbox_id = attrs.get("sandbox_id", "unknown")
+            sandbox_id = str(attrs.get("sandbox_id", "unknown"))
             return (
                 f'<div class="code-embed codesandbox code-error">\n'
-                f'  <p class="error">CodeSandbox Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">CodeSandbox Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>ID: <code>{self.escape_html(sandbox_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        sandbox_id = attrs.get("sandbox_id", "")
-        title = attrs.get("title", "CodeSandbox Embed")
-        module = attrs.get("module", "")
-        view = attrs.get("view", "split")
+        sandbox_id = str(attrs.get("sandbox_id", ""))
+        title = str(attrs.get("title", "CodeSandbox Embed"))
+        module = str(attrs.get("module", ""))
+        view = str(attrs.get("view", "split"))
         height = attrs.get("height", 500)
         fontsize = attrs.get("fontsize", 14)
         hidenavigation = attrs.get("hidenavigation", False)
-        theme = attrs.get("theme", "dark")
-        css_class = attrs.get("css_class", "")
+        theme = str(attrs.get("theme", "dark"))
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("code-embed", "codesandbox", css_class)
         safe_title = self.escape_html(title)
@@ -662,7 +662,7 @@ class StackBlitzDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: StackBlitzOptions,  # type: ignore[override]
+        options: StackBlitzOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -706,22 +706,22 @@ class StackBlitzDirective(BengalDirective):
         """Render StackBlitz embed to HTML."""
         error = attrs.get("error")
         if error:
-            project_id = attrs.get("project_id", "unknown")
+            project_id = str(attrs.get("project_id", "unknown"))
             return (
                 f'<div class="code-embed stackblitz code-error">\n'
-                f'  <p class="error">StackBlitz Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">StackBlitz Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Project: <code>{self.escape_html(project_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        project_id = attrs.get("project_id", "")
-        title = attrs.get("title", "StackBlitz Embed")
-        file = attrs.get("file", "")
-        view = attrs.get("view", "both")
+        project_id = str(attrs.get("project_id", ""))
+        title = str(attrs.get("title", "StackBlitz Embed"))
+        file = str(attrs.get("file", ""))
+        view = str(attrs.get("view", "both"))
         height = attrs.get("height", 500)
         hidenavigation = attrs.get("hidenavigation", False)
         hidedevtools = attrs.get("hidedevtools", False)
-        css_class = attrs.get("css_class", "")
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("code-embed", "stackblitz", css_class)
         safe_title = self.escape_html(title)
@@ -786,7 +786,7 @@ class SpotifyOptions(DirectiveOptions):
     css_class: str = ""
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
-    _allowed_values: ClassVar[dict[str, list[str]]] = {
+    _allowed_values: ClassVar[dict[str, list[str | int]]] = {
         "type": ["track", "album", "playlist", "episode", "show", "artist"],
         "theme": [0, 1],
     }
@@ -856,7 +856,7 @@ class SpotifyDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: SpotifyOptions,  # type: ignore[override]
+        options: SpotifyOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -903,20 +903,20 @@ class SpotifyDirective(BengalDirective):
         """Render Spotify embed to HTML."""
         error = attrs.get("error")
         if error:
-            spotify_id = attrs.get("spotify_id", "unknown")
+            spotify_id = str(attrs.get("spotify_id", "unknown"))
             return (
                 f'<div class="audio-embed spotify audio-error">\n'
-                f'  <p class="error">Spotify Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">Spotify Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>ID: <code>{self.escape_html(spotify_id)}</code></p>\n"
                 f"</div>\n"
             )
 
-        spotify_id = attrs.get("spotify_id", "")
-        title = attrs.get("title", "Spotify Embed")
-        content_type = attrs.get("content_type", "track")
+        spotify_id = str(attrs.get("spotify_id", ""))
+        title = str(attrs.get("title", "Spotify Embed"))
+        content_type = str(attrs.get("content_type", "track"))
         height = attrs.get("height", 152)
         theme = attrs.get("theme", 0)
-        css_class = attrs.get("css_class", "")
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("audio-embed", "spotify", css_class)
         safe_title = self.escape_html(title)
@@ -1085,7 +1085,7 @@ class SoundCloudDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: SoundCloudOptions,  # type: ignore[override]
+        options: SoundCloudOptions,
         content: str,
         children: list[dict[str, object]],
         state: MistuneBlockState,
@@ -1144,25 +1144,25 @@ class SoundCloudDirective(BengalDirective):
         """Render SoundCloud embed to HTML."""
         error = attrs.get("error")
         if error:
-            url_path = attrs.get("url_path", "unknown")
+            url_path = str(attrs.get("url_path", "unknown"))
             return (
                 f'<div class="audio-embed soundcloud audio-error">\n'
-                f'  <p class="error">SoundCloud Error: {self.escape_html(error)}</p>\n'
+                f'  <p class="error">SoundCloud Error: {self.escape_html(str(error))}</p>\n'
                 f"  <p>Path: <code>{self.escape_html(url_path)}</code></p>\n"
                 f"</div>\n"
             )
 
-        url_path = attrs.get("url_path", "")
-        title = attrs.get("title", "SoundCloud Embed")
+        url_path = str(attrs.get("url_path", ""))
+        title = str(attrs.get("title", "SoundCloud Embed"))
         height = attrs.get("height", 166)
-        color = attrs.get("color", "ff5500")
+        color = str(attrs.get("color", "ff5500"))
         autoplay = attrs.get("autoplay", False)
         hide_related = attrs.get("hide_related", False)
         show_comments = attrs.get("show_comments", True)
         show_user = attrs.get("show_user", True)
         show_reposts = attrs.get("show_reposts", False)
         visual = attrs.get("visual", False)
-        css_class = attrs.get("css_class", "")
+        css_class = str(attrs.get("css_class", ""))
 
         class_str = self.build_class_string("audio-embed", "soundcloud", css_class)
         safe_title = self.escape_html(title)

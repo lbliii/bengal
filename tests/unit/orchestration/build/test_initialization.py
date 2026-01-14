@@ -348,6 +348,23 @@ class TestPhaseIncrementalFilter:
 
     def test_filters_unchanged_pages_for_incremental(self, tmp_path):
         """Filters unchanged pages for incremental builds."""
+        # Create output directory with existing content to simulate a warm cache
+        # This prevents the output_missing check from triggering a full rebuild
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        # Create minimal assets to pass the assets check
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").write_text("")
+        (assets_dir / "main.js").write_text("")
+        (assets_dir / "icons.svg").write_text("")
+        # Create special pages to pass special pages check
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+        (output_dir / "search").mkdir()
+        (output_dir / "search" / "index.html").write_text("<html></html>")
+
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.pages = [MagicMock(), MagicMock()]
         orchestrator.site.assets = [MagicMock()]

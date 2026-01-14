@@ -37,7 +37,7 @@ from bengal.rendering.parsers.patitas.renderers.utils import (
 )
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.renderers.protocols import HtmlRendererProtocolProtocol
+    from bengal.rendering.parsers.patitas.renderers.protocols import HtmlRendererProtocol
 
 
 class BlockRendererMixin:

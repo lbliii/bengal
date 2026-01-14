@@ -56,6 +56,16 @@ class MistuneBlockState(Protocol):
         """Accumulated tokens from parsing."""
         ...
 
+    @property
+    def env(self) -> dict[str, object]:
+        """Environment dict for storing state."""
+        ...
+
+    @env.setter
+    def env(self, value: dict[str, object]) -> None:
+        """Set environment dict."""
+        ...
+
     def depth(self) -> int:
         """Current nesting depth."""
         ...
@@ -99,6 +109,17 @@ class MistuneBlockParser(Protocol):
 
 
 @runtime_checkable
+class MistuneRenderer(Protocol):
+    """Protocol matching mistune's renderer interface."""
+
+    NAME: str
+
+    def register(self, name: str, method: object) -> None:
+        """Register a render method for a token type."""
+        ...
+
+
+@runtime_checkable
 class MistuneMarkdown(Protocol):
     """
     Protocol matching mistune's Markdown interface.
@@ -110,6 +131,11 @@ class MistuneMarkdown(Protocol):
     @property
     def block(self) -> MistuneBlockParser:
         """Block parser instance."""
+        ...
+
+    @property
+    def renderer(self) -> MistuneRenderer | None:
+        """HTML renderer instance."""
         ...
 
     def __call__(self, text: str) -> str:
@@ -370,11 +396,22 @@ class ContractViolationDict(TypedDict):
 # Exports
 # =============================================================================
 
+@runtime_checkable
+class MistuneDirectiveRegistry(Protocol):
+    """Protocol matching mistune's BaseDirective registry interface."""
+
+    def register(self, name: str, parse_method: object) -> None:
+        """Register a directive parse method."""
+        ...
+
+
 __all__ = [
     # Mistune protocols
     "MistuneBlockParser",
     "MistuneBlockState",
     "MistuneMarkdown",
+    "MistuneRenderer",
+    "MistuneDirectiveRegistry",
     # Token types
     "DirectiveToken",
     "DirectiveParseResult",
