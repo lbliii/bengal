@@ -1,6 +1,6 @@
 # RFC: Behavioral Test Hardening
 
-## Status: Draft
+## Status: Implementing
 
 ## Created: 2026-01-14
 
