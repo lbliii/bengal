@@ -139,15 +139,16 @@ class TestPhaseDiscovery:
     """Tests for phase_discovery function."""
 
     def test_calls_content_discover(self, tmp_path):
-        """Calls content orchestrator discover method."""
+        """Calls content orchestrator discover_content and discover_assets methods."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cli = MockPhaseContext.create_cli()
 
         phase_discovery(orchestrator, cli, incremental=False)
 
-        orchestrator.content.discover.assert_called_once_with(
-            incremental=False, cache=None, build_context=None
+        orchestrator.content.discover_content.assert_called_once_with(
+            incremental=False, cache=None, build_context=None, build_cache=None
         )
+        orchestrator.content.discover_assets.assert_called_once()
 
     def test_incremental_loads_page_cache(self, tmp_path):
         """Loads page discovery cache for incremental builds."""
@@ -172,9 +173,10 @@ class TestPhaseDiscovery:
 
         phase_discovery(orchestrator, cli, incremental=False, build_context=build_context)
 
-        orchestrator.content.discover.assert_called_once_with(
-            incremental=False, cache=None, build_context=build_context
+        orchestrator.content.discover_content.assert_called_once_with(
+            incremental=False, cache=None, build_context=build_context, build_cache=None
         )
+        orchestrator.content.discover_assets.assert_called_once()
 
     def test_logs_content_cache_stats(self, tmp_path):
         """Logs content cache statistics when enabled."""

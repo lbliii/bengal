@@ -111,7 +111,7 @@ class BuildMetric:
         return 0
 
     @property
-    def datetime(self) -> datetime:
+    def as_datetime(self) -> datetime:
         """Parse timestamp string to datetime object."""
         return datetime.fromisoformat(self.timestamp.replace("Z", "+00:00"))
 
@@ -198,7 +198,7 @@ class PerformanceReport:
             >>> metrics = report.load_metrics(last=5)
             >>> len(metrics)
             5
-            >>> metrics[0].datetime > metrics[1].datetime  # Most recent first
+            >>> metrics[0].as_datetime > metrics[1].as_datetime  # Most recent first
             True
         """
         history_file = self.metrics_dir / "history.jsonl"
@@ -270,7 +270,7 @@ class PerformanceReport:
 
         # Rows
         for m in metrics:
-            date = m.datetime.strftime("%Y-%m-%d %H:%M")
+            date = m.as_datetime.strftime("%Y-%m-%d %H:%M")
 
             # Build type
             if m.skipped:
@@ -387,7 +387,7 @@ class PerformanceReport:
         latest = metrics[0]
 
         print("\n📊 Latest Build")
-        print(f"   Date:       {latest.datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"   Date:       {latest.as_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"   Pages:      {latest.total_pages}")
         print(f"   Time:       {latest.build_time_s:.2f}s")
         print(f"   Memory:     {latest.memory_rss_mb:.1f}MB RSS")
@@ -449,8 +449,8 @@ class PerformanceReport:
         b2 = metrics[build2_idx]
 
         print("\n📊 Build Comparison")
-        print(f"\n   Build 1: {b1.datetime.strftime('%Y-%m-%d %H:%M')}")
-        print(f"   Build 2: {b2.datetime.strftime('%Y-%m-%d %H:%M')}")
+        print(f"\n   Build 1: {b1.as_datetime.strftime('%Y-%m-%d %H:%M')}")
+        print(f"   Build 2: {b2.as_datetime.strftime('%Y-%m-%d %H:%M')}")
 
         print(f"\n{'Metric':<20} {'Build 1':>12} {'Build 2':>12} {'Change':>12}")
         print("─" * 60)

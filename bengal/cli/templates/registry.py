@@ -26,6 +26,7 @@ Example:
 
 from __future__ import annotations
 
+import builtins
 import importlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -231,7 +232,7 @@ class TemplateRegistry:
         """
         return self._templates.get(template_id)
 
-    def list(self) -> list[tuple[str, str]]:
+    def list(self) -> builtins.list[tuple[str, str]]:
         """
         List all templates as (id, description) tuples.
 

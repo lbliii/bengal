@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import sys
 import threading
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.rendering.pipeline import RenderingPipeline
@@ -53,7 +54,7 @@ def is_free_threaded() -> bool:
 
 def get_or_create_pipeline(
     current_gen: int,
-    create_pipeline_fn: callable,
+    create_pipeline_fn: Callable[..., Any],
 ) -> RenderingPipeline:
     """
     Get or create a thread-local pipeline instance.

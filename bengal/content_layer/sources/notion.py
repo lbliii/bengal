@@ -140,8 +140,10 @@ class NotionSource(ContentSource):
 
         # Instance-level block cache with TTL and size limit
         # Uses cachetools.TTLCache if available, otherwise no caching
+        # Type is Any because TTLCache is conditionally imported
+        self._block_cache: Any | None
         if CACHETOOLS_AVAILABLE and TTLCache is not None:
-            self._block_cache: TTLCache[str, str] | None = TTLCache(
+            self._block_cache = TTLCache(
                 maxsize=self.BLOCK_CACHE_MAXSIZE,
                 ttl=self.BLOCK_CACHE_TTL,
             )

@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 def create_python_sections(
     elements: list[DocElement],
     site: Site,
-    resolve_output_prefix: callable,
+    resolve_output_prefix: Callable[..., Any],
 ) -> dict[str, Section]:
     """
     Create virtual section hierarchy from doc elements.
@@ -129,7 +129,7 @@ def create_python_sections(
 def create_cli_sections(
     elements: list[DocElement],
     site: Site,
-    resolve_output_prefix: callable,
+    resolve_output_prefix: Callable[..., Any],
 ) -> dict[str, Section]:
     """
     Create CLI section hierarchy.
@@ -255,7 +255,7 @@ def create_cli_sections(
 def create_openapi_sections(
     elements: list[DocElement],
     site: Site,
-    resolve_output_prefix: callable,
+    resolve_output_prefix: Callable[..., Any],
     _existing_sections: dict[str, Section] | None = None,
 ) -> dict[str, Section]:
     """Create OpenAPI section hierarchy."""

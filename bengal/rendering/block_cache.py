@@ -43,6 +43,7 @@ RFC: block-level-incremental-builds
 
 from __future__ import annotations
 
+import builtins
 import hashlib
 from collections.abc import Iterator
 from threading import Lock
@@ -485,7 +486,7 @@ class BlockCache:
         self,
         engine: KidaTemplateEngine,
         template_name: str,
-    ) -> set[str]:
+    ) -> builtins.set[str]:
         """Detect which blocks changed since last build.
 
         Compares current block hashes to cached hashes.
