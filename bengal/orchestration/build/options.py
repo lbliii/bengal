@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.profile import BuildProfile
 
 # Type aliases for phase callbacks (RFC: rfc-dashboard-api-integration)
 # on_phase_start receives: (phase_name)
@@ -66,7 +66,7 @@ class BuildOptions:
             >>>
             >>> # Direct instantiation (for testing/backward compatibility)
             >>> from bengal.orchestration.build.options import BuildOptions
-            >>> from bengal.utils.profile import BuildProfile
+            >>> from bengal.utils.observability.profile import BuildProfile
             >>> options = BuildOptions(
             ...     profile=BuildProfile.WRITER,
             ...     strict=True,

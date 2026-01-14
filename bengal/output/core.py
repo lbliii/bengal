@@ -103,7 +103,7 @@ class CLIOutput(DevServerOutputMixin):
 
         # Auto-detect rich support
         if use_rich is None:
-            from bengal.utils.rich_console import should_use_rich
+            from bengal.utils.observability.rich_console import should_use_rich
 
             use_rich = should_use_rich()
 
@@ -111,7 +111,7 @@ class CLIOutput(DevServerOutputMixin):
 
         # Always create console (even when not using Rich features)
         # This simplifies type checking - console is never None
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         self.console = get_console()
 
@@ -147,7 +147,7 @@ class CLIOutput(DevServerOutputMixin):
         self.indent_size = 2
 
         # Icon set (ASCII by default, emoji opt-in via BENGAL_EMOJI=1)
-        from bengal.utils.rich_console import should_use_emoji
+        from bengal.utils.observability.rich_console import should_use_emoji
 
         self._icons = get_icon_set(use_emoji=should_use_emoji())
 

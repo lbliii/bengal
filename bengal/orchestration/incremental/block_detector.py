@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, NamedTuple
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.rendering.block_cache import BlockCache

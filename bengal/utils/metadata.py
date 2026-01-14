@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal import __version__ as BENGAL_VERSION
 from bengal.core.theme import get_theme_package
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

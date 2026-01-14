@@ -2,12 +2,12 @@
 
 import pickle
 
-from bengal.utils.sentinel import MISSING, is_missing
+from bengal.utils.primitives.sentinel import MISSING, is_missing
 
 
 def test_missing_is_singleton():
     """Test that MISSING is a singleton."""
-    from bengal.utils.sentinel import _MissingType
+    from bengal.utils.primitives.sentinel import _MissingType
 
     assert MISSING is MISSING
     assert isinstance(MISSING, _MissingType)

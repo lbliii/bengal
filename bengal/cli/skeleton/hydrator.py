@@ -30,8 +30,8 @@ from typing import Any
 import yaml
 
 from bengal.cli.skeleton.schema import Component, Skeleton
-from bengal.utils.atomic_write import atomic_write_text
-from bengal.utils.logger import get_logger
+from bengal.utils.io.atomic_write import atomic_write_text
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -25,7 +25,7 @@ from bengal.errors.traceback import (
     map_debug_flag_to_traceback,
     set_effective_style_from_cli,
 )
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

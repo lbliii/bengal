@@ -113,7 +113,7 @@ class ContentDiscoveryMixin:
         This must be called after discovery and cascade application but before
         any code tries to access page.href (which depends on output_path).
         """
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         for page in self.pages:
             # Skip if already set (e.g., generated pages)

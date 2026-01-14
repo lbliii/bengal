@@ -30,8 +30,8 @@ from rich.table import Table
 from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
 from bengal.output.icons import get_icon_set
-from bengal.utils.logger import get_logger
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.observability.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -99,7 +99,7 @@ class CLIOutput(DevServerOutputMixin):
 
         # Auto-detect rich support
         if use_rich is None:
-            from bengal.utils.rich_console import should_use_rich
+            from bengal.utils.observability.rich_console import should_use_rich
 
             use_rich = should_use_rich()
 
@@ -107,7 +107,7 @@ class CLIOutput(DevServerOutputMixin):
 
         # Always create console (even when not using Rich features)
         # This simplifies type checking - console is never None
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         self.console = get_console()
 

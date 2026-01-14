@@ -42,7 +42,7 @@ class TestCLIOutputInit:
 
     def test_init_with_profile(self):
         """Test CLIOutput can be initialized with a build profile."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         cli = CLIOutput(profile=BuildProfile.WRITER)
 
@@ -150,7 +150,7 @@ class TestGlobalCLIOutput:
 
     def test_init_cli_output_with_profile(self):
         """Test init_cli_output() accepts profile parameter."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         cli = init_cli_output(profile=BuildProfile.WRITER)
 

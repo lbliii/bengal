@@ -15,7 +15,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from bengal.core.section import Section
-from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.paths.url_strategy import URLStrategy
 
 
 class TestUrlFromOutputPathProperties:

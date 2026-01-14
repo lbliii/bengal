@@ -20,8 +20,8 @@ def profile_build(site_path, parallel=True, max_workers=None):
 
     from bengal.core.site import Site
     from bengal.orchestration.build.options import BuildOptions
-    from bengal.utils.logger import LogLevel, configure_logging
-    from bengal.utils.paths import BengalPaths
+    from bengal.utils.observability.logger import LogLevel, configure_logging
+    from bengal.utils.paths.paths import BengalPaths
 
     # Quiet logging for cleaner output
     configure_logging(level=LogLevel.WARNING, track_memory=False)

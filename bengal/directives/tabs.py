@@ -54,8 +54,8 @@ from bengal.directives.contracts import (
 )
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
-from bengal.utils.hashing import hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.observability.logger import get_logger
 
 __all__ = [
     "TabItemDirective",

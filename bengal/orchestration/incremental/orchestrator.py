@@ -28,7 +28,7 @@ from bengal.orchestration.incremental.change_detector import ChangeDetector
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
 from bengal.utils.build_context import BuildContext
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker

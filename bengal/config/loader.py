@@ -53,7 +53,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.config.defaults import DEFAULTS
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -79,7 +79,7 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
     try:
         from rich.pretty import pprint as rich_pprint
 
-        from bengal.utils.rich_console import get_console, should_use_rich
+        from bengal.utils.observability.rich_console import get_console, should_use_rich
 
         if should_use_rich():
             console = get_console()
@@ -318,7 +318,7 @@ class ConfigLoader:
             FileNotFoundError: If the configuration file doesn't exist.
             TomlDecodeError: If TOML syntax is invalid.
         """
-        from bengal.utils.file_io import load_toml
+        from bengal.utils.io.file_io import load_toml
 
         config = load_toml(config_path, on_error="raise", caller="config_loader")
         if config is None:
@@ -343,7 +343,7 @@ class ConfigLoader:
             FileNotFoundError: If the configuration file doesn't exist.
             YAMLError: If YAML syntax is invalid.
         """
-        from bengal.utils.file_io import load_yaml
+        from bengal.utils.io.file_io import load_yaml
 
         config = load_yaml(config_path, on_error="raise", caller="config_loader")
 

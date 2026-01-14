@@ -19,7 +19,7 @@ Performance: O(n) complexity via incremental context tracking.
 
 from __future__ import annotations
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

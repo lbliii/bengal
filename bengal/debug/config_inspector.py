@@ -53,7 +53,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from bengal.debug.base import DebugFinding, DebugReport, DebugTool, Severity
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.utils.file_lock import (
+from bengal.utils.io.file_lock import (
     LockAcquisitionError,
     file_lock,
     is_locked,

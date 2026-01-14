@@ -11,7 +11,7 @@ Modules:
     url_strategy: URL and output path computation
 
 Example:
-    >>> from bengal.utils.paths import PathResolver, normalize_url, join_url_paths
+    >>> from bengal.utils.paths.paths import PathResolver, normalize_url, join_url_paths
     >>> resolver = PathResolver(site.root_path)
     >>> abs_path = resolver.resolve("content/post.md")
     >>> url = normalize_url("/api/bengal")

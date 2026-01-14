@@ -7,7 +7,7 @@ like parsers, database connections, or pipeline instances.
 Example:
 
 ```python
-from bengal.utils.thread_local import ThreadLocalCache
+from bengal.utils.concurrency.thread_local import ThreadLocalCache
 
 # Create a cache for markdown parsers
 parser_cache = ThreadLocalCache(

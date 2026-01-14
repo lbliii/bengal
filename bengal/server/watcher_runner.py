@@ -35,7 +35,7 @@ from typing import Any
 
 from bengal.server.file_watcher import create_watcher
 from bengal.server.ignore_filter import IgnoreFilter
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

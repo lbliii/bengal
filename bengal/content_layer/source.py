@@ -15,7 +15,7 @@ from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.hashing import hash_str
+from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
     from bengal.content_layer.entry import ContentEntry
@@ -160,7 +160,7 @@ class ContentSource(ABC):
         Yields:
             ContentEntry for each piece of content
         """
-        from bengal.utils.async_compat import run_async
+        from bengal.utils.concurrency.async_compat import run_async
 
         async def collect() -> list[ContentEntry]:
             return [entry async for entry in self.fetch_all()]
@@ -178,7 +178,7 @@ class ContentSource(ABC):
         Returns:
             ContentEntry if found, None otherwise
         """
-        from bengal.utils.async_compat import run_async
+        from bengal.utils.concurrency.async_compat import run_async
 
         return run_async(self.fetch_one(id))
 

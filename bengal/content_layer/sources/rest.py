@@ -27,7 +27,7 @@ except ImportError as e:
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

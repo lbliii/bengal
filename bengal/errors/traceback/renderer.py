@@ -59,7 +59,7 @@ from typing import Any
 
 from bengal.errors.handlers import get_context_aware_help
 from bengal.output import CLIOutput
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -105,7 +105,7 @@ class FullTracebackRenderer(TracebackRenderer):
     def display_exception(self, error: BaseException) -> None:
         # Prefer Rich pretty exception if available and active
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.observability.rich_console import get_console, should_use_rich
 
             if should_use_rich():
                 console = get_console()

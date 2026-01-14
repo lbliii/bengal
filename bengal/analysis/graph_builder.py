@@ -27,8 +27,8 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.analysis.link_types import LinkMetrics, LinkType
 from bengal.errors import BengalGraphError, ErrorCode, record_error
-from bengal.utils.logger import get_logger
-from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

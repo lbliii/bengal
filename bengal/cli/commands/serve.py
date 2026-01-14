@@ -15,7 +15,7 @@ from bengal.cli.helpers import (
 )
 from bengal.errors.traceback import TracebackStyle
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
-from bengal.utils.logger import LogLevel, configure_logging
+from bengal.utils.observability.logger import LogLevel, configure_logging
 
 
 @click.command(cls=BengalCommand)

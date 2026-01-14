@@ -94,7 +94,7 @@ class SeriesIndex(QueryIndex):
             # Generate slug if not provided
             slug = series_data.get("slug", "")
             if not slug:
-                from bengal.utils.text import slugify
+                from bengal.utils.primitives.text import slugify
 
                 slug = slugify(name)
             metadata["slug"] = slug

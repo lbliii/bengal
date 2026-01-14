@@ -36,7 +36,7 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
     """
     # Try to use rich for enhanced display
     try:
-        from bengal.utils.rich_console import should_use_rich
+        from bengal.utils.observability.rich_console import should_use_rich
 
         if should_use_rich():
             _display_template_error_rich(error)
@@ -53,7 +53,7 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
     from rich.panel import Panel
     from rich.syntax import Syntax
 
-    from bengal.utils.rich_console import get_console
+    from bengal.utils.observability.rich_console import get_console
 
     console = get_console()
 

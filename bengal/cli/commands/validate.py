@@ -23,7 +23,7 @@ from bengal.cli.helpers import (
 )
 from bengal.errors.traceback import TracebackStyle
 from bengal.health import HealthCheck
-from bengal.utils.profile import BuildProfile
+from bengal.utils.observability.profile import BuildProfile
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -252,7 +252,7 @@ def _run_watch_mode(
     """
     import watchfiles
 
-    from bengal.utils.async_compat import run_async
+    from bengal.utils.concurrency.async_compat import run_async
 
     cli.blank()
     cli.info("Watch mode: Validating on file changes (Ctrl+C to stop)")

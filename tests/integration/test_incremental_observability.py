@@ -67,7 +67,7 @@ class TestExplainMode:
         """--explain should show rebuild reason breakdown."""
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -95,7 +95,7 @@ class TestExplainMode:
         """Incremental build with --explain should show content_changed reasons."""
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -142,7 +142,7 @@ This is the updated intro page.
         """Skip reasons should be tracked when verbose=True on incremental build."""
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -187,7 +187,7 @@ class TestDryRunMode:
         """--dry-run should not write output files."""
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -214,7 +214,7 @@ class TestDryRunMode:
         """--dry-run should set stats.dry_run flag."""
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -241,7 +241,7 @@ class TestExplainJson:
         from bengal.cli.commands.build import _print_explain_json
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 
@@ -275,7 +275,7 @@ class TestExplainJson:
         from bengal.cli.commands.build import _print_explain_json
         from bengal.cli.helpers import load_site_from_cli
         from bengal.orchestration.build.options import BuildOptions
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         site = load_site_from_cli(source=str(minimal_site))
 

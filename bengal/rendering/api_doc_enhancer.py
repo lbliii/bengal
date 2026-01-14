@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import re
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -139,7 +139,7 @@ class APIDocEnhancer:
 
         # Debug: Report if badges were added (only in dev mode)
         if replacements_made > 0:
-            from bengal.utils.profile import should_show_debug
+            from bengal.utils.observability.profile import should_show_debug
 
             if should_show_debug():
                 logger.debug("api_doc_badge_replacements", replacements_made=replacements_made)

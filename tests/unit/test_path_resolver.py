@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.utils.path_resolver import PathResolver, resolve_path
+from bengal.utils.paths.path_resolver import PathResolver, resolve_path
 
 
 class TestPathResolver:

@@ -21,7 +21,7 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker

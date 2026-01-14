@@ -38,8 +38,8 @@ from bengal.rendering.template_profiler import (
     TemplateProfiler,
     get_profiler,
 )
-from bengal.utils.concurrent_locks import PerKeyLockManager
-from bengal.utils.logger import get_logger, truncate_error
+from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
+from bengal.utils.observability.logger import get_logger, truncate_error
 
 if TYPE_CHECKING:
     from bengal.core import Site

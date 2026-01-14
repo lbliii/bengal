@@ -403,7 +403,7 @@ class CodeTabsDirective:
 
         # Generate stable ID
         try:
-            from bengal.utils.hashing import hash_str
+            from bengal.utils.primitives.hashing import hash_str
 
             content_hash = hash_str(node.raw_content or "", truncate=12)
         except ImportError:

@@ -7,7 +7,7 @@ This is Phase 1 of the continuous performance tracking system.
 Example:
 
 ```python
-from bengal.utils.performance_collector import PerformanceCollector
+from bengal.utils.observability.performance_collector import PerformanceCollector
 
 collector = PerformanceCollector()
 collector.start_build()

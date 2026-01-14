@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
-    from bengal.utils.dotdict import DotDict
+    from bengal.utils.primitives.dotdict import DotDict
 
 
 class DataLoadingMixin:
@@ -47,8 +47,8 @@ class DataLoadingMixin:
         Returns:
             DotDict with loaded data accessible via dot notation
         """
-        from bengal.utils.dotdict import DotDict, wrap_data
-        from bengal.utils.file_io import load_data_file
+        from bengal.utils.primitives.dotdict import DotDict, wrap_data
+        from bengal.utils.io.file_io import load_data_file
 
         data_dir = self.root_path / "data"
 

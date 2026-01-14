@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from bengal.cache.build_cache.core import BuildCache
-from bengal.utils.hashing import hash_file
+from bengal.utils.primitives.hashing import hash_file
 
 
 class TestAutodocSourceMetadata:

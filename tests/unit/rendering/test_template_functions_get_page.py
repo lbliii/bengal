@@ -12,7 +12,7 @@ from bengal.rendering.template_functions.get_page import (
     clear_get_page_cache,
     register,
 )
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 
 @pytest.fixture

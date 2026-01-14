@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

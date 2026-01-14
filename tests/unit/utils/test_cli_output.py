@@ -72,7 +72,7 @@ class TestColorTheming:
 
         from io import StringIO
 
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         buffer = StringIO()
         cli.console = Console(
@@ -129,7 +129,7 @@ class TestPanelHeader:
 
         from io import StringIO
 
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         buffer = StringIO()
         cli.console = Console(
@@ -149,7 +149,7 @@ class TestPanelHeader:
 
         from io import StringIO
 
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         buffer = StringIO()
         cli.console = Console(
@@ -168,7 +168,7 @@ class TestPanelHeader:
 
         from io import StringIO
 
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         buffer = StringIO()
         cli.console = Console(
@@ -273,7 +273,7 @@ class TestColorPaletteConsistency:
 
     def test_bengal_theme_defined(self):
         """Bengal theme should be defined with all semantic styles."""
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         # All semantic styles should be defined
         assert "success" in bengal_theme.styles
@@ -287,7 +287,7 @@ class TestColorPaletteConsistency:
 
     def test_color_palette_defined(self):
         """Color palette should be defined with all brand colors."""
-        from bengal.utils.rich_console import PALETTE
+        from bengal.utils.observability.rich_console import PALETTE
 
         # Core brand colors
         assert "primary" in PALETTE
@@ -303,7 +303,7 @@ class TestColorPaletteConsistency:
 
     def test_palette_colors_are_hex_format(self):
         """All palette colors should be valid hex codes."""
-        from bengal.utils.rich_console import PALETTE
+        from bengal.utils.observability.rich_console import PALETTE
 
         for name, color in PALETTE.items():
             # Should start with # and be 7 chars (#RRGGBB)
@@ -355,7 +355,7 @@ class TestColorAccessibility:
         Rich library handles actual rendering and should provide good
         contrast on both light and dark terminal backgrounds.
         """
-        from bengal.utils.rich_console import PALETTE
+        from bengal.utils.observability.rich_console import PALETTE
 
         # Document the palette
         colors = {
@@ -402,7 +402,7 @@ class TestIntegration:
 
         from io import StringIO
 
-        from bengal.utils.rich_console import bengal_theme
+        from bengal.utils.observability.rich_console import bengal_theme
 
         buffer = StringIO()
         cli.console = Console(

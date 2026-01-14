@@ -12,7 +12,7 @@ Key Concepts:
 - Consistent formatting for CLI output and structured logging
 
 Usage:
-    >>> from bengal.utils.observability import ComponentStats, HasStats
+    >>> from bengal.utils.observability.observability import ComponentStats, HasStats
     >>> stats = ComponentStats(items_total=100, items_processed=80)
     >>> stats.items_skipped["filtered"] = 20
     >>> print(stats.format_summary("MyComponent"))

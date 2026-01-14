@@ -198,7 +198,7 @@ class DevServerOutputMixin:
 
         # Add indicator icon
         from bengal.output.icons import get_icon_set
-        from bengal.utils.rich_console import should_use_emoji
+        from bengal.utils.observability.rich_console import should_use_emoji
 
         icons = get_icon_set(should_use_emoji())
         indicator = ""

@@ -58,8 +58,8 @@ from types import FrameType
 from typing import Any
 
 from bengal.output.icons import get_icon_set
-from bengal.utils.logger import get_logger
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.observability.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 

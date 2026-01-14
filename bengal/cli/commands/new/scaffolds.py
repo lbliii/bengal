@@ -12,7 +12,7 @@ from pathlib import Path
 import click
 
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
-from bengal.utils.atomic_write import atomic_write_text
+from bengal.utils.io.atomic_write import atomic_write_text
 
 from .site import slugify
 

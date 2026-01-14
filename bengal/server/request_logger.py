@@ -32,7 +32,7 @@ from datetime import datetime
 from typing import Any
 
 from bengal.output import CLIOutput
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

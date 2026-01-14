@@ -19,7 +19,7 @@ from bengal.directives.cards.utils import (
 )
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

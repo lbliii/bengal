@@ -29,7 +29,7 @@ from bengal.core.theme import get_theme_package
 from bengal.errors import ErrorCode
 from bengal.rendering.context import ParamsContext, get_engine_globals
 from bengal.rendering.template_functions import register_all
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

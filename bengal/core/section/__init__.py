@@ -192,7 +192,7 @@ class Section(
             section_metadata["title"] = title
 
         # Normalize URL at construction time
-        from bengal.utils.url_normalization import normalize_url
+        from bengal.utils.paths.url_normalization import normalize_url
 
         normalized_url = normalize_url(relative_url, ensure_trailing_slash=True)
 

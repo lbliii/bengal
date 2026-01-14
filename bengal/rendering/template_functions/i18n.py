@@ -19,8 +19,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from bengal.utils.file_io import load_data_file
-from bengal.utils.logger import get_logger
+from bengal.utils.io.file_io import load_data_file
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Callable

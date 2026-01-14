@@ -26,7 +26,7 @@ from bengal.rendering.template_functions.navigation import (
     register as register_navigation,
 )
 from bengal.rendering.template_functions.strings import word_count
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ Provides three profiles optimized for different user workflows:
 Example:
 
 ```python
-from bengal.utils.profile import BuildProfile
+from bengal.utils.observability.profile import BuildProfile
 
 profile = BuildProfile.from_cli_args(dev=True)
 config = profile.get_config()

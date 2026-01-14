@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 from .native_html import NativeHTMLParser
 

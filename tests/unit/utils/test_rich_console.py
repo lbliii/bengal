@@ -6,7 +6,7 @@ class TestGetConsole:
 
     def test_console_singleton(self):
         """Test that console is a singleton."""
-        from bengal.utils.rich_console import get_console, reset_console
+        from bengal.utils.observability.rich_console import get_console, reset_console
 
         # Reset to ensure clean state
         reset_console()
@@ -17,7 +17,7 @@ class TestGetConsole:
 
     def test_no_color_respected(self, monkeypatch):
         """Test that NO_COLOR environment variable is respected."""
-        from bengal.utils.rich_console import get_console, reset_console
+        from bengal.utils.observability.rich_console import get_console, reset_console
 
         monkeypatch.setenv("NO_COLOR", "1")
         reset_console()
@@ -27,7 +27,7 @@ class TestGetConsole:
 
     def test_ci_mode_detection(self, monkeypatch):
         """Test that CI mode is detected and disables color."""
-        from bengal.utils.rich_console import get_console, reset_console
+        from bengal.utils.observability.rich_console import get_console, reset_console
 
         monkeypatch.setenv("CI", "true")
         reset_console()
@@ -43,7 +43,7 @@ class TestShouldUseRich:
 
     def test_disabled_in_ci(self, monkeypatch):
         """Test that rich is disabled in CI environments."""
-        from bengal.utils.rich_console import reset_console, should_use_rich
+        from bengal.utils.observability.rich_console import reset_console, should_use_rich
 
         monkeypatch.setenv("CI", "true")
         reset_console()
@@ -52,7 +52,7 @@ class TestShouldUseRich:
 
     def test_disabled_with_dumb_terminal(self, monkeypatch):
         """Test that rich is disabled with TERM=dumb."""
-        from bengal.utils.rich_console import reset_console, should_use_rich
+        from bengal.utils.observability.rich_console import reset_console, should_use_rich
 
         monkeypatch.setenv("TERM", "dumb")
         monkeypatch.delenv("CI", raising=False)
@@ -62,7 +62,7 @@ class TestShouldUseRich:
 
     def test_disabled_without_terminal(self, monkeypatch):
         """Test that rich is disabled when not a terminal."""
-        from bengal.utils.rich_console import reset_console, should_use_rich
+        from bengal.utils.observability.rich_console import reset_console, should_use_rich
 
         # Clean environment
         monkeypatch.delenv("CI", raising=False)
@@ -81,7 +81,7 @@ class TestDetectEnvironment:
 
     def test_detects_ci_environment(self, monkeypatch):
         """Test that CI environments are detected."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         monkeypatch.setenv("CI", "true")
         reset_console()
@@ -91,7 +91,7 @@ class TestDetectEnvironment:
 
     def test_detects_github_actions(self, monkeypatch):
         """Test that GitHub Actions is detected as CI."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         monkeypatch.delenv("CI", raising=False)
         monkeypatch.setenv("GITHUB_ACTIONS", "true")
@@ -102,7 +102,7 @@ class TestDetectEnvironment:
 
     def test_detects_docker(self, tmp_path):
         """Test that Docker containers are detected."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         reset_console()
         env = detect_environment()
@@ -112,7 +112,7 @@ class TestDetectEnvironment:
 
     def test_detects_git_repo(self, tmp_path, monkeypatch):
         """Test that Git repositories are detected."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         # Change to temp directory
         monkeypatch.chdir(tmp_path)
@@ -130,7 +130,7 @@ class TestDetectEnvironment:
 
     def test_returns_cpu_count(self):
         """Test that CPU count is returned."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         reset_console()
         env = detect_environment()
@@ -141,7 +141,7 @@ class TestDetectEnvironment:
 
     def test_returns_terminal_info(self):
         """Test that terminal info is returned."""
-        from bengal.utils.rich_console import detect_environment, reset_console
+        from bengal.utils.observability.rich_console import detect_environment, reset_console
 
         reset_console()
         env = detect_environment()
@@ -162,7 +162,7 @@ class TestResetConsole:
 
     def test_resets_singleton(self):
         """Test that reset_console() clears the singleton."""
-        from bengal.utils.rich_console import get_console, reset_console
+        from bengal.utils.observability.rich_console import get_console, reset_console
 
         console1 = get_console()
         reset_console()

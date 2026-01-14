@@ -47,7 +47,7 @@ from bengal.postprocess.social_cards import (
 )
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 from bengal.postprocess.xref_index import XRefIndexGenerator, should_export_xref_index
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

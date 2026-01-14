@@ -11,7 +11,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.errors import BengalError
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 if TYPE_CHECKING:
     from _pytest.reports import TestReport
@@ -469,7 +469,7 @@ def reset_bengal_state(request):
 
     # 1. Reset Rich console
     try:
-        from bengal.utils.rich_console import reset_console
+        from bengal.utils.observability.rich_console import reset_console
 
         reset_console()
     except ImportError:
@@ -478,7 +478,7 @@ def reset_bengal_state(request):
     # 2. Reset logger state (close file handles, clear registry)
     # LazyLogger pattern ensures module-level references auto-refresh
     try:
-        from bengal.utils.logger import reset_loggers
+        from bengal.utils.observability.logger import reset_loggers
 
         reset_loggers()
     except ImportError:

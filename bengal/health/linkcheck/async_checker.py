@@ -27,8 +27,8 @@ import httpx
 
 from bengal.health.linkcheck.ignore_policy import IgnorePolicy
 from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
-from bengal.utils.logger import get_logger
-from bengal.utils.retry import calculate_backoff
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.concurrency.retry import calculate_backoff
 
 logger = get_logger(__name__)
 

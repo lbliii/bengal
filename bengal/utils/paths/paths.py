@@ -39,7 +39,7 @@ class LegacyBengalPaths:
     
     Example (legacy pattern)::
     
-        from bengal.utils.paths import LegacyBengalPaths
+        from bengal.utils.paths.paths import LegacyBengalPaths
         log_path = LegacyBengalPaths.get_build_log_path(source_dir)
     
     Example (recommended pattern)::

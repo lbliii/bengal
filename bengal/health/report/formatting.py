@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.output.icons import get_icon_set
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.observability.rich_console import should_use_emoji
 
 from .models import CheckStatus
 

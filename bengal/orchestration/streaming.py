@@ -42,7 +42,7 @@ import gc
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import ProgressReporter
@@ -160,7 +160,7 @@ class StreamingRenderOrchestrator:
 
         if reporter is None:
             try:
-                from bengal.utils.progress import NoopReporter
+                from bengal.utils.observability.progress import NoopReporter
 
                 reporter = NoopReporter()
             except Exception as e:

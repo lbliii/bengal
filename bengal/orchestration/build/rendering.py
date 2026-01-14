@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.profile import BuildProfile
     from bengal.protocols import ProgressReporter
 
 
@@ -471,7 +471,7 @@ def phase_render(
                 if early_context is not None:
                     ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
-                from bengal.utils.workers import WorkloadType, should_parallelize
+                from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
                 use_parallel = not force_sequential and should_parallelize(
                     len(pages_to_build), workload_type=WorkloadType.MIXED
@@ -509,7 +509,7 @@ def phase_render(
                 if early_context is not None:
                     ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
-                from bengal.utils.workers import WorkloadType, should_parallelize
+                from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
                 use_parallel = not force_sequential and should_parallelize(
                     len(pages_to_build), workload_type=WorkloadType.MIXED

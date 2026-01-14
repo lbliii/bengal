@@ -43,7 +43,7 @@ from bengal.rendering.parsers.mistune.highlighting import (
     create_syntax_highlighting_plugin,
 )
 from bengal.rendering.parsers.mistune.toc import extract_toc, inject_heading_anchors
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -660,7 +660,7 @@ class MistuneParser(BaseMarkdownParser):
         Returns:
             Slugified text (max 100 characters)
         """
-        from bengal.utils.text import slugify
+        from bengal.utils.primitives.text import slugify
 
         # Limit slug length to prevent overly long IDs
         return slugify(text, unescape_html=True, max_length=100)

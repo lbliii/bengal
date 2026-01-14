@@ -156,7 +156,7 @@ def phase_taxonomies(
         elif not incremental:
             # Full build: Collect and generate everything
             # Compute parallel mode: use should_parallelize() unless force_sequential=True
-            from bengal.utils.workers import WorkloadType, should_parallelize
+            from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
             use_parallel = not force_sequential and should_parallelize(
                 len(orchestrator.site.pages), workload_type=WorkloadType.CPU_BOUND
@@ -310,7 +310,7 @@ def phase_related_posts(
     if should_build_related:
         with orchestrator.logger.phase("related_posts_index"):
             from bengal.orchestration.related_posts import RelatedPostsOrchestrator
-            from bengal.utils.workers import WorkloadType, should_parallelize
+            from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
             # Compute parallel mode: use should_parallelize() unless force_sequential=True
             use_parallel = not force_sequential and should_parallelize(

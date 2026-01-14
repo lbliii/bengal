@@ -7,7 +7,7 @@ and content-addressable storage.
 Example:
 
 ```python
-from bengal.utils.hashing import hash_str, hash_file, hash_dict
+from bengal.utils.primitives.hashing import hash_str, hash_file, hash_dict
 
 # Hash string content
 key = hash_str("hello world")  # "b94d27b9..."

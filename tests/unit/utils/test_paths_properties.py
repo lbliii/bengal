@@ -16,7 +16,7 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from bengal.utils.paths import LegacyBengalPaths as BengalPaths
+from bengal.utils.paths.paths import LegacyBengalPaths as BengalPaths
 
 
 class TestProfileDirProperties:

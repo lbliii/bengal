@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalGraphError, ErrorCode
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph

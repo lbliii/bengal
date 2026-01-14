@@ -58,7 +58,7 @@ from bengal.rendering.pipeline.unified_transform import (
 )
 from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.rendering.renderer import Renderer
-from bengal.utils.logger import get_logger, truncate_error
+from bengal.utils.observability.logger import get_logger, truncate_error
 
 logger = get_logger(__name__)
 

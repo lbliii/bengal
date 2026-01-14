@@ -43,7 +43,7 @@ import importlib.util
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig

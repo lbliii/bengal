@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
-    from bengal.utils.logger import Logger
+    from bengal.utils.observability.logger import Logger
 
 
 class RebuildReasonCode(Enum):

@@ -27,8 +27,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.hashing import hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

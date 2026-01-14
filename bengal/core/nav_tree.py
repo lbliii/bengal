@@ -53,7 +53,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
 from bengal.utils.cache_registry import InvalidationReason, register_cache
-from bengal.utils.concurrent_locks import PerKeyLockManager
+from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:

@@ -15,7 +15,7 @@ import click
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.models import CLICommandMetadata, CLIGroupMetadata, CLIOptionMetadata
 from bengal.autodoc.utils import sanitize_text
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

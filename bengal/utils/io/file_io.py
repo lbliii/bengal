@@ -8,7 +8,7 @@ throughout the codebase.
 Example:
 
 ```python
-from bengal.utils.file_io import read_text_file, load_json, load_yaml, rmtree_robust
+from bengal.utils.io.file_io import read_text_file, load_json, load_yaml, rmtree_robust
 
 # Read text file with encoding fallback
 content = read_text_file(path, fallback_encoding='latin-1')

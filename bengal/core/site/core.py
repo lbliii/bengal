@@ -430,7 +430,7 @@ class Site(
         Raises:
             OSError: If deletion fails after all retries
         """
-        from bengal.utils.file_io import rmtree_robust
+        from bengal.utils.io.file_io import rmtree_robust
 
         rmtree_robust(path, max_retries=max_retries, caller="site")
 

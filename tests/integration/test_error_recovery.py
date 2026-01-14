@@ -14,7 +14,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 
 class TestTemplateErrorRecovery:

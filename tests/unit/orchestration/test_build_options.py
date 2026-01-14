@@ -114,7 +114,7 @@ class TestBuildOptionsCustomValues:
 
     def test_with_profile(self):
         """Test setting profile."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         options = BuildOptions(profile=BuildProfile.WRITER)
         assert options.profile == BuildProfile.WRITER
@@ -152,7 +152,7 @@ class TestBuildOptionsMultipleValues:
 
     def test_production_build_options(self):
         """Test typical production build options."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         options = BuildOptions(
             profile=BuildProfile.WRITER,
@@ -168,7 +168,7 @@ class TestBuildOptionsMultipleValues:
 
     def test_dev_server_rebuild_options(self):
         """Test typical dev server rebuild options."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         changed = {Path("content/blog/post.md")}
         options = BuildOptions(

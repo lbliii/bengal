@@ -46,7 +46,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

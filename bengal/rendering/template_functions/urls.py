@@ -72,7 +72,7 @@ def absolute_url(url: str, base_url: str) -> str:
         # Output: /index.json (no trailing slash for file URLs)
         
     """
-    from bengal.utils.url_normalization import normalize_url
+    from bengal.utils.paths.url_normalization import normalize_url
 
     if not url:
         return base_url or ""

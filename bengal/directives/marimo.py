@@ -11,7 +11,7 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 __all__ = ["MarimoCellDirective", "render_marimo_cell"]
 

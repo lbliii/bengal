@@ -42,7 +42,7 @@ import time
 from pathlib import Path
 
 from bengal.output.icons import get_icon_set
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.observability.rich_console import should_use_emoji
 
 
 class PIDManager:
@@ -243,7 +243,7 @@ class PIDManager:
         """
         try:
             # Write PID file atomically (crash-safe)
-            from bengal.utils.atomic_write import atomic_write_text
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(pid_file, str(os.getpid()))
         except OSError as e:

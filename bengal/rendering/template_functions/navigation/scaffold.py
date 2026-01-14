@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.nav_tree import NavTreeCache
-from bengal.utils.concurrent_locks import PerKeyLockManager
+from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:

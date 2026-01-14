@@ -12,7 +12,7 @@ Key Features:
 - Detect performance regressions
 
 Usage:
-    >>> from bengal.utils.performance_report import PerformanceReport
+    >>> from bengal.utils.observability.performance_report import PerformanceReport
     >>>
     >>> report = PerformanceReport()
     >>> report.show(last=10, format='table')

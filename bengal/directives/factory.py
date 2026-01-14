@@ -105,7 +105,7 @@ from bengal.directives.video import (
     VimeoDirective,
     YouTubeDirective,
 )
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 # Module-level singleton list with thread-safe initialization
 _DIRECTIVE_INSTANCES: list[Any] | None = None

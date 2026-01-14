@@ -21,8 +21,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.hashing import hash_file
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_file
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     pass

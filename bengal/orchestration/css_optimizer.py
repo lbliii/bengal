@@ -33,7 +33,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.css_manifest_types import CSSManifest, CSSOptimizationReport
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

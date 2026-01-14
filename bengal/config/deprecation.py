@@ -39,7 +39,7 @@ from __future__ import annotations
 from typing import Any
 
 from bengal.errors import BengalConfigError, ErrorCode, record_error
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

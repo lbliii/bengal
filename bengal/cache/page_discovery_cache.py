@@ -51,7 +51,7 @@ from typing import Any
 
 from bengal.cache.compression import load_auto, save_compressed
 from bengal.core.page.page_core import PageCore
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

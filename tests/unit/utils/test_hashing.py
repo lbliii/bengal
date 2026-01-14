@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.utils.hashing import (
+from bengal.utils.primitives.hashing import (
     hash_bytes,
     hash_dict,
     hash_file,

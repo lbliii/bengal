@@ -34,8 +34,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
-from bengal.utils.logger import get_logger
-from bengal.utils.observability import ComponentStats
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.observability.observability import ComponentStats
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

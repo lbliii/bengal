@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING
 from bengal.orchestration.incremental.block_detector import (
     BlockChangeDetector,
 )
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache

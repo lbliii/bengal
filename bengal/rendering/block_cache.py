@@ -48,7 +48,7 @@ from collections.abc import Iterator
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Literal
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.rendering.engines.kida import KidaTemplateEngine

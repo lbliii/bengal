@@ -14,8 +14,8 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorCode
-from bengal.utils import text as text_utils
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives import text as text_utils
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

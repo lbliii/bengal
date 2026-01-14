@@ -9,7 +9,7 @@ Files are always either in their old complete state or new complete state,
 never partially written.
 
 Example:
-    >>> from bengal.utils.atomic_write import atomic_write_text
+    >>> from bengal.utils.io.atomic_write import atomic_write_text
     >>> atomic_write_text('output.html', '<html>...</html>')
     # If crash occurs during write:
     # - output.html is either old version (if existed) or missing

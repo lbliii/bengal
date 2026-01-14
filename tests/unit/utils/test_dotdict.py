@@ -2,7 +2,7 @@
 
 import pytest
 
-from bengal.utils.dotdict import DotDict, wrap_data
+from bengal.utils.primitives.dotdict import DotDict, wrap_data
 
 
 class TestDotDictBasics:

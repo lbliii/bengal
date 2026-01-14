@@ -19,7 +19,7 @@ from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
 from bengal.errors import BengalRenderingError
-from bengal.utils.logger import truncate_error
+from bengal.utils.observability.logger import truncate_error
 
 from .context import InclusionChain, TemplateErrorContext
 

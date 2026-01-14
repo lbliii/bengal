@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.health.report import CheckResult
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 from .constants import MAX_TABS_PER_BLOCK
 

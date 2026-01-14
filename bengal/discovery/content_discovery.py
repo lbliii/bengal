@@ -47,8 +47,8 @@ from bengal.core.section import Section
 from bengal.discovery.content_parser import ContentParser
 from bengal.discovery.directory_walker import DirectoryWalker
 from bengal.discovery.section_builder import SectionBuilder
-from bengal.utils.logger import get_logger
-from bengal.utils.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 

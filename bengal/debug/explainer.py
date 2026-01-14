@@ -53,7 +53,7 @@ from bengal.debug.models import (
     SourceInfo,
     TemplateInfo,
 )
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache

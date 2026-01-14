@@ -136,7 +136,7 @@ class DocElement:
             if not isinstance(child, DocElement)
         ]
         if invalid_children:
-            from bengal.utils.logger import get_logger
+            from bengal.utils.observability.logger import get_logger
 
             logger = get_logger(__name__)
             logger.warning(
@@ -182,7 +182,7 @@ class DocElement:
         """Create from dictionary (for cache loading)."""
         # Guard against malformed cache data (e.g., strings instead of dicts)
         if not isinstance(data, dict):
-            from bengal.utils.logger import get_logger
+            from bengal.utils.observability.logger import get_logger
 
             logger = get_logger(__name__)
             logger.warning(
@@ -210,7 +210,7 @@ class DocElement:
                 try:
                     children.append(cls.from_dict(child))
                 except Exception as e:
-                    from bengal.utils.logger import get_logger
+                    from bengal.utils.observability.logger import get_logger
 
                     logger = get_logger(__name__)
                     logger.debug(

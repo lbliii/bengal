@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from bengal.utils.dates import (
+from bengal.utils.primitives.dates import (
     date_range_overlap,
     format_date_human,
     format_date_iso,

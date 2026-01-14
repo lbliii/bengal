@@ -9,7 +9,7 @@ Verifies:
 
 from __future__ import annotations
 
-from bengal.utils.observability import ComponentStats, HasStats, format_phase_stats
+from bengal.utils.observability.observability import ComponentStats, HasStats, format_phase_stats
 
 
 class TestComponentStats:

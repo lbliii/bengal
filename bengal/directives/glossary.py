@@ -46,9 +46,9 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.file_io import load_data_file
-from bengal.utils.logger import get_logger
-from bengal.utils.text import escape_html
+from bengal.utils.io.file_io import load_data_file
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import escape_html
 
 __all__ = ["GlossaryDirective", "render_glossary"]
 
@@ -445,7 +445,7 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
         
     """
     from bengal.directives.utils import get_markdown_instance
-    from bengal.utils.text import escape_html
+    from bengal.utils.primitives.text import escape_html
 
     # Try to use mistune's inline parser (proper way)
     md_instance = get_markdown_instance(renderer)

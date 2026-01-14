@@ -2,7 +2,7 @@
 Tests for text processing utilities.
 """
 
-from bengal.utils.text import (
+from bengal.utils.primitives.text import (
     escape_html,
     generate_excerpt,
     humanize_bytes,

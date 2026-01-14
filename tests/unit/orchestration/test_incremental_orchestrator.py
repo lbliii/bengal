@@ -12,7 +12,7 @@ from bengal.cache import BuildCache
 from bengal.core.page import Page
 from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.utils.hashing import hash_str
+from bengal.utils.primitives.hashing import hash_str
 
 
 @pytest.fixture

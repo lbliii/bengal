@@ -144,7 +144,7 @@ class TestThemeConsistency:
 
     def test_get_console_returns_themed_instance(self):
         """Test get_console() returns a themed console."""
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
 
@@ -161,7 +161,7 @@ class TestThemeConsistency:
     def test_cli_output_uses_get_console(self):
         """Test CLIOutput uses get_console() not raw Console()."""
         from bengal.output import CLIOutput
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         cli = CLIOutput(use_rich=True)
         expected_console = get_console()
@@ -171,7 +171,7 @@ class TestThemeConsistency:
 
     def test_singleton_console_persists_theme(self):
         """Test singleton console maintains theme across calls."""
-        from bengal.utils.rich_console import get_console, reset_console
+        from bengal.utils.observability.rich_console import get_console, reset_console
 
         # Reset to ensure clean state
         reset_console()

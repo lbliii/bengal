@@ -158,7 +158,7 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     from bengal.rendering.parsers.patitas import create_markdown
     from bengal.rendering.parsers.patitas.directives.registry import create_default_registry
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
-    from bengal.utils.hashing import hash_str
+    from bengal.utils.primitives.hashing import hash_str
     from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder
 

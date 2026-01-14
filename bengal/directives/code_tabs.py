@@ -38,8 +38,8 @@ from bengal.directives._icons import icon_exists, render_svg_icon
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.rendering.highlighting import highlight as highlight_code
-from bengal.utils.hashing import hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.observability.logger import get_logger
 
 __all__ = [
     "CodeTabsDirective",

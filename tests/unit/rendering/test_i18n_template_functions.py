@@ -66,7 +66,7 @@ def test_alternate_links(tmp_path: Path) -> None:
     site.pages = [en, fr]
 
     # Output paths set with prefix
-    from bengal.utils.url_strategy import URLStrategy
+    from bengal.utils.paths.url_strategy import URLStrategy
 
     en.output_path = URLStrategy.compute_regular_page_output_path(en, site)
     fr.output_path = URLStrategy.compute_regular_page_output_path(fr, site)

@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -71,7 +71,7 @@ def get_data(path: str, root_path: Any) -> Any:
 
     from pathlib import Path
 
-    from bengal.utils.file_io import load_data_file
+    from bengal.utils.io.file_io import load_data_file
 
     file_path = Path(root_path) / path
 
@@ -211,7 +211,7 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
     """
     # Handle DotDict objects
     try:
-        from bengal.utils.dotdict import DotDict
+        from bengal.utils.primitives.dotdict import DotDict
 
         if isinstance(data, DotDict):
             return list(data.keys())
@@ -251,7 +251,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
     """
     # Handle DotDict objects
     try:
-        from bengal.utils.dotdict import DotDict
+        from bengal.utils.primitives.dotdict import DotDict
 
         if isinstance(data, DotDict):
             return list(data.values())
@@ -292,7 +292,7 @@ def items_filter(data: dict[str, Any]) -> list[tuple[str, Any]]:
     # Handle DotDict objects (from bengal.utils.dotdict)
     # DotDict doesn't inherit from dict but has an items() method
     try:
-        from bengal.utils.dotdict import DotDict
+        from bengal.utils.primitives.dotdict import DotDict
 
         if isinstance(data, DotDict):
             return list(data.items())

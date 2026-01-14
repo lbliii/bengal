@@ -37,8 +37,8 @@ from bengal.autodoc.orchestration.section_builders import (
 from bengal.autodoc.orchestration.utils import normalize_autodoc_config, slugify
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.utils.hashing import hash_dict
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_dict
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

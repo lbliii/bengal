@@ -35,7 +35,7 @@ class BuildWarning:
         """Get shortened path for display."""
         from pathlib import Path
 
-        from bengal.utils.text import format_path_for_display
+        from bengal.utils.primitives.text import format_path_for_display
 
         # Try CWD first
         try:

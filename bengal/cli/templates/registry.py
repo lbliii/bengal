@@ -30,7 +30,7 @@ import importlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 from .base import SiteTemplate, TemplateFile
 

@@ -48,7 +48,7 @@ import html as html_module
 import re
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 # TOC extraction version - increment when extract_toc_structure() logic changes
 TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for mistune

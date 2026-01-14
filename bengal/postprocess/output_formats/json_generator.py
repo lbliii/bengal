@@ -62,8 +62,8 @@ from bengal.postprocess.output_formats.utils import (
     get_page_url,
     normalize_url,
 )
-from bengal.utils.atomic_write import AtomicFile
-from bengal.utils.logger import get_logger
+from bengal.utils.io.atomic_write import AtomicFile
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

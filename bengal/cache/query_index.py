@@ -31,8 +31,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import Cacheable
-from bengal.utils.hashing import hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
@@ -343,7 +343,7 @@ class QueryIndex(ABC):
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Use atomic write
-            from bengal.utils.atomic_write import AtomicFile
+            from bengal.utils.io.atomic_write import AtomicFile
 
             with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)

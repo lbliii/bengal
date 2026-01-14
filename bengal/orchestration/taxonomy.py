@@ -56,9 +56,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
-from bengal.utils.url_strategy import URLStrategy
-from bengal.utils.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_strategy import URLStrategy
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 

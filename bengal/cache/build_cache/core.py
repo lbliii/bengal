@@ -39,7 +39,7 @@ from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixi
 from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMixin
 from bengal.cache.build_cache.taxonomy_index_mixin import TaxonomyIndexMixin
 from bengal.cache.build_cache.validation_cache import ValidationCacheMixin
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     pass
@@ -207,7 +207,7 @@ class BuildCache(
         try:
             # Acquire shared lock for reading (allows concurrent reads)
             if use_lock:
-                from bengal.utils.file_lock import file_lock
+                from bengal.utils.io.file_lock import file_lock
 
                 with file_lock(cache_path, exclusive=False):
                     return cls._load_from_file(cache_path)
@@ -429,7 +429,7 @@ class BuildCache(
         try:
             # Acquire exclusive lock for writing
             if use_lock:
-                from bengal.utils.file_lock import file_lock
+                from bengal.utils.io.file_lock import file_lock
 
                 with file_lock(cache_path, exclusive=True):
                     self._save_to_file(cache_path)
@@ -520,7 +520,7 @@ class BuildCache(
             )
         else:
             # Write uncompressed (for debugging)
-            from bengal.utils.atomic_write import AtomicFile
+            from bengal.utils.io.atomic_write import AtomicFile
 
             with AtomicFile(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)

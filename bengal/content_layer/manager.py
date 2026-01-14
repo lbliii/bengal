@@ -19,9 +19,9 @@ from bengal.errors import (
     ErrorCode,
     record_error,
 )
-from bengal.utils.async_compat import run_async
-from bengal.utils.atomic_write import atomic_write_text
-from bengal.utils.logger import get_logger
+from bengal.utils.concurrency.async_compat import run_async
+from bengal.utils.io.atomic_write import atomic_write_text
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.content_layer.entry import ContentEntry

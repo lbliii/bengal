@@ -22,7 +22,7 @@ def test_rich_traceback():
     try:
         from rich.traceback import install
 
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         install(console=get_console(), show_locals=True)
         print("✓ Rich traceback handler installed successfully")
@@ -38,7 +38,7 @@ def test_logger_markup():
     print("=" * 60)
 
     try:
-        from bengal.utils.logger import LogLevel, configure_logging, get_logger
+        from bengal.utils.observability.logger import LogLevel, configure_logging, get_logger
 
         configure_logging(level=LogLevel.DEBUG, verbose=True)
         logger = get_logger("test")
@@ -102,7 +102,7 @@ def test_rich_console():
         from rich.syntax import Syntax
         from rich.tree import Tree
 
-        from bengal.utils.rich_console import detect_environment, get_console, should_use_rich
+        from bengal.utils.observability.rich_console import detect_environment, get_console, should_use_rich
 
         console = get_console()
 
@@ -169,7 +169,7 @@ def test_status_spinner():
     try:
         import time
 
-        from bengal.utils.rich_console import get_console, should_use_rich
+        from bengal.utils.observability.rich_console import get_console, should_use_rich
 
         if not should_use_rich():
             print("⚠ Skipping spinner test (no TTY)")

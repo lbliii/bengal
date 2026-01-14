@@ -17,7 +17,7 @@ Per-key locks serialize work for a SPECIFIC resource while allowing
 parallel work on DIFFERENT resources.
 
 Example:
-    >>> from bengal.utils.concurrent_locks import PerKeyLockManager
+    >>> from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
     >>>
     >>> _build_locks = PerKeyLockManager()
     >>>

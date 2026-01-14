@@ -5,7 +5,7 @@ Provides a unified interface for JSON operations using Python's standard library
 json module, with atomic writes for crash safety.
 
 Usage:
-    >>> from bengal.utils.json_compat import dumps, loads, dump, load
+    >>> from bengal.utils.io.json_compat import dumps, loads, dump, load
     >>>
     >>> # Serialize to string
     >>> data = {"key": "value"}

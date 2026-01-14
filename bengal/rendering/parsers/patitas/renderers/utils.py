@@ -119,6 +119,6 @@ def default_slugify(text: str) -> str:
 
     Uses bengal.utils.text.slugify with HTML unescaping enabled.
     """
-    from bengal.utils.text import slugify
+    from bengal.utils.primitives.text import slugify
 
     return slugify(text, unescape_html=True, max_length=100)

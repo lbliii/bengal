@@ -16,7 +16,7 @@ from bengal.directives.data_table import (
     render_data_table,
 )
 from bengal.errors import ErrorCode
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

@@ -71,7 +71,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -182,7 +182,7 @@ class TracebackConfig:
         try:
             from rich.traceback import install as rich_install
 
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.observability.rich_console import get_console, should_use_rich
 
             if not should_use_rich():
                 return

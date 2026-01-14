@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
-from bengal.utils.logger import get_logger
-from bengal.utils.sentinel import is_missing
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.sentinel import is_missing
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

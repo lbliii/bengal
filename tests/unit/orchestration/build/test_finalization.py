@@ -426,7 +426,7 @@ class TestBuildBadgeIncremental:
 
     def test_write_if_changed_skips_identical_content(self, tmp_path):
         """_write_if_changed_atomic skips write when content is identical."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         test_file = tmp_path / "test.txt"
         content = "test content"
@@ -447,7 +447,7 @@ class TestBuildBadgeIncremental:
 
     def test_write_if_changed_updates_on_different_content(self, tmp_path):
         """_write_if_changed_atomic updates when content differs."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         test_file = tmp_path / "test.txt"
 

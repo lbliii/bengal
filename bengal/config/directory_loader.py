@@ -66,7 +66,7 @@ from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.errors import BengalConfigError, ErrorCode, format_suggestion, record_error
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

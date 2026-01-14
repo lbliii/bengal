@@ -25,7 +25,7 @@ from urllib.parse import urlparse
 
 from bengal.health.linkcheck.ignore_policy import IgnorePolicy
 from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

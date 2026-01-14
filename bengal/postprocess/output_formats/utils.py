@@ -48,9 +48,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
-from bengal.utils.text import normalize_whitespace
-from bengal.utils.text import strip_html as _strip_html_base
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import normalize_whitespace
+from bengal.utils.primitives.text import strip_html as _strip_html_base
 
 logger = get_logger(__name__)
 

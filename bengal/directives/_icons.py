@@ -41,7 +41,7 @@ import re
 from functools import lru_cache
 
 from bengal.icons import resolver as icon_resolver
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 __all__ = [
     "render_svg_icon",

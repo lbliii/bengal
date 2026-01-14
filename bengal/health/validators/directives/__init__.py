@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 from .analysis import DirectiveAnalyzer
 from .checkers import (

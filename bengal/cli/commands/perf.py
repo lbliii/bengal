@@ -47,7 +47,7 @@ def perf(last: int, format: str, compare: bool) -> None:
     from pathlib import Path
 
     from bengal.cache.paths import BengalPaths
-    from bengal.utils.performance_report import PerformanceReport
+    from bengal.utils.observability.performance_report import PerformanceReport
 
     paths = BengalPaths(Path.cwd())
     report = PerformanceReport(metrics_dir=paths.metrics_dir)

@@ -42,7 +42,7 @@ Related Modules:
 from __future__ import annotations
 
 from bengal.rendering.parsers import BaseMarkdownParser, create_markdown_parser
-from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
+from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
 
 # Thread-local cache for parser instances (reuse parsers per thread)
 _parser_cache: ThreadLocalCache[BaseMarkdownParser] = ThreadLocalCache(

@@ -7,7 +7,7 @@ with configurable backoff strategies and jitter.
 Example:
 
 ```python
-from bengal.utils.retry import retry_with_backoff, calculate_backoff
+from bengal.utils.concurrency.retry import retry_with_backoff, calculate_backoff
 
 # Retry function with backoff
 result = retry_with_backoff(

@@ -168,7 +168,7 @@ class PageMetadataMixin:
 
         Uses bengal.utils.dates.parse_date for flexible date parsing.
         """
-        from bengal.utils.dates import parse_date
+        from bengal.utils.primitives.dates import parse_date
 
         date_value = self.metadata.get("date")
         return parse_date(date_value)

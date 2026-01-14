@@ -442,7 +442,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
         
     """
     from bengal.analysis.performance_advisor import PerformanceAdvisor
-    from bengal.utils.rich_console import get_console, should_use_rich
+    from bengal.utils.observability.rich_console import get_console, should_use_rich
 
     # Check if we should use rich output
     if not should_use_rich():

@@ -31,7 +31,7 @@ from pathlib import Path
 from threading import Thread
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config

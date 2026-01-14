@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from re import Match

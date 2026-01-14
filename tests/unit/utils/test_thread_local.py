@@ -11,7 +11,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
+from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
 
 
 class TestThreadLocalCache:

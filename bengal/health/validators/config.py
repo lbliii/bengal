@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
-from bengal.utils.workers import WorkloadType, get_optimal_workers
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

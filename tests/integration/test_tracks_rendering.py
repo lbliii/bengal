@@ -11,7 +11,7 @@ from bengal.rendering.template_functions.get_page import (
     _get_render_cache,
     clear_get_page_cache,
 )
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@ from typing import Any
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.utils import apply_grouping
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -35,7 +35,7 @@ from typing import Protocol
 
 import watchfiles
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

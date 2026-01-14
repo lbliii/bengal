@@ -57,9 +57,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.atomic_write import atomic_write_text
-from bengal.utils.hashing import hash_file, hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.io.atomic_write import atomic_write_text
+from bengal.utils.primitives.hashing import hash_file, hash_str
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

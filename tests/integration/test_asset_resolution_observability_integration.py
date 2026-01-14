@@ -20,7 +20,7 @@ import pytest
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
 from bengal.rendering.assets import clear_manifest_cache, get_resolution_stats
-from bengal.utils.logger import reset_loggers
+from bengal.utils.observability.logger import reset_loggers
 
 
 @pytest.fixture(scope="module")

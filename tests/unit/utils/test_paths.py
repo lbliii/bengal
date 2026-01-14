@@ -6,7 +6,7 @@ For new code, prefer the instance-based bengal.cache.paths.BengalPaths.
 
 from pathlib import Path
 
-from bengal.utils.paths import LegacyBengalPaths as BengalPaths
+from bengal.utils.paths.paths import LegacyBengalPaths as BengalPaths
 
 
 class TestGetProfileDir:

@@ -3,7 +3,7 @@ Unit tests for BuildCache.
 """
 
 from bengal.cache.build_cache import BuildCache
-from bengal.utils.sentinel import MISSING
+from bengal.utils.primitives.sentinel import MISSING
 
 
 class TestBuildCache:

@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from bengal.utils.text import slugify
+from bengal.utils.primitives.text import slugify
 
 __all__ = ["TermPlugin"]
 

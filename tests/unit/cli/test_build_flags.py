@@ -72,7 +72,7 @@ class TestProfilePrecedence:
     def test_dev_flag_takes_precedence(self):
         """Test that --dev flag takes highest precedence."""
         # Would need to mock BuildProfile.from_cli_args to test this properly
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(dev=True, theme_dev=True, profile="writer")
 
@@ -80,7 +80,7 @@ class TestProfilePrecedence:
 
     def test_theme_dev_precedence_over_profile(self):
         """Test that --theme-dev takes precedence over --profile."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(dev=False, theme_dev=True, profile="writer")
 
@@ -88,7 +88,7 @@ class TestProfilePrecedence:
 
     def test_profile_option_precedence(self):
         """Test that --profile option takes precedence over --debug."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
             profile="writer", debug=True, dev=False, theme_dev=False
@@ -98,7 +98,7 @@ class TestProfilePrecedence:
 
     def test_debug_maps_to_developer(self):
         """Test that --debug maps to developer profile."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(debug=True, dev=False, theme_dev=False, profile=None)
 
@@ -106,7 +106,7 @@ class TestProfilePrecedence:
 
     def test_default_profile_is_writer(self):
         """Test that default profile is WRITER."""
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(dev=False, theme_dev=False, profile=None, debug=False)
 

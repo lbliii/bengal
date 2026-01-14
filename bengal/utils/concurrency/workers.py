@@ -11,7 +11,7 @@ Key Features:
 - User config override support
 
 Example:
-    >>> from bengal.utils.workers import get_optimal_workers, should_parallelize
+    >>> from bengal.utils.concurrency.workers import get_optimal_workers, should_parallelize
     >>> if should_parallelize(len(pages), workload_type=WorkloadType.MIXED):
     ...     workers = get_optimal_workers(len(pages), workload_type=WorkloadType.MIXED)
     ...     with ThreadPoolExecutor(max_workers=workers) as executor:

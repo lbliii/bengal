@@ -358,7 +358,7 @@ class TestURLStrategyVersioning:
         """Test that latest version paths are unchanged."""
         from unittest.mock import MagicMock
 
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         # Create mock site with version config
         site = MagicMock()
@@ -383,7 +383,7 @@ class TestURLStrategyVersioning:
         """Test that older version paths get version prefix."""
         from unittest.mock import MagicMock
 
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         # Create mock site with version config
         site = MagicMock()
@@ -408,7 +408,7 @@ class TestURLStrategyVersioning:
         """Test that versioning disabled leaves paths unchanged."""
         from unittest.mock import MagicMock
 
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         # Create mock site with versioning disabled
         site = MagicMock()
@@ -425,7 +425,7 @@ class TestURLStrategyVersioning:
         """Test that _versions/ prefix is stripped for latest version."""
         from unittest.mock import MagicMock
 
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         # Create mock site
         site = MagicMock()

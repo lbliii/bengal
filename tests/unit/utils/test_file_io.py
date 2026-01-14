@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from bengal.utils.file_io import (
+from bengal.utils.io.file_io import (
     load_data_file,
     load_json,
     load_toml,

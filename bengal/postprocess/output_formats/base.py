@@ -23,8 +23,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.atomic_write import atomic_write_bytes, atomic_write_text
-from bengal.utils.logger import get_logger
+from bengal.utils.io.atomic_write import atomic_write_bytes, atomic_write_text
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

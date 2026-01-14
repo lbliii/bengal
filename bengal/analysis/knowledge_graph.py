@@ -61,7 +61,7 @@ from bengal.analysis.link_types import (
     LinkType,
 )
 from bengal.errors import BengalGraphError, ErrorCode
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.community_detection import CommunityDetectionResults

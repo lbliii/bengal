@@ -170,7 +170,7 @@ def profile_build(site_path: Path):
     print(s.getvalue())
 
     # Save full profile for detailed analysis using organized paths
-    from bengal.utils.paths import BengalPaths
+    from bengal.utils.paths.paths import BengalPaths
 
     profile_path = BengalPaths.get_profile_path(site_path, filename="rendering_profile.stats")
     profiler.dump_stats(str(profile_path))

@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
-from bengal.utils.atomic_write import atomic_write_text
+from bengal.utils.io.atomic_write import atomic_write_text
 
 if TYPE_CHECKING:
     pass

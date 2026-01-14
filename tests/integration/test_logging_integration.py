@@ -9,7 +9,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
-from bengal.utils.logger import (
+from bengal.utils.observability.logger import (
     LogLevel,
     close_all_loggers,
     configure_logging,

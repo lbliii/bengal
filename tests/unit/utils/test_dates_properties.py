@@ -11,7 +11,7 @@ import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from bengal.utils.dates import (
+from bengal.utils.primitives.dates import (
     date_range_overlap,
     format_date_human,
     format_date_iso,

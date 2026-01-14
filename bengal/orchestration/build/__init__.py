@@ -62,7 +62,7 @@ from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, rendering
 from .options import BuildOptions
@@ -78,8 +78,8 @@ if TYPE_CHECKING:
     from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.performance_collector import PerformanceCollector
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.performance_collector import PerformanceCollector
+    from bengal.utils.observability.profile import BuildProfile
 
 
 def __getattr__(name: str) -> Any:
@@ -199,14 +199,14 @@ class BuildOrchestrator:
 
         # Import profile utilities
         from bengal.output import init_cli_output
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         # Use default profile if not provided
         if profile is None:
             profile = BuildProfile.WRITER
 
         # Set global profile for helper functions (used by is_validator_enabled)
-        from bengal.utils.profile import set_current_profile
+        from bengal.utils.observability.profile import set_current_profile
 
         set_current_profile(profile)
 
@@ -223,7 +223,7 @@ class BuildOrchestrator:
         reporter = None
 
         # Suppress console log noise (logs still go to file for debugging)
-        from bengal.utils.logger import set_console_quiet
+        from bengal.utils.observability.logger import set_console_quiet
 
         if not verbose:  # Only suppress console logs if not in verbose logging mode
             set_console_quiet(True)
@@ -239,7 +239,7 @@ class BuildOrchestrator:
         # Initialize performance collection only if profile enables it
         collector = None
         if profile_config.get("collect_metrics", False):
-            from bengal.utils.performance_collector import PerformanceCollector
+            from bengal.utils.observability.performance_collector import PerformanceCollector
 
             # Only enable tracemalloc if profile explicitly requests memory tracking
             # tracemalloc has ~2-5x overhead alone, ~100x with cProfile

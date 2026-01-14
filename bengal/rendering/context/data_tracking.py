@@ -24,11 +24,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache.dependency_tracker import DependencyTracker
-    from bengal.utils.dotdict import DotDict
+    from bengal.utils.primitives.dotdict import DotDict
 
 logger = get_logger(__name__)
 

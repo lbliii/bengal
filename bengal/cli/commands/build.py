@@ -22,7 +22,7 @@ from bengal.orchestration.stats import (
     display_build_stats,
     show_building_indicator,
 )
-from bengal.utils.logger import (
+from bengal.utils.observability.logger import (
     LogLevel,
     close_all_loggers,
     configure_logging,
@@ -214,7 +214,7 @@ def build(
     """
 
     # Import profile system
-    from bengal.utils.profile import BuildProfile, set_current_profile
+    from bengal.utils.observability.profile import BuildProfile, set_current_profile
 
     # Handle fast mode (CLI flag takes precedence, then check config later)
     # For now, determine from CLI flag only - config will be checked after Site.from_config
@@ -492,7 +492,7 @@ def build(
 
         # Determine if we should use rich status spinner
         try:
-            from bengal.utils.rich_console import should_use_rich
+            from bengal.utils.observability.rich_console import should_use_rich
 
             use_rich_spinner = should_use_rich() and not quiet
         except ImportError:
@@ -630,7 +630,7 @@ def build(
             elif build_profile == BuildProfile.DEVELOPER:
                 # Rich intelligent summary with performance insights (Phase 2)
                 from bengal.orchestration.summary import display_build_summary
-                from bengal.utils.rich_console import detect_environment
+                from bengal.utils.observability.rich_console import detect_environment
 
                 console_env = detect_environment()
                 display_build_summary(stats, environment=console_env)
@@ -647,7 +647,7 @@ def build(
 
         # Show GIL tip for performance (only if not quiet and GIL could be disabled)
         if not quiet and not explain:
-            from bengal.utils.gil import format_gil_tip_for_cli
+            from bengal.utils.concurrency.gil import format_gil_tip_for_cli
 
             gil_tip = format_gil_tip_for_cli()
             if gil_tip:

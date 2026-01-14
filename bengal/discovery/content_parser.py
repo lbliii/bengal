@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 import frontmatter  # type: ignore[import-untyped]
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
@@ -95,7 +95,7 @@ class ContentParser:
         import yaml
 
         # Read file once using file_io utility for robust encoding handling
-        from bengal.utils.file_io import read_text_file
+        from bengal.utils.io.file_io import read_text_file
 
         file_content = read_text_file(
             file_path, fallback_encoding="latin-1", on_error="raise", caller="content_discovery"
@@ -143,7 +143,7 @@ class ContentParser:
 
         content = self._extract_content_skip_frontmatter(file_content)
 
-        from bengal.utils.text import humanize_slug
+        from bengal.utils.primitives.text import humanize_slug
 
         metadata = {
             "_parse_error": str(error),
@@ -181,7 +181,7 @@ class ContentParser:
             action="using_full_file_as_content",
         )
 
-        from bengal.utils.text import humanize_slug
+        from bengal.utils.primitives.text import humanize_slug
 
         metadata = {
             "_parse_error": str(error),

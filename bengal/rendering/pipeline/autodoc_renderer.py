@@ -21,7 +21,7 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

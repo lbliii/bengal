@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.utils import get_openapi_tags, resolve_cli_url_path
 from bengal.core.section import Section
-from bengal.utils.logger import get_logger
-from bengal.utils.url_normalization import join_url_paths
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import join_url_paths
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

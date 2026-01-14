@@ -56,7 +56,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.utils.logger import Logger
+    from bengal.utils.observability.logger import Logger
 
 
 class ErrorAggregator:

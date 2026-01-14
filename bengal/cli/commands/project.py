@@ -135,7 +135,7 @@ def profile(profile_name: str) -> None:
         raise click.Abort()
 
     # Save profile
-    from bengal.utils.atomic_write import atomic_write_text
+    from bengal.utils.io.atomic_write import atomic_write_text
 
     atomic_write_text(profile_path, profile_name)
 
@@ -469,7 +469,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
             current[parts[-1]] = value
 
         # Write back
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         # Format TOML (simple, not perfect)
         toml_lines = []

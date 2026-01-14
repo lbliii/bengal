@@ -49,7 +49,7 @@ from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -134,7 +134,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
     try:
         # Import lazily in subprocess
         from bengal.core.site import Site
-        from bengal.utils.profile import BuildProfile
+        from bengal.utils.observability.profile import BuildProfile
 
         # Load site from config
         site_root = Path(request.site_root)

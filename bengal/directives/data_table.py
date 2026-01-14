@@ -15,9 +15,9 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.file_io import load_data_file
-from bengal.utils.hashing import hash_str
-from bengal.utils.logger import get_logger
+from bengal.utils.io.file_io import load_data_file
+from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.observability.logger import get_logger
 
 __all__ = ["DataTableDirective", "render_data_table"]
 

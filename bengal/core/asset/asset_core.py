@@ -561,7 +561,7 @@ class Asset:
         # Copy or write optimized/minified content atomically
         if self._minified_content is not None:
             # Write minified content atomically (crash-safe)
-            from bengal.utils.atomic_write import atomic_write_text
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(
                 output_path,

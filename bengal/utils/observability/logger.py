@@ -8,7 +8,7 @@ the 22-phase build pipeline.
 Example:
 
 ```python
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -475,7 +475,7 @@ class BengalLogger:
             return
 
         try:
-            from bengal.utils.rich_console import get_console
+            from bengal.utils.observability.rich_console import get_console
 
             console = get_console()
 
@@ -751,7 +751,7 @@ def print_all_summaries() -> None:
         return
 
     try:
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
 

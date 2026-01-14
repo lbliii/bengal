@@ -11,7 +11,7 @@ import re
 from re import Match
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 __all__ = ["VariableSubstitutionPlugin"]
 

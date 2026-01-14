@@ -25,7 +25,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bengal.core.asset import Asset
-from bengal.utils.logger import LogLevel, get_logger
+from bengal.utils.observability.logger import LogLevel, get_logger
 
 logger = get_logger(__name__)
 

@@ -160,7 +160,7 @@ def cleanup(force: bool, port: int, source: str) -> None:
             try:
                 from rich.prompt import Confirm
 
-                from bengal.utils.rich_console import get_console, should_use_rich
+                from bengal.utils.observability.rich_console import get_console, should_use_rich
 
                 if should_use_rich():
                     console = get_console()

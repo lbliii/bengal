@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 
 # Import hash utility for stable IDs
 try:
-    from bengal.utils.hashing import hash_str
+    from bengal.utils.primitives.hashing import hash_str
 except ImportError:
     import hashlib
 

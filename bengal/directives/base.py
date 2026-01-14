@@ -56,7 +56,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.directives.types import (

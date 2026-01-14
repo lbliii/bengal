@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -378,7 +378,7 @@ def tag_url(tag: str) -> str:
         return "/tags/"
 
     # Convert tag to URL-safe slug
-    from bengal.utils.text import slugify
+    from bengal.utils.primitives.text import slugify
 
     slug = slugify(tag, unescape_html=False)
 

@@ -2,7 +2,7 @@
 Tests for the build profile system.
 """
 
-from bengal.utils.profile import (
+from bengal.utils.observability.profile import (
     BuildProfile,
     get_current_profile,
     get_enabled_health_checks,

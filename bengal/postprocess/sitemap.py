@@ -28,7 +28,7 @@ import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
@@ -204,7 +204,7 @@ class SitemapGenerator:
             ET.SubElement(url_elem, "priority").text = priority
 
         # Write sitemap to file atomically (crash-safe)
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         tree = ET.ElementTree(urlset)
         sitemap_path = self.site.output_dir / "sitemap.xml"

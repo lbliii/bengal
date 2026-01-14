@@ -47,9 +47,9 @@ from bengal.orchestration.render.tracking import (
     increment_active_renders as _increment_active_renders,
 )
 from bengal.protocols import ProgressReporter
-from bengal.utils.logger import get_logger
-from bengal.utils.url_strategy import URLStrategy
-from bengal.utils.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_strategy import URLStrategy
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -382,7 +382,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.rich_console import is_live_display_active, should_use_rich
+            from bengal.utils.observability.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = (
@@ -478,7 +478,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.rich_console import is_live_display_active, should_use_rich
+            from bengal.utils.observability.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = (
@@ -648,7 +648,7 @@ class RenderOrchestrator:
         )
 
         from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
         pipeline = RenderingPipeline(
@@ -851,7 +851,7 @@ class RenderOrchestrator:
         )
 
         from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.utils.rich_console import get_console
+        from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
         max_workers = get_optimal_workers(

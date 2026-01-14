@@ -23,7 +23,7 @@ from bengal.rendering.assets import (
     clear_manifest_cache,
     get_resolution_stats,
 )
-from bengal.utils.logger import get_logger, reset_loggers
+from bengal.utils.observability.logger import get_logger, reset_loggers
 
 
 @dataclass
@@ -56,7 +56,7 @@ def _get_logger_events(logger_name: str = "bengal.rendering.assets") -> list:
     Bengal uses a custom BengalLogger that stores events internally,
     rather than using Python's standard logging module.
     """
-    from bengal.utils.logger import _loggers
+    from bengal.utils.observability.logger import _loggers
     
     if logger_name in _loggers:
         return _loggers[logger_name].get_events()
@@ -174,7 +174,7 @@ class TestDevModeLogging:
 
     def test_debug_log_in_dev_mode(self, mock_site: MockSite) -> None:
         """Debug log in dev mode (expected fallback)."""
-        from bengal.utils.logger import configure_logging, LogLevel
+        from bengal.utils.observability.logger import configure_logging, LogLevel
         
         # Enable DEBUG level to capture debug events
         configure_logging(level=LogLevel.DEBUG)

@@ -21,7 +21,7 @@ from __future__ import annotations
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.utils.text import slugify
+from bengal.utils.primitives.text import slugify
 
 from .scaffolds import layout_command, page_command, partial_command, theme_command
 from .site import create_site, site_command

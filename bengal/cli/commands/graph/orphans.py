@@ -13,7 +13,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
-from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
 
 
 @click.command("orphans", cls=BengalCommand)

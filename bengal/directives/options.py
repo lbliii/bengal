@@ -44,7 +44,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, fields
 from typing import Any, ClassVar, get_args, get_origin, get_type_hints
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -44,7 +44,7 @@ from bengal.orchestration.incremental.rebuild_filter import RebuildFilter
 from bengal.orchestration.incremental.taxonomy_detector import TaxonomyChangeDetector
 from bengal.orchestration.incremental.template_detector import TemplateChangeDetector
 from bengal.orchestration.incremental.version_detector import VersionChangeDetector
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache, DependencyTracker

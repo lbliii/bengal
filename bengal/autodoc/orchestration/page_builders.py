@@ -20,7 +20,7 @@ from bengal.autodoc.utils import (
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.template_engine.url_helpers import with_baseurl
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -196,7 +196,7 @@ def create_pages(
         # Priority 80 = autodoc pages (derived from sections)
         if hasattr(site, "url_registry") and site.url_registry:
             try:
-                from bengal.utils.url_strategy import URLStrategy
+                from bengal.utils.paths.url_strategy import URLStrategy
 
                 url = URLStrategy.url_from_output_path(output_path, site)
                 source = str(page.source_path)
@@ -281,7 +281,7 @@ def find_parent_section(
     default_section = next(iter(sections.values()), None)
     if default_section is None:
         # Create a fallback section if none exists
-        from bengal.utils.url_normalization import join_url_paths
+        from bengal.utils.paths.url_normalization import join_url_paths
 
         default_section = Section.create_virtual(
             name="api",

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.errors import ErrorCode
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -64,7 +64,7 @@ def read_file(path: str, root_path: Path) -> str:
         logger.debug("read_file_empty_path", caller="template")
         return ""
 
-    from bengal.utils.file_io import read_text_file
+    from bengal.utils.io.file_io import read_text_file
 
     file_path = Path(root_path) / path
 

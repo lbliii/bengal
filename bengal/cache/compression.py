@@ -32,7 +32,7 @@ from bengal.cache.version import (
 from bengal.errors.codes import ErrorCode
 from bengal.errors.exceptions import BengalCacheError
 from bengal.errors.session import record_error
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

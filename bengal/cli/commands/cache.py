@@ -43,7 +43,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
-from bengal.utils.hashing import hash_file
+from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
     from bengal.core.site import Site

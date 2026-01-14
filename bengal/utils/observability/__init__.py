@@ -14,7 +14,7 @@ Modules:
     profile: Build profile system for persona-based observability
 
 Example:
-    >>> from bengal.utils.observability import get_logger, get_console, ProgressReporter
+    >>> from bengal.utils.observability.observability import get_logger, get_console, ProgressReporter
     >>> logger = get_logger(__name__)
     >>> console = get_console()
     >>> logger.info("build_started", pages=100)

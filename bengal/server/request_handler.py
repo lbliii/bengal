@@ -53,7 +53,7 @@ from typing import Any, override
 
 from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.request_logger import RequestLogger
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

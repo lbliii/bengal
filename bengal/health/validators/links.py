@@ -33,7 +33,7 @@ from urllib.parse import urljoin, urlparse
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

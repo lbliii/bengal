@@ -89,7 +89,7 @@ class Series:
         """Generate slug from name if not provided."""
         if not self.slug and self.name:
             # Generate slug - since frozen, use object.__setattr__
-            from bengal.utils.text import slugify
+            from bengal.utils.primitives.text import slugify
 
             object.__setattr__(self, "slug", slugify(self.name))
 

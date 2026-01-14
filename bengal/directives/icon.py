@@ -26,7 +26,7 @@ from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.errors import ErrorCode
 from bengal.icons import resolver as icon_resolver
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

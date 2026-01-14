@@ -64,8 +64,8 @@ from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.watcher_runner import WatcherRunner
-from bengal.utils.logger import get_logger
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.observability.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -180,7 +180,7 @@ class DevServer:
             os.environ["BENGAL_DEV_SERVER"] = "1"
 
             # 2. Prepare dev-specific configuration
-            from bengal.utils.profile import BuildProfile
+            from bengal.utils.observability.profile import BuildProfile
 
             baseurl_was_cleared = self._prepare_dev_config()
 
@@ -788,7 +788,7 @@ class DevServer:
             lines.append("   [dim]○  File watching disabled[/dim]")
 
         # Show GIL status hint if parallelism could be improved
-        from bengal.utils.gil import format_gil_tip_for_cli
+        from bengal.utils.concurrency.gil import format_gil_tip_for_cli
 
         gil_tip = format_gil_tip_for_cli()
         if gil_tip:

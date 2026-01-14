@@ -44,7 +44,7 @@ def create_index_pages(
         # This prevents collisions when autodoc generates both a command group
         # page (e.g., cli/assets.md) and a section index for the same path
         if hasattr(site, "url_registry") and site.url_registry:
-            from bengal.utils.url_strategy import URLStrategy
+            from bengal.utils.paths.url_strategy import URLStrategy
 
             url = URLStrategy.url_from_output_path(output_path, site)
             existing_claim = site.url_registry.get_claim(url)
@@ -106,7 +106,7 @@ def create_index_pages(
         # Priority 90 = autodoc sections (explicitly configured by user)
         if hasattr(site, "url_registry") and site.url_registry:
             try:
-                from bengal.utils.url_strategy import URLStrategy
+                from bengal.utils.paths.url_strategy import URLStrategy
 
                 url = URLStrategy.url_from_output_path(output_path, site)
                 source = str(index_page.source_path)

@@ -8,7 +8,7 @@ On Unix/macOS: Uses fcntl.flock()
 On Windows: Uses msvcrt.locking()
 
 Example:
-    >>> from bengal.utils.file_lock import file_lock
+    >>> from bengal.utils.io.file_lock import file_lock
     >>> with file_lock(cache_path, exclusive=True):
     ...     # Safely read/write cache
     ...     cache.save(cache_path)

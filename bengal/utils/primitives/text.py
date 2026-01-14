@@ -8,7 +8,7 @@ utilities consolidate duplicate implementations found throughout the codebase.
 Example:
 
 ```python
-from bengal.utils.text import slugify, strip_html, truncate_words, format_path_for_display
+from bengal.utils.primitives.text import slugify, strip_html, truncate_words, format_path_for_display
 
 slug = slugify("Hello World!")  # "hello-world"
 text = strip_html("<p>Hello</p>")  # "Hello"

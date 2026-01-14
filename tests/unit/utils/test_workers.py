@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.utils.workers import (
+from bengal.utils.concurrency.workers import (
     Environment,
     WorkloadProfile,
     WorkloadType,

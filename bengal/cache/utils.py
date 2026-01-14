@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.utils.logger import BengalLogger
+    from bengal.utils.observability.logger import BengalLogger
 
 
 def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:

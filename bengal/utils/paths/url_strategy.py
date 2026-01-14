@@ -20,7 +20,7 @@ Design Principles:
 - **Reusable**: Used by render orchestrator, taxonomy builder, etc.
 
 Usage:
-    >>> from bengal.utils.url_strategy import URLStrategy
+    >>> from bengal.utils.paths.url_strategy import URLStrategy
     >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
     >>> url = URLStrategy.url_from_output_path(output_path, site)
 
@@ -57,7 +57,7 @@ class URLStrategy:
         - Reusable across orchestrators
     
     Usage:
-            >>> from bengal.utils.url_strategy import URLStrategy
+            >>> from bengal.utils.paths.url_strategy import URLStrategy
             >>> # Compute output path for a page
             >>> output_path = URLStrategy.compute_regular_page_output_path(page, site)
             >>> # PosixPath('/path/to/site/public/docs/guide/index.html')

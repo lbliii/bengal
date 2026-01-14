@@ -48,7 +48,7 @@ def time_ago(date: datetime | str | None) -> str:
         {{ post.date | time_ago }}  # "2 days ago", "5 hours ago", etc.
         
     """
-    from bengal.utils.dates import time_ago as time_ago_util
+    from bengal.utils.primitives.dates import time_ago as time_ago_util
 
     return time_ago_util(date)
 
@@ -70,7 +70,7 @@ def date_iso(date: datetime | str | None) -> str:
         # Output: 2025-10-03T14:30:00
         
     """
-    from bengal.utils.dates import format_date_iso
+    from bengal.utils.primitives.dates import format_date_iso
 
     return format_date_iso(date)
 
@@ -92,7 +92,7 @@ def date_rfc822(date: datetime | str | None) -> str:
         # Output: Fri, 03 Oct 2025 14:30:00 +0000
         
     """
-    from bengal.utils.dates import format_date_rfc822
+    from bengal.utils.primitives.dates import format_date_rfc822
 
     return format_date_rfc822(date)
 
@@ -113,7 +113,7 @@ def days_ago(date: datetime | str | None, now: datetime | None = None) -> int:
         {{ post.date | days_ago }} days old
         
     """
-    from bengal.utils.dates import parse_date
+    from bengal.utils.primitives.dates import parse_date
 
     dt = parse_date(date)
     if not dt:
@@ -144,7 +144,7 @@ def months_ago(date: datetime | str | None, now: datetime | None = None) -> int:
         Published {{ post.date | months_ago }} months ago
         
     """
-    from bengal.utils.dates import parse_date
+    from bengal.utils.primitives.dates import parse_date
 
     dt = parse_date(date)
     if not dt:
@@ -259,7 +259,7 @@ def date_add(
         {{ event.start | date_add(hours=2) }}  # 2 hours later
         
     """
-    from bengal.utils.dates import parse_date
+    from bengal.utils.primitives.dates import parse_date
 
     dt = parse_date(date)
     if not dt:
@@ -298,7 +298,7 @@ def date_diff(
         {{ end_date | date_diff(start_date, unit='all') }}  # Dict with all units
         
     """
-    from bengal.utils.dates import parse_date
+    from bengal.utils.primitives.dates import parse_date
 
     dt1 = parse_date(date1)
     dt2 = parse_date(date2)

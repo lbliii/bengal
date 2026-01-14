@@ -53,8 +53,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.output.icons import get_icon_set
-from bengal.utils.hashing import hash_file
-from bengal.utils.rich_console import should_use_emoji
+from bengal.utils.primitives.hashing import hash_file
+from bengal.utils.observability.rich_console import should_use_emoji
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
@@ -269,7 +269,7 @@ class ReloadController:
 
         # Optional: filter spurious changes via conditional hashing
         if changed and self._hash_on_suspect:
-            from bengal.utils.logger import get_logger  # local import to avoid import cycles
+            from bengal.utils.observability.logger import get_logger  # local import to avoid import cycles
 
             logger = get_logger(__name__)
 
@@ -392,7 +392,7 @@ class ReloadController:
 
         # Log only when we will actually send a reload (post-throttle)
         try:
-            from bengal.utils.logger import get_logger
+            from bengal.utils.observability.logger import get_logger
 
             logger = get_logger(__name__)
             logger.warning(

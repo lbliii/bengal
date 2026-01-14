@@ -130,7 +130,7 @@ class SectionNavigationMixin:
         - _versions/v1/docs/about → /docs/v1/about/ (non-latest)
         - _versions/v3/docs/about → /docs/about/ (latest)
         """
-        from bengal.utils.url_normalization import join_url_paths, normalize_url
+        from bengal.utils.paths.url_normalization import join_url_paths, normalize_url
 
         if self._virtual:
             if not self._relative_url_override:

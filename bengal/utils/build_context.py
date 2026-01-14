@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.output import CLIOutput
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.profile import BuildProfile
     from bengal.protocols import ProgressReporter
 
 

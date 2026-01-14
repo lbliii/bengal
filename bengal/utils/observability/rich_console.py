@@ -28,7 +28,7 @@ Bengal Color Palette:
 - warning: #E67E22 (Carrot Orange) - Warnings
 
 Usage:
-    >>> from bengal.utils.rich_console import get_console, should_use_rich
+    >>> from bengal.utils.observability.rich_console import get_console, should_use_rich
     >>>
     >>> console = get_console()
     >>> console.print("[success]Build complete![/success]")

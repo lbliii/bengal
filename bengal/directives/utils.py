@@ -89,7 +89,7 @@ def escape_html(text: str) -> str:
         ``bengal.utils.text.escape_html``: Canonical implementation.
         
     """
-    from bengal.utils.text import escape_html as _escape_html
+    from bengal.utils.primitives.text import escape_html as _escape_html
 
     return _escape_html(text)
 

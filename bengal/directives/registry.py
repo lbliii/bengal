@@ -45,7 +45,7 @@ import importlib
 import threading
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.directives.base import BengalDirective

@@ -16,7 +16,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 console = Console()

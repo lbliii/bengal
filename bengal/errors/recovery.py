@@ -82,7 +82,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from bengal.utils.logger import Logger
+    from bengal.utils.observability.logger import Logger
 
 T = TypeVar("T")
 

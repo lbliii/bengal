@@ -28,7 +28,7 @@ import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
@@ -201,7 +201,7 @@ class RSSGenerator:
                     ET.SubElement(item, "pubDate").text = pubdate
 
             # Write per-language RSS
-            from bengal.utils.atomic_write import AtomicFile
+            from bengal.utils.io.atomic_write import AtomicFile
 
             tree = ET.ElementTree(rss)
             if strategy == "prefix" and (default_in_subdir or code != default_lang):

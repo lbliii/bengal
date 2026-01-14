@@ -311,7 +311,7 @@ class URLRegistry:
         Raises:
             URLCollisionError: If URL is already claimed with higher or equal priority
         """
-        from bengal.utils.url_strategy import URLStrategy
+        from bengal.utils.paths.url_strategy import URLStrategy
 
         url = URLStrategy.url_from_output_path(output_path, site)
         self.claim(

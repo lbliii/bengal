@@ -22,7 +22,7 @@ from bengal.cli.helpers import (
     load_site_from_cli,
 )
 from bengal.errors.traceback import TracebackStyle
-from bengal.utils.profile import BuildProfile
+from bengal.utils.observability.profile import BuildProfile
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

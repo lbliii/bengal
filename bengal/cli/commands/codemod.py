@@ -13,7 +13,7 @@ import click
 
 from bengal.cli.base import BengalGroup
 from bengal.output import CLIOutput
-from bengal.utils.atomic_write import atomic_write_text
+from bengal.utils.io.atomic_write import atomic_write_text
 
 
 @click.group("codemod", cls=BengalGroup)

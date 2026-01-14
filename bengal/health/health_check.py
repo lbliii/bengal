@@ -50,7 +50,7 @@ from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.profile import BuildProfile
 
 
 @dataclass
@@ -105,7 +105,7 @@ class HealthCheckStats:
     def format_summary(self) -> str:
         """Format a human-readable summary."""
         from bengal.output.icons import get_icon_set
-        from bengal.utils.rich_console import should_use_emoji
+        from bengal.utils.observability.rich_console import should_use_emoji
 
         icons = get_icon_set(should_use_emoji())
         mode_icon = icons.success if self.execution_mode == "parallel" else icons.info
@@ -407,7 +407,7 @@ class HealthCheck:
         Returns:
             True if validator should run
         """
-        from bengal.utils.profile import is_validator_enabled
+        from bengal.utils.observability.profile import is_validator_enabled
 
         if profile:
             # Check if profile allows this validator (uses global profile state)

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from bengal.utils.logger import (
+from bengal.utils.observability.logger import (
     BengalLogger,
     LogEvent,
     LogLevel,

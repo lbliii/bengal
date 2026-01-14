@@ -28,7 +28,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -156,7 +156,7 @@ class WriteBehindCollector:
             path.write_text(content, encoding="utf-8")
         else:
             # Atomic write (crash-safe)
-            from bengal.utils.atomic_write import atomic_write_text
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(path, content, encoding="utf-8", ensure_parent=False)
 

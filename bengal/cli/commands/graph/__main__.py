@@ -14,8 +14,8 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
-from bengal.utils.atomic_write import atomic_write_text
-from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.io.atomic_write import atomic_write_text
+from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
 
 from .bridges import bridges
 from .communities import communities
@@ -78,7 +78,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
     # We need to discover content to analyze it
     # This also builds the xref_index for link analysis
     try:
-        from bengal.utils.rich_console import get_console, should_use_rich
+        from bengal.utils.observability.rich_console import get_console, should_use_rich
 
         if should_use_rich():
             console = get_console()
@@ -123,7 +123,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
         try:
             from rich.tree import Tree
 
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.observability.rich_console import get_console, should_use_rich
 
             if should_use_rich():
                 console = get_console()

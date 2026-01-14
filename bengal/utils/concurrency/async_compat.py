@@ -10,7 +10,7 @@ Performance:
 - General async operations: 10-20% faster
 
 Usage:
-    >>> from bengal.utils.async_compat import run_async
+    >>> from bengal.utils.concurrency.async_compat import run_async
     >>>
     >>> async def main():
     ...     return await fetch_data()
@@ -95,7 +95,7 @@ def install_uvloop() -> None:
     (e.g., Python 3.14t where uvloop is not yet compatible).
     
     Example:
-            >>> from bengal.utils.async_compat import install_uvloop
+            >>> from bengal.utils.concurrency.async_compat import install_uvloop
             >>> install_uvloop()
             >>> # Now all asyncio.run() calls use uvloop (if available)
         

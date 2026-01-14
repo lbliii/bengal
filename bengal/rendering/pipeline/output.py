@@ -38,8 +38,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.rendering.pipeline.thread_local import mark_dir_created
-from bengal.utils.logger import get_logger
-from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
@@ -163,7 +163,7 @@ def write_output(
             page.output_path.write_text(page.rendered_html, encoding="utf-8")
         else:
             # Atomic write (crash-safe, slightly slower)
-            from bengal.utils.atomic_write import atomic_write_text
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(
                 page.output_path,
@@ -180,7 +180,7 @@ def write_output(
         if fast_writes:
             page.output_path.write_text(page.rendered_html, encoding="utf-8")
         else:
-            from bengal.utils.atomic_write import atomic_write_text
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(
                 page.output_path,

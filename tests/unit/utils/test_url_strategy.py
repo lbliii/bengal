@@ -18,7 +18,7 @@ import pytest
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.errors import BengalContentError
-from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.paths.url_strategy import URLStrategy
 
 
 class TestURLStrategy:

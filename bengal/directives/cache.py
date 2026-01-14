@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from bengal.utils.hashing import hash_str
+from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.lru_cache import LRUCache
 
 

@@ -37,9 +37,9 @@ from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.text import Text
 
-from bengal.utils.logger import get_logger
-from bengal.utils.profile import BuildProfile
-from bengal.utils.rich_console import get_console, should_use_rich
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.observability.profile import BuildProfile
+from bengal.utils.observability.rich_console import get_console, should_use_rich
 
 logger = get_logger(__name__)
 

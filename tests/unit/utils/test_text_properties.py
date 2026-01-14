@@ -12,7 +12,7 @@ import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from bengal.utils.text import (
+from bengal.utils.primitives.text import (
     humanize_bytes,
     normalize_whitespace,
     slugify,

@@ -34,8 +34,8 @@ from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.config.validation import validate_config
 from bengal.errors import ErrorCode, format_suggestion, record_error
-from bengal.utils.file_io import load_toml, load_yaml
-from bengal.utils.logger import get_logger
+from bengal.utils.io.file_io import load_toml, load_yaml
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -463,7 +463,7 @@ class Page(
         Returns:
             Relative path string, or None if path was None
         """
-        from bengal.utils.text import format_path_for_display
+        from bengal.utils.primitives.text import format_path_for_display
 
         base_path = None
         if self._site is not None and hasattr(self._site, "root_path"):

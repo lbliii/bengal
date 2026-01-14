@@ -15,7 +15,7 @@ from bengal.cli.helpers import (
     load_site_from_cli,
 )
 from bengal.core.theme import get_installed_themes, get_theme_package
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 from bengal.utils.swizzle import SwizzleManager
 
 logger = get_logger(__name__)

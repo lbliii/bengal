@@ -8,7 +8,7 @@ from 9-13% to ~40-50% where programmatically testable.
 import pytest
 from click.testing import CliRunner
 
-from bengal.utils.file_io import write_text_file
+from bengal.utils.io.file_io import write_text_file
 
 
 class TestProjectValidateCommand:

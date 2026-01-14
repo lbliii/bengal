@@ -11,7 +11,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 
@@ -426,6 +426,6 @@ def escape_html(text: str) -> str:
         ``bengal.utils.text.escape_html``: Canonical implementation.
         
     """
-    from bengal.utils.text import escape_html as _escape_html
+    from bengal.utils.primitives.text import escape_html as _escape_html
 
     return _escape_html(text)

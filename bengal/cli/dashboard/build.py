@@ -31,7 +31,7 @@ from bengal.cli.dashboard.notifications import notify_build_complete
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.profile import BuildProfile
 
 
 @dataclass

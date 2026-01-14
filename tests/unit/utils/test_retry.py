@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from bengal.utils.retry import (
+from bengal.utils.concurrency.retry import (
     async_retry_with_backoff,
     calculate_backoff,
     retry_with_backoff,

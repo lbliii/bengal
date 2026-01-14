@@ -31,7 +31,7 @@ from typing import Any
 import click
 from jinja2 import TemplateSyntaxError
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

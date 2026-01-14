@@ -10,7 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.paths import BengalPaths
+from bengal.utils.paths.paths import BengalPaths
 
 
 class ProfileContext:

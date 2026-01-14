@@ -15,7 +15,7 @@ class TestAtomicWriteText:
 
     def test_basic_write(self, tmp_path):
         """Test basic atomic write creates file correctly."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "test.txt"
         content = "Hello, World!"
@@ -27,7 +27,7 @@ class TestAtomicWriteText:
 
     def test_write_with_unicode(self, tmp_path):
         """Test writing unicode content."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "unicode.txt"
         content = "🐯 Bengal SSG — Fast & Fierce"
@@ -38,7 +38,7 @@ class TestAtomicWriteText:
 
     def test_overwrite_existing(self, tmp_path):
         """Test overwriting existing file atomically."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "test.txt"
 
@@ -59,7 +59,7 @@ class TestAtomicWriteText:
 
     def test_no_temp_file_left_on_success(self, tmp_path):
         """Test that temp file is cleaned up on success."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "test.txt"
         atomic_write_text(file_path, "content")
@@ -72,7 +72,7 @@ class TestAtomicWriteText:
         """Test that temp file is cleaned up on write error."""
         from unittest.mock import patch
 
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "test.txt"
 
@@ -111,7 +111,7 @@ class TestAtomicWriteText:
 
     def test_large_content(self, tmp_path):
         """Test writing large content atomically."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "large.txt"
         # Create ~1MB of content
@@ -129,7 +129,7 @@ class TestAtomicWriteBytes:
 
     def test_basic_write(self, tmp_path):
         """Test basic binary write."""
-        from bengal.utils.atomic_write import atomic_write_bytes
+        from bengal.utils.io.atomic_write import atomic_write_bytes
 
         file_path = tmp_path / "test.bin"
         content = b"\x00\x01\x02\x03\xff\xfe"
@@ -141,7 +141,7 @@ class TestAtomicWriteBytes:
 
     def test_overwrite_existing_binary(self, tmp_path):
         """Test overwriting existing binary file."""
-        from bengal.utils.atomic_write import atomic_write_bytes
+        from bengal.utils.io.atomic_write import atomic_write_bytes
 
         file_path = tmp_path / "test.bin"
 
@@ -156,7 +156,7 @@ class TestAtomicFile:
 
     def test_basic_usage(self, tmp_path):
         """Test basic context manager usage."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         file_path = tmp_path / "test.txt"
 
@@ -170,7 +170,7 @@ class TestAtomicFile:
 
     def test_exception_rolls_back(self, tmp_path):
         """Test that exception prevents file creation."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         file_path = tmp_path / "test.txt"
 
@@ -193,7 +193,7 @@ class TestAtomicFile:
 
     def test_json_write(self, tmp_path):
         """Test writing JSON atomically."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         file_path = tmp_path / "data.json"
         data = {"key": "value", "number": 42, "list": [1, 2, 3]}
@@ -208,7 +208,7 @@ class TestAtomicFile:
 
     def test_binary_mode(self, tmp_path):
         """Test AtomicFile in binary mode."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         file_path = tmp_path / "test.bin"
         content = b"binary content"
@@ -220,7 +220,7 @@ class TestAtomicFile:
 
     def test_append_mode_creates_new_file(self, tmp_path):
         """Test that append mode works (though less common for atomic writes)."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         file_path = tmp_path / "test.txt"
 
@@ -243,7 +243,7 @@ class TestRealWorldScenarios:
 
     def test_multiple_rapid_writes(self, tmp_path):
         """Test rapid successive writes (like page rendering)."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "test.txt"
 
@@ -261,7 +261,7 @@ class TestRealWorldScenarios:
         """Test concurrent writes to different files (parallel build)."""
         import concurrent.futures
 
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         def write_file(i):
             file_path = tmp_path / f"file_{i}.txt"
@@ -285,7 +285,7 @@ class TestRealWorldScenarios:
         import concurrent.futures
         import time
 
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         file_path = tmp_path / "index.html"
         num_threads = 10
@@ -315,7 +315,7 @@ class TestRealWorldScenarios:
 
     def test_html_page_rendering(self, tmp_path):
         """Test typical page rendering scenario."""
-        from bengal.utils.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
         output_path = tmp_path / "page.html"
         html = """<!DOCTYPE html>
@@ -334,7 +334,7 @@ class TestRealWorldScenarios:
 
     def test_cache_file_scenario(self, tmp_path):
         """Test cache file write scenario (JSON)."""
-        from bengal.utils.atomic_write import AtomicFile
+        from bengal.utils.io.atomic_write import AtomicFile
 
         cache_path = tmp_path / "cache.json"
         cache_data = {

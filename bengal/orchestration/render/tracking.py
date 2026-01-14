@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import threading
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

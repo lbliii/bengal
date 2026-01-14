@@ -27,7 +27,7 @@ from dataclasses import field
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -194,7 +194,7 @@ class AutodocTrackingMixin:
         Returns:
             Set of source file paths whose content has changed since caching
         """
-        from bengal.utils.hashing import hash_file
+        from bengal.utils.primitives.hashing import hash_file
 
         # Handle cache migration: old caches have dependencies but no metadata
         if not self.autodoc_source_metadata and self.autodoc_dependencies:

@@ -31,7 +31,7 @@ from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

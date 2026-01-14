@@ -44,7 +44,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
@@ -304,7 +304,7 @@ class ContentOrchestrator:
         try:
             from bengal import __version__
             from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
-            from bengal.utils.hashing import hash_dict
+            from bengal.utils.primitives.hashing import hash_dict
 
             orchestrator = VirtualAutodocOrchestrator(self.site)
 

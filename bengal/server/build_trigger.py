@@ -63,7 +63,7 @@ from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)

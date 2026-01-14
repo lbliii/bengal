@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.cache.build_cache import BuildCache
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -220,7 +220,7 @@ class DependencyTracker:
 
     def _hash_config(self) -> str:
         """Hash config for invalidation."""
-        from bengal.utils.hashing import hash_file
+        from bengal.utils.primitives.hashing import hash_file
 
         # Determine config path from site or fallback
         config_path = self.site.root_path / "bengal.toml" if self.site else Path("bengal.toml")

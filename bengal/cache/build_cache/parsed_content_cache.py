@@ -24,9 +24,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.hashing import hash_file, hash_str
-from bengal.utils.logger import get_logger
-from bengal.utils.sentinel import MISSING
+from bengal.utils.primitives.hashing import hash_file, hash_str
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.sentinel import MISSING
 
 if TYPE_CHECKING:
     pass

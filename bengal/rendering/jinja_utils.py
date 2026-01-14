@@ -11,7 +11,7 @@ from typing import Any
 
 from jinja2 import is_undefined as jinja_is_undefined
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 

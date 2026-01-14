@@ -47,8 +47,8 @@ from typing import TYPE_CHECKING
 
 from bengal.content_types.registry import detect_content_type, get_strategy
 from bengal.discovery.page_factory import PageInitializer
-from bengal.utils.logger import get_logger
-from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 

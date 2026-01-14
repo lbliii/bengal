@@ -11,7 +11,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from bengal.utils.concurrent_locks import PerKeyLockManager
+from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 
 
 class TestPerKeyLockManager:

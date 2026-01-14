@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.build.results import ChangeSummary
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -301,7 +301,7 @@ class RebuildFilter:
             Count of pages added due to section-wide rebuilds.
         """
         from bengal.orchestration.constants import extract_nav_metadata
-        from bengal.utils.hashing import hash_str
+        from bengal.utils.primitives.hashing import hash_str
 
         nav_section_affected = 0
 

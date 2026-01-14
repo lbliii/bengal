@@ -133,7 +133,7 @@ class DataTableDirective:
 
         # Generate table ID
         try:
-            from bengal.utils.hashing import hash_str
+            from bengal.utils.primitives.hashing import hash_str
 
             table_id = f"data-table-{hash_str(file_path, truncate=8)}"
         except ImportError:

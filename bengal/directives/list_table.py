@@ -13,7 +13,7 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
-from bengal.utils.logger import get_logger
+from bengal.utils.observability.logger import get_logger
 
 __all__ = ["ListTableDirective", "render_list_table"]
 

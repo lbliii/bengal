@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.utils.build_context import BuildContext
-    from bengal.utils.performance_collector import PerformanceCollector
-    from bengal.utils.profile import BuildProfile
+    from bengal.utils.observability.performance_collector import PerformanceCollector
+    from bengal.utils.observability.profile import BuildProfile
 
 
 def phase_postprocess(
@@ -162,8 +162,8 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
     from pathlib import Path
 
     from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
-    from bengal.utils.atomic_write import AtomicFile
-    from bengal.utils.workers import WorkloadType, get_optimal_workers
+    from bengal.utils.io.atomic_write import AtomicFile
+    from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
     duration_ms = float(last_build_stats.get("build_time_ms") or 0)
     duration_text = format_duration_ms_compact(duration_ms)
@@ -558,7 +558,7 @@ def phase_finalize(
 
     # Restore normal logger console output if we suppressed it
     if not verbose:
-        from bengal.utils.logger import set_console_quiet
+        from bengal.utils.observability.logger import set_console_quiet
 
         set_console_quiet(False)
 

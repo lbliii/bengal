@@ -31,8 +31,8 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
-from bengal.utils.logger import get_logger
-from bengal.utils.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
