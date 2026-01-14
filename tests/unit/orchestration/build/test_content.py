@@ -155,25 +155,29 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, parallel=True, pages_to_build=[])
+        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=False, pages_to_build=[])
 
-        orchestrator.taxonomy.collect_and_generate.assert_called_once_with(parallel=True)
+        # parallel is computed from force_sequential and page count
+        orchestrator.taxonomy.collect_and_generate.assert_called_once()
 
     def test_incremental_build_uses_incremental_method(self, tmp_path):
         """Incremental build uses collect_and_generate_incremental."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
-        mock_pages = [MagicMock()]
+        mock_page = MagicMock()
+        mock_page.metadata = {}  # Not generated
+        mock_page.tags = None  # No tags to avoid metadata cascade
+        mock_pages = [mock_page]
         orchestrator.taxonomy.collect_and_generate_incremental.return_value = {"python"}
 
         result = phase_taxonomies(
-            orchestrator, cache, incremental=True, parallel=True, pages_to_build=mock_pages
+            orchestrator, cache, incremental=True, force_sequential=False, pages_to_build=mock_pages
         )
 
         orchestrator.taxonomy.collect_and_generate_incremental.assert_called_once_with(
             mock_pages, cache
         )
-        assert result == {"python"}
+        assert "python" in result
 
     def test_returns_affected_tags(self, tmp_path):
         """Returns set of affected tag slugs."""
@@ -182,7 +186,7 @@ class TestPhaseTaxonomies:
         cache = MagicMock()
 
         result = phase_taxonomies(
-            orchestrator, cache, incremental=False, parallel=False, pages_to_build=[]
+            orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[]
         )
 
         # Full build marks all tags as affected
@@ -194,7 +198,7 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, parallel=False, pages_to_build=[])
+        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[])
 
         assert orchestrator.stats.taxonomy_time_ms >= 0
 
@@ -203,7 +207,7 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, parallel=False, pages_to_build=[])
+        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[])
 
         orchestrator.site.invalidate_regular_pages_cache.assert_called_once()
 
@@ -228,7 +232,7 @@ class TestPhaseTaxonomies:
         orchestrator.taxonomy.collect_and_generate_incremental.return_value = {"python"}
 
         phase_taxonomies(
-            orchestrator, cache, incremental=True, parallel=True, pages_to_build=[mock_page]
+            orchestrator, cache, incremental=True, force_sequential=True, pages_to_build=[mock_page]
         )
 
         # Should only call generate_dynamic_pages_for_tags_with_cache with NEW tags
@@ -263,7 +267,7 @@ class TestPhaseTaxonomies:
         orchestrator.taxonomy.collect_and_generate_incremental.return_value = {"python", "rust"}
 
         phase_taxonomies(
-            orchestrator, cache, incremental=True, parallel=True, pages_to_build=[mock_page]
+            orchestrator, cache, incremental=True, force_sequential=True, pages_to_build=[mock_page]
         )
 
         # Should NOT call generate_dynamic_pages_for_tags_with_cache

@@ -2,6 +2,7 @@
 Tests for CascadeTracker component of the incremental package.
 """
 
+import json
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -10,6 +11,7 @@ import pytest
 from bengal.core.page import Page
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cascade_tracker import CascadeTracker
+from bengal.utils.primitives.hashing import hash_str
 
 
 @pytest.fixture
@@ -27,9 +29,23 @@ def mock_site(tmp_path):
 
 
 @pytest.fixture
+def mock_cache():
+    """Create a mock BuildCache for testing."""
+    cache = Mock()
+    cache.parsed_content = {}
+    return cache
+
+
+@pytest.fixture
 def tracker(mock_site):
-    """Create a CascadeTracker instance."""
+    """Create a CascadeTracker instance without cache."""
     return CascadeTracker(mock_site)
+
+
+@pytest.fixture
+def tracker_with_cache(mock_site, mock_cache):
+    """Create a CascadeTracker instance with cache."""
+    return CascadeTracker(mock_site, mock_cache)
 
 
 class TestCascadeRebuilds:
@@ -126,6 +142,193 @@ class TestCascadeRebuilds:
         # Should not add child
         assert affected_count == 0
         assert child.source_path not in pages_to_rebuild
+
+
+class TestCascadeHashComparison:
+    """Test cascade metadata hash comparison for body-only change detection."""
+
+    def test_cascade_unchanged_returns_true_when_hash_matches(
+        self, tracker_with_cache, mock_site, mock_cache
+    ):
+        """When cascade metadata hash matches cached, return True (skip rebuild)."""
+        path = Path("/site/content/_index.md")
+        cascade_data = {"author": "lbliii"}
+        
+        # Create page with cascade
+        page = Page(
+            source_path=path,
+            _raw_content="Hello world",
+            metadata={"title": "Home", "cascade": cascade_data},
+        )
+        
+        # Store matching hash in cache
+        cascade_hash = hash_str(json.dumps(cascade_data, sort_keys=True, default=str))
+        mock_cache.parsed_content[str(path)] = {
+            "cascade_metadata_hash": cascade_hash,
+        }
+        
+        # Should return True (cascade unchanged)
+        assert tracker_with_cache._cascade_unchanged(page, path) is True
+
+    def test_cascade_unchanged_returns_false_when_hash_differs(
+        self, tracker_with_cache, mock_site, mock_cache
+    ):
+        """When cascade metadata hash differs from cached, return False (rebuild)."""
+        path = Path("/site/content/_index.md")
+        
+        # Current cascade
+        page = Page(
+            source_path=path,
+            _raw_content="Hello world",
+            metadata={"title": "Home", "cascade": {"author": "newauthor"}},
+        )
+        
+        # Cached with different cascade hash
+        old_cascade = {"author": "oldauthor"}
+        old_hash = hash_str(json.dumps(old_cascade, sort_keys=True, default=str))
+        mock_cache.parsed_content[str(path)] = {
+            "cascade_metadata_hash": old_hash,
+        }
+        
+        # Should return False (cascade changed)
+        assert tracker_with_cache._cascade_unchanged(page, path) is False
+
+    def test_cascade_unchanged_returns_false_without_cache(self, tracker, mock_site):
+        """Without cache, always return False (conservative rebuild)."""
+        path = Path("/site/content/_index.md")
+        page = Page(
+            source_path=path,
+            _raw_content="Hello world",
+            metadata={"title": "Home", "cascade": {"author": "lbliii"}},
+        )
+        
+        # No cache, should return False
+        assert tracker._cascade_unchanged(page, path) is False
+
+    def test_cascade_unchanged_returns_false_when_no_cached_entry(
+        self, tracker_with_cache, mock_site, mock_cache
+    ):
+        """When no cached entry exists, return False (rebuild)."""
+        path = Path("/site/content/_index.md")
+        page = Page(
+            source_path=path,
+            _raw_content="Hello world",
+            metadata={"title": "Home", "cascade": {"author": "lbliii"}},
+        )
+        
+        # Empty cache
+        mock_cache.parsed_content = {}
+        
+        # Should return False
+        assert tracker_with_cache._cascade_unchanged(page, path) is False
+
+    def test_cascade_body_only_change_skips_rebuild(
+        self, tracker_with_cache, mock_site, mock_cache
+    ):
+        """Body-only changes to cascade pages don't trigger descendant rebuild."""
+        # Create index page with cascade
+        index_path = Path("/site/content/docs/_index.md")
+        cascade_data = {"type": "doc"}
+        
+        index_page = Page(
+            source_path=index_path,
+            _raw_content="Updated body content",  # Body changed
+            metadata={"title": "Docs", "cascade": cascade_data},  # Cascade same
+        )
+
+        # Create child page
+        child = Page(
+            source_path=Path("/site/content/docs/page1.md"),
+            _raw_content="Page 1",
+            metadata={"title": "Page 1"},
+        )
+
+        # Create mock section
+        section = Mock()
+        section.name = "docs"
+        section.path = Path("/site/content/docs")
+        section.index_page = index_page
+        section.pages = [index_page, child]
+        section.regular_pages_recursive = [child]
+
+        mock_site.pages = [index_page, child]
+        mock_site.sections = [section]
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
+
+        # Store matching cascade hash in cache (simulating previous build)
+        cascade_hash = hash_str(json.dumps(cascade_data, sort_keys=True, default=str))
+        mock_cache.parsed_content[str(index_path)] = {
+            "cascade_metadata_hash": cascade_hash,
+        }
+
+        # Only index page changed (body only)
+        pages_to_rebuild = {index_path}
+        change_summary = ChangeSummary()
+
+        # Apply cascade rebuilds
+        affected_count = tracker_with_cache.apply_cascade_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            verbose=True,
+            change_summary=change_summary,
+        )
+
+        # Child should NOT be added (cascade unchanged, body-only change)
+        assert affected_count == 0
+        assert child.source_path not in pages_to_rebuild
+
+    def test_cascade_metadata_change_triggers_rebuild(
+        self, tracker_with_cache, mock_site, mock_cache
+    ):
+        """Changing cascade metadata values triggers descendant rebuild."""
+        # Create index page with updated cascade
+        index_path = Path("/site/content/docs/_index.md")
+        new_cascade = {"type": "reference"}  # Changed from "doc"
+        
+        index_page = Page(
+            source_path=index_path,
+            _raw_content="Same body",
+            metadata={"title": "Docs", "cascade": new_cascade},
+        )
+
+        # Create child page
+        child = Page(
+            source_path=Path("/site/content/docs/page1.md"),
+            _raw_content="Page 1",
+            metadata={"title": "Page 1"},
+        )
+
+        # Create mock section
+        section = Mock()
+        section.name = "docs"
+        section.path = Path("/site/content/docs")
+        section.index_page = index_page
+        section.pages = [index_page, child]
+        section.regular_pages_recursive = [child]
+
+        mock_site.pages = [index_page, child]
+        mock_site.sections = [section]
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
+
+        # Store OLD cascade hash in cache
+        old_cascade = {"type": "doc"}
+        old_hash = hash_str(json.dumps(old_cascade, sort_keys=True, default=str))
+        mock_cache.parsed_content[str(index_path)] = {
+            "cascade_metadata_hash": old_hash,
+        }
+
+        pages_to_rebuild = {index_path}
+        change_summary = ChangeSummary()
+
+        # Apply cascade rebuilds
+        affected_count = tracker_with_cache.apply_cascade_rebuilds(
+            pages_to_rebuild=pages_to_rebuild,
+            verbose=True,
+            change_summary=change_summary,
+        )
+
+        # Child SHOULD be added (cascade changed)
+        assert affected_count == 1
+        assert child.source_path in pages_to_rebuild
 
 
 class TestAdjacentNavigationRebuilds:

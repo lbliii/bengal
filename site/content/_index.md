@@ -30,4 +30,4 @@ cta_buttons:
 show_recent_posts: false
 ---
 
-hello world
+
