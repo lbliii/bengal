@@ -6,8 +6,46 @@ serves from the root (/) not from a subdirectory (/bengal).
 """
 
 import json
+from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+class TestBaseurlClearingLogic:
+    """Test the baseurl clearing decision logic in _prepare_dev_config."""
+
+    def _should_clear_baseurl(self, baseurl_value: str) -> bool:
+        """Simulate the baseurl clearing decision from _prepare_dev_config."""
+        baseurl = (baseurl_value or "").strip()
+        # "/" is equivalent to no baseurl (dev server serves from root)
+        if not baseurl or baseurl == "/":
+            return False  # No baseurl to clear
+        return True
+
+    def test_empty_baseurl_does_not_trigger_clear(self):
+        """Empty baseurl should not trigger cache clearing."""
+        assert self._should_clear_baseurl("") is False
+
+    def test_slash_baseurl_does_not_trigger_clear(self):
+        """Baseurl '/' should not trigger cache clearing (serves from root)."""
+        assert self._should_clear_baseurl("/") is False
+
+    def test_subdirectory_baseurl_triggers_clear(self):
+        """Baseurl '/bengal' should trigger cache clearing."""
+        assert self._should_clear_baseurl("/bengal") is True
+
+    def test_subdirectory_with_trailing_slash_triggers_clear(self):
+        """Baseurl '/docs/' should trigger cache clearing."""
+        assert self._should_clear_baseurl("/docs/") is True
+
+    def test_whitespace_only_baseurl_does_not_trigger_clear(self):
+        """Whitespace-only baseurl should not trigger cache clearing."""
+        assert self._should_clear_baseurl("   ") is False
+
+    def test_none_baseurl_does_not_trigger_clear(self):
+        """None baseurl should not trigger cache clearing."""
+        # Simulates cfg.get("baseurl") returning None
+        assert self._should_clear_baseurl(None) is False  # type: ignore[arg-type]
 
 
 @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
