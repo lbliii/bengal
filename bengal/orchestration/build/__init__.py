@@ -123,9 +123,8 @@ class BuildOrchestrator:
         self.stats = BuildStats()
         self.logger = get_logger(__name__)
 
-        # Import via this module's lazy surface to avoid circular imports and to
-        # preserve a stable patch/inspection target for tests and callers.
-        from bengal.orchestration.build import IncrementalOrchestrator
+        # Import directly to avoid self-import through __getattr__
+        from bengal.orchestration.incremental import IncrementalOrchestrator
 
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)

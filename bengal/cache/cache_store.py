@@ -336,12 +336,13 @@ class CacheStore:
         Returns:
             Parsed data dict, or None if file not found or load failed
         """
+        # Import at function scope for except clause (Python 3.14 scoping)
+        from bengal.cache.compression import ZstdError, load_compressed
+        from bengal.errors import BengalCacheError, ErrorCode
+
         # Try compressed first (if compression enabled)
         if self._compressed_path and self._compressed_path.exists():
             try:
-                from bengal.cache.compression import ZstdError, load_compressed
-                from bengal.errors import BengalCacheError, ErrorCode
-
                 data: dict[Any, Any] | None = load_compressed(self._compressed_path)
                 return data
             except BengalCacheError as e:

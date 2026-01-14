@@ -56,7 +56,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.utils.observability.logger import Logger
+    from bengal.utils.observability.logger import BengalLogger
 
 
 class ErrorAggregator:
@@ -198,7 +198,7 @@ class ErrorAggregator:
 
     def log_summary(
         self,
-        logger: Logger,
+        logger: BengalLogger,
         *,
         threshold: int = 5,
         error_type: str = "processing",
@@ -210,7 +210,7 @@ class ErrorAggregator:
         reducing noise while preserving actionable information.
 
         Args:
-            logger: Logger instance for logging
+            logger: BengalLogger instance for logging
             threshold: Minimum number of errors before aggregating
             error_type: Type of error for logging context (e.g., "rendering", "assets")
         """

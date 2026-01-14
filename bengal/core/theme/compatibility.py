@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.theme.config import ThemeConfig
+    from bengal.themes.config import ThemeConfig
 
 # Comprehensive feature matrix for template engine constructs
 # True = feature is supported, False = not supported

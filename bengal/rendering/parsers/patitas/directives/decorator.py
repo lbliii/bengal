@@ -104,13 +104,17 @@ def directive(
         else:
             # Function decorator — wrap in class
             render_func = func_or_class
+            # Capture closure variables for class attributes (avoids shadowing issues)
+            _names = names
+            _contract = contract
+            _preserves_raw = preserves_raw_content
 
             class GeneratedDirective:
-                names = names
+                names = _names
                 token_type = effective_token_type
-                contract = contract
+                contract = _contract
                 options_class = effective_options
-                preserves_raw_content = preserves_raw_content
+                preserves_raw_content = _preserves_raw
 
                 def parse(self, name, title, opts, content, children, location):
                     return Directive(
@@ -119,7 +123,7 @@ def directive(
                         title=title,
                         options=opts,
                         children=tuple(children),
-                        raw_content=content if preserves_raw_content else None,
+                        raw_content=content if _preserves_raw else None,
                     )
 
                 def render(self, node, rendered_children, sb):

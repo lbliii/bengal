@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import timezone
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -216,7 +217,7 @@ class AssetDependencyMap:
         """
         entry = AssetDependencyEntry(
             assets=assets,
-            tracked_at=datetime.utcnow().isoformat(),
+            tracked_at=datetime.now(timezone.utc).isoformat(),
             is_valid=True,
         )
         self.pages[str(source_path)] = entry

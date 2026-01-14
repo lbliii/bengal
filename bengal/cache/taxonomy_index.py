@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -319,7 +319,7 @@ class TaxonomyIndex:
             tag_slug=tag_slug,
             tag_name=tag_name,
             page_paths=page_paths,
-            updated_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.now(timezone.utc).isoformat(),
             is_valid=True,
         )
         self.tags[tag_slug] = entry

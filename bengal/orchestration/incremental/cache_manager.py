@@ -252,6 +252,11 @@ class CacheManager:
             for template_file in theme_templates_dir.rglob("*.html"):
                 self.cache.update_file(template_file)
 
+        # Update data file fingerprints for incremental detection
+        # Without this, data files always appear "changed" on incremental builds
+        # because they have no cached fingerprint to compare against.
+        self._update_data_file_fingerprints()
+
         # Flush deferred fingerprint updates before saving.
         # This ensures fingerprints reflect post-build state, not mid-build state.
         if self.tracker:
@@ -286,3 +291,39 @@ class CacheManager:
             return bundled_theme_dir
 
         return None
+
+    def _update_data_file_fingerprints(self) -> None:
+        """
+        Update fingerprints for all data files.
+
+        This is critical for incremental builds: without cached fingerprints,
+        data files always appear "changed" which triggers conservative full
+        rebuild of all pages.
+
+        Scans data/ directory for .yaml, .yml, .json, .toml files and
+        updates their fingerprints in the cache.
+        """
+        if not self.cache:
+            return
+
+        data_dir = self.site.root_path / "data"
+        if not data_dir.exists():
+            return
+
+        # Same extensions as DataFileDetector
+        data_extensions = frozenset({".yaml", ".yml", ".json", ".toml"})
+        updated_count = 0
+
+        for data_file in data_dir.rglob("*"):
+            if not data_file.is_file():
+                continue
+            if data_file.suffix not in data_extensions:
+                continue
+            self.cache.update_file(data_file)
+            updated_count += 1
+
+        if updated_count > 0:
+            logger.debug(
+                "data_file_fingerprints_updated",
+                count=updated_count,
+            )

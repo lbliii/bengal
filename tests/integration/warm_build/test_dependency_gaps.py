@@ -17,6 +17,61 @@ import pytest
 from tests.integration.warm_build.conftest import WarmBuildTestSite
 
 
+class TestDataFileFingerprintCaching:
+    """
+    Data file fingerprints must be cached to prevent false "changed" detection.
+    
+    Without cached fingerprints, data files always appear "changed" on
+    incremental builds, triggering conservative full rebuild of all pages.
+    """
+
+    def test_content_change_without_data_change_is_efficient(
+        self, site_with_data_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Content-only change should NOT trigger full rebuild due to uncached data files.
+        
+        Bug scenario this catches:
+        1. Full build with data/team.yaml
+        2. Edit only a content file (not data file)
+        3. Incremental build incorrectly detects data files as "changed"
+           because fingerprints weren't cached
+        4. Conservative fallback rebuilds ALL pages
+        
+        Expected:
+        - Only the changed content page should rebuild
+        - Data files should NOT appear as changed
+        """
+        # Build 1: Full build - should cache fingerprints for ALL files including data
+        stats1 = site_with_data_tracking.full_build()
+        initial_page_count = stats1.pages_built
+        assert initial_page_count >= 2, "Should have at least home + about pages"
+        
+        # Modify ONLY a content file (not the data file)
+        site_with_data_tracking.modify_file(
+            "content/_index.md",
+            """---
+title: Home - Updated
+---
+
+# Welcome - Updated Content
+""",
+        )
+        
+        site_with_data_tracking.wait_for_fs()
+        
+        # Build 2: Incremental build
+        stats2 = site_with_data_tracking.incremental_build()
+        
+        # Assert: Should rebuild only 1 page (the modified home page)
+        # NOT all pages due to data file fingerprint miss
+        assert stats2.pages_built < initial_page_count, (
+            f"Content-only change should trigger minimal rebuild. "
+            f"Expected 1 page, got {stats2.pages_built}. "
+            f"This indicates data file fingerprints may not be cached properly."
+        )
+
+
 class TestDataFileDependencyGap:
     """
     Gap 1: Data file changes should trigger dependent page rebuilds.
@@ -42,7 +97,8 @@ class TestDataFileDependencyGap:
         """
         # Build 1: Full build
         stats1 = site_with_data_tracking.full_build()
-        assert stats1.pages_built >= 1, "Initial build should create pages"
+        initial_page_count = stats1.pages_built
+        assert initial_page_count >= 1, "Initial build should create pages"
         
         # Verify initial content
         site_with_data_tracking.assert_output_contains(
@@ -74,6 +130,16 @@ members:
         # Assert: At least the about page was rebuilt (not skipped)
         assert stats2.pages_built >= 1, (
             "Data file change should trigger rebuild of dependent pages"
+        )
+        
+        # Assert: Incremental build should NOT rebuild ALL pages
+        # This catches the bug where data files always appear "changed"
+        # due to missing fingerprints, triggering conservative full rebuild.
+        # With proper data file fingerprinting, only dependent pages rebuild.
+        assert stats2.pages_built < initial_page_count, (
+            f"Data file change should trigger targeted rebuild, not full. "
+            f"Expected < {initial_page_count} pages, got {stats2.pages_built}. "
+            f"This may indicate data file fingerprints aren't being cached."
         )
 
 

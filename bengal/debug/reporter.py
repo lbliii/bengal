@@ -198,6 +198,7 @@ class ExplanationReporter:
         relationships, with includes as child nodes.
         """
         tree = Tree("🎨 Template Chain")
+        node: Tree = tree  # Initialize for type checker (reassigned in loop)
 
         for i, tpl in enumerate(chain):
             # Format template info

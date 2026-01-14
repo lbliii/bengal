@@ -16,7 +16,7 @@ from patitas.stringbuilder import StringBuilder
 from bengal.rendering.parsers.patitas.renderers.utils import escape_attr, escape_html
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.renderers.protocols import HtmlRendererProtocolProtocol
+    from bengal.rendering.parsers.patitas.renderers.protocols import HtmlRendererProtocol
 
 
 # Directives that depend on page context and should NOT be cached

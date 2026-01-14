@@ -25,16 +25,16 @@ import json
 import sys
 import time
 import tracemalloc
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
-    from bengal.utils.observability.logger import Logger
+    from bengal.utils.observability.logger import BengalLogger
 
 # Lazy logger - only loaded when actually logging (error paths)
-_logger: Logger | None = None
+_logger: BengalLogger | None = None
 
 
 def _get_logger():
@@ -155,7 +155,7 @@ class PerformanceCollector:
 
             # Prepare metrics dictionary
             metrics = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "python_version": sys.version.split()[0],
                 "platform": sys.platform,
                 **stats.to_dict(),

@@ -82,7 +82,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from bengal.utils.observability.logger import Logger
+    from bengal.utils.observability.logger import BengalLogger
 
 T = TypeVar("T")
 
@@ -93,7 +93,7 @@ def with_error_recovery(
     on_error: Callable[[Exception], T] | None = None,
     error_types: tuple[type[Exception], ...] = (Exception,),
     strict_mode: bool = False,
-    logger: Logger | None = None,
+    logger: BengalLogger | None = None,
 ) -> T:
     """
     Execute operation with error recovery.
@@ -157,7 +157,7 @@ def error_recovery_context(
     operation_name: str,
     *,
     strict_mode: bool = False,
-    logger: Logger | None = None,
+    logger: BengalLogger | None = None,
 ):
     """
     Context manager for error recovery.
@@ -201,7 +201,7 @@ def recover_file_processing[T](
     operation: Callable[[], T],
     *,
     strict_mode: bool = False,
-    logger: Logger | None = None,
+    logger: BengalLogger | None = None,
     build_stats: Any | None = None,
 ) -> T | None:
     """

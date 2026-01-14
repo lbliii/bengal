@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -254,7 +254,7 @@ class PageDiscoveryCache:
         """
         entry = PageDiscoveryCacheEntry(
             metadata=metadata,
-            cached_at=datetime.utcnow().isoformat(),
+            cached_at=datetime.now(timezone.utc).isoformat(),
             is_valid=True,
         )
         self.pages[metadata.source_path] = entry

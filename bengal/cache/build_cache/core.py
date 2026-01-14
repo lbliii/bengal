@@ -361,12 +361,15 @@ class BuildCache(
         Returns:
             Parsed data dict, or None if load failed
         """
+        # Import BengalCacheError at function scope so it's available in except clause
+        # (Python 3.14 stricter scoping requires this)
+        from bengal.errors import BengalCacheError, ErrorCode
+
         # Try compressed first
         compressed_path = cache_path.with_suffix(".json.zst")
         if compressed_path.exists():
             try:
                 from bengal.cache.compression import load_compressed
-                from bengal.errors import BengalCacheError, ErrorCode
 
                 logger.debug("cache_loading_compressed", path=str(compressed_path))
                 return load_compressed(compressed_path)
@@ -377,8 +380,6 @@ class BuildCache(
                     pass
                 else:
                     # Other errors - log and try uncompressed
-                    from bengal.errors import ErrorCode
-
                     logger.warning(
                         "cache_compressed_load_failed",
                         path=str(compressed_path),
@@ -386,15 +387,6 @@ class BuildCache(
                         action="trying_uncompressed",
                         error_code=ErrorCode.A003.value,  # cache_read_error
                     )
-                from bengal.errors import ErrorCode
-
-                logger.warning(
-                    "cache_compressed_load_failed",
-                    path=str(compressed_path),
-                    error=str(e),
-                    action="trying_uncompressed",
-                    error_code=ErrorCode.A003.value,  # cache_read_error
-                )
 
         # Fall back to uncompressed
         if cache_path.exists():

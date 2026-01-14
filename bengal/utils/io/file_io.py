@@ -414,10 +414,7 @@ def load_toml(
     try:
         import tomllib
 
-        data_raw = tomllib.loads(content)
-
-        # TOML should always return a dict, but type checker sees Any
-        data = cast(dict[str, Any], data_raw) if isinstance(data_raw, dict) else {}
+        data = tomllib.loads(content)
 
         logger.debug(
             "toml_loaded",

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.orchestration.build.results import ChangeSummary
     from bengal.output import CLIOutput
     from bengal.orchestration.build_context import BuildContext
 

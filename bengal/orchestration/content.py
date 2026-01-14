@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.discovery.content_discovery import DiscoveryCache
+    from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -82,7 +82,7 @@ class ContentOrchestrator:
     def discover(
         self,
         incremental: bool = False,
-        cache: DiscoveryCache | None = None,
+        cache: PageDiscoveryCache | None = None,
         build_context: BuildContext | None = None,
         build_cache: BuildCache | None = None,
     ) -> None:
@@ -93,7 +93,7 @@ class ContentOrchestrator:
 
         Args:
             incremental: Whether this is an incremental build (enables lazy loading)
-            cache: PageDiscoveryCache instance (required if incremental=True)
+            cache: PagePageDiscoveryCache instance (required if incremental=True)
             build_context: Optional BuildContext for caching content during discovery.
                           When provided, raw file content is cached for later use by
                           validators, eliminating redundant disk I/O during health checks.
@@ -112,7 +112,7 @@ class ContentOrchestrator:
         self,
         content_dir: Path | None = None,
         incremental: bool = False,
-        cache: DiscoveryCache | None = None,
+        cache: PageDiscoveryCache | None = None,
         build_context: BuildContext | None = None,
         build_cache: BuildCache | None = None,
     ) -> None:
@@ -126,7 +126,7 @@ class ContentOrchestrator:
         Args:
             content_dir: Content directory path (defaults to root_path/content)
             incremental: Whether this is an incremental build (enables lazy loading)
-            cache: PageDiscoveryCache instance (required if incremental=True)
+            cache: PagePageDiscoveryCache instance (required if incremental=True)
             build_context: Optional BuildContext for caching content during discovery.
                           When provided, raw file content is cached for later use by
                           validators, eliminating redundant disk I/O during health checks.
@@ -282,7 +282,7 @@ class ContentOrchestrator:
         self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
-        self, cache: DiscoveryCache | None = None
+        self, cache: PageDiscoveryCache | None = None
     ) -> tuple[list[Page], list[Asset]]:
         """
         Generate virtual autodoc pages if enabled.

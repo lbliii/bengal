@@ -35,7 +35,7 @@ from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
-    from bengal.core.nav_tree import NavTree, NavTreeNode
+    from bengal.core.nav_tree import NavNode, NavTree
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
@@ -199,7 +199,7 @@ class ScaffoldNodeProxy:
 
     __slots__ = ("_node", "_context", "_href_cached", "_children_cached")
 
-    def __init__(self, node: NavTreeNode, context: ScaffoldContext) -> None:
+    def __init__(self, node: NavNode, context: ScaffoldContext) -> None:
         self._node = node
         self._context = context
         self._href_cached: str | None = None
@@ -316,7 +316,7 @@ class ScaffoldContext:
         
     """
 
-    def __init__(self, tree: NavTree, page: Page, root_node: NavTreeNode | None = None):
+    def __init__(self, tree: NavTree, page: Page, root_node: NavNode | None = None):
         self.tree = tree
         self.page = page
         self._root_node = root_node or tree.root
@@ -331,7 +331,7 @@ class ScaffoldContext:
             return self._wrap_node(self._root_node)
         return getattr(self.tree, key)
 
-    def _wrap_node(self, node: NavTreeNode) -> ScaffoldNodeProxy:
+    def _wrap_node(self, node: NavNode) -> ScaffoldNodeProxy:
         return ScaffoldNodeProxy(node, self)
 
 

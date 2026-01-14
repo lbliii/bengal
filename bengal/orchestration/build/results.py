@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
-    from bengal.utils.observability.logger import Logger
+    from bengal.utils.observability.logger import BengalLogger
 
 
 class RebuildReasonCode(Enum):
@@ -111,7 +111,7 @@ class IncrementalDecision:
                 code=code, details=details or {}
             )
 
-    def log_summary(self, logger: Logger) -> None:
+    def log_summary(self, logger: BengalLogger) -> None:
         """Emit INFO-level summary log."""
         logger.info(
             "incremental_decision",
@@ -121,7 +121,7 @@ class IncrementalDecision:
             asset_changes=self.asset_changes if self.asset_changes else None,
         )
 
-    def log_details(self, logger: Logger) -> None:
+    def log_details(self, logger: BengalLogger) -> None:
         """Emit DEBUG-level per-page breakdown."""
         for page_path, reason in self.rebuild_reasons.items():
             logger.debug(
