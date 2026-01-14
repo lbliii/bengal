@@ -179,14 +179,21 @@ class RenderedOutputCacheMixin:
 
         return cached.get("html")
 
-    def invalidate_rendered_output(self, file_path: Path) -> None:
+    def invalidate_rendered_output(self, file_path: Path) -> bool:
         """
         Remove cached rendered output for a file.
 
         Args:
             file_path: Path to file
+
+        Returns:
+            True if cache entry was removed, False if not present
         """
-        self.rendered_output.pop(str(file_path), None)
+        key = str(file_path)
+        if key in self.rendered_output:
+            del self.rendered_output[key]
+            return True
+        return False
 
     def get_rendered_output_stats(self) -> dict[str, Any]:
         """

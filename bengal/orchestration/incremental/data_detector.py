@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary
@@ -53,6 +53,11 @@ class DataFileDetector:
     Performance:
         O(d) for data file scanning where d = number of data files
         O(p) for dependency lookup where p = number of pages
+    
+    Cache Invalidation:
+        Uses CacheCoordinator for unified cache invalidation when available
+        (RFC: rfc-cache-invalidation-architecture). Falls back to direct
+        cache.invalidate_rendered_output() for backward compatibility.
     """
 
     def __init__(
@@ -60,6 +65,7 @@ class DataFileDetector:
         site: Site,
         cache: BuildCache,
         tracker: DependencyTracker,
+        coordinator: CacheCoordinator | None = None,
     ) -> None:
         """
         Initialize data file detector.
@@ -68,10 +74,12 @@ class DataFileDetector:
             site: Site instance for data directory access
             cache: BuildCache for change detection
             tracker: DependencyTracker for data file dependencies
+            coordinator: Optional CacheCoordinator for unified invalidation
         """
         self.site = site
         self.cache = cache
         self.tracker = tracker
+        self.coordinator = coordinator
 
     def check_data_files(
         self,
@@ -157,6 +165,11 @@ class DataFileDetector:
         Without this, the cached rendered HTML would be served instead
         of re-rendering with fresh data.
 
+        Cache Invalidation:
+            Uses CacheCoordinator for unified invalidation when available
+            (RFC: rfc-cache-invalidation-architecture). Falls back to direct
+            cache.invalidate_rendered_output() for backward compatibility.
+
         Args:
             changed_data_files: List of changed data file paths
             pages_to_rebuild: Set to add affected page paths to
@@ -166,6 +179,8 @@ class DataFileDetector:
         Returns:
             Number of pages added to rebuild set
         """
+        from bengal.cache.coordinator import PageInvalidationReason
+
         pages_added = 0
         pages_with_tracked_deps: set[Path] = set()
 
@@ -188,7 +203,15 @@ class DataFileDetector:
                         )
                 # CRITICAL: Invalidate rendered output cache for this page
                 # Otherwise, cached HTML bypasses template re-rendering
-                self.cache.invalidate_rendered_output(page_path)
+                # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
+                if self.coordinator:
+                    self.coordinator.invalidate_page(
+                        page_path,
+                        PageInvalidationReason.DATA_FILE_CHANGED,
+                        trigger=str(changed_data_files[0]) if changed_data_files else "",
+                    )
+                else:
+                    self.cache.invalidate_rendered_output(page_path)
 
             logger.info(
                 "data_file_dependency_rebuild",
@@ -217,7 +240,15 @@ class DataFileDetector:
                     pages_added += 1
                 # CRITICAL: Invalidate rendered output cache for this page
                 # Otherwise, cached HTML bypasses template re-rendering
-                self.cache.invalidate_rendered_output(page.source_path)
+                # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
+                if self.coordinator:
+                    self.coordinator.invalidate_page(
+                        page.source_path,
+                        PageInvalidationReason.DATA_FILE_CHANGED,
+                        trigger=str(changed_data_files[0]) if changed_data_files else "",
+                    )
+                else:
+                    self.cache.invalidate_rendered_output(page.source_path)
 
             logger.info(
                 "data_file_dependency_rebuild",

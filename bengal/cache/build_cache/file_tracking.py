@@ -301,6 +301,24 @@ class FileTrackingMixin:
 
         return affected
 
+    def invalidate_fingerprint(self, file_path: Path) -> bool:
+        """
+        Remove cached fingerprint for a file.
+
+        This forces re-computation of hash on next access.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            True if fingerprint was removed, False if not present
+        """
+        key = str(file_path)
+        if key in self.file_fingerprints:
+            del self.file_fingerprints[key]
+            return True
+        return False
+
     def invalidate_file(self, file_path: Path) -> None:
         """
         Remove a file from the cache (useful when file is deleted).

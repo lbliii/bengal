@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -43,6 +43,7 @@ class CacheManager:
         site: Site instance for cache operations
         cache: BuildCache instance (None until initialized)
         tracker: DependencyTracker instance (None until initialized)
+        coordinator: CacheCoordinator instance for unified invalidation (None until initialized)
     
     Example:
             >>> manager = CacheManager(site)
@@ -62,14 +63,15 @@ class CacheManager:
         self.site = site
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
+        self.coordinator: CacheCoordinator | None = None
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
         Initialize cache and dependency tracker for incremental builds.
 
-        Sets up BuildCache and DependencyTracker instances. If enabled, loads
-        existing cache from .bengal/cache.json (migrates from legacy location
-        if needed). If disabled, creates empty cache instances.
+        Sets up BuildCache, DependencyTracker, and CacheCoordinator instances.
+        If enabled, loads existing cache from .bengal/cache.json (migrates from
+        legacy location if needed). If disabled, creates empty cache instances.
 
         Args:
             enabled: Whether incremental builds are enabled. If False, creates
@@ -83,12 +85,13 @@ class CacheManager:
             2. Migrate legacy cache from output_dir/.bengal-cache.json if exists
             3. Load or create BuildCache instance
             4. Create DependencyTracker with cache and site
+            5. Create CacheCoordinator for unified invalidation
 
         Example:
             >>> cache, tracker = manager.initialize(enabled=True)
             >>> # Cache loaded from .bengal/cache.json if exists
         """
-        from bengal.cache import BuildCache, DependencyTracker
+        from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
 
         paths = self.site.paths
         cache_path = paths.build_cache
@@ -130,6 +133,10 @@ class CacheManager:
             logger.debug("cache_initialized", enabled=False)
 
         self.tracker = DependencyTracker(self.cache, self.site)
+
+        # Initialize CacheCoordinator for unified page-level invalidation
+        # RFC: rfc-cache-invalidation-architecture
+        self.coordinator = CacheCoordinator(self.cache, self.tracker, self.site)
 
         return self.cache, self.tracker
 

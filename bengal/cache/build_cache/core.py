@@ -94,7 +94,8 @@ class BuildCache(
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 6  # Bumped for Sprint 4 incremental package refactor
+    # Bumped to 7 for CacheCoordinator RFC (canonical path keys)
+    VERSION: int = 7
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION

@@ -487,7 +487,16 @@ def phase_update_pages_list(
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
                 # CRITICAL: Invalidate rendered output cache for taxonomy pages
                 # This ensures fresh rendering with updated member metadata
-                if cache and hasattr(cache, 'invalidate_rendered_output'):
+                # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
+                coordinator = getattr(orchestrator.incremental, 'coordinator', None)
+                if coordinator:
+                    from bengal.cache.coordinator import PageInvalidationReason
+                    coordinator.invalidate_page(
+                        page.source_path,
+                        PageInvalidationReason.TAXONOMY_CASCADE,
+                        trigger=f"tag:{tag_slug}" if tag_slug else "tag-index",
+                    )
+                elif cache and hasattr(cache, 'invalidate_rendered_output'):
                     cache.invalidate_rendered_output(page.source_path)
 
     # Freeze content registry before rendering

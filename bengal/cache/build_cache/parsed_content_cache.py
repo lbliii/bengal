@@ -220,14 +220,21 @@ class ParsedContentCacheMixin:
 
         return cached
 
-    def invalidate_parsed_content(self, file_path: Path) -> None:
+    def invalidate_parsed_content(self, file_path: Path) -> bool:
         """
         Remove cached parsed content for a file.
 
         Args:
             file_path: Path to file
+
+        Returns:
+            True if cache entry was removed, False if not present
         """
-        self.parsed_content.pop(str(file_path), None)
+        key = str(file_path)
+        if key in self.parsed_content:
+            del self.parsed_content[key]
+            return True
+        return False
 
     def get_parsed_content_stats(self) -> dict[str, Any]:
         """

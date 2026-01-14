@@ -31,7 +31,7 @@ from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reaso
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -81,6 +81,7 @@ class IncrementalOrchestrator:
         self.site = site
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
+        self.coordinator: CacheCoordinator | None = None
 
         # Component instances
         self._cache_manager = CacheManager(site)
@@ -99,6 +100,8 @@ class IncrementalOrchestrator:
             Tuple of (BuildCache, DependencyTracker) instances
         """
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
+        # Expose coordinator for use by detectors
+        self.coordinator = self._cache_manager.coordinator
         return self.cache, self.tracker
 
     def check_config_changed(self) -> bool:

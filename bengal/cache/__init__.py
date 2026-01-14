@@ -78,7 +78,14 @@ if TYPE_CHECKING:
         load_compressed,
         save_compressed,
     )
+    from bengal.cache.coordinator import (
+        CacheCoordinator,
+        InvalidationEvent,
+        PageInvalidationReason,
+    )
     from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.cache.manifest import RebuildEntry, RebuildManifest
+    from bengal.cache.path_registry import PathRegistry
     from bengal.cache.query_index import IndexEntry, QueryIndex
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.cache.utils import (
@@ -91,12 +98,18 @@ __all__ = [
     "BengalPaths",
     "BuildCache",
     "Cacheable",
+    "CacheCoordinator",
     "CacheStore",
     "COMPRESSION_LEVEL",
     "DependencyTracker",
     "IndexEntry",
+    "InvalidationEvent",
+    "PageInvalidationReason",
+    "PathRegistry",
     "QueryIndex",
     "QueryIndexRegistry",
+    "RebuildEntry",
+    "RebuildManifest",
     "STATE_DIR_NAME",
     "clear_build_cache",
     "clear_output_directory",
@@ -120,8 +133,17 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "COMPRESSION_LEVEL": ("bengal.cache.compression", "COMPRESSION_LEVEL"),
     "load_compressed": ("bengal.cache.compression", "load_compressed"),
     "save_compressed": ("bengal.cache.compression", "save_compressed"),
+    # Cache coordinator (RFC: Cache Invalidation Architecture)
+    "CacheCoordinator": ("bengal.cache.coordinator", "CacheCoordinator"),
+    "InvalidationEvent": ("bengal.cache.coordinator", "InvalidationEvent"),
+    "PageInvalidationReason": ("bengal.cache.coordinator", "PageInvalidationReason"),
     # Dependency tracker
     "DependencyTracker": ("bengal.cache.dependency_tracker", "DependencyTracker"),
+    # Rebuild manifest (RFC: Cache Invalidation Architecture)
+    "RebuildEntry": ("bengal.cache.manifest", "RebuildEntry"),
+    "RebuildManifest": ("bengal.cache.manifest", "RebuildManifest"),
+    # Path registry (RFC: Cache Invalidation Architecture)
+    "PathRegistry": ("bengal.cache.path_registry", "PathRegistry"),
     # Query index
     "IndexEntry": ("bengal.cache.query_index", "IndexEntry"),
     "QueryIndex": ("bengal.cache.query_index", "QueryIndex"),
