@@ -157,11 +157,26 @@ def classify_output(path: Path, metadata: dict | None = None) -> OutputType:
 
 #### 2. Content Hash Embedding
 
-Embed content hashes in HTML output for validation:
+Embed content hashes in HTML output for validation. **Key insight**: Compute hash 
+on *rendered content* before final formatting, then embed during `format_html()`.
+
+##### Timestamp Exclusion Strategy
+
+Bengal pages may display dates in templates (e.g., "Last updated: Jan 14, 2026"),
+but these come from frontmatter metadata (`date`, `lastmod`) - not dynamically 
+injected at render time. The hash is computed on:
+
+1. **Rendered HTML content** (after template rendering)
+2. **Before `format_html()` post-processing** (minification, etc.)
+
+This means dates displayed in templates ARE included in the hash (correctly - they
+represent actual content), but the hash excludes:
+- Build timestamps (not in output)
+- File system mtimes (handled separately)
 
 ```python
-import hashlib
 from typing import NamedTuple
+from bengal.utils.primitives.hashing import hash_str  # Reuse existing utility
 
 class ContentHash(NamedTuple):
     """Content hash with metadata."""
@@ -171,46 +186,97 @@ class ContentHash(NamedTuple):
 
 
 def compute_content_hash(content: str, truncate: int = 16) -> str:
-    """Compute deterministic hash of content."""
-    return hashlib.sha256(content.encode()).hexdigest()[:truncate]
-
-
-def embed_content_hash(html: str, content_hash: str) -> str:
-    """Embed content hash in HTML meta tag.
+    """Compute deterministic hash of content.
     
-    Inserts after <head> tag:
-    <meta name="bengal:content-hash" content="a1b2c3d4e5f6g7h8">
-    
-    This enables:
-    - Fast validation without reading full file
-    - ReloadController to detect actual content changes
-    - Cache validation at output level
+    Uses existing hash_str utility from bengal.utils.primitives.hashing.
     """
+    return hash_str(content, truncate=truncate)
+```
+
+##### Integration Point: format_html()
+
+Instead of fragile string manipulation, integrate hash embedding into the 
+existing `format_html()` pipeline in `bengal/rendering/pipeline/output.py`:
+
+```python
+# bengal/rendering/pipeline/output.py
+
+def format_html(html: str, page: Page, site: Site) -> str:
+    """Format HTML output (minify/pretty) with content hash embedding.
+    
+    Hash is computed BEFORE formatting to ensure deterministic results.
+    This is the correct integration point because:
+    1. All template rendering is complete
+    2. Content is stable (no more transformations)
+    3. We have access to Page metadata for output type classification
+    """
+    from bengal.utils.primitives.hashing import hash_str
+    
+    # Compute content hash BEFORE any formatting
+    # This ensures identical content always produces identical hash
+    content_hash = hash_str(html, truncate=16)
+    
+    # Embed hash in HTML (template-layer approach)
+    if site.config.get("build", {}).get("content_hash_in_html", True):
+        html = _embed_content_hash_safe(html, content_hash)
+    
+    # Continue with existing formatting logic...
+    try:
+        from bengal.postprocess.html_output import format_html_output
+        # ... (existing implementation)
+
+
+def _embed_content_hash_safe(html: str, content_hash: str) -> str:
+    """Embed content hash using safe template-aware insertion.
+    
+    Handles edge cases:
+    - Missing <head> tag → skip embedding (don't break output)
+    - Uppercase/whitespace variants → normalize matching
+    - Already has hash → update existing
+    """
+    import re
+    
     meta_tag = f'<meta name="bengal:content-hash" content="{content_hash}">'
     
-    # Insert after <head> tag
-    if "<head>" in html:
-        return html.replace("<head>", f"<head>\n    {meta_tag}", 1)
-    elif "<head " in html:
-        # Handle <head lang="en"> etc.
-        idx = html.find("<head ")
-        end_idx = html.find(">", idx)
-        return html[:end_idx+1] + f"\n    {meta_tag}" + html[end_idx+1:]
+    # Remove existing hash if present (for rebuilds)
+    html = re.sub(
+        r'<meta\s+name="bengal:content-hash"\s+content="[a-f0-9]+"[^>]*>\s*',
+        '',
+        html,
+        flags=re.IGNORECASE
+    )
     
-    return html  # No <head> tag, return unchanged
+    # Find <head> tag (case-insensitive, handle attributes)
+    head_match = re.search(r'<head[^>]*>', html, re.IGNORECASE)
+    if head_match:
+        insert_pos = head_match.end()
+        return html[:insert_pos] + f"\n    {meta_tag}" + html[insert_pos:]
+    
+    # No <head> tag found - log warning and return unchanged
+    # (This shouldn't happen for valid HTML, but don't break output)
+    from bengal.utils.observability.logger import get_logger
+    logger = get_logger(__name__)
+    logger.debug("content_hash_embed_skipped", reason="no_head_tag")
+    return html
 
 
 def extract_content_hash(html: str) -> str | None:
     """Extract content hash from HTML meta tag.
     
     Returns None if no hash found (old/external content).
+    Handles case-insensitive matching and attribute order variations.
     """
     import re
-    match = re.search(
+    # Match both attribute orders: name then content, or content then name
+    patterns = [
         r'<meta\s+name="bengal:content-hash"\s+content="([a-f0-9]+)"',
-        html
-    )
-    return match.group(1) if match else None
+        r'<meta\s+content="([a-f0-9]+)"\s+name="bengal:content-hash"',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, html, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    return None
 ```
 
 #### 3. Generated Page Output Cache
@@ -360,24 +426,41 @@ class GeneratedPageCache:
 
 #### 4. Enhanced ReloadController
 
-Smarter reload decisions based on content hashes:
+Extend the existing `ReloadController` in `bengal/server/reload_controller.py` 
+rather than replacing it. This preserves existing throttling, ignore patterns, 
+and the `hash_on_suspect` feature while adding content-hash awareness.
+
+##### Design: Extend, Don't Replace
+
+The existing `ReloadController` already has:
+- Throttling (`min_notify_interval_ms`)
+- Ignore patterns (`ignored_globs`)
+- Suspect hash verification (`hash_on_suspect`)
+- Thread-safe configuration (`_config_lock`)
+
+We enhance it with content-hash based change detection:
 
 ```python
+# bengal/server/reload_controller.py (enhanced)
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
 @dataclass
-class ReloadDecision:
-    """Result of reload analysis."""
+class EnhancedReloadDecision:
+    """Extended reload decision with output type breakdown.
     
-    action: Literal["none", "reload", "css"]
+    Extends existing ReloadDecision to categorize changes by type.
+    """
+    action: Literal["none", "reload", "reload-css"]
     reason: str
+    changed_paths: list[str] = field(default_factory=list)
     
-    # Detailed change breakdown
-    content_changes: list[Path] = field(default_factory=list)
-    aggregate_changes: list[Path] = field(default_factory=list)
-    asset_changes: list[Path] = field(default_factory=list)
+    # NEW: Detailed change breakdown by output type
+    content_changes: list[str] = field(default_factory=list)
+    aggregate_changes: list[str] = field(default_factory=list)
+    asset_changes: list[str] = field(default_factory=list)
     
     @property
     def meaningful_change_count(self) -> int:
@@ -385,117 +468,164 @@ class ReloadDecision:
         return len(self.content_changes) + len(self.asset_changes)
 
 
-class ContentHashReloadController:
-    """ReloadController that uses content hashes for change detection.
+class ReloadController:
+    """Intelligent reload decision engine (enhanced with content hashing).
     
-    Instead of comparing file mtimes (noisy, always different after regen),
-    compares content hashes embedded in HTML files.
+    ENHANCEMENT: Now supports content-hash based change detection in addition
+    to mtime-based detection. Content hashes provide accurate change detection
+    that ignores regeneration noise.
     
-    Benefits:
-    - Detects actual content changes, not just regeneration
-    - Ignores timestamp-only changes
-    - Provides accurate change reporting
-    - Enables smarter hot reload decisions
+    New Features (RFC: Output Cache Architecture):
+    - Extract content hashes from bengal:content-hash meta tags
+    - Categorize changes by output type (content vs aggregate)
+    - Skip reload for aggregate-only changes (sitemap, feeds)
+    
+    Thread Safety:
+        IMPORTANT: capture_baseline() must complete BEFORE build starts.
+        Call sequence: capture_baseline() → build() → analyze_with_hashes()
     """
     
-    def __init__(self):
-        self.baseline_hashes: dict[str, str] = {}  # path → content_hash
-        self.output_types: dict[str, OutputType] = {}  # path → type
+    def __init__(
+        self,
+        min_notify_interval_ms: int = 300,
+        ignored_globs: list[str] | None = None,
+        hash_on_suspect: bool = True,
+        suspect_hash_limit: int = 200,
+        suspect_size_limit_bytes: int = 2_000_000,
+        # NEW: Content hash mode
+        use_content_hashes: bool = False,
+    ) -> None:
+        # ... existing initialization ...
+        self._use_content_hashes = use_content_hashes
+        self._baseline_content_hashes: dict[str, str] = {}
+        self._output_types: dict[str, OutputType] = {}
     
-    def capture_baseline(self, output_dir: Path) -> None:
-        """Capture content hashes before build for comparison."""
-        self.baseline_hashes.clear()
-        self.output_types.clear()
+    def capture_content_hash_baseline(self, output_dir: Path) -> None:
+        """Capture content hashes before build for comparison.
+        
+        IMPORTANT: Must be called BEFORE build starts to establish baseline.
+        Build writes may overlap with this scan if called during build.
+        
+        Args:
+            output_dir: Path to output directory (e.g., public/)
+        """
+        self._baseline_content_hashes.clear()
+        self._output_types.clear()
         
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
-            content = html_file.read_text(errors="ignore")
-            
-            # Extract embedded hash (fast) or compute (slower)
-            hash_val = extract_content_hash(content)
-            if hash_val is None:
-                hash_val = compute_content_hash(content)
-            
-            self.baseline_hashes[rel_path] = hash_val
-            self.output_types[rel_path] = classify_output(html_file)
+            try:
+                content = html_file.read_text(errors="ignore")
+                
+                # Extract embedded hash (O(1) regex) or compute (O(n) hash)
+                hash_val = extract_content_hash(content)
+                if hash_val is None:
+                    hash_val = compute_content_hash(content)
+                
+                self._baseline_content_hashes[rel_path] = hash_val
+                self._output_types[rel_path] = classify_output(html_file)
+            except OSError:
+                # File may have been deleted during scan - skip
+                continue
     
-    def analyze_changes(self, output_dir: Path) -> ReloadDecision:
-        """Analyze changes after build and decide reload action.
+    def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision:
+        """Analyze changes using content hashes for accurate detection.
         
         Compares content hashes instead of mtimes for accurate detection.
         Categorizes changes by output type for clear reporting.
-        """
-        content_changes: list[Path] = []
-        aggregate_changes: list[Path] = []
-        asset_changes: list[Path] = []
         
-        # Check all HTML files
+        Returns:
+            EnhancedReloadDecision with action and categorized changes.
+        """
+        content_changes: list[str] = []
+        aggregate_changes: list[str] = []
+        asset_changes: list[str] = []
+        
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
-            content = html_file.read_text(errors="ignore")
+            try:
+                content = html_file.read_text(errors="ignore")
+            except OSError:
+                continue
             
             current_hash = extract_content_hash(content)
             if current_hash is None:
                 current_hash = compute_content_hash(content)
             
-            baseline_hash = self.baseline_hashes.get(rel_path)
+            baseline_hash = self._baseline_content_hashes.get(rel_path)
             
             # New file or changed content
             if baseline_hash is None or current_hash != baseline_hash:
-                output_type = self.output_types.get(
+                output_type = self._output_types.get(
                     rel_path, 
                     classify_output(html_file)
                 )
                 
                 if output_type in (OutputType.CONTENT_PAGE, OutputType.GENERATED_PAGE):
-                    content_changes.append(html_file)
+                    content_changes.append(rel_path)
                 elif output_type in (OutputType.AGGREGATE_INDEX, OutputType.AGGREGATE_FEED, OutputType.AGGREGATE_TEXT):
-                    aggregate_changes.append(html_file)
+                    aggregate_changes.append(rel_path)
                 elif output_type == OutputType.ASSET:
-                    asset_changes.append(html_file)
+                    asset_changes.append(rel_path)
         
-        # Check for CSS changes (CSS-only hot reload)
-        css_only = (
-            len(content_changes) == 0 and
-            len(aggregate_changes) == 0 and
-            self._check_css_changes(output_dir)
-        )
-        
-        # Decide action
-        if css_only:
-            return ReloadDecision(
-                action="css",
-                reason="css-only-change",
-                asset_changes=asset_changes,
+        # Apply throttling (reuse existing mechanism)
+        now = self._now_ms()
+        if now - self._last_notify_time_ms < self._min_interval_ms:
+            return EnhancedReloadDecision(
+                action="none", 
+                reason="throttled",
+                changed_paths=[],
             )
         
+        # CSS-only reload
+        css_changes = self._check_css_changes_hashed(output_dir)
+        if not content_changes and not aggregate_changes and css_changes:
+            self._last_notify_time_ms = now
+            return EnhancedReloadDecision(
+                action="reload-css",
+                reason="css-only",
+                changed_paths=css_changes[:MAX_CHANGED_PATHS_TO_SEND],
+                asset_changes=css_changes,
+            )
+        
+        # Content changed - full reload
         if content_changes:
-            return ReloadDecision(
+            self._last_notify_time_ms = now
+            all_changes = content_changes + aggregate_changes + asset_changes
+            return EnhancedReloadDecision(
                 action="reload",
                 reason="content-changed",
+                changed_paths=all_changes[:MAX_CHANGED_PATHS_TO_SEND],
                 content_changes=content_changes,
                 aggregate_changes=aggregate_changes,
                 asset_changes=asset_changes,
             )
         
-        # Only aggregate files changed - no reload needed
-        # (sitemap, feeds, etc. don't affect visible page content)
+        # Aggregate-only changes - no reload needed
         if aggregate_changes and not content_changes:
-            return ReloadDecision(
+            return EnhancedReloadDecision(
                 action="none",
                 reason="aggregate-only-changes",
+                changed_paths=[],
                 aggregate_changes=aggregate_changes,
             )
         
-        return ReloadDecision(
+        return EnhancedReloadDecision(
             action="none",
             reason="no-changes",
+            changed_paths=[],
         )
     
-    def _check_css_changes(self, output_dir: Path) -> bool:
-        """Check if CSS files changed."""
-        # Implementation: Compare CSS file hashes
-        return False
+    def _check_css_changes_hashed(self, output_dir: Path) -> list[str]:
+        """Check CSS files for content changes."""
+        changed = []
+        for css_file in output_dir.rglob("*.css"):
+            rel_path = str(css_file.relative_to(output_dir))
+            # Use existing hash_file utility
+            current_hash = hash_file(css_file, truncate=16)
+            if self._baseline_content_hashes.get(rel_path) != current_hash:
+                changed.append(rel_path)
+        return changed
 ```
 
 #### 5. Content Hash Registry

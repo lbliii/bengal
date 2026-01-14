@@ -5,6 +5,7 @@ Serialization round-trip tests for DocElement typed_metadata.
 from __future__ import annotations
 
 from bengal.autodoc.base import DocElement
+from bengal.errors import BengalCacheError
 from bengal.autodoc.models import (
     CLICommandMetadata,
     CLIGroupMetadata,
@@ -581,7 +582,7 @@ class TestDeserializationErrors:
             "deprecated": None,
         }
 
-        with pytest.raises(TypeError, match="Autodoc cache format mismatch"):
+        with pytest.raises(BengalCacheError, match="Autodoc cache format mismatch"):
             DocElement.from_dict(data)
 
     def test_from_dict_with_string_parsed_doc_params_raises_clear_error(self) -> None:
@@ -632,7 +633,7 @@ class TestDeserializationErrors:
             "deprecated": None,
         }
 
-        with pytest.raises(TypeError, match="Autodoc cache format mismatch"):
+        with pytest.raises(BengalCacheError, match="Autodoc cache format mismatch"):
             DocElement.from_dict(data)
 
     def test_error_message_includes_cache_clear_hint(self) -> None:
@@ -668,9 +669,9 @@ class TestDeserializationErrors:
             "deprecated": None,
         }
 
-        with pytest.raises(TypeError) as exc_info:
+        with pytest.raises(BengalCacheError) as exc_info:
             DocElement.from_dict(data)
 
-        # Verify helpful error message
-        assert "rm -rf .bengal/cache/" in str(exc_info.value)
-        assert "older version" in str(exc_info.value)
+        # Verify helpful error message - now in suggestion field
+        assert "cache" in exc_info.value.suggestion.lower()
+        assert exc_info.value.code.name == "A001"

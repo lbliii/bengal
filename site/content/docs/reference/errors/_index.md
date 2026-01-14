@@ -23,14 +23,17 @@ Bengal has two code systems:
 | Prefix | Category | Description |
 |--------|----------|-------------|
 | A | Cache | Build cache operations errors |
+| B | Build | Build orchestration and post-processing errors |
 | C | Config | Configuration loading and validation errors |
 | D | Discovery | Content and section discovery errors |
 | G | Graph | Graph analysis errors |
 | N | Content | Content file parsing and frontmatter errors |
+| O | Autodoc | Autodoc extraction and generation errors |
 | P | Parsing | YAML, JSON, TOML, and markdown parsing errors |
 | R | Rendering | Template rendering and output generation errors |
 | S | Server | Development server errors |
 | T | Template Function | Shortcode, directive, and icon errors |
+| V | Validator | Health check and validation errors |
 | X | Asset | Static asset processing errors |
 
 ---
@@ -121,6 +124,159 @@ Could not acquire cache lock within timeout period.
 **How to Fix**
 1. Wait for other builds to complete
 2. Delete `.bengal/cache/*.lock` files if no builds are running
+
+---
+
+## Build Errors (Bxxx) {#build}
+
+### B001: Build Phase Failed {#b001}
+
+A build phase failed to complete successfully.
+
+**Common Causes**
+- Error in content processing
+- Template rendering failure
+- Asset processing error
+
+**How to Fix**
+1. Check build logs for specific errors
+2. Run `bengal build --verbose` for details
+3. Fix the underlying error in the failed phase
+
+---
+
+### B002: Parallel Processing Error {#b002}
+
+Error occurred during parallel processing.
+
+**Common Causes**
+- Worker process crashed
+- Resource exhaustion
+- Race condition in parallel code
+
+**How to Fix**
+1. Try running with `--jobs 1` to isolate the issue
+2. Check for memory limits
+3. Review parallel processing logs
+
+---
+
+### B003: Incremental Build Failed {#b003}
+
+Incremental build detection or cache failed.
+
+**Common Causes**
+- Cache corruption
+- File tracking error
+- Dependency detection failure
+
+**How to Fix**
+1. Clear cache and rebuild: `bengal clean --cache && bengal build`
+2. Run full build: `bengal build --no-cache`
+
+---
+
+### B004: Menu Build Failed {#b004}
+
+Failed to build navigation menus.
+
+**Common Causes**
+- Invalid menu configuration
+- Referenced pages don't exist
+- Menu structure error
+
+**How to Fix**
+1. Check menu configuration in `bengal.toml`
+2. Verify menu item paths are correct
+3. Review menu YAML syntax
+
+---
+
+### B005: Taxonomy Collection Failed {#b005}
+
+Failed to collect taxonomy (tags, categories).
+
+**Common Causes**
+- Invalid taxonomy values in frontmatter
+- Taxonomy configuration error
+
+**How to Fix**
+1. Check taxonomy values are lists: `tags: [a, b, c]`
+2. Verify taxonomy configuration
+
+---
+
+### B006: Taxonomy Page Generation Failed {#b006}
+
+Failed to generate taxonomy pages.
+
+**Common Causes**
+- Taxonomy template error
+- Output path conflict
+
+**How to Fix**
+1. Check taxonomy templates exist
+2. Review for URL collisions with taxonomy paths
+
+---
+
+### B007: Asset Processing Failed {#b007}
+
+Failed to process static assets.
+
+**Common Causes**
+- Asset file corrupted
+- Processing tool error
+- Disk space issue
+
+**How to Fix**
+1. Check asset files are valid
+2. Verify disk space
+3. Review asset processing logs
+
+---
+
+### B008: Post-Process Task Failed {#b008}
+
+A post-processing task failed.
+
+**Common Causes**
+- Post-processor raised error
+- Invalid output from post-processor
+
+**How to Fix**
+1. Check post-processor configuration
+2. Review error message for specific failure
+
+---
+
+### B009: Section Finalization Failed {#b009}
+
+Failed to finalize section structure.
+
+**Common Causes**
+- Section hierarchy error
+- Missing section index
+
+**How to Fix**
+1. Ensure all sections have `_index.md`
+2. Check section hierarchy
+
+---
+
+### B010: Cache Initialization Failed {#b010}
+
+Failed to initialize build cache or trackers.
+
+**Common Causes**
+- Disk permissions issue
+- Cache directory locked
+- Corrupted cache state
+
+**How to Fix**
+1. Check write permissions on `.bengal/` directory
+2. Clear cache: `rm -rf .bengal/cache/`
+3. Ensure no other Bengal processes are running
 
 ---
 
@@ -462,6 +618,104 @@ Graph analysis computation failed.
 1. Reduce graph size if possible
 2. Increase available memory
 3. Rebuild the site from scratch
+
+---
+
+## Autodoc Errors (Oxxx) {#autodoc}
+
+### O001: Autodoc Extraction Failed {#o001}
+
+Failed to extract documentation from source files.
+
+**Common Causes**
+- Source module has syntax errors
+- Module cannot be imported
+- Missing dependencies in source module
+
+**How to Fix**
+1. Check source module for syntax errors: `python -m py_compile module.py`
+2. Ensure all imports in the source module are available
+3. Review autodoc configuration for correct source paths
+
+---
+
+### O002: Autodoc Syntax Error {#o002}
+
+Python syntax error in source file being documented.
+
+**Common Causes**
+- Invalid Python syntax in source file
+- Incomplete code (missing parentheses, brackets)
+- Encoding issues
+
+**How to Fix**
+1. Run `python -m py_compile <source_file>` to find syntax errors
+2. Fix the syntax errors in the source file
+3. Check file encoding is UTF-8
+
+---
+
+### O003: OpenAPI Parse Failed {#o003}
+
+Failed to parse OpenAPI specification file.
+
+**Common Causes**
+- Invalid YAML or JSON syntax
+- OpenAPI specification validation errors
+- Missing required OpenAPI fields
+
+**How to Fix**
+1. Validate with: `npx @redocly/cli lint openapi.yaml`
+2. Check YAML/JSON syntax is correct
+3. Ensure required OpenAPI fields are present
+
+---
+
+### O004: CLI Load Failed {#o004}
+
+Failed to load CLI application for documentation.
+
+**Common Causes**
+- CLI module cannot be imported
+- Missing dependencies
+- CLI application throws error on import
+
+**How to Fix**
+1. Verify CLI module can be imported: `python -c "import your_cli"`
+2. Install missing dependencies
+3. Check CLI initialization doesn't have side effects
+
+---
+
+### O005: Invalid Autodoc Source {#o005}
+
+Autodoc source path or location is invalid.
+
+**Common Causes**
+- Source path doesn't exist
+- Source is not a Python module
+- Incorrect path in autodoc configuration
+
+**How to Fix**
+1. Verify source path exists
+2. Check autodoc configuration for typos
+3. Ensure source is importable as a Python module
+
+---
+
+### O006: No Elements Produced {#o006}
+
+Autodoc extraction produced no documentation elements.
+
+**Common Causes**
+- Source module has no documented items
+- Filtering excludes all items
+- Public API detection found nothing
+
+**How to Fix**
+1. Add docstrings to public functions/classes
+2. Review autodoc filtering configuration
+3. Ensure `__all__` is defined if using public API detection
 
 ---
 
@@ -1211,6 +1465,103 @@ themes/my-theme/assets/icons/
 ```
 
 See [Icon Reference](/docs/reference/icons/#custom-icons) for SVG format requirements and configuration options.
+
+---
+
+## Validator Errors (Vxxx) {#validator}
+
+### V001: Validator Crashed {#v001}
+
+A health validator raised an unhandled exception.
+
+**Common Causes**
+- Bug in validator implementation
+- Unexpected data format
+- Missing dependencies
+
+**How to Fix**
+1. Run `bengal validate --verbose` for details
+2. Report the issue if it persists
+3. Use `--ignore V001` to skip temporarily
+
+---
+
+### V002: Health Check Failed {#v002}
+
+Health check `run()` method failed.
+
+**Common Causes**
+- Validator encountered an error
+- Invalid site state for validation
+
+**How to Fix**
+1. Check build output for related errors
+2. Ensure site builds successfully before validation
+3. Review specific validator error message
+
+---
+
+### V003: Autofix Failed {#v003}
+
+Auto-fix operation failed to complete.
+
+**Common Causes**
+- Cannot modify source files
+- Fix would break other content
+- Permissions issue
+
+**How to Fix**
+1. Check file permissions
+2. Apply fixes manually
+3. Review autofix suggestion
+
+---
+
+### V004: Link Check Timeout {#v004}
+
+External link check timed out.
+
+**Common Causes**
+- Slow network connection
+- Remote server is slow
+- Too many external links
+
+**How to Fix**
+1. Increase timeout: `bengal validate --linkcheck-timeout 60`
+2. Skip external checks: `bengal validate --ignore H202`
+3. Check network connectivity
+
+---
+
+### V005: Link Check Network Error {#v005}
+
+Network error during link verification.
+
+**Common Causes**
+- No internet connection
+- DNS resolution failed
+- Firewall blocking requests
+
+**How to Fix**
+1. Check network connectivity
+2. Verify URL is correct
+3. Try accessing URL manually
+
+---
+
+### V006: Graph Analysis Failed {#v006}
+
+Graph analysis failed during health check.
+
+**Common Causes**
+- Knowledge graph not built
+- Graph corruption
+- Memory issues
+
+**How to Fix**
+1. Ensure site builds successfully first
+2. Rebuild from scratch
+3. Check for circular references
 
 ---
 
