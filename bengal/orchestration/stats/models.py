@@ -114,6 +114,11 @@ class BuildStats:
     # Health check report (set after health checks run)
     health_report: HealthReport | None = None
 
+    # Incremental build decision (set during phase_incremental_filter)
+    # RFC: rfc-incremental-build-observability
+    incremental_decision: Any = None  # IncrementalDecision when set
+    filter_decision_log: Any = None  # FilterDecisionLog when set
+
     # Warnings and errors
     warnings: list[Any] = field(default_factory=list)
     template_errors: list[Any] = field(

@@ -188,18 +188,46 @@ class AutodocTrackingMixin:
         incorrect, Bengal will detect stale autodoc sources and rebuild
         affected pages.
 
+        RFC: rfc-incremental-build-observability
+        When BENGAL_STRICT_INCREMENTAL is set to 'warn' or 'error', this
+        method will log warnings or raise errors when fallback paths are used.
+
         Args:
             site_root: Site root path for resolving relative paths
 
         Returns:
             Set of source file paths whose content has changed since caching
         """
+        from bengal.config.environment import (
+            StrictIncrementalMode,
+            get_strict_incremental_mode,
+        )
         from bengal.utils.primitives.hashing import hash_file
 
         # Handle cache migration: old caches have dependencies but no metadata
         # Instead of marking all as stale (which triggers full autodoc rebuild),
         # use file fingerprints as fallback if they exist.
         if not self.autodoc_source_metadata and self.autodoc_dependencies:
+            # RFC: rfc-incremental-build-observability - Strict mode check
+            mode = get_strict_incremental_mode()
+
+            if mode == StrictIncrementalMode.ERROR:
+                from bengal.errors import BengalCacheError
+
+                raise BengalCacheError(
+                    "Autodoc source metadata empty but dependencies present.\n"
+                    "This triggers fingerprint fallback which may be slower.\n"
+                    "Fix: Ensure metadata is saved via add_autodoc_dependency().\n"
+                    "Disable check: unset BENGAL_STRICT_INCREMENTAL"
+                )
+            elif mode == StrictIncrementalMode.WARN:
+                logger.warning(
+                    "autodoc_metadata_fallback",
+                    msg="Using fingerprint fallback (metadata unavailable)",
+                    source_count=len(self.autodoc_dependencies),
+                    hint="Set BENGAL_STRICT_INCREMENTAL=error to make this an error",
+                )
+
             # Check if we have fingerprints to use as fallback
             has_fingerprints = hasattr(self, 'file_fingerprints') and self.file_fingerprints
             if has_fingerprints:

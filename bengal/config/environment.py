@@ -20,6 +20,7 @@ Detection Priority:
 Key Functions:
     detect_environment: Detect current deployment environment.
     get_environment_file_candidates: Get candidate filenames for environment config.
+    get_strict_incremental_mode: Get strict incremental debugging mode.
 
 Example:
     >>> import os
@@ -37,6 +38,7 @@ See Also:
 from __future__ import annotations
 
 import os
+from enum import Enum
 
 
 def detect_environment() -> str:
@@ -100,6 +102,79 @@ def detect_environment() -> str:
 
     # 5. Default: local development
     return "local"
+
+
+class StrictIncrementalMode(Enum):
+    """Strict mode levels for incremental build debugging.
+
+    RFC: rfc-incremental-build-observability
+
+    Used to surface fallback usage during incremental builds for debugging.
+    Set via BENGAL_STRICT_INCREMENTAL environment variable.
+
+    Values:
+        OFF: Normal operation (silent fallbacks)
+        WARN: Log warnings when fallbacks are used
+        ERROR: Raise errors when fallbacks are used
+    """
+
+    OFF = "off"
+    WARN = "warn"
+    ERROR = "error"
+
+
+def get_strict_incremental_mode() -> StrictIncrementalMode:
+    """
+    Get the strict incremental mode from environment.
+
+    RFC: rfc-incremental-build-observability
+
+    The strict incremental mode controls how Bengal handles fallback
+    paths in incremental builds. This is useful for debugging cache
+    issues where fallbacks might mask problems.
+
+    Environment Variable:
+        ``BENGAL_STRICT_INCREMENTAL``: Set to "off", "warn", or "error".
+
+    Returns:
+        StrictIncrementalMode enum value.
+
+    Example:
+        >>> import os
+        >>> os.environ["BENGAL_STRICT_INCREMENTAL"] = "warn"
+        >>> get_strict_incremental_mode()
+        <StrictIncrementalMode.WARN: 'warn'>
+
+    """
+    value = os.environ.get("BENGAL_STRICT_INCREMENTAL", "off").lower()
+    try:
+        return StrictIncrementalMode(value)
+    except ValueError:
+        return StrictIncrementalMode.OFF
+
+
+def is_strict_incremental() -> bool:
+    """
+    Check if strict incremental mode is enabled (warn or error).
+
+    RFC: rfc-incremental-build-observability
+
+    Convenience function to check if any form of strict mode is active.
+
+    Returns:
+        True if strict mode is WARN or ERROR, False otherwise.
+
+    Example:
+        >>> import os
+        >>> os.environ["BENGAL_STRICT_INCREMENTAL"] = "warn"
+        >>> is_strict_incremental()
+        True
+        >>> os.environ["BENGAL_STRICT_INCREMENTAL"] = "off"
+        >>> is_strict_incremental()
+        False
+
+    """
+    return get_strict_incremental_mode() != StrictIncrementalMode.OFF
 
 
 def get_environment_file_candidates(environment: str) -> list[str]:

@@ -128,6 +128,9 @@ class FilterDecisionLog:
 
     Tracks every decision point in the filtering pipeline for
     observability and debugging.
+
+    RFC: rfc-incremental-build-observability
+    Added layer-specific trace fields for enhanced debugging.
     """
 
     # Mode checks
@@ -156,6 +159,32 @@ class FilterDecisionLog:
     decision_type: FilterDecisionType = FilterDecisionType.INCREMENTAL
     full_rebuild_trigger: FullRebuildTrigger | None = None
 
+    # ==========================================================================
+    # Layer Trace Fields (RFC: rfc-incremental-build-observability)
+    # ==========================================================================
+
+    # Layer 1: Data files
+    data_files_checked: int = 0
+    data_files_changed: int = 0
+    data_file_fingerprints_available: bool = True
+    data_file_fallback_used: bool = False
+
+    # Layer 2: autodoc
+    autodoc_metadata_available: bool = True
+    autodoc_fingerprint_fallback_used: bool = False
+    autodoc_sources_total: int = 0
+    autodoc_sources_stale: int = 0
+    autodoc_stale_method: str = ""  # "metadata" | "fingerprint" | "all_stale"
+
+    # Layer 3: Section optimization
+    sections_total: int = 0
+    sections_marked_changed: list[str] = field(default_factory=list)
+    section_change_reasons: dict[str, str] = field(default_factory=dict)
+
+    # Layer 4: Page filtering
+    pages_in_changed_sections: int = 0
+    pages_filtered_by_section: int = 0
+
     def to_dict(self) -> dict:
         """Convert to dict for JSON serialization."""
         return {
@@ -174,7 +203,116 @@ class FilterDecisionLog:
             "full_rebuild_trigger": (
                 self.full_rebuild_trigger.value if self.full_rebuild_trigger else None
             ),
+            # Layer trace fields
+            "layer_trace": {
+                "data_files": {
+                    "checked": self.data_files_checked,
+                    "changed": self.data_files_changed,
+                    "fingerprints_available": self.data_file_fingerprints_available,
+                    "fallback_used": self.data_file_fallback_used,
+                },
+                "autodoc": {
+                    "sources_total": self.autodoc_sources_total,
+                    "sources_stale": self.autodoc_sources_stale,
+                    "metadata_available": self.autodoc_metadata_available,
+                    "fingerprint_fallback_used": self.autodoc_fingerprint_fallback_used,
+                    "stale_method": self.autodoc_stale_method or None,
+                },
+                "sections": {
+                    "total": self.sections_total,
+                    "changed": self.sections_marked_changed,
+                    "change_reasons": self.section_change_reasons or None,
+                },
+                "page_filtering": {
+                    "in_changed_sections": self.pages_in_changed_sections,
+                    "filtered_out": self.pages_filtered_by_section,
+                },
+            },
         }
+
+    def to_trace_output(self) -> str:
+        """Generate human-readable layer trace for --explain.
+
+        RFC: rfc-incremental-build-observability
+
+        Returns:
+            Multi-line string with formatted decision trace
+        """
+        lines = [
+            "",
+            "═══════════════════════════════════════════════════════════════",
+            "                    DECISION TRACE                              ",
+            "═══════════════════════════════════════════════════════════════",
+            "",
+            f"Decision: {self.decision_type.name}",
+        ]
+
+        if self.full_rebuild_trigger:
+            lines.append(f"  Trigger: {self.full_rebuild_trigger.value}")
+
+        lines.extend(
+            [
+                "",
+                "───────────────────────────────────────────────────────────────",
+                "Layer 1: Data Files",
+                "───────────────────────────────────────────────────────────────",
+                f"  Checked:     {self.data_files_checked}",
+                f"  Changed:     {self.data_files_changed}",
+                f"  Fingerprints available: {'✓' if self.data_file_fingerprints_available else '✗'}",
+            ]
+        )
+        if self.data_file_fallback_used:
+            lines.append("  ⚠ Fallback used (fingerprints unavailable)")
+
+        lines.extend(
+            [
+                "",
+                "───────────────────────────────────────────────────────────────",
+                "Layer 2: Autodoc",
+                "───────────────────────────────────────────────────────────────",
+                f"  Sources tracked: {self.autodoc_sources_total}",
+                f"  Sources stale:   {self.autodoc_sources_stale}",
+                f"  Metadata available: {'✓' if self.autodoc_metadata_available else '✗'}",
+            ]
+        )
+        if self.autodoc_fingerprint_fallback_used:
+            lines.append("  ⚠ Using fingerprint fallback (metadata unavailable)")
+        if self.autodoc_stale_method:
+            lines.append(f"  Detection method: {self.autodoc_stale_method}")
+
+        lines.extend(
+            [
+                "",
+                "───────────────────────────────────────────────────────────────",
+                "Layer 3: Section Optimization",
+                "───────────────────────────────────────────────────────────────",
+                f"  Sections total:   {self.sections_total}",
+                f"  Sections changed: {len(self.sections_marked_changed)}",
+            ]
+        )
+        if self.sections_marked_changed:
+            for section in self.sections_marked_changed[:5]:
+                reason = self.section_change_reasons.get(section, "content_changed")
+                lines.append(f"    • {section} ({reason})")
+            if len(self.sections_marked_changed) > 5:
+                lines.append(
+                    f"    ... and {len(self.sections_marked_changed) - 5} more"
+                )
+
+        lines.extend(
+            [
+                "",
+                "───────────────────────────────────────────────────────────────",
+                "Layer 4: Page Filtering",
+                "───────────────────────────────────────────────────────────────",
+                f"  In changed sections: {self.pages_in_changed_sections}",
+                f"  Filtered out:        {self.pages_filtered_by_section}",
+                "",
+                "═══════════════════════════════════════════════════════════════",
+            ]
+        )
+
+        return "\n".join(lines)
 
 
 @dataclass(frozen=True, slots=True)
@@ -360,7 +498,15 @@ class IncrementalFilterEngine:
             log.full_rebuild_trigger = FullRebuildTrigger.INCREMENTAL_DISABLED
             return self._full_rebuild(all_pages, all_assets, log)
 
-        # Step 2: Detect changes
+        # RFC: rfc-incremental-build-observability - Collect layer trace info
+
+        # Layer 1: Data file stats (collected from cache)
+        self._collect_data_file_trace(log)
+
+        # Layer 2: Autodoc stats (collected from cache)
+        self._collect_autodoc_trace(log)
+
+        # Step 2: Detect changes (Layer 3 & 4 info collected here)
         (
             pages_to_build,
             assets_to_process,
@@ -368,7 +514,7 @@ class IncrementalFilterEngine:
             affected_sections,
             changed_paths,
         ) = self._detect_changes(
-            all_pages, all_assets, forced_changed_sources, nav_changed_sources
+            all_pages, all_assets, forced_changed_sources, nav_changed_sources, log
         )
         log.pages_with_changes = len(pages_to_build)
         log.assets_with_changes = len(assets_to_process)
@@ -445,17 +591,82 @@ class IncrementalFilterEngine:
             decision_log=log,
         )
 
+    def _collect_data_file_trace(self, log: FilterDecisionLog) -> None:
+        """Collect Layer 1 (Data Files) trace information.
+
+        RFC: rfc-incremental-build-observability
+        """
+        # Check if cache has data file fingerprints
+        try:
+            fingerprints = getattr(self.cache, "file_fingerprints", None)
+            if fingerprints is not None and isinstance(fingerprints, dict):
+                # Count data files in fingerprints (rough estimate)
+                data_file_count = sum(1 for p in fingerprints.keys() if "data/" in p)
+                log.data_files_checked = data_file_count
+                log.data_file_fingerprints_available = True
+            else:
+                log.data_file_fingerprints_available = False
+                log.data_file_fallback_used = True
+        except (TypeError, AttributeError):
+            log.data_file_fingerprints_available = False
+            log.data_file_fallback_used = True
+
+    def _collect_autodoc_trace(self, log: FilterDecisionLog) -> None:
+        """Collect Layer 2 (Autodoc) trace information.
+
+        RFC: rfc-incremental-build-observability
+        """
+        # Check autodoc tracking state
+        try:
+            deps = getattr(self.cache, "autodoc_dependencies", None)
+            if deps is not None and isinstance(deps, dict):
+                log.autodoc_sources_total = len(deps)
+
+                # Check metadata availability
+                metadata = getattr(self.cache, "autodoc_source_metadata", None)
+                if metadata is not None and isinstance(metadata, dict):
+                    metadata_count = len(metadata)
+                    log.autodoc_metadata_available = metadata_count > 0
+
+                    # If we have dependencies but no metadata, fallback is used
+                    if log.autodoc_sources_total > 0 and metadata_count == 0:
+                        log.autodoc_fingerprint_fallback_used = True
+                        # Determine stale method
+                        fingerprints = getattr(self.cache, "file_fingerprints", None)
+                        if fingerprints and isinstance(fingerprints, dict) and fingerprints:
+                            log.autodoc_stale_method = "fingerprint"
+                        else:
+                            log.autodoc_stale_method = "all_stale"
+                    elif metadata_count > 0:
+                        log.autodoc_stale_method = "metadata"
+                else:
+                    log.autodoc_metadata_available = False
+                    if log.autodoc_sources_total > 0:
+                        log.autodoc_fingerprint_fallback_used = True
+                        log.autodoc_stale_method = "all_stale"
+        except (TypeError, AttributeError):
+            # Cache doesn't support autodoc tracking
+            pass
+
     def _detect_changes(
         self,
         all_pages: list[Page],
         all_assets: list[Asset],
         forced_changed: set[Path] | None,
         nav_changed: set[Path] | None,
+        log: FilterDecisionLog | None = None,
     ) -> tuple[list[Page], list[Asset], set[str], set[str], set[Path]]:
         """Detect which pages/assets have changed.
 
         Delegates to ChangeDetector if available, otherwise uses
         simple cache-based detection.
+
+        Args:
+            all_pages: All pages in the site
+            all_assets: All assets in the site
+            forced_changed: Paths to treat as changed (file watcher)
+            nav_changed: Paths with navigation-affecting changes
+            log: FilterDecisionLog to populate with trace info
 
         Returns:
             Tuple of (pages_to_build, assets_to_process, affected_tags,
@@ -473,6 +684,10 @@ class IncrementalFilterEngine:
             affected_tags = self._compute_affected_tags(change_set.pages_to_build)
             affected_sections = self._compute_affected_sections(change_set.pages_to_build)
 
+            # RFC: rfc-incremental-build-observability - Layer 3 & 4 trace
+            if log is not None:
+                self._collect_section_trace(log, all_pages, affected_sections)
+
             return (
                 change_set.pages_to_build,
                 change_set.assets_to_process,
@@ -483,14 +698,51 @@ class IncrementalFilterEngine:
 
         # Fallback: simple cache-based detection
         return self._detect_changes_fallback(
-            all_pages, all_assets, forced_changed
+            all_pages, all_assets, forced_changed, log
         )
+
+    def _collect_section_trace(
+        self,
+        log: FilterDecisionLog,
+        all_pages: list[Page],
+        affected_sections: set[str],
+    ) -> None:
+        """Collect Layer 3 & 4 (Section/Page Filtering) trace information.
+
+        RFC: rfc-incremental-build-observability
+        """
+        from bengal.core.section.utils import resolve_page_section_path
+
+        # Layer 3: Section optimization stats
+        unique_sections: set[str] = set()
+        for page in all_pages:
+            section_path = resolve_page_section_path(page)
+            if section_path:
+                unique_sections.add(section_path)
+
+        log.sections_total = len(unique_sections)
+        log.sections_marked_changed = list(affected_sections)
+
+        # Infer change reasons based on affected sections
+        for section in affected_sections:
+            log.section_change_reasons[section] = "content_changed"
+
+        # Layer 4: Page filtering stats
+        pages_in_sections = 0
+        for page in all_pages:
+            section_path = resolve_page_section_path(page)
+            if section_path and section_path in affected_sections:
+                pages_in_sections += 1
+
+        log.pages_in_changed_sections = pages_in_sections
+        log.pages_filtered_by_section = len(all_pages) - pages_in_sections
 
     def _detect_changes_fallback(
         self,
         all_pages: list[Page],
         all_assets: list[Asset],
         forced_changed: set[Path] | None,
+        log: FilterDecisionLog | None = None,
     ) -> tuple[list[Page], list[Asset], set[str], set[str], set[Path]]:
         """Fallback change detection using cache.is_changed()."""
         pages_to_build: list[Page] = []
@@ -512,6 +764,10 @@ class IncrementalFilterEngine:
         # Compute affected tags and sections
         affected_tags = self._compute_affected_tags(pages_to_build)
         affected_sections = self._compute_affected_sections(pages_to_build)
+
+        # RFC: rfc-incremental-build-observability - Layer 3 & 4 trace
+        if log is not None:
+            self._collect_section_trace(log, all_pages, affected_sections)
 
         return (
             pages_to_build,

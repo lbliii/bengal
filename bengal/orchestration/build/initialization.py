@@ -594,6 +594,10 @@ def phase_incremental_filter(
             pages_skipped_count=0,
         )
 
+        # RFC: rfc-incremental-build-observability - Initialize filter decision log
+        filter_log = FilterDecisionLog()
+        filter_log.incremental_enabled = incremental
+
         if incremental:
             # Find what changed BEFORE generating taxonomies/menus
             # This delegates to ChangeDetector via IncrementalOrchestrator
@@ -785,6 +789,73 @@ def phase_incremental_filter(
 
             orchestrator.stats.incremental_decision = decision
 
+            # RFC: rfc-incremental-build-observability - Populate filter decision log
+            filter_log.pages_with_changes = len(pages_to_build)
+            filter_log.assets_with_changes = len(assets_to_process)
+            filter_log.pages_skipped = len(orchestrator.site.pages) - len(pages_to_build)
+            filter_log.decision_type = FilterDecisionType.INCREMENTAL
+            filter_log.fingerprint_cascade_triggered = decision.fingerprint_changes
+            filter_log.fingerprint_assets_changed = decision.asset_changes or []
+            filter_log.autodoc_output_missing = autodoc_output_missing
+            filter_log.special_pages_missing = special_pages_missing
+            filter_log.taxonomy_regen_needed = needs_taxonomy_regen
+            filter_log.output_present = not (output_html_missing or output_assets_missing)
+            filter_log.output_presence_reason = (
+                "html_missing" if output_html_missing else
+                "assets_missing" if output_assets_missing else None
+            )
+
+            # Layer 1: Data file stats (from cache)
+            if hasattr(cache, "file_fingerprints"):
+                data_file_count = sum(
+                    1 for p in cache.file_fingerprints.keys() if "data/" in p
+                )
+                filter_log.data_files_checked = data_file_count
+                filter_log.data_file_fingerprints_available = True
+            else:
+                filter_log.data_file_fingerprints_available = False
+                filter_log.data_file_fallback_used = True
+
+            # Layer 2: Autodoc stats (from cache)
+            if hasattr(cache, "autodoc_dependencies"):
+                filter_log.autodoc_sources_total = len(cache.autodoc_dependencies)
+                if hasattr(cache, "autodoc_source_metadata"):
+                    metadata_count = len(cache.autodoc_source_metadata)
+                    filter_log.autodoc_metadata_available = metadata_count > 0
+                    if filter_log.autodoc_sources_total > 0 and metadata_count == 0:
+                        filter_log.autodoc_fingerprint_fallback_used = True
+                        if hasattr(cache, "file_fingerprints") and cache.file_fingerprints:
+                            filter_log.autodoc_stale_method = "fingerprint"
+                        else:
+                            filter_log.autodoc_stale_method = "all_stale"
+                    elif metadata_count > 0:
+                        filter_log.autodoc_stale_method = "metadata"
+
+            # Layer 3: Section stats
+            unique_sections: set[str] = set()
+            for page in orchestrator.site.pages:
+                section_path = resolve_page_section_path(page)
+                if section_path:
+                    unique_sections.add(section_path)
+            filter_log.sections_total = len(unique_sections)
+            if affected_sections:
+                filter_log.sections_marked_changed = list(affected_sections)
+                for section in affected_sections:
+                    filter_log.section_change_reasons[section] = "content_changed"
+
+            # Layer 4: Page filtering stats
+            pages_in_sections = 0
+            if affected_sections:
+                for page in orchestrator.site.pages:
+                    section_path = resolve_page_section_path(page)
+                    if section_path and section_path in affected_sections:
+                        pages_in_sections += 1
+            filter_log.pages_in_changed_sections = pages_in_sections
+            filter_log.pages_filtered_by_section = len(orchestrator.site.pages) - pages_in_sections
+
+            # Store filter decision log on stats
+            orchestrator.stats.filter_decision_log = filter_log
+
             pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"
             assets_msg = (
                 f"{len(assets_to_process)} asset{'s' if len(assets_to_process) != 1 else ''}"
@@ -822,6 +893,14 @@ def phase_incremental_filter(
             decision.pages_to_build = list(pages_to_build)
             decision.pages_skipped_count = 0
             orchestrator.stats.incremental_decision = decision
+
+            # RFC: rfc-incremental-build-observability - Full rebuild filter log
+            filter_log.decision_type = FilterDecisionType.FULL
+            filter_log.full_rebuild_trigger = FullRebuildTrigger.INCREMENTAL_DISABLED
+            filter_log.pages_with_changes = len(pages_to_build)
+            filter_log.assets_with_changes = len(assets_to_process)
+            filter_log.pages_skipped = 0
+            orchestrator.stats.filter_decision_log = filter_log
 
         return FilterResult(
             pages_to_build=pages_to_build,

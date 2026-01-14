@@ -750,6 +750,11 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         if len(decision.skip_reasons) > 10:
             cli.detail(f"    ... and {len(decision.skip_reasons) - 10} more", indent=0)
 
+    # RFC: rfc-incremental-build-observability - Layer trace output
+    filter_log = getattr(stats, "filter_decision_log", None)
+    if filter_log is not None:
+        cli.info(filter_log.to_trace_output())
+
     # Footer
     cli.blank()
     if dry_run:
@@ -815,7 +820,12 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
         for page_path, skip_reason in decision.skip_reasons.items():
             skip_reasons[page_path] = skip_reason.value
 
+        # RFC: rfc-incremental-build-observability - Include layer trace
+        filter_log = getattr(stats, "filter_decision_log", None)
+        layer_trace = filter_log.to_dict().get("layer_trace") if filter_log else None
+
         output = {
+            "decision_type": filter_log.decision_type.value if filter_log else "unknown",
             "pages_to_build": len(decision.pages_to_build),
             "pages_skipped": decision.pages_skipped_count,
             "fingerprint_changes": decision.fingerprint_changes,
@@ -823,6 +833,7 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
             "rebuild_reasons": rebuild_reasons,
             "skip_reasons": skip_reasons if skip_reasons else None,
             "reason_summary": decision.get_reason_summary(),
+            "layer_trace": layer_trace,
             "dry_run": dry_run,
         }
 

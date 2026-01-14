@@ -212,9 +212,15 @@ class DevServer:
 
             # 3. Determine startup strategy: serve-first or build-first
             # Serve-first when: cache exists AND baseurl wasn't cleared
-            can_serve_first = (
-                not baseurl_was_cleared
-                and self._has_cached_output()
+            has_cache = self._has_cached_output()
+            can_serve_first = not baseurl_was_cleared and has_cache
+
+            logger.debug(
+                "serve_first_decision",
+                baseurl_was_cleared=baseurl_was_cleared,
+                has_cached_output=has_cache,
+                output_dir=str(self.site.output_dir),
+                can_serve_first=can_serve_first,
             )
 
             if can_serve_first:
@@ -544,7 +550,8 @@ class DevServer:
         # Clear baseurl for local development
         # This prevents 404s since dev server serves from '/' not '/baseurl'
         baseurl_value = (cfg.get("baseurl", "") or "").strip()
-        if not baseurl_value:
+        # "/" is equivalent to no baseurl (dev server serves from root)
+        if not baseurl_value or baseurl_value == "/":
             return False  # No baseurl to clear
 
         # Store original and clear for dev server
