@@ -5,7 +5,7 @@ Presets define predefined configurations for common site types:
 - Blog: Personal or professional blog
 - Documentation: Technical docs or guides
 - Portfolio: Showcase work
-- Business: Company or product site
+- Product: Product site with listings and features
 - Resume: Professional CV site
 """
 
@@ -42,14 +42,14 @@ PRESETS = {
         "pages_per_section": 3,
         "template_id": "portfolio",
     },
-    "business": {
-        "name": "Business",
-        "emoji": "🏢",
-        "description": "Company or product site",
-        "sections": ["products", "services", "about", "contact"],
+    "product": {
+        "name": "Product",
+        "emoji": "🛒",
+        "description": "Product site with listings and features",
+        "sections": ["products", "features", "pricing", "contact"],
         "with_content": True,
         "pages_per_section": 2,
-        "template_id": "default",  # Fallback if no business template yet
+        "template_id": "product",
     },
     "resume": {
         "name": "Resume",
@@ -68,7 +68,7 @@ def get_preset(name: str) -> dict[str, Any] | None:
     Get a preset by name.
     
     Args:
-        name: Preset name (blog, docs, portfolio, business, resume)
+        name: Preset name (blog, docs, portfolio, product, resume)
     
     Returns:
         Preset configuration dict or None if not found

@@ -305,7 +305,7 @@ def _show_post_creation_hints(
 @click.option(
     "--template",
     default="default",
-    help="Site template (default, blog, docs, portfolio, resume, landing)",
+    help="Site template (default, blog, docs, portfolio, product, resume, landing, changelog)",
 )
 @click.option(
     "--no-init",
@@ -314,7 +314,7 @@ def _show_post_creation_hints(
 )
 @click.option(
     "--init-preset",
-    help="Initialize with preset (blog, docs, portfolio, business, resume) without prompting",
+    help="Initialize with preset (blog, docs, portfolio, product, resume) without prompting",
 )
 def site_command(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """Create a new Bengal site (bengal new site)."""

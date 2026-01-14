@@ -56,7 +56,7 @@ The wizard prompts for site name, base URL, and presents preset options:
   📝 Blog            - Personal or professional blog
   📚 Documentation   - Technical docs or guides
   💼 Portfolio       - Showcase your work
-  🏢 Business        - Company or product site
+  🛒 Product         - Product site with listings and features
   📄 Resume          - Professional resume/CV site
   📦 Blank           - Empty site, no initial structure
   ⚙️  Custom         - Define your own structure
@@ -81,13 +81,14 @@ bengal new site portfolio --template portfolio
 
 | Template | Description | Sections Created |
 |----------|-------------|------------------|
-| `default` | Minimal starter | Home page only |
+| `default` | Basic site structure | Home page only |
 | `blog` | Personal/professional blog | blog, about |
 | `docs` | Technical documentation | getting-started, guides, reference |
 | `portfolio` | Showcase work | about, projects, blog, contact |
-| `business` | Company or product site | products, services, about, contact |
+| `product` | Product site with listings | products, features, pricing, contact |
 | `resume` | Professional CV | Single resume page |
 | `landing` | Single-page landing | Home, privacy, terms |
+| `changelog` | Release notes timeline | Changelog with versions |
 
 </details>
 
@@ -98,13 +99,13 @@ Add new content sections to an existing Bengal site:
 
 ```bash
 # Add multiple sections
-bengal project init --sections docs --sections tutorials
+bengal init --sections docs --sections tutorials
 
 # Add sections with sample content
-bengal project init --sections blog --with-content --pages-per-section 5
+bengal init --sections blog --with-content --pages-per-section 5
 
 # Preview without creating files
-bengal project init --sections api --dry-run
+bengal init --sections api --dry-run
 ```
 
 **Section type inference:**
