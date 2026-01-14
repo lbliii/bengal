@@ -8,14 +8,14 @@
 
 ## Summary
 
-**Problem**: Debugging incremental build issues is extremely difficult due to:
-- Silent failures with conservative fallbacks that "work" but poorly
-- Multiple caching layers without unified observability
-- Tests that don't catch real-world failure modes (cross-process, subsection changes)
-- No structured decision tracing to understand why builds happen
+**Problem**: Debugging incremental build issues is difficult due to:
+- Conservative fallbacks that obscure root causes without a unified trace
+- Several caching layers without an end-to-end decision view
+- Missing invariant tests for subsection behavior and fallback paths
+- No layer-by-layer decision trace tied to the incremental pipeline
 
-**Solution**: Implement a comprehensive observability system with:
-1. `--trace-incremental` CLI flag for decision tracing
+**Solution**: Build a comprehensive observability system with:
+1. Extend `--explain` with a full decision trace (optionally alias `--trace-incremental`)
 2. Invariant-based tests that verify correctness properties
 3. Structured decision logging at each layer
 4. Fail-fast mode for development
@@ -32,11 +32,11 @@ A simple "hello world" text change triggered a full rebuild. Diagnosing this req
 
 | Issue | Time to Find | Root Cause | Why Hard |
 |-------|--------------|------------|----------|
-| Data file fingerprints not saved | 20 min | `_update_data_file_fingerprints()` never called | No log when fallback triggered |
-| Python 3.12 vs 3.14 | 10 min | `compression.zstd` import failed silently | Empty cache returned, no error |
-| Autodoc metadata empty | 15 min | Fingerprint fallback not implemented | "Cache migration" message misleading |
-| Section optimization too strict | 20 min | Didn't check subsections recursively | No trace of section filtering |
-| Subsection path matching | 10 min | Identity check vs path containment | No log showing which pages filtered |
+| Data file fingerprints not saved | 20 min | `_update_data_file_fingerprints()` never called | No decision trace tying fallback to rebuild |
+| Python 3.12 vs 3.14 | 10 min | `compression.zstd` import failed | Warning existed in logs, no trace context |
+| `autodoc` metadata empty | 15 min | Metadata missing in cache | No trace for fallback path selection |
+| Section optimization too strict | 20 min | Subsection changes not visible | No trace of section filtering |
+| Subsection path matching | 10 min | Path containment bug | No per-page section filter trace |
 
 **Total**: 75+ minutes to trace what should have been obvious with proper observability.
 
@@ -51,29 +51,33 @@ Current behavior when cache loading fails:
 ```python
 # In BuildCache.load()
 try:
-    return cls._load_compressed(cache_path)
-except Exception:
-    return cls()  # Silent empty cache - no warning!
+    return cls._load_from_file(cache_path)
+except Exception as e:
+    logger.warning("cache_load_failed", error=str(e), action="using_fresh_cache")
+    return cls()
 ```
 
-When autodoc metadata is missing:
+When `autodoc` metadata is missing:
 
 ```python
 # In get_stale_autodoc_sources()
 if not self.autodoc_source_metadata and self.autodoc_dependencies:
-    return set(self.autodoc_dependencies.keys())  # "Works" but rebuilds everything
+    if has_fingerprints:
+        return stale_sources  # Fingerprint fallback
+    return set(self.autodoc_dependencies.keys())
 ```
 
-**Result**: The system "works" but users see full rebuilds with no explanation.
+**Result**: Failures are safer than before, but the lack of a single trace still makes
+root cause analysis slow and indirect.
 
-### 2. Multiple Caching Layers Without Unified View
+### 2. Several Caching Layers Without Unified View
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Incremental Build Decision Pipeline               │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│  Layer 1: Data Files        Layer 2: Autodoc         Layer 3: Sections
+│  Layer 1: Data Files        Layer 2: autodoc         Layer 3: Sections
 │  ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
 │  │ Fingerprints    │  →    │ Source Metadata │  →    │ Section Opt     │
 │  │ (file_tracking) │       │ (autodoc_track) │       │ (rebuild_filter)│
@@ -109,18 +113,18 @@ def test_save_and_load(self, tmp_path):
 ```
 
 Missing tests:
-- Cross-process cache round-trip
-- Subsection changes detected
-- Autodoc with missing metadata uses fingerprints
+- Subsection changes detected (parent section marked)
+- `autodoc` with missing metadata uses fingerprints
 - Page filtering includes subsection pages
 
 ---
 
 ## Proposed Solution
 
-### 1. Decision Trace System (`--trace-incremental`)
+### 1. Decision Trace System (`--explain` trace + optional `--trace-incremental`)
 
-Add a structured trace that captures every decision point:
+Add a structured trace that captures every decision point. Use `--explain` as the
+primary flag and add `--trace-incremental` if a dedicated name helps tooling.
 
 ```python
 @dataclass
@@ -137,7 +141,7 @@ class IncrementalDecisionTrace:
     data_file_fingerprints_available: bool = False
     data_file_fallback_used: bool = False
     
-    # Layer 2: Autodoc
+    # Layer 2: autodoc
     autodoc_metadata_available: bool = False
     autodoc_fingerprint_fallback_used: bool = False
     autodoc_sources_total: int = 0
@@ -194,7 +198,7 @@ class IncrementalDecisionTrace:
         lines.extend([
             "",
             "─────────────────────────────────────────────────────────────────",
-            "Layer 2: Autodoc",
+            "Layer 2: autodoc",
             "─────────────────────────────────────────────────────────────────",
             f"  Metadata available: {self.autodoc_metadata_available}",
             f"  Fingerprint fallback used: {self.autodoc_fingerprint_fallback_used}",
@@ -256,7 +260,7 @@ Layer 1: Data Files
   Fallback used: False
 
 ─────────────────────────────────────────────────────────────────
-Layer 2: Autodoc
+Layer 2: autodoc
 ─────────────────────────────────────────────────────────────────
   Metadata available: False
   Fingerprint fallback used: True    ← Would have been "all stale" before fix
@@ -398,7 +402,7 @@ print(f"Saved {{len(cache.file_fingerprints)}} fingerprints")
             1 for p in stats.pages_to_build if p.metadata.get("is_autodoc")
         )
         assert autodoc_rebuilt == 0, (
-            f"Autodoc pages unnecessarily rebuilt: {autodoc_rebuilt}. "
+            f"autodoc pages unnecessarily rebuilt: {autodoc_rebuilt}. "
             f"Fingerprint fallback should have prevented this."
         )
 ```
@@ -422,7 +426,7 @@ class DecisionEvent(Enum):
     DATA_FILE_FINGERPRINT_MISSING = "data_file_fingerprint_missing"
     DATA_FILE_FALLBACK_TRIGGERED = "data_file_fallback_triggered"
     
-    # Layer 2: Autodoc
+    # Layer 2: autodoc
     AUTODOC_CHECK_START = "autodoc_check_start"
     AUTODOC_METADATA_MISSING = "autodoc_metadata_missing"
     AUTODOC_FINGERPRINT_FALLBACK = "autodoc_fingerprint_fallback"
@@ -506,7 +510,7 @@ def is_development_mode() -> bool:
 if not self.autodoc_source_metadata and self.autodoc_dependencies:
     if is_development_mode():
         raise IncrementalCacheError(
-            "Autodoc source metadata empty but dependencies present.\n"
+            "autodoc source metadata empty but dependencies present.\n"
             "This will cause full autodoc rebuilds on every incremental build.\n"
             "Fix: Ensure autodoc metadata is saved via add_autodoc_dependency().\n"
             "Workaround: Run `bengal cache clear` to reset cache."
@@ -537,21 +541,21 @@ if not self.autodoc_source_metadata and self.autodoc_dependencies:
 
 ### Phase 1: Foundation (2 days)
 
-1. **Add `IncrementalDecisionTrace` dataclass** with all fields
+1. **Add `IncrementalDecisionTrace` data class** with all fields
 2. **Wire trace collection** through existing decision points
-3. **Add `--trace-incremental` CLI flag** to output trace
+3. **Extend `--explain` output** to include full decision trace
 4. **Add Python version warning** in CLI entry point ✅ (already done)
 
 ### Phase 2: Tests (1 day)
 
 1. **Add invariant tests** in `tests/integration/test_incremental_invariants.py`
 2. **Add subsection detection test**
-3. **Add cross-process cache test** ✅ (already done)
-4. **Add autodoc fallback test**
+3. **Add cross-process cache test** ✅ (already done, unit test)
+4. **Add `autodoc` fallback test** (metadata missing but fingerprints present)
 
 ### Phase 3: Structured Logging (1 day)
 
-1. **Add `DecisionEvent` enum**
+1. **Add `DecisionEvent` enumeration**
 2. **Add `log_decision()` helper**
 3. **Replace ad-hoc logging** in key decision points
 4. **Add development mode flag**
@@ -560,27 +564,27 @@ if not self.autodoc_source_metadata and self.autodoc_dependencies:
 
 1. **Document caching layers** in architecture doc
 2. **Add troubleshooting guide** for incremental build issues
-3. **Document `--trace-incremental` flag**
+3. **Document `--explain` trace output**
 
 ---
 
 ## Success Criteria
 
 1. **Debugging time < 10 minutes** for incremental build issues (vs 60+ today)
-2. **`--trace-incremental` identifies root cause** in single command
+2. **`--explain` identifies root cause** in single command
 3. **Invariant tests catch regressions** before release
 4. **No silent failures** in development mode
 5. **Clear documentation** for troubleshooting
 
 ---
 
-## Appendix: Bugs That Would Have Been Caught
+## Appendix: Bugs This Would Catch
 
-| Bug | Would Be Caught By |
+| Bug | Catch With |
 |-----|-------------------|
 | Data file fingerprints not saved | Invariant test: unchanged file rebuilt |
-| Python version mismatch | CLI warning (implemented) |
-| Autodoc metadata empty | Trace: "Fingerprint fallback used: True" |
+| Python version mismatch | CLI warning ✅ (implemented) |
+| `autodoc` metadata empty | Trace: "Fingerprint fallback used: True" |
 | Section optimization skipped subsections | Invariant test: subsection change marks parent |
 | Subsection path matching broken | Invariant test: changed file always rebuilt |
 
