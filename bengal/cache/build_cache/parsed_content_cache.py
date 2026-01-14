@@ -93,6 +93,12 @@ class ParsedContentCacheMixin:
         nav_metadata_str = json.dumps(nav_metadata, sort_keys=True, default=str)
         nav_metadata_hash = hash_str(nav_metadata_str)
 
+        # Hash only cascade metadata for fine-grained cascade change detection
+        # RFC: Output Cache Architecture - Skip cascade rebuild on body-only changes
+        cascade_metadata = metadata.get("cascade", {})
+        cascade_metadata_str = json.dumps(cascade_metadata, sort_keys=True, default=str)
+        cascade_metadata_hash = hash_str(cascade_metadata_str)
+
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
         if links:
@@ -112,6 +118,7 @@ class ParsedContentCacheMixin:
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "nav_metadata_hash": nav_metadata_hash,
+            "cascade_metadata_hash": cascade_metadata_hash,
             "template": template,
             "parser_version": parser_version,
             "timestamp": datetime.now().isoformat(),

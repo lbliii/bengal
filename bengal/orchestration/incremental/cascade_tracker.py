@@ -8,6 +8,7 @@ Key Concepts:
 - Cascade metadata: Frontmatter values that propagate to descendant pages
 - Section rebuilds: When cascade changes, all descendants need rebuild
 - Root cascade: Site-wide cascade affects all pages
+- Cascade hash: Only rebuild on cascade value changes, not body-only changes
 
 Related Modules:
 - bengal.core.section: Section model with cascade support
@@ -17,13 +18,16 @@ Related Modules:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.core.site import Site
 
@@ -38,24 +42,30 @@ class CascadeTracker:
     pages inherit the metadata and must be rebuilt. This class identifies
     which pages are affected by cascade changes.
     
+    Optimization: Only triggers cascade rebuild when cascade metadata values
+    actually change, not when only the body content changes.
+    
     Attributes:
         site: Site instance for page lookup
+        cache: BuildCache for cascade hash comparison
     
     Example:
-            >>> tracker = CascadeTracker(site)
+            >>> tracker = CascadeTracker(site, cache)
             >>> affected = tracker.find_cascade_affected_pages(index_page)
             >>> pages_to_rebuild.update(affected)
         
     """
 
-    def __init__(self, site: Site) -> None:
+    def __init__(self, site: Site, cache: BuildCache | None = None) -> None:
         """
         Initialize cascade tracker.
 
         Args:
             site: Site instance for page and section lookup
+            cache: BuildCache for cascade hash comparison (optional)
         """
         self.site = site
+        self.cache = cache
         # PERF: Cached lookups (built lazily on first access)
         # Note: Page lookup uses site.page_by_source_path (shared cache)
         self._pages_in_sections: set[int] | None = None
@@ -88,6 +98,9 @@ class CascadeTracker:
         When a section index page (_index.md or index.md) has "cascade" metadata,
         descendant pages inherit metadata and must be rebuilt.
 
+        Optimization: Only triggers cascade rebuild when cascade metadata values
+        actually change. Body-only changes skip cascade expansion.
+
         Args:
             pages_to_rebuild: Set of page paths to rebuild (modified in place)
             verbose: Whether to collect detailed change information
@@ -106,6 +119,15 @@ class CascadeTracker:
             if not changed_page or "cascade" not in changed_page.metadata:
                 continue
 
+            # Optimization: Check if cascade metadata actually changed
+            if self._cascade_unchanged(changed_page, changed_path):
+                logger.debug(
+                    "cascade_body_only_change",
+                    path=str(changed_path),
+                    reason="cascade_metadata_unchanged",
+                )
+                continue
+
             affected_pages = self._find_cascade_affected_pages(changed_page)
             before_count = len(pages_to_rebuild)
             pages_to_rebuild.update(affected_pages)
@@ -120,6 +142,65 @@ class CascadeTracker:
                 )
 
         return cascade_affected_count
+
+    def _cascade_unchanged(self, page: Page, path: Path) -> bool:
+        """
+        Check if cascade metadata is unchanged from cached version.
+
+        Compares only the "cascade" key from frontmatter, not the entire
+        metadata or body content. This allows body-only edits without
+        triggering cascade rebuilds.
+
+        Args:
+            page: Current page with cascade metadata
+            path: Source path for cache lookup
+
+        Returns:
+            True if cascade metadata unchanged (can skip rebuild),
+            False if changed or unknown (should rebuild).
+        """
+        if not self.cache:
+            return False  # No cache, assume changed
+
+        try:
+            # Extract and hash current cascade metadata
+            current_cascade = page.metadata.get("cascade", {})
+            current_hash = hash_str(
+                json.dumps(current_cascade, sort_keys=True, default=str)
+            )
+
+            # Get cached metadata
+            cached = (
+                self.cache.parsed_content.get(str(path))
+                if hasattr(self.cache, "parsed_content")
+                else None
+            )
+
+            if not isinstance(cached, dict):
+                return False  # No cached data, assume changed
+
+            # Check for cascade hash
+            cached_cascade_hash = cached.get("cascade_metadata_hash")
+            if cached_cascade_hash is not None:
+                return cached_cascade_hash == current_hash
+
+            # Fallback: Compare full metadata hash
+            cached_full_hash = cached.get("metadata_hash")
+            if cached_full_hash is not None:
+                current_full_hash = hash_str(
+                    json.dumps(page.metadata or {}, sort_keys=True, default=str)
+                )
+                return cached_full_hash == current_full_hash
+
+            return False  # No hash to compare, assume changed
+
+        except Exception as e:
+            logger.debug(
+                "cascade_hash_compare_failed",
+                path=str(path),
+                error=str(e),
+            )
+            return False  # On error, assume changed (conservative)
 
     def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
         """

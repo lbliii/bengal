@@ -122,6 +122,9 @@ def phase_taxonomies(
             # METADATA CASCADE: When a page's metadata (title, date, summary) changes,
             # taxonomy pages that list it must be rebuilt even if tags didn't change.
             # Add tags from modified pages to ensure their taxonomy pages are regenerated.
+            # Track which tags are NEW (not already handled by collect_and_generate_incremental)
+            already_generated_tags = affected_tags.copy()
+            cascaded_tags: set[str] = set()
             for page in pages_to_build:
                 if page.metadata.get("_generated"):
                     continue
@@ -129,7 +132,8 @@ def phase_taxonomies(
                     for tag in page.tags:
                         if tag is not None:
                             tag_slug = str(tag).lower().replace(" ", "-")
-                            if tag_slug not in affected_tags:
+                            if tag_slug not in already_generated_tags:
+                                cascaded_tags.add(tag_slug)
                                 affected_tags.add(tag_slug)
                                 orchestrator.logger.debug(
                                     "metadata_cascade_tag_added",
@@ -137,10 +141,11 @@ def phase_taxonomies(
                                     page=str(page.source_path.name),
                                 )
 
-            # Generate tag pages for cascaded tags that weren't already generated
-            if affected_tags:
+            # Generate tag pages ONLY for cascaded tags that weren't already generated
+            # (collect_and_generate_incremental already generated pages for affected_tags)
+            if cascaded_tags:
                 orchestrator.taxonomy.generate_dynamic_pages_for_tags_with_cache(
-                    affected_tags, taxonomy_index=None
+                    cascaded_tags, taxonomy_index=None
                 )
 
             # Store affected tags for later use (related posts, etc.)

@@ -117,7 +117,7 @@ class ChangeDetector:
         self.cache = cache
         self.tracker = tracker
         self.rebuild_filter = RebuildFilter(site, cache)
-        self.cascade_tracker = CascadeTracker(site)
+        self.cascade_tracker = CascadeTracker(site, cache)
 
         # Initialize sub-detectors
         self._file_detector = FileChangeDetector(site, cache, tracker)
