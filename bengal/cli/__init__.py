@@ -134,6 +134,20 @@ def main(
     For more information, see: https://lbliii.github.io/bengal/docs
         
     """
+    import sys
+    
+    # Python 3.14+ required - warn early and clearly
+    if sys.version_info < (3, 14):
+        click.secho(
+            f"\n⚠️  WARNING: Bengal requires Python 3.14+\n"
+            f"   You are running Python {sys.version_info.major}.{sys.version_info.minor}\n"
+            f"   Some features (compression.zstd, performance optimizations) will fail.\n"
+            f"   Install Python 3.14: https://www.python.org/downloads/\n",
+            fg="yellow",
+            bold=True,
+            err=True,
+        )
+    
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     TracebackConfig.from_environment().install()

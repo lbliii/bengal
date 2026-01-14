@@ -1,550 +1,594 @@
-# RFC: Incremental Build Observability
+# RFC: Incremental Build Observability & Debugging
 
-## Status: Phase 1 + Phase 2 Implemented
-## Created: 2026-01-13
-## Updated: 2026-01-13
-## Origin: Debugging session for stale CSS fingerprints bug
+## Status: Draft
+## Created: 2026-01-14
+## Origin: Debugging session that took 60+ minutes to trace 5 interconnected bugs
 
 ---
 
 ## Summary
 
-**Problem**: Incremental build decisions are opaque—no visibility into WHY pages are included/excluded from `pages_to_build`, making debugging cache issues extremely difficult.
+**Problem**: Debugging incremental build issues is extremely difficult due to:
+- Silent failures with conservative fallbacks that "work" but poorly
+- Multiple caching layers without unified observability
+- Tests that don't catch real-world failure modes (cross-process, subsection changes)
+- No structured decision tracing to understand why builds happen
 
-**Solution**: Add structured logging, "explain mode", and rebuild reason tracking to the incremental filter.
+**Solution**: Implement a comprehensive observability system with:
+1. `--trace-incremental` CLI flag for decision tracing
+2. Invariant-based tests that verify correctness properties
+3. Structured decision logging at each layer
+4. Fail-fast mode for development
 
-**Priority**: High (this class of bug took 1+ hour to diagnose due to lack of observability)
+**Priority**: High (incremental builds are core Bengal value proposition)
 
-**Scope**: Phase 1 (~100 LOC), Phase 2 (~80 LOC), Phase 3 (deferred indefinitely)
+**Scope**: ~400 LOC implementation + ~200 LOC tests
 
 ---
 
-## Problem Statement
+## Evidence: The Debugging Odyssey
 
-### The Observability Gap
+A simple "hello world" text change triggered a full rebuild. Diagnosing this required:
 
-The `phase_incremental_filter()` function determines which pages to rebuild, but provides no insight into its decisions:
+| Issue | Time to Find | Root Cause | Why Hard |
+|-------|--------------|------------|----------|
+| Data file fingerprints not saved | 20 min | `_update_data_file_fingerprints()` never called | No log when fallback triggered |
+| Python 3.12 vs 3.14 | 10 min | `compression.zstd` import failed silently | Empty cache returned, no error |
+| Autodoc metadata empty | 15 min | Fingerprint fallback not implemented | "Cache migration" message misleading |
+| Section optimization too strict | 20 min | Didn't check subsections recursively | No trace of section filtering |
+| Subsection path matching | 10 min | Identity check vs path containment | No log showing which pages filtered |
+
+**Total**: 75+ minutes to trace what should have been obvious with proper observability.
+
+---
+
+## Problem Analysis
+
+### 1. Silent Failures Mask Root Causes
+
+Current behavior when cache loading fails:
 
 ```python
-# Current: Silent decision-making
-pages_to_build, assets_to_process, change_summary = (
-    orchestrator.incremental.find_work_early(...)
-)
-# At this point, we have no idea WHY index.md is/isn't in pages_to_build
+# In BuildCache.load()
+try:
+    return cls._load_compressed(cache_path)
+except Exception:
+    return cls()  # Silent empty cache - no warning!
 ```
 
-### Why This Matters (Evidence from Debugging)
-
-During the stale CSS fingerprint bug investigation:
-
-1. **Symptom**: Home page had old CSS fingerprint
-2. **Hypothesis**: Rendered cache not invalidating
-3. **Reality**: Page wasn't in `pages_to_build` at all (never hit cache logic)
-4. **Diagnosis method**: Manual monkey-patching of `should_bypass()` 
-
-**Time to root cause**: ~45 minutes  
-**Time with observability**: ~5 minutes (check "rebuild reasons" log)
-
-### Specific Gaps
-
-| Gap | Impact | Example |
-|-----|--------|---------|
-| No "rebuild reason" per page | Can't see WHY a page is included | "content_changed" vs "asset_fingerprint_changed" |
-| No "skip reason" per page | Can't see WHY a page is excluded | "cache_hit" vs "no_changes" |
-| Silent incremental decisions | Have to read code to understand behavior | `find_work_early()` internals |
-| No "dry run" mode | Can't preview what WOULD rebuild | `bengal build --dry-run --explain` |
-
-### Existing Logging (What We Have)
-
-The `ChangeDetector` already emits some structured logs:
+When autodoc metadata is missing:
 
 ```python
-# change_detector.py:198-246
-logger.info("cascade_dependencies_detected", additional_pages=cascade_count, reason="...")
-logger.info("cross_version_dependencies_detected", additional_pages=xver_count, reason="...")
-logger.info("navigation_dependencies_detected", additional_pages=nav_count, reason="...")
+# In get_stale_autodoc_sources()
+if not self.autodoc_source_metadata and self.autodoc_dependencies:
+    return set(self.autodoc_dependencies.keys())  # "Works" but rebuilds everything
 ```
 
-**Gap**: These logs tell us WHAT triggered additional rebuilds, but not the **per-page breakdown** or **summary statistics**.
+**Result**: The system "works" but users see full rebuilds with no explanation.
+
+### 2. Multiple Caching Layers Without Unified View
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Incremental Build Decision Pipeline               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Layer 1: Data Files        Layer 2: Autodoc         Layer 3: Sections
+│  ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│  │ Fingerprints    │  →    │ Source Metadata │  →    │ Section Opt     │
+│  │ (file_tracking) │       │ (autodoc_track) │       │ (rebuild_filter)│
+│  └─────────────────┘       └─────────────────┘       └─────────────────┘
+│         │                         │                         │
+│         ↓                         ↓                         ↓
+│    [3 changes]              [empty → all]           [docs marked]
+│                                                            │
+│                                                            ↓
+│                                                   Layer 4: Page Filter
+│                                                   ┌─────────────────┐
+│                                                   │ file_detector   │
+│                                                   │ (pages_to_scan) │
+│                                                   └─────────────────┘
+│                                                            │
+│                                                            ↓
+│                                                      [0 pages!?]
+│                                                                      │
+│  ❌ No single place to see: "Why did we decide to rebuild X pages?" │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Tests Test Implementation, Not Invariants
+
+Current tests:
+```python
+def test_save_and_load(self, tmp_path):
+    cache = BuildCache()
+    cache.update_file(some_file)
+    cache.save(cache_path)
+    loaded = BuildCache.load(cache_path)
+    assert loaded.file_fingerprints  # Passes in-process, fails cross-process!
+```
+
+Missing tests:
+- Cross-process cache round-trip
+- Subsection changes detected
+- Autodoc with missing metadata uses fingerprints
+- Page filtering includes subsection pages
 
 ---
 
-## Design Decisions
+## Proposed Solution
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Log verbosity | INFO for summary, DEBUG for per-page | Summary is always useful; details add noise |
-| Skip reason tracking | Only when `verbose=True` | Avoid O(n) overhead for large sites |
-| Storage | In-memory only (not persisted) | Diagnostic tool, not build artifact |
-| Integration | Additive (alongside existing logs) | Don't break existing structured logging |
-| Reason representation | Enum + dataclass | Type safety, exhaustive handling |
+### 1. Decision Trace System (`--trace-incremental`)
 
----
-
-## Proposed Solutions
-
-### Phase 1: Rebuild Reason Tracking (Implement Now)
-
-Add structured data about WHY each page is in `pages_to_build`.
-
-**File**: `bengal/orchestration/build/results.py`
+Add a structured trace that captures every decision point:
 
 ```python
-from enum import Enum
-
-class RebuildReasonCode(Enum):
-    """Why a page is being rebuilt.
-    
-    Enables exhaustive handling and better IDE support.
-    """
-    CONTENT_CHANGED = "content_changed"
-    TEMPLATE_CHANGED = "template_changed"
-    ASSET_FINGERPRINT_CHANGED = "asset_fingerprint_changed"
-    CASCADE_DEPENDENCY = "cascade_dependency"
-    NAV_CHANGED = "nav_changed"
-    CROSS_VERSION_DEPENDENCY = "cross_version_dependency"
-    ADJACENT_NAV_CHANGED = "adjacent_nav_changed"
-    FORCED = "forced"
-    FULL_REBUILD = "full_rebuild"
-
-
 @dataclass
-class RebuildReason:
-    """Tracks why a page is being rebuilt.
+class IncrementalDecisionTrace:
+    """Full trace of incremental build decision for debugging."""
     
-    Note: page_path is the dict key in IncrementalDecision.rebuild_reasons,
-    not stored here to avoid redundancy.
-    """
-    code: RebuildReasonCode
-    details: dict[str, Any] = field(default_factory=dict)
+    # Timestamps for performance analysis
+    trace_started: float
+    trace_completed: float
     
-    def __str__(self) -> str:
-        if self.details:
-            detail_str = ", ".join(f"{k}={v}" for k, v in self.details.items())
-            return f"{self.code.value} ({detail_str})"
-        return self.code.value
-
-
-class SkipReasonCode(Enum):
-    """Why a page was skipped (not rebuilt)."""
-    CACHE_HIT = "cache_hit"
-    NO_CHANGES = "no_changes"
-    SECTION_FILTERED = "section_filtered"
-
-
-@dataclass  
-class IncrementalDecision:
-    """Complete picture of incremental build decisions.
+    # Layer 1: Data files
+    data_files_checked: int = 0
+    data_files_changed: list[str] = field(default_factory=list)
+    data_file_fingerprints_available: bool = False
+    data_file_fallback_used: bool = False
     
-    Provides observability into the incremental filter's decision-making
-    for debugging and the --explain CLI flag.
+    # Layer 2: Autodoc
+    autodoc_metadata_available: bool = False
+    autodoc_fingerprint_fallback_used: bool = False
+    autodoc_sources_total: int = 0
+    autodoc_sources_stale: list[str] = field(default_factory=list)
+    autodoc_stale_reason: str = ""  # "metadata" | "fingerprint" | "missing"
     
-    Attributes:
-        pages_to_build: Pages that will be rebuilt
-        pages_skipped_count: Number of pages skipped (avoid storing full list)
-        rebuild_reasons: Why each page is being rebuilt (keyed by source_path str)
-        skip_reasons: Why pages were skipped (only populated when verbose=True)
-        asset_changes: Which assets triggered rebuilds
-        fingerprint_changes: Whether CSS/JS fingerprints changed
-    """
-    pages_to_build: list[Page]
-    pages_skipped_count: int
-    rebuild_reasons: dict[str, RebuildReason] = field(default_factory=dict)
-    skip_reasons: dict[str, SkipReasonCode] = field(default_factory=dict)  # Only when verbose
-    asset_changes: list[str] = field(default_factory=list)
-    fingerprint_changes: bool = False
+    # Layer 3: Section optimization
+    sections_total: int = 0
+    sections_checked: int = 0
+    sections_marked_changed: list[str] = field(default_factory=list)
+    section_change_reasons: dict[str, str] = field(default_factory=dict)
+    # e.g., {"docs": "subsection_fingerprint_stale:about/glossary.md"}
     
-    def log_summary(self, logger: Logger) -> None:
-        """Emit INFO-level summary log."""
-        logger.info(
-            "incremental_decision",
-            pages_to_build=len(self.pages_to_build),
-            pages_skipped=self.pages_skipped_count,
-            fingerprint_changes=self.fingerprint_changes,
-            asset_changes=self.asset_changes if self.asset_changes else None,
-        )
+    # Layer 4: Page filtering
+    pages_total: int = 0
+    pages_in_changed_sections: int = 0
+    pages_with_stale_fingerprints: int = 0
+    pages_filtered_by_section: int = 0
+    pages_filtered_reasons: dict[str, str] = field(default_factory=dict)
     
-    def log_details(self, logger: Logger) -> None:
-        """Emit DEBUG-level per-page breakdown."""
-        for page_path, reason in self.rebuild_reasons.items():
-            logger.debug(
-                "rebuild_reason",
-                page=page_path,
-                reason=reason.code.value,
-                details=reason.details if reason.details else None,
-            )
-```
-
-**Usage in `phase_incremental_filter`**:
-
-```python
-def phase_incremental_filter(..., verbose: bool = False) -> FilterResult | None:
-    decision = IncrementalDecision(
-        pages_to_build=[],
-        pages_skipped_count=0,
-    )
+    # Layer 5: Final decision
+    pages_to_rebuild: int = 0
+    pages_skipped: int = 0
+    assets_to_process: int = 0
+    decision_type: Literal["full", "incremental", "skip"] = "incremental"
+    full_rebuild_reason: str | None = None
     
-    # ... existing logic ...
-    
-    # When CSS/JS changes detected
-    if fingerprint_assets_changed:
-        decision.fingerprint_changes = True
-        decision.asset_changes = [a.source_path.name for a in fingerprint_assets]
-        pages_to_build = list(orchestrator.site.pages)
+    def to_diagnostic(self) -> str:
+        """Generate human-readable diagnostic output."""
+        lines = [
+            "═══════════════════════════════════════════════════════════════",
+            "                  INCREMENTAL BUILD TRACE                       ",
+            "═══════════════════════════════════════════════════════════════",
+            "",
+            f"Final Decision: {self.decision_type.upper()}",
+            f"  Pages to rebuild: {self.pages_to_rebuild}",
+            f"  Pages skipped:    {self.pages_skipped}",
+            "",
+            "─────────────────────────────────────────────────────────────────",
+            "Layer 1: Data Files",
+            "─────────────────────────────────────────────────────────────────",
+            f"  Checked: {self.data_files_checked}",
+            f"  Changed: {len(self.data_files_changed)}",
+            f"  Fingerprints available: {self.data_file_fingerprints_available}",
+            f"  Fallback used: {self.data_file_fallback_used}",
+        ]
+        if self.data_files_changed:
+            lines.append("  Changed files:")
+            for f in self.data_files_changed[:5]:
+                lines.append(f"    - {f}")
+            if len(self.data_files_changed) > 5:
+                lines.append(f"    ... and {len(self.data_files_changed) - 5} more")
         
-        for page in pages_to_build:
-            decision.rebuild_reasons[str(page.source_path)] = RebuildReason(
-                code=RebuildReasonCode.ASSET_FINGERPRINT_CHANGED,
-                details={"assets": decision.asset_changes},
-            )
-    
-    # Track skip reasons only when verbose (avoid O(n) overhead)
-    if verbose:
-        all_pages = set(orchestrator.site.pages)
-        skipped = all_pages - set(pages_to_build)
-        for page in skipped:
-            decision.skip_reasons[str(page.source_path)] = SkipReasonCode.NO_CHANGES
-    
-    decision.pages_to_build = pages_to_build
-    decision.pages_skipped_count = len(orchestrator.site.pages) - len(pages_to_build)
-    
-    # Always log summary (INFO), details only when verbose (DEBUG)
-    decision.log_summary(orchestrator.logger)
-    if verbose:
-        decision.log_details(orchestrator.logger)
-    
-    return FilterResult(...)
+        lines.extend([
+            "",
+            "─────────────────────────────────────────────────────────────────",
+            "Layer 2: Autodoc",
+            "─────────────────────────────────────────────────────────────────",
+            f"  Metadata available: {self.autodoc_metadata_available}",
+            f"  Fingerprint fallback used: {self.autodoc_fingerprint_fallback_used}",
+            f"  Sources total: {self.autodoc_sources_total}",
+            f"  Sources stale: {len(self.autodoc_sources_stale)}",
+        ])
+        if self.autodoc_stale_reason:
+            lines.append(f"  Stale reason: {self.autodoc_stale_reason}")
+        
+        lines.extend([
+            "",
+            "─────────────────────────────────────────────────────────────────",
+            "Layer 3: Section Optimization",
+            "─────────────────────────────────────────────────────────────────",
+            f"  Sections total: {self.sections_total}",
+            f"  Sections changed: {len(self.sections_marked_changed)}",
+        ])
+        if self.sections_marked_changed:
+            lines.append("  Changed sections:")
+            for s in self.sections_marked_changed:
+                reason = self.section_change_reasons.get(s, "unknown")
+                lines.append(f"    - {s} ({reason})")
+        
+        lines.extend([
+            "",
+            "─────────────────────────────────────────────────────────────────",
+            "Layer 4: Page Filtering",
+            "─────────────────────────────────────────────────────────────────",
+            f"  Pages total: {self.pages_total}",
+            f"  In changed sections: {self.pages_in_changed_sections}",
+            f"  With stale fingerprints: {self.pages_with_stale_fingerprints}",
+            f"  Filtered by section: {self.pages_filtered_by_section}",
+            "",
+            "═══════════════════════════════════════════════════════════════",
+        ])
+        
+        return "\n".join(lines)
 ```
 
-**Logging output**:
-
-```
-INFO: incremental_decision pages_to_build=15 pages_skipped=42 fingerprint_changes=True asset_changes=['style.css']
-
-DEBUG: rebuild_reason page=content/index.md reason=asset_fingerprint_changed details={'assets': ['style.css']}
-DEBUG: rebuild_reason page=content/docs/intro.md reason=asset_fingerprint_changed details={'assets': ['style.css']}
-```
-
-**LOC**: ~100 lines
-
----
-
-### Phase 2: Explain Mode CLI (User Request)
-
-Add `--explain` flag for user-facing diagnostics.
-
-**CLI Specification**:
-
-| Flag | Behavior |
-|------|----------|
-| `--explain` | Show detailed rebuild decision breakdown |
-| `--dry-run` | Don't write output files, show what WOULD happen |
-| `--dry-run --explain` | Combined: preview + detailed breakdown |
-| `--explain --json` | Output as JSON (for tooling integration) |
-
-**Implementation**: `bengal/cli/commands/build.py`
-
-```python
-@click.option("--explain", is_flag=True, help="Show detailed rebuild decisions")
-@click.option("--dry-run", is_flag=True, help="Preview build without writing files")
-def build_command(explain: bool, dry_run: bool, ...):
-    # Pass explain flag through to orchestrator
-    result = orchestrator.build(
-        explain=explain,
-        dry_run=dry_run,
-    )
-    
-    if explain:
-        _print_explain_output(result.incremental_decision)
-```
-
-**Output format**:
+**CLI Integration**:
 
 ```bash
-$ bengal build --dry-run --explain
+$ bengal build --trace-incremental
 
-📊 Incremental Build Preview
+═══════════════════════════════════════════════════════════════
+                  INCREMENTAL BUILD TRACE                       
+═══════════════════════════════════════════════════════════════
 
-Would rebuild 15 pages (57 skipped):
+Final Decision: INCREMENTAL
+  Pages to rebuild: 3
+  Pages skipped:    1060
 
-  REBUILD (15 pages):
-  ┌─────────────────────────────────────────────────────────────┐
-  │ Reason                      │ Count │ Pages                 │
-  ├─────────────────────────────────────────────────────────────┤
-  │ asset_fingerprint_changed   │    12 │ index.md, docs/...    │
-  │ content_changed             │     2 │ blog/post.md, ...     │
-  │ cascade_dependency          │     1 │ docs/api.md           │
-  └─────────────────────────────────────────────────────────────┘
+─────────────────────────────────────────────────────────────────
+Layer 1: Data Files
+─────────────────────────────────────────────────────────────────
+  Checked: 3
+  Changed: 0
+  Fingerprints available: True
+  Fallback used: False
 
-  ASSETS:
-    • style.css      → CHANGED (fingerprint: 8daed388 → d860120c)
-    • main.js        → unchanged
+─────────────────────────────────────────────────────────────────
+Layer 2: Autodoc
+─────────────────────────────────────────────────────────────────
+  Metadata available: False
+  Fingerprint fallback used: True    ← Would have been "all stale" before fix
+  Sources total: 448
+  Sources stale: 0
 
-  SKIP (57 pages): no_changes
+─────────────────────────────────────────────────────────────────
+Layer 3: Section Optimization
+─────────────────────────────────────────────────────────────────
+  Sections total: 5
+  Sections changed: 1
+  Changed sections:
+    - docs (subsection_fingerprint_stale:about/glossary.md)
 
-Run without --dry-run to execute build.
+─────────────────────────────────────────────────────────────────
+Layer 4: Page Filtering
+─────────────────────────────────────────────────────────────────
+  Pages total: 1063
+  In changed sections: 35
+  With stale fingerprints: 3
+  Filtered by section: 1028
+
+═══════════════════════════════════════════════════════════════
 ```
 
-**JSON output** (for tooling):
+### 2. Invariant-Based Tests
 
-```bash
-$ bengal build --dry-run --explain --json
-```
-
-```json
-{
-  "pages_to_build": 15,
-  "pages_skipped": 57,
-  "fingerprint_changes": true,
-  "asset_changes": ["style.css"],
-  "rebuild_reasons": {
-    "content/index.md": {"code": "asset_fingerprint_changed", "details": {"assets": ["style.css"]}},
-    ...
-  },
-  "dry_run": true
-}
-```
-
-**LOC**: ~80 lines
-
----
-
-### Phase 3: Asset Dependency Graph (Deferred Indefinitely)
-
-Track which pages depend on which assets for smarter selective rebuilds.
-
-**Status**: ⛔ **Deferred indefinitely**
-
-**Rationale**:
-- Requires template parsing to extract `{{ asset_url("style.css") }}` calls
-- Templates include other templates (transitive dependency tracking)
-- Estimated ~400 LOC, high complexity
-- Current "rebuild all on asset change" is correct, just not optimal
-- Optimize only if asset-only changes become a measured bottleneck
-
-**Future Consideration**: If implemented, benefits include:
-- Only rebuild pages that actually use changed assets
-- Warnings: "Page X references asset Y which doesn't exist"
-- Asset tree-shaking potential
-
----
-
-## Implementation Priority
-
-| Phase | Priority | LOC | Complexity | Value | Status |
-|-------|----------|-----|------------|-------|--------|
-| 1. Rebuild Reasons | 🟢 High | ~100 | Low | Immediate debugging help | **✅ Implemented** |
-| 2. Explain Mode | 🟡 Medium | ~150 | Low | User-facing diagnostics | **✅ Implemented** |
-| 3. Asset Dependencies | ⛔ Deferred | ~400 | High | Smarter rebuilds | Not planned |
-
----
-
-## Implementation Checklist
-
-### Phase 1
-
-- [x] Add `RebuildReasonCode` enum to `bengal/orchestration/build/results.py`
-- [x] Add `SkipReasonCode` enum
-- [x] Add `RebuildReason` dataclass
-- [x] Add `IncrementalDecision` dataclass with `log_summary()` and `log_details()`
-- [x] Update `phase_incremental_filter()` to create and populate `IncrementalDecision`
-- [x] Track rebuild reasons for each code path:
-  - [x] Content changes (from `ChangeDetector`)
-  - [x] Template changes
-  - [x] Asset fingerprint changes
-  - [x] Cascade dependencies
-  - [x] Nav changes
-  - [x] Cross-version dependencies
-  - [x] Forced rebuilds
-  - [x] Output missing (new reason added)
-  - [x] Full rebuild
-- [x] Add `verbose` guard for skip_reasons population
-- [x] Add INFO log for summary, DEBUG for details
-- [x] Add unit tests for `RebuildReason` and `IncrementalDecision`
-
-### Phase 2
-
-- [x] Add `--explain` flag to `bengal build` command
-- [x] Add `--dry-run` flag
-- [x] Add `--explain-json` output option for `--explain`
-- [x] Implement `_print_explain_output()` formatter with table format
-- [x] Implement `_print_explain_json()` for machine-readable output
-- [x] Update orchestrator to support `dry_run` mode (skips rendering phases)
-- [x] Add `explain`, `dry_run`, `explain_json` options to BuildOptions
-- [x] Add integration tests for explain output (8 tests)
-
----
-
-## Error Message Improvements
-
-### Render Pipeline Guard
-
-Add warning when PageProxy reaches render without loading:
+Add tests that verify correctness properties, not implementation details:
 
 ```python
-def process_page(self, page: Page) -> None:
-    # Validate we're not accidentally rendering a PageProxy
-    if isinstance(page, PageProxy) and not page._lazy_loaded:
-        logger.warning(
-            "rendering_unloaded_proxy",
-            page=str(page.source_path),
-            hint="PageProxy passed to render pipeline without loading. "
-                 "Check incremental filter - this page may need to be in pages_to_build."
+# tests/integration/test_incremental_invariants.py
+
+class TestIncrementalInvariants:
+    """Tests that verify incremental build correctness invariants."""
+    
+    def test_unchanged_file_never_rebuilt(self, warm_site: WarmBuildTestSite):
+        """INVARIANT: Unchanged files must never be rebuilt."""
+        # Build once to warm cache
+        first_stats = warm_site.build()
+        first_pages = {p.source_path for p in first_stats.pages_built}
+        
+        # Build again with no changes
+        second_stats = warm_site.build()
+        second_pages = {p.source_path for p in second_stats.pages_to_build}
+        
+        # INVARIANT: No overlap
+        assert second_pages == set(), (
+            f"Unchanged files were rebuilt: {second_pages & first_pages}"
+        )
+    
+    def test_changed_file_always_rebuilt(self, warm_site: WarmBuildTestSite):
+        """INVARIANT: Changed files must always be rebuilt."""
+        warm_site.build()
+        
+        # Modify a file
+        test_file = warm_site.content / "test.md"
+        test_file.write_text(test_file.read_text() + "\n<!-- changed -->")
+        
+        stats = warm_site.build()
+        rebuilt_paths = {p.source_path for p in stats.pages_to_build}
+        
+        # INVARIANT: Changed file must be rebuilt
+        assert test_file in rebuilt_paths, (
+            f"Changed file {test_file} was not rebuilt"
+        )
+    
+    def test_subsection_change_marks_parent_section(
+        self, warm_site_with_sections: WarmBuildTestSite
+    ):
+        """INVARIANT: Subsection changes must mark parent section as changed."""
+        warm_site_with_sections.build()
+        
+        # Modify file in subsection
+        subsection_file = warm_site_with_sections.content / "docs/about/glossary.md"
+        subsection_file.write_text(subsection_file.read_text() + "\n<!-- changed -->")
+        
+        # Get changed sections (internal API for testing)
+        cache = BuildCache.load(warm_site_with_sections.cache_path)
+        filter = RebuildFilter(warm_site_with_sections.site, cache)
+        changed_sections = filter.get_changed_sections()
+        
+        # INVARIANT: Parent section "docs" must be in changed_sections
+        docs_changed = any("docs" in str(s.path) for s in changed_sections)
+        assert docs_changed, (
+            f"Parent section 'docs' not marked changed. "
+            f"Changed sections: {[str(s.path) for s in changed_sections]}"
+        )
+    
+    def test_cross_process_cache_consistency(self, tmp_path: Path):
+        """INVARIANT: Cache saved in one process must load correctly in another."""
+        cache_path = tmp_path / "cache.json"
+        test_file = tmp_path / "test.md"
+        test_file.write_text("# Test")
+        
+        # Save cache in subprocess
+        save_script = f'''
+import sys
+sys.path.insert(0, "{Path(__file__).parent.parent.parent}")
+from pathlib import Path
+from bengal.cache.build_cache import BuildCache
+
+cache = BuildCache()
+cache.update_file(Path("{test_file}"))
+cache.save(Path("{cache_path}"))
+print(f"Saved {{len(cache.file_fingerprints)}} fingerprints")
+'''
+        result = subprocess.run(
+            [sys.executable, "-c", save_script],
+            capture_output=True,
+            text=True,
+        )
+        assert "Saved 1 fingerprints" in result.stdout
+        
+        # Load in current process
+        loaded = BuildCache.load(cache_path)
+        
+        # INVARIANT: Fingerprints must survive cross-process round-trip
+        assert str(test_file) in loaded.file_fingerprints, (
+            f"Fingerprint lost in cross-process round-trip. "
+            f"Available: {list(loaded.file_fingerprints.keys())}"
+        )
+    
+    def test_autodoc_with_missing_metadata_uses_fingerprints(
+        self, warm_site_with_autodoc: WarmBuildTestSite
+    ):
+        """INVARIANT: Missing autodoc metadata must fallback to fingerprints."""
+        warm_site_with_autodoc.build()
+        
+        # Simulate missing metadata (old cache format)
+        cache = BuildCache.load(warm_site_with_autodoc.cache_path)
+        cache.autodoc_source_metadata = {}  # Clear metadata
+        cache.save(warm_site_with_autodoc.cache_path)
+        
+        # Build again
+        stats = warm_site_with_autodoc.build()
+        
+        # INVARIANT: Should NOT rebuild all autodoc (fingerprints should work)
+        autodoc_rebuilt = sum(
+            1 for p in stats.pages_to_build if p.metadata.get("is_autodoc")
+        )
+        assert autodoc_rebuilt == 0, (
+            f"Autodoc pages unnecessarily rebuilt: {autodoc_rebuilt}. "
+            f"Fingerprint fallback should have prevented this."
         )
 ```
 
-### PageProxy Setter Warning
+### 3. Structured Decision Logging
+
+Replace ad-hoc logging with structured decision events:
 
 ```python
-class PageProxy:
-    @links.setter
-    def links(self, value: list[str]) -> None:
-        if not self._lazy_loaded:
-            logger.warning(
-                "page_proxy_setter_before_load",
-                property="links",
-                page=str(self.source_path),
-                hint="Setting property on PageProxy before _ensure_loaded() was called.",
-            )
-        self._ensure_loaded()
-        if self._full_page:
-            self._full_page.links = value
+# bengal/orchestration/incremental/decision_logger.py
+
+from enum import Enum
+from typing import Any
+
+class DecisionEvent(Enum):
+    """Incremental build decision events."""
+    
+    # Layer 1: Data files
+    DATA_FILE_CHECK_START = "data_file_check_start"
+    DATA_FILE_CHANGED = "data_file_changed"
+    DATA_FILE_FINGERPRINT_MISSING = "data_file_fingerprint_missing"
+    DATA_FILE_FALLBACK_TRIGGERED = "data_file_fallback_triggered"
+    
+    # Layer 2: Autodoc
+    AUTODOC_CHECK_START = "autodoc_check_start"
+    AUTODOC_METADATA_MISSING = "autodoc_metadata_missing"
+    AUTODOC_FINGERPRINT_FALLBACK = "autodoc_fingerprint_fallback"
+    AUTODOC_SOURCE_STALE = "autodoc_source_stale"
+    AUTODOC_ALL_STALE_FALLBACK = "autodoc_all_stale_fallback"
+    
+    # Layer 3: Sections
+    SECTION_CHECK_START = "section_check_start"
+    SECTION_MARKED_CHANGED = "section_marked_changed"
+    SECTION_SKIPPED = "section_skipped"
+    SUBSECTION_STALE_DETECTED = "subsection_stale_detected"
+    
+    # Layer 4: Page filtering
+    PAGE_FILTER_START = "page_filter_start"
+    PAGE_INCLUDED = "page_included"
+    PAGE_EXCLUDED_BY_SECTION = "page_excluded_by_section"
+    PAGE_STALE_FINGERPRINT = "page_stale_fingerprint"
+    
+    # Final
+    DECISION_COMPLETE = "decision_complete"
+
+
+def log_decision(
+    event: DecisionEvent,
+    *,
+    decision: str | None = None,
+    reason: str | None = None,
+    impact: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> None:
+    """
+    Log an incremental build decision event.
+    
+    Args:
+        event: The decision event type
+        decision: What was decided (e.g., "include", "exclude", "rebuild_all")
+        reason: Why this decision was made
+        impact: Effect of this decision (e.g., "3 pages added to rebuild")
+        context: Additional context (file paths, counts, etc.)
+    """
+    logger.debug(
+        event.value,
+        decision=decision,
+        reason=reason,
+        impact=impact,
+        **(context or {}),
+    )
+```
+
+**Usage in code**:
+
+```python
+# Before (hard to trace):
+logger.debug("autodoc_cache_migration", msg="No source metadata found...")
+
+# After (structured and traceable):
+log_decision(
+    DecisionEvent.AUTODOC_METADATA_MISSING,
+    decision="use_fingerprint_fallback",
+    reason="autodoc_source_metadata empty but fingerprints available",
+    impact=f"{len(self.autodoc_dependencies)} sources to check via fingerprints",
+    context={"source_count": len(self.autodoc_dependencies)},
+)
+```
+
+### 4. Fail-Fast Mode for Development
+
+Add an environment variable or flag to surface errors instead of silent fallbacks:
+
+```python
+# bengal/config/environment.py
+
+import os
+
+def is_development_mode() -> bool:
+    """Check if running in development mode (fail-fast)."""
+    return os.environ.get("BENGAL_DEV_MODE", "").lower() in ("1", "true", "yes")
+
+
+# Usage in autodoc_tracking.py
+if not self.autodoc_source_metadata and self.autodoc_dependencies:
+    if is_development_mode():
+        raise IncrementalCacheError(
+            "Autodoc source metadata empty but dependencies present.\n"
+            "This will cause full autodoc rebuilds on every incremental build.\n"
+            "Fix: Ensure autodoc metadata is saved via add_autodoc_dependency().\n"
+            "Workaround: Run `bengal cache clear` to reset cache."
+        )
+    
+    # Production: use fingerprint fallback
+    if has_fingerprints:
+        log_decision(
+            DecisionEvent.AUTODOC_FINGERPRINT_FALLBACK,
+            decision="use_fingerprints",
+            reason="metadata_missing_fingerprints_available",
+            impact="incremental detection via fingerprints",
+        )
+        return self._check_via_fingerprints()
+    else:
+        log_decision(
+            DecisionEvent.AUTODOC_ALL_STALE_FALLBACK,
+            decision="mark_all_stale",
+            reason="metadata_missing_no_fingerprints",
+            impact=f"full autodoc rebuild ({len(self.autodoc_dependencies)} sources)",
+        )
+        return set(self.autodoc_dependencies.keys())
 ```
 
 ---
 
-## Relationship to Other RFCs
+## Implementation Plan
 
-| RFC | Relationship |
-|-----|--------------|
-| `rfc-global-build-state-dependencies.md` | Observability AFTER the fact (cache validation); this RFC is DURING incremental decisions |
-| `rfc-asset-resolution-observability.md` | Asset resolution path logging; this RFC covers build decision logging |
+### Phase 1: Foundation (2 days)
 
-**Potential Integration**: Both this RFC and `rfc-asset-resolution-observability` need observability infrastructure. Consider shared module at `bengal/orchestration/observability.py` for stats/reason tracking patterns.
+1. **Add `IncrementalDecisionTrace` dataclass** with all fields
+2. **Wire trace collection** through existing decision points
+3. **Add `--trace-incremental` CLI flag** to output trace
+4. **Add Python version warning** in CLI entry point ✅ (already done)
+
+### Phase 2: Tests (1 day)
+
+1. **Add invariant tests** in `tests/integration/test_incremental_invariants.py`
+2. **Add subsection detection test**
+3. **Add cross-process cache test** ✅ (already done)
+4. **Add autodoc fallback test**
+
+### Phase 3: Structured Logging (1 day)
+
+1. **Add `DecisionEvent` enum**
+2. **Add `log_decision()` helper**
+3. **Replace ad-hoc logging** in key decision points
+4. **Add development mode flag**
+
+### Phase 4: Documentation (0.5 day)
+
+1. **Document caching layers** in architecture doc
+2. **Add troubleshooting guide** for incremental build issues
+3. **Document `--trace-incremental` flag**
 
 ---
 
 ## Success Criteria
 
-1. **Debugging time reduction**: Next cache-related bug should take <15 minutes to diagnose
-2. **Structured logs**: Can grep for `incremental_decision` to see rebuild summary
-3. **Per-page visibility**: Can grep for `rebuild_reason` to see why specific pages rebuilt
-4. **Explain mode** (Phase 2): User can run `bengal build --explain` to understand decisions
-5. **Error context**: Errors include hints about likely causes (PageProxy warnings)
+1. **Debugging time < 10 minutes** for incremental build issues (vs 60+ today)
+2. **`--trace-incremental` identifies root cause** in single command
+3. **Invariant tests catch regressions** before release
+4. **No silent failures** in development mode
+5. **Clear documentation** for troubleshooting
 
 ---
 
-## Test Plan
+## Appendix: Bugs That Would Have Been Caught
 
-### Unit Tests
-
-```python
-# tests/unit/orchestration/test_incremental_decision.py
-
-def test_rebuild_reason_str_with_details():
-    reason = RebuildReason(
-        code=RebuildReasonCode.ASSET_FINGERPRINT_CHANGED,
-        details={"assets": ["style.css"]},
-    )
-    assert str(reason) == "asset_fingerprint_changed (assets=['style.css'])"
-
-
-def test_rebuild_reason_str_no_details():
-    reason = RebuildReason(code=RebuildReasonCode.CONTENT_CHANGED)
-    assert str(reason) == "content_changed"
-
-
-def test_incremental_decision_log_summary(caplog):
-    decision = IncrementalDecision(
-        pages_to_build=[mock_page],
-        pages_skipped_count=10,
-        fingerprint_changes=True,
-        asset_changes=["style.css"],
-    )
-    decision.log_summary(logger)
-    assert "incremental_decision" in caplog.text
-    assert "pages_to_build=1" in caplog.text
-
-
-def test_skip_reasons_only_populated_when_verbose():
-    """Skip reasons should only be tracked when verbose=True."""
-    # ... test that skip_reasons is empty when verbose=False
-```
-
-### Integration Tests
-
-```python
-# tests/integration/test_incremental_observability.py
-
-def test_rebuild_reasons_logged_on_css_change(tmp_project, caplog):
-    """CSS change should log asset_fingerprint_changed reason."""
-    build_site(tmp_project)
-    modify_css(tmp_project)
-    
-    with caplog.at_level("INFO"):
-        build_site(tmp_project, incremental=True)
-    
-    assert "incremental_decision" in caplog.text
-    assert "fingerprint_changes=True" in caplog.text
-
-
-def test_explain_mode_output(tmp_project, capsys):
-    """--explain flag should produce human-readable output."""
-    result = run_cli(["build", "--dry-run", "--explain"], cwd=tmp_project)
-    assert "REBUILD" in result.stdout
-    assert "SKIP" in result.stdout
-```
+| Bug | Would Be Caught By |
+|-----|-------------------|
+| Data file fingerprints not saved | Invariant test: unchanged file rebuilt |
+| Python version mismatch | CLI warning (implemented) |
+| Autodoc metadata empty | Trace: "Fingerprint fallback used: True" |
+| Section optimization skipped subsections | Invariant test: subsection change marks parent |
+| Subsection path matching broken | Invariant test: changed file always rebuilt |
 
 ---
 
-## Decision Log
+## Related
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-01-13 | Phase 1 high priority | Direct result of 45-minute debugging session |
-| 2026-01-13 | INFO for summary, DEBUG for details | Summary is always useful; per-page is verbose |
-| 2026-01-13 | Skip reasons only when verbose | Avoid O(n) overhead for large sites |
-| 2026-01-13 | Use enums for reason codes | Type safety, exhaustive handling, IDE support |
-| 2026-01-13 | Phase 3 deferred indefinitely | High effort (~400 LOC), low incremental value |
-| 2026-01-13 | Additive integration with ChangeDetector | Don't break existing structured logging |
-| 2026-01-13 | Phase 1 implemented | Added RebuildReasonCode, SkipReasonCode enums; IncrementalDecision dataclass; updated phase_incremental_filter(); 17 unit tests |
-| 2026-01-13 | Added OUTPUT_MISSING reason | Handle warm CI builds where output cleaned but cache present |
-| 2026-01-13 | Phase 2 implemented | Added --explain, --dry-run, --explain-json CLI flags; _print_explain_output() and _print_explain_json() formatters; dry_run mode in orchestrator; 8 integration tests |
-| 2026-01-14 | CacheCoordinator integration | Cache Invalidation Architecture RFC provides complementary observability via `InvalidationEvent` tracking (reason, trigger, caches cleared). See `bengal/cache/coordinator.py`. |
+- `plan/rfc-rebuild-decision-hardening.md` - Prior RFC on incremental filter consolidation
+- `bengal/orchestration/incremental/filter_engine.py` - Current decision logic
+- `tests/integration/test_incremental_cache_stability.py` - Existing tests
 
----
-
-## Related: Cache Invalidation Architecture
-
-The **Cache Invalidation Architecture RFC** (`rfc-cache-invalidation-architecture.md`) provides complementary observability:
-
-- **`CacheCoordinator`**: Logs which cache layers are invalidated and why
-- **`InvalidationEvent`**: Records page path, reason, trigger, and caches cleared
-- **`RebuildManifest`**: Tracks rebuilds with timing and invalidation summary
-
-Together these RFCs provide end-to-end observability:
-1. **This RFC**: Why pages are *included* in `pages_to_build` (content changed, template changed, etc.)
-2. **Cache RFC**: Why page *caches* were invalidated (data file changed, taxonomy cascade, etc.)
-
----
-
-## Appendix: Existing Log Events
-
-For reference, these are the existing structured log events in the incremental system:
-
-```python
-# change_detector.py
-logger.debug("section_level_filtering", total_sections=..., changed_sections=...)
-logger.info("cascade_dependencies_detected", additional_pages=..., reason="...")
-logger.info("cross_version_dependencies_detected", additional_pages=..., reason="...")
-logger.info("navigation_dependencies_detected", additional_pages=..., reason="...")
-
-# initialization.py (phase_incremental_filter)
-logger.info("fingerprint_assets_changed_forcing_page_rebuild", assets_changed=..., pages_to_rebuild=...)
-```
-
-Phase 1 adds:
-```python
-logger.info("incremental_decision", pages_to_build=..., pages_skipped=..., fingerprint_changes=..., asset_changes=...)
-logger.debug("rebuild_reason", page=..., reason=..., details=...)
-```
