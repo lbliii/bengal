@@ -8,9 +8,9 @@
 
 ## Summary
 
-**Problem**: Bengal's warm build (incremental) test coverage is solid for core scenarios but has significant gaps in feature-specific warm builds, cross-feature interactions, and edge cases.
+**Problem**: Bengal's warm build (incremental) test coverage is solid for core scenarios but has gaps in navigation warm builds, data file changes, deep template inheritance chains, and cross-feature interactions.
 
-**Solution**: Expand integration test suite with 7 new test files covering navigation, taxonomy, data files, template chains, output formats, edge cases, and cross-feature interactions.
+**Solution**: Expand integration test suite with 5 new test files and extend 2 existing files to cover navigation, data files, template chains, additional output formats, edge cases, and cross-feature interactions.
 
 **Impact**: Prevent regression bugs in production CI builds and dev server workflows where incremental builds are the norm.
 
@@ -39,13 +39,21 @@ Warm builds are the **default experience** for users:
 - Autodoc output missing detection
 - Section cascade changes
 - Page lifecycle (Hypothesis stateful tests)
+- index.json generation and PageProxy transparency
+- Tag membership change detection via TaxonomyIndex
 
-**Untested or weakly-tested scenarios** (❌):
-- Navigation/menu changes
-- Taxonomy (tags/categories) changes
-- Data file changes
-- Template inheritance chains
-- Multi-output format consistency
+**Partially tested scenarios** (🟡):
+- Taxonomy (tags/categories) - membership changes tested, but not end-to-end HTML output
+- Output formats - index.json tested, but not RSS/sitemap/llm-full.txt
+- Template changes - basic detection tested, but not deep inheritance chains
+
+**Untested scenarios** (❌):
+- Navigation/menu changes in warm builds
+- Data file changes (data/*.yaml)
+- Deep template inheritance (3+ levels)
+- RSS/Atom feed regeneration
+- Sitemap regeneration
+- llm-full.txt updates
 - Cross-feature interactions
 - Edge cases (empty site, batch changes, deep nesting)
 
@@ -69,17 +77,30 @@ CI Experience:
 
 ## Current Test Coverage Analysis
 
-### Existing Warm Build Tests
+### Existing Warm Build Tests (Core)
 
 | File | Scenarios | Lines |
 |------|-----------|-------|
-| `test_warm_build_virtual_page_assets.py` | CSS/JS fingerprints, CI cache restore | 332 |
-| `test_full_to_incremental_sequence.py` | Content/template/config changes | 298 |
-| `test_incremental_cache_stability.py` | Cache consistency, autodoc output | 837 |
-| `test_incremental_section_stability.py` | Section cascades, URL stability | 430 |
-| `stateful/test_build_workflows.py` | Hypothesis page lifecycle | 477 |
+| `test_warm_build_virtual_page_assets.py` | CSS/JS fingerprints, CI cache restore | 331 |
+| `test_full_to_incremental_sequence.py` | Content/template/config changes | 297 |
+| `test_incremental_cache_stability.py` | Cache consistency, autodoc output | 836 |
+| `test_incremental_section_stability.py` | Section cascades, URL stability | 429 |
+| `stateful/test_build_workflows.py` | Hypothesis page lifecycle | 476 |
 
-**Total**: ~2,374 lines across 5 files
+**Core Total**: 2,369 lines across 5 files
+
+### Existing Related Tests (Feature-Specific)
+
+| File | Scenarios | Lines |
+|------|-----------|-------|
+| `test_incremental_output_formats.py` | index.json generation, PageProxy transparency | 515 |
+| `test_phase2c2_incremental_tags.py` | TaxonomyIndex membership tracking | 347 |
+| `test_incremental_observability.py` | Template change detection logging | ~200 |
+| `test_nav_tree_integration.py` | NavTree versioned builds (not warm-build specific) | 297 |
+
+**Related Total**: ~1,359 lines across 4 files
+
+**Grand Total**: ~3,728 lines of incremental build test coverage
 
 ### Coverage Gaps by Feature
 
@@ -87,85 +108,107 @@ CI Experience:
 Navigation System:
   tested: false
   risk: HIGH
-  scenarios:
-    - Menu config changes
-    - Nav weight changes
+  existing_tests: none
+  gaps:
+    - Menu config changes → page rebuild
+    - Nav weight changes → ordering updates
     - Section add/remove from menu
     - Nested menu updates
+    - Breadcrumb parent title changes
 
 Taxonomy System:
-  tested: false
-  risk: HIGH
-  scenarios:
-    - Tag added to page
-    - Tag removed from page
-    - Category rename
-    - Taxonomy page rebuild triggers
+  tested: partial  # TaxonomyIndex membership tracking exists
+  risk: MEDIUM
+  existing_tests:
+    - test_phase2c2_incremental_tags.py (membership change detection)
+  gaps:
+    - End-to-end HTML output verification
+    - Category rename scenarios
+    - Taxonomy term page content changes
+    - Last-page-with-tag deletion
 
 Data Files:
   tested: false
   risk: MEDIUM
-  scenarios:
-    - data/*.yaml changes
-    - Data file deletion
-    - Nested data structures
+  existing_tests: none
+  gaps:
+    - data/*.yaml changes → dependent page rebuild
+    - Data file deletion handling
+    - Nested data structure changes
+    - New data file availability
 
 Template Inheritance:
-  tested: partial
+  tested: partial  # Basic template change detection exists
   risk: MEDIUM
-  scenarios:
-    - base.html → child → grandchild chain
-    - Partial/include changes
-    - Theme override precedence
+  existing_tests:
+    - test_full_to_incremental_sequence.py (template change flag)
+  gaps:
+    - Deep inheritance chains (3+ levels)
+    - Partial/include selective rebuild
+    - Theme override precedence on warm build
+    - Shortcode template changes
 
 Output Formats:
-  tested: false
+  tested: partial  # index.json covered
   risk: MEDIUM
-  scenarios:
-    - index.json consistency
+  existing_tests:
+    - test_incremental_output_formats.py (index.json, PageProxy)
+  gaps:
     - RSS/Atom feed updates
     - Sitemap regeneration
     - llm-full.txt updates
+    - asset-manifest.json updates
 
 Cross-Feature:
   tested: false
   risk: MEDIUM
-  scenarios:
+  existing_tests: none
+  gaps:
     - Autodoc + navigation
     - i18n + warm build
     - Versioned docs + incremental
     - Collections + warm build
+    - Cascade + taxonomy interaction
 
 Edge Cases:
   tested: partial
   risk: LOW-MEDIUM
-  scenarios:
+  existing_tests:
+    - test_incremental_cache_stability.py (some edge cases)
+  gaps:
     - Empty site (all content deleted)
     - Batch changes (100+ files)
     - Deep nesting (>5 levels)
     - Same-second modifications
+    - Unicode filenames
+    - Symlinked content
 ```
 
 ---
 
 ## Proposed Solution
 
-### New Test Files
+### Strategy: Extend + Create
 
-Create 7 new integration test files:
+**Extend existing files** where partial coverage exists:
+- `test_phase2c2_incremental_tags.py` → Add end-to-end taxonomy HTML tests
+- `test_incremental_output_formats.py` → Add RSS, sitemap, llm-full.txt tests
+
+**Create new files** for untested areas:
 
 ```
 tests/integration/
 ├── warm_build/                          # NEW directory
 │   ├── __init__.py
 │   ├── conftest.py                      # Shared fixtures
-│   ├── test_navigation.py               # P0
-│   ├── test_taxonomy.py                 # P0
-│   ├── test_data_files.py               # P1
-│   ├── test_template_chain.py           # P1
-│   ├── test_output_formats.py           # P1
-│   ├── test_edge_cases.py               # P2
-│   └── test_cross_features.py           # P2
+│   ├── test_navigation.py               # P0 - NEW (truly untested)
+│   ├── test_data_files.py               # P1 - NEW (truly untested)
+│   ├── test_template_chain.py           # P1 - NEW (inheritance chains untested)
+│   ├── test_edge_cases.py               # P2 - NEW
+│   └── test_cross_features.py           # P2 - NEW
+│
+├── test_phase2c2_incremental_tags.py    # EXTEND with HTML verification
+└── test_incremental_output_formats.py   # EXTEND with RSS/sitemap/llm-txt
 ```
 
 ### Shared Test Infrastructure
@@ -276,90 +319,69 @@ class TestWarmBuildNavigation:
         """
 ```
 
-### P0: Taxonomy Tests (`test_taxonomy.py`)
+### P0: Taxonomy Tests (EXTEND `test_phase2c2_incremental_tags.py`)
 
 **Rationale**: Taxonomy pages are auto-generated. Stale taxonomy = broken user journeys.
 
-```python
-class TestWarmBuildTaxonomy:
-    """Test taxonomy (tags/categories) updates during warm builds."""
+**Already Tested** (in `test_phase2c2_incremental_tags.py`):
+- ✅ TaxonomyIndex membership tracking (add/remove pages from tags)
+- ✅ Set semantics (order-independent comparison)
+- ✅ Index persistence and reload
 
-    def test_new_tag_adds_page_to_taxonomy(self, site_with_taxonomy):
+**Gaps to Fill** (add to existing file):
+
+```python
+class TestWarmBuildTaxonomyHtml:
+    """End-to-end HTML verification for taxonomy warm builds.
+    
+    Extends existing TaxonomyIndex tests with actual HTML output checks.
+    """
+
+    def test_new_tag_renders_in_taxonomy_page_html(self, site_with_taxonomy):
         """
-        Adding tag to page should update taxonomy list page.
+        Adding tag to page should render in taxonomy list page HTML.
         
         Scenario:
         1. Build with post1 (tags: [python])
         2. Add tag "tutorial" to post1
         3. Incremental build
-        4. Assert: /tags/tutorial/ exists and lists post1
-        """
-
-    def test_removed_tag_removes_page_from_taxonomy(self, site_with_taxonomy):
-        """
-        Removing tag from page should update taxonomy list page.
+        4. Assert: /tags/tutorial/index.html exists and lists post1
         
-        Scenario:
-        1. Build with post1 (tags: [python, tutorial])
-        2. Remove "tutorial" tag from post1
-        3. Incremental build
-        4. Assert: /tags/tutorial/ doesn't list post1
+        Note: Complements existing TaxonomyIndex unit tests with HTML verification.
         """
 
-    def test_tag_only_page_creates_taxonomy_page(self, site_with_taxonomy):
+    def test_tag_last_page_deletes_taxonomy_page_output(self, site_with_taxonomy):
         """
-        When page with unique tag is added, taxonomy page is created.
-        
-        Scenario:
-        1. Build with no "rust" tags
-        2. Create post with tags: [rust]
-        3. Incremental build
-        4. Assert: /tags/rust/ exists
-        """
-
-    def test_tag_last_page_deletes_taxonomy_page(self, site_with_taxonomy):
-        """
-        When last page with tag is deleted, taxonomy page should be removed.
+        When last page with tag is deleted, taxonomy HTML should be removed.
         
         Scenario:
         1. Build with only post1 having tag "unique"
         2. Delete post1
         3. Incremental build
-        4. Assert: /tags/unique/ doesn't exist (or is empty)
+        4. Assert: /tags/unique/index.html doesn't exist
         """
 
-    def test_category_change_updates_category_page(self, site_with_taxonomy):
+    def test_category_change_updates_both_category_pages(self, site_with_taxonomy):
         """
-        Changing page category updates category listing.
+        Changing page category updates both old and new category HTML.
         
         Scenario:
         1. Build with post1 (category: tutorials)
         2. Change post1 category to guides
         3. Incremental build
-        4. Assert: /categories/tutorials/ doesn't list post1
-        Assert: /categories/guides/ lists post1
+        4. Assert: /categories/tutorials/index.html doesn't list post1
+        5. Assert: /categories/guides/index.html lists post1
         """
 
     def test_taxonomy_term_page_content_change(self, site_with_taxonomy):
         """
-        Changing content in _index.md for taxonomy term.
+        Changing content in _index.md for taxonomy term renders correctly.
         
         Scenario:
-        1. Build with /tags/python/_index.md
-        2. Edit _index.md content
+        1. Build with /tags/python/_index.md containing "Original description"
+        2. Edit _index.md to "Updated description"
         3. Incremental build
-        4. Assert: /tags/python/ shows new content
-        """
-
-    def test_multiple_taxonomy_changes_batch(self, site_with_taxonomy):
-        """
-        Multiple pages changing tags in single build.
-        
-        Scenario:
-        1. Build with 5 posts with various tags
-        2. Change tags on 3 posts simultaneously
-        3. Incremental build
-        4. Assert: All affected taxonomy pages updated
+        4. Assert: /tags/python/index.html shows "Updated description"
         """
 ```
 
@@ -479,54 +501,43 @@ class TestWarmBuildTemplateChain:
         """
 ```
 
-### P1: Output Format Tests (`test_output_formats.py`)
+### P1: Output Format Tests (EXTEND `test_incremental_output_formats.py`)
+
+**Already Tested** (in `test_incremental_output_formats.py`):
+- ✅ index.json generation in full and incremental builds
+- ✅ index.json page count preservation
+- ✅ PageProxy transparency contract
+- ✅ index.json content updates on modification
+
+**Gaps to Fill** (add to existing file):
 
 ```python
-class TestWarmBuildOutputFormats:
-    """Test non-HTML output format consistency during warm builds."""
-
-    def test_index_json_updated_on_content_change(self, warm_build_site):
-        """
-        index.json updated when page content changes.
-        
-        Scenario:
-        1. Build with 5 pages → index.json
-        2. Modify page title
-        3. Incremental build
-        4. Assert: index.json has new title
-        """
-
-    def test_index_json_page_added(self, warm_build_site):
-        """
-        New page appears in index.json.
-        
-        Scenario:
-        1. Build with 5 pages
-        2. Add new page
-        3. Incremental build
-        4. Assert: index.json has 6 entries
-        """
-
-    def test_index_json_page_deleted(self, warm_build_site):
-        """
-        Deleted page removed from index.json.
-        
-        Scenario:
-        1. Build with 5 pages
-        2. Delete page
-        3. Incremental build
-        4. Assert: index.json has 4 entries, no reference to deleted
-        """
+class TestWarmBuildAdditionalOutputFormats:
+    """Test RSS, sitemap, and LLM output formats during warm builds.
+    
+    Extends existing index.json tests with other output format coverage.
+    """
 
     def test_rss_feed_updated_on_blog_change(self, warm_build_site):
         """
         RSS feed updated when blog post changes.
         
         Scenario:
-        1. Build with blog section having RSS
-        2. Modify blog post
+        1. Build with blog section having RSS enabled
+        2. Modify blog post title and content
         3. Incremental build
-        4. Assert: index.xml updated with new content
+        4. Assert: blog/index.xml updated with new content
+        """
+
+    def test_rss_feed_new_post_appears(self, warm_build_site):
+        """
+        New blog post appears in RSS feed on warm build.
+        
+        Scenario:
+        1. Build with blog section (3 posts)
+        2. Add new blog post
+        3. Incremental build
+        4. Assert: blog/index.xml has 4 items
         """
 
     def test_sitemap_updated_on_page_add(self, warm_build_site):
@@ -540,7 +551,18 @@ class TestWarmBuildOutputFormats:
         4. Assert: sitemap.xml includes new URL
         """
 
-    def test_llm_txt_regenerated(self, warm_build_site):
+    def test_sitemap_removes_deleted_page(self, warm_build_site):
+        """
+        Deleted page removed from sitemap on warm build.
+        
+        Scenario:
+        1. Build with sitemap.xml (5 URLs)
+        2. Delete one page
+        3. Incremental build
+        4. Assert: sitemap.xml has 4 URLs, deleted page absent
+        """
+
+    def test_llm_txt_regenerated_on_content_change(self, warm_build_site):
         """
         llm-full.txt regenerated on content change.
         
@@ -551,15 +573,26 @@ class TestWarmBuildOutputFormats:
         4. Assert: llm-full.txt contains new content
         """
 
-    def test_asset_manifest_updated(self, warm_build_site):
+    def test_llm_txt_includes_new_page(self, warm_build_site):
         """
-        asset-manifest.json updated when assets change.
+        New page content appears in llm-full.txt.
+        
+        Scenario:
+        1. Build with llm-full.txt enabled
+        2. Add new page with unique content
+        3. Incremental build
+        4. Assert: llm-full.txt contains new page content
+        """
+
+    def test_asset_manifest_updated_on_css_change(self, warm_build_site):
+        """
+        asset-manifest.json updated when CSS changes.
         
         Scenario:
         1. Build with CSS assets
-        2. Modify CSS
+        2. Modify CSS content
         3. Incremental build
-        4. Assert: asset-manifest.json has new fingerprint
+        4. Assert: asset-manifest.json has new fingerprint hash
         """
 ```
 
@@ -741,30 +774,42 @@ class TestWarmBuildCrossFeatures:
 1. Create `tests/integration/warm_build/` directory
 2. Implement `conftest.py` with shared fixtures
 3. Create `WarmBuildTestSite` helper class
-4. Add test utilities: `assert_page_rebuilt()`, `assert_output_contains()`
+4. Add test utilities: `assert_page_rebuilt()`, `assert_page_skipped()`, `assert_output_contains()`
 
-### Phase 2: P0 Tests (2 days)
+### Phase 2: P0 Tests (1.5 days)
 
-1. `test_navigation.py` - 6 tests
-2. `test_taxonomy.py` - 7 tests
+1. `warm_build/test_navigation.py` - 6 tests (NEW file)
+2. Extend `test_phase2c2_incremental_tags.py` - 4 tests (HTML verification)
 
-### Phase 3: P1 Tests (2 days)
+### Phase 3: P1 Tests (1.5 days)
 
-1. `test_data_files.py` - 4 tests
-2. `test_template_chain.py` - 5 tests
-3. `test_output_formats.py` - 7 tests
+1. `warm_build/test_data_files.py` - 4 tests (NEW file)
+2. `warm_build/test_template_chain.py` - 5 tests (NEW file)
+3. Extend `test_incremental_output_formats.py` - 7 tests (RSS/sitemap/llm-txt)
 
-### Phase 4: P2 Tests (2 days)
+### Phase 4: P2 Tests (1.5 days)
 
-1. `test_edge_cases.py` - 8 tests
-2. `test_cross_features.py` - 6 tests
+1. `warm_build/test_edge_cases.py` - 8 tests (NEW file)
+2. `warm_build/test_cross_features.py` - 6 tests (NEW file)
 
 ### Total Effort
 
-- **New test files**: 7
-- **New test methods**: ~43
-- **Estimated lines**: ~2,500
-- **Estimated time**: 7 days
+- **New test files**: 5
+- **Extended test files**: 2
+- **New test methods**: ~40
+- **Estimated new lines**: ~1,800
+- **Estimated time**: 5.5 days
+
+### Effort Comparison
+
+| Metric | Original Estimate | Revised Estimate | Savings |
+|--------|-------------------|------------------|---------|
+| New files | 7 | 5 | -2 files |
+| Test methods | 43 | 40 | -3 methods |
+| Lines | 2,500 | 1,800 | -700 lines |
+| Time | 7 days | 5.5 days | -1.5 days |
+
+Savings come from leveraging existing test infrastructure in `test_phase2c2_incremental_tags.py` and `test_incremental_output_formats.py`.
 
 ---
 
@@ -772,15 +817,23 @@ class TestWarmBuildCrossFeatures:
 
 ### Test Coverage Goals
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Navigation | 6 | ⬜ TODO |
-| Taxonomy | 7 | ⬜ TODO |
-| Data Files | 4 | ⬜ TODO |
-| Template Chain | 5 | ⬜ TODO |
-| Output Formats | 7 | ⬜ TODO |
-| Edge Cases | 8 | ⬜ TODO |
-| Cross Features | 6 | ⬜ TODO |
+| Category | New Tests | Existing | Strategy | Status |
+|----------|-----------|----------|----------|--------|
+| Navigation | 6 | 0 | NEW file | ⬜ TODO |
+| Taxonomy | 4 | 8 | EXTEND | ⬜ TODO |
+| Data Files | 4 | 0 | NEW file | ⬜ TODO |
+| Template Chain | 5 | 1 | NEW file | ⬜ TODO |
+| Output Formats | 7 | 6 | EXTEND | ⬜ TODO |
+| Edge Cases | 8 | ~3 | NEW file | ⬜ TODO |
+| Cross Features | 6 | 0 | NEW file | ⬜ TODO |
+
+### Pre-Implementation Verification
+
+Before writing new tests, verify existing tests are working:
+
+- [ ] `pytest tests/integration/test_phase2c2_incremental_tags.py -v` passes
+- [ ] `pytest tests/integration/test_incremental_output_formats.py -v` passes
+- [ ] Review existing test patterns for consistency
 
 ### Quality Gates
 
@@ -789,6 +842,7 @@ class TestWarmBuildCrossFeatures:
 - [ ] Tests are isolated (no shared state between tests)
 - [ ] Test names clearly describe scenario
 - [ ] Assertions include helpful error messages
+- [ ] Extended tests follow existing file's patterns and fixtures
 
 ### Documentation Updates
 
@@ -814,17 +868,21 @@ class TestWarmBuildCrossFeatures:
 1. **Should we use Hypothesis for stateful warm build tests?**
    - Pro: Better coverage of edge cases
    - Con: Slower, more complex
-   - Recommendation: Use for P2 edge cases only
+   - **Decision**: Use for P2 edge cases only ✅
 
 2. **How to handle tests for features not yet implemented (i18n, versioning)?**
    - Option A: Skip tests, revisit later
    - Option B: Implement basic feature support first
-   - Recommendation: Option A with clear `pytest.mark.skip` annotations
+   - **Decision**: Option A with `pytest.mark.skip(reason="i18n not implemented")` ✅
 
 3. **Should we move existing warm build tests to new directory?**
    - Pro: Consolidated location
    - Con: Breaking change for existing test references
-   - Recommendation: Keep existing, add new tests in new directory
+   - **Decision**: Keep existing tests in place, extend where appropriate ✅
+
+4. **Should we extend existing tests or create parallel test files?** (NEW)
+   - Analysis found `test_phase2c2_incremental_tags.py` and `test_incremental_output_formats.py` have partial coverage
+   - **Decision**: Extend existing files to avoid duplication and maintain context ✅
 
 ---
 
@@ -833,6 +891,50 @@ class TestWarmBuildCrossFeatures:
 - `rfc-global-build-state-dependencies.md` - Asset fingerprint detection
 - `rfc-incremental-build-observability.md` - Build logging improvements
 - `rfc-cache-invalidation-fixes.md` - Cache stability fixes
+
+---
+
+## Appendix: Existing Test Discovery
+
+During RFC review, the following existing test coverage was discovered that wasn't initially accounted for:
+
+### `test_incremental_output_formats.py` (515 lines)
+
+```python
+# Key existing tests:
+- test_full_build_generates_index_json_with_pages()
+- test_incremental_build_generates_index_json_with_pages()
+- test_incremental_build_preserves_index_json_page_count()
+- test_page_proxy_transparency_contract()
+- test_index_json_content_updates_on_modification()
+```
+
+**Implication**: index.json warm build testing is already solid. Focus new tests on RSS/sitemap/llm-txt.
+
+### `test_phase2c2_incremental_tags.py` (347 lines)
+
+```python
+# Key existing tests:
+- TestTaxonomyIndexComparison (unit tests for membership tracking)
+- test_new_tag_always_needs_generation()
+- test_unchanged_tag_membership_skips_generation()
+- test_added_page_to_tag_triggers_generation()
+- test_removed_page_from_tag_triggers_generation()
+```
+
+**Implication**: TaxonomyIndex logic is tested. Focus new tests on end-to-end HTML output verification.
+
+### `test_nav_tree_integration.py` (297 lines)
+
+```python
+# Key existing tests:
+- test_nav_tree_builds_for_each_version()
+- test_shared_content_in_all_versions()
+- test_version_specific_content_filtering()
+- test_nav_tree_cache_works()
+```
+
+**Implication**: NavTree structure is tested but NOT in warm-build context. Navigation warm build tests are truly needed.
 
 ---
 
@@ -878,7 +980,10 @@ test_site/
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-01-13 | RFC created | Address warm build test gaps |
+| 2026-01-13 | Revised scope: 5 new files + 2 extensions | Analysis found existing partial coverage in `test_phase2c2_incremental_tags.py` (347 lines) and `test_incremental_output_formats.py` (515 lines) |
+| 2026-01-13 | Extend vs. create strategy adopted | Avoids test duplication, maintains context, reduces effort by ~1.5 days |
+| 2026-01-13 | Open questions 1-4 resolved | See Open Questions section |
 | TBD | Phase 1 approved | Infrastructure setup |
-| TBD | P0 tests complete | Navigation + Taxonomy |
-| TBD | P1 tests complete | Data + Templates + Formats |
+| TBD | P0 tests complete | Navigation + Taxonomy HTML |
+| TBD | P1 tests complete | Data + Templates + RSS/Sitemap |
 | TBD | P2 tests complete | Edge cases + Cross-features |
