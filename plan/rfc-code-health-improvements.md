@@ -1,8 +1,8 @@
 # RFC: Code Health Improvements - Modularization & Complexity Reduction
 
-**Status**: Draft  
+**Status**: Complete  
 **Created**: 2026-01-13  
-**Updated**: 2026-01-13  
+**Updated**: 2026-01-14  
 **Priority**: Medium  
 **Tracking**: `plan/rfc-code-health-improvements.md`
 
@@ -466,12 +466,17 @@ git revert <phase-1-commits>
 - [ ] Commit with message: `refactor(core): complete _lazy_property adoption in PageProxy`
 
 ### Phase 3 Checklist
-- [ ] Create branch: `refactor/html-renderer-decomposition`
-- [ ] Implement composition pattern
-- [ ] Run benchmark: `uv run python benchmarks/benchmark_render.py`
-- [ ] Compare to baseline: must be < 5% slower
-- [ ] If gate fails: iterate locally, do not merge
-- [ ] If gate passes: merge and commit: `refactor(rendering): decompose HtmlRenderer into block/inline/directive modules`
+- [x] Create branch: `refactor/html-renderer-decomposition`
+- [x] Implement mixin pattern (blocks.py, inline.py, directives.py, utils.py)
+- [x] Run benchmark: `uv run python benchmarks/benchmark_render.py`
+- [x] Compare to baseline: 0.4% regression (render-only throughput: 2278→2269 pages/sec)
+- [x] Gate passed: <5% regression verified
+- [x] Commit: `refactor(rendering): decompose HtmlRenderer into block/inline/directive modules`
+
+**Final Metrics (Phase 3)**:
+- Render-only (medium): 0.060ms → 0.062ms (+3.3%)
+- Render-only (complex): 0.084ms → 0.084ms (0%)
+- Throughput: 2278 → 2269 pages/sec (-0.4%)
 
 ---
 
