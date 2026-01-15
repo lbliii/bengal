@@ -351,20 +351,42 @@ class ChangeDetector:
         autodoc_pages: set[str],
     ) -> list[Page]:
         """Convert page paths to Page objects."""
+        # Check if we have autodoc tracking metadata
+        # Rationale: If autodoc_dependencies is empty, we must render all autodoc
+        # pages to establish the baseline. If it's populated, we only render
+        # what the TaxonomyChangeDetector identified.
         has_autodoc_tracking = False
         if hasattr(self.cache, "autodoc_dependencies"):
             with contextlib.suppress(TypeError, AttributeError):
-                has_autodoc_tracking = bool(self.cache.autodoc_dependencies)
+                # Check for metadata too - if we have dependencies but no metadata,
+                # we're in a migration state and should render all to be safe.
+                has_autodoc_tracking = bool(self.cache.autodoc_dependencies) and bool(
+                    getattr(self.cache, "autodoc_source_metadata", None)
+                )
 
-        pages = [
-            page
-            for page in self.site.pages
-            if (page.source_path in pages_to_rebuild and not page.metadata.get("_generated"))
-            or (
-                page.metadata.get("is_autodoc")
-                and (str(page.source_path) in autodoc_pages or not has_autodoc_tracking)
-            )
-        ]
+        pages = []
+        for page in self.site.pages:
+            # 1. Explicitly changed regular pages
+            if page.source_path in pages_to_rebuild and not page.metadata.get("_generated"):
+                pages.append(page)
+                continue
+
+            # 2. Autodoc pages
+            if page.metadata.get("is_autodoc"):
+                # If no tracking info yet, render all to bootstrap the cache
+                if not has_autodoc_tracking:
+                    pages.append(page)
+                    continue
+                
+                # If tracking exists, only render pages identified as changed
+                if str(page.source_path) in autodoc_pages:
+                    pages.append(page)
+                    continue
+
+            # 3. Generated pages (tags, archives) - identified by pages_to_rebuild
+            # (they have virtual paths like .bengal/generated/...)
+            if page.metadata.get("_generated") and page.source_path in pages_to_rebuild:
+                pages.append(page)
 
         # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
         # Apply version scope filtering if configured

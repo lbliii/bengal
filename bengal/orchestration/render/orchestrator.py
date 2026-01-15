@@ -303,6 +303,11 @@ class RenderOrchestrator:
         # PRE-PROCESS: Set output paths for pages being rendered
         self._set_output_paths_for_pages(pages)
 
+        # RFC: Autodoc Incremental Caching Enhancement
+        # Prioritize pages that were explicitly changed (forced_changed_sources)
+        # to ensure the most important content renders first.
+        pages = self._priority_sort(pages, changed_sources)
+
         try:
             # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
             # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
@@ -957,3 +962,64 @@ class RenderOrchestrator:
 
             # Determine output path using centralized strategy (kept in sync with pipeline)
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
+
+    def _priority_sort(self, pages: list[Page], changed_sources: set[Path] | None) -> list[Page]:
+        """
+        Sort pages so that explicitly changed files are at the front.
+        
+        Args:
+            pages: Pages to sort
+            changed_sources: Set of paths that were explicitly changed
+            
+        Returns:
+            Prioritized list of pages
+        """
+        if not changed_sources:
+            return pages
+
+        priority_pages: list[Page] = []
+        normal_pages: list[Page] = []
+
+        # Convert to resolved absolute paths for reliable matching
+        resolved_changed = set()
+        for p in changed_sources:
+            try:
+                resolved_changed.add(p.resolve())
+            except (OSError, ValueError):
+                resolved_changed.add(p)
+
+        for page in pages:
+            is_priority = False
+            try:
+                # Regular pages have a source_path
+                if page.source_path and page.source_path.resolve() in resolved_changed:
+                    is_priority = True
+                
+                # Autodoc pages might have source_path pointing to the python file
+                # If the python file is in changed_sources, it's a priority
+                if not is_priority and page.metadata.get("is_autodoc") and page.source_path:
+                    if page.source_path.resolve() in resolved_changed:
+                        is_priority = True
+            except (OSError, ValueError):
+                if page.source_path in changed_sources:
+                    is_priority = True
+
+            if is_priority:
+                priority_pages.append(page)
+            else:
+                normal_pages.append(page)
+
+        if priority_pages:
+            logger.debug(
+                "rendering_prioritization",
+                priority_count=len(priority_pages),
+                normal_count=len(normal_pages),
+            )
+            # Maintain complexity sorting within each group if enabled
+            max_workers = self._get_max_workers() or 4
+            priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
+            normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
+            
+            return priority_pages + normal_pages
+        
+        return pages

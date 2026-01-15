@@ -230,6 +230,18 @@ class CacheManager:
         for asset in assets_processed:
             self.cache.update_file(asset.source_path)
 
+        # Store discovered assets in cache for next build session
+        # Enables skipping asset discovery walk during hot reload if no assets changed.
+        if hasattr(self.site, "assets") and self.site.assets:
+            self.cache.discovered_assets = {}
+            for asset in self.site.assets:
+                try:
+                    rel_src = str(asset.source_path.relative_to(self.site.root_path))
+                    self.cache.discovered_assets[rel_src] = str(asset.output_path)
+                except ValueError:
+                    # Asset outside root (theme asset), skip for now or store absolute
+                    continue
+
         # Save URL claims to cache for incremental build safety
         if hasattr(self.site, "url_registry") and self.site.url_registry:
             try:

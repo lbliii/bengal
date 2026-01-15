@@ -80,6 +80,12 @@ from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.upgrade.command import upgrade as upgrade_cmd
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.cli.commands.version import version_cli
+
+# Experimental commands
+try:
+    from bengal.cli.commands.provenance import provenance_cli
+except ImportError:
+    provenance_cli = None
 from bengal.errors.traceback import TracebackConfig
 from bengal.output import CLIOutput
 
@@ -241,6 +247,10 @@ main.add_command(version_cli)
 
 # Upgrade command - self-update
 main.add_command(upgrade_cmd)
+
+# Provenance tracking (experimental)
+if provenance_cli is not None:
+    main.add_command(provenance_cli)
 
 # =============================================================================
 # TOP-LEVEL ALIASES (most common operations - no nesting required!)

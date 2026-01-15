@@ -50,6 +50,35 @@ class RenderedOutputCacheMixin:
         """Check if file changed (provided by FileTrackingMixin)."""
         raise NotImplementedError("Must be provided by FileTrackingMixin")
 
+    def _compute_metadata_hash(self, metadata: dict[str, Any]) -> str:
+        """Compute stable hash of metadata, with special handling for autodoc."""
+        if not metadata:
+            return hash_str("{}")
+
+        # Create a copy to avoid mutating the original
+        clean_metadata = metadata.copy()
+
+        # Handle autodoc elements specially: they are large objects whose string
+        # representation may be unstable or contain transient attributes (like hrefs
+        # that depend on prefix derivation).
+        # Instead of hashing the whole DocElement, we use the pre-computed doc_content_hash.
+        is_autodoc = clean_metadata.get("is_autodoc", False)
+        doc_hash = clean_metadata.get("doc_content_hash")
+
+        if is_autodoc and doc_hash:
+            # If we have a doc content hash, it is the single source of truth for
+            # whether the documentation content changed. We can remove the heavy
+            # autodoc_element from the metadata hash.
+            clean_metadata.pop("autodoc_element", None)
+            # Ensure doc_content_hash stays in the dict
+        
+        # Also remove other transient or large metadata that shouldn't affect the hash
+        clean_metadata.pop("_site", None)
+        clean_metadata.pop("_section", None)
+
+        metadata_str = json.dumps(clean_metadata, sort_keys=True, default=str)
+        return hash_str(metadata_str)
+
     def store_rendered_output(
         self,
         file_path: Path,
@@ -75,8 +104,7 @@ class RenderedOutputCacheMixin:
             output_dir: Output directory for locating asset manifest
         """
         # Hash metadata to detect changes
-        metadata_str = json.dumps(metadata, sort_keys=True, default=str)
-        metadata_hash = hash_str(metadata_str)
+        metadata_hash = self._compute_metadata_hash(metadata)
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8"))
@@ -146,8 +174,7 @@ class RenderedOutputCacheMixin:
             return MISSING
 
         # Validate metadata hasn't changed
-        metadata_str = json.dumps(metadata, sort_keys=True, default=str)
-        metadata_hash = hash_str(metadata_str)
+        metadata_hash = self._compute_metadata_hash(metadata)
         if cached.get("metadata_hash") != metadata_hash:
             return MISSING
 

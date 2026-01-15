@@ -338,6 +338,11 @@ class BuildOrchestrator:
 
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
+        
+        # Store options and cache for phase-level optimizations
+        self.site._last_build_options = options
+        self.site._cache = self.incremental.cache
+        self._last_build_options = options
 
         # Create BuildContext early for content caching during discovery
         # This enables build-integrated validation: validators use cached content
@@ -389,16 +394,35 @@ class BuildOrchestrator:
         config_changed = config_result.config_changed
 
         # Phase 5: Incremental Filtering (determine what to build)
-        filter_result = initialization.phase_incremental_filter(
-            self,
-            cli,
-            cache,
-            incremental,
-            verbose,
-            build_start,
-            changed_sources=changed_sources,
-            nav_changed_sources=nav_changed_sources,
-        )
+        # Use provenance-based filtering if enabled (default: True)
+        use_provenance = self.site.config.get("build", {}).get("provenance", True)
+        
+        if use_provenance and incremental:
+            from bengal.orchestration.build.provenance_filter import (
+                phase_incremental_filter_provenance,
+            )
+            filter_result = phase_incremental_filter_provenance(
+                self,
+                cli,
+                cache,
+                incremental,
+                verbose,
+                build_start,
+                changed_sources=changed_sources,
+                nav_changed_sources=nav_changed_sources,
+            )
+        else:
+            filter_result = initialization.phase_incremental_filter(
+                self,
+                cli,
+                cache,
+                incremental,
+                verbose,
+                build_start,
+                changed_sources=changed_sources,
+                nav_changed_sources=nav_changed_sources,
+            )
+        
         if filter_result is None:
             # No changes detected - early exit
             return self.stats
@@ -528,6 +552,11 @@ class BuildOrchestrator:
         # Phase 16: Track Asset Dependencies
         rendering.phase_track_assets(self, pages_to_build, cli=cli, build_context=ctx)
 
+        # Record provenance for all built pages (if using provenance-based filtering)
+        if hasattr(self, "_provenance_filter") and pages_to_build:
+            from bengal.orchestration.build.provenance_filter import record_all_page_builds
+            record_all_page_builds(self, pages_to_build)
+
         rendering_duration_ms = (time.time() - rendering_start) * 1000
         notify_phase_complete(
             "rendering",
@@ -631,6 +660,11 @@ class BuildOrchestrator:
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
+
+        # Save provenance cache if using provenance-based filtering
+        if hasattr(self, "_provenance_filter"):
+            from bengal.orchestration.build.provenance_filter import save_provenance_cache
+            save_provenance_cache(self)
 
         # Clear build state (build complete)
         self.site.set_build_state(None)

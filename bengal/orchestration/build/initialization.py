@@ -167,6 +167,22 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     if "fonts" not in orchestrator.site.config:
         return
 
+    # Optimization: Skip font processing if only content files changed and fonts exist
+    # (prevents redundant FontHelper.process calls during hot reload)
+    options = getattr(orchestrator, "_last_build_options", None)
+    if options and options.incremental and options.changed_sources:
+        # Check if any changed source is NOT a content file
+        content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
+        non_content_changes = [
+            s for s in options.changed_sources 
+            if s.suffix.lower() not in content_extensions
+        ]
+        
+        fonts_css = orchestrator.site.root_path / "assets" / "fonts.css"
+        if not non_content_changes and fonts_css.exists():
+            orchestrator.logger.debug("fonts_skipped", reason="only_content_changed")
+            return
+
     with orchestrator.logger.phase("fonts"):
         fonts_start = time.time()
         try:

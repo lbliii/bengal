@@ -306,6 +306,13 @@ class RenderingPipeline:
         Virtual pages (e.g., autodoc API pages) bypass markdown parsing and use
         pre-rendered HTML directly.
 
+        Data File Tracking:
+            Sets the dependency tracker in ContextVar so that template access
+            to site.data.X is automatically tracked. This enables incremental
+            builds to rebuild pages when data files change.
+            
+            RFC: rfc-incremental-build-dependency-gaps (Phase 1)
+
         Args:
             page: Page object to process. Must have source_path set.
         """
@@ -315,18 +322,51 @@ class RenderingPipeline:
         from bengal.rendering.template_functions.get_page import clear_get_page_cache
 
         clear_get_page_cache()
+        
+        # Set tracker context for data file dependency tracking
+        # This enables site.data.X access to be tracked automatically
+        # RFC: rfc-incremental-build-dependency-gaps (Phase 1)
+        from bengal.rendering.context.data_tracking import (
+            reset_current_tracker,
+            set_current_tracker,
+        )
+        
+        tracker_token = set_current_tracker(self.dependency_tracker)
+        
+        try:
+            self._process_page_impl(page)
+        finally:
+            # Always reset tracker context, even on exceptions
+            reset_current_tracker(tracker_token)
 
+    def _process_page_impl(self, page: Page) -> None:
+        """Implementation of page processing (called within tracker context)."""
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
         prerendered = getattr(page, "_prerendered_html", None)
         is_autodoc = page.metadata.get("is_autodoc")
         if getattr(page, "_virtual", False) and (prerendered is not None or is_autodoc):
+            if is_autodoc:
+                # Optimized autodoc path: try rendered cache first
+                template = page.metadata.get("_autodoc_template", "autodoc/python/module")
+                if not self._cache_checker.should_bypass_cache(page, self.changed_sources):
+                    if self._cache_checker.try_rendered_cache(page, template):
+                        # Cache hit - skip extraction and rendering
+                        self._json_accumulator.accumulate_unified_page_data(page)
+                        self._accumulate_asset_deps(page)
+                        return
+
             self._autodoc_renderer.process_virtual_page(page)
             # Accumulate unified page data for virtual pages (JSON + search index)
             self._json_accumulator.accumulate_unified_page_data(page)
             # Inline asset extraction for virtual pages
             self._accumulate_asset_deps(page)
+            
+            # Cache the rendered output for next time
+            if is_autodoc:
+                template = page.metadata.get("_autodoc_template", "autodoc/python/module")
+                self._cache_checker.cache_rendered_output(page, template)
             return
 
         if self.dependency_tracker and not page.metadata.get("_generated"):

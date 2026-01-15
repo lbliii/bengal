@@ -356,9 +356,20 @@ class ContentOrchestrator:
 
                     if not changed:
                         try:
-                            pages, sections, _run = orchestrator.generate_from_cache_payload(
+                            pages, sections, run_result = orchestrator.generate_from_cache_payload(
                                 cached_payload
                             )
+                            # Register autodoc dependencies with cache so has_autodoc_tracking is True
+                            if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                                for source_file, page_hashes in run_result.autodoc_dependencies.items():
+                                    for page_path, content_hash in page_hashes.items():
+                                        cache.add_autodoc_dependency(
+                                            source_file,
+                                            page_path,
+                                            site_root=self.site.root_path,
+                                            content_hash=content_hash,
+                                        )
+
                             logger.debug(
                                 "autodoc_cache_hit",
                                 pages=len(pages),
@@ -532,6 +543,28 @@ class ContentOrchestrator:
         Args:
             assets_dir: Assets directory path (defaults to root_path/assets)
         """
+        # Optimization: Skip asset discovery if only content files changed
+        options = getattr(self.site, "_last_build_options", None)
+        cache = getattr(self.site, "_cache", None)
+        
+        if options and options.incremental and options.changed_sources and not options.structural_changed:
+            content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
+            non_content_changes = [
+                s for s in options.changed_sources 
+                if s.suffix.lower() not in content_extensions
+            ]
+            
+            if not non_content_changes and cache and hasattr(cache, "discovered_assets") and cache.discovered_assets:
+                from bengal.core.asset import Asset
+                self.site.assets = []
+                for src_rel, out_rel in cache.discovered_assets.items():
+                    self.site.assets.append(Asset(
+                        source_path=self.site.root_path / src_rel,
+                        output_path=Path(out_rel)
+                    ))
+                logger.debug("asset_discovery_skipped", reason="only_content_changed", count=len(self.site.assets))
+                return
+
         from bengal.discovery.asset_discovery import AssetDiscovery
 
         self.site.assets = []

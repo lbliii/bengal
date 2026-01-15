@@ -431,11 +431,49 @@ class TaxonomyChangeDetector:
                     )
 
             if autodoc_pages_to_rebuild:
-                logger.info(
-                    "autodoc_selective_rebuild",
-                    affected_pages=len(autodoc_pages_to_rebuild),
-                    reason="source_files_changed",
-                )
+                # Method 3: Fine-grained doc content filtering (RFC: Autodoc Incremental Caching)
+                # If discovery already ran (standard build flow), we have new doc_content_hashes.
+                # We can skip pages whose documentation content hasn't changed, even if the
+                # source file mtime/hash has changed (e.g. code-only changes).
+                if hasattr(self.cache, "is_doc_content_changed"):
+                    # Build reverse mapping for fast lookup: page_path -> source_key
+                    page_to_source = {}
+                    for src_key, pages in self.cache.autodoc_dependencies.items():
+                        for p_path in pages:
+                            page_to_source[p_path] = src_key
+
+                    filtered_pages = set()
+                    skipped_count = 0
+                    
+                    for page_path_str in autodoc_pages_to_rebuild:
+                        source_key = page_to_source.get(page_path_str)
+                        page = self._get_page_by_path(Path(page_path_str))
+                        
+                        doc_hash = page.metadata.get("doc_content_hash") if page else None
+                        
+                        if source_key and doc_hash:
+                            if self.cache.is_doc_content_changed(source_key, page_path_str, doc_hash):
+                                filtered_pages.add(page_path_str)
+                            else:
+                                skipped_count += 1
+                        else:
+                            # Fallback: if we can't verify content, rebuild to be safe
+                            filtered_pages.add(page_path_str)
+                    
+                    if skipped_count > 0:
+                        logger.debug(
+                            "autodoc_skipping_unchanged_content",
+                            skipped=skipped_count,
+                            remaining=len(filtered_pages),
+                        )
+                        autodoc_pages_to_rebuild = filtered_pages
+
+                if autodoc_pages_to_rebuild:
+                    logger.info(
+                        "autodoc_selective_rebuild",
+                        affected_pages=len(autodoc_pages_to_rebuild),
+                        reason="source_files_changed",
+                    )
         except (TypeError, AttributeError):
             pass
 

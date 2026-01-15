@@ -137,6 +137,10 @@ class BuildCache(
     # See: plan/rfc-autodoc-incremental-caching.md
     autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
 
+    # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
+    # Enables skipping asset discovery walk during hot reload if no assets changed.
+    discovered_assets: dict[str, str] = field(default_factory=dict)
+
     # URL ownership claims: url → URLClaim dict
     # Persists URL claims for incremental build safety (prevents shadowing by new content)
     # Structure: {url: {owner: str, source: str, priority: int, version: str | None, lang: str | None}}
@@ -330,6 +334,10 @@ class BuildCache(
             if "url_claims" not in data or not isinstance(data["url_claims"], dict):
                 data["url_claims"] = {}
 
+            # Discovered assets (tolerate missing)
+            if "discovered_assets" not in data or not isinstance(data["discovered_assets"], dict):
+                data["discovered_assets"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -492,6 +500,7 @@ class BuildCache(
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
+            "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }
@@ -541,6 +550,7 @@ class BuildCache(
         self.validation_results.clear()
         self.autodoc_dependencies.clear()
         self.autodoc_source_metadata.clear()
+        self.discovered_assets.clear()
         self.config_hash = None
         self.last_build = None
 

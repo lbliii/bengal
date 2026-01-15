@@ -2,6 +2,10 @@
 Site-level context wrappers for templates.
 
 Provides ergonomic access to Site, Theme, and Config objects with sensible defaults.
+
+RFC: rfc-incremental-build-dependency-gaps (Phase 1)
+- SiteContext.data returns TrackedData wrapper when tracker is available
+- Enables automatic data file dependency tracking during template rendering
 """
 
 from __future__ import annotations
@@ -22,26 +26,37 @@ class SiteContext:
     Provides clean access to site configuration with sensible defaults.
     All properties return safe values (never None for strings).
     
+    Data File Tracking:
+        When accessing `site.data`, returns a TrackedData wrapper that
+        records data file dependencies for incremental builds. This is
+        automatic when a DependencyTracker is set via tracker_context().
+    
     Example:
         {{ site.title }}             # Site title
         {{ site.logo }}              # Logo URL ('' if not set)
         {{ site.baseurl }}           # Base URL ('' if not set)
         {{ site.author }}            # Default author
         {{ site.params.repo_url }}   # Custom params
+        {{ site.data.team }}         # Data file (tracked for incremental builds)
         
     """
 
-    __slots__ = ("_site", "_params_cache")
+    __slots__ = ("_site", "_params_cache", "_tracked_data_cache")
 
     def __init__(self, site: Site):
         self._site = site
         self._params_cache: ParamsContext | None = None
+        self._tracked_data_cache: Any = None
 
     def __getattr__(self, name: str) -> Any:
         """Proxy to underlying site, with safe fallbacks."""
         # For wrapper's own underscore attrs, use normal attribute access
         if name == "_site":
             return object.__getattribute__(self, "_site")
+
+        # Special handling for 'data' - wrap with TrackedData if tracker available
+        if name == "data":
+            return self._get_tracked_data()
 
         # Check for property on site first (including underscore attrs like _dev_menu_metadata)
         if hasattr(self._site, name):
@@ -53,6 +68,32 @@ class SiteContext:
 
         # Return None for missing underscore attrs (safer than raising)
         return None
+
+    def _get_tracked_data(self) -> Any:
+        """Get site.data wrapped with TrackedData for dependency tracking.
+        
+        Returns a TrackedData wrapper that will record data file access
+        when a tracker is available via get_current_tracker() at access time.
+        
+        The TrackedData wrapper is cached per-SiteContext instance since
+        it looks up the tracker dynamically from ContextVar.
+        
+        Returns:
+            TrackedData wrapper (tracks only when tracker is set)
+        """
+        from bengal.rendering.context.data_tracking import TrackedData
+        
+        # Create TrackedData wrapper (cached per-site)
+        # TrackedData looks up tracker from ContextVar at access time,
+        # so caching is safe even across different page renders.
+        if self._tracked_data_cache is None:
+            data_dir = self._site.root_path / "data"
+            self._tracked_data_cache = TrackedData(
+                self._site.data,
+                data_dir,
+            )
+        
+        return self._tracked_data_cache
 
     @property
     def title(self) -> str:

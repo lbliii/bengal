@@ -91,6 +91,11 @@ if TYPE_CHECKING:
     )
     from bengal.cache.manifest import RebuildEntry, RebuildManifest
     from bengal.cache.path_registry import PathRegistry
+    from bengal.cache.provenance import (
+        ProvenanceCache,
+        ProvenanceFilter,
+        ProvenanceFilterResult,
+    )
     from bengal.cache.query_index import IndexEntry, QueryIndex
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.cache.utils import (
@@ -114,6 +119,9 @@ __all__ = [
     "InvalidationEvent",
     "PageInvalidationReason",
     "PathRegistry",
+    "ProvenanceCache",
+    "ProvenanceFilter",
+    "ProvenanceFilterResult",
     "QueryIndex",
     "QueryIndexRegistry",
     "RebuildEntry",
@@ -157,6 +165,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "RebuildManifest": ("bengal.cache.manifest", "RebuildManifest"),
     # Path registry (RFC: Cache Invalidation Architecture)
     "PathRegistry": ("bengal.cache.path_registry", "PathRegistry"),
+    # Provenance cache (RFC: Effect-Traced Incremental Builds)
+    "ProvenanceCache": ("bengal.cache.provenance", "ProvenanceCache"),
+    "ProvenanceFilter": ("bengal.cache.provenance", "ProvenanceFilter"),
+    "ProvenanceFilterResult": ("bengal.cache.provenance", "ProvenanceFilterResult"),
     # Query index
     "IndexEntry": ("bengal.cache.query_index", "IndexEntry"),
     "QueryIndex": ("bengal.cache.query_index", "QueryIndex"),

@@ -172,9 +172,221 @@ class ContentDiscovery:
             Tuple of (sections, pages)
         """
         if use_cache and cache:
-            return self._discover_with_cache(cache)
+            return self._discover_surgical(cache)
         else:
             return self._discover_full()
+
+    def _discover_surgical(self, cache: Any) -> tuple[list[Section], list[Page]]:
+        """
+        Surgical discovery - use cache to skip parsing unchanged files.
+        
+        This is the FAST path for incremental builds and hot reloads.
+        Instead of parsing all files and then converting to proxies,
+        it checks the cache during the walk and creates proxies immediately.
+        """
+        logger.debug(
+            "content_discovery_surgical_start",
+            content_dir=str(self.content_dir),
+            cached_entries=len(cache.pages),
+        )
+
+        # Reset for new discovery
+        self._walker.reset()
+        self._section_builder.sections = []
+        self._section_builder.pages = []
+
+        if not self.content_dir.exists():
+            return [], []
+
+        # Get i18n configuration
+        i18n_config = self._get_i18n_config()
+
+        # Initialize thread pool for parallel parsing (only used for changed files)
+        max_workers = get_optimal_workers(
+            100,
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers")
+            if self.site and self.site.config
+            else None,
+        )
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+
+        try:
+            # Walk top-level items
+            for item in sorted(self.content_dir.iterdir()):
+                if self._walker.should_skip_item(item):
+                    continue
+
+                # Detect language-root directories for i18n
+                if self._is_language_root(item, i18n_config):
+                    for sub in sorted(item.iterdir()):
+                        self._process_top_level_item_surgical(sub, cache, current_lang=item.name)
+                    continue
+
+                current_lang = (
+                    i18n_config.get("default_lang")
+                    if i18n_config.get("strategy") == "prefix"
+                    else None
+                )
+                self._process_top_level_item_surgical(item, cache, current_lang=current_lang)
+        finally:
+            if self._executor:
+                self._executor.shutdown(wait=True)
+                self._executor = None
+
+        # Sort sections
+        self._section_builder.sort_all_sections()
+
+        # Copy results from builder
+        self.sections = self._section_builder.sections
+        self.pages = self._section_builder.pages
+
+        # Log metrics
+        proxy_count = sum(1 for p in self.pages if isinstance(p, PageProxy))
+        logger.info(
+            "content_discovery_surgical_complete",
+            total_pages=len(self.pages),
+            proxies=proxy_count,
+            full_pages=len(self.pages) - proxy_count,
+        )
+
+        return self.sections, self.pages
+
+    def _process_top_level_item_surgical(
+        self, item_path: Path, cache: Any, current_lang: str | None
+    ) -> None:
+        """Process a top-level item surgically using cache."""
+        if self._walker.should_skip_item(item_path):
+            return
+
+        if item_path.is_file() and self._walker.is_content_file(item_path):
+            page = self._create_page_surgical(item_path, cache, current_lang=current_lang)
+            if page:
+                self._section_builder.pages.append(page)
+
+        elif item_path.is_dir():
+            if self._walker.is_versioning_infrastructure(item_path):
+                section = self._section_builder.create_section(item_path)
+                self._walk_directory_surgical(item_path, section, cache, current_lang=current_lang)
+                self._section_builder.add_versioned_sections_recursive(section)
+                return
+
+            section = self._section_builder.create_section(item_path)
+            self._walk_directory_surgical(item_path, section, cache, current_lang=current_lang)
+            self._section_builder.add_section(section)
+
+    def _walk_directory_surgical(
+        self, directory: Path, parent_section: Section, cache: Any, current_lang: str | None = None
+    ) -> None:
+        """Recursively walk a directory surgically using cache."""
+        if not directory.exists():
+            return
+
+        if self._walker.check_symlink_loop(directory):
+            return
+
+        file_futures = []
+        for item in self._walker.list_directory(directory):
+            if self._walker.should_skip_item(item):
+                continue
+
+            if item.is_file() and self._walker.is_content_file(item):
+                # Try to load from cache immediately (no thread overhead for cache hits)
+                page = self._create_page_surgical(
+                    item, cache, current_lang=current_lang, section=parent_section
+                )
+                if page:
+                    if isinstance(page, PageProxy):
+                        parent_section.add_page(page)
+                        self._section_builder.pages.append(page)
+                    else:
+                        # Full page - use executor for parsing (it's a change or cache miss)
+                        if self._executor:
+                            file_futures.append(
+                                self._executor.submit(
+                                    self._create_page, item, current_lang, parent_section
+                                )
+                            )
+                        else:
+                            parent_section.add_page(page)
+                            self._section_builder.pages.append(page)
+
+            elif item.is_dir():
+                section = self._section_builder.create_section(item)
+                self._walk_directory_surgical(item, section, cache, current_lang=current_lang)
+                if section.pages or section.subsections:
+                    parent_section.add_subsection(section)
+
+        # Resolve futures for changed files
+        if file_futures:
+            self._resolve_page_futures(file_futures, parent_section)
+
+    def _create_page_surgical(
+        self,
+        file_path: Path,
+        cache: Any,
+        current_lang: str | None = None,
+        section: Section | None = None,
+    ) -> Page | None:
+        """
+        Create a Page object surgically: try cache first, then full parse.
+        
+        Returns a PageProxy on cache hit, a full Page on cache miss (if not using executor),
+        or None if it should be parsed via executor.
+        """
+        # Check cache
+        cache_lookup_path = file_path
+        if self.site and file_path.is_absolute():
+            with contextlib.suppress(ValueError):
+                cache_lookup_path = file_path.relative_to(self.site.root_path)
+
+        cached_metadata = cache.get_metadata(cache_lookup_path)
+        
+        if cached_metadata:
+            # Validate cache entry using mtime (fastest disk check)
+            try:
+                # Check if this file is explicitly marked as changed in the orchestrator
+                options = getattr(self.site, "_last_build_options", None) if self.site else None
+                changed_sources = getattr(options, "changed_sources", None)
+                
+                is_explicitly_changed = False
+                if changed_sources:
+                    # Normalize paths for comparison
+                    try:
+                        resolved_file = file_path.resolve()
+                        is_explicitly_changed = any(s.resolve() == resolved_file for s in changed_sources)
+                    except (OSError, ValueError):
+                        is_explicitly_changed = file_path in changed_sources
+
+                if not is_explicitly_changed:
+                    # CACHE HIT: Create proxy immediately
+                    def make_loader(
+                        source_path: Path, lang: str | None, section_path: Path | None
+                    ) -> Callable[[Any], Page]:
+                        def loader(_: Any) -> Page:
+                            sec = None
+                            if section_path and self.site is not None:
+                                sec = self.site.get_section_by_path(section_path)
+                            return self._create_page(source_path, current_lang=lang, section=sec)
+                        return loader
+
+                    proxy = PageProxy(
+                        source_path=file_path,
+                        metadata=cached_metadata,
+                        loader=make_loader(file_path, current_lang, section.path if section else None),
+                    )
+                    if section:
+                        proxy._section = section
+                    proxy._site = self.site
+                    return proxy
+            except (OSError, PermissionError):
+                pass # Fall through to full parse
+
+        # CACHE MISS or CHANGE: Return None to signal it should be parsed (potentially via executor)
+        if self._executor:
+            return None
+        
+        return self._create_page(file_path, current_lang=current_lang, section=section)
 
     def _discover_full(self) -> tuple[list[Section], list[Page]]:
         """Full discovery - discover all pages completely."""
@@ -516,87 +728,6 @@ class ContentDiscovery:
             page.version = version.id
             if page.core:
                 object.__setattr__(page.core, "version", version.id)
-
-    def _discover_with_cache(self, cache: Any) -> tuple[list[Section], list[Page]]:
-        """Discover content with lazy loading from cache."""
-        logger.info(
-            "content_discovery_with_cache_start",
-            content_dir=str(self.content_dir),
-            cached_pages=len(cache.pages) if hasattr(cache, "pages") else 0,
-        )
-
-        sections, all_discovered_pages = self._discover_full()
-
-        proxy_count = 0
-        full_page_count = 0
-
-        for i, page in enumerate(all_discovered_pages):
-            cache_lookup_path = page.source_path
-            if self.site and page.source_path.is_absolute():
-                with contextlib.suppress(ValueError):
-                    cache_lookup_path = page.source_path.relative_to(self.site.root_path)
-
-            cached_metadata = cache.get_metadata(cache_lookup_path)
-
-            if cached_metadata and self._cache_is_valid(page, cached_metadata):
-
-                def make_loader(
-                    source_path: Path, lang: str | None, section_path: Path | None
-                ) -> Callable[[Any], Page]:
-                    def loader(_: Any) -> Page:
-                        section = None
-                        if section_path and self.site is not None:
-                            section = self.site.get_section_by_path(section_path)
-                        return self._create_page(source_path, current_lang=lang, section=section)
-
-                    return loader
-
-                proxy = PageProxy(
-                    source_path=page.source_path,
-                    metadata=cached_metadata,
-                    loader=make_loader(page.source_path, page.lang, page._section_path),
-                )
-                proxy._section_path = page._section_path
-                proxy._site = page._site
-                if page.output_path:
-                    proxy.output_path = page.output_path
-
-                all_discovered_pages[i] = proxy  # type: ignore[call-overload]
-                proxy_count += 1
-
-                logger.debug(
-                    "page_proxy_created",
-                    source_path=str(page.source_path),
-                    from_cache=True,
-                )
-            else:
-                full_page_count += 1
-
-        self.pages = all_discovered_pages
-
-        logger.info(
-            "content_discovery_with_cache_complete",
-            total_pages=len(all_discovered_pages),
-            proxies=proxy_count,
-            full_pages=full_page_count,
-            sections=len(sections),
-        )
-
-        return sections, all_discovered_pages
-
-    def _cache_is_valid(self, page: Page, cached_metadata: Any) -> bool:
-        """Check if cached metadata is still valid for a page."""
-        if page.title != cached_metadata.title:
-            return False
-        if set(page.tags or []) != set(cached_metadata.tags or []):
-            return False
-        page_date_str = page.date.isoformat() if page.date else None
-        if page_date_str != cached_metadata.date:
-            return False
-        if page.slug != cached_metadata.slug:
-            return False
-        page_section_str = str(page._section_path) if page._section_path else None
-        return bool(page_section_str == cached_metadata.section)
 
     # Backward compatibility methods
     def _is_content_file(self, file_path: Path) -> bool:
