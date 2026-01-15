@@ -357,7 +357,7 @@ def calibrate_patitas_parse() -> CalibrationResult | None:
     print("  Calibrating patitas parsing...")
 
     try:
-        from bengal.rendering.parsers.patitas import parse
+        from bengal.parsing.backends.patitas import parse
     except ImportError:
         print("    Skipped: patitas not available")
         return None

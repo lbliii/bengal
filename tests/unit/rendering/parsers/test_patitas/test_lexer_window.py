@@ -1,6 +1,6 @@
 import pytest
 
-from bengal.rendering.parsers.patitas import create_markdown
+from bengal.parsing.backends.patitas import create_markdown
 
 
 def test_lexer_window_variable_substitution():

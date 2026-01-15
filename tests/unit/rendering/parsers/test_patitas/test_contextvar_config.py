@@ -12,14 +12,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     RenderConfig,
     get_render_config,
     render_config_context,
     reset_render_config,
     set_render_config,
 )
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     ParseConfig as BengalParseConfig,
     get_parse_config as get_bengal_parse_config,
     parse_config_context as bengal_parse_config_context,
@@ -35,7 +35,7 @@ from patitas.config import (
     set_parse_config,
 )
 from patitas.parser import Parser
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 
 class TestParseConfig:

@@ -210,7 +210,7 @@ else:
 Collections work with remote content sources:
 
 ```python
-from bengal.content_layer import github_loader, notion_loader
+from bengal.content.sources import github_loader, notion_loader
 
 collections = {
     # Local content

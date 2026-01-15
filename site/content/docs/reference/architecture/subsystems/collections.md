@@ -104,7 +104,7 @@ Collections integrate with the Content Layer for remote sources:
 
 ```python
 from bengal.collections import define_collection
-from bengal.content_layer import github_loader, notion_loader
+from bengal.content.sources import github_loader, notion_loader
 
 collections = {
     "docs": define_collection(
@@ -178,7 +178,7 @@ Collections seamlessly integrate with the Content Layer for remote sources:
 
 ```python
 from bengal.collections import define_collection
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 collections = {
     "api-docs": define_collection(

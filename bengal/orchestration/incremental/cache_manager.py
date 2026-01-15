@@ -11,7 +11,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.cache.build_cache: Build cache dataclass
-- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.build.tracking: Dependency graph construction
 
 """
 
@@ -24,7 +24,9 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.build.tracking import DependencyTracker
+    from bengal.orchestration.build.coordinator import CacheCoordinator
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -91,7 +93,9 @@ class CacheManager:
             >>> cache, tracker = manager.initialize(enabled=True)
             >>> # Cache loaded from .bengal/cache.json if exists
         """
-        from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
+        from bengal.cache import BuildCache
+        from bengal.build.tracking import DependencyTracker
+        from bengal.orchestration.build.coordinator import CacheCoordinator
 
         paths = self.site.paths
         cache_path = paths.build_cache

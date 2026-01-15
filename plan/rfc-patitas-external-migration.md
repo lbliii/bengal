@@ -153,8 +153,8 @@ Global search-replace across Bengal:
 
 ```python
 # Before
-from bengal.rendering.parsers.patitas.nodes import Heading
-from bengal.rendering.parsers.patitas.parser import Parser
+from bengal.parsing.backends.patitas.nodes import Heading
+from bengal.parsing.backends.patitas.parser import Parser
 
 # After
 from patitas.nodes import Heading
@@ -371,12 +371,12 @@ wrapper.py               # PatitasParser adapter
 
 | Before (Bengal embedded) | After (External patitas) |
 |--------------------------|--------------------------|
-| `bengal.rendering.parsers.patitas.nodes` | `patitas.nodes` |
-| `bengal.rendering.parsers.patitas.tokens` | `patitas.tokens` |
-| `bengal.rendering.parsers.patitas.parser` | `patitas.parser` |
-| `bengal.rendering.parsers.patitas.lexer` | `patitas.lexer` |
-| `bengal.rendering.parsers.patitas.location` | `patitas.location` |
-| `bengal.rendering.parsers.patitas.stringbuilder` | `patitas.stringbuilder` |
+| `bengal.parsing.backends.patitas.nodes` | `patitas.nodes` |
+| `bengal.parsing.backends.patitas.tokens` | `patitas.tokens` |
+| `bengal.parsing.backends.patitas.parser` | `patitas.parser` |
+| `bengal.parsing.backends.patitas.lexer` | `patitas.lexer` |
+| `bengal.parsing.backends.patitas.location` | `patitas.location` |
+| `bengal.parsing.backends.patitas.stringbuilder` | `patitas.stringbuilder` |
 
 ---
 

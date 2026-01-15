@@ -64,7 +64,7 @@ flowchart TD
 
 ::::{tab-set}
 :::{tab-item} Parser
-**Markdown Parser** (`rendering/parsers/`)
+**Markdown Parser** (`parsing/`)
 
 Patitas is the default markdown engine (thread-safe, O(n) guaranteed). Mistune is available as a legacy option.
 

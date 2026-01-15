@@ -173,7 +173,7 @@ ___
 @pytest.fixture(scope="module")
 def mistune_parser():
     """Create Mistune parser instance."""
-    from bengal.rendering.parsers.mistune import MistuneParser
+    from bengal.parsing.backends.mistune import MistuneParser
 
     return MistuneParser(enable_highlighting=False)
 
@@ -181,7 +181,7 @@ def mistune_parser():
 @pytest.fixture(scope="module")
 def patitas_parser():
     """Create Patitas parser instance."""
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     return create_markdown(
         plugins=["table", "strikethrough", "math"],

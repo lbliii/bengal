@@ -88,7 +88,6 @@ BASELINE_FILES = {
     "bengal/rendering/parsers/mistune/__init__.py",  # 447
     "bengal/rendering/template_functions/collections.py",  # 446
     "bengal/orchestration/build/initialization.py",  # 442
-    "bengal/orchestration/incremental/change_detector.py",  # 428
     "bengal/rendering/template_functions/strings.py",  # 426
     "bengal/analysis/performance_advisor.py",  # 411
     "bengal/directives/navigation.py",  # 411

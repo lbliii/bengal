@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.cache.coordinator import (
+from bengal.orchestration.build.coordinator import (
     CacheCoordinator,
     InvalidationEvent,
     PageInvalidationReason,

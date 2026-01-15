@@ -13,7 +13,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.rendering.template_engine: Template engine for rendering (Kida default)
-- bengal.rendering.parsers: Markdown parser implementations (Patitas default)
+- bengal.parsing: Markdown parser implementations (Patitas default)
 - bengal.rendering.link_transformer: Link transformation logic
 
 See Also:

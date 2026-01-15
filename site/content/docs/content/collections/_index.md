@@ -189,7 +189,7 @@ Collections work with remote content too. Use a loader instead of a directory:
 
 ```python
 from bengal.collections import define_collection, DocPage
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 collections = {
     "api-docs": define_collection(

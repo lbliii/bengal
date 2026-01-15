@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     ParserPool,
     RendererPool,
     RenderMetadata,
@@ -26,7 +26,7 @@ from bengal.rendering.parsers.patitas import (
     try_get_request_context,
 )
 from patitas.parser import Parser
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 
 # =============================================================================
@@ -464,7 +464,7 @@ class TestContextVarComposition:
     def test_all_patterns_together(self):
         """All three patterns can be used together."""
         from pathlib import Path
-        from bengal.rendering.parsers.patitas import (
+        from bengal.parsing.backends.patitas import (
             parse_config_context,
             render_config_context,
             ParseConfig,

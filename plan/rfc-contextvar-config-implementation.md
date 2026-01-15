@@ -115,7 +115,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Iterator
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.directives import DirectiveRegistry
+    from bengal.parsing.backends.patitas.directives import DirectiveRegistry
 
 @dataclass(frozen=True, slots=True)
 class ParseConfig:
@@ -201,8 +201,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable, Iterator, Literal
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.directives import DirectiveRegistry
-    from bengal.rendering.parsers.patitas.roles import RoleRegistry
+    from bengal.parsing.backends.patitas.directives import DirectiveRegistry
+    from bengal.parsing.backends.patitas.roles import RoleRegistry
 
 
 def _check_rosettes_available() -> bool:
@@ -295,7 +295,7 @@ def render_config_context(config: RenderConfig) -> Iterator[RenderConfig]:
 ```python
 # bengal/rendering/parsers/patitas/parser.py
 
-from bengal.rendering.parsers.patitas.config import get_parse_config, ParseConfig
+from bengal.parsing.backends.patitas.config import get_parse_config, ParseConfig
 
 class Parser:
     __slots__ = (
@@ -377,7 +377,7 @@ class Parser:
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
 
-from bengal.rendering.parsers.patitas.render_config import get_render_config, RenderConfig
+from bengal.parsing.backends.patitas.render_config import get_render_config, RenderConfig
 
 class HtmlRenderer:
     __slots__ = (
@@ -451,10 +451,10 @@ class HtmlRenderer:
 **File**: `bengal/rendering/parsers/patitas/wrapper.py`
 
 ```python
-from bengal.rendering.parsers.patitas.config import (
+from bengal.parsing.backends.patitas.config import (
     ParseConfig, set_parse_config, reset_parse_config
 )
-from bengal.rendering.parsers.patitas.render_config import (
+from bengal.parsing.backends.patitas.render_config import (
     RenderConfig, set_render_config, reset_render_config
 )
 

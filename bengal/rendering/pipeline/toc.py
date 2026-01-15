@@ -38,7 +38,7 @@ Usage:
 Related Modules:
 - bengal.rendering.pipeline.core: Calls extraction during rendering
 - bengal.core.page: Page.toc_items property uses this function
-- bengal.rendering.parsers.mistune.toc: Mistune TOC plugin
+- bengal.parsing.backends.mistune.toc: Mistune TOC plugin
 
 """
 

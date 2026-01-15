@@ -17,7 +17,7 @@ Specialized subsystems that extend Bengal's core functionality.
 | **Health** | Content validation, broken link detection | `bengal/health/` |
 | **Fonts** | Google Fonts download, self-hosting | `bengal/fonts/` |
 | **Collections** | Type-safe content schemas | `bengal/collections/` |
-| **Content Layer** | Unified API for remote content | `bengal/content_layer/` |
+| **Content Layer** | Unified API for remote content | `bengal/content/sources/` |
 | **CLI Output** | Terminal output formatting | `bengal/output/` |
 | **Debug Tools** | Build diagnostics | `bengal/debug/` |
 

@@ -31,7 +31,7 @@ Example:
 
 Related Modules:
 - bengal.cache.build_cache: Cache storage and fingerprinting
-- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.build.tracking: Dependency graph construction
 - bengal.orchestration.incremental: Incremental build coordination
 - bengal.debug.base: Debug tool infrastructure
 

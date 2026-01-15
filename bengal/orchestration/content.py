@@ -30,8 +30,8 @@ Not thread-safe. Discovery runs on the main thread before parallel
 rendering begins.
 
 Related Modules:
-bengal.discovery.content_discovery: Low-level content discovery
-bengal.discovery.asset_discovery: Low-level asset discovery
+bengal.content.discovery.content_discovery: Low-level content discovery
+bengal.content.discovery.asset_discovery: Low-level asset discovery
 bengal.core.cascade_engine: Cascade application logic
 
 See Also:
@@ -166,7 +166,7 @@ class ContentOrchestrator:
         import time
 
         from bengal.collections import load_collections
-        from bengal.discovery.content_discovery import ContentDiscovery
+        from bengal.content.discovery.content_discovery import ContentDiscovery
 
         breakdown_ms: dict[str, float] = {}
         overall_start = time.perf_counter()
@@ -565,7 +565,7 @@ class ContentOrchestrator:
                 logger.debug("asset_discovery_skipped", reason="only_content_changed", count=len(self.site.assets))
                 return
 
-        from bengal.discovery.asset_discovery import AssetDiscovery
+        from bengal.content.discovery.asset_discovery import AssetDiscovery
 
         self.site.assets = []
         theme_asset_count = 0

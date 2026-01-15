@@ -10,7 +10,7 @@ These tests verify that:
 
 from __future__ import annotations
 
-from bengal.rendering.parsers.factory import ParserBackend, ParserFactory
+from bengal.parsing.factory import ParserBackend, ParserFactory
 
 
 class TestParserFactory:

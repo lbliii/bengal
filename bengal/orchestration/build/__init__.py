@@ -382,6 +382,13 @@ class BuildOrchestrator:
         initialization.phase_cache_metadata(self)
 
         discovery_duration_ms = (time.time() - discovery_start) * 1000
+        
+        # DEBUG: Check pages right after discovery
+        import sys
+        print(f"DEBUG AFTER DISCOVERY: {len(self.site.pages)} pages", file=sys.stderr)
+        home_count = len([p for p in self.site.pages if 'content/_index.md' in str(p.source_path)])
+        print(f"DEBUG AFTER DISCOVERY: {home_count} home pages", file=sys.stderr)
+        
         notify_phase_complete(
             "discovery",
             discovery_duration_ms,
@@ -394,34 +401,20 @@ class BuildOrchestrator:
         config_changed = config_result.config_changed
 
         # Phase 5: Incremental Filtering (determine what to build)
-        # Use provenance-based filtering if enabled (default: True)
-        use_provenance = self.site.config.get("build", {}).get("provenance", True)
-        
-        if use_provenance and incremental:
-            from bengal.orchestration.build.provenance_filter import (
-                phase_incremental_filter_provenance,
-            )
-            filter_result = phase_incremental_filter_provenance(
-                self,
-                cli,
-                cache,
-                incremental,
-                verbose,
-                build_start,
-                changed_sources=changed_sources,
-                nav_changed_sources=nav_changed_sources,
-            )
-        else:
-            filter_result = initialization.phase_incremental_filter(
-                self,
-                cli,
-                cache,
-                incremental,
-                verbose,
-                build_start,
-                changed_sources=changed_sources,
-                nav_changed_sources=nav_changed_sources,
-            )
+        # Always use provenance-based filtering (replaces old IncrementalFilterEngine)
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
+        filter_result = phase_incremental_filter_provenance(
+            self,
+            cli,
+            cache,
+            incremental,
+            verbose,
+            build_start,
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
+        )
         
         if filter_result is None:
             # No changes detected - early exit
@@ -742,10 +735,18 @@ class BuildOrchestrator:
         build_start: float,
     ) -> FilterResult:
         """Phase 5: Incremental Filtering."""
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
         from bengal.orchestration.build.results import FilterResult
 
-        return initialization.phase_incremental_filter(
-            self, cli, cache, incremental, verbose, build_start
+        return phase_incremental_filter_provenance(
+            self,
+            cli,
+            cache,
+            incremental,
+            verbose,
+            build_start,
         )
 
     def _phase_sections(

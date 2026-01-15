@@ -15,7 +15,7 @@ Design Philosophy:
 See Also:
 - bengal.rendering.engines: Engine factory and registration
 - bengal.rendering.highlighting: Highlighting backend factory
-- bengal.rendering.parsers.patitas: Patitas integration
+- bengal.parsing.backends.patitas: Patitas integration
 
 """
 

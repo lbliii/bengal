@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers import create_markdown_parser
+from bengal.parsing import create_markdown_parser
 
 
 class TestListTableDirective:

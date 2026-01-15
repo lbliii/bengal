@@ -439,7 +439,7 @@ def diff_versions(
 
     if git:
         # Git mode - compare refs directly
-        from bengal.discovery.version_diff import diff_git_versions
+        from bengal.content.discovery.version_diff import diff_git_versions
 
         cli.info("Comparing git refs...")
         result = diff_git_versions(
@@ -468,7 +468,7 @@ def diff_versions(
             raise click.Abort()
 
         # Compare directories
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         old_path = root_path / old_v.source
         new_path = root_path / new_v.source

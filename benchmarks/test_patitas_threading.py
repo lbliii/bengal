@@ -85,7 +85,7 @@ def main():
         print()
 
     # Setup parser
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     patitas_md = create_markdown(
         plugins=["table", "strikethrough", "math"],

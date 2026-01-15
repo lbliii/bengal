@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     RenderConfig,
     create_markdown,
     parse,
@@ -14,8 +14,8 @@ from bengal.rendering.parsers.patitas import (
 )
 from patitas.lexer import Lexer
 from patitas.parser import Parser
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
-from bengal.rendering.parsers.patitas.wrapper import PatitasParser
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.wrapper import PatitasParser
 
 
 # Default plugins for tests (matches PatitasParser.DEFAULT_PLUGINS)

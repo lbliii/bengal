@@ -3,7 +3,7 @@ Unit tests for DependencyTracker.
 """
 
 from bengal.cache.build_cache import BuildCache
-from bengal.cache.dependency_tracker import DependencyTracker
+from bengal.build.tracking import DependencyTracker
 
 
 class TestDependencyTracker:

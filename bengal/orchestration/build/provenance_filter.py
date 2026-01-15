@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.cache.provenance import ProvenanceCache, ProvenanceFilter
+from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import (
     FilterResult,
@@ -80,6 +80,14 @@ def phase_incremental_filter_provenance(
         filter_start = time.time()
         pages_list = list(site.pages)
         assets_list = list(site.assets)
+        
+        # DEBUG: Check if home page is in pages_list
+        import sys
+        home_in_list = [p for p in pages_list if 'content/_index.md' in str(p.source_path)]
+        print(f"DEBUG: Home in pages_list: {len(home_in_list)}", file=sys.stderr)
+        if home_in_list:
+            for h in home_in_list[:3]:
+                print(f"  source: {h.source_path}", file=sys.stderr)
         
         result = provenance_filter.filter(
             pages=pages_list,
@@ -223,6 +231,14 @@ def phase_incremental_filter_provenance(
         
         # Store provenance filter for later use (recording builds)
         orchestrator._provenance_filter = provenance_filter
+        
+        # DEBUG: Check if home page is in results
+        import sys
+        home_pages = [p for p in result.pages_to_build if 'content/_index.md' in str(p.source_path)]
+        print(f"DEBUG: Home pages in result: {len(home_pages)}", file=sys.stderr)
+        if home_pages:
+            for h in home_pages[:3]:
+                print(f"  - {h.source_path} -> {h.output_path}", file=sys.stderr)
         
         return FilterResult(
             pages_to_build=result.pages_to_build,

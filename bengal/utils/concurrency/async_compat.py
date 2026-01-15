@@ -23,7 +23,7 @@ Import is lazy - uvloop only loads when run_async() is actually called.
 
 See Also:
 - bengal/health/linkcheck/async_checker.py - Uses run_async for link checking
-- bengal/content_layer/manager.py - Uses run_async for content fetching
+- bengal/content/sources/manager.py - Uses run_async for content fetching
 - https://github.com/MagicStack/uvloop - uvloop documentation
 
 """

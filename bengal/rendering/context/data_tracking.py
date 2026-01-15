@@ -12,7 +12,7 @@ Key Concepts:
 - ContextVar pattern: Tracker is accessed via ContextVar for thread safety
 
 Related Modules:
-- bengal.cache.dependency_tracker: Records dependencies
+- bengal.build.tracking: Records dependencies
 - bengal.core.site.data: DataLoadingMixin that populates site.data
 - bengal.utils.dotdict: DotDict for dot-notation access
 
@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING, Any, Iterator
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.utils.primitives.dotdict import DotDict
 
 logger = get_logger(__name__)

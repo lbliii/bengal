@@ -19,7 +19,9 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.build.tracking import DependencyTracker
+    from bengal.orchestration.build.coordinator import CacheCoordinator
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary
@@ -199,7 +201,7 @@ class TaxonomyChangeDetector:
 
         # Add term pages to rebuild set
         if term_pages_to_add:
-            from bengal.cache.coordinator import PageInvalidationReason
+            from bengal.orchestration.build.coordinator import PageInvalidationReason
 
             for term_key in term_pages_to_add:
                 # Convert term key to page path

@@ -63,7 +63,7 @@ class TestSingletonDirectiveInstances:
         _instances = _get_directive_instances()  # noqa: F841 - intentional singleton init
 
         # Parse two different pages
-        from bengal.rendering.parsers import MistuneParser
+        from bengal.parsing import MistuneParser
 
         parser = MistuneParser()
         page1 = parser.parse(":::{note}\nContent 1\n:::", {})
@@ -188,7 +188,7 @@ class TestContractValidationSkipping:
 
     def test_validation_default_enabled(self):
         """Validation should be enabled by default."""
-        from bengal.rendering.parsers import MistuneParser
+        from bengal.parsing import MistuneParser
 
         parser = MistuneParser()
 
@@ -229,7 +229,7 @@ class TestBackwardsCompatibility:
 
     def test_parser_creation_still_works(self):
         """Parser creation should still work."""
-        from bengal.rendering.parsers import MistuneParser
+        from bengal.parsing import MistuneParser
 
         parser = MistuneParser()
         assert parser is not None

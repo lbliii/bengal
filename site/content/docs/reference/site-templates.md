@@ -354,10 +354,10 @@ data/
 
 ### How Templates Work
 
-Templates are defined in `bengal/cli/templates/<name>/`:
+Templates are defined in `bengal/scaffolds/<name>/`:
 
 ```tree
-bengal/cli/templates/docs/
+bengal/scaffolds/docs/
 ├── __init__.py
 ├── template.py       # TEMPLATE = SiteTemplate(...)
 └── pages/

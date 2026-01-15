@@ -56,7 +56,7 @@ def lineage(page_path: str, source: str) -> None:
     cli = get_cli_output()
     site = load_site_from_cli(source)
     
-    from bengal.experimental.provenance import ProvenanceStore
+    from bengal.build.provenance import ProvenanceCache as ProvenanceStore
     
     cache_dir = site.root_path / ".bengal" / "provenance"
     store = ProvenanceStore(cache_dir)
@@ -121,8 +121,8 @@ def affected(file_path: str | None, by_hash: str | None, by_path: str | None, so
     cli = get_cli_output()
     site = load_site_from_cli(source)
     
-    from bengal.experimental.provenance import ProvenanceStore
-    from bengal.experimental.provenance.core_types import hash_file, ContentHash
+    from bengal.build.provenance import ProvenanceCache as ProvenanceStore
+    from bengal.build.provenance.types import hash_file, ContentHash
     
     cache_dir = site.root_path / ".bengal" / "provenance"
     store = ProvenanceStore(cache_dir)
@@ -222,7 +222,7 @@ def stats(source: str) -> None:
     cli = get_cli_output()
     site = load_site_from_cli(source)
     
-    from bengal.experimental.provenance import ProvenanceStore
+    from bengal.build.provenance import ProvenanceCache as ProvenanceStore
     
     cache_dir = site.root_path / ".bengal" / "provenance"
     
@@ -256,23 +256,21 @@ def stats(source: str) -> None:
 @provenance_cli.command(cls=BengalCommand, name="build")
 @command_metadata(
     category="experimental",
-    description="Run a build with provenance tracking",
+    description="Run an incremental build (provenance filtering)",
     examples=[
         "bengal provenance build",
         "bengal provenance build --limit 100",
-        "bengal provenance build --compare",
     ],
 )
 @click.option("--limit", type=int, help="Limit number of pages to process")
-@click.option("--compare", is_flag=True, help="Compare with current cache system")
 @click.option("--source", type=click.Path(exists=True), default=".")
 @handle_cli_errors()
-def build(limit: int | None, compare: bool, source: str) -> None:
-    """Run a build with provenance tracking.
+def build(limit: int | None, source: str) -> None:
+    """Run an incremental build with provenance filtering.
     
-    Captures provenance for all pages (or up to --limit pages).
-    Use --compare to see how provenance cache decisions compare
-    with the current incremental build system.
+    This is equivalent to `bengal build --incremental` but shows
+    detailed provenance statistics. Use --limit to process only
+    a subset of pages for testing.
     """
     cli = get_cli_output()
     site = load_site_from_cli(source)
@@ -286,42 +284,36 @@ def build(limit: int | None, compare: bool, source: str) -> None:
     if limit:
         pages = pages[:limit]
     
-    cli.info(f"Processing {len(pages)} pages with provenance tracking...")
+    cli.info(f"Processing {len(pages)} pages with provenance filtering...")
     cli.blank()
     
-    if compare:
-        # Run comparison mode
-        from bengal.experimental.provenance.integration import run_provenance_benchmark
-        results = run_provenance_benchmark(site, limit=limit or len(pages))
-        
-        cli.info("Provenance vs Current System Comparison")
+    # Use the provenance filter to check cache status
+    from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
+    cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
+    filter = ProvenanceFilter(site, cache)
+    
+    import time
+    start = time.time()
+    result = filter.filter(pages, list(site.assets), incremental=True)
+    elapsed_ms = (time.time() - start) * 1000
+    
+    cli.info("Provenance Filter Results")
+    cli.blank()
+    cli.info(f"Pages analyzed:       {result.total_pages}")
+    cli.info(f"Cache hits:           {result.cache_hits} ({result.hit_rate:.1f}%)")
+    cli.info(f"Cache misses:         {result.cache_misses}")
+    cli.info(f"Pages to build:       {len(result.pages_to_build)}")
+    cli.info(f"Assets to process:    {len(result.assets_to_process)}")
+    cli.blank()
+    cli.info(f"Filter time:          {elapsed_ms:.1f}ms")
+    
+    if result.pages_to_build:
         cli.blank()
-        cli.info(f"Pages analyzed:       {results.pages_analyzed}")
-        cli.info(f"Provenance hits:      {results.provenance_hits} ({results.provenance_hits/max(1,results.pages_analyzed)*100:.1f}%)")
-        cli.info(f"Provenance misses:    {results.provenance_misses}")
-        cli.info(f"Current hits:         {results.current_hits} ({results.current_hits/max(1,results.pages_analyzed)*100:.1f}%)")
-        cli.info(f"Current misses:       {results.current_misses}")
-        cli.blank()
-        cli.info(f"Agreement:            {results.agreements} ({results.agreements/max(1,results.pages_analyzed)*100:.1f}%)")
-        cli.info(f"Provenance better:    {results.provenance_only_hits}")
-        cli.info(f"Current better:       {results.current_only_hits}")
-        cli.blank()
-        cli.info(f"Total time:           {results.total_time_ms:.1f}ms")
-    else:
-        # Run provenance-only build
-        from bengal.experimental.provenance.pipeline_hook import run_provenance_build
-        stats = run_provenance_build(site, pages)
-        
-        cli.info("Provenance Build Results")
-        cli.blank()
-        cli.info(f"Pages processed:      {stats['pages_processed']}")
-        cli.info(f"Cache hits:           {stats['cache_hits']} ({stats['hit_rate']:.1f}%)")
-        cli.info(f"Cache misses:         {stats['cache_misses']}")
-        cli.info(f"Total inputs:         {stats['total_inputs_captured']}")
-        cli.info(f"Avg inputs/page:      {stats['avg_inputs_per_page']:.1f}")
-        cli.blank()
-        cli.info(f"Elapsed:              {stats['elapsed_ms']:.1f}ms")
-        cli.info(f"Pages/second:         {stats['pages_per_second']:.1f}")
+        cli.info("Pages requiring rebuild:")
+        for page in result.pages_to_build[:10]:
+            cli.info(f"  - {page.source_path}")
+        if len(result.pages_to_build) > 10:
+            cli.info(f"  ... and {len(result.pages_to_build) - 10} more")
 
 
 @provenance_cli.command(cls=BengalCommand)

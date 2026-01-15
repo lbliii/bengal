@@ -49,7 +49,7 @@ LAYER_ORDER = {
     "bengal.core": 4,
     "bengal.cache": 5,
     "bengal.assets": 5,
-    "bengal.discovery": 5,
+    "bengal.content.discovery": 5,
     "bengal.themes": 5,
     "bengal.utils": 5,  # Other utils (io, paths, concurrency, observability)
     "bengal.rendering": 6,

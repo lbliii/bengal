@@ -17,7 +17,7 @@ Example:
 See Also:
 - :mod:`bengal.directives.base`: BengalDirective base class
 - :mod:`bengal.directives.tokens`: DirectiveToken dataclass
-- :mod:`bengal.rendering.ast_types`: AST node types
+- :mod:`bengal.parsing.ast.types`: AST node types
 
 """
 

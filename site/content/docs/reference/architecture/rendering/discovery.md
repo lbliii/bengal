@@ -22,7 +22,7 @@ keywords:
 
 The discovery system is responsible for finding and cataloging all content, sections, and assets in a Bengal site.
 
-## Content Discovery (`bengal/discovery/content_discovery.py`)
+## Content Discovery (`bengal/content/discovery/content_discovery.py`)
 
 ### Purpose
 Walks the content directory recursively to create Page and Section objects
@@ -59,7 +59,7 @@ Walks the content directory recursively to create Page and Section objects
 - Hierarchical organization
 - Cross-reference index building
 
-## Asset Discovery (`bengal/discovery/asset_discovery.py`)
+## Asset Discovery (`bengal/content/discovery/asset_discovery.py`)
 
 ### Purpose
 Finds all static assets and creates Asset objects

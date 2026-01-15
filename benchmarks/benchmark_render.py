@@ -194,7 +194,7 @@ ___
 @pytest.fixture(scope="module")
 def patitas_parser():
     """Create Patitas parser with plugins."""
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     return create_markdown(
         plugins=["table", "strikethrough", "math"],
@@ -205,7 +205,7 @@ def patitas_parser():
 @pytest.fixture(scope="module")
 def patitas_markdown():
     """Create Markdown instance for AST generation."""
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     return create_markdown(
         plugins=["table", "strikethrough", "math"],
@@ -314,7 +314,7 @@ class TestThroughput:
 
     def test_render_only_throughput(self, patitas_parser):
         """Measure render-only throughput (AST pre-parsed)."""
-        from bengal.rendering.parsers.patitas import create_markdown
+        from bengal.parsing.backends.patitas import create_markdown
 
         md = create_markdown(
             plugins=["table", "strikethrough", "math"],
@@ -349,7 +349,7 @@ class TestThroughput:
 
 def run_benchmarks(output_path: str | None = None) -> dict:
     """Run benchmarks and optionally save to JSON."""
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     # Setup
     parser = create_markdown(

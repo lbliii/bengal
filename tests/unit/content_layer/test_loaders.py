@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.content_layer.loaders import local_loader
+from bengal.content.sources.loaders import local_loader
 
 
 class TestLocalLoader:
@@ -43,7 +43,7 @@ class TestRemoteLoaderImports:
         # This test will pass if aiohttp IS installed (loader works)
         # or if aiohttp is NOT installed (ImportError is raised)
         try:
-            from bengal.content_layer.loaders import github_loader
+            from bengal.content.sources.loaders import github_loader
 
             # If we get here, aiohttp is installed - test the loader works
             loader = github_loader(repo="owner/repo")
@@ -54,7 +54,7 @@ class TestRemoteLoaderImports:
     def test_rest_loader_import_error(self) -> None:
         """Test rest_loader raises ImportError if aiohttp not installed."""
         try:
-            from bengal.content_layer.loaders import rest_loader
+            from bengal.content.sources.loaders import rest_loader
 
             loader = rest_loader(url="https://api.example.com")
             assert loader.source_type == "rest"
@@ -64,7 +64,7 @@ class TestRemoteLoaderImports:
     def test_notion_loader_import_error(self) -> None:
         """Test notion_loader raises ImportError if aiohttp not installed."""
         try:
-            from bengal.content_layer.loaders import notion_loader
+            from bengal.content.sources.loaders import notion_loader
             from bengal.errors import BengalConfigError
 
             # Note: Will fail without token, but tests import works

@@ -91,8 +91,8 @@ def main():
     print()
 
     # Setup parsers
-    from bengal.rendering.parsers.mistune import MistuneParser
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.mistune import MistuneParser
+    from bengal.parsing.backends.patitas import create_markdown
 
     mistune_parser = MistuneParser(enable_highlighting=False)
     patitas_md = create_markdown(

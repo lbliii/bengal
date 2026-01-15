@@ -17,7 +17,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.build.tracking import DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.section import Section

@@ -1,4 +1,4 @@
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 
 def test_link_ref_first_wins():

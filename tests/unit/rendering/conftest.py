@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 @pytest.fixture(scope="module")

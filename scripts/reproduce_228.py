@@ -1,4 +1,4 @@
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 markdown = "> # Foo\n> bar\n> baz\n"
 html = parse(markdown)

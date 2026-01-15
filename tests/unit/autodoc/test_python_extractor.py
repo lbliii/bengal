@@ -547,14 +547,14 @@ def test_get_output_path_no_grouping(tmp_path):
 
 def test_get_output_path_auto_mode(tmp_path):
     """Test get_output_path with auto mode grouping."""
-    # Create structure: mypackage/cli/__init__.py, cli/templates/__init__.py
+    # Create structure: mypackage/cli/__init__.py, scaffolds/__init__.py
     cli_dir = tmp_path / "mypackage" / "cli"
     cli_dir.mkdir(parents=True)
     (cli_dir / "__init__.py").write_text("'''CLI module.'''")
 
-    templates_dir = cli_dir / "templates"
-    templates_dir.mkdir()
-    (templates_dir / "__init__.py").write_text("'''Templates module.'''")
+    scaffolds_dir = tmp_path / "mypackage" / "scaffolds"
+    scaffolds_dir.mkdir()
+    (scaffolds_dir / "__init__.py").write_text("'''Scaffolds module.'''")
 
     config = {
         "source_dirs": [str(tmp_path / "mypackage")],
@@ -562,13 +562,13 @@ def test_get_output_path_auto_mode(tmp_path):
         "grouping": {"mode": "auto"},
     }
     extractor = PythonExtractor(config=config)
-    elements = extractor.extract(templates_dir)
+    elements = extractor.extract(scaffolds_dir)
 
-    templates_module = elements[0]
-    output_path = extractor.get_output_path(templates_module)
+    scaffolds_module = elements[0]
+    output_path = extractor.get_output_path(scaffolds_module)
 
-    # With auto mode: templates/_index.md (group determined by package hierarchy)
-    assert output_path == Path("templates/_index.md")
+    # With auto mode: scaffolds/_index.md (group determined by package hierarchy)
+    assert output_path == Path("scaffolds/_index.md")
 
 
 def test_get_output_path_explicit_mode(tmp_path):
@@ -617,13 +617,12 @@ def test_get_output_path_with_strip_prefix(tmp_path):
 
 def test_get_output_path_nested_module_under_group(tmp_path):
     """Test nested modules are placed under group correctly."""
-    # Create: mypackage/cli/templates/blog/template.py
-    blog_dir = tmp_path / "mypackage" / "cli" / "templates" / "blog"
+    # Create: mypackage/scaffolds/blog/template.py
+    blog_dir = tmp_path / "mypackage" / "scaffolds" / "blog"
     blog_dir.mkdir(parents=True)
 
     # Create parent __init__.py files
-    (tmp_path / "mypackage" / "cli" / "__init__.py").touch()
-    (tmp_path / "mypackage" / "cli" / "templates" / "__init__.py").touch()
+    (tmp_path / "mypackage" / "scaffolds" / "__init__.py").touch()
 
     (blog_dir / "template.py").write_text("'''Blog template.'''")
 
@@ -638,7 +637,7 @@ def test_get_output_path_nested_module_under_group(tmp_path):
     module = elements[0]
     output_path = extractor.get_output_path(module)
 
-    # Grouped module: template.md (module name from innermost package)
+    # Module path is relative to file parent when extracting a single file
     assert output_path == Path("template.md")
 
 
@@ -704,11 +703,10 @@ def test_get_output_path_class_in_grouped_module(tmp_path):
 
 def test_get_output_path_longest_prefix_wins(tmp_path):
     """Test longest prefix wins when multiple match."""
-    # Create: mypackage/cli/templates/__init__.py
-    templates_dir = tmp_path / "mypackage" / "cli" / "templates"
-    templates_dir.mkdir(parents=True)
-    (tmp_path / "mypackage" / "cli" / "__init__.py").touch()
-    (templates_dir / "__init__.py").write_text("'''Templates module.'''")
+    # Create: mypackage/scaffolds/__init__.py
+    scaffolds_dir = tmp_path / "mypackage" / "scaffolds"
+    scaffolds_dir.mkdir(parents=True)
+    (scaffolds_dir / "__init__.py").write_text("'''Scaffolds module.'''")
 
     config = {
         "source_dirs": [str(tmp_path / "mypackage")],
@@ -717,18 +715,18 @@ def test_get_output_path_longest_prefix_wins(tmp_path):
             "mode": "explicit",
             "prefix_map": {
                 "cli": "cli",
-                "cli.templates": "templates",  # Longer, should win
+                "scaffolds": "scaffolds",  # Longer, should win
             },
         },
     }
     extractor = PythonExtractor(config=config)
-    elements = extractor.extract(templates_dir)
+    elements = extractor.extract(scaffolds_dir)
 
     module = elements[0]
     output_path = extractor.get_output_path(module)
 
-    # Should match longer prefix: templates/_index.md (not cli/templates/_index.md)
-    assert output_path == Path("templates/_index.md")
+    # Should match longer prefix: scaffolds/_index.md (not cli/_index.md)
+    assert output_path == Path("scaffolds/_index.md")
 
 
 # ===== Inheritance Optimization Tests =====

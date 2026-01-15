@@ -12,7 +12,7 @@ Hydrator: Processes and renders skeleton templates
 
 Related:
 - bengal/cli/commands/new/: New site command implementation
-- bengal/cli/templates/: Site templates that use skeletons
+- bengal/scaffolds/: Site templates that use skeletons
 
 """
 

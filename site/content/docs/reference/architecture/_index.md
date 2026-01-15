@@ -47,7 +47,7 @@ graph TB
     end
 
     subgraph "Core Build Pipeline"
-        Discovery[Discovery<br/>bengal/discovery/]
+        Discovery[Discovery<br/>bengal/content/discovery/]
         Orchestration[Orchestration<br/>bengal/orchestration/]
         Rendering[Rendering<br/>bengal/rendering/]
         PostProcess[Post-Processing<br/>bengal/postprocess/]
@@ -74,7 +74,7 @@ graph TB
         Analysis[Analysis<br/>bengal/analysis/]
         Fonts[Fonts<br/>bengal/fonts/]
         Collections[Collections<br/>bengal/collections/]
-        ContentLayer[Content Layer<br/>bengal/content_layer/]
+        ContentLayer[Content Layer<br/>bengal/content/sources/]
         Output[CLI Output<br/>bengal/output/]
         Debug[Debug Tools<br/>bengal/debug/]
     end

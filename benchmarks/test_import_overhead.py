@@ -199,7 +199,7 @@ class TestOptionalDependencies:
     def test_aiohttp_not_loaded_by_content_layer(self):
         """aiohttp should only load when using REST/external sources."""
         # Import content layer base, not specific sources
-        result = measure_import("bengal.content_layer")
+        result = measure_import("bengal.content.sources")
 
         assert "aiohttp" not in result.optional_loaded, (
             "aiohttp loaded by content_layer base - should be lazy"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.ast_types import (
+from bengal.parsing.ast.types import (
     ASTNode,
     CodeBlockNode,
     HeadingNode,

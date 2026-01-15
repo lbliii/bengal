@@ -23,21 +23,21 @@ class TestAutoDetectPrefixMap:
     def test_nested_packages(self, tmp_path):
         """Auto-detect finds nested packages."""
         # Create: mypackage/cli/__init__.py
-        #         mypackage/cli/templates/__init__.py
+        #         mypackage/scaffolds/__init__.py
         cli_dir = tmp_path / "mypackage" / "cli"
         cli_dir.mkdir(parents=True)
         (cli_dir / "__init__.py").touch()
 
-        templates_dir = cli_dir / "templates"
-        templates_dir.mkdir()
-        (templates_dir / "__init__.py").touch()
+        scaffolds_dir = tmp_path / "mypackage" / "scaffolds"
+        scaffolds_dir.mkdir()
+        (scaffolds_dir / "__init__.py").touch()
 
         prefix_map = auto_detect_prefix_map([tmp_path / "mypackage"])
 
         assert "cli" in prefix_map
-        assert "cli.templates" in prefix_map
+        assert "scaffolds" in prefix_map
         assert prefix_map["cli"] == "cli"
-        assert prefix_map["cli.templates"] == "cli/templates"
+        assert prefix_map["scaffolds"] == "scaffolds"
 
     def test_with_strip_prefix(self, tmp_path):
         """Auto-detect strips configured prefix."""
@@ -135,14 +135,14 @@ class TestApplyGrouping:
             "mode": "auto",
             "prefix_map": {
                 "cli": "cli",
-                "cli.templates": "cli/templates",
+                "scaffolds": "scaffolds",
             },
         }
 
-        group, remaining = apply_grouping("cli.templates.blog", config)
+        group, remaining = apply_grouping("scaffolds.blog", config)
 
-        # Should match "cli.templates", not "cli"
-        assert group == "cli/templates"
+        # Should match "scaffolds", not "cli"
+        assert group == "scaffolds"
         assert remaining == "blog"
 
     def test_exact_match(self):
@@ -186,12 +186,12 @@ class TestApplyGrouping:
         """Nested modules under prefix get grouped correctly."""
         config = {
             "mode": "auto",
-            "prefix_map": {"cli.templates": "cli/templates"},
+            "prefix_map": {"scaffolds": "scaffolds"},
         }
 
-        group, remaining = apply_grouping("cli.templates.blog.template", config)
+        group, remaining = apply_grouping("scaffolds.blog.template", config)
 
-        assert group == "cli/templates"
+        assert group == "scaffolds"
         assert remaining == "blog.template"
 
     def test_empty_prefix_map_returns_ungrouped(self):
@@ -218,11 +218,11 @@ class TestApplyGrouping:
         config = {
             "mode": "explicit",
             "prefix_map": {
-                "cli.templates": "template-reference",
+                "scaffolds": "template-reference",
             },
         }
 
-        group, remaining = apply_grouping("cli.templates.blog", config)
+        group, remaining = apply_grouping("scaffolds.blog", config)
 
         assert group == "template-reference"
         assert remaining == "blog"
@@ -267,19 +267,19 @@ class TestGroupingIntegration:
         # mypackage/
         #   cli/
         #     __init__.py
-        #     templates/
-        #       __init__.py
-        #       blog/
-        #         template.py (no __init__.py)
+        #   scaffolds/
+        #     __init__.py
+        #     blog/
+        #       template.py (no __init__.py)
         cli_dir = tmp_path / "mypackage" / "cli"
         cli_dir.mkdir(parents=True)
         (cli_dir / "__init__.py").touch()
 
-        templates_dir = cli_dir / "templates"
-        templates_dir.mkdir()
-        (templates_dir / "__init__.py").touch()
+        scaffolds_dir = tmp_path / "mypackage" / "scaffolds"
+        scaffolds_dir.mkdir()
+        (scaffolds_dir / "__init__.py").touch()
 
-        blog_dir = templates_dir / "blog"
+        blog_dir = scaffolds_dir / "blog"
         blog_dir.mkdir()
         (blog_dir / "template.py").write_text("# template")
 
@@ -288,16 +288,16 @@ class TestGroupingIntegration:
 
         # Apply grouping
         config = {"mode": "auto", "prefix_map": prefix_map}
-        group, remaining = apply_grouping("cli.templates.blog.template", config)
+        group, remaining = apply_grouping("scaffolds.blog.template", config)
 
-        assert group == "cli/templates"
+        assert group == "scaffolds"
         assert remaining == "blog.template"
 
     def test_real_world_bengal_structure(self, tmp_path):
         """Test with structure similar to Bengal's own codebase."""
         # Create: bengal/core/__init__.py
         #         bengal/cli/__init__.py
-        #         bengal/cli/templates/__init__.py
+        #         bengal/scaffolds/__init__.py
         #         bengal/rendering/__init__.py
         bengal_dir = tmp_path / "bengal"
 
@@ -310,9 +310,9 @@ class TestGroupingIntegration:
         cli_dir.mkdir(parents=True)
         (cli_dir / "__init__.py").touch()
 
-        templates_dir = cli_dir / "templates"
-        templates_dir.mkdir()
-        (templates_dir / "__init__.py").touch()
+        scaffolds_dir = bengal_dir / "scaffolds"
+        scaffolds_dir.mkdir(parents=True)
+        (scaffolds_dir / "__init__.py").touch()
 
         # Auto-detect
         prefix_map = auto_detect_prefix_map([tmp_path / "bengal"], strip_prefix="bengal.")
@@ -320,14 +320,14 @@ class TestGroupingIntegration:
         # Verify structure
         assert "core" in prefix_map
         assert "cli" in prefix_map
-        assert "cli.templates" in prefix_map
+        assert "scaffolds" in prefix_map
         assert "rendering" in prefix_map
 
         # Test grouping
         config = {"mode": "auto", "prefix_map": prefix_map}
 
-        group1, remaining1 = apply_grouping("cli.templates.blog", config)
-        assert group1 == "cli/templates"
+        group1, remaining1 = apply_grouping("scaffolds.blog", config)
+        assert group1 == "scaffolds"
         assert remaining1 == "blog"
 
         group2, remaining2 = apply_grouping("core.site", config)

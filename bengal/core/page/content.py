@@ -56,7 +56,7 @@ class PageContentMixin:
     # Fields from Page that this mixin accesses
     _raw_content: str
     # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
-    # The ASTNode types in bengal.rendering.ast_types are for future AST-based
+    # The ASTNode types in bengal.parsing.ast.types are for future AST-based
     # processing. See plan/ready/plan-type-system-hardening.md for migration path.
     parsed_ast: Any
     links: list[str]
@@ -167,7 +167,7 @@ class PageContentMixin:
 
         # Prefer AST extraction (Phase 3) - faster and more accurate
         if hasattr(self, "_ast_cache") and self._ast_cache:
-            from bengal.rendering.ast_utils import extract_plain_text
+            from bengal.parsing.ast.utils import extract_plain_text
 
             text = extract_plain_text(self._ast_cache)
             if hasattr(self, "_plain_text_cache"):
@@ -230,7 +230,7 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        from bengal.rendering.ast_utils import extract_plain_text
+        from bengal.parsing.ast.utils import extract_plain_text
 
         return extract_plain_text(self._ast_cache)
 
@@ -246,7 +246,7 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return []
 
-        from bengal.rendering.ast_utils import extract_links_from_ast
+        from bengal.parsing.ast.utils import extract_links_from_ast
 
         return extract_links_from_ast(self._ast_cache)
 

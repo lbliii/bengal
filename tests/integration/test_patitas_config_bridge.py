@@ -3,7 +3,7 @@
 Verifies that Bengal's configuration is correctly forwarded to the
 external patitas parser. This is critical because:
 
-1. Bengal has its own ParseConfig (bengal.rendering.parsers.patitas.config)
+1. Bengal has its own ParseConfig (bengal.parsing.backends.patitas.config)
 2. External patitas has its own ParseConfig (patitas.config)
 3. Bengal's wrapper must bridge these for features to work
 
@@ -12,7 +12,7 @@ RFC: rfc-patitas-external-migration.md
 
 import pytest
 
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     Markdown,
     parse_to_ast,
 )

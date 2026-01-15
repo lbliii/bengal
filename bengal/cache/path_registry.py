@@ -14,7 +14,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.cache.build_cache: Uses path registry for consistent keys
-- bengal.cache.coordinator: Uses path registry for page identification
+- bengal.orchestration.build.coordinator: Uses path registry for page identification
 - bengal.cache.paths: BengalPaths for directory locations
 
 See Also:

@@ -5,15 +5,15 @@ Tests the PatitasParser wrapper and factory integration.
 
 from __future__ import annotations
 
-from bengal.rendering.parsers import create_markdown_parser
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing import create_markdown_parser
+from bengal.parsing.backends.patitas import (
     Markdown,
     create_markdown,
     parse,
     parse_to_ast,
     render_ast,
 )
-from bengal.rendering.parsers.patitas.wrapper import PatitasParser
+from bengal.parsing.backends.patitas.wrapper import PatitasParser
 
 
 class TestFactoryIntegration:

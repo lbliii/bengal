@@ -540,7 +540,7 @@ def phase_update_pages_list(
                 # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
                 coordinator = getattr(orchestrator.incremental, 'coordinator', None)
                 if coordinator:
-                    from bengal.cache.coordinator import PageInvalidationReason
+                    from bengal.orchestration.build.coordinator import PageInvalidationReason
                     coordinator.invalidate_page(
                         page.source_path,
                         PageInvalidationReason.TAXONOMY_CASCADE,

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 try:
     import pytest_benchmark

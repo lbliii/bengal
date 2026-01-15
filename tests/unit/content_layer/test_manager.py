@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from bengal.content_layer.entry import ContentEntry
-from bengal.content_layer.manager import ContentLayerManager
-from bengal.content_layer.source import ContentSource
+from bengal.content.sources.entry import ContentEntry
+from bengal.content.sources.manager import ContentLayerManager
+from bengal.content.sources.source import ContentSource
 from bengal.errors import BengalConfigError
 
 

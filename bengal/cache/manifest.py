@@ -14,7 +14,7 @@ Key Concepts:
 - Performance analysis: Duration tracking per page
 
 Related Modules:
-- bengal.cache.coordinator: Generates invalidation events
+- bengal.orchestration.build.coordinator: Generates invalidation events
 - bengal.orchestration.build.results: Build statistics
 - bengal.cli.commands.build: --explain-json flag
 

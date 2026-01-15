@@ -350,7 +350,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 SPEC_TESTS = json.loads(Path("commonmark-spec-0.31.json").read_text())
 
@@ -396,7 +396,7 @@ Every bug fix must include:
 ```python
 from hypothesis import given, strategies as st
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 @given(st.text(min_size=1, max_size=1000))
 def test_no_crashes(markdown):
@@ -414,7 +414,7 @@ def test_no_crashes(markdown):
 ```python
 import pytest
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 @pytest.mark.benchmark
 def test_list_performance(benchmark):

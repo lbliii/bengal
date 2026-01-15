@@ -651,7 +651,7 @@ class BuildOrchestrator:
 ```python
 # In bengal/orchestration/incremental/change_detector.py
 
-from bengal.cache.coordinator import CacheCoordinator, PageInvalidationReason
+from bengal.orchestration.build.coordinator import CacheCoordinator, PageInvalidationReason
 
 
 class ChangeDetector:
@@ -773,7 +773,7 @@ Deprecation warnings added in v0.2.0, removed in v0.3.0.
 ```python
 # tests/unit/cache/test_coordinator.py
 
-from bengal.cache.coordinator import CacheCoordinator, PageInvalidationReason
+from bengal.orchestration.build.coordinator import CacheCoordinator, PageInvalidationReason
 
 
 class TestCacheCoordinator:

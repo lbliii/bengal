@@ -38,7 +38,7 @@ Organization Pattern:
 
 Related Packages:
 bengal.orchestration: Build operations and coordination
-bengal.discovery: Content and asset discovery
+bengal.content.discovery: Content and asset discovery
 bengal.rendering: Template and content rendering
 bengal.cache: Build state caching
 

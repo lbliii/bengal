@@ -704,7 +704,7 @@ Since Bengal targets Python 3.14 minimum:
 # benchmarks/test_patitas_inline_performance.py
 
 import pytest
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 # Emphasis-heavy document (stress test delimiter algorithm)
 EMPHASIS_DOC = """
@@ -742,7 +742,7 @@ class TestInlinePerformance:
 # benchmarks/test_patitas_memory.py
 
 import tracemalloc
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 def test_token_memory_usage():
     """Measure memory per inline token."""

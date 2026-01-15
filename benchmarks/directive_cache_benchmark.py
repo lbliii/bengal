@@ -129,7 +129,7 @@ def render_with_patitas(content: str, use_cache: bool = False) -> tuple[str, dic
     Returns:
         Tuple of (rendered_html, stats_dict)
     """
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     # Create markdown instance with all plugins
     md = create_markdown(plugins=["all"], highlight=False)
@@ -155,9 +155,9 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     by manually caching at the render level.
     """
     from bengal.directives.cache import DirectiveCache
-    from bengal.rendering.parsers.patitas import create_markdown
-    from bengal.rendering.parsers.patitas.directives.registry import create_default_registry
-    from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+    from bengal.parsing.backends.patitas import create_markdown
+    from bengal.parsing.backends.patitas.directives.registry import create_default_registry
+    from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
     from bengal.utils.primitives.hashing import hash_str
     from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder

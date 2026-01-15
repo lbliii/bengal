@@ -11,12 +11,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 from bengal.rendering.pipeline import RenderingPipeline
 
 # python-markdown is optional (patitas is default)
 try:
-    from bengal.rendering.parsers import PythonMarkdownParser
+    from bengal.parsing import PythonMarkdownParser
 
     HAS_MARKDOWN = True
 except ImportError:
@@ -89,7 +89,7 @@ class TestParserSelection:
         pipeline = RenderingPipeline(site, quiet=True)
 
         # Should default to PatitasParser (Bengal's native parser)
-        from bengal.rendering.parsers.patitas import PatitasParser
+        from bengal.parsing.backends.patitas import PatitasParser
 
         assert isinstance(pipeline.parser, PatitasParser), "Failed to default to patitas parser"
 
@@ -152,7 +152,7 @@ class TestMistuneDirectives:
 
     def test_mistune_parser_has_directives(self):
         """Test that MistuneParser can handle custom directives."""
-        from bengal.rendering.parsers import MistuneParser
+        from bengal.parsing import MistuneParser
 
         parser = MistuneParser()
 
@@ -174,7 +174,7 @@ This is a note directive.
 
     def test_mistune_parser_has_tabs(self):
         """Test that MistuneParser can handle tabs directive."""
-        from bengal.rendering.parsers import MistuneParser
+        from bengal.parsing import MistuneParser
 
         parser = MistuneParser()
 
@@ -209,7 +209,7 @@ Second tab content
     )
     def test_python_markdown_ignores_directives(self):
         """Test that PythonMarkdownParser doesn't have our custom directives."""
-        from bengal.rendering.parsers import PythonMarkdownParser
+        from bengal.parsing import PythonMarkdownParser
 
         parser = PythonMarkdownParser()
 

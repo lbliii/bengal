@@ -13,7 +13,7 @@ from bengal.directives.steps import (
     StepOptions,
     StepsOptions,
 )
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 print(f"DEBUG: bengal imported from {bengal.__file__}", file=sys.stderr)
 

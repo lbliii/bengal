@@ -23,8 +23,8 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.directives.cache import clear_cache, get_cache
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
-from bengal.rendering.parsers.patitas.wrapper import PatitasParser
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.wrapper import PatitasParser
 
 
 def create_mock_page(

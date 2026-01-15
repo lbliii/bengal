@@ -34,7 +34,7 @@ finalize only affected sections.
 Related Modules:
 bengal.core.section: Section data model
 bengal.content_types.registry: Content type strategies
-bengal.discovery.page_factory: Page creation utilities
+bengal.content.discovery.page_factory: Page creation utilities
 
 See Also:
 bengal.orchestration.build: Build coordinator calling this orchestrator
@@ -46,7 +46,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.content_types.registry import detect_content_type, get_strategy
-from bengal.discovery.page_factory import PageInitializer
+from bengal.content.discovery.page_factory import PageInitializer
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 

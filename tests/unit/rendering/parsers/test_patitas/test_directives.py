@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse, parse_to_ast
-from bengal.rendering.parsers.patitas.directives import (
+from bengal.parsing.backends.patitas import parse, parse_to_ast
+from bengal.parsing.backends.patitas.directives import (
     AdmonitionOptions,
     DirectiveOptions,
     DirectiveRegistryBuilder,
     create_default_registry,
 )
-from bengal.rendering.parsers.patitas.directives.builtins import (
+from bengal.parsing.backends.patitas.directives.builtins import (
     AdmonitionDirective,
 )
 from patitas.nodes import Directive
@@ -49,7 +49,7 @@ This is a warning.
     def test_directive_with_options(self) -> None:
         """Parse directive with options."""
         from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
-        from bengal.rendering.parsers.patitas.directives import create_default_registry
+        from bengal.parsing.backends.patitas.directives import create_default_registry
         from patitas.parser import Parser
 
         source = """
@@ -178,7 +178,7 @@ class TestDirectiveOptions:
     def test_class_alias(self) -> None:
         """'class' alias works for 'class_' field."""
         raw = {"class": "my-class"}
-        from bengal.rendering.parsers.patitas.directives.options import StyledOptions
+        from bengal.parsing.backends.patitas.directives.options import StyledOptions
 
         opts = StyledOptions.from_raw(raw)
         assert opts.class_ == "my-class"
@@ -189,7 +189,7 @@ class TestDirectiveContracts:
 
     def test_requires_parent(self) -> None:
         """Contract requires_parent validation."""
-        from bengal.rendering.parsers.patitas.directives.contracts import TAB_ITEM_CONTRACT
+        from bengal.parsing.backends.patitas.directives.contracts import TAB_ITEM_CONTRACT
 
         # Valid: has required parent
         result = TAB_ITEM_CONTRACT.validate_parent("tab-item", "tab-set")
@@ -207,7 +207,7 @@ class TestDirectiveContracts:
 
     def test_requires_children(self) -> None:
         """Contract requires_children validation."""
-        from bengal.rendering.parsers.patitas.directives.contracts import TAB_SET_CONTRACT
+        from bengal.parsing.backends.patitas.directives.contracts import TAB_SET_CONTRACT
         from patitas.location import SourceLocation
 
         loc = SourceLocation(1, 1)
@@ -295,12 +295,12 @@ Content here.
     def test_render_with_registry(self) -> None:
         """Render using custom directive registry."""
         from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
-        from bengal.rendering.parsers.patitas import (
+        from bengal.parsing.backends.patitas import (
             RenderConfig,
             render_config_context,
         )
         from patitas.parser import Parser
-        from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+        from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         registry = create_default_registry()
 

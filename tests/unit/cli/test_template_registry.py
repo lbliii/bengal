@@ -2,7 +2,7 @@
 
 import pytest
 
-from bengal.cli.templates.registry import (
+from bengal.scaffolds.registry import (
     TemplateRegistry,
     get_template,
     list_templates,
@@ -131,7 +131,7 @@ class TestGlobalRegistry:
 
     def test_register_template_function(self):
         """Test register_template() global function."""
-        from bengal.cli.templates.base import SiteTemplate
+        from bengal.scaffolds.base import SiteTemplate
 
         # Create a custom template
         custom_template = SiteTemplate(
@@ -319,7 +319,7 @@ class TestEdgeCases:
 
     def test_register_duplicate_template(self):
         """Test registering template with duplicate ID."""
-        from bengal.cli.templates.base import SiteTemplate
+        from bengal.scaffolds.base import SiteTemplate
 
         custom1 = SiteTemplate(id="duplicate_test", name="First", description="First", files=[])
 
@@ -365,7 +365,7 @@ class TestRealWorldScenarios:
         """Test checking if template exists before using it."""
         user_choice = "blog"
 
-        from bengal.cli.templates.registry import _get_registry
+        from bengal.scaffolds.registry import _get_registry
 
         registry = _get_registry()
 

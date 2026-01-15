@@ -12,7 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.cache import BuildCache, DependencyTracker
+from bengal.cache import BuildCache
+from bengal.build.tracking import DependencyTracker
 from bengal.rendering.pipeline import RenderingPipeline
 
 

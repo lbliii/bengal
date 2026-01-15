@@ -17,7 +17,7 @@ class TestASTPipelineIntegration:
 
     def test_ast_pipeline_produces_html(self, tmp_path: Path) -> None:
         """Verify AST pipeline produces valid HTML."""
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Hello World
 
@@ -58,7 +58,7 @@ def hello():
 
     def test_ast_pipeline_matches_direct_parse(self, tmp_path: Path) -> None:
         """Verify AST-based rendering matches direct markdown parsing."""
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Test Document
 
@@ -91,8 +91,8 @@ Regular paragraph with *emphasis* and **strong** text.
 
     def test_ast_toc_extraction_matches_html_toc(self, tmp_path: Path) -> None:
         """Verify AST-based TOC extraction produces same structure as HTML-based."""
-        from bengal.rendering.ast_utils import extract_toc_from_ast
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.ast.utils import extract_toc_from_ast
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Main Title
 
@@ -123,8 +123,8 @@ Regular paragraph with *emphasis* and **strong** text.
 
     def test_ast_link_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based link extraction finds all links."""
-        from bengal.rendering.ast_utils import extract_links_from_ast
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.ast.utils import extract_links_from_ast
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Links Test
 
@@ -146,8 +146,8 @@ And [an external link](https://example.com).
 
     def test_ast_plain_text_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction."""
-        from bengal.rendering.ast_utils import extract_plain_text
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.ast.utils import extract_plain_text
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Hello World
 
@@ -173,11 +173,11 @@ def test():
 
     def test_ast_transforms_preserve_structure(self, tmp_path: Path) -> None:
         """Verify AST transforms don't break rendering."""
-        from bengal.rendering.ast_transforms import (
+        from bengal.parsing.ast.transforms import (
             add_baseurl_to_ast,
             normalize_md_links_in_ast,
         )
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = """# Test
 
@@ -200,8 +200,8 @@ def test():
 
     def test_page_content_uses_ast_when_available(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction works correctly."""
-        from bengal.rendering.ast_utils import extract_plain_text
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.ast.utils import extract_plain_text
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = "# Hello\n\nWorld paragraph."
 
@@ -222,7 +222,7 @@ class TestASTWithDirectives:
 
     def test_raw_html_in_ast(self, tmp_path: Path) -> None:
         """Verify RawHTMLNode type can represent directive output."""
-        from bengal.rendering.ast_types import RawHTMLNode, is_raw_html
+        from bengal.parsing.ast.types import RawHTMLNode, is_raw_html
 
         node: RawHTMLNode = {"type": "raw_html", "content": "<div class='note'>Note content</div>"}
 
@@ -231,8 +231,8 @@ class TestASTWithDirectives:
 
     def test_ast_walk_with_raw_html(self, tmp_path: Path) -> None:
         """Verify walk_ast handles RawHTMLNode."""
-        from bengal.rendering.ast_types import ASTNode
-        from bengal.rendering.ast_utils import walk_ast
+        from bengal.parsing.ast.types import ASTNode
+        from bengal.parsing.ast.utils import walk_ast
 
         ast: list[ASTNode] = [
             {"type": "paragraph", "children": [{"type": "text", "raw": "Before"}]},
@@ -254,8 +254,8 @@ class TestASTCacheThreadSafety:
         """Verify AST extraction can be called from multiple threads."""
         import threading
 
-        from bengal.rendering.ast_utils import extract_plain_text
-        from bengal.rendering.parsers.mistune import MistuneParser
+        from bengal.parsing.ast.utils import extract_plain_text
+        from bengal.parsing.backends.mistune import MistuneParser
 
         content = "# Test\n\nContent paragraph."
 

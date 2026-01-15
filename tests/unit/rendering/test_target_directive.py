@@ -9,7 +9,7 @@ Related: bengal/rendering/plugins/directives/target.py
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 class TestTargetDirective:

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary

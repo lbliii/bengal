@@ -14,7 +14,7 @@ from bengal.directives.include import (
     IncludeDirective,
     render_include,
 )
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 @pytest.fixture

@@ -261,14 +261,14 @@ class TestMistuneParserParity:
     @pytest.fixture
     def mistune_parser(self):
         """Create a Mistune parser for comparison."""
-        from bengal.rendering.parsers import create_markdown_parser
+        from bengal.parsing import create_markdown_parser
 
         return create_markdown_parser("mistune")
 
     @pytest.fixture
     def patitas_parser_cmp(self):
         """Create a Patitas parser for comparison."""
-        from bengal.rendering.parsers import create_markdown_parser
+        from bengal.parsing import create_markdown_parser
 
         return create_markdown_parser("patitas")
 

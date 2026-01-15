@@ -125,7 +125,7 @@ def cache_status(ctx: click.Context) -> None:
     """Show cache status for content sources."""
 
     from bengal.collections.loader import load_collections
-    from bengal.content_layer.manager import ContentLayerManager
+    from bengal.content.sources.manager import ContentLayerManager
 
     site_root = _get_site_root(ctx)
     collections = load_collections(site_root)
@@ -199,7 +199,7 @@ def cache_status(ctx: click.Context) -> None:
 def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
     """Fetch content from remote sources."""
     from bengal.collections.loader import load_collections
-    from bengal.content_layer.manager import ContentLayerManager
+    from bengal.content.sources.manager import ContentLayerManager
 
     site_root = _get_site_root(ctx)
     collections = load_collections(site_root)
@@ -268,7 +268,7 @@ def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
 def clear_cache(ctx: click.Context, source: str | None, yes: bool) -> None:
     """Clear cached content from remote sources."""
     from bengal.cache.paths import BengalPaths
-    from bengal.content_layer.manager import ContentLayerManager
+    from bengal.content.sources.manager import ContentLayerManager
 
     site_root = _get_site_root(ctx)
     paths = BengalPaths(site_root)

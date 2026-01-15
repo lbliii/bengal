@@ -26,8 +26,8 @@ from pathlib import Path
 
 import pytest
 
-from bengal.rendering.parsers.patitas import create_markdown
-from bengal.rendering.parsers.patitas.directives import create_default_registry
+from bengal.parsing.backends.patitas import create_markdown
+from bengal.parsing.backends.patitas.directives import create_default_registry
 from patitas.nodes import Directive
 from patitas.parser import Parser
 

@@ -70,8 +70,8 @@ from threading import local
 from typing import TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
-    from bengal.rendering.parsers.patitas.parser import Parser
-    from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+    from bengal.parsing.backends.patitas.parser import Parser
+    from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 
 # Pool size rationale:
@@ -112,7 +112,7 @@ class ParserPool:
             with ParserPool.acquire(content) as parser:
                 ast = parser.parse()
         """
-        from bengal.rendering.parsers.patitas.parser import Parser
+        from bengal.parsing.backends.patitas.parser import Parser
         
         pool = cls._get_pool()
         
@@ -153,7 +153,7 @@ class RendererPool:
     @contextmanager
     def acquire(cls, source: str = "") -> Iterator[HtmlRenderer]:
         """Acquire a renderer from pool or create new one."""
-        from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+        from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
         
         pool = cls._get_pool()
         
@@ -183,8 +183,8 @@ class Parser:
         Avoids full __init__ overhead by reusing existing object.
         Lexer is re-created (lightweight) to tokenize new source.
         """
-        from bengal.rendering.parsers.patitas.lexer import Lexer
-        from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
+        from bengal.parsing.backends.patitas.lexer import Lexer
+        from bengal.parsing.backends.patitas.parsing.containers import ContainerStack
         
         self._source = source
         self._source_file = source_file
@@ -225,7 +225,7 @@ class HtmlRenderer:
 
 ```python
 # bengal/rendering/pipeline/core.py
-from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
+from bengal.parsing.backends.patitas.pool import ParserPool, RendererPool
 
 def render_page(page: Page) -> str:
     with ParserPool.acquire(page.content, page.source_path) as parser:
@@ -354,7 +354,7 @@ def metadata_context() -> Iterator[RenderMetadata]:
 
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
-from bengal.rendering.parsers.patitas.accumulator import get_metadata
+from bengal.parsing.backends.patitas.accumulator import get_metadata
 
 class HtmlRenderer:
     def _render_text(self, node: Text) -> str:
@@ -401,7 +401,7 @@ class HtmlRenderer:
 
 ```python
 # bengal/rendering/pipeline/core.py
-from bengal.rendering.parsers.patitas.accumulator import metadata_context
+from bengal.parsing.backends.patitas.accumulator import metadata_context
 
 def render_page_with_metadata(page: Page) -> tuple[str, dict]:
     """Render page and extract all metadata in single pass."""
@@ -613,7 +613,7 @@ def request_context(
 
 ```python
 # bengal/rendering/parsers/patitas/parser.py
-from bengal.rendering.parsers.patitas.request_context import try_get_request_context
+from bengal.parsing.backends.patitas.request_context import try_get_request_context
 
 class Parser:
     def _report_error(self, error: Exception, context: str) -> None:
@@ -638,7 +638,7 @@ class Parser:
 
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
-from bengal.rendering.parsers.patitas.request_context import try_get_request_context
+from bengal.parsing.backends.patitas.request_context import try_get_request_context
 
 class HtmlRenderer:
     def _resolve_link(self, target: str) -> str:
@@ -657,7 +657,7 @@ class HtmlRenderer:
 
 ```python
 # bengal/rendering/pipeline/core.py
-from bengal.rendering.parsers.patitas.request_context import request_context
+from bengal.parsing.backends.patitas.request_context import request_context
 
 def render_page(page: Page, site: Site) -> str:
     """Render page with full context."""
@@ -688,11 +688,11 @@ All three ContextVar patterns (config, metadata, request) compose correctly:
 
 ```python
 # Complete render pipeline with all ContextVars
-from bengal.rendering.parsers.patitas.config import parse_config_context, ParseConfig
-from bengal.rendering.parsers.patitas.render_config import render_config_context, RenderConfig
-from bengal.rendering.parsers.patitas.request_context import request_context
-from bengal.rendering.parsers.patitas.accumulator import metadata_context
-from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
+from bengal.parsing.backends.patitas.config import parse_config_context, ParseConfig
+from bengal.parsing.backends.patitas.render_config import render_config_context, RenderConfig
+from bengal.parsing.backends.patitas.request_context import request_context
+from bengal.parsing.backends.patitas.accumulator import metadata_context
+from bengal.parsing.backends.patitas.pool import ParserPool, RendererPool
 
 def render_page_full(page: Page, site: Site) -> tuple[str, dict]:
     """Full render with all optimizations."""

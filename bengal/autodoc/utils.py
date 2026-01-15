@@ -194,9 +194,9 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
     Scans source directories for packages (directories containing __init__.py)
     and builds a prefix map for every package path. Each entry maps the full
     dotted module path to its slash-separated path relative to the stripped
-    prefix (e.g., "cli.templates" → "cli/templates"). Using the full path
-    ensures nested packages stay under their parent directories (cli/templates
-    lives under cli/).
+    prefix (e.g., "scaffolds" → "scaffolds"). Using the full path
+    ensures nested packages stay under their parent directories (scaffolds
+    lives under scaffolds/).
     
     Args:
         source_dirs: Directories to scan for packages
@@ -209,7 +209,7 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
         {
             "cli": "cli",
-            "cli.templates": "cli/templates",
+            "scaffolds": "scaffolds",
             "core": "core",
             "cache": "cache",
         }
@@ -274,7 +274,7 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
     Apply grouping config to qualified module name.
     
     Args:
-        qualified_name: Full module name (e.g., "bengal.cli.templates.blog")
+        qualified_name: Full module name (e.g., "bengal.scaffolds.blog")
         config: Grouping config dict with mode and prefix_map
     
     Returns:
@@ -283,11 +283,11 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
         - remaining_path: Path after group prefix
     
     Example:
-            >>> apply_grouping("bengal.cli.templates.blog", {
+            >>> apply_grouping("bengal.scaffolds.blog", {
             ...     "mode": "auto",
-            ...     "prefix_map": {"cli.templates": "templates"}
+            ...     "prefix_map": {"scaffolds": "scaffolds"}
             ... })
-        ("templates", "blog")
+        ("scaffolds", "blog")
         
     """
     mode = config.get("mode", "off")

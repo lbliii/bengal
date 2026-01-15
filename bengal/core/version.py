@@ -52,8 +52,8 @@ Example:
 
 Related Packages:
 bengal.config.loader: Configuration loading from bengal.toml
-bengal.discovery.content_discovery: Version discovery during content scan
-bengal.discovery.git_version_adapter: Git branch/tag discovery
+bengal.content.discovery.content_discovery: Version discovery during content scan
+bengal.content.discovery.git_version_adapter: Git branch/tag discovery
 
 """
 

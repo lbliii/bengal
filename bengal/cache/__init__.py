@@ -15,6 +15,7 @@ CacheStore: Generic type-safe storage for Cacheable types with version managemen
 
 DependencyTracker: Tracks template, partial, and data file dependencies during
     rendering. Enables selective rebuilding when dependencies change.
+    (Moved to bengal.build.tracking.)
 
 QueryIndex: Base class for O(1) page lookups by attribute. Built-in indexes
     include section, author, category, and date_range.
@@ -79,23 +80,13 @@ if TYPE_CHECKING:
         save_compressed,
     )
     from bengal.cache.content_hash_registry import ContentHashRegistry
-    from bengal.cache.coordinator import (
-        CacheCoordinator,
-        InvalidationEvent,
-        PageInvalidationReason,
-    )
-    from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.cache.generated_page_cache import (
         GeneratedPageCache,
         GeneratedPageCacheEntry,
     )
     from bengal.cache.manifest import RebuildEntry, RebuildManifest
     from bengal.cache.path_registry import PathRegistry
-    from bengal.cache.provenance import (
-        ProvenanceCache,
-        ProvenanceFilter,
-        ProvenanceFilterResult,
-    )
     from bengal.cache.query_index import IndexEntry, QueryIndex
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.cache.utils import (
@@ -108,20 +99,13 @@ __all__ = [
     "BengalPaths",
     "BuildCache",
     "Cacheable",
-    "CacheCoordinator",
     "CacheStore",
     "COMPRESSION_LEVEL",
     "ContentHashRegistry",
-    "DependencyTracker",
     "GeneratedPageCache",
     "GeneratedPageCacheEntry",
     "IndexEntry",
-    "InvalidationEvent",
-    "PageInvalidationReason",
     "PathRegistry",
-    "ProvenanceCache",
-    "ProvenanceFilter",
-    "ProvenanceFilterResult",
     "QueryIndex",
     "QueryIndexRegistry",
     "RebuildEntry",
@@ -151,12 +135,6 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "save_compressed": ("bengal.cache.compression", "save_compressed"),
     # Content hash registry (RFC: Output Cache Architecture)
     "ContentHashRegistry": ("bengal.cache.content_hash_registry", "ContentHashRegistry"),
-    # Cache coordinator (RFC: Cache Invalidation Architecture)
-    "CacheCoordinator": ("bengal.cache.coordinator", "CacheCoordinator"),
-    "InvalidationEvent": ("bengal.cache.coordinator", "InvalidationEvent"),
-    "PageInvalidationReason": ("bengal.cache.coordinator", "PageInvalidationReason"),
-    # Dependency tracker
-    "DependencyTracker": ("bengal.cache.dependency_tracker", "DependencyTracker"),
     # Generated page cache (RFC: Output Cache Architecture)
     "GeneratedPageCache": ("bengal.cache.generated_page_cache", "GeneratedPageCache"),
     "GeneratedPageCacheEntry": ("bengal.cache.generated_page_cache", "GeneratedPageCacheEntry"),
@@ -165,10 +143,6 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "RebuildManifest": ("bengal.cache.manifest", "RebuildManifest"),
     # Path registry (RFC: Cache Invalidation Architecture)
     "PathRegistry": ("bengal.cache.path_registry", "PathRegistry"),
-    # Provenance cache (RFC: Effect-Traced Incremental Builds)
-    "ProvenanceCache": ("bengal.cache.provenance", "ProvenanceCache"),
-    "ProvenanceFilter": ("bengal.cache.provenance", "ProvenanceFilter"),
-    "ProvenanceFilterResult": ("bengal.cache.provenance", "ProvenanceFilterResult"),
     # Query index
     "IndexEntry": ("bengal.cache.query_index", "IndexEntry"),
     "QueryIndex": ("bengal.cache.query_index", "QueryIndex"),

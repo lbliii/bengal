@@ -29,10 +29,10 @@ def register(env: TemplateEnvironment, site: Site) -> None:
             "wrap": wrap_text,
             "indent": indent_text,
             # Insert zero-width break opportunities into long identifiers
-            # E.g., "cache.dependency_tracker" -> "cache\u200b.\u200bdependency\u200b_\u200btracker"
+            # E.g., "build.tracking" -> "build\u200b.\u200btracking"
             "softwrap_ident": softwrap_identifier,
             # Extract last segment of dotted or path-like identifiers
-            # E.g., "cache.dependency_tracker" -> "dependency_tracker"
+            # E.g., "build.tracking" -> "tracking"
             "last_segment": last_segment,
             # Regex extraction filters
             "regex_search": regex_search,
@@ -236,7 +236,7 @@ def softwrap_identifier(text: str) -> str:
     
     Adds zero-width space (​) after sensible breakpoints like dots, underscores,
     and before uppercase letters in camelCase/PascalCase to allow titles like
-    "cache.dependency_tracker" to wrap nicely.
+    "build.tracking" to wrap nicely.
         
     """
     if not text:
@@ -256,7 +256,7 @@ def last_segment(text: str) -> str:
     Return the last segment of a dotted or path-like identifier.
     
     Examples:
-    - "cache.dependency_tracker" -> "dependency_tracker"
+    - "build.tracking" -> "tracking"
     - "a.b.c.ClassName" -> "ClassName"
     - "path/to/module" -> "module"
         

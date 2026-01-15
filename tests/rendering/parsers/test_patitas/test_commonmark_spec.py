@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 if TYPE_CHECKING:
     from typing import Any

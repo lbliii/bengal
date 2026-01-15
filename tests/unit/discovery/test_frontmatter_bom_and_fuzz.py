@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.discovery.content_discovery import ContentDiscovery
+from bengal.content.discovery.content_discovery import ContentDiscovery
 
 
 class TestFrontmatterBOM:

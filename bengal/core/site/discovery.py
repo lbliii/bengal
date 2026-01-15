@@ -6,8 +6,8 @@ and setting up page/section references.
 
 Related Modules:
 - bengal.core.site.core: Main Site dataclass using this mixin
-- bengal.discovery.content_discovery: Content discovery implementation
-- bengal.discovery.asset_discovery: Asset discovery implementation
+- bengal.content.discovery.content_discovery: Content discovery implementation
+- bengal.content.discovery.asset_discovery: Asset discovery implementation
 
 """
 
@@ -81,7 +81,7 @@ class ContentDiscoveryMixin:
             return
 
         from bengal.collections import load_collections
-        from bengal.discovery.content_discovery import ContentDiscovery
+        from bengal.content.discovery.content_discovery import ContentDiscovery
 
         collections = load_collections(self.root_path)
 
@@ -203,7 +203,7 @@ class ContentDiscoveryMixin:
             site.discover_assets()  # Discovers from root_path/assets
             site.discover_assets(Path('/custom/assets'))  # Custom assets directory
         """
-        from bengal.discovery.asset_discovery import AssetDiscovery
+        from bengal.content.discovery.asset_discovery import AssetDiscovery
 
         self.assets = []
 

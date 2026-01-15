@@ -13,7 +13,7 @@ import click
 import questionary
 
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
-from bengal.cli.site_templates import get_template
+from bengal.scaffolds import get_template
 from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.primitives.text import slugify
 
@@ -21,7 +21,7 @@ from .config import create_config_directory
 from .wizard import run_init_wizard, should_run_init_wizard
 
 if TYPE_CHECKING:
-    from bengal.cli.templates.base import SiteTemplate
+    from bengal.scaffolds.base import SiteTemplate
     from bengal.output import CLIOutput
 
 # .gitignore content for new sites

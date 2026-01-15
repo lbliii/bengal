@@ -14,7 +14,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.orchestration.incremental: Incremental build logic using cache
-- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.build.tracking: Dependency graph construction
 - bengal.cache.taxonomy_index: Taxonomy reconstruction from cache
 - bengal.cache.compression: Zstandard compression utilities
 

@@ -176,7 +176,7 @@ About content here.
         Verifies Fix 3: Deferred fingerprint updates.
         """
         from bengal.cache import BuildCache
-        from bengal.cache.dependency_tracker import DependencyTracker
+        from bengal.build.tracking import DependencyTracker
         from bengal.cache.paths import BengalPaths
 
         paths = BengalPaths(minimal_site)

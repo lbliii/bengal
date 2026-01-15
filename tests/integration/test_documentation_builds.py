@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.build.options import BuildOptions
-from bengal.rendering.parsers.factory import ParserFactory
+from bengal.parsing.factory import ParserFactory
 
 
 class TestDocumentationBuild:

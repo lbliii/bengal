@@ -17,7 +17,7 @@ import re
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 class TestCodeBlockBasics:

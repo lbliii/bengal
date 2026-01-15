@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 
 from bengal.cache.build_cache import BuildCache
-from bengal.cache.dependency_tracker import DependencyTracker
+from bengal.build.tracking import DependencyTracker
 from bengal.config.hash import compute_config_hash
 
 

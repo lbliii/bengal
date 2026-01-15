@@ -10,7 +10,7 @@ from bengal.directives.literalinclude import (
     LiteralIncludeDirective,
     render_literalinclude,
 )
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 @pytest.fixture

@@ -17,7 +17,7 @@ API Compatibility:
 Related Modules:
     - bengal.rendering.template_engine: Template rendering implementation
     - bengal.rendering.renderer: Individual page rendering logic
-    - bengal.cache.dependency_tracker: Dependency graph construction
+    - bengal.build.tracking: Dependency graph construction
 """
 
 from .orchestrator import RenderOrchestrator

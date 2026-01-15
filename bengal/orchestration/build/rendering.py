@@ -14,7 +14,7 @@ Key Concepts:
 Related Modules:
 - bengal.orchestration.render: Page rendering orchestration
 - bengal.orchestration.asset: Asset processing orchestration
-- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.build.tracking: Dependency graph construction
 
 See Also:
 - bengal/orchestration/build/rendering.py: Rendering phase functions
@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.cache import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector

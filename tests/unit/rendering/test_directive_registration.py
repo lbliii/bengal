@@ -25,7 +25,7 @@ from bengal.directives.dropdown import DropdownDirective
 from bengal.directives.list_table import ListTableDirective
 from bengal.directives.rubric import RubricDirective
 from bengal.directives.tabs import TabItemDirective, TabSetDirective
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 
 class TestDirectiveRegistration:

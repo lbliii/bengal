@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from bengal.rendering.ast_types import ASTNode
-from bengal.rendering.ast_utils import (
+from bengal.parsing.ast.types import ASTNode
+from bengal.parsing.ast.utils import (
     extract_links_from_ast,
     extract_plain_text,
     extract_toc_from_ast,

@@ -93,17 +93,17 @@ class TestModuleNameResolution:
         bengal_root.mkdir()
         (bengal_root / "cli").mkdir()
         (bengal_root / "cli" / "commands").mkdir()
-        (bengal_root / "cli" / "templates").mkdir()
+        (bengal_root / "scaffolds").mkdir()
 
         # Create __init__.py files at multiple levels
         (bengal_root / "__init__.py").touch()
         (bengal_root / "cli" / "__init__.py").touch()
         (bengal_root / "cli" / "commands" / "__init__.py").touch()
-        (bengal_root / "cli" / "templates" / "__init__.py").touch()
+        (bengal_root / "scaffolds" / "__init__.py").touch()
 
         # Create module files
         (bengal_root / "cli" / "commands" / "build.py").touch()
-        (bengal_root / "cli" / "templates" / "blog.py").touch()
+        (bengal_root / "scaffolds" / "blog.py").touch()
 
         # Create extractor with source root set
         extractor = PythonExtractor()
@@ -116,10 +116,10 @@ class TestModuleNameResolution:
             "computed from source root, not 'commands.build' from deepest __init__.py"
         )
 
-        result2 = extractor._infer_module_name(bengal_root / "cli" / "templates" / "blog.py")
-        assert result2 == "cli.templates.blog", (
-            "Bug present: Module name should be 'cli.templates.blog' "
-            "computed from source root, not 'templates.blog' from deepest __init__.py"
+        result2 = extractor._infer_module_name(bengal_root / "scaffolds" / "blog.py")
+        assert result2 == "scaffolds.blog", (
+            "Bug present: Module name should be 'scaffolds.blog' "
+            "computed from source root, not 'blog' from deepest __init__.py"
         )
 
     def test_module_name_for_nested_packages(self, tmp_path):

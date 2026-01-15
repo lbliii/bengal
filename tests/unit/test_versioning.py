@@ -451,7 +451,7 @@ class TestVersionResolver:
 
     def test_version_resolver_get_version_for_path(self) -> None:
         """Test version resolver path detection."""
-        from bengal.discovery.version_resolver import VersionResolver
+        from bengal.content.discovery.version_resolver import VersionResolver
 
         config = VersionConfig(
             enabled=True,
@@ -480,7 +480,7 @@ class TestVersionResolver:
 
     def test_version_resolver_get_logical_path(self) -> None:
         """Test logical path extraction."""
-        from bengal.discovery.version_resolver import VersionResolver
+        from bengal.content.discovery.version_resolver import VersionResolver
 
         config = VersionConfig(
             enabled=True,
@@ -499,7 +499,7 @@ class TestVersionResolver:
 
     def test_version_resolver_disabled(self) -> None:
         """Test resolver when versioning is disabled."""
-        from bengal.discovery.version_resolver import VersionResolver
+        from bengal.content.discovery.version_resolver import VersionResolver
 
         config = VersionConfig(enabled=False)
         resolver = VersionResolver(config, Path("/site"))
@@ -1104,7 +1104,7 @@ class TestGitVersionAdapter:
         from unittest.mock import MagicMock, patch
 
         from bengal.core.version import GitBranchPattern, GitVersionConfig
-        from bengal.discovery.git_version_adapter import GitVersionAdapter
+        from bengal.content.discovery.git_version_adapter import GitVersionAdapter
 
         config = GitVersionConfig(
             branches=[
@@ -1136,7 +1136,7 @@ class TestGitVersionAdapter:
     def test_is_version_changed(self, tmp_path: Path) -> None:
         """Test checking if a version has changed."""
         from bengal.core.version import GitVersionConfig
-        from bengal.discovery.git_version_adapter import GitVersionAdapter, GitWorktree
+        from bengal.content.discovery.git_version_adapter import GitVersionAdapter, GitWorktree
 
         config = GitVersionConfig()
         adapter = GitVersionAdapter(tmp_path, config)
@@ -1169,7 +1169,7 @@ class TestVersionDiff:
 
     def test_version_differ_added_pages(self, tmp_path: Path) -> None:
         """Test detecting added pages between versions."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         # Create old version (empty)
         old_path = tmp_path / "v1"
@@ -1191,7 +1191,7 @@ class TestVersionDiff:
 
     def test_version_differ_removed_pages(self, tmp_path: Path) -> None:
         """Test detecting removed pages between versions."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         # Create old version with a page
         old_path = tmp_path / "v1"
@@ -1212,7 +1212,7 @@ class TestVersionDiff:
 
     def test_version_differ_modified_pages(self, tmp_path: Path) -> None:
         """Test detecting modified pages between versions."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         # Create old version
         old_path = tmp_path / "v1"
@@ -1234,7 +1234,7 @@ class TestVersionDiff:
 
     def test_version_differ_unchanged_pages(self, tmp_path: Path) -> None:
         """Test detecting unchanged pages."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         content = "# Guide\n\nSame content."
 
@@ -1255,7 +1255,7 @@ class TestVersionDiff:
 
     def test_version_diff_summary(self, tmp_path: Path) -> None:
         """Test version diff summary generation."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         # Create versions with various changes
         old_path = tmp_path / "v1"
@@ -1281,7 +1281,7 @@ class TestVersionDiff:
 
     def test_version_diff_to_markdown(self, tmp_path: Path) -> None:
         """Test markdown changelog generation."""
-        from bengal.discovery.version_diff import VersionDiffer
+        from bengal.content.discovery.version_diff import VersionDiffer
 
         old_path = tmp_path / "v1"
         old_path.mkdir()
@@ -1300,7 +1300,7 @@ class TestVersionDiff:
 
     def test_version_diff_has_changes(self, tmp_path: Path) -> None:
         """Test has_changes property."""
-        from bengal.discovery.version_diff import VersionDiff
+        from bengal.content.discovery.version_diff import VersionDiff
 
         # No changes
         empty_diff = VersionDiff(old_version="v1", new_version="v2")
@@ -1308,7 +1308,7 @@ class TestVersionDiff:
         assert empty_diff.total_changes == 0
 
         # With changes
-        from bengal.discovery.version_diff import PageDiff
+        from bengal.content.discovery.version_diff import PageDiff
 
         diff_with_changes = VersionDiff(
             old_version="v1",

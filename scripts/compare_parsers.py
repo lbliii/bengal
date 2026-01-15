@@ -27,7 +27,7 @@ from typing import Any
 # Add bengal to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bengal.rendering.parsers import create_markdown_parser
+from bengal.parsing import create_markdown_parser
 
 
 @dataclass

@@ -302,11 +302,11 @@ def test_alert_directive_render():
 **Testing with Parser Integration** (using ContextVar configuration):
 
 ```python
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     ParseConfig, RenderConfig,
     parse_config_context, render_config_context,
 )
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 from bengal.directives import create_default_registry
 from patitas.parser import Parser
 

@@ -123,7 +123,7 @@ def get_output_path(
     
     Examples (with grouping, strip_prefix="bengal."):
         bengal.core (package) → core/_index.md
-        bengal.cli.templates.blog (module) → templates/blog.md
+        bengal.scaffolds.blog (module) → scaffolds/blog.md
     
     Args:
         element: DocElement to get path for

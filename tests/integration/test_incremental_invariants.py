@@ -240,6 +240,27 @@ class TestIncrementalInvariants:
             # If no decision object, check that at least one page was built
             assert stats.total_pages >= 1, "Changed file should have triggered a rebuild"
 
+    def test_home_body_change_rebuilds_only_home(self, warm_site: WarmBuildTestSite) -> None:
+        """
+        Changing home page body should rebuild only that page.
+
+        Ensures body edits in content/_index.md do not trigger a full rebuild.
+        """
+        home = warm_site.content / "_index.md"
+        home.write_text("---\ntitle: Home\n---\n# Home\n\nhello world\n")
+
+        stats = warm_site.build(incremental=True, explain=True)
+        decision = getattr(stats, "incremental_decision", None)
+        assert decision is not None, "Expected incremental decision to be populated"
+
+        rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
+        assert str(home) in rebuilt_paths, "Home page should be in rebuild set"
+
+        assert len(rebuilt_paths) == 1, (
+            "Home body change should rebuild only the home page. "
+            f"Rebuilt: {sorted(rebuilt_paths)}"
+        )
+
     def test_subsection_change_marks_parent_section(
         self, warm_site_with_sections: WarmBuildTestSite
     ) -> None:

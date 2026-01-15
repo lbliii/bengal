@@ -27,7 +27,7 @@ Bengal's Content Layer provides a unified API for fetching content from any sour
 The Content Layer abstracts content sources behind a consistent interface, enabling Bengal to work with content from anywhere while maintaining zero-cost for local-only projects.
 
 ```python
-from bengal.content_layer import ContentLayerManager, local_loader, github_loader
+from bengal.content.sources import ContentLayerManager, local_loader, github_loader
 
 manager = ContentLayerManager()
 
@@ -117,7 +117,7 @@ class ContentEntry:
 ### Local Filesystem
 
 ```python
-from bengal.content_layer import local_loader
+from bengal.content.sources import local_loader
 
 loader = local_loader(directory="content/docs")
 entries = await loader.fetch_all()
@@ -126,7 +126,7 @@ entries = await loader.fetch_all()
 ### GitHub
 
 ```python
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 loader = github_loader(
     repo="myorg/api-docs",
@@ -140,7 +140,7 @@ entries = await loader.fetch_all()
 ### Notion
 
 ```python
-from bengal.content_layer import notion_loader
+from bengal.content.sources import notion_loader
 
 loader = notion_loader(
     database_id="abc123...",
@@ -152,7 +152,7 @@ entries = await loader.fetch_all()
 ### REST API
 
 ```python
-from bengal.content_layer import rest_loader
+from bengal.content.sources import rest_loader
 
 loader = rest_loader(
     url="https://api.example.com/docs",
@@ -191,7 +191,7 @@ Collections seamlessly integrate with Content Layer:
 
 ```python
 from bengal.collections import define_collection
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 collections = {
     "api-docs": define_collection(
@@ -208,8 +208,8 @@ The collection system handles the Content Layer integration automatically.
 Implement `ContentSource` to add custom sources:
 
 ```python
-from bengal.content_layer.source import ContentSource
-from bengal.content_layer.entry import ContentEntry
+from bengal.content.sources.source import ContentSource
+from bengal.content.sources.entry import ContentEntry
 
 class MyCustomSource(ContentSource):
     @property

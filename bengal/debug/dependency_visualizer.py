@@ -31,7 +31,7 @@ Example:
     >>> print(f"{len(affected)} pages would rebuild")
 
 Related Modules:
-- bengal.cache.dependency_tracker: Dependency tracking during builds
+- bengal.build.tracking: Dependency tracking during builds
 - bengal.cache.build_cache: Persisted dependency information
 - bengal.debug.incremental_debugger: Rebuild analysis
 

@@ -33,7 +33,7 @@ Public API:
 - reset_parser_cache(): Clear cache (for testing)
 
 Related Modules:
-- bengal.rendering.parsers: Parser implementations
+- bengal.parsing: Parser implementations
 - bengal.rendering.pipeline.core: Main pipeline using these caches
 - bengal.utils.thread_local: Generic thread-local utilities
 
@@ -41,7 +41,7 @@ Related Modules:
 
 from __future__ import annotations
 
-from bengal.rendering.parsers import BaseMarkdownParser, create_markdown_parser
+from bengal.parsing import BaseMarkdownParser, create_markdown_parser
 from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
 
 # Thread-local cache for parser instances (reuse parsers per thread)

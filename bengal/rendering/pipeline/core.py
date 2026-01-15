@@ -12,10 +12,10 @@ Key Concepts:
 - Dependency tracking: Template and asset dependency tracking
 
 Related Modules:
-- bengal.rendering.parsers: Markdown parser implementations (Patitas default)
+- bengal.parsing: Markdown parser implementations (Patitas default)
 - bengal.rendering.template_engine: Template engine for rendering (Kida default)
 - bengal.rendering.renderer: Individual page rendering logic
-- bengal.cache.dependency_tracker: Dependency graph construction
+- bengal.build.tracking: Dependency graph construction
 
 See Also:
 - bengal/rendering/pipeline/cache_checker.py: Cache operations
@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.core.page import Page
 
 if TYPE_CHECKING:
-    from bengal.cache import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.build_context import BuildContext
@@ -424,7 +424,7 @@ class RenderingPipeline:
         Uses deferred (parallel) syntax highlighting on Python 3.14t for
         pages with multiple code blocks. This provides 1.5-2x speedup.
         """
-        from bengal.rendering.parsers.mistune.highlighting import (
+        from bengal.parsing.backends.mistune.highlighting import (
             disable_deferred_highlighting,
             enable_deferred_highlighting,
             flush_deferred_highlighting,

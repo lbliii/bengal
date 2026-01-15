@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from bengal.collections import CollectionConfig, ContentValidationError, define_collection
-from bengal.discovery.content_discovery import ContentDiscovery
+from bengal.content.discovery.content_discovery import ContentDiscovery
 
 # Test schemas
 

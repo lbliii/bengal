@@ -81,7 +81,7 @@ content_type: news
 **Implementation**:
 ```python
 from typing import Any
-from bengal.rendering.parsers.base import BaseMarkdownParser
+from bengal.parsing.base import BaseMarkdownParser
 
 class CustomMarkdownParser(BaseMarkdownParser):
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
@@ -97,17 +97,17 @@ class CustomMarkdownParser(BaseMarkdownParser):
         return html, toc_html
 
 # Register in parser factory
-# (requires modification of bengal/rendering/parsers/__init__.py)
+# (requires modification of bengal/parsing/__init__.py)
 ```
 
 **Using Patitas Low-Level API** (with ContextVar configuration):
 
 ```python
-from bengal.rendering.parsers.patitas import (
+from bengal.parsing.backends.patitas import (
     ParseConfig, RenderConfig,
     parse_config_context, render_config_context,
 )
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 from patitas.parser import Parser
 
 # Configure and parse

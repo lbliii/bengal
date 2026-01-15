@@ -305,7 +305,7 @@ class TestCrossReferenceMistunePlugin:
 
 def test_integration_mistune_parser_with_xref(tmp_path):
     """Integration test: parser with cross-reference plugin."""
-    from bengal.rendering.parsers import MistuneParser
+    from bengal.parsing import MistuneParser
 
     # Create a minimal site for URL generation
     site = Site(root_path=tmp_path, config={}, theme="default")

@@ -26,7 +26,7 @@ The default source for local markdown files:
 ```python
 # collections.py
 from bengal.collections import define_collection
-from bengal.content_layer import local_loader
+from bengal.content.sources import local_loader
 
 collections = {
     "docs": define_collection(
@@ -41,7 +41,7 @@ collections = {
 Fetch content from a GitHub repository:
 
 ```python
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 collections = {
     "api-docs": define_collection(
@@ -63,7 +63,7 @@ Requires: `pip install bengal[github]`
 Fetch content from a REST API:
 
 ```python
-from bengal.content_layer import rest_loader
+from bengal.content.sources import rest_loader
 
 collections = {
     "posts": define_collection(
@@ -85,7 +85,7 @@ Requires: `pip install bengal[rest]`
 Fetch pages from a Notion database:
 
 ```python
-from bengal.content_layer import notion_loader
+from bengal.content.sources import notion_loader
 
 collections = {
     "wiki": define_collection(
@@ -105,8 +105,8 @@ Requires: `pip install bengal[notion]`
 Implement the `ContentSource` abstract class:
 
 ```python
-from bengal.content_layer.source import ContentSource
-from bengal.content_layer.entry import ContentEntry
+from bengal.content.sources.source import ContentSource
+from bengal.content.sources.entry import ContentEntry
 
 class MyAPISource(ContentSource):
     """Fetch content from a custom API."""
@@ -194,7 +194,7 @@ class ContentEntry:
 Register your source instance directly:
 
 ```python
-from bengal.content_layer import ContentLayerManager
+from bengal.content.sources import ContentLayerManager
 
 manager = ContentLayerManager()
 manager.register_custom_source("my-content", MyAPISource(

@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers import MistuneParser
+from bengal.parsing import MistuneParser
 
 # python-markdown is optional (patitas is default)
 try:
-    from bengal.rendering.parsers import PythonMarkdownParser
+    from bengal.parsing import PythonMarkdownParser
 
     HAS_MARKDOWN = True
 except ImportError:

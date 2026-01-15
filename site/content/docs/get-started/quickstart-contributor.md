@@ -75,7 +75,8 @@ bengal/
 │   ├── core/           # Passive data models (no I/O)
 │   ├── orchestration/  # Build coordination
 │   ├── rendering/      # Templates and content rendering
-│   ├── discovery/      # Content and asset discovery
+│   ├── parsing/        # Markdown parsing and AST helpers
+│   ├── content/        # Content discovery + remote sources
 │   ├── cache/          # Caching infrastructure
 │   ├── health/         # Validation and health checks
 │   ├── config/         # Configuration loading

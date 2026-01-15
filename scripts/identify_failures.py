@@ -3,7 +3,7 @@ import re
 import traceback
 from pathlib import Path
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 spec_path = Path(
     "/Users/llane/Documents/github/python/bengal/tests/rendering/parsers/test_patitas/commonmark_spec_0_31_2.json"

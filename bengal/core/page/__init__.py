@@ -166,7 +166,7 @@ class Page(
     _raw_content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
-    # The ASTNode types in bengal.rendering.ast_types are for future AST-based
+    # The ASTNode types in bengal.parsing.ast.types are for future AST-based
     # processing. See plan/ready/plan-type-system-hardening.md for migration path.
     parsed_ast: Any | None = None
     rendered_html: str = ""

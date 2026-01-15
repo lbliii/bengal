@@ -26,7 +26,7 @@ pip install patitas[bengal]      # Full Bengal directive suite
 - **94 source files** to extract
 - **21 test files** + fixtures (CommonMark spec: 652 examples)
 - **~28 Bengal-specific imports** to remove or abstract via protocols
-- **~400 internal imports** to transform (`bengal.rendering.parsers.patitas.` → `patitas.`)
+- **~400 internal imports** to transform (`bengal.parsing.backends.patitas.` → `patitas.`)
 
 ---
 
@@ -218,7 +218,7 @@ tests/unit/rendering/parsers/patitas/     # Unit tests (6 files)
 | `bengal.directives.cards.utils.*` | `directives/builtins/cards.py` | Optional extra; keep in Bengal or new optional extra |
 | `bengal.rendering.highlighting.highlight` | `directives/builtins/code_tabs.py` | Highlight protocol (Rosettes-backed) |
 | `bengal.icons.resolver` | `directives/builtins/inline.py`, `roles/builtins/icons.py` | Icon resolver protocol |
-| `bengal.rendering.parsers.base.BaseMarkdownParser` | `wrapper.py` | Keep in Bengal-only adapter |
+| `bengal.parsing.base.BaseMarkdownParser` | `wrapper.py` | Keep in Bengal-only adapter |
 | `bengal.rendering.plugins.VariableSubstitutionPlugin`, `CrossReferencePlugin` | `wrapper.py` | Keep in Bengal-only adapter |
 
 ---
@@ -505,7 +505,7 @@ bengal/
 2. **Transform test imports**:
    ```python
    # Before
-   from bengal.rendering.parsers.patitas import parse, parse_to_ast
+   from bengal.parsing.backends.patitas import parse, parse_to_ast
 
    # After
    from patitas import parse, parse_to_ast
@@ -586,12 +586,12 @@ bengal/
 3. **Update all Bengal imports**:
    ```python
    # Before
-   from bengal.rendering.parsers.patitas import parse, Markdown
+   from bengal.parsing.backends.patitas import parse, Markdown
 
    # After  
    from patitas import parse, Markdown
    # Or for Bengal-specific features:
-   from bengal.rendering.parsers.patitas_adapter import PatitasParser
+   from bengal.parsing.backends.patitas_adapter import PatitasParser
    ```
 
 4. **Delete embedded patitas source and tests**:
@@ -1329,12 +1329,12 @@ Package size:     ~600 KB (including CommonMark spec fixture)
 4. [ ] Update all Bengal imports:
    ```python
    # Before
-   from bengal.rendering.parsers.patitas import parse, Markdown
+   from bengal.parsing.backends.patitas import parse, Markdown
    
    # After
    from patitas import parse, Markdown
    # Or for Bengal-specific features:
-   from bengal.rendering.parsers.patitas_adapter import PatitasParser
+   from bengal.parsing.backends.patitas_adapter import PatitasParser
    ```
 
 5. [ ] Delete embedded patitas source:

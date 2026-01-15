@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from bengal.content_layer.entry import ContentEntry
+from bengal.content.sources.entry import ContentEntry
 
 
 class TestContentEntry:

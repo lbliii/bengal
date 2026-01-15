@@ -30,7 +30,7 @@ Example usage:
 
 See Also:
 - bengal.directives: Directive implementations.
-- bengal.rendering.parsers: Markdown parser configuration.
+- bengal.parsing: Markdown parser configuration.
 - bengal.cli.commands.debug: CLI interface for sandbox.
 
 """
@@ -288,7 +288,7 @@ class ShortcodeSandbox(DebugTool):
             Configured markdown parser instance.
         """
         if self._markdown_parser is None:
-            from bengal.rendering.parsers import create_markdown_parser
+            from bengal.parsing import create_markdown_parser
 
             self._markdown_parser = create_markdown_parser(engine="mistune")
         return self._markdown_parser

@@ -84,8 +84,8 @@ class BuildPhase(Enum):
         """
         module_map = {
             BuildPhase.INITIALIZATION: ["bengal/config/", "bengal/cli/"],
-            BuildPhase.DISCOVERY: ["bengal/discovery/", "bengal/content_layer/"],
-            BuildPhase.PARSING: ["bengal/rendering/markdown_parser.py", "bengal/core/page/"],
+            BuildPhase.DISCOVERY: ["bengal/content/discovery/", "bengal/content/sources/"],
+            BuildPhase.PARSING: ["bengal/parsing/", "bengal/core/page/"],
             BuildPhase.RENDERING: ["bengal/rendering/", "bengal/orchestration/render.py"],
             BuildPhase.POSTPROCESSING: ["bengal/postprocess/"],
             BuildPhase.ASSET_PROCESSING: ["bengal/assets/", "bengal/orchestration/asset.py"],

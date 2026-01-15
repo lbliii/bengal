@@ -11,7 +11,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.orchestration.incremental.cache_manager: Cache operations
-- bengal.orchestration.incremental.change_detector: Change detection
+- bengal.build.pipeline: Change detection pipeline
 - bengal.orchestration.incremental.cleanup: Deleted file cleanup
 - bengal.core.nav_tree: NavTreeCache for cached navigation
 
@@ -22,16 +22,21 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.build.contracts.keys import CacheKey, content_key, data_key
+from bengal.build.contracts.protocol import DetectionContext
+from bengal.build.detectors.base import key_to_path
+from bengal.build.pipeline import create_early_pipeline, create_full_pipeline
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cache_manager import CacheManager
-from bengal.orchestration.incremental.change_detector import ChangeDetector
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
 from bengal.orchestration.build_context import BuildContext
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.build.tracking import DependencyTracker
+    from bengal.orchestration.build.coordinator import CacheCoordinator
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -49,7 +54,7 @@ class IncrementalOrchestrator:
     
     Component Delegation:
         - CacheManager: Cache loading, saving, and migration
-        - ChangeDetector: Unified change detection with phase parameter
+        - DetectionPipeline: Change detection via bengal.build.pipeline
         - cleanup: Deleted file cleanup
     
     Creation:
@@ -62,7 +67,7 @@ class IncrementalOrchestrator:
         cache: BuildCache instance for build state persistence
         tracker: DependencyTracker instance for dependency graph construction
         _cache_manager: CacheManager instance for cache operations
-        _change_detector: ChangeDetector instance for change detection (lazy)
+        _early_pipeline/_full_pipeline: Detection pipelines (lazy)
     
     Example:
             >>> orchestrator = IncrementalOrchestrator(site)
@@ -85,7 +90,8 @@ class IncrementalOrchestrator:
 
         # Component instances
         self._cache_manager = CacheManager(site)
-        self._change_detector: ChangeDetector | None = None
+        self._early_pipeline = None
+        self._full_pipeline = None
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
@@ -102,9 +108,9 @@ class IncrementalOrchestrator:
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
         # Expose coordinator for use by detectors
         self.coordinator = self._cache_manager.coordinator
-        # Reset change detector so it picks up the new cache
-        # (fixes stale reference bug where detector kept old cache)
-        self._change_detector = None
+        # Reset pipelines so they pick up the new cache
+        self._early_pipeline = None
+        self._full_pipeline = None
         return self.cache, self.tracker
 
     def check_config_changed(self) -> bool:
@@ -170,11 +176,7 @@ class IncrementalOrchestrator:
                 suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
             )
 
-        # Lazy initialization of change detector
-        if self._change_detector is None:
-            self._change_detector = ChangeDetector(self.site, self.cache, self.tracker)
-
-        change_set = self._change_detector.detect_changes(
+        change_set = self._run_pipeline(
             phase="early",
             verbose=verbose,
             forced_changed_sources=forced_changed_sources,
@@ -191,11 +193,8 @@ class IncrementalOrchestrator:
             invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
             logger.debug("caches_invalidated", reason="structural_changes", caches=invalidated)
 
-        return (
-            change_set.pages_to_build,
-            change_set.assets_to_process,
-            change_set.change_summary,
-        )
+        pages_to_build, assets_to_process, change_summary = self._convert_result(change_set)
+        return pages_to_build, assets_to_process, change_summary
 
     def find_work(
         self, verbose: bool = False
@@ -221,23 +220,112 @@ class IncrementalOrchestrator:
                 suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
             )
 
-        # Lazy initialization of change detector
-        if self._change_detector is None:
-            self._change_detector = ChangeDetector(self.site, self.cache, self.tracker)
-
-        change_set = self._change_detector.detect_changes(
-            phase="full",
-            verbose=verbose,
-        )
+        change_set = self._run_pipeline(phase="full", verbose=verbose)
+        pages_to_build, assets_to_process, change_summary = self._convert_result(change_set)
 
         summary_dict: dict[str, list[Any]] = {
-            "Modified content": list(change_set.change_summary.modified_content),
-            "Modified assets": list(change_set.change_summary.modified_assets),
-            "Modified templates": list(change_set.change_summary.modified_templates),
-            "Taxonomy changes": change_set.change_summary.extra_changes.get("Taxonomy changes", []),
+            "Modified content": list(change_summary.modified_content),
+            "Modified assets": list(change_summary.modified_assets),
+            "Modified templates": list(change_summary.modified_templates),
+            "Taxonomy changes": change_summary.taxonomy_changes,
         }
+        return pages_to_build, assets_to_process, summary_dict
 
-        return change_set.pages_to_build, change_set.assets_to_process, summary_dict
+    def _run_pipeline(
+        self,
+        *,
+        phase: str,
+        verbose: bool,
+        forced_changed_sources: set[Path] | None = None,
+        nav_changed_sources: set[Path] | None = None,
+    ):
+        forced_keys = self._build_forced_keys(forced_changed_sources or set())
+        nav_keys = self._build_forced_keys(nav_changed_sources or set())
+        ctx = DetectionContext(
+            cache=self.cache,
+            site=self.site,
+            tracker=self.tracker,
+            coordinator=self.coordinator,
+            verbose=verbose,
+            forced_changed=forced_keys,
+            nav_changed=nav_keys,
+        )
+
+        if phase == "early":
+            if self._early_pipeline is None:
+                self._early_pipeline = create_early_pipeline()
+            return self._early_pipeline.run(ctx)
+
+        if self._early_pipeline is None:
+            self._early_pipeline = create_early_pipeline()
+        early_result = self._early_pipeline.run(ctx)
+        full_ctx = DetectionContext(
+            cache=self.cache,
+            site=self.site,
+            tracker=self.tracker,
+            coordinator=self.coordinator,
+            verbose=verbose,
+            forced_changed=forced_keys,
+            nav_changed=nav_keys,
+            previous=early_result,
+        )
+        if self._full_pipeline is None:
+            self._full_pipeline = create_full_pipeline()
+        return self._full_pipeline.run(full_ctx)
+
+    def _build_forced_keys(self, paths: set[Path]) -> frozenset[CacheKey]:
+        keys: set[CacheKey] = set()
+        for path in paths:
+            key = content_key(path, self.site.root_path)
+            keys.add(key)
+            try:
+                path.resolve().relative_to((self.site.root_path / "data").resolve())
+            except ValueError:
+                continue
+            keys.add(data_key(path, self.site.root_path))
+        return frozenset(keys)
+
+    def _convert_result(self, result):
+        pages_by_path = self.site.page_by_source_path
+        assets_by_path = {asset.source_path: asset for asset in self.site.assets}
+
+        pages_to_build: list[Page] = []
+        assets_to_process: list[Asset] = []
+
+        for key in result.pages_to_rebuild:
+            path = key_to_path(self.site.root_path, key)
+            page = pages_by_path.get(path)
+            if page is None:
+                # Fallback to scan when cache map isn't populated.
+                page = next((p for p in self.site.pages if p.source_path == path), None)
+            if page is not None:
+                pages_to_build.append(page)
+
+        for key in result.assets_to_process:
+            path = key_to_path(self.site.root_path, key)
+            asset = assets_by_path.get(path)
+            if asset is not None:
+                assets_to_process.append(asset)
+
+        change_summary = ChangeSummary(
+            modified_content=[
+                key_to_path(self.site.root_path, key) for key in result.content_files_changed
+            ],
+            modified_assets=[
+                key_to_path(self.site.root_path, key) for key in result.assets_to_process
+            ],
+            modified_templates=[
+                key_to_path(self.site.root_path, key) for key in result.templates_changed
+            ],
+            taxonomy_changes=list(result.affected_tags),
+        )
+
+        if result.data_files_changed:
+            change_summary.extra_changes["Data file changes"] = [
+                str(key_to_path(self.site.root_path, key)) for key in result.data_files_changed
+            ]
+
+        return pages_to_build, assets_to_process, change_summary
 
     def process(self, change_type: str, changed_paths: set[str]) -> None:
         """

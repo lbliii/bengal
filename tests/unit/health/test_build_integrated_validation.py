@@ -130,7 +130,7 @@ class TestContentDiscoveryIntegration:
 
     def test_discovery_caches_content_when_build_context_provided(self, tmp_path: Path) -> None:
         """Test that ContentDiscovery caches content when build_context is provided."""
-        from bengal.discovery.content_discovery import ContentDiscovery
+        from bengal.content.discovery.content_discovery import ContentDiscovery
 
         # Create test content
         content_dir = tmp_path / "content"
@@ -151,7 +151,7 @@ class TestContentDiscoveryIntegration:
 
     def test_discovery_works_without_build_context(self, tmp_path: Path) -> None:
         """Test that ContentDiscovery works normally without build_context."""
-        from bengal.discovery.content_discovery import ContentDiscovery
+        from bengal.content.discovery.content_discovery import ContentDiscovery
 
         # Create test content
         content_dir = tmp_path / "content"
@@ -414,7 +414,7 @@ baseurl = "/"
         )
 
         # Create BuildContext and run discovery
-        from bengal.discovery.content_discovery import ContentDiscovery
+        from bengal.content.discovery.content_discovery import ContentDiscovery
 
         ctx = BuildContext()
         discovery = ContentDiscovery(content_dir, build_context=ctx)

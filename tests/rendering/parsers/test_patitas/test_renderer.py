@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse_to_ast
-from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from bengal.parsing.backends.patitas import parse_to_ast
+from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 
 class TestRendererBasics:

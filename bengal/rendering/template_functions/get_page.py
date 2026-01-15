@@ -113,7 +113,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
 
     # Lazy-create parser on site object for reuse
     if site._template_parser is None:
-        from bengal.rendering.parsers import create_markdown_parser
+        from bengal.parsing import create_markdown_parser
 
         # Get parser engine from config (same logic as RenderingPipeline)
         markdown_engine = site.config.get("markdown_engine")

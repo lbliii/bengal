@@ -13,8 +13,8 @@ How Bengal transforms source content into final output.
 
 | Stage | What it does | Key modules |
 |-------|--------------|-------------|
-| **Discovery** | Find `.md` files, parse frontmatter | `bengal/discovery/` |
-| **Rendering** | Template selection, Markdown → HTML | `bengal/rendering/` |
+| **Discovery** | Find `.md` files, parse frontmatter | `bengal/content/discovery/` |
+| **Rendering** | Template selection, Markdown → HTML | `bengal/rendering/`, `bengal/parsing/` |
 | **Post-Process** | Sitemap, RSS, redirects, social cards | `bengal/postprocess/` |
 | **Health** | Link validation, content checks | `bengal/health/` |
 

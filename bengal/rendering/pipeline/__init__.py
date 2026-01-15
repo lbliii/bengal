@@ -27,10 +27,10 @@ pipeline.process_page(page)
 ```
 
 Related Modules:
-- bengal.rendering.parsers: Markdown parser implementations
+- bengal.parsing: Markdown parser implementations
 - bengal.rendering.template_engine: Template rendering (Kida default)
 - bengal.rendering.renderer: Page rendering logic
-- bengal.cache.dependency_tracker: Dependency tracking
+- bengal.build.tracking: Dependency tracking
 
 """
 

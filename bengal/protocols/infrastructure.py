@@ -16,7 +16,7 @@ Design Philosophy:
 See Also:
 - bengal.utils.progress: Progress reporter implementations
 - bengal.cache: Cache infrastructure
-- bengal.content_layer: Content source implementations
+- bengal.content.sources: Content source implementations
 
 """
 
@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 if TYPE_CHECKING:
     from typing import Literal
 
-    from bengal.content_layer.entry import ContentEntry
+    from bengal.content.sources.entry import ContentEntry
     from bengal.core.output.types import OutputRecord, OutputType
 
 

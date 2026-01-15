@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 
 class TestEmphasisVariants:
@@ -433,7 +433,7 @@ class TestAutolinks:
         See: https://spec.commonmark.org/0.31.2/#autolinks
         See: https://spec.commonmark.org/0.31.2/#html-blocks
         """
-        from bengal.rendering.parsers.patitas import create_markdown
+        from bengal.parsing.backends.patitas import create_markdown
         md = create_markdown(plugins=["autolinks"])
         # Autolink in paragraph context
         html = md("text and <http://example.com>")

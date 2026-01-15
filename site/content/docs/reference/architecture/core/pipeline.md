@@ -91,11 +91,15 @@ streaming.process(pages, parallel=True, batch_size=100)
 
 ## Incremental Builds
 
-The `IncrementalOrchestrator` filters work before heavy lifting:
+Incremental builds run a dedicated **detection pipeline** in `bengal/build/` before heavy rendering:
 
-1. **Detect**: Find changed files (SHA256 hash comparison)
-2. **Trace**: Query dependency graph for affected pages
-3. **Filter**: Pass only affected items to renderers
+1. **Detect**: Compare fingerprints/provenance for content, templates, assets, data
+2. **Expand**: Follow tracked relationships to expand the rebuild set
+3. **Filter**: Hand only affected pages/assets to renderers
+
+The pipeline is composed of `ChangeDetector` implementations (`bengal/build/detectors/`)
+and produces an immutable `ChangeDetectionResult` (`bengal/build/contracts/`).
+It short-circuits on full rebuild triggers for speed and clarity.
 
 ```bash
 bengal build --incremental
@@ -152,7 +156,8 @@ else:
 |--------|---------|
 | `bengal/orchestration/build/` | 21 phase functions |
 | `bengal/orchestration/streaming.py` | Memory-optimized rendering |
-| `bengal/orchestration/incremental/` | Change detection and filtering |
+| `bengal/build/` | Incremental detection pipeline, provenance, tracking |
+| `bengal/orchestration/incremental/` | Incremental orchestration wiring |
 | `bengal/server/file_watcher.py` | Rust-based file watching |
 | `bengal/server/build_trigger.py` | Rebuild decision logic |
 

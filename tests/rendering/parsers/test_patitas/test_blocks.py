@@ -5,7 +5,7 @@ Comprehensive tests for block-level parsing and rendering.
 
 from __future__ import annotations
 
-from bengal.rendering.parsers.patitas import parse
+from bengal.parsing.backends.patitas import parse
 
 
 class TestHeadingEdgeCases:

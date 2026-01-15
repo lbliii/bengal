@@ -10,8 +10,8 @@ Key Concepts:
 - Conservative fallback: Rebuild all pages if no dependency info available
 
 Related Modules:
-- bengal.cache.dependency_tracker: Tracks data file dependencies
-- bengal.orchestration.incremental.change_detector: Main change detector
+- bengal.build.tracking: Tracks data file dependencies
+- bengal.build.pipeline: Change detection pipeline
 
 See Also:
 - plan/rfc-incremental-build-dependency-gaps.md: Gap 1 design
@@ -25,7 +25,9 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache, CacheCoordinator, DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.build.tracking import DependencyTracker
+    from bengal.orchestration.build.coordinator import CacheCoordinator
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary
@@ -179,7 +181,7 @@ class DataFileDetector:
         Returns:
             Number of pages added to rebuild set
         """
-        from bengal.cache.coordinator import PageInvalidationReason
+        from bengal.orchestration.build.coordinator import PageInvalidationReason
 
         pages_added = 0
         pages_with_tracked_deps: set[Path] = set()

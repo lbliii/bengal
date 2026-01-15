@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.mistune import MistuneParser
+from bengal.parsing.backends.mistune import MistuneParser
 
 
 @pytest.fixture

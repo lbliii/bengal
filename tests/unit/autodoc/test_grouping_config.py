@@ -72,7 +72,7 @@ def test_merge_grouping_config_explicit_mode():
             "grouping": {
                 "mode": "explicit",
                 "prefix_map": {
-                    "cli.templates": "templates",
+                    "scaffolds": "scaffolds",
                     "core": "core",
                 },
             },
@@ -83,7 +83,7 @@ def test_merge_grouping_config_explicit_mode():
 
     assert merged["python"]["grouping"]["mode"] == "explicit"
     assert merged["python"]["grouping"]["prefix_map"] == {
-        "cli.templates": "templates",
+        "scaffolds": "scaffolds",
         "core": "core",
     }
 

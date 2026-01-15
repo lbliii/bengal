@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.discovery.asset_discovery import AssetDiscovery
+from bengal.content.discovery.asset_discovery import AssetDiscovery
 
 
 @pytest.fixture

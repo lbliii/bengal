@@ -15,7 +15,7 @@ Related Modules:
 - bengal.health.base: BaseValidator interface
 - bengal.health.report: CheckResult for reporting
 - bengal.directives.target: Target directive
-- bengal.rendering.parsers.mistune: Heading {#id} syntax
+- bengal.parsing.backends.mistune: Heading {#id} syntax
 
 See Also:
 - bengal/health/validators/cross_ref.py: General cross-reference validation

@@ -49,7 +49,7 @@ Quick Start:
 
 Related Modules:
 - bengal.orchestration.render_orchestrator: Build-level rendering coordination
-- bengal.cache.dependency_tracker: Incremental build support
+- bengal.build.tracking: Incremental build support
 - bengal.core.page: Page model being rendered
 
 See Also:

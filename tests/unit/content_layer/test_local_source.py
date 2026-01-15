@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.content_layer.sources.local import LocalSource, _parse_frontmatter
+from bengal.content.sources.local import LocalSource, _parse_frontmatter
 from bengal.errors import BengalConfigError
 
 

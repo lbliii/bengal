@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
-from bengal.rendering.parsers.factory import ParserFactory
+from bengal.parsing.factory import ParserFactory
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)

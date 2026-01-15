@@ -58,8 +58,8 @@ Validation supports:
 - Nested dataclass validation
 
 Related Modules:
-- ``bengal.discovery.content_discovery``: Collection integration point
-- ``bengal.content_layer``: Remote content sources (GitHub, Notion)
+- ``bengal.content.discovery.content_discovery``: Collection integration point
+- ``bengal.content.sources``: Remote content sources (GitHub, Notion)
 - ``bengal.core.page.metadata``: Page frontmatter access
 
 """
@@ -92,7 +92,7 @@ from bengal.collections.schemas import (
 from bengal.collections.validator import SchemaValidator, ValidationResult
 
 if TYPE_CHECKING:
-    from bengal.content_layer.source import ContentSource
+    from bengal.content.sources.source import ContentSource
 
 
 @dataclass
@@ -250,7 +250,7 @@ def define_collection[T](
     Example:
         Remote content from GitHub:
     
-            >>> from bengal.content_layer import github_loader
+            >>> from bengal.content.sources import github_loader
             >>>
             >>> api_docs = define_collection(
             ...     schema=APIDoc,

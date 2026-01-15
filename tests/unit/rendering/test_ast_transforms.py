@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from bengal.rendering.ast_transforms import (
+from bengal.parsing.ast.transforms import (
     add_baseurl_to_ast,
     normalize_md_links_in_ast,
     transform_ast_for_output,
     transform_links_in_ast,
 )
-from bengal.rendering.ast_types import ASTNode
+from bengal.parsing.ast.types import ASTNode
 
 
 class TestTransformLinksInAST:

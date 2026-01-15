@@ -263,7 +263,7 @@ class MyDirective(BengalDirective):
 **Migrate to Patitas DirectiveHandler**:
 ```python
 # After
-from bengal.rendering.parsers.patitas.directives import DirectiveHandler
+from bengal.parsing.backends.patitas.directives import DirectiveHandler
 
 class MyDirective(DirectiveHandler):
     ...

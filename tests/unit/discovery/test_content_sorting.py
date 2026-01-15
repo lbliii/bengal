@@ -5,7 +5,7 @@ Tests that content discovery automatically sorts pages and sections
 by weight after discovering content.
 """
 
-from bengal.discovery.content_discovery import ContentDiscovery
+from bengal.content.discovery.content_discovery import ContentDiscovery
 
 
 class TestContentDiscoverySorting:

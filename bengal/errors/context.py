@@ -552,8 +552,8 @@ def create_discovery_context(
             processing_item=f"file:{file_path}",
             processing_type="file",
             files_to_check=[
-                "bengal/discovery/",
-                "bengal/content_layer/",
+                "bengal/content/discovery/",
+                "bengal/content/sources/",
             ],
         ),
     )

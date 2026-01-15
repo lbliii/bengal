@@ -78,7 +78,7 @@ bengal.analysis.knowledge_graph ↔ page_rank, path_analysis, community_detectio
                                   link_suggestions, graph_analysis, graph_reporting
 
 # Within rendering/
-bengal.rendering.parsers.patitas.renderers.html ↔ blocks, directives
+bengal.parsing.backends.patitas.renderers.html ↔ blocks, directives
 
 # Within errors/
 bengal.errors.context ↔ bengal.errors.exceptions
@@ -729,8 +729,8 @@ bengal.analysis.knowledge_graph ↔ bengal.analysis.graph_reporting
 bengal.core.resources.processor ↔ bengal.core.resources.image
 bengal.server.live_reload ↔ bengal.server.request_handler
 bengal.utils.logger ↔ bengal.utils.rich_console
-bengal.rendering.parsers.patitas.renderers.html ↔ bengal.rendering.parsers.patitas.renderers.directives
-bengal.rendering.parsers.patitas.renderers.html ↔ bengal.rendering.parsers.patitas.renderers.blocks
+bengal.parsing.backends.patitas.renderers.html ↔ bengal.parsing.backends.patitas.renderers.directives
+bengal.parsing.backends.patitas.renderers.html ↔ bengal.parsing.backends.patitas.renderers.blocks
 bengal.errors.context ↔ bengal.errors.exceptions
 ```
 

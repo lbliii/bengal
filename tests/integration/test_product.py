@@ -120,7 +120,7 @@ class TestProductTemplateRegistration:
 
     def test_product_template_registered(self) -> None:
         """Product template should be registered."""
-        from bengal.cli.templates.registry import list_templates
+        from bengal.scaffolds.registry import list_templates
 
         templates = list_templates()
         template_ids = [t[0] for t in templates]
@@ -129,7 +129,7 @@ class TestProductTemplateRegistration:
 
     def test_product_template_has_description(self) -> None:
         """Product template should have description."""
-        from bengal.cli.templates.registry import get_template
+        from bengal.scaffolds.registry import get_template
 
         template = get_template("product")
         assert template is not None, "Product template should exist"
@@ -137,7 +137,7 @@ class TestProductTemplateRegistration:
 
     def test_product_template_has_files(self) -> None:
         """Product template should have template files."""
-        from bengal.cli.templates.registry import get_template
+        from bengal.scaffolds.registry import get_template
 
         template = get_template("product")
         assert template is not None, "Product template should exist"
@@ -145,7 +145,7 @@ class TestProductTemplateRegistration:
 
     def test_product_template_files_structure(self) -> None:
         """Product template should have expected file structure."""
-        from bengal.cli.templates.registry import get_template
+        from bengal.scaffolds.registry import get_template
 
         template = get_template("product")
         assert template is not None, "Product template should exist"

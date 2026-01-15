@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.parsers.patitas import parse, parse_to_ast
+from bengal.parsing.backends.patitas import parse, parse_to_ast
 from patitas.nodes import Paragraph, Role, Text
-from bengal.rendering.parsers.patitas.roles import (
+from bengal.parsing.backends.patitas.roles import (
     RoleRegistryBuilder,
     create_default_registry,
 )
-from bengal.rendering.parsers.patitas.roles.builtins import (
+from bengal.parsing.backends.patitas.roles.builtins import (
     AbbrRole,
     KbdRole,
     MathRole,

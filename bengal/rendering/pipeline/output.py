@@ -49,7 +49,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
-    from bengal.cache import DependencyTracker
+    from bengal.build.tracking import DependencyTracker
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
     from bengal.core.site import Site

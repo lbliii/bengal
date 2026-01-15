@@ -51,7 +51,7 @@ Update your `collections.py`:
 
 ```python
 from bengal.collections import define_collection, DocPage
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 collections = {
     # Local content (default)
@@ -80,7 +80,7 @@ Build as normal. Remote content is fetched, cached, and validated like local con
 Fetch markdown from any GitHub repository:
 
 ```python
-from bengal.content_layer import github_loader
+from bengal.content.sources import github_loader
 
 loader = github_loader(
     repo="owner/repo",       # Required: "owner/repo" format
@@ -98,7 +98,7 @@ For private repos, set `GITHUB_TOKEN` environment variable or pass `token` direc
 Fetch pages from a Notion database:
 
 ```python
-from bengal.content_layer import notion_loader
+from bengal.content.sources import notion_loader
 
 loader = notion_loader(
     database_id="abc123...",  # Required: database ID from URL
@@ -121,7 +121,7 @@ loader = notion_loader(
 Fetch from any JSON API:
 
 ```python
-from bengal.content_layer import rest_loader
+from bengal.content.sources import rest_loader
 
 loader = rest_loader(
     url="https://api.example.com/posts",
@@ -141,7 +141,7 @@ loader = rest_loader(
 For consistency, you can also use an explicit local loader:
 
 ```python
-from bengal.content_layer import local_loader
+from bengal.content.sources import local_loader
 
 loader = local_loader(
     directory="content/docs",
@@ -204,7 +204,7 @@ A common pattern for large organizations:
 
 ```python
 from bengal.collections import define_collection, DocPage
-from bengal.content_layer import github_loader, local_loader
+from bengal.content.sources import github_loader, local_loader
 
 collections = {
     # Main docs (local)
@@ -233,7 +233,7 @@ Implement `ContentSource` for any content origin:
 
 ```python
 from collections.abc import AsyncIterator
-from bengal.content_layer import ContentSource, ContentEntry
+from bengal.content.sources import ContentSource, ContentEntry
 
 class MyCustomSource(ContentSource):
     source_type = "my-api"

@@ -413,7 +413,7 @@ def markdownify(text: str) -> str:
 
     # Use Patitas parser (Bengal's default parser)
     # with table and strikethrough plugins enabled (matching previous mistune behavior)
-    from bengal.rendering.parsers.patitas import create_markdown
+    from bengal.parsing.backends.patitas import create_markdown
 
     md = create_markdown(plugins=["table", "strikethrough"])
     return md(text)
