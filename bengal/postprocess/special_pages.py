@@ -425,7 +425,7 @@ class SpecialPagesGenerator:
                 raw_path = raw_path + "/"
 
             # Try to get cached graph from build context first
-            from bengal.analysis.graph_visualizer import GraphVisualizer
+            from bengal.analysis.graph.visualizer import GraphVisualizer
 
             graph = None
             if build_context is not None:
@@ -433,7 +433,7 @@ class SpecialPagesGenerator:
 
             # Fallback: build our own (for standalone usage)
             if graph is None:
-                from bengal.analysis.knowledge_graph import KnowledgeGraph
+                from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 
                 logger.debug("building_knowledge_graph_for_visualization")
                 graph = KnowledgeGraph(self.site)

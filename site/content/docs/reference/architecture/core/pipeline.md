@@ -74,13 +74,14 @@ flowchart TD
 ```
 
 **Strategy**:
+
 1. **Hubs** (highly connected): Render first, keep in memory
 2. **Mid-tier**: Process in batches
 3. **Leaves** (70-80% of pages): Stream in batches with `gc.collect()` after each
 
 **Memory Savings**: 80-90% reduction on large sites.
 
-**Best For**: Sites with 5K+ pages where memory is constrained.
+**Best For**: Sites with 5K+ pages with tight memory constraints.
 
 ```python
 from bengal.orchestration.streaming import StreamingRenderOrchestrator
@@ -95,9 +96,9 @@ Incremental builds run a dedicated **detection pipeline** in `bengal/build/` bef
 
 1. **Detect**: Compare fingerprints/provenance for content, templates, assets, data
 2. **Expand**: Follow tracked relationships to expand the rebuild set
-3. **Filter**: Hand only affected pages/assets to renderers
+3. **Filter**: Hand affected pages/assets to the render step
 
-The pipeline is composed of `ChangeDetector` implementations (`bengal/build/detectors/`)
+The pipeline composes `ChangeDetector` implementations (`bengal/build/detectors/`)
 and produces an immutable `ChangeDetectionResult` (`bengal/build/contracts/`).
 It short-circuits on full rebuild triggers for speed and clarity.
 
@@ -105,9 +106,9 @@ It short-circuits on full rebuild triggers for speed and clarity.
 bengal build --incremental
 ```
 
-## File Watching (Dev Server)
+## File Watching (Development Server)
 
-Bengal uses **watchfiles** (Rust-based) for fast file change detection:
+Bengal uses **`watchfiles`** (Rust-based) for fast file change detection:
 
 ```python
 from bengal.server.file_watcher import create_watcher
@@ -130,12 +131,13 @@ async for changed_paths, event_types in watcher.watch():
 ```
 
 **Features**:
+
 - 10-50x faster than Python alternatives
-- Built-in debouncing and batching
-- Native async iterator support
+- Built-in event coalescing and batching
+- Native asynchronous iterator support
 - Event type propagation for smart rebuild decisions
 
-## Parallelization
+## Parallelism
 
 Orchestrators auto-switch between sequential and parallel execution based on workload size. The threshold varies by context (e.g., 5 for rendering, 3 for health checks, 50 for file detection):
 
@@ -153,7 +155,7 @@ else:
 ## Key Modules
 
 | Module | Purpose |
-|--------|---------|
+| --- | --- |
 | `bengal/orchestration/build/` | 21 phase functions |
 | `bengal/orchestration/streaming.py` | Memory-optimized rendering |
 | `bengal/build/` | Incremental detection pipeline, provenance, tracking |
@@ -162,6 +164,8 @@ else:
 | `bengal/server/build_trigger.py` | Rebuild decision logic |
 
 :::{seealso}
+
 - [Orchestration](orchestration.md) — Phase-by-phase reference
 - [Cache](cache.md) — Incremental build caching
+
 :::

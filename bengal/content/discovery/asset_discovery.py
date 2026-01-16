@@ -16,7 +16,7 @@ to avoid including non-asset content.
 Related:
 - bengal/core/asset.py: Asset data model
 - bengal/orchestration/asset_orchestrator.py: Asset processing
-- bengal/discovery/__init__.py: Package exports
+- bengal/content/discovery/__init__.py: Package exports
 
 """
 

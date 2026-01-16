@@ -50,7 +50,7 @@ from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.core.site import Site
 
 logger = get_logger(__name__)

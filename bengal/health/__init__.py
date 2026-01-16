@@ -28,7 +28,7 @@ supported for validators without interdependencies.
 Related:
 - bengal.health.validators: Built-in validators (20+)
 - bengal.health.linkcheck: External and internal link checking
-- bengal.health.autofix: Automated fixes for common issues
+- bengal.health.remediation: Automated fixes for common issues
 
 Example:
     >>> from bengal.health import HealthCheck

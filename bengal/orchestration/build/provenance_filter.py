@@ -81,13 +81,36 @@ def phase_incremental_filter_provenance(
         pages_list = list(site.pages)
         assets_list = list(site.assets)
         
-        # DEBUG: Check if home page is in pages_list
-        import sys
-        home_in_list = [p for p in pages_list if 'content/_index.md' in str(p.source_path)]
-        print(f"DEBUG: Home in pages_list: {len(home_in_list)}", file=sys.stderr)
-        if home_in_list:
-            for h in home_in_list[:3]:
-                print(f"  source: {h.source_path}", file=sys.stderr)
+        # CRITICAL: If no pages were discovered, this is a build failure
+        # This should never happen in a normal build - discovery should always find pages
+        if not pages_list:
+            orchestrator.logger.error(
+                "no_pages_discovered_for_filtering",
+                total_pages=len(site.pages),
+                incremental=incremental,
+                suggestion="Check content directory exists and contains markdown files",
+            )
+            cli.error("✗ Build failed: No pages discovered")
+            cli.detail(
+                f"Expected pages in {site.root_path / 'content'}",
+                indent=1,
+            )
+            # Force a full rebuild to recover
+            incremental = False
+            # Re-run discovery to ensure pages are found
+            from bengal.orchestration.build import initialization
+            initialization.phase_discovery(
+                orchestrator,
+                cli,
+                incremental=False,
+                build_context=None,
+                build_cache=None,
+            )
+            pages_list = list(site.pages)
+            if not pages_list:
+                # Still no pages - this is a real error
+                orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
+                return orchestrator.stats
         
         result = provenance_filter.filter(
             pages=pages_list,
@@ -171,6 +194,44 @@ def phase_incremental_filter_provenance(
                 html_missing=output_html_missing,
                 assets_missing=output_assets_missing,
             )
+
+        # If specific outputs are missing, rebuild those pages even if provenance is fresh.
+        if incremental and result.pages_skipped and cache and hasattr(cache, "output_sources"):
+            skipped_by_source = {str(page.source_path): page for page in result.pages_skipped}
+            missing_pages: list = []
+
+            for rel_output, source_str in (cache.output_sources or {}).items():
+                page = skipped_by_source.get(source_str)
+                if not page:
+                    continue
+                output_path = site.output_dir / rel_output
+                page.output_path = page.output_path or output_path
+                if not output_path.exists():
+                    missing_pages.append(page)
+            if missing_pages:
+                pages_to_build = list(result.pages_to_build) + missing_pages
+                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages]
+                result = ProvenanceFilterResult(
+                    pages_to_build=pages_to_build,
+                    assets_to_process=result.assets_to_process,
+                    pages_skipped=pages_skipped,
+                    total_pages=result.total_pages,
+                    cache_hits=len(pages_skipped),
+                    cache_misses=len(pages_to_build),
+                    affected_tags=result.affected_tags,
+                    affected_sections=result.affected_sections,
+                    changed_page_paths=result.changed_page_paths,
+                )
+                for page in missing_pages:
+                    decision.add_rebuild_reason(
+                        str(page.source_path),
+                        RebuildReasonCode.OUTPUT_MISSING,
+                        {"output_path": str(page.output_path)},
+                    )
+
+        # Ensure decision reflects the final result after any adjustments.
+        decision.pages_to_build = result.pages_to_build
+        decision.pages_skipped_count = result.cache_hits
         
         # Check for skip condition
         if result.is_skip:
@@ -231,14 +292,6 @@ def phase_incremental_filter_provenance(
         
         # Store provenance filter for later use (recording builds)
         orchestrator._provenance_filter = provenance_filter
-        
-        # DEBUG: Check if home page is in results
-        import sys
-        home_pages = [p for p in result.pages_to_build if 'content/_index.md' in str(p.source_path)]
-        print(f"DEBUG: Home pages in result: {len(home_pages)}", file=sys.stderr)
-        if home_pages:
-            for h in home_pages[:3]:
-                print(f"  - {h.source_path} -> {h.output_path}", file=sys.stderr)
         
         return FilterResult(
             pages_to_build=result.pages_to_build,

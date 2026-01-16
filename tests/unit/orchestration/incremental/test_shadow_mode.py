@@ -67,7 +67,8 @@ class TestOrchestratorInitialization:
         assert orch.site is mock_site
         assert orch.cache is None
         assert orch.tracker is None
-        assert orch._change_detector is None
+        assert orch._early_pipeline is None
+        assert orch._full_pipeline is None
 
     def test_initialize_creates_cache_and_tracker(self, mock_site):
         """initialize() should create cache and tracker."""
@@ -136,7 +137,7 @@ class TestFindWork:
         assert len(pages) == 2
 
     def test_find_work_returns_summary_dict(self, orchestrator, mock_site):
-        """find_work should return legacy dict format for summary."""
+        """find_work should return ChangeSummary."""
         orchestrator.cache.is_changed = Mock(return_value=True)
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
@@ -146,12 +147,9 @@ class TestFindWork:
         ):
             pages, assets, summary = orchestrator.find_work(verbose=True)
 
-        # Summary should be dict format for backwards compatibility
-        assert isinstance(summary, dict)
-        assert "Modified content" in summary
-        assert "Modified assets" in summary
-        assert "Modified templates" in summary
-        assert "Taxonomy changes" in summary
+        from bengal.orchestration.build.results import ChangeSummary
+
+        assert isinstance(summary, ChangeSummary)
 
     def test_find_work_without_cache_raises(self, mock_site):
         """find_work should raise if cache not initialized."""
@@ -166,7 +164,7 @@ class TestChangeDetectorDelegation:
 
     def test_change_detector_lazily_initialized(self, orchestrator, mock_site):
         """ChangeDetector should be lazily initialized on first use."""
-        assert orchestrator._change_detector is None
+        assert orchestrator._early_pipeline is None
 
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
@@ -176,10 +174,10 @@ class TestChangeDetectorDelegation:
         ):
             orchestrator.find_work_early()
 
-        assert orchestrator._change_detector is not None
+        assert orchestrator._early_pipeline is not None
 
     def test_change_detector_reused(self, orchestrator, mock_site):
-        """ChangeDetector should be reused across calls."""
+        """Detection pipelines should be reused across calls."""
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
@@ -188,12 +186,12 @@ class TestChangeDetectorDelegation:
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
             orchestrator.find_work_early()
-            first_detector = orchestrator._change_detector
+            first_pipeline = orchestrator._early_pipeline
 
             orchestrator.find_work()
-            second_detector = orchestrator._change_detector
+            second_pipeline = orchestrator._early_pipeline
 
-        assert first_detector is second_detector
+        assert first_pipeline is second_pipeline
 
 
 if __name__ == "__main__":

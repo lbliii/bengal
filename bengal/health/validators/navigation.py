@@ -367,29 +367,46 @@ class NavigationValidator(BaseValidator):
 
     def _check_output_path_completeness(self, site: Site) -> list[CheckResult]:
         """
-        Check that all pages have output_path set.
+        Check that all pages have output_path set AND the file exists on disk.
 
         Critical for URL generation - pages without output_path
-        will have incorrect URLs.
+        will have incorrect URLs. Pages with output_path that doesn't
+        exist on disk indicate a render/write failure.
         """
         results = []
-        missing = []
+        missing_attr = []
+        missing_file = []
 
         for page in site.pages:
             if not page.output_path:
-                missing.append(page.source_path.name)
+                missing_attr.append(page.source_path.name)
+            elif not page.output_path.exists():
+                # Output path is set but file doesn't exist - render/write failure!
+                missing_file.append(f"{page.source_path.name} -> {page.output_path}")
 
-        if missing:
+        if missing_attr:
             results.append(
                 CheckResult.error(
-                    f"{len(missing)} page(s) missing output_path",
+                    f"{len(missing_attr)} page(s) missing output_path attribute",
                     code="H115",
                     recommendation="This is a critical bug. All pages should have output_path set during discovery. "
                     "Check ContentOrchestrator._set_output_paths() is being called.",
-                    details=missing[:10],
+                    details=missing_attr[:10],
                 )
             )
-        else:
-            results.append(CheckResult.success(f"All {len(site.pages)} pages have output_path set"))
+        
+        if missing_file:
+            results.append(
+                CheckResult.error(
+                    f"{len(missing_file)} page(s) have output_path but file NOT written to disk",
+                    code="H116",
+                    recommendation="CRITICAL: Pages were processed but not written. "
+                    "Check write_output() in RenderingPipeline and write_behind collector.",
+                    details=missing_file[:10],
+                )
+            )
+        
+        if not missing_attr and not missing_file:
+            results.append(CheckResult.success(f"All {len(site.pages)} pages have output_path set and exist on disk"))
 
         return results

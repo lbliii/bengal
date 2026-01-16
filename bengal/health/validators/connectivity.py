@@ -82,7 +82,7 @@ class ConnectivityValidator(BaseValidator):
         try:
             # Respect pre-patched symbol from tests; only import if not set
             if KnowledgeGraph is None:  # type: ignore
-                from bengal.analysis.knowledge_graph import KnowledgeGraph as _KG  # local alias
+                from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KG  # local alias
 
                 KnowledgeGraph = _KG  # expose for test patching
         except ImportError as e:  # pragma: no cover - exercised by tests

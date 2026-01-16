@@ -103,7 +103,7 @@ HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+)$")
 
 #### 4. `collections.OrderedDict` ✅
 
-**Location**: `bengal/utils/lru_cache.py`
+**Location**: `bengal/utils/primitives/lru_cache.py`
 
 ```python
 from collections import OrderedDict

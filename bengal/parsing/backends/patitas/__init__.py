@@ -40,7 +40,7 @@ Patitas is designed for Python 3.14t free-threaded builds:
 See Also:
 - RFC: plan/drafted/rfc-patitas-markdown-parser.md
 - RFC: plan/rfc-contextvar-config-implementation.md
-- Mistune (being replaced): bengal/rendering/parsers/mistune/
+- Mistune (being replaced): bengal/parsing/backends/mistune/
 
 """
 

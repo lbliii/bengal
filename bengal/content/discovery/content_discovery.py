@@ -26,9 +26,9 @@ The class integrates with BuildContext for content caching, eliminating
 redundant disk I/O during health checks.
 
 Related:
-- bengal/discovery/directory_walker.py: Directory walking logic
-- bengal/discovery/content_parser.py: Content file parsing
-- bengal/discovery/section_builder.py: Section building and sorting
+- bengal/content/discovery/directory_walker.py: Directory walking logic
+- bengal/content/discovery/content_parser.py: Content file parsing
+- bengal/content/discovery/section_builder.py: Section building and sorting
 - bengal/core/page/: Page, PageProxy, and PageCore data models
 - bengal/core/section.py: Section data model
 

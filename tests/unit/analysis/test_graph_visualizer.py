@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.analysis.graph_visualizer import _TEMPLATE_PATH, GraphVisualizer
+from bengal.analysis.graph.visualizer import _TEMPLATE_PATH, GraphVisualizer
 
 
 class TestTemplateExists:

@@ -11,7 +11,7 @@ Key Features:
 - Configurable page window for navigation
 
 Usage:
-    >>> from bengal.utils.pagination import Paginator
+    >>> from bengal.utils.pagination import Paginator  # or from bengal.utils import Paginator
     >>>
     >>> # Paginate blog posts
     >>> paginator = Paginator(posts, per_page=10)

@@ -11,7 +11,7 @@ Design Goals:
 - Thread-safe with RLock for reentrant access
 
 Example:
-    >>> from bengal.utils.lru_cache import LRUCache
+    >>> from bengal.utils.primitives import LRUCache
     >>> cache: LRUCache[str, Template] = LRUCache(maxsize=400, ttl=300)
     >>> cache.set("key", value)
     >>> cache.get("key")

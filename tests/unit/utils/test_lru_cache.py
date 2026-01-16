@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from bengal.utils.lru_cache import LRUCache
+from bengal.utils.primitives.lru_cache import LRUCache
 
 
 class TestLRUEviction:

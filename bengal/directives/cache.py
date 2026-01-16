@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from bengal.utils.primitives.hashing import hash_str
-from bengal.utils.lru_cache import LRUCache
+from bengal.utils.primitives.lru_cache import LRUCache
 
 
 class DirectiveCache:
@@ -176,3 +176,52 @@ def get_cache_stats() -> dict[str, Any]:
         
     """
     return _directive_cache.stats()
+
+
+def configure_for_site(site: Any) -> None:
+    """
+    Auto-configure directive cache based on site configuration.
+    
+    Versioned sites benefit from directive caching because identical
+    directive blocks appear across multiple versions. Cache provides
+    3-5x speedup for repeated directive content.
+    
+    Single-version sites skip caching (no benefit, adds overhead).
+    
+    Args:
+        site: Site instance with version_config and config attributes
+        
+    """
+    from bengal.utils.observability.logger import get_logger
+
+    logger = get_logger(__name__)
+
+    version_config = getattr(site, "version_config", None)
+    if not version_config:
+        return
+
+    # Check for explicit config override
+    build_config = site.config.get("build", {}) or {}
+    cache_override = build_config.get("directive_cache")
+
+    if cache_override is not None:
+        # Explicit config: respect user preference
+        configure_cache(enabled=bool(cache_override))
+        logger.debug(
+            "directive_cache_configured",
+            enabled=bool(cache_override),
+            reason="explicit_config",
+        )
+        return
+
+    # Auto-detect: enable if multiple versions
+    if version_config.enabled and len(version_config.versions) > 1:
+        configure_cache(enabled=True)
+        logger.debug(
+            "directive_cache_auto_enabled",
+            versions=len(version_config.versions),
+            reason="multiple_versions_detected",
+        )
+    else:
+        # Single version or no versioning: disable (avoid overhead)
+        configure_cache(enabled=False)

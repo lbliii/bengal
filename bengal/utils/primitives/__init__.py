@@ -11,13 +11,15 @@ Modules:
     dates: Date parsing, formatting, and time_ago
     sentinel: MISSING singleton for unambiguous missing states
     dotdict: Dictionary with dot notation access
+    lru_cache: Thread-safe LRU cache with optional TTL
 
 Example:
-    >>> from bengal.utils.primitives import hash_str, slugify, MISSING
+    >>> from bengal.utils.primitives import hash_str, slugify, MISSING, LRUCache
     >>> key = hash_str("content", truncate=8)
     >>> slug = slugify("Hello World!")
     >>> if value is MISSING:
     ...     value = default
+    >>> cache = LRUCache(maxsize=100)
 
 """
 
@@ -43,6 +45,7 @@ from bengal.utils.primitives.hashing import (
     hash_str,
 )
 from bengal.utils.primitives.sentinel import MISSING, is_missing
+from bengal.utils.primitives.lru_cache import LRUCache
 from bengal.utils.primitives.text import (
     escape_html,
     format_path_for_display,
@@ -61,6 +64,8 @@ from bengal.utils.primitives.text import (
 )
 
 __all__ = [
+    # lru_cache
+    "LRUCache",
     # hashing
     "hash_str",
     "hash_bytes",

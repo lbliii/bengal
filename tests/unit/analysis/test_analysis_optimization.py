@@ -20,7 +20,7 @@ class TestIncomingEdgesIndex:
 
     def test_incoming_edges_built_during_graph_construction(self):
         """Test that incoming_edges is populated during graph build."""
-        from bengal.analysis.graph_builder import GraphBuilder
+        from bengal.analysis.graph.builder import GraphBuilder
 
         # Create mock site with linked pages
         site = Mock()
@@ -59,7 +59,7 @@ class TestIncomingEdgesIndex:
 
     def test_incoming_edges_matches_outgoing_refs(self):
         """Test that incoming_edges is the inverse of outgoing_refs."""
-        from bengal.analysis.graph_builder import GraphBuilder
+        from bengal.analysis.graph.builder import GraphBuilder
 
         # Create mock site with multiple links
         site = Mock()
@@ -105,7 +105,7 @@ class TestPageRankOptimization:
 
     def test_pagerank_uses_incoming_edges(self):
         """Test that PageRank uses the incoming_edges index when available."""
-        from bengal.analysis.page_rank import PageRankCalculator
+        from bengal.analysis.graph.page_rank import PageRankCalculator
 
         # Create mock graph with incoming_edges
         graph = Mock()
@@ -138,7 +138,7 @@ class TestPageRankOptimization:
 
     def test_pagerank_complex_graph(self):
         """Test PageRank on a complex graph structure."""
-        from bengal.analysis.page_rank import PageRankCalculator
+        from bengal.analysis.graph.page_rank import PageRankCalculator
 
         # Create a more complex graph
         pages = [Mock() for _ in range(10)]
@@ -184,7 +184,7 @@ class TestPageRankOptimization:
 
     def test_pagerank_with_empty_incoming_edges(self):
         """Test PageRank handles pages with no incoming edges."""
-        from bengal.analysis.page_rank import PageRankCalculator
+        from bengal.analysis.graph.page_rank import PageRankCalculator
 
         graph = Mock()
         page_a = Mock()
@@ -213,7 +213,7 @@ class TestLinkSuggestionsOptimization:
 
     def test_inverted_tag_index_built_correctly(self):
         """Test that inverted tag index is built correctly."""
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         # Create mock graph with tagged pages
         graph = Mock()
@@ -248,7 +248,7 @@ class TestLinkSuggestionsOptimization:
 
     def test_link_suggestions_filter_candidates(self):
         """Test that link suggestions only compare relevant candidates."""
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         # Create mock graph
         graph = Mock()
@@ -293,7 +293,7 @@ class TestLinkSuggestionsOptimization:
 
     def test_underlinked_pages_always_candidates(self):
         """Test that underlinked pages are always considered as candidates."""
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         graph = Mock()
 
@@ -333,7 +333,7 @@ class TestLinkSuggestionsOptimization:
 
     def test_suggestions_no_self_links(self):
         """Test that self-links are never suggested."""
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         graph = Mock()
 
@@ -359,7 +359,7 @@ class TestLinkSuggestionsOptimization:
 
     def test_suggestions_no_existing_links(self):
         """Test that existing links are not suggested."""
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         graph = Mock()
 
@@ -400,7 +400,7 @@ class TestKnowledgeGraphIncomingEdges:
 
     def test_knowledge_graph_exposes_incoming_edges(self, tmp_path):
         """Test that KnowledgeGraph exposes incoming_edges from builder."""
-        from bengal.analysis.knowledge_graph import KnowledgeGraph
+        from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
         from bengal.core.page import Page
         from bengal.core.site import Site
 
@@ -432,7 +432,7 @@ class TestParallelBuildIncomingEdges:
 
     def test_parallel_build_populates_incoming_edges(self):
         """Test that parallel build correctly populates incoming_edges."""
-        from bengal.analysis.graph_builder import GraphBuilder
+        from bengal.analysis.graph.builder import GraphBuilder
 
         # Create mock site with enough pages to trigger parallel mode
         site = Mock()

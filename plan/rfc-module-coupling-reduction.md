@@ -73,9 +73,9 @@ def analyze_imports(package_dir):
 ### Circular Import Patterns (12 Detected)
 
 ```
-# Within analysis/
-bengal.analysis.knowledge_graph ↔ page_rank, path_analysis, community_detection, 
-                                  link_suggestions, graph_analysis, graph_reporting
+# Within analysis/ (resolved by rfc-package-separation-of-concerns)
+bengal.analysis.graph.knowledge_graph ↔ page_rank, path_analysis, community_detection, 
+                                        link_suggestions, analyzer, reporter
 
 # Within rendering/
 bengal.parsing.backends.patitas.renderers.html ↔ blocks, directives
@@ -720,12 +720,12 @@ rendering: used by 14 packages ← ['autodoc', 'cli', 'content_types', 'core', '
 <summary>Detected Circular Patterns (Detail)</summary>
 
 ```
-bengal.analysis.page_rank ↔ bengal.analysis.knowledge_graph
-bengal.analysis.path_analysis ↔ bengal.analysis.knowledge_graph
-bengal.analysis.knowledge_graph ↔ bengal.analysis.community_detection
-bengal.analysis.knowledge_graph ↔ bengal.analysis.link_suggestions
-bengal.analysis.knowledge_graph ↔ bengal.analysis.graph_analysis
-bengal.analysis.knowledge_graph ↔ bengal.analysis.graph_reporting
+bengal.analysis.graph.page_rank ↔ bengal.analysis.graph.knowledge_graph
+bengal.analysis.performance.path_analysis ↔ bengal.analysis.graph.knowledge_graph
+bengal.analysis.graph.knowledge_graph ↔ bengal.analysis.graph.community_detection
+bengal.analysis.graph.knowledge_graph ↔ bengal.analysis.links.suggestions
+bengal.analysis.graph.knowledge_graph ↔ bengal.analysis.graph.analyzer
+bengal.analysis.graph.knowledge_graph ↔ bengal.analysis.graph.reporter
 bengal.core.resources.processor ↔ bengal.core.resources.image
 bengal.server.live_reload ↔ bengal.server.request_handler
 bengal.utils.logger ↔ bengal.utils.rich_console

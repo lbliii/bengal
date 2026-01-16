@@ -326,6 +326,19 @@ class ContentOrchestrator:
                     or ".tox" in parts
                 )
 
+            def _resolve_autodoc_source(path: Path) -> Path:
+                # Autodoc sources may be stored as repo-relative paths (e.g. "site/../bengal/...").
+                # Resolve relative paths against the site root first, then repo root.
+                if path.is_absolute():
+                    return path
+                candidate = self.site.root_path / path
+                if candidate.exists():
+                    return candidate
+                candidate = self.site.root_path.parent / path
+                if candidate.exists():
+                    return candidate
+                return candidate
+
             # Incremental fast path: if autodoc sources are unchanged and we have a cached
             # extraction payload, rebuild virtual pages without re-extracting.
             if (
@@ -343,7 +356,7 @@ class ContentOrchestrator:
                     if hasattr(cache, "get_autodoc_source_files"):
                         try:
                             for source in cache.get_autodoc_source_files():
-                                src_path = Path(source)
+                                src_path = _resolve_autodoc_source(Path(source))
                                 if _is_external_autodoc_source(src_path):
                                     continue
                                 if cache.is_changed(src_path):
@@ -361,12 +374,27 @@ class ContentOrchestrator:
                             )
                             # Register autodoc dependencies with cache so has_autodoc_tracking is True
                             if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                                from bengal.utils.primitives.hashing import hash_file
+
                                 for source_file, page_hashes in run_result.autodoc_dependencies.items():
+                                    src_path = _resolve_autodoc_source(Path(source_file))
+                                    if _is_external_autodoc_source(src_path):
+                                        continue
+                                    if not src_path.exists():
+                                        logger.warning(
+                                            "autodoc_source_missing",
+                                            source_file=str(source_file),
+                                        )
+                                        continue
+                                    source_hash = hash_file(src_path)
+                                    source_mtime = src_path.stat().st_mtime
                                     for page_path, content_hash in page_hashes.items():
                                         cache.add_autodoc_dependency(
                                             source_file,
                                             page_path,
                                             site_root=self.site.root_path,
+                                            source_hash=source_hash,
+                                            source_mtime=source_mtime,
                                             content_hash=content_hash,
                                         )
 
@@ -389,54 +417,55 @@ class ContentOrchestrator:
                                 cache.invalidate_page_cache(cache_key)
                             # Fall through to re-extraction below
 
-            # Tolerate both 2-tuple and 3-tuple return values
-            result = orchestrator.generate()
-            if len(result) == 3:
-                pages, sections, run_result = result
-                # Log summary if there were failures or warnings
-                if run_result.has_failures() or run_result.has_warnings():
-                    self._log_autodoc_summary(run_result)
+            pages, sections, run_result = orchestrator.generate()
+            # Log summary if there were failures or warnings
+            if run_result.has_failures() or run_result.has_warnings():
+                self._log_autodoc_summary(run_result)
 
-                # Register autodoc dependencies with cache for selective rebuilds
-                # CRITICAL: Pass source_hash and source_mtime for incremental detection.
-                # Without these, autodoc_source_metadata stays empty, causing all autodoc
-                # pages to be marked stale on every incremental build.
-                if cache is not None and hasattr(cache, "add_autodoc_dependency"):
-                    from bengal.utils.primitives.hashing import hash_file
+            # Register autodoc dependencies with cache for selective rebuilds
+            # CRITICAL: Pass source_hash and source_mtime for incremental detection.
+            if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                from bengal.utils.primitives.hashing import hash_file
 
-                    for source_file, page_hashes in run_result.autodoc_dependencies.items():
-                        src_path = Path(source_file)
-                        if _is_external_autodoc_source(src_path):
-                            continue
-
-                        # Compute source metadata for self-validation
-                        source_hash = None
-                        source_mtime = None
-                        if src_path.exists():
-                            try:
-                                source_hash = hash_file(src_path)
-                                source_mtime = src_path.stat().st_mtime
-                            except OSError:
-                                pass
-
-                        for page_path, content_hash in page_hashes.items():
-                            cache.add_autodoc_dependency(
-                                source_file,
-                                page_path,
-                                site_root=self.site.root_path,
-                                source_hash=source_hash,
-                                source_mtime=source_mtime,
-                                content_hash=content_hash,
-                            )
-
-                    if run_result.autodoc_dependencies:
-                        logger.debug(
-                            "autodoc_dependencies_registered",
-                            source_files=len(run_result.autodoc_dependencies),
-                            total_mappings=sum(
-                                len(p) for p in run_result.autodoc_dependencies.values()
-                            ),
+                for source_file, page_hashes in run_result.autodoc_dependencies.items():
+                    src_path = _resolve_autodoc_source(Path(source_file))
+                    if _is_external_autodoc_source(src_path):
+                        continue
+                    if not src_path.exists():
+                        logger.warning(
+                            "autodoc_source_missing",
+                            source_file=str(source_file),
                         )
+                        continue
+
+                    try:
+                        source_hash = hash_file(src_path)
+                        source_mtime = src_path.stat().st_mtime
+                    except OSError:
+                        logger.warning(
+                            "autodoc_source_stat_failed",
+                            source_file=str(source_file),
+                        )
+                        continue
+
+                    for page_path, content_hash in page_hashes.items():
+                        cache.add_autodoc_dependency(
+                            source_file,
+                            page_path,
+                            site_root=self.site.root_path,
+                            source_hash=source_hash,
+                            source_mtime=source_mtime,
+                            content_hash=content_hash,
+                        )
+
+                if run_result.autodoc_dependencies:
+                    logger.debug(
+                        "autodoc_dependencies_registered",
+                        source_files=len(run_result.autodoc_dependencies),
+                        total_mappings=sum(
+                            len(p) for p in run_result.autodoc_dependencies.values()
+                        ),
+                    )
 
                 # Critical for incremental cache hits: fingerprint the autodoc source files now.
                 # The incremental cache saver only sees rendered pages, and autodoc "source_file"

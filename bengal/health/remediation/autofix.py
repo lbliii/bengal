@@ -24,7 +24,7 @@ Related:
 - bengal.health.validators.directives: Produces directive issues
 
 Example:
-    >>> from bengal.health.autofix import AutoFixer, FixSafety
+    >>> from bengal.health.remediation import AutoFixer, FixSafety
     >>> fixer = AutoFixer(report, site_root=site.root_path)
     >>> fixes = fixer.suggest_fixes()
     >>> safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]

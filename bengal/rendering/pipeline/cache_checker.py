@@ -59,6 +59,7 @@ class CacheChecker:
         renderer: Renderer,
         build_stats: Any = None,
         output_collector: Any = None,
+        write_behind: Any = None,
     ):
         """
         Initialize the cache checker.
@@ -69,12 +70,14 @@ class CacheChecker:
             renderer: Renderer for template rendering
             build_stats: Optional BuildStats for metrics collection
             output_collector: Optional output collector for hot reload tracking
+            write_behind: Optional write-behind collector for async I/O
         """
         self.dependency_tracker = dependency_tracker
         self.site = site
         self.renderer = renderer
         self.build_stats = build_stats
         self.output_collector = output_collector
+        self.write_behind = write_behind
 
     def try_rendered_cache(self, page: Page, template: str) -> bool:
         """
@@ -112,7 +115,11 @@ class CacheChecker:
                 self.build_stats.rendered_cache_hits = 0
             self.build_stats.rendered_cache_hits += 1
 
-        write_output(page, self.site, self.dependency_tracker, collector=self.output_collector)
+        write_output(
+            page, self.site, self.dependency_tracker,
+            collector=self.output_collector,
+            write_behind=self.write_behind,
+        )
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
@@ -184,7 +191,11 @@ class CacheChecker:
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
 
-        write_output(page, self.site, self.dependency_tracker, collector=self.output_collector)
+        write_output(
+            page, self.site, self.dependency_tracker,
+            collector=self.output_collector,
+            write_behind=self.write_behind,
+        )
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()

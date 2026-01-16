@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 from unittest.mock import Mock
 
-from bengal.analysis.path_analysis import (
+from bengal.analysis.performance.path_analysis import (
     PathAnalysisResults,
     PathAnalyzer,
     PathSearchResult,

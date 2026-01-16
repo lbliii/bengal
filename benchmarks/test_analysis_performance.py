@@ -289,7 +289,7 @@ def test_graph_build_1k_pages(benchmark, synthetic_1k_site):
 @pytest.mark.benchmark(group="pagerank")
 def test_pagerank_100_pages(benchmark, synthetic_100_site):
     """Benchmark PageRank for 100 pages (baseline)."""
-    from bengal.analysis.page_rank import PageRankCalculator
+    from bengal.analysis.graph.page_rank import PageRankCalculator
 
     graph = MockKnowledgeGraph(synthetic_100_site)
     graph.build()
@@ -306,7 +306,7 @@ def test_pagerank_100_pages(benchmark, synthetic_100_site):
 @pytest.mark.benchmark(group="pagerank")
 def test_pagerank_1k_pages(benchmark, synthetic_1k_site):
     """Benchmark PageRank for 1K pages."""
-    from bengal.analysis.page_rank import PageRankCalculator
+    from bengal.analysis.graph.page_rank import PageRankCalculator
 
     graph = MockKnowledgeGraph(synthetic_1k_site)
     graph.build()
@@ -324,7 +324,7 @@ def test_pagerank_1k_pages(benchmark, synthetic_1k_site):
 @pytest.mark.slow
 def test_pagerank_5k_pages(benchmark, synthetic_5k_site):
     """Benchmark PageRank for 5K pages (large site)."""
-    from bengal.analysis.page_rank import PageRankCalculator
+    from bengal.analysis.graph.page_rank import PageRankCalculator
 
     graph = MockKnowledgeGraph(synthetic_5k_site)
     graph.build()
@@ -342,7 +342,7 @@ def test_pagerank_5k_pages(benchmark, synthetic_5k_site):
 @pytest.mark.benchmark(group="link_suggestions")
 def test_link_suggestions_100_pages(benchmark, synthetic_100_site):
     """Benchmark link suggestions for 100 pages (baseline)."""
-    from bengal.analysis.link_suggestions import LinkSuggestionEngine
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
     graph = MockKnowledgeGraph(synthetic_100_site)
     graph.build()
@@ -359,7 +359,7 @@ def test_link_suggestions_100_pages(benchmark, synthetic_100_site):
 @pytest.mark.benchmark(group="link_suggestions")
 def test_link_suggestions_1k_pages(benchmark, synthetic_1k_site):
     """Benchmark link suggestions for 1K pages."""
-    from bengal.analysis.link_suggestions import LinkSuggestionEngine
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
     graph = MockKnowledgeGraph(synthetic_1k_site)
     graph.build()
@@ -377,7 +377,7 @@ def test_link_suggestions_1k_pages(benchmark, synthetic_1k_site):
 @pytest.mark.slow
 def test_link_suggestions_5k_pages(benchmark, synthetic_5k_site):
     """Benchmark link suggestions for 5K pages (large site)."""
-    from bengal.analysis.link_suggestions import LinkSuggestionEngine
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
     graph = MockKnowledgeGraph(synthetic_5k_site)
     graph.build()
@@ -401,7 +401,7 @@ def test_pagerank_correctness_after_optimization(synthetic_100_site):
     - Scores are positive
     - Highly-linked pages have higher scores
     """
-    from bengal.analysis.page_rank import PageRankCalculator
+    from bengal.analysis.graph.page_rank import PageRankCalculator
 
     graph = MockKnowledgeGraph(synthetic_100_site)
     graph.build()
@@ -439,7 +439,7 @@ def test_link_suggestions_correctness_after_optimization(synthetic_100_site):
     - Suggestions don't include existing links
     - Suggestions have valid scores and reasons
     """
-    from bengal.analysis.link_suggestions import LinkSuggestionEngine
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
     graph = MockKnowledgeGraph(synthetic_100_site)
     graph.build()
@@ -474,8 +474,8 @@ def test_full_analysis_pipeline_100_pages(benchmark, synthetic_100_site):
 
     This represents a realistic workflow where all analysis is performed.
     """
-    from bengal.analysis.link_suggestions import LinkSuggestionEngine
-    from bengal.analysis.page_rank import PageRankCalculator
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
+    from bengal.analysis.graph.page_rank import PageRankCalculator
 
     def full_pipeline():
         graph = MockKnowledgeGraph(synthetic_100_site)

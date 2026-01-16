@@ -24,8 +24,8 @@ integrates with Bengal's URLStrategy for consistent URL handling.
 
 Related:
 - bengal/core/version.py: Version and VersionConfig models
-- bengal/discovery/content_discovery.py: Content discovery
-- bengal/discovery/git_version_adapter.py: Git-based version discovery
+- bengal/content/discovery/content_discovery.py: Content discovery
+- bengal/content/versioning/git_adapter.py: Git-based version discovery
 - bengal/utils/url_strategy.py: URL generation
 
 """
@@ -64,7 +64,7 @@ class VersionResolver:
         enabled: Whether versioning is enabled (read-only property)
     
     Example:
-            >>> from bengal.content.discovery import VersionResolver
+            >>> from bengal.content.versioning import VersionResolver
             >>> from bengal.core.version import VersionConfig
             >>> from pathlib import Path
             >>>

@@ -4,7 +4,7 @@ Tests for new graph analysis features: recommendations, SEO insights, content ga
 
 import pytest
 
-from bengal.analysis.knowledge_graph import KnowledgeGraph
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 from bengal.core.page import Page
 from bengal.core.site import Site
 

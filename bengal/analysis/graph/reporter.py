@@ -39,7 +39,7 @@ from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.core.page import Page
 
 logger = get_logger(__name__)
@@ -323,7 +323,7 @@ class GraphReporter:
 
             if homepage:
                 # Calculate average link depth from homepage
-                from bengal.analysis.path_analysis import PathAnalyzer
+                from bengal.analysis.performance.path_analysis import PathAnalyzer
 
                 analyzer = PathAnalyzer(self._graph)
                 distances = analyzer._bfs_distances(homepage, analysis_pages)

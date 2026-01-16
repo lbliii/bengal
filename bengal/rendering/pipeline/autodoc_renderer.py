@@ -74,6 +74,7 @@ class AutodocRenderer:
         dependency_tracker: Any = None,
         output_collector: Any = None,
         build_stats: Any = None,
+        write_behind: Any = None,
     ):
         """
         Initialize the autodoc renderer.
@@ -85,6 +86,7 @@ class AutodocRenderer:
             dependency_tracker: Optional DependencyTracker for dependency tracking
             output_collector: Optional output collector for hot reload tracking
             build_stats: Optional BuildStats for error tracking and deduplication
+            write_behind: Optional write-behind collector for async I/O
         """
         self.site = site
         self.template_engine = template_engine
@@ -92,6 +94,7 @@ class AutodocRenderer:
         self.dependency_tracker = dependency_tracker
         self.output_collector = output_collector
         self.build_stats = build_stats
+        self.write_behind = write_behind
 
     def process_virtual_page(self, page: Page) -> None:
         """
@@ -119,7 +122,11 @@ class AutodocRenderer:
             or page.metadata.get("is_section_index")
         ):
             self._render_autodoc_page(page)
-            write_output(page, self.site, self.dependency_tracker, collector=self.output_collector)
+            write_output(
+                page, self.site, self.dependency_tracker,
+                collector=self.output_collector,
+                write_behind=self.write_behind,
+            )
             logger.debug(
                 "autodoc_page_rendered",
                 source_path=str(page.source_path),
@@ -150,7 +157,11 @@ class AutodocRenderer:
             page.rendered_html = self.renderer.render_page(page, html_content)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
-        write_output(page, self.site, self.dependency_tracker, collector=self.output_collector)
+        write_output(
+            page, self.site, self.dependency_tracker,
+            collector=self.output_collector,
+            write_behind=self.write_behind,
+        )
 
         logger.debug(
             "virtual_page_rendered",

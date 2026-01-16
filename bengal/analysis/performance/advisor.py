@@ -29,7 +29,7 @@ PerformanceGrade: Overall build performance assessment
 PerformanceAdvisor: Main analyzer that generates suggestions
 
 Example:
-    >>> from bengal.analysis.performance_advisor import analyze_build
+    >>> from bengal.analysis.performance import analyze_build
     >>> advisor = analyze_build(stats)
     >>> grade = advisor.get_grade()
     >>> print(f"Performance Grade: {grade.grade} ({grade.score}/100)")

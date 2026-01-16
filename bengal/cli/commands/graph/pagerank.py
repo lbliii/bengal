@@ -70,7 +70,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         bengal pagerank --format json > pagerank.json
         
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 
     cli = get_cli_output()
     configure_logging(level=LogLevel.WARNING)

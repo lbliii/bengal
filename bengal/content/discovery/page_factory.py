@@ -19,7 +19,7 @@ page validation (orchestration), maintaining Bengal's separation of concerns.
 Related:
 - bengal/core/page/: Page data model
 - bengal/orchestration/: Orchestrators that use PageInitializer
-- bengal/discovery/content_discovery.py: Page creation during discovery
+- bengal/content/discovery/content_discovery.py: Page creation during discovery
 
 """
 

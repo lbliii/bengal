@@ -14,7 +14,7 @@ Expected results (RFC target: ≥30% faster than mistune):
 
 Related:
     - plan/drafted/rfc-patitas-markdown-parser.md
-    - bengal/rendering/parsers/patitas/
+    - bengal/parsing/backends/patitas/
 """
 
 import pytest

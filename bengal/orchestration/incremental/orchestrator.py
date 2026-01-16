@@ -92,6 +92,8 @@ class IncrementalOrchestrator:
         self._cache_manager = CacheManager(site)
         self._early_pipeline = None
         self._full_pipeline = None
+        # Legacy compatibility (pre-pipeline refactor)
+        self._change_detector = None
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
@@ -185,9 +187,7 @@ class IncrementalOrchestrator:
 
         # Invalidate caches if structural changes detected
         # Structural changes: new/deleted pages or nav-affecting metadata
-        has_structural_changes = bool(change_set.change_summary.modified_content) or bool(
-            nav_changed_sources
-        )
+        has_structural_changes = bool(change_set.content_files_changed) or bool(nav_changed_sources)
         if has_structural_changes:
             # Use centralized cache registry for coordinated invalidation
             invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
@@ -198,7 +198,7 @@ class IncrementalOrchestrator:
 
     def find_work(
         self, verbose: bool = False
-    ) -> tuple[list[Page], list[Asset], dict[str, list[Any]]]:
+    ) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (full phase - after taxonomy).
 
@@ -223,13 +223,7 @@ class IncrementalOrchestrator:
         change_set = self._run_pipeline(phase="full", verbose=verbose)
         pages_to_build, assets_to_process, change_summary = self._convert_result(change_set)
 
-        summary_dict: dict[str, list[Any]] = {
-            "Modified content": list(change_summary.modified_content),
-            "Modified assets": list(change_summary.modified_assets),
-            "Modified templates": list(change_summary.modified_templates),
-            "Taxonomy changes": change_summary.taxonomy_changes,
-        }
-        return pages_to_build, assets_to_process, summary_dict
+        return pages_to_build, assets_to_process, change_summary
 
     def _run_pipeline(
         self,
@@ -254,10 +248,12 @@ class IncrementalOrchestrator:
         if phase == "early":
             if self._early_pipeline is None:
                 self._early_pipeline = create_early_pipeline()
+                self._change_detector = self._early_pipeline
             return self._early_pipeline.run(ctx)
 
         if self._early_pipeline is None:
             self._early_pipeline = create_early_pipeline()
+            self._change_detector = self._early_pipeline
         early_result = self._early_pipeline.run(ctx)
         full_ctx = DetectionContext(
             cache=self.cache,

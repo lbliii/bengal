@@ -11,6 +11,19 @@ from pathlib import Path
 
 from bengal.cache.build_cache import BuildCache
 
+DUMMY_HASH = "deadbeef"
+DUMMY_MTIME = 1.0
+
+
+def add_dep(cache: BuildCache, source: str, page: str) -> None:
+    cache.add_autodoc_dependency(
+        source,
+        page,
+        source_hash=DUMMY_HASH,
+        source_mtime=DUMMY_MTIME,
+    )
+
+
 
 class TestAutodocTrackingMixin:
     """Test autodoc dependency tracking in BuildCache."""
@@ -19,7 +32,7 @@ class TestAutodocTrackingMixin:
         """Test registering a dependency between source file and autodoc page."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/bengal/core/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/bengal/core/page.md")
 
         assert "bengal/core/page.py" in cache.autodoc_dependencies
         assert "python/api/bengal/core/page.md" in cache.autodoc_dependencies["bengal/core/page.py"]
@@ -28,8 +41,8 @@ class TestAutodocTrackingMixin:
         """Test adding multiple pages from the same source file."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/bengal/core/page.md")
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/bengal/core/page/proxy.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/bengal/core/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/bengal/core/page/proxy.md")
 
         deps = cache.autodoc_dependencies["bengal/core/page.py"]
         assert len(deps) == 2
@@ -40,8 +53,8 @@ class TestAutodocTrackingMixin:
         """Test retrieving pages affected by a source file change."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
-        cache.add_autodoc_dependency("bengal/core/site.py", "python/api/site.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/site.py", "python/api/site.md")
 
         affected = cache.get_affected_autodoc_pages("bengal/core/page.py")
 
@@ -59,8 +72,8 @@ class TestAutodocTrackingMixin:
         """Test getting all tracked source files."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
-        cache.add_autodoc_dependency("bengal/core/site.py", "python/api/site.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/site.py", "python/api/site.md")
 
         sources = cache.get_autodoc_source_files()
 
@@ -70,7 +83,7 @@ class TestAutodocTrackingMixin:
         """Test clearing all autodoc dependencies."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
         cache.clear_autodoc_dependencies()
 
         assert cache.autodoc_dependencies == {}
@@ -79,8 +92,8 @@ class TestAutodocTrackingMixin:
         """Test removing a source file and getting its pages."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page/proxy.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page/proxy.md")
 
         removed_pages = cache.remove_autodoc_source("bengal/core/page.py")
 
@@ -99,9 +112,9 @@ class TestAutodocTrackingMixin:
         """Test that autodoc stats are included in get_stats()."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page/proxy.md")
-        cache.add_autodoc_dependency("bengal/core/site.py", "python/api/site.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page/proxy.md")
+        add_dep(cache, "bengal/core/site.py", "python/api/site.md")
 
         stats = cache.get_stats()
 
@@ -117,8 +130,8 @@ class TestAutodocDependencySerialization:
         cache = BuildCache()
         cache_path = tmp_path / "cache.json"
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
-        cache.add_autodoc_dependency("bengal/core/site.py", "python/api/site.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/site.py", "python/api/site.md")
         cache.save(cache_path, use_lock=False)
 
         loaded_cache = BuildCache.load(cache_path, use_lock=False)
@@ -159,7 +172,7 @@ class TestAutodocDependencySerialization:
         """Test that clear() also clears autodoc dependencies."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency("bengal/core/page.py", "python/api/page.md")
+        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
         cache.clear()
 
         assert cache.autodoc_dependencies == {}

@@ -23,7 +23,8 @@ Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), qui
   `pytest tests/unit -n auto`
 
 - **Integration** (workflows, ~15s):  
-  `pytest tests/integration -m "not slow"` (skips full-build heavies)
+  `pytest tests/integration -m "not slow"` (skips full-build heavies)  
+  Includes incremental invariants in `tests/integration/test_incremental_invariants.py`.
 
 - **Full suite** (unit + integration, ~1 min):  
   `time pytest` (or `pytest -n auto --durations=10 -q`)  

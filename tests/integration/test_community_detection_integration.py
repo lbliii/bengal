@@ -8,8 +8,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.analysis.community_detection import CommunityDetectionResults
-from bengal.analysis.knowledge_graph import KnowledgeGraph
+from bengal.analysis.graph.community_detection import CommunityDetectionResults
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 from bengal.errors import BengalError
 
 

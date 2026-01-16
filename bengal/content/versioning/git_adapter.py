@@ -24,10 +24,10 @@ live in different Git branches, avoiding folder duplication.
 Related:
 - bengal/core/version.py: Version and GitVersionConfig models
 - bengal/orchestration/build_orchestrator.py: Multi-version builds
-- bengal/discovery/version_resolver.py: Path resolution for versions
+- bengal/content/versioning/resolver.py: Path resolution for versions
 
 Example:
-    >>> from bengal.content.discovery import GitVersionAdapter
+    >>> from bengal.content.versioning import GitVersionAdapter
     >>> from bengal.core.version import GitVersionConfig, GitBranchPattern
     >>> from pathlib import Path
     >>>

@@ -34,7 +34,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
     from bengal.build.tracking import DependencyTracker
     from bengal.utils.observability.cli_progress import LiveProgressManager
@@ -298,7 +298,7 @@ class BuildContext:
             return None
 
         try:
-            from bengal.analysis.knowledge_graph import KnowledgeGraph
+            from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
             from bengal.config.defaults import is_feature_enabled
 
             # Check if graph feature is enabled

@@ -23,9 +23,38 @@ keywords:
 - consolidation
 ---
 
-Utility modules shared across subsystems.
+Utility modules shared across subsystems. The utils package is organized into focused subpackages:
 
-## Text Utilities (`bengal/utils/text.py`)
+```
+bengal/utils/
+├── primitives/      # Pure functions with no Bengal imports
+│   ├── hashing.py        # SHA256 hashing for cache keys
+│   ├── text.py           # Text processing (slugify, truncate)
+│   ├── dates.py          # Date parsing and formatting
+│   ├── sentinel.py       # MISSING singleton
+│   ├── dotdict.py        # Dict with dot notation access
+│   └── lru_cache.py      # Thread-safe LRU cache
+├── io/              # File I/O utilities
+│   ├── file_io.py        # Read/write with error handling
+│   ├── atomic_write.py   # Crash-safe file writes
+│   └── json_compat.py    # JSON compatibility utilities
+├── paths/           # Path management
+│   ├── paths.py          # BengalPaths utility
+│   ├── url_normalization.py
+│   └── url_strategy.py   # URL generation strategies
+├── concurrency/     # Thread/async utilities
+│   ├── concurrent_locks.py
+│   ├── thread_local.py
+│   └── workers.py        # Thread pool management
+├── observability/   # Logging and metrics
+│   ├── logger.py         # Structured logging
+│   ├── progress.py       # Progress reporting
+│   └── performance_*.py  # Performance tracking
+└── pagination/      # Collection pagination
+    └── paginator.py      # Generic paginator
+```
+
+## Text Utilities (`bengal/utils/primitives/text.py`)
 - **Purpose**: Text processing and manipulation
 - **Functions**:
   - `slugify()` - URL-safe slug generation with configurable separators
@@ -42,7 +71,7 @@ Utility modules shared across subsystems.
   - `humanize_number()` - Format numbers with thousand separators
 - **Usage**: Used by template functions, parser, and throughout rendering pipeline
 
-## File I/O Utilities (`bengal/utils/file_io.py`)
+## File I/O Utilities (`bengal/utils/io/file_io.py`)
 - **Purpose**: Robust file reading/writing with consistent error handling
 - **Functions**:
   - `read_text_file()` - Read text with UTF-8/latin-1 fallback
@@ -59,7 +88,7 @@ Utility modules shared across subsystems.
   - Atomic writes for data integrity
 - **Usage**: Used by config loader, content discovery, template functions
 
-## Date Utilities (`bengal/utils/dates.py`)
+## Date Utilities (`bengal/utils/primitives/dates.py`)
 - **Purpose**: Date parsing, formatting, and manipulation
 - **Functions**:
   - `parse_date()` - Unified date parsing (datetime, date, str, None)
@@ -77,7 +106,7 @@ Utility modules shared across subsystems.
   - Type-safe with DateLike type alias
 - **Usage**: Used by template functions, frontmatter parsing, RSS generation
 
-## Paginator (`bengal/utils/pagination.py`)
+## Paginator (`bengal/utils/pagination/paginator.py`)
 - **Purpose**: Generic pagination utility for splitting long lists
 - **Features**:
   - Configurable items per page
@@ -85,6 +114,17 @@ Utility modules shared across subsystems.
   - Template context generation
   - Type-safe generic implementation
 - **Usage**: Used for archive pages and tag pages
+- **Import**: `from bengal.utils.pagination import Paginator`
+
+## LRU Cache (`bengal/utils/primitives/lru_cache.py`)
+- **Purpose**: Thread-safe LRU cache with optional TTL
+- **Features**:
+  - Generic type parameters for type safety
+  - Statistics tracking (hits, misses, hit rate)
+  - Enable/disable without clearing
+  - `get_or_set()` pattern for cache population
+- **Usage**: Template caching, directive caching, navigation scaffolds
+- **Import**: `from bengal.utils.primitives import LRUCache`
 
 ## Build Utilities
 
@@ -114,7 +154,7 @@ Utility modules shared across subsystems.
 - **Features**: Multiple phases, per-item updates, spinners
 - **Usage**: CLI build commands with Rich output
 
-## Path Utilities (`bengal/utils/paths.py`)
+## Path Utilities (`bengal/utils/paths/paths.py`)
 
 ### BengalPaths
 - **Purpose**: Consistent path management for generated files
@@ -153,13 +193,13 @@ Utility modules shared across subsystems.
   - Path resolution
 - **Usage**: Throughout build pipeline
 
-## Atomic Write (`bengal/utils/atomic_write.py`)
+## Atomic Write (`bengal/utils/io/atomic_write.py`)
 - **Purpose**: Atomic file writes for data integrity
 - **Pattern**: Write to temp file → atomic rename
 - **Usage**: Cache persistence, output file writing
 - **Benefits**: No partial writes, crash-safe
 
-## URL Strategy (`bengal/utils/url_strategy.py`)
+## URL Strategy (`bengal/utils/paths/url_strategy.py`)
 - **Purpose**: URL generation strategies
 - **Strategies**: Pretty URLs, flat URLs, date-based URLs
 - **Usage**: Content type system, page URL generation
@@ -210,7 +250,7 @@ Utility modules shared across subsystems.
 - **Features**: Consistent styling, color themes
 - **Usage**: CLI output, progress display
 
-### Logger (`bengal/utils/logger.py`)
+### Logger (`bengal/utils/observability/logger.py`)
 - **Purpose**: Structured logging for Bengal
 - **Features**: Levels, formatting, file output
 - **Usage**: Throughout build pipeline
@@ -238,7 +278,7 @@ Utility modules shared across subsystems.
 - **Functions**: Parse frontmatter, extract content, setup metadata
 - **Usage**: Content discovery
 
-### DotDict (`bengal/utils/dotdict.py`)
+### DotDict (`bengal/utils/primitives/dotdict.py`)
 - **Purpose**: Dict with dot notation access
 - **Example**: `config.build.parallel` instead of `config['build']['parallel']`
 - **Usage**: Configuration, template context

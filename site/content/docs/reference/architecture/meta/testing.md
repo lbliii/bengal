@@ -133,6 +133,19 @@ def test_concurrent_operations():
         ...
 ```
 
+## Incremental Build Invariants
+
+Incremental behavior is verified with invariant tests that exercise real build flows
+without mocks. See `tests/integration/test_incremental_invariants.py` for:
+
+- Unchanged builds skip all pages
+- Single-page content edits rebuild only that page
+- Section updates propagate to parents
+- Cross-process cache stability
+
+These tests protect the provenance-based detection pipeline from regressions and
+should be updated alongside changes to incremental build logic.
+
 ## Continuous Integration
 
 Every PR runs:

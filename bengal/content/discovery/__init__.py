@@ -1,8 +1,8 @@
 """
 Content and asset discovery for Bengal SSG.
 
-This package provides the discovery layer that finds and organizes content files,
-static assets, and versioned documentation during site builds.
+This package provides the discovery layer that finds and organizes content files
+and static assets during site builds.
 
 Components:
 ContentDiscovery: Discovers markdown/content files and organizes them into
@@ -10,10 +10,6 @@ ContentDiscovery: Discovers markdown/content files and organizes them into
     collection validation, and symlink loop prevention.
 AssetDiscovery: Finds static assets (images, CSS, JS) in the assets directory.
     Handles filtering of hidden/temporary files.
-GitVersionAdapter: Discovers documentation versions from Git branches and tags.
-    Manages worktrees for parallel multi-version builds.
-VersionResolver: Resolves versioned content paths, manages shared content
-    injection, and handles cross-version linking.
 
 Architecture:
 Discovery modules are responsible ONLY for finding and organizing content.
@@ -28,6 +24,7 @@ eliminates redundant disk I/O during health checks.
 Related:
 - bengal/core/page/: Page and PageProxy data models
 - bengal/core/section.py: Section data model
+- bengal/content/versioning/: Version discovery and resolution
 - bengal/orchestration/: Build orchestration that uses discovery
 - bengal/health/: Validators that consume cached content from discovery
 
@@ -49,7 +46,5 @@ from __future__ import annotations
 
 from bengal.content.discovery.asset_discovery import AssetDiscovery
 from bengal.content.discovery.content_discovery import ContentDiscovery
-from bengal.content.discovery.git_version_adapter import GitVersionAdapter
-from bengal.content.discovery.version_resolver import VersionResolver
 
-__all__ = ["AssetDiscovery", "ContentDiscovery", "GitVersionAdapter", "VersionResolver"]
+__all__ = ["AssetDiscovery", "ContentDiscovery"]

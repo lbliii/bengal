@@ -43,7 +43,7 @@ class TestBuildOrchestrator:
             patch("bengal.orchestration.build.RenderOrchestrator") as MockRender,
             patch("bengal.orchestration.build.AssetOrchestrator") as MockAsset,
             patch("bengal.orchestration.build.PostprocessOrchestrator") as MockPostprocess,
-            patch("bengal.orchestration.build.IncrementalOrchestrator") as MockIncremental,
+            patch("bengal.orchestration.incremental.IncrementalOrchestrator") as MockIncremental,
             patch("bengal.orchestration.build.get_logger") as MockLogger,
             patch("bengal.output.init_cli_output") as MockCli,
         ):
@@ -66,15 +66,26 @@ class TestBuildOrchestrator:
     def test_full_build_sequence(self, mock_site, mock_orchestrators):
         """Test that a full build calls all orchestrators in correct order."""
         orchestrator = BuildOrchestrator(mock_site)
+        from bengal.orchestration.build.results import FilterResult
 
         # Setup mocks for successful flow
         mock_orchestrators["incremental"].return_value.initialize.return_value = (Mock(), Mock())
         mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
         mock_orchestrators["section"].return_value.validate_sections.return_value = []
 
-        # Run build with BuildOptions
-        options = BuildOptions(incremental=False, force_sequential=True)
-        stats = orchestrator.build(options)
+        with patch(
+            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+        ) as mock_filter:
+            mock_filter.return_value = FilterResult(
+                pages_to_build=[],
+                assets_to_process=[],
+                affected_tags=set(),
+                changed_page_paths=set(),
+                affected_sections=None,
+            )
+            # Run build with BuildOptions
+            options = BuildOptions(incremental=False, force_sequential=True)
+            stats = orchestrator.build(options)
 
         # Verify sequence
         # 1. Initialization
@@ -114,20 +125,27 @@ class TestBuildOrchestrator:
         orchestrator = BuildOrchestrator(mock_site)
 
         # Setup mocks for incremental flow
-        from bengal.orchestration.build.results import ChangeSummary
+        from bengal.orchestration.build.results import FilterResult
 
         mock_inc = mock_orchestrators["incremental"].return_value
         mock_inc.initialize.return_value = (Mock(), Mock())
         mock_inc.check_config_changed.return_value = False
-        # Simulate finding work
-        mock_inc.find_work_early.return_value = ([Mock()], [], ChangeSummary())
+        # Simulate filtering work
+        filter_result = FilterResult(
+            pages_to_build=[Mock()],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
 
-        # Run incremental build with BuildOptions
-        options = BuildOptions(incremental=True, force_sequential=False)
-        orchestrator.build(options)
-
-        # Verify incremental-specific calls
-        mock_inc.find_work_early.assert_called_once()
+        with patch(
+            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+        ) as mock_filter:
+            mock_filter.return_value = filter_result
+            # Run incremental build with BuildOptions
+            options = BuildOptions(incremental=True, force_sequential=False)
+            orchestrator.build(options)
 
         # Should use incremental discovery (calls discover_content, not discover)
         mock_orchestrators["content"].return_value.discover_content.assert_called_with(
@@ -149,20 +167,45 @@ class TestBuildOrchestrator:
         # Setup mocks to return validation errors
         mock_orchestrators["section"].return_value.validate_sections.return_value = ["Error 1"]
         mock_orchestrators["incremental"].return_value.initialize.return_value = (Mock(), Mock())
+        from bengal.orchestration.build.results import FilterResult
+        filter_result = FilterResult(
+            pages_to_build=[],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
 
         # Expect exception with strict mode
         options = BuildOptions(incremental=False, strict=True)
-        with pytest.raises(Exception, match="Build failed: 1 section validation error"):
-            orchestrator.build(options)
+        with patch(
+            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+        ) as mock_filter:
+            mock_filter.return_value = filter_result
+            with pytest.raises(Exception, match="Build failed: 1 section validation error"):
+                orchestrator.build(options)
 
     def test_flag_propagation(self, mock_site, mock_orchestrators):
         """Test that flags are propagated to sub-orchestrators."""
         orchestrator = BuildOrchestrator(mock_site)
         mock_orchestrators["incremental"].return_value.initialize.return_value = (Mock(), Mock())
 
+        from bengal.orchestration.build.results import FilterResult
+        filter_result = FilterResult(
+            pages_to_build=[],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
+
         # Run with specific flags (force_sequential=False means auto-detect, which may use parallel)
         options = BuildOptions(force_sequential=False, incremental=False)
-        orchestrator.build(options)
+        with patch(
+            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+        ) as mock_filter:
+            mock_filter.return_value = filter_result
+            orchestrator.build(options)
 
         # Check that taxonomy orchestrator was called
         # Note: The taxonomy orchestrator is now called with force_sequential parameter

@@ -32,6 +32,21 @@ class RebuildReasonCode(Enum):
 
 
 @dataclass(frozen=True, slots=True)
+class ChangeSummaryLite:
+    """
+    Lightweight change summary for compatibility with legacy callers.
+
+    Uses cache keys rather than paths (no site context needed).
+    """
+
+    modified_content: list["CacheKey"] = field(default_factory=list)
+    modified_assets: list["CacheKey"] = field(default_factory=list)
+    modified_templates: list["CacheKey"] = field(default_factory=list)
+    taxonomy_changes: list[str] = field(default_factory=list)
+    extra_changes: dict[str, list[str]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
 class RebuildReason:
     """Detailed reason for page rebuild."""
 
@@ -134,6 +149,20 @@ class ChangeDetectionResult:
     def needs_rebuild(self) -> bool:
         """Check if any pages need rebuilding."""
         return bool(self.pages_to_rebuild) or self.force_full_rebuild
+
+    @property
+    def change_summary(self) -> "ChangeSummaryLite":
+        """Compatibility shim for legacy callers."""
+        extra_changes: dict[str, list[str]] = {}
+        if self.data_files_changed:
+            extra_changes["Data file changes"] = [str(k) for k in self.data_files_changed]
+        return ChangeSummaryLite(
+            modified_content=list(self.content_files_changed),
+            modified_assets=list(self.assets_to_process),
+            modified_templates=list(self.templates_changed),
+            taxonomy_changes=list(self.affected_tags),
+            extra_changes=extra_changes,
+        )
 
     def summary(self) -> str:
         """Human-readable summary."""

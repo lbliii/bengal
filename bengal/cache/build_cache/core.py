@@ -135,7 +135,9 @@ class BuildCache(
     # Autodoc source metadata: source_file → (content_hash, mtime, {page_path: doc_hash})
     # Enables fine-grained incremental builds and self-validation.
     # See: plan/rfc-autodoc-incremental-caching.md
-    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
+    autodoc_source_metadata: dict[
+        str, tuple[str, float] | tuple[str, float, dict[str, str]]
+    ] = field(default_factory=dict)
 
     # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
     # Enables skipping asset discovery walk during hot reload if no assets changed.

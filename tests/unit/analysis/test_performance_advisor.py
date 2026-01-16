@@ -4,7 +4,7 @@ Tests for performance advisor and intelligent suggestions.
 
 import pytest
 
-from bengal.analysis.performance_advisor import (
+from bengal.analysis.performance.advisor import (
     PerformanceAdvisor,
     PerformanceGrade,
     SuggestionPriority,
@@ -290,7 +290,7 @@ class TestSuggestionFormatting:
 
     def test_suggestion_str_high_priority(self):
         """Test high priority suggestion formatting."""
-        from bengal.analysis.performance_advisor import PerformanceSuggestion
+        from bengal.analysis.performance.advisor import PerformanceSuggestion
 
         suggestion = PerformanceSuggestion(
             type=SuggestionType.PARALLEL,
@@ -307,7 +307,7 @@ class TestSuggestionFormatting:
 
     def test_suggestion_str_medium_priority(self):
         """Test medium priority suggestion formatting."""
-        from bengal.analysis.performance_advisor import PerformanceSuggestion
+        from bengal.analysis.performance.advisor import PerformanceSuggestion
 
         suggestion = PerformanceSuggestion(
             type=SuggestionType.CACHING,
@@ -324,7 +324,7 @@ class TestSuggestionFormatting:
 
     def test_suggestion_str_low_priority(self):
         """Test low priority suggestion formatting."""
-        from bengal.analysis.performance_advisor import PerformanceSuggestion
+        from bengal.analysis.performance.advisor import PerformanceSuggestion
 
         suggestion = PerformanceSuggestion(
             type=SuggestionType.OPTIMIZATION,

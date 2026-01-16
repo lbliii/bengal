@@ -50,7 +50,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.core.page import Page
 
 logger = get_logger(__name__)

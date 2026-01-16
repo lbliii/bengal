@@ -10,6 +10,7 @@ Invariants tested:
 - Unchanged files are never rebuilt
 - Changed files are always rebuilt
 - Subsection changes mark parent section
+- Home page body edits rebuild only the home page
 - Cross-process cache consistency
 - Consecutive builds without changes skip all pages
 """

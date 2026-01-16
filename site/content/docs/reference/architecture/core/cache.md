@@ -43,7 +43,7 @@ flowchart TD
     Config -->|Yes| Full[Full Rebuild]
 
     Config -->|No| Hash[Check File Hashes]
-    Hash --> DepGraph[Query Dependency Graph]
+    Hash --> DepGraph[Query Dependency Tracking]
 
     DepGraph --> Invalidate[Invalidate Affected Caches]
     Invalidate --> Filter[Filter Work]
@@ -66,7 +66,7 @@ We use **SHA256** hashing to detect file changes.
 - Assets (`.css`, `.js`)
 :::
 
-:::{tab-item} Dependency Graph
+:::{tab-item} Dependency Tracking
 **Impact Analysis**
 
 We track relationships to know what to rebuild.
@@ -92,7 +92,7 @@ Bengal uses a unified **CacheCoordinator** to manage page-level cache invalidati
 
 | Component | Module | Purpose |
 |-----------|--------|---------|
-| **CacheCoordinator** | `bengal/cache/coordinator.py` | Central service for coordinated cache invalidation |
+| **CacheCoordinator** | `bengal/orchestration/build/coordinator.py` | Central service for coordinated cache invalidation |
 | **PathRegistry** | `bengal/cache/path_registry.py` | Canonical path representation for consistent cache keys |
 | **RebuildManifest** | `bengal/cache/manifest.py` | Tracks rebuilds with reasons and timing |
 
@@ -146,8 +146,8 @@ The coordinator integrates with existing change detectors:
 
 | Detector | Uses |
 |----------|------|
-| `DataFileDetector` | `coordinator.invalidate_for_data_file()` |
-| `TaxonomyChangeDetector` | `coordinator.invalidate_taxonomy_cascade()` |
+| `DataChangeDetector` | `coordinator.invalidate_for_data_file()` |
+| `TaxonomyCascadeDetector` | `coordinator.invalidate_taxonomy_cascade()` |
 | `phase_update_pages_list` | `coordinator.invalidate_page()` |
 
 ### PathRegistry
@@ -168,6 +168,13 @@ is_gen = registry.is_generated(path)  # True for taxonomy pages, autodoc, etc.
 ```
 
 This prevents cache key mismatches between different parts of the build (e.g., absolute vs relative paths, content vs generated pages).
+
+## Provenance-Based Builds
+
+Incremental decisions are backed by **provenance tracking** in `bengal/build/provenance/`.
+Instead of relying on ad-hoc flags, the provenance store tracks content-addressed
+inputs and outputs so the detection pipeline can quickly prove what is fresh and
+what must be rebuilt.
 
 ## Zstandard Compression
 

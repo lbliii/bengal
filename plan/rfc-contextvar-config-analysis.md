@@ -189,7 +189,7 @@ __slots__ = (
 
 ### ⚠️ Low Impact: LRUCache
 
-**Location**: `bengal/utils/lru_cache.py:59-69`
+**Location**: `bengal/utils/primitives/lru_cache.py:59-69`
 
 ```python
 __slots__ = (

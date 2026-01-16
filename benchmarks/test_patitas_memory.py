@@ -12,7 +12,7 @@ Expected results (RFC target: ≤60% of Mistune memory):
 
 Related:
     - plan/drafted/rfc-patitas-markdown-parser.md
-    - bengal/rendering/parsers/patitas/stringbuilder.py
+    - bengal/parsing/backends/patitas/stringbuilder.py
 """
 
 import gc

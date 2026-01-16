@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.lru_cache import LRUCache
+from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from collections.abc import Callable

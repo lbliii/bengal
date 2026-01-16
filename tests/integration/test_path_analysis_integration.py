@@ -8,8 +8,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.analysis.knowledge_graph import KnowledgeGraph
-from bengal.analysis.path_analysis import PathAnalysisResults
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
+from bengal.analysis.performance.path_analysis import PathAnalysisResults
 
 
 @pytest.fixture

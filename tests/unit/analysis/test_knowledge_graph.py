@@ -4,7 +4,8 @@ Tests for KnowledgeGraph analysis module.
 
 import pytest
 
-from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
+from bengal.analysis.graph.metrics import PageConnectivity
 from bengal.core.page import Page
 from bengal.core.site import Site
 

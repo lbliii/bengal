@@ -368,7 +368,7 @@ def build(
                 raise click.Abort()
 
             # Import git adapter
-            from bengal.content.discovery.git_version_adapter import GitVersionAdapter
+            from bengal.content.versioning import GitVersionAdapter
 
             git_adapter = GitVersionAdapter(
                 Path(source).resolve(),

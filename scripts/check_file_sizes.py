@@ -31,7 +31,7 @@ BASELINE_FILES = {
     "bengal/orchestration/incremental.py",  # 1176 - refactor target
     "bengal/analysis/knowledge_graph.py",  # 982
     "bengal/core/section.py",  # 799
-    "bengal/discovery/content_discovery.py",  # 799
+    "bengal/content/discovery/content_discovery.py",  # 799
     # ==================== MEDIUM PRIORITY (600-800 lines) ====================
     "bengal/rendering/pipeline/core.py",  # 773
     "bengal/orchestration/taxonomy.py",  # 703
@@ -85,7 +85,7 @@ BASELINE_FILES = {
     "bengal/cli/progress.py",  # 460
     "bengal/core/page/__init__.py",  # 454
     "bengal/config/defaults.py",  # 451
-    "bengal/rendering/parsers/mistune/__init__.py",  # 447
+    "bengal/parsing/backends/mistune/__init__.py",  # 447
     "bengal/rendering/template_functions/collections.py",  # 446
     "bengal/orchestration/build/initialization.py",  # 442
     "bengal/rendering/template_functions/strings.py",  # 426

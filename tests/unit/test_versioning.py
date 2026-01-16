@@ -451,7 +451,7 @@ class TestVersionResolver:
 
     def test_version_resolver_get_version_for_path(self) -> None:
         """Test version resolver path detection."""
-        from bengal.content.discovery.version_resolver import VersionResolver
+        from bengal.content.versioning import VersionResolver
 
         config = VersionConfig(
             enabled=True,
@@ -480,7 +480,7 @@ class TestVersionResolver:
 
     def test_version_resolver_get_logical_path(self) -> None:
         """Test logical path extraction."""
-        from bengal.content.discovery.version_resolver import VersionResolver
+        from bengal.content.versioning import VersionResolver
 
         config = VersionConfig(
             enabled=True,
@@ -499,7 +499,7 @@ class TestVersionResolver:
 
     def test_version_resolver_disabled(self) -> None:
         """Test resolver when versioning is disabled."""
-        from bengal.content.discovery.version_resolver import VersionResolver
+        from bengal.content.versioning import VersionResolver
 
         config = VersionConfig(enabled=False)
         resolver = VersionResolver(config, Path("/site"))
@@ -1104,7 +1104,7 @@ class TestGitVersionAdapter:
         from unittest.mock import MagicMock, patch
 
         from bengal.core.version import GitBranchPattern, GitVersionConfig
-        from bengal.content.discovery.git_version_adapter import GitVersionAdapter
+        from bengal.content.versioning import GitVersionAdapter
 
         config = GitVersionConfig(
             branches=[
@@ -1136,7 +1136,7 @@ class TestGitVersionAdapter:
     def test_is_version_changed(self, tmp_path: Path) -> None:
         """Test checking if a version has changed."""
         from bengal.core.version import GitVersionConfig
-        from bengal.content.discovery.git_version_adapter import GitVersionAdapter, GitWorktree
+        from bengal.content.versioning import GitVersionAdapter, GitWorktree
 
         config = GitVersionConfig()
         adapter = GitVersionAdapter(tmp_path, config)

@@ -48,9 +48,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.analysis.graph_builder import GraphBuilder
-from bengal.analysis.graph_metrics import GraphMetrics, MetricsCalculator, PageConnectivity
-from bengal.analysis.link_types import (
+from bengal.analysis.graph.builder import GraphBuilder
+from bengal.analysis.graph.metrics import GraphMetrics, MetricsCalculator, PageConnectivity
+from bengal.analysis.links.types import (
     DEFAULT_THRESHOLDS,
     DEFAULT_WEIGHTS,
     ConnectivityLevel,
@@ -62,12 +62,12 @@ from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.analysis.community_detection import CommunityDetectionResults
-    from bengal.analysis.graph_analysis import GraphAnalyzer
-    from bengal.analysis.graph_reporting import GraphReporter
-    from bengal.analysis.link_suggestions import LinkSuggestionResults
-    from bengal.analysis.page_rank import PageRankResults
-    from bengal.analysis.path_analysis import PathAnalysisResults
+    from bengal.analysis.graph.community_detection import CommunityDetectionResults
+    from bengal.analysis.graph.analyzer import GraphAnalyzer
+    from bengal.analysis.graph.reporter import GraphReporter
+    from bengal.analysis.links.suggestions import LinkSuggestionResults
+    from bengal.analysis.graph.page_rank import PageRankResults
+    from bengal.analysis.performance.path_analysis import PathAnalysisResults
     from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -206,8 +206,8 @@ class KnowledgeGraph:
         self._built = True
 
         # Initialize delegated analyzers (lazy imports to break cycle)
-        from bengal.analysis.graph_analysis import GraphAnalyzer
-        from bengal.analysis.graph_reporting import GraphReporter
+        from bengal.analysis.graph.analyzer import GraphAnalyzer
+        from bengal.analysis.graph.reporter import GraphReporter
 
         self._analyzer = GraphAnalyzer(self)
         self._reporter = GraphReporter(self)
@@ -607,7 +607,7 @@ class KnowledgeGraph:
             return self._pagerank_results
 
         # Import here to avoid circular dependency
-        from bengal.analysis.page_rank import PageRankCalculator
+        from bengal.analysis.graph.page_rank import PageRankCalculator
 
         calculator = PageRankCalculator(graph=self, damping=damping, max_iterations=max_iterations)
 
@@ -657,7 +657,7 @@ class KnowledgeGraph:
             )
 
         # Import here to avoid circular dependency
-        from bengal.analysis.page_rank import PageRankCalculator
+        from bengal.analysis.graph.page_rank import PageRankCalculator
 
         calculator = PageRankCalculator(graph=self, damping=damping, max_iterations=max_iterations)
 
@@ -750,7 +750,7 @@ class KnowledgeGraph:
             return self._community_results
 
         # Import here to avoid circular dependency
-        from bengal.analysis.community_detection import LouvainCommunityDetector
+        from bengal.analysis.graph.community_detection import LouvainCommunityDetector
 
         detector = LouvainCommunityDetector(
             graph=self, resolution=resolution, random_seed=random_seed
@@ -832,7 +832,7 @@ class KnowledgeGraph:
             return self._path_results
 
         # Import here to avoid circular dependency
-        from bengal.analysis.path_analysis import PathAnalyzer
+        from bengal.analysis.performance.path_analysis import PathAnalyzer
 
         analyzer = PathAnalyzer(
             graph=self,
@@ -924,7 +924,7 @@ class KnowledgeGraph:
             return self._link_suggestions
 
         # Import here to avoid circular dependency
-        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
         engine = LinkSuggestionEngine(
             graph=self, min_score=min_score, max_suggestions_per_page=max_suggestions_per_page

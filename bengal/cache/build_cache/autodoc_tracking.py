@@ -53,10 +53,12 @@ class AutodocTrackingMixin:
     # Mixin expects these to be defined in the main dataclass
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
-    # source_file → (content_hash, mtime, {page_path: doc_content_hash})
-    # Using tuple allows mtime-first optimization.
-    # The third element is a mapping of autodoc pages to their fine-grained content hashes.
-    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
+    # source_file → (content_hash, mtime) OR (content_hash, mtime, {page_path: doc_content_hash})
+    # Using tuple allows mtime-first optimization. The optional third element stores
+    # fine-grained doc hashes for selective rebuilds.
+    autodoc_source_metadata: dict[
+        str, tuple[str, float] | tuple[str, float, dict[str, str]]
+    ] = field(default_factory=dict)
 
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
@@ -112,20 +114,31 @@ class AutodocTrackingMixin:
             self.autodoc_dependencies[source_key] = set()
         self.autodoc_dependencies[source_key].add(page_key)
 
-        # Store metadata for self-validation and fine-grained change detection
-        if source_hash is not None and source_mtime is not None:
-            # Handle migration or existing entry
-            existing = self.autodoc_source_metadata.get(source_key)
-            doc_hashes = {}
-            if existing:
-                # If we have a 3-tuple, keep existing doc_hashes
-                if len(existing) >= 3:
-                    doc_hashes = existing[2]
-            
-            if content_hash:
-                doc_hashes[page_key] = content_hash
+        if source_hash is None or source_mtime is None:
+            raise ValueError(
+                "Autodoc dependency metadata required: provide source_hash and source_mtime."
+            )
 
+        # Store metadata for self-validation and fine-grained change detection
+        existing = self.autodoc_source_metadata.get(source_key)
+        doc_hashes: dict[str, str] = {}
+        if existing:
+            if len(existing) == 2:
+                doc_hashes = {}
+            elif len(existing) == 3:
+                doc_hashes = existing[2]
+            else:
+                raise ValueError(
+                    "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+                )
+
+        if content_hash:
+            doc_hashes[page_key] = content_hash
+
+        if doc_hashes:
             self.autodoc_source_metadata[source_key] = (source_hash, source_mtime, doc_hashes)
+        else:
+            self.autodoc_source_metadata[source_key] = (source_hash, source_mtime)
 
         logger.debug(
             "autodoc_dependency_registered",
@@ -213,69 +226,30 @@ class AutodocTrackingMixin:
         Returns:
             Set of source file paths whose content has changed since caching
         """
-        from bengal.config.environment import (
-            StrictIncrementalMode,
-            get_strict_incremental_mode,
-        )
         from bengal.utils.primitives.hashing import hash_file
 
-        # Handle cache migration: old caches have dependencies but no metadata
-        # Instead of marking all as stale (which triggers full autodoc rebuild),
-        # use file fingerprints as fallback if they exist.
         if not self.autodoc_source_metadata and self.autodoc_dependencies:
-            # RFC: rfc-incremental-build-observability - Strict mode check
-            mode = get_strict_incremental_mode()
+            from bengal.errors import BengalCacheError, ErrorCode
 
-            if mode == StrictIncrementalMode.ERROR:
-                from bengal.errors import BengalCacheError
-
-                raise BengalCacheError(
-                    "Autodoc source metadata empty but dependencies present.\n"
-                    "This triggers fingerprint fallback which may be slower.\n"
-                    "Fix: Ensure metadata is saved via add_autodoc_dependency().\n"
-                    "Disable check: unset BENGAL_STRICT_INCREMENTAL"
-                )
-            elif mode == StrictIncrementalMode.WARN:
-                logger.warning(
-                    "autodoc_metadata_fallback",
-                    msg="Using fingerprint fallback (metadata unavailable)",
-                    source_count=len(self.autodoc_dependencies),
-                    hint="Set BENGAL_STRICT_INCREMENTAL=error to make this an error",
-                )
-
-            # Check if we have fingerprints to use as fallback
-            has_fingerprints = hasattr(self, 'file_fingerprints') and self.file_fingerprints
-            if has_fingerprints:
-                # Use fingerprint-based change detection instead
-                stale_sources: set[str] = set()
-                for source_key in self.autodoc_dependencies:
-                    source = Path(source_key)
-                    # Use is_changed() which checks fingerprints
-                    if hasattr(self, 'is_changed') and self.is_changed(source):
-                        stale_sources.add(source_key)
-                if stale_sources:
-                    logger.debug(
-                        "autodoc_cache_migration_with_fingerprints",
-                        msg="Using fingerprints for change detection (metadata unavailable)",
-                        stale_count=len(stale_sources),
-                        total_sources=len(self.autodoc_dependencies),
-                    )
-                return stale_sources
-            else:
-                # No fingerprints either - mark all stale (truly cold cache)
-                logger.info(
-                    "autodoc_cache_migration",
-                    msg="No source metadata or fingerprints found, marking all autodoc stale",
-                    source_count=len(self.autodoc_dependencies),
-                )
-                return set(self.autodoc_dependencies.keys())
+            raise BengalCacheError(
+                "Autodoc source metadata missing but dependencies exist. "
+                "Rebuild autodoc to restore metadata.",
+                code=ErrorCode.A001,
+                suggestion="Re-run autodoc generation to repopulate metadata.",
+            )
 
         stale_sources: set[str] = set()
 
         for source_key, metadata in self.autodoc_source_metadata.items():
-            # Support both old (2-tuple) and new (3-tuple) metadata formats
-            stored_hash = metadata[0]
-            stored_mtime = metadata[1]
+            doc_hashes: dict[str, str] = {}
+            if len(metadata) == 2:
+                stored_hash, stored_mtime = metadata
+            elif len(metadata) == 3:
+                stored_hash, stored_mtime, doc_hashes = metadata
+            else:
+                raise ValueError(
+                    "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+                )
             
             # Resolve path - keys are normalized relative to site PARENT
             # (since autodoc sources are typically outside site root, e.g., ../bengal/)
@@ -312,7 +286,17 @@ class AutodocTrackingMixin:
                     )
                 else:
                     # Content unchanged, update mtime in metadata
-                    self.autodoc_source_metadata[source_key] = (stored_hash, current_mtime)
+                    if doc_hashes:
+                        self.autodoc_source_metadata[source_key] = (
+                            stored_hash,
+                            current_mtime,
+                            doc_hashes,
+                        )
+                    else:
+                        self.autodoc_source_metadata[source_key] = (
+                            stored_hash,
+                            current_mtime,
+                        )
             except OSError as e:
                 # Can't read file - mark as stale to be safe
                 logger.warning(
@@ -372,8 +356,14 @@ class AutodocTrackingMixin:
             True if changed (or not in cache), False otherwise
         """
         metadata = self.autodoc_source_metadata.get(source_key)
-        if not metadata or len(metadata) < 3:
-            return True  # No metadata or old format, assume changed
+        if not metadata:
+            return True  # No metadata, assume changed
+        if len(metadata) == 2:
+            return True  # No per-page hashes; assume changed
+        if len(metadata) != 3:
+            raise ValueError(
+                "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+            )
 
         # metadata is (file_hash, mtime, {page_path: doc_hash})
         doc_hashes = metadata[2]

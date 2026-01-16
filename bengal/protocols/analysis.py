@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from bengal.analysis.link_types import LinkMetrics, LinkType
+    from bengal.analysis.links.types import LinkMetrics, LinkType
     from bengal.core.page import Page
     from bengal.core.site import Site
 

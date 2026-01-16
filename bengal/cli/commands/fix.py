@@ -17,7 +17,7 @@ from bengal.cli.helpers import (
 )
 from bengal.errors.traceback import TracebackStyle
 from bengal.health import HealthCheck
-from bengal.health.autofix import AutoFixer, FixSafety
+from bengal.health.remediation import AutoFixer, FixSafety
 from bengal.utils.observability.profile import BuildProfile
 
 

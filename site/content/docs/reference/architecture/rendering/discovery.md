@@ -95,3 +95,40 @@ Finds all static assets and creates Asset objects
 - Metadata extraction
 - Theme asset integration
 - Optimization hints
+
+## Content Versioning (`bengal/content/versioning/`)
+
+The versioning subpackage handles multi-version documentation builds.
+
+### Git Version Adapter (`bengal/content/versioning/git_adapter.py`)
+
+Discovers documentation versions from Git branches and tags:
+
+- **GitVersionAdapter**: Discovers versions from Git refs
+- **GitRef**: Represents a Git branch or tag
+- **GitWorktree**: Manages Git worktrees for parallel builds
+
+```python
+from bengal.content.versioning import GitVersionAdapter
+from bengal.core.version import GitVersionConfig
+
+config = GitVersionConfig(branches=[...])
+adapter = GitVersionAdapter(repo_path, config)
+versions = adapter.discover_versions()
+```
+
+### Version Resolver (`bengal/content/versioning/resolver.py`)
+
+Resolves versioned content paths and manages shared content:
+
+- Determine which version a content path belongs to
+- Get logical paths (without version prefix)
+- Resolve cross-version links (`[[v2:path/to/page]]`)
+- Manage shared content across versions
+
+```python
+from bengal.content.versioning import VersionResolver
+
+resolver = VersionResolver(version_config, root_path)
+version = resolver.get_version_for_path("_versions/v2/docs/guide.md")
+```

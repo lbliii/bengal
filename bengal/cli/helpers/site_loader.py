@@ -117,7 +117,7 @@ def _count_markdown_files(directory: Path) -> int:
         return 0
 
 
-def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
+def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
     """
     Check if a subdirectory contains what looks like the actual site.
     
@@ -173,6 +173,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
                     subdirectory=subdir_name,
                     hint=f"cd {subdir_name} && bengal serve",
                 )
+                return subdir
             elif significantly_more:
                 # Subdirectory has way more content
                 cli.warning(
@@ -192,7 +193,10 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> None:
                     subdir_md_count=subdir_md_count,
                     hint=f"cd {subdir_name} && bengal serve",
                 )
+                return subdir
             break
+
+    return None
 
 
 def load_site_from_cli(
@@ -236,7 +240,15 @@ def load_site_from_cli(
 
     # Check for common directory structure mistakes
     _check_parent_project_conflict(root_path, cli)
-    _check_subdirectory_site(root_path, cli)
+    subdir_site = _check_subdirectory_site(root_path, cli)
+    if subdir_site and not (
+        (root_path / "bengal.toml").exists()
+        or (root_path / "bengal.yaml").exists()
+        or (root_path / "config" / "_default").exists()
+    ):
+        # Auto-correct when the current directory lacks config but a clear site
+        # exists in a common subdirectory (e.g., /site).
+        root_path = subdir_site
 
     config_path = Path(config).resolve() if config else None
 

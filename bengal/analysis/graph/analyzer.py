@@ -38,8 +38,8 @@ from typing import TYPE_CHECKING
 from bengal.errors import BengalGraphError, ErrorCode
 
 if TYPE_CHECKING:
-    from bengal.analysis.graph_metrics import PageConnectivity
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.metrics import PageConnectivity
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
 
@@ -96,7 +96,7 @@ class GraphAnalyzer:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        from bengal.analysis.graph_metrics import PageConnectivity
+        from bengal.analysis.graph.metrics import PageConnectivity
 
         self._ensure_built()
 

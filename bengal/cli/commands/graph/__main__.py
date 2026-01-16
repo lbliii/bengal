@@ -66,7 +66,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
     Analyze site structure and connectivity.
         
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 
     # Configure minimal logging
     configure_logging(level=LogLevel.WARNING)
@@ -205,7 +205,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
 
         # Check if visualization module exists
         try:
-            from bengal.analysis.graph_visualizer import GraphVisualizer
+            from bengal.analysis.graph.visualizer import GraphVisualizer
 
             visualizer = GraphVisualizer(site, graph_obj)
             html = visualizer.generate_html()

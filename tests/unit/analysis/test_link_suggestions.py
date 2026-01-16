@@ -5,7 +5,7 @@ Unit tests for link suggestion engine.
 from collections import defaultdict
 from pathlib import Path
 
-from bengal.analysis.link_suggestions import (
+from bengal.analysis.links.suggestions import (
     LinkSuggestion,
     LinkSuggestionEngine,
     LinkSuggestionResults,

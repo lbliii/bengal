@@ -44,19 +44,17 @@ class TestAutodocSourceMetadata:
         # Path normalized relative to site parent
         normalized_key = str(source_file.relative_to(tmp_path))
         assert normalized_key in cache.autodoc_source_metadata
-        assert cache.autodoc_source_metadata[normalized_key] == (source_hash, source_mtime)
+        assert cache.autodoc_source_metadata[normalized_key] == (source_hash, source_mtime, {})
 
     def test_add_autodoc_dependency_without_metadata(self, tmp_path):
-        """Backward compatibility: dependency can be added without metadata."""
+        """Missing metadata is rejected."""
         cache = BuildCache()
 
-        cache.add_autodoc_dependency(
-            "/path/to/source.py",
-            "api/module/index.md",
-        )
-
-        assert "/path/to/source.py" in cache.autodoc_dependencies
-        assert "/path/to/source.py" not in cache.autodoc_source_metadata
+        with pytest.raises(ValueError, match="metadata required"):
+            cache.add_autodoc_dependency(
+                "/path/to/source.py",
+                "api/module/index.md",
+            )
 
 
 class TestStaleAutodocDetection:
@@ -137,7 +135,7 @@ class TestStaleAutodocDetection:
         assert normalized_key in stale
 
     def test_cache_migration_marks_all_stale(self, tmp_path):
-        """Old cache without metadata triggers full autodoc rebuild."""
+        """Missing metadata is treated as an error."""
         site_root = tmp_path / "site"
         site_root.mkdir()
         source_file = tmp_path / "src" / "module.py"
@@ -151,8 +149,10 @@ class TestStaleAutodocDetection:
         cache.autodoc_dependencies[normalized_key] = {"api/module/index.md"}
         # autodoc_source_metadata is empty
 
-        stale = cache.get_stale_autodoc_sources(site_root)
-        assert normalized_key in stale  # All marked stale for safety
+        from bengal.errors import BengalCacheError
+
+        with pytest.raises(BengalCacheError):
+            cache.get_stale_autodoc_sources(site_root)
 
     def test_mtime_unchanged_skips_hash(self, tmp_path):
         """mtime-first optimization skips hash computation when mtime unchanged.
@@ -231,7 +231,7 @@ class TestAutodocStats:
 
         cache = BuildCache()
 
-        # Add one with metadata, one without
+        # Add two with metadata
         cache.add_autodoc_dependency(
             source1,
             "api/module1/index.md",
@@ -242,13 +242,16 @@ class TestAutodocStats:
         cache.add_autodoc_dependency(
             source2,
             "api/module2/index.md",
+            site_root=site_root,
+            source_hash=hash_file(source2, truncate=16),
+            source_mtime=source2.stat().st_mtime,
         )
 
         stats = cache.get_autodoc_stats()
 
         assert stats["autodoc_source_files"] == 2
-        assert stats["sources_with_metadata"] == 1
-        assert stats["metadata_coverage_pct"] == 50.0
+        assert stats["sources_with_metadata"] == 2
+        assert stats["metadata_coverage_pct"] == 100.0
 
 
 class TestCachePersistence:
@@ -285,6 +288,9 @@ class TestCachePersistence:
         # Verify metadata preserved
         normalized_key = str(source_file.relative_to(tmp_path))
         assert normalized_key in cache2.autodoc_source_metadata
-        loaded_hash, loaded_mtime = cache2.autodoc_source_metadata[normalized_key]
+        loaded_hash, loaded_mtime, loaded_doc_hashes = cache2.autodoc_source_metadata[
+            normalized_key
+        ]
         assert loaded_hash == source_hash
         assert loaded_mtime == source_mtime
+        assert loaded_doc_hashes == {}

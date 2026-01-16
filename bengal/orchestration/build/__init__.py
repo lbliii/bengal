@@ -382,13 +382,7 @@ class BuildOrchestrator:
         initialization.phase_cache_metadata(self)
 
         discovery_duration_ms = (time.time() - discovery_start) * 1000
-        
-        # DEBUG: Check pages right after discovery
-        import sys
-        print(f"DEBUG AFTER DISCOVERY: {len(self.site.pages)} pages", file=sys.stderr)
-        home_count = len([p for p in self.site.pages if 'content/_index.md' in str(p.source_path)])
-        print(f"DEBUG AFTER DISCOVERY: {home_count} home pages", file=sys.stderr)
-        
+
         notify_phase_complete(
             "discovery",
             discovery_duration_ms,

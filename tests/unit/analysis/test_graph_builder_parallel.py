@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from bengal.analysis.graph_builder import MIN_PAGES_FOR_PARALLEL, GraphBuilder
+from bengal.analysis.graph.builder import MIN_PAGES_FOR_PARALLEL, GraphBuilder
 from bengal.core.page import Page
 from bengal.core.site import Site
 
@@ -169,7 +169,7 @@ class TestParallelLinkTypes:
 
     def test_related_posts_link_type(self, small_site):
         """Test RELATED link type for related posts."""
-        from bengal.analysis.link_types import LinkType
+        from bengal.analysis.links.types import LinkType
 
         builder = GraphBuilder(small_site, parallel=True)
         builder.build()
@@ -249,7 +249,7 @@ class TestParallelTaxonomyAndMenus:
 
     def test_taxonomy_analysis_runs(self, small_site):
         """Test that taxonomy analysis runs after parallel page analysis."""
-        from bengal.analysis.link_types import LinkType
+        from bengal.analysis.links.types import LinkType
 
         # Add taxonomies
         small_site.taxonomies = {
@@ -269,7 +269,7 @@ class TestParallelTaxonomyAndMenus:
 
     def test_menu_analysis_runs(self, small_site):
         """Test that menu analysis runs after parallel page analysis."""
-        from bengal.analysis.link_types import LinkType
+        from bengal.analysis.links.types import LinkType
 
         # Add menus
         class MockMenuItem:

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import tempfile
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -54,23 +55,21 @@ def page_indices(max_pages: int = 5) -> st.SearchStrategy[list[int]]:
 
 
 # =============================================================================
-# FIXTURES
+# HELPER FUNCTIONS
 # =============================================================================
 
 
-@pytest.fixture
-def warm_site(tmp_path: Path):
+def _create_warm_site(base_dir: Path) -> tuple[Path, Path, list[Path]]:
     """
     Create a site with pre-warmed cache for incremental testing.
 
-    Yields a tuple of (site_dir, content_dir, page_paths)
+    Returns a tuple of (site_dir, content_dir, page_paths).
     """
     from bengal.core.site import Site
     from bengal.orchestration.build.options import BuildOptions
 
-    # Create site structure
-    site_dir = tmp_path / "site"
-    site_dir.mkdir()
+    site_dir = base_dir / "site"
+    site_dir.mkdir(parents=True, exist_ok=True)
 
     config = """
 [site]
@@ -85,17 +84,14 @@ output_dir = "public"
     content_dir = site_dir / "content"
     content_dir.mkdir()
 
-    # Create home page
     (content_dir / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
 
-    # Create numbered pages
-    page_paths = []
+    page_paths: list[Path] = []
     for i in range(5):
         page_path = content_dir / f"page_{i}.md"
         page_path.write_text(f"---\ntitle: Page {i}\n---\n# Page {i}\n\nContent.")
         page_paths.append(page_path)
 
-    # Build once to warm cache
     site = Site.from_config(site_dir)
     site.discover_content()
     site.discover_assets()
@@ -104,11 +100,6 @@ output_dir = "public"
     site.build(options=options)
 
     return site_dir, content_dir, page_paths
-
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
 
 
 def _hash_output_dir(output_dir: Path) -> dict[str, str]:
@@ -153,12 +144,14 @@ class TestIncrementalProperties:
     @settings(
         max_examples=30,
         deadline=None,
-        suppress_health_check=[HealthCheck.too_slow],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_modified_files_always_rebuilt(
         self,
         indices: list[int],
-        warm_site: tuple,
     ) -> None:
         """
         PROPERTY: Any modified file is always rebuilt.
@@ -166,42 +159,45 @@ class TestIncrementalProperties:
         When a content file changes, it must appear in the incremental
         build's pages_to_build list.
         """
-        site_dir, content_dir, page_paths = warm_site
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
-        # Modify selected pages
-        time.sleep(0.01)  # Ensure mtime changes
-        for i in indices:
-            page = page_paths[i]
-            original = page.read_text()
-            page.write_text(original + f"\n<!-- modified-{i} -->")
-
-        # Incremental build
-        stats, _site = _build_site(site_dir, incremental=True)
-
-        # PROPERTY: All modified pages should be rebuilt
-        decision = getattr(stats, "incremental_decision", None)
-        if decision is not None:
-            rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
+            # Modify selected pages
+            time.sleep(0.01)  # Ensure mtime changes
             for i in indices:
-                assert any(f"page_{i}" in p for p in rebuilt_paths), (
-                    f"Modified page_{i}.md was not rebuilt. Rebuilt: {rebuilt_paths}"
+                page = page_paths[i]
+                original = page.read_text()
+                page.write_text(original + f"\n<!-- modified-{i} -->")
+
+            # Incremental build
+            stats, _site = _build_site(site_dir, incremental=True)
+
+            # PROPERTY: All modified pages should be rebuilt
+            decision = getattr(stats, "incremental_decision", None)
+            if decision is not None:
+                rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
+                for i in indices:
+                    assert any(f"page_{i}" in p for p in rebuilt_paths), (
+                        f"Modified page_{i}.md was not rebuilt. Rebuilt: {rebuilt_paths}"
+                    )
+            else:
+                # If no decision, at least some pages should have been built
+                assert stats.total_pages >= len(indices), (
+                    "Not enough pages rebuilt for modifications"
                 )
-        else:
-            # If no decision, at least some pages should have been built
-            assert stats.total_pages >= len(indices), (
-                "Not enough pages rebuilt for modifications"
-            )
 
     @given(modification=modification_content())
     @settings(
         max_examples=20,
         deadline=None,
-        suppress_health_check=[HealthCheck.too_slow],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_any_content_change_detected(
         self,
         modification: str,
-        warm_site: tuple,
     ) -> None:
         """
         PROPERTY: Any content change is detected.
@@ -209,28 +205,29 @@ class TestIncrementalProperties:
         Regardless of what content is appended, the incremental system
         should detect the file has changed.
         """
-        site_dir, content_dir, page_paths = warm_site
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
-        # Modify first page with generated content
-        time.sleep(0.01)
-        page = page_paths[0]
-        original = page.read_text()
-        page.write_text(original + modification)
+            # Modify first page with generated content
+            time.sleep(0.01)
+            page = page_paths[0]
+            original = page.read_text()
+            page.write_text(original + modification)
 
-        # Incremental build
-        stats, _site = _build_site(site_dir, incremental=True)
+            # Incremental build
+            stats, _site = _build_site(site_dir, incremental=True)
 
-        # PROPERTY: Modified page should be rebuilt
-        decision = getattr(stats, "incremental_decision", None)
-        if decision is not None:
-            rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
-            assert any("page_0" in p for p in rebuilt_paths), (
-                f"Modified page_0.md not detected. Content added: {modification[:50]}"
-            )
+            # PROPERTY: Modified page should be rebuilt
+            decision = getattr(stats, "incremental_decision", None)
+            if decision is not None:
+                rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
+                assert any("page_0" in p for p in rebuilt_paths), (
+                    f"Modified page_0.md not detected. Content added: {modification[:50]}"
+                )
 
     def test_unchanged_files_never_rebuilt_after_warm(
         self,
-        warm_site: tuple,
+        tmp_path: Path,
     ) -> None:
         """
         PROPERTY: Unchanged files are never rebuilt on warm cache.
@@ -238,7 +235,7 @@ class TestIncrementalProperties:
         With a warm cache and no changes, incremental build should
         rebuild zero pages.
         """
-        site_dir, _content_dir, _page_paths = warm_site
+        site_dir, _content_dir, _page_paths = _create_warm_site(tmp_path)
 
         # Incremental build without changes
         stats, _site = _build_site(site_dir, incremental=True)
@@ -254,7 +251,7 @@ class TestIncrementalProperties:
 
     def test_consecutive_builds_stable(
         self,
-        warm_site: tuple,
+        tmp_path: Path,
     ) -> None:
         """
         PROPERTY: Consecutive incremental builds are stable.
@@ -262,7 +259,7 @@ class TestIncrementalProperties:
         Running incremental build twice without changes should produce
         same result (zero rebuilds).
         """
-        site_dir, _content_dir, _page_paths = warm_site
+        site_dir, _content_dir, _page_paths = _create_warm_site(tmp_path)
 
         # First incremental build
         stats1, _site1 = _build_site(site_dir, incremental=True)
@@ -288,12 +285,14 @@ class TestIncrementalEquivalence:
     @settings(
         max_examples=20,
         deadline=None,
-        suppress_health_check=[HealthCheck.too_slow],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_incremental_matches_full_build(
         self,
         indices: list[int],
-        warm_site: tuple,
     ) -> None:
         """
         PROPERTY: Incremental build output matches full build output.
@@ -301,35 +300,36 @@ class TestIncrementalEquivalence:
         After modifications, the incremental build should produce
         the same output as a full (non-incremental) build.
         """
-        site_dir, content_dir, page_paths = warm_site
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
-        # Modify selected pages
-        time.sleep(0.01)
-        for i in indices:
-            page = page_paths[i]
-            original = page.read_text()
-            page.write_text(original + f"\n<!-- modified-{i} -->")
+            # Modify selected pages
+            time.sleep(0.01)
+            for i in indices:
+                page = page_paths[i]
+                original = page.read_text()
+                page.write_text(original + f"\n<!-- modified-{i} -->")
 
-        # Full build
-        _stats_full, site_full = _build_site(site_dir, incremental=False)
-        full_hashes = _hash_output_dir(site_full.output_dir)
+            # Full build
+            _stats_full, site_full = _build_site(site_dir, incremental=False)
+            full_hashes = _hash_output_dir(site_full.output_dir)
 
-        # Clean output for fresh incremental build
-        shutil.rmtree(site_full.output_dir)
+            # Clean output for fresh incremental build
+            shutil.rmtree(site_full.output_dir)
 
-        # Incremental build
-        _stats_incr, site_incr = _build_site(site_dir, incremental=True)
-        incr_hashes = _hash_output_dir(site_incr.output_dir)
+            # Incremental build
+            _stats_incr, site_incr = _build_site(site_dir, incremental=True)
+            incr_hashes = _hash_output_dir(site_incr.output_dir)
 
-        # PROPERTY: Same files should exist
-        full_files = set(full_hashes.keys())
-        incr_files = set(incr_hashes.keys())
+            # PROPERTY: Same files should exist
+            full_files = set(full_hashes.keys())
+            incr_files = set(incr_hashes.keys())
 
-        assert full_files == incr_files, (
-            f"Different files produced. "
-            f"Full only: {full_files - incr_files}, "
-            f"Incr only: {incr_files - full_files}"
-        )
+            assert full_files == incr_files, (
+                f"Different files produced. "
+                f"Full only: {full_files - incr_files}, "
+                f"Incr only: {incr_files - full_files}"
+            )
 
 
 class TestCacheProperties:
@@ -366,11 +366,13 @@ class TestCacheProperties:
         )
 
     @given(content=st.text(min_size=1, max_size=1000))
-    @settings(max_examples=50)
+    @settings(
+        max_examples=50,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
     def test_fingerprint_changes_with_content(
         self,
         content: str,
-        tmp_path_factory: pytest.TempPathFactory,
     ) -> None:
         """
         PROPERTY: Different content produces different fingerprints.
@@ -381,23 +383,22 @@ class TestCacheProperties:
 
         assume(content.strip())  # Skip empty content
 
-        tmp_path = tmp_path_factory.mktemp("fingerprint")
-        test_file = tmp_path / "test.md"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            test_file = tmp_path / "test.md"
 
-        # First content
-        test_file.write_text(f"---\ntitle: Test\n---\n{content}")
-        cache1 = BuildCache()
-        cache1.update_file(test_file)
-        fp1 = cache1.file_fingerprints.get(str(test_file))
+            # First content
+            test_file.write_text(f"---\ntitle: Test\n---\n{content}")
+            cache1 = BuildCache()
+            cache1.update_file(test_file)
+            fp1 = cache1.file_fingerprints.get(str(test_file))
 
-        # Different content
-        test_file.write_text(f"---\ntitle: Different\n---\n{content[::-1]}")  # Reversed
-        cache2 = BuildCache()
-        cache2.update_file(test_file)
-        fp2 = cache2.file_fingerprints.get(str(test_file))
+            # Different content
+            test_file.write_text(f"---\ntitle: Different\n---\n{content[::-1]}")  # Reversed
+            cache2 = BuildCache()
+            cache2.update_file(test_file)
+            fp2 = cache2.file_fingerprints.get(str(test_file))
 
-        # PROPERTY: Different content should produce different fingerprint
-        assert fp1 is not None and fp2 is not None
-        assert fp1.content_hash != fp2.content_hash, (
-            "Different content produced same fingerprint"
-        )
+            # PROPERTY: Different content should produce different fingerprint
+            assert fp1 is not None and fp2 is not None
+            assert fp1["hash"] != fp2["hash"], "Different content produced same fingerprint"

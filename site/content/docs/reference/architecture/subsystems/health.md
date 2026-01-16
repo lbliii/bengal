@@ -64,6 +64,25 @@ Bengal includes a comprehensive health check system that validates builds across
   - Summary statistics (pass/warning/error counts)
   - Quality scoring (0-100 with ratings)
 
+## Remediation (`bengal/health/remediation/`)
+
+The remediation subpackage provides automated fixes for common validation errors:
+
+- **Purpose**: Generate and apply fixes from health check results
+- **Components**:
+  - `AutoFixer`: Framework for generating and applying fixes
+  - `FixAction`: Single fix with metadata and application logic
+  - `FixSafety`: Safety classification (SAFE, CONFIRM, UNSAFE)
+- **Usage**:
+  ```python
+  from bengal.health.remediation import AutoFixer, FixSafety
+
+  fixer = AutoFixer(report, site_root=site.root_path)
+  fixes = fixer.suggest_fixes()
+  safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]
+  results = fixer.apply_fixes(safe_fixes)
+  ```
+
 ## Validators (`bengal/health/validators/`)
 
 Validators are registered in phases based on execution cost and dependencies.

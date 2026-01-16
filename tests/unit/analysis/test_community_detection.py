@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 from unittest.mock import Mock
 
-from bengal.analysis.community_detection import (
+from bengal.analysis.graph.community_detection import (
     Community,
     CommunityDetectionResults,
     LouvainCommunityDetector,

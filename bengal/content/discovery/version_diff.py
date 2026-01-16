@@ -8,7 +8,7 @@ This module provides utilities for:
 
 Related:
 - bengal/core/version.py: Version models
-- bengal/discovery/git_version_adapter.py: Git version adapter
+- bengal/content/discovery/git_version_adapter.py: Git version adapter
 
 """
 

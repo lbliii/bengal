@@ -476,7 +476,7 @@ class PostprocessOrchestrator:
             Graph data dictionary or None if graph building fails or is disabled
         """
         try:
-            from bengal.analysis.graph_visualizer import GraphVisualizer
+            from bengal.analysis.graph.visualizer import GraphVisualizer
             from bengal.config.defaults import is_feature_enabled
 
             # Check if graph is enabled (handles both bool and dict)
@@ -490,7 +490,7 @@ class PostprocessOrchestrator:
 
             # Fallback: build our own (for standalone usage)
             if graph is None:
-                from bengal.analysis.knowledge_graph import KnowledgeGraph
+                from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 
                 logger.debug("building_knowledge_graph_for_output_formats")
                 graph = KnowledgeGraph(self.site)

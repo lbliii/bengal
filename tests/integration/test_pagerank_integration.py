@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.analysis.knowledge_graph import KnowledgeGraph
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 
 
 @pytest.fixture

@@ -47,7 +47,7 @@ from rich.table import Table
 from rich.text import Text
 
 if TYPE_CHECKING:
-    from bengal.analysis.performance_advisor import PerformanceAdvisor
+    from bengal.analysis.performance.advisor import PerformanceAdvisor
     from bengal.orchestration.stats import BuildStats
 
 
@@ -441,7 +441,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
         environment: Environment info (from detect_environment())
         
     """
-    from bengal.analysis.performance_advisor import PerformanceAdvisor
+    from bengal.analysis.performance.advisor import PerformanceAdvisor
     from bengal.utils.observability.rich_console import get_console, should_use_rich
 
     # Check if we should use rich output

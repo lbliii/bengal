@@ -208,7 +208,7 @@ class StreamingRenderOrchestrator:
         if graph is None:
             # Import here to avoid circular dependency
             try:
-                from bengal.analysis.knowledge_graph import KnowledgeGraph
+                from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
             except ImportError:
                 logger.warning(
                     "streaming_render_fallback",

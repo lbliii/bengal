@@ -26,7 +26,31 @@ Bengal includes a comprehensive analysis system that helps understand and optimi
 
 ## Overview
 
-The analysis module provides tools for:
+The analysis module is organized into focused subpackages:
+
+```
+bengal/analysis/
+├── graph/           # Graph-based page analysis
+│   ├── knowledge_graph.py   # Central graph representation
+│   ├── builder.py           # Graph construction
+│   ├── analyzer.py          # Structure analysis (hubs, leaves, orphans)
+│   ├── metrics.py           # Connectivity metrics
+│   ├── reporter.py          # Human-readable insights
+│   ├── visualizer.py        # D3.js visualization
+│   ├── page_rank.py         # PageRank scoring
+│   └── community_detection.py  # Louvain clustering
+├── links/           # Link analysis
+│   ├── suggestions.py       # Cross-linking recommendations
+│   ├── patterns.py          # Link pattern detection
+│   └── types.py             # Link classification
+├── performance/     # Performance analysis
+│   ├── advisor.py           # Build optimization tips
+│   └── path_analysis.py     # Centrality metrics
+├── content_intelligence.py  # Content analysis utilities
+└── results.py               # Shared result types
+```
+
+The module provides tools for:
 - **Knowledge Graph Analysis**: Build and analyze page connectivity through links, taxonomies, and menus
 - **PageRank**: Compute page importance scores using Google's PageRank algorithm
 - **Community Detection**: Discover topical clusters using the Louvain method
@@ -35,7 +59,7 @@ The analysis module provides tools for:
 - **Graph Visualization**: Generate interactive visualizations of site structure
 - **Performance Advisor**: Analyze and recommend performance optimizations
 
-## Knowledge Graph (`bengal/analysis/knowledge_graph.py`)
+## Knowledge Graph (`bengal/analysis/graph/knowledge_graph.py`)
 
 **Purpose**: Analyzes the connectivity structure of a Bengal site by building a graph of all pages and their connections.
 
@@ -89,7 +113,7 @@ for rec in recommendations:
 - Navigation design (understand structure)
 - SEO improvements (link structure)
 
-## PageRank (`bengal/analysis/page_rank.py`)
+## PageRank (`bengal/analysis/graph/page_rank.py`)
 
 **Purpose**: Computes page importance scores using Google's PageRank algorithm with the iterative power method.
 
@@ -130,7 +154,7 @@ important_pages = results.get_pages_above_percentile(80)
 - Optimize navigation structure
 - Implement hub-first streaming
 
-## Community Detection (`bengal/analysis/community_detection.py`)
+## Community Detection (`bengal/analysis/graph/community_detection.py`)
 
 **Purpose**: Discovers topical clusters in content using the Louvain method for modularity optimization.
 
@@ -148,7 +172,7 @@ important_pages = results.get_pages_above_percentile(80)
 
 **Usage**:
 ```python
-from bengal.analysis.community_detection import LouvainCommunityDetector
+from bengal.analysis.graph.community_detection import LouvainCommunityDetector
 
 detector = LouvainCommunityDetector(knowledge_graph)
 results = detector.detect()
@@ -168,7 +192,7 @@ community = results.get_community_for_page(page)
 - Improve internal linking within topics
 - Generate navigation menus
 
-## Path Analysis (`bengal/analysis/path_analysis.py`)
+## Path Analysis (`bengal/analysis/performance/path_analysis.py`)
 
 **Purpose**: Analyze navigation paths and page accessibility using centrality metrics.
 
@@ -189,7 +213,7 @@ community = results.get_community_for_page(page)
 
 **Usage**:
 ```python
-from bengal.analysis.path_analysis import PathAnalyzer
+from bengal.analysis.performance.path_analysis import PathAnalyzer
 
 # Basic usage (auto-selects exact vs approximate)
 analyzer = PathAnalyzer(knowledge_graph)
@@ -234,7 +258,7 @@ if not result.complete:
 - Find critical pages for user flows
 - Improve site accessibility
 
-## Link Suggestions (`bengal/analysis/link_suggestions.py`)
+## Link Suggestions (`bengal/analysis/links/suggestions.py`)
 
 **Purpose**: Provides smart cross-linking recommendations based on multiple signals.
 
@@ -276,7 +300,7 @@ for suggestion in suggestions:
 - Content discoverability
 - User navigation
 
-## Graph Visualization (`bengal/analysis/graph_visualizer.py`)
+## Graph Visualization (`bengal/analysis/graph/visualizer.py`)
 
 **Purpose**: Generate interactive visualizations of site structure using D3.js force-directed graphs.
 
@@ -301,7 +325,7 @@ html = visualizer.generate_html(title="My Site Graph")
 Path("public/graph.html").write_text(html)
 ```
 
-## Performance Advisor (`bengal/analysis/performance_advisor.py`)
+## Performance Advisor (`bengal/analysis/performance/advisor.py`)
 
 **Purpose**: Analyzes build statistics and provides performance optimization recommendations.
 
@@ -317,7 +341,7 @@ Path("public/graph.html").write_text(html)
 
 **Usage**:
 ```python
-from bengal.analysis.performance_advisor import analyze_build
+from bengal.analysis.performance import analyze_build
 
 # After a build completes, analyze its statistics
 advisor = analyze_build(stats)
