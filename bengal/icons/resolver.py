@@ -46,6 +46,31 @@ _icon_cache: dict[str, str] = {}
 _not_found_cache: set[str] = set()  # Avoid repeated disk checks
 _initialized: bool = False
 
+# Characters that are not allowed in icon names (path traversal prevention)
+_INVALID_CHARS = frozenset("/\\.\x00")
+
+
+def _is_valid_icon_name(name: str) -> bool:
+    """
+    Validate icon name to prevent path traversal attacks.
+    
+    Rejects names containing:
+    - Path separators (/ or \\)
+    - Directory traversal characters (.)
+    - Null bytes
+    
+    Args:
+        name: Icon name to validate
+    
+    Returns:
+        True if the name is safe, False otherwise
+        
+    """
+    if not name:
+        return False
+    # Check for any invalid characters
+    return not any(c in _INVALID_CHARS for c in name)
+
 
 def initialize(site: Site, preload: bool = False) -> None:
     """
@@ -126,6 +151,8 @@ def load_icon(name: str) -> str | None:
     - Found icons cached by content
     - Not-found icons cached to skip repeated searches
     
+    Security: Validates icon name to prevent path traversal attacks.
+    
     Thread-safe: Cache reads/writes protected by lock.
     
     Args:
@@ -135,6 +162,15 @@ def load_icon(name: str) -> str | None:
         SVG content string, or None if not found
         
     """
+    # Validate icon name to prevent path traversal attacks
+    if not _is_valid_icon_name(name):
+        logger.debug(
+            "icon_name_invalid",
+            icon=name,
+            reason="contains invalid characters (path traversal prevention)",
+        )
+        return None
+
     # Check caches under lock
     with _icon_lock:
         if name in _icon_cache:

@@ -38,7 +38,6 @@ if not icon_html:
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 
 from bengal.icons import resolver as icon_resolver
 from bengal.utils.observability.logger import get_logger

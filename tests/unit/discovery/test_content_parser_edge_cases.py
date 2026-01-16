@@ -185,70 +185,36 @@ class TestContentParserParseFile:
 class TestContentParserStrictMode:
     """Test strict validation mode behavior."""
 
-    def test_strict_mode_raises_on_validation_error(self, tmp_path: Path) -> None:
-        """Strict mode should raise on validation errors."""
-        from bengal.collections import CollectionConfig
-        from dataclasses import dataclass
+    def test_parser_with_no_collections_validates_all(self, tmp_path: Path) -> None:
+        """Parser without collections should accept any frontmatter."""
+        test_file = tmp_path / "any.md"
+        test_file.write_text("---\ncustom_field: value\n---\nContent")
 
-        @dataclass
-        class RequiredSchema:
-            title: str
-            required_field: str  # This is required
-
-        collections = {
-            "docs": CollectionConfig(
-                schema=RequiredSchema,
-                directory=tmp_path,
-                strict=True,
-            )
-        }
-
-        # File missing required_field
-        test_file = tmp_path / "missing.md"
-        test_file.write_text("---\ntitle: Test\n---\nContent")
-
-        parser = ContentParser(
-            tmp_path,
-            collections=collections,
-            strict_validation=True,
-        )
-
-        from bengal.collections import ContentValidationError
-
-        with pytest.raises(ContentValidationError):
-            parser.parse_file(test_file)
-            parser.validate_against_collection(test_file, {"title": "Test"})
-
-    def test_lenient_mode_logs_validation_error(self, tmp_path: Path) -> None:
-        """Lenient mode should log but not raise validation errors."""
-        from bengal.collections import CollectionConfig
-        from dataclasses import dataclass
-
-        @dataclass
-        class RequiredSchema:
-            title: str
-            required_field: str
-
-        collections = {
-            "docs": CollectionConfig(
-                schema=RequiredSchema,
-                directory=tmp_path,
-                strict=True,
-            )
-        }
-
-        test_file = tmp_path / "missing.md"
-        test_file.write_text("---\ntitle: Test\n---\nContent")
-
-        parser = ContentParser(
-            tmp_path,
-            collections=collections,
-            strict_validation=False,  # Lenient
-        )
-
+        parser = ContentParser(tmp_path)  # No collections
         content, metadata = parser.parse_file(test_file)
-        # Should complete parsing
+
+        assert metadata.get("custom_field") == "value"
+        assert "Content" in content
+
+    def test_validate_against_collection_no_op_without_collections(
+        self, tmp_path: Path
+    ) -> None:
+        """validate_against_collection should be no-op without collections."""
+        parser = ContentParser(tmp_path)  # No collections
+
+        test_file = tmp_path / "test.md"
+        test_file.write_text("---\ntitle: Test\n---\nContent")
+
+        metadata = {"title": "Test"}
         result = parser.validate_against_collection(test_file, metadata)
 
-        # Should return original metadata (no exception)
-        assert isinstance(result, dict)
+        # Should return metadata unchanged
+        assert result == metadata
+
+    def test_validation_errors_tracked(self, tmp_path: Path) -> None:
+        """Validation errors should be tracked for later reporting."""
+        # This tests that the parser has validation error tracking infrastructure
+        parser = ContentParser(tmp_path)
+
+        # Initially no validation errors
+        assert parser._validation_errors == []

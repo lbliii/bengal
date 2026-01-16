@@ -16,6 +16,7 @@ Performance:
 from __future__ import annotations
 
 import re
+import threading
 from typing import TYPE_CHECKING
 
 from kida import Markup
@@ -33,10 +34,55 @@ from bengal.utils.primitives.lru_cache import LRUCache
 logger = get_logger(__name__)
 
 # Track warned icons to avoid duplicate warnings (reset per build)
+# Thread-safe: protected by _warned_lock for concurrent access
+_warned_lock = threading.Lock()
 _warned_icons: set[str] = set()
 
 # Site instance for theme config access (set during registration)
+# Thread-safe: protected by _site_lock for concurrent access
+_site_lock = threading.Lock()
 _site_instance: Site | None = None
+
+
+def _get_mapped_icon_name(name: str) -> str:
+    """
+    Get mapped icon name from theme config or ICON_MAP.
+    
+    Thread-safe: All site access happens under lock to prevent TOCTOU race.
+    Copies needed values while holding lock, then releases before return.
+    
+    Args:
+        name: Original icon name
+        
+    Returns:
+        Mapped icon name (may be same as input if no mapping found)
+    """
+    # Thread-safe: read _site_instance and extract needed config under lock
+    with _site_lock:
+        site = _site_instance
+        if site is None:
+            # No site instance, use ICON_MAP
+            return ICON_MAP.get(name, name)
+        
+        # Extract icon aliases while holding lock
+        try:
+            theme_config = site.theme_config
+            if theme_config.config is not None:
+                icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
+                if icon_aliases and name in icon_aliases:
+                    return icon_aliases[name]
+        except Exception as e:
+            # Graceful degradation: fall back to ICON_MAP
+            logger.debug(
+                "icon_mapping_failed",
+                icon_name=name,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="falling_back_to_icon_map",
+            )
+    
+    # Fall back to ICON_MAP (outside lock, ICON_MAP is module-level constant)
+    return ICON_MAP.get(name, name)
 
 
 def _escape_attr(value: str) -> str:
@@ -152,34 +198,9 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if not name:
         return Markup("")
 
-    # Try theme config aliases first (if available)
-    mapped_name = name
-    if _site_instance:
-        try:
-            theme_config = _site_instance.theme_config
-            if theme_config.config is not None:
-                icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
-                if icon_aliases and name in icon_aliases:
-                    mapped_name = icon_aliases[name]
-                else:
-                    # Fall back to ICON_MAP
-                    mapped_name = ICON_MAP.get(name, name)
-            else:
-                # Fall back to ICON_MAP
-                mapped_name = ICON_MAP.get(name, name)
-        except Exception as e:
-            # Graceful degradation: fall back to ICON_MAP
-            logger.debug(
-                "icon_mapping_failed",
-                icon_name=name,
-                error=str(e),
-                error_type=type(e).__name__,
-                action="falling_back_to_icon_map",
-            )
-            mapped_name = ICON_MAP.get(name, name)
-    else:
-        # No site instance available, use ICON_MAP
-        mapped_name = ICON_MAP.get(name, name)
+    # Get icon aliases from theme config (if available)
+    # Thread-safe: copy all needed values under lock to prevent TOCTOU race
+    mapped_name = _get_mapped_icon_name(name)
 
     # Try the mapped name first (uses LRU cache)
     svg_html = _render_icon_cached(mapped_name, size, css_class, aria_label)
@@ -188,17 +209,19 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if not svg_html and mapped_name != name:
         svg_html = _render_icon_cached(name, size, css_class, aria_label)
 
-    # Warn if icon not found (deduplicated per icon name)
-    if not svg_html and name not in _warned_icons:
-        _warned_icons.add(name)
-        logger.warning(
-            "icon_not_found",
-            icon=name,
-            error_code=ErrorCode.T010.value,
-            searched=[str(p) for p in icon_resolver.get_search_paths()],
-            suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
-            hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
-        )
+    # Warn if icon not found (deduplicated per icon name, thread-safe)
+    if not svg_html:
+        with _warned_lock:
+            if name not in _warned_icons:
+                _warned_icons.add(name)
+                logger.warning(
+                    "icon_not_found",
+                    icon=name,
+                    error_code=ErrorCode.T010.value,
+                    searched=[str(p) for p in icon_resolver.get_search_paths()],
+                    suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
+                    hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
+                )
 
     # Return as Markup to prevent Jinja2 auto-escaping
     return Markup(svg_html)
@@ -211,13 +234,16 @@ def register(env: TemplateEnvironment, site: Site) -> None:
     Icons are loaded on-demand via the theme-aware resolver, which is
     initialized during Site setup.
     
+    Thread-safe: Site instance assignment protected by lock.
+    
     Args:
         env: Jinja2 environment
         site: Site instance (stored for theme config access)
         
     """
     global _site_instance
-    _site_instance = site
+    with _site_lock:
+        _site_instance = site
 
     env.globals["icon"] = icon
     env.globals["render_icon"] = icon  # Alias
@@ -246,8 +272,11 @@ def clear_icon_cache() -> None:
     Clear the icon render cache and warned icons set.
     
     Useful for testing or when icons are modified during development.
+    
+    Thread-safe: Protected by lock.
         
     """
     _icon_render_cache.clear()
-    _warned_icons.clear()
+    with _warned_lock:
+        _warned_icons.clear()
     icon_resolver.clear_cache()

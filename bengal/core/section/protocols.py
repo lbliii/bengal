@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     )
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> type:
     """Emit deprecation warning for old import paths."""
     _exports = {
         "SectionLike": _SectionLike,

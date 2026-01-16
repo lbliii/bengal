@@ -25,6 +25,7 @@ True
 from __future__ import annotations
 
 import fnmatch
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
@@ -294,7 +295,7 @@ class PageResources:
         """Get all data resources (JSON, YAML, CSV, etc.). Convenience alias for by_type("data")."""
         return self.by_type("data")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PageResource]:
         """Iterate over all resources."""
         return iter(self._resources)
 

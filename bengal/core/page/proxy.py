@@ -37,7 +37,7 @@ from .page_core import PageCore
 # =============================================================================
 
 
-def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None):
+def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) -> property:
     """Create a lazy property that delegates to _full_page.
     
     Args:
@@ -55,7 +55,7 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None):
     return property(getter)
 
 
-def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None):
+def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None) -> property:
     """Create a lazy property with getter and setter that delegates to _full_page.
     
     Args:

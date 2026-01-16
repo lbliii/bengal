@@ -17,56 +17,21 @@ Related Modules:
 - bengal.cli.commands.build: CLI build command using progress reporting
 
 See Also:
-- bengal/utils/progress.py:ProgressReporter for progress protocol
-- bengal/utils/progress.py:NoopReporter for test-friendly implementation
+- bengal/protocols/infrastructure.py: ProgressReporter protocol definition
+- NoopReporter: Test-friendly implementation in this module
 
 """
 
 from __future__ import annotations
 
 from contextlib import suppress
-from typing import Any, Protocol
+from typing import Any
 
+# Import protocol from canonical location
+from bengal.protocols import ProgressReporter
 
-class ProgressReporter(Protocol):
-    """
-    Protocol for reporting build progress and user-facing messages.
-    
-    Defines interface for progress reporting implementations. Used throughout
-    the build system for consistent progress reporting across CLI, server, and
-    test contexts.
-    
-    Creation:
-        Protocol - not instantiated directly. Implementations include:
-        - NoopReporter: No-op implementation for tests
-        - LiveProgressReporterAdapter: Adapter for LiveProgressManager
-        - CLI implementations: Rich progress bars for CLI
-    
-    Relationships:
-        - Implemented by: NoopReporter, LiveProgressReporterAdapter, CLI reporters
-        - Used by: BuildOrchestrator for build progress reporting
-        - Used by: All orchestrators for phase progress updates
-    
-    Examples:
-        # Protocol usage (type checking)
-        def report_progress(reporter: ProgressReporter):
-            reporter.start_phase("rendering")
-            reporter.update_phase("rendering", current=5, total=10)
-            reporter.complete_phase("rendering")
-        
-    """
-
-    def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None: ...
-
-    def start_phase(self, phase_id: str) -> None: ...
-
-    def update_phase(
-        self, phase_id: str, current: int | None = None, current_item: str | None = None
-    ) -> None: ...
-
-    def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None: ...
-
-    def log(self, message: str) -> None: ...
+# Re-export for backwards compatibility
+__all__ = ["ProgressReporter", "NoopReporter", "LiveProgressReporterAdapter"]
 
 
 class NoopReporter:

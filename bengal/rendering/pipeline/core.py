@@ -367,12 +367,22 @@ class RenderingPipeline:
         try:
             page.extract_links()
         except Exception as e:
-            logger.debug(
+            # Log at warning level so users are aware of extraction issues
+            # In strict mode, this could indicate malformed content that needs attention
+            logger.warning(
                 "link_extraction_failed",
                 page=str(page.source_path),
-                error=str(e),
+                error=truncate_error(e),
                 error_type=type(e).__name__,
+                suggestion="Check page content for malformed HTML or encoding issues",
             )
+            # Track in build stats if available (helps surface in build summary)
+            if self.build_stats:
+                self.build_stats.add_warning(
+                    str(page.source_path),
+                    f"Link extraction failed: {truncate_error(e)}",
+                    "link_extraction",
+                )
         self._cache_checker.cache_parsed_content(page, template, parser_version)
         self._render_and_write(page, template)
 

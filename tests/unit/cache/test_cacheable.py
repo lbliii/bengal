@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 
 # Test implementations
 

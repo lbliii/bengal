@@ -69,10 +69,13 @@ class AssetTracker:
     def track(self, path: str) -> None:
         """Track an asset reference.
         
+        Empty strings and whitespace-only strings are ignored.
+        
         Args:
             path: Asset path/URL to track
         """
-        if path:
+        # Strip whitespace and check for empty - whitespace-only paths are invalid
+        if path and path.strip():
             self._assets.add(path)
     
     def get_assets(self) -> set[str]:

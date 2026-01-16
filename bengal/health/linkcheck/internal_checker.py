@@ -183,8 +183,7 @@ class InternalLinkChecker:
             ".py#L" in url  # Python file with line number anchor
             or ".py#" in url  # Python file with any anchor
             or url.endswith(".py")  # Python file without anchor
-            or "/bengal/" in url
-            and ".py" in url  # Paths containing bengal/ and .py
+            or ("/bengal/" in url and ".py" in url)  # Paths containing bengal/ and .py
             or (url.startswith("../") and ".py" in url)  # Relative paths to .py files
         ):
             logger.debug(

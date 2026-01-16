@@ -328,10 +328,11 @@ class BuildTrigger:
 
         except Exception as e:
             # Create dev server error context for rich debugging
+            # Use next(iter(...)) instead of pop() to avoid mutating the set
             context = create_dev_error(
                 e,
                 changed_files=[str(p) for p in changed_paths],
-                trigger_file=str(changed_paths.pop()) if changed_paths else None,
+                trigger_file=str(next(iter(changed_paths))) if changed_paths else None,
                 last_successful_build=self._last_successful_build,
             )
 

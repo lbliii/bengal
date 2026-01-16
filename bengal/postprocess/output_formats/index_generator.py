@@ -532,10 +532,12 @@ class SiteIndexGenerator:
                 action="proceeding_to_write",
             )
 
-        # Write content and hash
+        # Write content and hash atomically
+        # Both files use atomic writes to prevent inconsistent state on crash
         with AtomicFile(path, "w", encoding="utf-8") as f:
             f.write(content)
-        hash_path.write_text(new_hash, encoding="utf-8")
+        with AtomicFile(hash_path, "w", encoding="utf-8") as f:
+            f.write(new_hash)
 
     def page_to_summary(self, page: Page) -> dict[str, Any]:
         """

@@ -68,11 +68,22 @@ class SectionErgonomicsMixin:
     metadata: dict[str, Any]
     index_page: Page | None
 
-    # From other mixins - these are @cached_property in their respective mixins
-    # Not declared here to avoid attribute override conflicts
-    # - sorted_pages: list[Page] (from SectionQueryMixin)
-    # - regular_pages_recursive: list[Page] (from SectionQueryMixin)
-    # - hierarchy: list[str] (from SectionHierarchyMixin)
+    # From other mixins - accessed via self but defined in other mixins
+    # These are declared as properties to match the @cached_property definitions
+    @property
+    def sorted_pages(self) -> list[Page]:
+        """Sorted pages - provided by SectionQueryMixin."""
+        raise NotImplementedError
+
+    @property
+    def regular_pages_recursive(self) -> list[Page]:
+        """Recursive pages - provided by SectionQueryMixin."""
+        raise NotImplementedError
+
+    @property
+    def hierarchy(self) -> list[str]:
+        """Hierarchy path - provided by SectionHierarchyMixin."""
+        raise NotImplementedError
 
     @property
     def title(self) -> str:

@@ -143,9 +143,10 @@ class IconDirective(BengalDirective):
                 searched=[str(p) for p in icon_resolver.get_search_paths()],
                 hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
             )
+            # Escape name to prevent XSS in title attribute
             return (
                 f'<span class="bengal-icon bengal-icon--missing" aria-hidden="true" '
-                f'title="Icon not found: {name}">❓</span>'
+                f'title="Icon not found: {self.escape_html(name)}">❓</span>'
             )
 
         # Build class list

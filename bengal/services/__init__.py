@@ -21,7 +21,7 @@ Basic usage with default implementation::
 
     from bengal.services import DefaultTemplateValidationService
 
-    service = DefaultTemplateValidationService(strict=True)
+    service = DefaultTemplateValidationService()
     error_count = service.validate(site)
 
 Custom implementation for testing::

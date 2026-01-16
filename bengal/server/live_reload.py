@@ -281,10 +281,20 @@ class LiveReloadMixin:
             # Allow any origin during local development (dev server only)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
+            
             # Advise client on retry delay and send an opening comment to start the stream
-            self.wfile.write(b"retry: 2000\n\n")
-            self.wfile.write(b": connected\n\n")
-            self.wfile.flush()
+            # Protected against early client disconnect during handshake
+            try:
+                self.wfile.write(b"retry: 2000\n\n")
+                self.wfile.write(b": connected\n\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected during handshake - exit cleanly
+                logger.debug(
+                    "sse_client_disconnected_during_handshake",
+                    client_address=client_addr,
+                )
+                return
 
             keepalive_count = 0
             message_count = 0
@@ -356,7 +366,7 @@ class LiveReloadMixin:
                     # Client disconnected
                     logger.debug(
                         "sse_client_disconnected_error",
-                        error_code=ErrorCode.S004.value,
+                        error_code=ErrorCode.S004.name,
                         client_address=client_addr,
                         error_type=type(e).__name__,
                         messages_sent=message_count,
@@ -611,7 +621,7 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
     except Exception as e:
         logger.warning(
             "reload_payload_serialization_failed",
-            error_code=ErrorCode.S003.value,
+            error_code=ErrorCode.S003.name,
             action=action,
             reason=reason,
             error=str(e),

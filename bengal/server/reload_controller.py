@@ -264,7 +264,7 @@ class ReloadController:
             
         """
         from bengal.rendering.pipeline.output import extract_content_hash
-        from bengal.orchestration.build.output_types import OutputType, classify_output
+        from bengal.orchestration.build.output_types import classify_output
         from bengal.utils.primitives.hashing import hash_str
         
         self._baseline_content_hashes.clear()
@@ -273,6 +273,7 @@ class ReloadController:
         if not output_dir.exists():
             return
         
+        # Capture HTML file hashes
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
             try:
@@ -285,6 +286,17 @@ class ReloadController:
                 
                 self._baseline_content_hashes[rel_path] = hash_val
                 self._output_types[rel_path] = classify_output(html_file).name
+            except OSError:
+                # File may have been deleted during scan - skip
+                continue
+        
+        # Capture CSS file hashes for accurate CSS-only hot reload detection
+        for css_file in output_dir.rglob("*.css"):
+            rel_path = str(css_file.relative_to(output_dir))
+            try:
+                css_hash = hash_file(css_file, truncate=16)
+                self._baseline_content_hashes[rel_path] = css_hash
+                self._output_types[rel_path] = "ASSET"
             except OSError:
                 # File may have been deleted during scan - skip
                 continue

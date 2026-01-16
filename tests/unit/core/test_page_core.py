@@ -3,7 +3,7 @@
 from dataclasses import asdict
 from datetime import datetime
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 from bengal.core.page.page_core import PageCore
 
 

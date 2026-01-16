@@ -130,7 +130,7 @@ def run_init_wizard(preset: str | None = None) -> str | None:
             f"Basic site created; run 'bengal init --sections {sections_input} "
             f"--pages-per-section {pages_per} --with-content' after to add structure."
         )
-        return "default"  # Custom needs post-creation init
+        return "__custom__"  # Signal custom was selected for hint display
 
     # Regular preset selected
     selected_preset = PRESETS[selection]

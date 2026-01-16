@@ -25,7 +25,7 @@ def _load_file(filename: str, subdir: str = "pages") -> str:
     template_dir = Path(__file__).parent
     file_path = template_dir / subdir / filename
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         return f.read()
 
 

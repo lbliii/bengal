@@ -123,9 +123,15 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         # Template caches
         self._referenced_template_cache: dict[str, set[str]] = {}
         self._referenced_template_paths_cache: dict[str, tuple[Path, ...]] = {}
-        self._template_path_cache_enabled: bool = not bool(
-            self.site.dev_mode if isinstance(self.site.config, dict) else False
-        )
+        # Template path cache is DISABLED in dev mode (templates may change frequently)
+        # and ENABLED in production mode (paths are stable, cache improves performance)
+        # 
+        # dev_mode can be:
+        # - Site attribute: site.dev_mode (bool)
+        # - Config dict: config.get("development", {}).get("dev_mode", False)
+        # - Config object: config.development.dev_mode
+        dev_mode = getattr(self.site, "dev_mode", False)
+        self._template_path_cache_enabled: bool = not dev_mode
         self._template_path_cache: dict[str, Path | None] = {}
 
     # =========================================================================

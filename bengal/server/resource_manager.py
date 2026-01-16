@@ -327,8 +327,11 @@ class ResourceManager:
         # Check if this is the first or second interrupt
         if not self._cleanup_done:
             # First interrupt - start graceful shutdown
-            self.cleanup(signum=signum)
-            sys.exit(0)
+            try:
+                self.cleanup(signum=signum)
+            finally:
+                # Always exit, even if cleanup raises an exception
+                sys.exit(0)
         else:
             # Second interrupt - force exit
             icons = get_icon_set(should_use_emoji())

@@ -174,7 +174,9 @@ class PageTxtGenerator:
         count = 0
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                results = executor.map(write_txt, page_items)
+                # Consume iterator fully before exiting context manager
+                # This ensures all tasks complete and exceptions are raised properly
+                results = list(executor.map(write_txt, page_items))
                 count = sum(1 for r in results if r)
         except RuntimeError as e:
             # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"

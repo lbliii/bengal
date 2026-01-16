@@ -1,8 +1,10 @@
-"""Output collection protocol and implementation.
+"""Output collection implementation.
 
 This module provides a thread-safe collector for tracking output files
 written during a build. The collector enables reliable hot reload decisions
 by providing typed output information to the dev server.
+
+The OutputCollector protocol is defined in bengal.protocols.infrastructure.
 """
 
 from __future__ import annotations
@@ -10,64 +12,18 @@ from __future__ import annotations
 from contextlib import suppress
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 from bengal.core.diagnostics import emit
 from bengal.core.output.types import OutputRecord, OutputType
+from bengal.protocols import OutputCollector
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from typing import Literal
 
-
-@runtime_checkable
-class OutputCollector(Protocol):
-    """Protocol for collecting output writes during build.
-    
-    Implementations must be thread-safe for parallel builds.
-        
-    """
-
-    def record(
-        self,
-        path: Path,
-        output_type: OutputType | None = None,
-        phase: Literal["render", "asset", "postprocess"] = "render",
-    ) -> None:
-        """Record an output file write.
-
-        Args:
-            path: Path to the output file (absolute or relative to output_dir)
-            output_type: Type of output; auto-detected from extension if None
-            phase: Build phase that produced this output
-        """
-        ...
-
-    def get_outputs(
-        self,
-        output_type: OutputType | None = None,
-    ) -> list[OutputRecord]:
-        """Get all recorded outputs, optionally filtered by type.
-
-        Args:
-            output_type: If provided, filter to only this type
-
-        Returns:
-            List of output records
-        """
-        ...
-
-    def css_only(self) -> bool:
-        """Check if all recorded outputs are CSS files.
-
-        Returns:
-            True if all outputs are CSS, False otherwise
-        """
-        ...
-
-    def clear(self) -> None:
-        """Clear all recorded outputs."""
-        ...
+# Re-export for backwards compatibility
+__all__ = ["OutputCollector", "BuildOutputCollector"]
 
 
 class BuildOutputCollector:

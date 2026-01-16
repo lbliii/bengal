@@ -5,17 +5,22 @@ Covers:
 - Protocol conformance tests
 - DefaultTemplateValidationService adapter tests
 - Mock implementation tests for testing scenarios
+- Engine-agnostic validation tests
+- TemplateError conversion tests
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
+from bengal.rendering.engines.errors import TemplateError
 from bengal.services.validation import (
     DefaultTemplateValidationService,
     TemplateValidationService,
+    _default_engine_factory,
 )
 
 
@@ -54,16 +59,6 @@ class TestTemplateValidationServiceProtocol:
 
 class TestDefaultTemplateValidationService:
     """Tests for DefaultTemplateValidationService adapter."""
-
-    def test_default_strict_is_false(self):
-        """Default strict mode is False."""
-        service = DefaultTemplateValidationService()
-        assert service.strict is False
-
-    def test_strict_can_be_set(self):
-        """Strict mode can be configured."""
-        service = DefaultTemplateValidationService(strict=True)
-        assert service.strict is True
 
     def test_validate_returns_integer(self):
         """validate() returns integer error count."""
@@ -235,20 +230,16 @@ class TestValidationServiceIntegration:
         site.theme = "default"
         return site
 
-    def test_validation_with_strict_mode(self, mock_site):
-        """Test validation behavior with strict mode."""
-        mock_site.config["strict_mode"] = True
+    def test_validation_returns_error_count(self, mock_site):
+        """Test validation returns error count from validator."""
         mock_validator = MagicMock(return_value=2)
 
         service = DefaultTemplateValidationService(
-            strict=True,
             engine_factory=lambda site: MagicMock(),
             validator=mock_validator,
         )
         error_count = service.validate(mock_site)
 
-        # Should return error count regardless of strict mode
-        # (strict mode handling is at CLI level, not service level)
         assert error_count == 2
 
     def test_validation_can_be_swapped(self, mock_site):
@@ -277,3 +268,187 @@ class TestValidationServiceIntegration:
         # Custom service bypasses validation
         custom = NoOpService()
         assert validate_site(custom, mock_site) == 0
+
+
+class TestDefaultEngineFactory:
+    """Tests for the default engine factory function.
+    
+    These tests ensure the factory uses the correct engine creation path,
+    which would have caught Bug #2 (deprecated shim usage).
+    """
+
+    def test_factory_uses_create_engine(self, tmp_path):
+        """Default factory should use create_engine(), not deprecated shim."""
+        # Verify the factory function imports from the correct module
+        import inspect
+        source = inspect.getsource(_default_engine_factory)
+        
+        # Should use create_engine from bengal.rendering.engines
+        assert "from bengal.rendering.engines import create_engine" in source
+        # Should NOT use deprecated shim
+        assert "from bengal.rendering.template_engine" not in source
+
+    def test_factory_respects_engine_config(self, tmp_path):
+        """Factory should create engine based on site config."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.theme = "default"
+        site.output_dir = tmp_path / "public"
+        site.menu = {}
+        site.menu_localized = {}
+        site.config = {
+            "template_engine": "kida",
+            "production": False,
+            "development": {"auto_reload": False},
+        }
+        
+        engine = _default_engine_factory(site)
+        
+        # Should create Kida engine when configured
+        assert type(engine).__name__ == "KidaTemplateEngine"
+
+
+class TestTemplateValidatorEngineAgnostic:
+    """Tests ensuring TemplateValidator works with any engine.
+    
+    These tests would have caught Bug #1 (Jinja2-specific env.parse() call).
+    """
+
+    def test_validator_uses_engine_validate_method(self):
+        """TemplateValidator should call engine.validate(), not env.parse()."""
+        from bengal.health.validators.templates import TemplateValidator
+        
+        # Create mock engine with validate() method
+        mock_engine = MagicMock()
+        mock_engine.validate.return_value = []
+        mock_engine.template_dirs = []
+        
+        validator = TemplateValidator(mock_engine)
+        errors = validator.validate_all()
+        
+        # Should call engine.validate()
+        mock_engine.validate.assert_called_once()
+        assert errors == []
+
+    def test_validator_converts_template_errors(self):
+        """TemplateValidator should convert TemplateError to TemplateRenderError."""
+        from bengal.health.validators.templates import TemplateValidator
+        from bengal.rendering.errors import TemplateRenderError
+        
+        mock_engine = MagicMock()
+        mock_engine.validate.return_value = [
+            TemplateError(
+                template="test.html",
+                message="Syntax error on line 5",
+                line=5,
+                error_type="syntax",
+            ),
+        ]
+        mock_engine.get_template_path.return_value = Path("/tmp/test.html")
+        
+        validator = TemplateValidator(mock_engine)
+        errors = validator.validate_all()
+        
+        assert len(errors) == 1
+        assert isinstance(errors[0], TemplateRenderError)
+        assert errors[0].message == "Syntax error on line 5"
+        assert errors[0].template_context.template_name == "test.html"
+        assert errors[0].template_context.line_number == 5
+
+    def test_validator_handles_multiple_errors(self):
+        """TemplateValidator should handle multiple validation errors."""
+        from bengal.health.validators.templates import TemplateValidator
+        
+        mock_engine = MagicMock()
+        mock_engine.validate.return_value = [
+            TemplateError(template="a.html", message="Error A", line=1, error_type="syntax"),
+            TemplateError(template="b.html", message="Error B", line=2, error_type="undefined"),
+            TemplateError(template="c.html", message="Error C", line=None, error_type="other"),
+        ]
+        mock_engine.get_template_path.return_value = None
+        
+        validator = TemplateValidator(mock_engine)
+        errors = validator.validate_all()
+        
+        assert len(errors) == 3
+        assert errors[0].template_context.template_name == "a.html"
+        assert errors[1].template_context.template_name == "b.html"
+        assert errors[2].template_context.template_name == "c.html"
+
+    def test_validator_handles_none_line_number(self):
+        """TemplateValidator should handle errors without line numbers."""
+        from bengal.health.validators.templates import TemplateValidator
+        
+        mock_engine = MagicMock()
+        mock_engine.validate.return_value = [
+            TemplateError(template="test.html", message="Unknown error", line=None),
+        ]
+        mock_engine.get_template_path.return_value = None
+        
+        validator = TemplateValidator(mock_engine)
+        errors = validator.validate_all()
+        
+        assert len(errors) == 1
+        assert errors[0].template_context.line_number is None
+
+
+class TestEngineProtocolCompliance:
+    """Tests verifying engines implement required protocol for validation.
+    
+    These contract tests ensure any engine used with the validation service
+    has the methods needed for validation to work.
+    """
+
+    @pytest.fixture
+    def minimal_site(self, tmp_path):
+        """Create minimal site fixture for engine creation."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.theme = "default"
+        site.output_dir = tmp_path / "public"
+        site.menu = {}
+        site.menu_localized = {}
+        site.config = {
+            "production": False,
+            "development": {"auto_reload": False},
+        }
+        return site
+
+    def test_kida_engine_has_validate_method(self, minimal_site):
+        """Kida engine must implement validate() method."""
+        minimal_site.config["template_engine"] = "kida"
+        
+        from bengal.rendering.engines import create_engine
+        engine = create_engine(minimal_site)
+        
+        assert hasattr(engine, "validate")
+        assert callable(engine.validate)
+        
+        # validate() should return list of TemplateError
+        result = engine.validate()
+        assert isinstance(result, list)
+
+    def test_jinja_engine_has_validate_method(self, minimal_site):
+        """Jinja engine must implement validate() method."""
+        minimal_site.config["template_engine"] = "jinja2"
+        
+        from bengal.rendering.engines import create_engine
+        engine = create_engine(minimal_site)
+        
+        assert hasattr(engine, "validate")
+        assert callable(engine.validate)
+        
+        # validate() should return list of TemplateError
+        result = engine.validate()
+        assert isinstance(result, list)
+
+    def test_engines_have_get_template_path_method(self, minimal_site):
+        """Engines must implement get_template_path() for error context."""
+        for engine_name in ["kida", "jinja2"]:
+            minimal_site.config["template_engine"] = engine_name
+            
+            from bengal.rendering.engines import create_engine
+            engine = create_engine(minimal_site)
+            
+            assert hasattr(engine, "get_template_path"), f"{engine_name} missing get_template_path"
+            assert callable(engine.get_template_path)

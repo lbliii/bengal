@@ -240,8 +240,6 @@ class SitemapValidator(BaseValidator):
 
         # Calculate coverage
         if total_pages > 0:
-            (sitemap_count / total_pages) * 100
-
             if sitemap_count < total_pages:
                 missing = total_pages - sitemap_count
                 results.append(

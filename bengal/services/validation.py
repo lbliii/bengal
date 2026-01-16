@@ -20,7 +20,7 @@ Using the default service::
 
     from bengal.services.validation import DefaultTemplateValidationService
 
-    service = DefaultTemplateValidationService(strict=True)
+    service = DefaultTemplateValidationService()
     errors = service.validate(site)
     if errors > 0:
         print(f"Found {errors} template validation errors")
@@ -34,7 +34,7 @@ Custom validator for testing::
 
 Related:
 bengal.health.validators.templates: Concrete validate_templates implementation.
-bengal.rendering.template_engine: TemplateEngine created by default factory.
+bengal.rendering.engines: Engine factory (create_engine).
 bengal.cli.commands.validate: CLI command that consumes this service.
 
 """
@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.protocols import TemplateEngineProtocol as TemplateEngine
 
 
 class TemplateValidationService(Protocol):
@@ -90,7 +90,8 @@ def _default_engine_factory(site: Any) -> TemplateEngine:
     Create a TemplateEngine instance from a site.
     
     This is the default factory used by DefaultTemplateValidationService.
-    It performs a lazy import to avoid circular dependencies at module load.
+    It uses the create_engine() factory which respects site configuration
+    for template engine selection (Kida, Jinja2, etc.).
     
     Args:
         site: The Site instance to create the engine for.
@@ -99,9 +100,9 @@ def _default_engine_factory(site: Any) -> TemplateEngine:
         Configured TemplateEngine for the given site.
         
     """
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.rendering.engines import create_engine
 
-    return TemplateEngine(site)
+    return create_engine(site)
 
 
 def _default_validator(engine: Any) -> int:
@@ -137,7 +138,6 @@ class DefaultTemplateValidationService:
     the default behavior.
     
     Attributes:
-        strict: Enable strict validation mode (reserved for future use).
         engine_factory: Callable that creates a TemplateEngine from a Site.
         validator: Callable that validates templates and returns error count.
     
@@ -152,14 +152,9 @@ class DefaultTemplateValidationService:
             service = DefaultTemplateValidationService(
                 validator=lambda engine: 0  # Always passes
             )
-    
-        With strict mode::
-    
-            service = DefaultTemplateValidationService(strict=True)
         
     """
 
-    strict: bool = False
     engine_factory: Callable[[Any], Any] = field(default=_default_engine_factory)
     validator: Callable[[Any], int] = field(default=_default_validator)
 

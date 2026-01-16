@@ -118,7 +118,7 @@ class TemplateRegistry:
 
         from bengal.cli.skeleton.schema import Skeleton
 
-        skeleton_yaml = skeleton_path.read_text()
+        skeleton_yaml = skeleton_path.read_text(encoding="utf-8")
 
         # Replace {{date}} placeholders with current date
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -314,8 +314,15 @@ def register_template(template: SiteTemplate) -> None:
     Use this to add templates programmatically at runtime, such as
     from plugins or application-specific code.
     
+    Thread-safe: Uses lock to protect concurrent modifications under
+    free-threading (PEP 703).
+    
     Args:
         template: SiteTemplate instance to register
         
     """
-    _get_registry()._templates[template.id] = template
+    # Get registry first (may initialize under its own lock)
+    registry = _get_registry()
+    # Then protect the modification with the lock
+    with _registry_lock:
+        registry._templates[template.id] = template

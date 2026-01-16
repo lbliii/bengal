@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from bengal.cache.cache_store import CacheStore
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 
 # Test Cacheable implementations
 

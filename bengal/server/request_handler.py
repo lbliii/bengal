@@ -468,7 +468,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         3. Other files → Default SimpleHTTPRequestHandler behavior
         """
         request_start = time.time()
-        status_code = 200  # Default, will be updated if error
+        status_code = 200  # Default, updated based on response
 
         try:
             # Handle SSE endpoint first (long-lived stream)
@@ -481,7 +481,24 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             # If not HTML or injection fails, fall back to normal file serving
             if not self.serve_html_with_live_reload():
                 super().do_GET()
+        except Exception:
+            status_code = 500
+            raise
         finally:
+            # Capture actual status code from response if available
+            # The _headers_buffer contains the status line after send_response()
+            if hasattr(self, "_headers_buffer") and self._headers_buffer:
+                try:
+                    # First line is status line: "HTTP/1.1 200 OK\r\n"
+                    first_line = self._headers_buffer[0]
+                    if isinstance(first_line, bytes):
+                        first_line = first_line.decode("latin-1")
+                    parts = first_line.split()
+                    if len(parts) >= 2 and parts[1].isdigit():
+                        status_code = int(parts[1])
+                except (IndexError, ValueError, AttributeError):
+                    pass  # Keep default status_code
+            
             # Notify dashboard of request completion (RFC: rfc-dashboard-api-integration)
             # Skip SSE endpoint as it's long-lived
             if self.path != "/__bengal_reload__" and BengalRequestHandler._on_request is not None:
@@ -607,7 +624,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             explain: Detailed explanation
         """
         # If it's a 404 error, try to serve custom 404.html
-        if code == 404:
+        if code == 404 and self.directory is not None:
             custom_404_path = Path(self.directory) / "404.html"
             if custom_404_path.exists():
                 try:

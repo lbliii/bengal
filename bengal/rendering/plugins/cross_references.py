@@ -290,35 +290,21 @@ class CrossReferencePlugin:
                 f'title="Target directive not found: {anchor_id}">[{text or anchor_id}]</span>'
             )
 
-        # Handle list of tuples format: [(page, anchor_id, version_id), ...]
-        # Prefer same-version anchor, fall back to first available
-        same_version_entry = None
-        for entry in anchor_entries:
-            if len(entry) >= 3 and entry[2] == self.current_version:
-                same_version_entry = entry
-                break
+        # Resolve anchor entry - prefer same-version, fall back to first available
+        resolved = self._resolve_anchor_entry(anchor_entries, anchor_id)
+        if resolved is None:
+            # Malformed entry - return broken ref
+            logger.warning(
+                "xref_malformed_anchor_entry",
+                ref=f"!{anchor_id}",
+                entry_length=len(anchor_entries[0]) if anchor_entries else 0,
+            )
+            return (
+                f'<span class="broken-ref" data-ref="!{anchor_id}" '
+                f'title="Malformed anchor entry">[{text or anchor_id}]</span>'
+            )
 
-        if same_version_entry:
-            page, anchor_id_resolved, _ = same_version_entry
-        else:
-            # Fall back to first entry (any version)
-            # Handle entries that may have fewer than 3 elements
-            first_entry = anchor_entries[0]
-            if len(first_entry) >= 3:
-                page, anchor_id_resolved, _ = first_entry
-            elif len(first_entry) >= 2:
-                page, anchor_id_resolved = first_entry[0], first_entry[1]
-            else:
-                # Malformed entry - return broken ref
-                logger.warning(
-                    "xref_malformed_anchor_entry",
-                    ref=f"!{anchor_id}",
-                    entry_length=len(first_entry),
-                )
-                return (
-                    f'<span class="broken-ref" data-ref="!{anchor_id}" '
-                    f'title="Malformed anchor entry">[{text or anchor_id}]</span>'
-                )
+        page, anchor_id_resolved = resolved
 
         logger.debug(
             "xref_resolved",
@@ -333,6 +319,42 @@ class CrossReferencePlugin:
         link_text = text or anchor_id.replace("-", " ").title()
         url = page.href
         return f'<a href="{url}#{anchor_id_resolved}">{link_text}</a>'
+
+    def _resolve_anchor_entry(
+        self, anchor_entries: list[tuple[Any, ...]], ref_id: str
+    ) -> tuple[Any, str] | None:
+        """
+        Resolve anchor entry from list of tuples, preferring same-version.
+
+        Handles list of tuples format: [(page, anchor_id, version_id), ...]
+        Returns (page, anchor_id) tuple or None if entry is malformed.
+
+        Args:
+            anchor_entries: List of anchor entry tuples
+            ref_id: Reference ID for logging
+
+        Returns:
+            Tuple of (page, anchor_id) or None if malformed
+        """
+        # Prefer same-version anchor
+        for entry in anchor_entries:
+            if len(entry) >= 3 and entry[2] == self.current_version:
+                return (entry[0], entry[1])
+
+        # Fall back to first entry (any version)
+        first_entry = anchor_entries[0]
+        if len(first_entry) >= 3:
+            return (first_entry[0], first_entry[1])
+        elif len(first_entry) >= 2:
+            return (first_entry[0], first_entry[1])
+        else:
+            # Malformed entry
+            logger.debug(
+                "xref_malformed_anchor_entry",
+                ref=ref_id,
+                entry_length=len(first_entry),
+            )
+            return None
 
     def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
         """
@@ -354,34 +376,9 @@ class CrossReferencePlugin:
         # This includes both heading anchors and target directives
         anchor_entries = self.xref_index.get("by_anchor", {}).get(anchor_key)
         if anchor_entries:
-            # Handle list of tuples format: [(page, anchor_id, version_id), ...]
-            # Prefer same-version anchor, fall back to first available
-            same_version_entry = None
-            for entry in anchor_entries:
-                if len(entry) >= 3 and entry[2] == self.current_version:
-                    same_version_entry = entry
-                    break
-
-            if same_version_entry:
-                page, anchor_id, _ = same_version_entry
-            else:
-                # Fall back to first entry (any version)
-                # Handle entries that may have fewer than 3 elements
-                first_entry = anchor_entries[0]
-                if len(first_entry) >= 3:
-                    page, anchor_id, _ = first_entry
-                elif len(first_entry) >= 2:
-                    page, anchor_id = first_entry[0], first_entry[1]
-                else:
-                    # Malformed entry - fall through to heading lookup
-                    logger.debug(
-                        "xref_malformed_anchor_entry",
-                        ref=anchor,
-                        entry_length=len(first_entry),
-                    )
-                    anchor_entries = None  # Force heading lookup
-
-            if anchor_entries:  # Only if we successfully resolved
+            resolved = self._resolve_anchor_entry(anchor_entries, anchor)
+            if resolved is not None:
+                page, anchor_id = resolved
                 logger.debug(
                     "xref_resolved",
                     ref=anchor,
@@ -396,6 +393,7 @@ class CrossReferencePlugin:
                 link_text = text or anchor_key.replace("-", " ").title()
                 url = page.href
                 return f'<a href="{url}#{anchor_id}">{link_text}</a>'
+            # Malformed entry - fall through to heading lookup
 
         # Fall back to heading text lookup
         results = self.xref_index.get("by_heading", {}).get(anchor_key, [])

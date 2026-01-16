@@ -31,7 +31,7 @@ def _load_template_file(relative_path: str) -> str:
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
 
-    with open(file_path) as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
 
     # Replace template variables
