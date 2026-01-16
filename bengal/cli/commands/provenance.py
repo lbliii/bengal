@@ -57,14 +57,18 @@ def lineage(page_path: str, source: str) -> None:
     site = load_site_from_cli(source)
     
     from bengal.build.provenance import ProvenanceCache as ProvenanceStore
+    from bengal.build.contracts.keys import content_key, CacheKey
     
     cache_dir = site.root_path / ".bengal" / "provenance"
     store = ProvenanceStore(cache_dir)
     
-    record = store.get(page_path)
+    # Normalize path to canonical CacheKey (relative to site root)
+    normalized_path = content_key(Path(page_path), site.root_path)
+    record = store.get(normalized_path)
     
     if record is None:
         cli.error(f"No provenance found for {page_path}")
+        cli.info(f"  (Normalized key: {normalized_path})")
         cli.info("Run 'bengal provenance build' first to capture provenance.")
         raise click.Abort()
     
@@ -79,7 +83,8 @@ def lineage(page_path: str, source: str) -> None:
     cli.info(f"Inputs ({record.provenance.input_count}):")
     
     # Group by type
-    by_type: dict[str, list] = {}
+    from bengal.build.provenance.types import InputRecord
+    by_type: dict[str, list[InputRecord]] = {}
     for inp in record.provenance.inputs:
         if inp.input_type not in by_type:
             by_type[inp.input_type] = []

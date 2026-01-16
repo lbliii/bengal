@@ -302,7 +302,23 @@ class CrossReferencePlugin:
             page, anchor_id_resolved, _ = same_version_entry
         else:
             # Fall back to first entry (any version)
-            page, anchor_id_resolved, _ = anchor_entries[0]
+            # Handle entries that may have fewer than 3 elements
+            first_entry = anchor_entries[0]
+            if len(first_entry) >= 3:
+                page, anchor_id_resolved, _ = first_entry
+            elif len(first_entry) >= 2:
+                page, anchor_id_resolved = first_entry[0], first_entry[1]
+            else:
+                # Malformed entry - return broken ref
+                logger.warning(
+                    "xref_malformed_anchor_entry",
+                    ref=f"!{anchor_id}",
+                    entry_length=len(first_entry),
+                )
+                return (
+                    f'<span class="broken-ref" data-ref="!{anchor_id}" '
+                    f'title="Malformed anchor entry">[{text or anchor_id}]</span>'
+                )
 
         logger.debug(
             "xref_resolved",
@@ -350,22 +366,36 @@ class CrossReferencePlugin:
                 page, anchor_id, _ = same_version_entry
             else:
                 # Fall back to first entry (any version)
-                page, anchor_id, _ = anchor_entries[0]
+                # Handle entries that may have fewer than 3 elements
+                first_entry = anchor_entries[0]
+                if len(first_entry) >= 3:
+                    page, anchor_id, _ = first_entry
+                elif len(first_entry) >= 2:
+                    page, anchor_id = first_entry[0], first_entry[1]
+                else:
+                    # Malformed entry - fall through to heading lookup
+                    logger.debug(
+                        "xref_malformed_anchor_entry",
+                        ref=anchor,
+                        entry_length=len(first_entry),
+                    )
+                    anchor_entries = None  # Force heading lookup
 
-            logger.debug(
-                "xref_resolved",
-                ref=anchor,
-                type="explicit_anchor",
-                target_page=page.title if hasattr(page, "title") else "unknown",
-                anchor_id=anchor_id,
-                version_match=self.current_version
-                if hasattr(page, "version")
-                and getattr(page, "version", None) == self.current_version
-                else None,
-            )
-            link_text = text or anchor_key.replace("-", " ").title()
-            url = page.href
-            return f'<a href="{url}#{anchor_id}">{link_text}</a>'
+            if anchor_entries:  # Only if we successfully resolved
+                logger.debug(
+                    "xref_resolved",
+                    ref=anchor,
+                    type="explicit_anchor",
+                    target_page=page.title if hasattr(page, "title") else "unknown",
+                    anchor_id=anchor_id,
+                    version_match=self.current_version
+                    if hasattr(page, "version")
+                    and getattr(page, "version", None) == self.current_version
+                    else None,
+                )
+                link_text = text or anchor_key.replace("-", " ").title()
+                url = page.href
+                return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
         # Fall back to heading text lookup
         results = self.xref_index.get("by_heading", {}).get(anchor_key, [])

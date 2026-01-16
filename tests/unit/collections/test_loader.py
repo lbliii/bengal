@@ -260,6 +260,34 @@ class TestGetCollectionForPathWithTrie:
 
         assert name == "blog"
 
+    def test_linear_scan_deepest_match(self) -> None:
+        """Test linear scan (no trie) returns deepest matching collection."""
+        collections = {
+            "docs": define_collection(schema=SimpleSchema, directory="docs"),
+            "api": define_collection(schema=SimpleSchema, directory="docs/api"),
+        }
+        content_root = Path(".")
+
+        # Should match api (deepest), not docs - same behavior as trie
+        name, config = get_collection_for_path(
+            Path("docs/api/endpoint.md"),
+            content_root,
+            collections,
+            trie=None,  # Linear scan
+        )
+
+        assert name == "api"
+
+        # File in docs/ but not api/ should match docs collection
+        name, config = get_collection_for_path(
+            Path("docs/guide.md"),
+            content_root,
+            collections,
+            trie=None,
+        )
+
+        assert name == "docs"
+
     def test_file_outside_content_root(self) -> None:
         """Test file outside content root returns None."""
         collections = {

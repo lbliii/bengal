@@ -472,6 +472,38 @@ class TestEdgeCases:
 
         assert result.valid is True
 
+    def test_none_input_returns_error(self) -> None:
+        """Test None input returns validation error, not crash."""
+        validator = SchemaValidator(SimpleSchema)
+        result = validator.validate(None)  # type: ignore[arg-type]
+
+        assert result.valid is False
+        assert len(result.errors) == 1
+        assert result.errors[0].field == "(root)"
+        assert "dict" in result.errors[0].message
+        assert "None" in result.errors[0].message
+
+    def test_non_dict_input_returns_error(self) -> None:
+        """Test non-dict input returns validation error, not crash."""
+        validator = SchemaValidator(SimpleSchema)
+
+        # Test with string
+        result = validator.validate("not a dict")  # type: ignore[arg-type]
+        assert result.valid is False
+        assert result.errors[0].field == "(root)"
+        assert "dict" in result.errors[0].message
+        assert "str" in result.errors[0].message
+
+        # Test with list
+        result = validator.validate(["a", "list"])  # type: ignore[arg-type]
+        assert result.valid is False
+        assert "list" in result.errors[0].message
+
+        # Test with int
+        result = validator.validate(42)  # type: ignore[arg-type]
+        assert result.valid is False
+        assert "int" in result.errors[0].message
+
 
 # Full schema validation
 

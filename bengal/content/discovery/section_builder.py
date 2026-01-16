@@ -19,7 +19,7 @@ from bengal.core.section import Section
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.core.page import Page, PageProxy
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ class SectionBuilder:
         """
         self.site = site
         self.sections: list[Section] = []
-        self.pages: list[Page] = []
+        self.pages: list[Page | PageProxy] = []
 
     def create_section(self, path: Path, name: str | None = None) -> Section:
         """
@@ -85,7 +85,7 @@ class SectionBuilder:
         if section.pages or section.subsections:
             self.sections.append(section)
 
-    def add_page(self, page: Page, section: Section | None = None) -> None:
+    def add_page(self, page: Page | PageProxy, section: Section | None = None) -> None:
         """
         Add a page to tracking and optionally to a section.
 

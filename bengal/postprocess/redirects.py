@@ -131,12 +131,14 @@ class RedirectGenerator:
             if not aliases:
                 continue
 
-            page_url = getattr(page, "href", None) or getattr(page, "permalink", "/")
+            # Ensure page_url is always a string (never None)
+            page_url: str = getattr(page, "href", None) or getattr(page, "permalink", None) or "/"
+            page_title: str = str(getattr(page, "title", None) or "Untitled")
 
             for alias in aliases:
                 if alias not in alias_map:
                     alias_map[alias] = []
-                alias_map[alias].append((page_url, getattr(page, "title", "Untitled")))
+                alias_map[alias].append((page_url, page_title))
 
         # Check for conflicts (multiple pages claiming same alias)
         for alias, claimants in alias_map.items():

@@ -212,7 +212,11 @@ class PythonExtractor(Extractor):
             self._source_root = source.resolve()
 
         if source.is_file():
-            return self._extract_file(source)
+            elements = self._extract_file(source)
+
+            # Post-process single file (build index, synthesize inheritance)
+            self._post_process_elements(elements)
+            return elements
         elif source.is_dir():
             return self._extract_directory(source)
         else:
@@ -224,6 +228,39 @@ class PythonExtractor(Extractor):
                 suggestion="Provide a valid file or directory path for autodoc extraction",
                 code=ErrorCode.D002,
             )
+
+    def _post_process_elements(self, elements: list[DocElement]) -> None:
+        """
+        Build class index and synthesize inherited members for extracted elements.
+
+        This is a sequential post-processing step that must happen after all
+        modules have been extracted.
+        """
+        # Build class index
+        for element in elements:
+            if element.element_type == "module":
+                for child in element.children:
+                    if child.element_type == "class":
+                        qualified = child.qualified_name
+                        self.class_index[qualified] = child
+                        # Also index by simple name for O(1) inheritance lookup
+                        simple_name = qualified.rsplit(".", 1)[-1]
+                        if simple_name not in self.simple_name_index:
+                            self.simple_name_index[simple_name] = []
+                        self.simple_name_index[simple_name].append(qualified)
+
+        # Third pass: synthesize inherited members if enabled (sequential)
+        if should_include_inherited(self.config):
+            for element in elements:
+                if element.element_type == "module":
+                    for child in element.children:
+                        if child.element_type == "class":
+                            synthesize_inherited_members(
+                                child,
+                                self.class_index,
+                                self.config,
+                                self.simple_name_index,
+                            )
 
     def _extract_directory(self, directory: Path) -> list[DocElement]:
         """
@@ -250,31 +287,8 @@ class PythonExtractor(Extractor):
         else:
             elements = self._extract_files_sequential(py_files, directory)
 
-        # Second pass: build class index (sequential - requires all elements)
-        for element in elements:
-            if element.element_type == "module":
-                for child in element.children:
-                    if child.element_type == "class":
-                        qualified = child.qualified_name
-                        self.class_index[qualified] = child
-                        # Also index by simple name for O(1) inheritance lookup
-                        simple_name = qualified.rsplit(".", 1)[-1]
-                        if simple_name not in self.simple_name_index:
-                            self.simple_name_index[simple_name] = []
-                        self.simple_name_index[simple_name].append(qualified)
-
-        # Third pass: synthesize inherited members if enabled (sequential)
-        if should_include_inherited(self.config):
-            for element in elements:
-                if element.element_type == "module":
-                    for child in element.children:
-                        if child.element_type == "class":
-                            synthesize_inherited_members(
-                                child,
-                                self.class_index,
-                                self.config,
-                                self.simple_name_index,
-                            )
+        # Post-process all extracted elements (sequential)
+        self._post_process_elements(elements)
 
         return elements
 
@@ -340,7 +354,12 @@ class PythonExtractor(Extractor):
         )
 
         def extract_single_file(py_file: Path) -> list[DocElement]:
-            """Extract a single file (thread-safe - no shared state)."""
+            """
+            Extract a single file.
+
+            Thread-safe as it no longer modifies self.class_index or self.simple_name_index.
+            All indexing happens in a subsequent sequential pass.
+            """
             try:
                 return self._extract_file(py_file)
             except SyntaxError as e:
@@ -414,31 +433,7 @@ class PythonExtractor(Extractor):
                 # This skips AST parsing entirely, providing the full performance benefit
                 try:
                     module_element = DocElement.from_dict(cached_info.module_element_dict)
-                    
-                    # Build class index from reconstructed module (needed for inheritance synthesis)
-                    for child in module_element.children:
-                        if child.element_type == "class":
-                            qualified = child.qualified_name
-                            self.class_index[qualified] = child
-                            # Also index by simple name for O(1) inheritance lookup
-                            simple_name = qualified.rsplit(".", 1)[-1]
-                            if simple_name not in self.simple_name_index:
-                                self.simple_name_index[simple_name] = []
-                            self.simple_name_index[simple_name].append(qualified)
-                    
-                    # Synthesize inherited members if enabled
-                    # Note: This may require AST if inheritance info isn't fully cached
-                    # For now, we'll synthesize from cached class index
-                    if should_include_inherited(self.config):
-                        for child in module_element.children:
-                            if child.element_type == "class":
-                                synthesize_inherited_members(
-                                    child,
-                                    self.class_index,
-                                    self.config,
-                                    self.simple_name_index,
-                                )
-                    
+
                     logger.debug(
                         "autodoc_cache_reconstruction_success",
                         source_path=str(file_path),
@@ -473,28 +468,6 @@ class PythonExtractor(Extractor):
 
         if not module_element:
             return []
-
-        # Build class index from this module
-        for child in module_element.children:
-            if child.element_type == "class":
-                qualified = child.qualified_name
-                self.class_index[qualified] = child
-                # Also index by simple name for O(1) inheritance lookup
-                simple_name = qualified.rsplit(".", 1)[-1]
-                if simple_name not in self.simple_name_index:
-                    self.simple_name_index[simple_name] = []
-                self.simple_name_index[simple_name].append(qualified)
-
-        # Synthesize inherited members if enabled
-        if should_include_inherited(self.config):
-            for child in module_element.children:
-                if child.element_type == "class":
-                    synthesize_inherited_members(
-                        child,
-                        self.class_index,
-                        self.config,
-                        self.simple_name_index,
-                    )
 
         return [module_element]
 

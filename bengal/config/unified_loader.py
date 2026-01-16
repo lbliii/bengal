@@ -184,7 +184,12 @@ class UnifiedConfigLoader:
         config = apply_env_overrides(config)
 
         # Validation
-        validate_config(config)
+        validate_config(config)  # Check required keys
+
+        from bengal.config.validators import ConfigValidator
+
+        validator = ConfigValidator()
+        config = validator.validate(config)  # Type/range check and normalization
 
         # Pre-flight access to warm cache (thread-safety)
         # Access core properties before returning to ensure they're cached
@@ -227,22 +232,26 @@ class UnifiedConfigLoader:
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Flatten nested config (site.*, build.*) to top-level for compatibility.
+        Flatten nested configuration for uniform access and validation.
 
-        Mirrors ConfigDirectoryLoader behavior so callers can rely on both
-        nested and flat access (config["title"], config["baseurl"], etc.).
+        Mirrors ConfigValidator behavior so callers can rely on both nested
+        and flat access (config["title"], config["baseurl"], etc.).
+        Nested values (site.*, build.*, etc.) take precedence over top-level
+        values for consistency with Bengal's nested-first architecture.
+
+        Args:
+            config: Configuration dictionary (flat or nested).
+
+        Returns:
+            Flattened configuration dictionary.
         """
         flat = dict(config)
 
-        # Extract site section to top level
-        if "site" in config and isinstance(config["site"], dict):
-            for key, value in config["site"].items():
-                flat.setdefault(key, value)
-
-        # Extract build section to top level
-        if "build" in config and isinstance(config["build"], dict):
-            for key, value in config["build"].items():
-                flat.setdefault(key, value)
+        # Extract values from known sections to top level
+        # Specific nested values override general flat values
+        for section in ("site", "build", "assets", "features", "dev"):
+            if section in config and isinstance(config[section], dict):
+                flat.update(config[section])
 
         return flat
 

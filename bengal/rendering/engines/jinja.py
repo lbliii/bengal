@@ -356,8 +356,15 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                             error_type="syntax",
                         )
                     )
-                except Exception:
-                    pass  # Skip non-syntax errors
+                except Exception as e:
+                    # Log non-syntax errors for debugging (e.g., permission errors, encoding issues)
+                    # Don't include in errors list as they're not actionable template issues
+                    logger.debug(
+                        "template_validation_skipped",
+                        template=rel_name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
 
         logger.info(
             "template_validation_complete",

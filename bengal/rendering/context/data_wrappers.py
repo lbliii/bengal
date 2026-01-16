@@ -7,7 +7,8 @@ eliminating the need for defensive .get() calls in templates.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Iterator
+from typing import Any, KeysView, ValuesView, ItemsView
 
 
 class SmartDict:
@@ -53,13 +54,16 @@ class SmartDict:
     def __repr__(self) -> str:
         return f"SmartDict({self._data!r})"
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
+        """Return keys view."""
         return self._data.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
+        """Return values view."""
         return self._data.values()
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
+        """Return items view."""
         return self._data.items()
 
 
@@ -137,27 +141,31 @@ class ParamsContext:
     def __bool__(self) -> bool:
         return bool(self._data)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over keys."""
         return iter(self._data)
 
     def __len__(self) -> int:
         return len(self._data)
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         """Return keys view."""
-        return self._data.keys()
+        data: dict[str, Any] = object.__getattribute__(self, "_data")
+        return data.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[Any]:
         """Return values view."""
-        return self._data.values()
+        data: dict[str, Any] = object.__getattribute__(self, "_data")
+        return data.values()
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         """Return items view."""
-        return self._data.items()
+        data: dict[str, Any] = object.__getattribute__(self, "_data")
+        return data.items()
 
     def __repr__(self) -> str:
-        return f"ParamsContext({self._data!r})"
+        data: dict[str, Any] = object.__getattribute__(self, "_data")
+        return f"ParamsContext({data!r})"
 
 
 class CascadingParamsContext:
@@ -295,13 +303,13 @@ class CascadingParamsContext:
         site = object.__getattribute__(self, "_site")
         return bool(page) or bool(section) or bool(site)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over all keys from all levels."""
         page = object.__getattribute__(self, "_page")
         section = object.__getattribute__(self, "_section")
         site = object.__getattribute__(self, "_site")
 
-        seen = set()
+        seen: set[str] = set()
         for key in page:
             if key not in seen:
                 seen.add(key)
@@ -315,20 +323,20 @@ class CascadingParamsContext:
                 seen.add(key)
                 yield key
 
-    def keys(self):
+    def keys(self) -> set[str]:
         """Return all keys from all cascade levels."""
         page = object.__getattribute__(self, "_page")
         section = object.__getattribute__(self, "_section")
         site = object.__getattribute__(self, "_site")
         return set(page.keys()) | set(section.keys()) | set(site.keys())
 
-    def items(self):
+    def items(self) -> ItemsView[str, Any]:
         """Return items with cascade resolution."""
         page = object.__getattribute__(self, "_page")
         section = object.__getattribute__(self, "_section")
         site = object.__getattribute__(self, "_site")
 
-        result = {}
+        result: dict[str, Any] = {}
         # Start with site (least specific)
         result.update(site)
         # Override with section

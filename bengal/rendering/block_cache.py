@@ -11,7 +11,8 @@ Architecture:
     ├── _page_blocks: dict[str, str]      # Cached page-level blocks (per build)
     ├── _analyzed_templates: set[str]     # Templates we've analyzed
     ├── _block_hashes: dict[str, str]     # Block content hashes for change detection
-    └── _hash_lock: Lock                   # Thread safety for hash updates
+    ├── _hash_lock: Lock                   # Thread safety for hash updates
+    └── _stats_lock: Lock                  # Thread safety for stats updates
     ```
 
 Usage:
@@ -35,6 +36,7 @@ Thread-Safety:
 - Read-only during parallel page rendering
 - Page-level cache is per-build (cleared between builds)
 - Block hash updates use threading.Lock for safety
+- Stats updates use threading.Lock for safe concurrent access
 
 RFC: kida-template-introspection
 RFC: block-level-incremental-builds
@@ -89,6 +91,7 @@ class BlockCache:
         "_enabled",
         "_block_hashes",  # {template:block -> content_hash}
         "_hash_lock",  # Thread safety for hash updates
+        "_stats_lock",  # Thread safety for stats updates during parallel rendering
     )
 
     def __init__(self, enabled: bool = True) -> None:
@@ -109,6 +112,8 @@ class BlockCache:
         # Block content hashes for change detection (RFC: block-level-incremental-builds)
         self._block_hashes: dict[str, str] = {}
         self._hash_lock = Lock()
+        # Thread safety for stats updates during parallel rendering
+        self._stats_lock = Lock()
 
     def analyze_template(
         self,
@@ -157,6 +162,9 @@ class BlockCache:
 
         Returns:
             Cached HTML string, or None if not cached
+
+        Thread-Safety:
+            Stats updates are protected by _stats_lock for safe concurrent access.
         """
         if not self._enabled:
             return None
@@ -164,10 +172,12 @@ class BlockCache:
         key = f"{template_name}:{block_name}"
 
         if key in self._site_blocks:
-            self._stats["hits"] += 1
+            with self._stats_lock:
+                self._stats["hits"] += 1
             return self._site_blocks[key]
 
-        self._stats["misses"] += 1
+        with self._stats_lock:
+            self._stats["misses"] += 1
         return None
 
     def set(
@@ -192,7 +202,8 @@ class BlockCache:
             key = f"{template_name}:{block_name}"
             if key not in self._site_blocks:
                 self._site_blocks[key] = html
-                self._stats["site_blocks_cached"] += 1
+                with self._stats_lock:
+                    self._stats["site_blocks_cached"] += 1
                 logger.debug(
                     "block_cache_set",
                     template=template_name,
@@ -256,7 +267,8 @@ class BlockCache:
                 start_time = time.perf_counter()
                 html = template.render_block(block_name, site_context)
                 duration = (time.perf_counter() - start_time) * 1000
-                self._stats["total_render_time_ms"] += duration
+                with self._stats_lock:
+                    self._stats["total_render_time_ms"] += duration
 
                 self.set(template_name, block_name, html, scope="site")
                 cached_count += 1
@@ -285,12 +297,13 @@ class BlockCache:
                             Set True for incremental builds, False for full builds.
         """
         self._site_blocks.clear()
-        self._stats = {
-            "hits": 0,
-            "misses": 0,
-            "site_blocks_cached": 0,
-            "total_render_time_ms": 0.0,
-        }
+        with self._stats_lock:
+            self._stats = {
+                "hits": 0,
+                "misses": 0,
+                "site_blocks_cached": 0,
+                "total_render_time_ms": 0.0,
+            }
         if not preserve_hashes:
             with self._hash_lock:
                 self._block_hashes.clear()
@@ -301,19 +314,27 @@ class BlockCache:
 
         Returns:
             Dict with hits, misses, and cached block count
+
+        Thread-Safety:
+            Reads stats under lock for consistent snapshot.
         """
-        total = self._stats["hits"] + self._stats["misses"]
-        hit_rate = (self._stats["hits"] / total * 100) if total > 0 else 0
+        # Read stats atomically to avoid inconsistent state
+        with self._stats_lock:
+            hits = self._stats["hits"]
+            misses = self._stats["misses"]
+            site_blocks_cached = self._stats["site_blocks_cached"]
+            total_render_time_ms = self._stats["total_render_time_ms"]
+
+        total = hits + misses
+        hit_rate = (hits / total * 100) if total > 0 else 0
 
         # Estimate time saved (hits * avg render time of cached blocks)
         avg_render_time = 0.0
-        if self._stats["site_blocks_cached"] > 0:
-            if self._stats["total_render_time_ms"] > 0:
+        if site_blocks_cached > 0:
+            if total_render_time_ms > 0:
                 # Use measured average render time
-                avg_render_time = (
-                    self._stats["total_render_time_ms"] / self._stats["site_blocks_cached"]
-                )
-            elif self._stats["hits"] > 0:
+                avg_render_time = total_render_time_ms / site_blocks_cached
+            elif hits > 0:
                 # Fallback: blocks were already cached (skipped during warm),
                 # use conservative estimate of 1ms per block
                 # This ensures cache gain is shown even when blocks were cached
@@ -321,14 +342,14 @@ class BlockCache:
                 avg_render_time = 1.0
 
         # Apply multiplier to account for pipeline/context overhead savings
-        time_saved_ms = self._stats["hits"] * avg_render_time * self.SAVINGS_MULTIPLIER
+        time_saved_ms = hits * avg_render_time * self.SAVINGS_MULTIPLIER
 
         return {
-            "hits": self._stats["hits"],
-            "misses": self._stats["misses"],
-            "site_blocks_cached": self._stats["site_blocks_cached"],
+            "hits": hits,
+            "misses": misses,
+            "site_blocks_cached": site_blocks_cached,
             "hit_rate_pct": round(hit_rate, 1),
-            "total_render_time_ms": self._stats["total_render_time_ms"],
+            "total_render_time_ms": total_render_time_ms,
             "time_saved_ms": time_saved_ms,
         }
 

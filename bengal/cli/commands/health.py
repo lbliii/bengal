@@ -137,6 +137,7 @@ def health_cli(ctx: click.Context, dashboard: bool) -> None:
     hidden=True,
     help="Traceback verbosity: full | compact | minimal | off",
 )
+@click.argument("source", type=click.Path(exists=True), default=".")
 def linkcheck(
     external_only: bool,
     internal_only: bool,
@@ -151,6 +152,7 @@ def linkcheck(
     output_format: str,
     output_file: str | None,
     traceback: str | None,
+    source: str,
 ) -> None:
     """
     Check internal and external links in the site.
@@ -181,7 +183,7 @@ def linkcheck(
     cli.header("🔗 Link Checker")
     cli.info("Loading site...")
 
-    site = load_site_from_cli(source=".", config=None, environment=None, profile=None, cli=cli)
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
     # Apply file-based traceback config after site is loaded
     configure_traceback(debug=False, traceback=traceback, site=site)
@@ -290,12 +292,13 @@ def _ensure_site_built(site: Site, cli: CLIOutput) -> None:
 
         # Purge cache for clean build (link checking requires fresh output)
         from bengal.cache import clear_build_cache
+        from bengal.orchestration.build import BuildOrchestrator, BuildOptions
 
         if clear_build_cache(site.root_path):
             cli.info("Purged build cache for clean build")
 
         orchestrator = BuildOrchestrator(site)
-        orchestrator.build()
+        orchestrator.build(BuildOptions(quiet=True))
         cli.success("Site built successfully")
 
 

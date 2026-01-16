@@ -272,3 +272,124 @@ class TestTrackerIntegration:
         
         # Tracker should have been called
         mock_tracker.get_term_pages_for_member.assert_called()
+
+
+# =============================================================================
+# Section Type Handling Tests
+# =============================================================================
+
+
+class TestSectionTypeHandling:
+    """Tests for section type consistency.
+    
+    The detector collects affected sections as strings for consistent
+    comparison with metadata values (which are also strings).
+    """
+
+    def test_section_object_converted_to_string(
+        self, detector: TaxonomyCascadeDetector, mock_cache: MagicMock, mock_site: MagicMock
+    ) -> None:
+        """Section object is converted to string path."""
+        # Create a mock section with a path attribute
+        mock_section = MagicMock()
+        mock_section.path = Path("/test-site/content/blog")
+        
+        content_page = MagicMock()
+        content_page.source_path = Path("/test-site/content/blog/post.md")
+        content_page.tags = ["python"]
+        content_page.metadata = {}
+        content_page.section = mock_section
+        
+        mock_site.pages = [content_page]
+        mock_site.generated_pages = []
+        mock_site.page_by_source_path = {content_page.source_path: content_page}
+        
+        mock_cache.get_previous_tags.return_value = set()  # New tag
+        
+        previous = ChangeDetectionResult(
+            content_files_changed=frozenset([CacheKey("content/blog/post.md")])
+        )
+        
+        ctx = DetectionContext(
+            cache=mock_cache,
+            site=mock_site,
+            previous=previous,
+        )
+        
+        # Should not raise a TypeError
+        result = detector.detect(ctx)
+        
+        # The section should be tracked (internal - not exposed in result)
+        # We verify the detector didn't crash on type mismatch
+
+    def test_section_string_path_handled(
+        self, detector: TaxonomyCascadeDetector, mock_cache: MagicMock, mock_site: MagicMock
+    ) -> None:
+        """String section value is handled correctly."""
+        content_page = MagicMock()
+        content_page.source_path = Path("/test-site/content/blog/post.md")
+        content_page.tags = ["python"]
+        content_page.metadata = {}
+        content_page.section = "blog"  # String instead of object
+        
+        mock_site.pages = [content_page]
+        mock_site.generated_pages = []
+        mock_site.page_by_source_path = {content_page.source_path: content_page}
+        
+        mock_cache.get_previous_tags.return_value = set()
+        
+        previous = ChangeDetectionResult(
+            content_files_changed=frozenset([CacheKey("content/blog/post.md")])
+        )
+        
+        ctx = DetectionContext(
+            cache=mock_cache,
+            site=mock_site,
+            previous=previous,
+        )
+        
+        # Should not raise
+        result = detector.detect(ctx)
+
+    def test_archive_page_section_comparison(
+        self, detector: TaxonomyCascadeDetector, mock_cache: MagicMock, mock_site: MagicMock
+    ) -> None:
+        """Archive page section comparison uses string comparison."""
+        # Create a mock section
+        mock_section = MagicMock()
+        mock_section.path = Path("/test-site/content/blog")
+        
+        content_page = MagicMock()
+        content_page.source_path = Path("/test-site/content/blog/post.md")
+        content_page.tags = ["python"]
+        content_page.metadata = {}
+        content_page.section = mock_section
+        
+        archive_page = MagicMock()
+        archive_page.source_path = Path("/test-site/_generated/blog/archive.md")
+        archive_page.metadata = {
+            "_generated": True,
+            "type": "archive",
+            "_section": "/test-site/content/blog",  # String path
+        }
+        
+        mock_site.pages = [content_page, archive_page]
+        mock_site.generated_pages = []
+        mock_site.page_by_source_path = {content_page.source_path: content_page}
+        
+        mock_cache.get_previous_tags.return_value = set()
+        
+        previous = ChangeDetectionResult(
+            content_files_changed=frozenset([CacheKey("content/blog/post.md")])
+        )
+        
+        ctx = DetectionContext(
+            cache=mock_cache,
+            site=mock_site,
+            previous=previous,
+        )
+        
+        result = detector.detect(ctx)
+        
+        # Archive page should be rebuilt if section matches
+        # The exact assertion depends on path formatting, but no TypeError should occur

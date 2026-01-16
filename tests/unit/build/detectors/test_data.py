@@ -348,3 +348,39 @@ class TestNestedDataDirectories:
         result = detector.detect(ctx)
         
         assert any("app.yaml" in str(k) for k in result.data_files_changed)
+
+
+# =============================================================================
+# Dependency Key Format Tests
+# =============================================================================
+
+
+class TestDependencyKeyFormat:
+    """Tests for correct dependency key format."""
+
+    def test_affected_pages_uses_data_prefix_key(
+        self, detector: DataChangeDetector, mock_cache: MagicMock, mock_site: MagicMock
+    ) -> None:
+        """get_affected_pages is called with data: prefixed string key."""
+        data_dir = mock_site.root_path / "data"
+        data_dir.mkdir()
+        (data_dir / "team.yaml").write_text("name: Team")
+        
+        mock_cache.is_changed.return_value = True
+        
+        # Track what keys get_affected_pages is called with
+        called_with_keys: list[str] = []
+        
+        def track_affected_pages(dep_key: Path) -> set[str]:
+            called_with_keys.append(str(dep_key))
+            return set()
+        
+        mock_cache.get_affected_pages.side_effect = track_affected_pages
+        
+        ctx = DetectionContext(cache=mock_cache, site=mock_site)
+        detector.detect(ctx)
+        
+        # Verify the key format includes "data:" prefix
+        assert len(called_with_keys) > 0
+        for key in called_with_keys:
+            assert key.startswith("data:"), f"Expected data: prefix, got: {key}"

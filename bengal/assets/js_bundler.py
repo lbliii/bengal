@@ -220,9 +220,12 @@ def discover_js_files(
     for name in bundle_order:
         # Try relative path first, then filename
         ordered_js_file: Path | None = all_files.get(name) or files_by_name.get(name)
-        if ordered_js_file and name not in excluded and ordered_js_file not in seen_paths:
-            ordered.append(ordered_js_file)
-            seen_paths.add(ordered_js_file)
+        if ordered_js_file:
+            # Canonicalize the path for exclusion check
+            rel_path_str = str(ordered_js_file.relative_to(js_dir)).replace("\\", "/")
+            if rel_path_str not in excluded and ordered_js_file not in seen_paths:
+                ordered.append(ordered_js_file)
+                seen_paths.add(ordered_js_file)
 
     # Then: any remaining files not already added or excluded (alphabetically)
     # Check exclusion using the canonical relative path
@@ -281,8 +284,10 @@ def create_js_bundle(
     bundled = bundle_js_files(files, minify=minify, add_source_comments=not minify)
 
     if output_path:
+        from bengal.utils.io.atomic_write import atomic_write_text
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(bundled, encoding="utf-8")
+        atomic_write_text(output_path, bundled, encoding="utf-8")
         logger.info(
             "js_bundle_written",
             output=str(output_path),

@@ -603,13 +603,15 @@ class ConfigDirectoryLoader:
         Extracts values from common sections to the top level while preserving
         the original section structure. This allows both flat access
         (``config["title"]``) and section access (``config["site"]["title"]``).
+        Nested values (site.*, build.*, etc.) take precedence over top-level
+        values for consistency with Bengal's nested-first architecture.
 
         Sections flattened:
             - ``site.*`` → top level (title, baseurl, etc.)
             - ``build.*`` → top level (parallel, incremental, etc.)
             - ``dev.*`` → top level (cache_templates, watch_backend, etc.)
             - ``features.*`` → top level (rss, sitemap, etc.)
-            - ``assets.*`` → top level with ``_assets`` suffix (minify_assets, etc.)
+            - ``assets.*`` → top level (minify, optimize, etc.)
 
         Args:
             config: Nested configuration dictionary.
@@ -620,14 +622,10 @@ class ConfigDirectoryLoader:
         """
         flat = dict(config)
 
-        # Extract site section to top level (for backward compatibility)
-        if "site" in config and isinstance(config["site"], dict):
-            for key, value in config["site"].items():
-                flat.setdefault(key, value)
-
-        # Extract build section to top level (backward compatibility for build.* access)
-        if "build" in config and isinstance(config["build"], dict):
-            for key, value in config["build"].items():
-                flat.setdefault(key, value)
+        # Extract values from known sections to top level
+        # Specific nested values override general flat values
+        for section in ("site", "build", "assets", "features", "dev"):
+            if section in config and isinstance(config[section], dict):
+                flat.update(config[section])
 
         return flat

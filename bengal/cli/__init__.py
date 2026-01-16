@@ -76,6 +76,7 @@ from bengal.cli.commands.project import project_cli
 from bengal.cli.commands.serve import serve as serve_cmd
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
+from bengal.cli.commands.theme import theme as theme_cli
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.upgrade.command import upgrade as upgrade_cmd
 from bengal.cli.commands.validate import validate as validate_cli
@@ -232,6 +233,9 @@ main.add_command(project_cli)
 
 # Asset management
 main.add_command(assets_cli)
+
+# Theme utilities
+main.add_command(theme_cli)
 
 # Content sources
 main.add_command(sources_group)

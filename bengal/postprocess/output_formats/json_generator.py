@@ -383,6 +383,10 @@ class PageJSONGenerator:
         if self._node_url_index is None or self._edge_index is None:
             self._build_graph_indexes(graph_data)
 
+        # Safety check: if index building failed, return None
+        if self._node_url_index is None or self._edge_index is None:
+            return None
+
         # Get page URL for matching
         page_url = get_page_url(page, self.site)
         page_url_normalized = normalize_url(page_url)

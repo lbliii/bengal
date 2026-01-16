@@ -25,8 +25,8 @@ Usage:
 
 from __future__ import annotations
 
-from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from contextvars import ContextVar, Token
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     pass
@@ -41,6 +41,8 @@ class AssetTracker:
     
     Thread-safe via ContextVar - each thread/context has independent tracker.
     
+    Supports nesting: inner trackers restore the outer tracker on exit.
+    
     Usage:
         tracker = AssetTracker()
         with tracker:
@@ -48,13 +50,21 @@ class AssetTracker:
             html = render_template(...)
         
         assets = tracker.get_assets()
+    
+    Nested usage:
+        with outer_tracker:
+            with inner_tracker:
+                # inner_tracker is active
+                pass
+            # outer_tracker is restored
     """
     
-    __slots__ = ("_assets",)
+    __slots__ = ("_assets", "_token")
     
     def __init__(self) -> None:
         """Initialize empty asset tracker."""
         self._assets: set[str] = set()
+        self._token: Token[AssetTracker | None] | None = None
     
     def track(self, path: str) -> None:
         """Track an asset reference.
@@ -74,13 +84,15 @@ class AssetTracker:
         return self._assets.copy()
     
     def __enter__(self) -> AssetTracker:
-        """Enter context manager - set as current tracker."""
-        _current_tracker.set(self)
+        """Enter context manager - set as current tracker, saving previous."""
+        self._token = _current_tracker.set(self)
         return self
     
-    def __exit__(self, *_: object) -> None:
-        """Exit context manager - clear current tracker."""
-        _current_tracker.set(None)
+    def __exit__(self, *_: Any) -> None:
+        """Exit context manager - restore previous tracker."""
+        if self._token is not None:
+            _current_tracker.reset(self._token)
+            self._token = None
 
 
 def get_current_tracker() -> AssetTracker | None:

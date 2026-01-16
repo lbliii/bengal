@@ -77,7 +77,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         config: Configuration dictionary (flat or nested)
     
     Returns:
-        Config with baseurl set from environment if applicable
+        Config with baseurl set from environment if applicable. Returns a
+        new dictionary; the input dictionary is not mutated.
     
     Examples:
             >>> import os
@@ -110,6 +111,11 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             'https://custom.com'
         
     """
+    from bengal.config.merge import deep_merge
+
+    # Create a deep copy to avoid mutating input
+    config = deep_merge({}, config)
+
     try:
         # Ensure site section exists
         if "site" not in config:

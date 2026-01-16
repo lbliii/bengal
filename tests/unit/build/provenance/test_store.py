@@ -324,3 +324,257 @@ class TestGarbageCollection:
         removed = store.gc(valid_pages)
         
         assert removed == 0
+
+
+# =============================================================================
+# get_stored_hash Tests
+# =============================================================================
+
+
+class TestGetStoredHash:
+    """Tests for get_stored_hash method (public API for hash lookup)."""
+
+    def test_get_stored_hash_returns_none_for_missing(
+        self, store: ProvenanceCache
+    ) -> None:
+        """get_stored_hash returns None for unstored page."""
+        result = store.get_stored_hash(CacheKey("nonexistent.md"))
+        assert result is None
+
+    def test_get_stored_hash_returns_hash_for_stored(
+        self, store: ProvenanceCache, sample_record: ProvenanceRecord
+    ) -> None:
+        """get_stored_hash returns combined hash for stored page."""
+        store.store(sample_record)
+        
+        result = store.get_stored_hash(sample_record.page_path)
+        
+        assert result is not None
+        assert result == sample_record.provenance.combined_hash
+
+
+# =============================================================================
+# Thread Safety Tests
+# =============================================================================
+
+
+class TestProvenanceCacheThreadSafety:
+    """Tests for thread safety in ProvenanceCache."""
+
+    def test_concurrent_store_operations(self, store: ProvenanceCache) -> None:
+        """Concurrent store operations are thread-safe."""
+        import threading
+        
+        errors: list[Exception] = []
+        
+        def store_record(idx: int) -> None:
+            try:
+                prov = Provenance().with_input(
+                    "content",
+                    CacheKey(f"content/page{idx}.md"),
+                    ContentHash(f"hash{idx}"),
+                )
+                record = ProvenanceRecord(
+                    page_path=CacheKey(f"content/page{idx}.md"),
+                    provenance=prov,
+                    output_hash=ContentHash(f"output{idx}"),
+                )
+                store.store(record)
+            except Exception as e:
+                errors.append(e)
+        
+        threads = [
+            threading.Thread(target=store_record, args=(i,))
+            for i in range(20)
+        ]
+        
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        assert not errors, f"Thread errors: {errors}"
+        
+        # Verify all records stored
+        for i in range(20):
+            result = store.get(CacheKey(f"content/page{i}.md"))
+            assert result is not None
+
+    def test_concurrent_get_and_store(self, store: ProvenanceCache) -> None:
+        """Concurrent get and store operations are thread-safe."""
+        import threading
+        import random
+        
+        # Pre-populate some records
+        for i in range(10):
+            prov = Provenance().with_input(
+                "content",
+                CacheKey(f"content/page{i}.md"),
+                ContentHash(f"hash{i}"),
+            )
+            record = ProvenanceRecord(
+                page_path=CacheKey(f"content/page{i}.md"),
+                provenance=prov,
+                output_hash=ContentHash(f"output{i}"),
+            )
+            store.store(record)
+        
+        errors: list[Exception] = []
+        
+        def reader_writer(idx: int) -> None:
+            try:
+                for _ in range(10):
+                    # Random read
+                    page_num = random.randint(0, 9)
+                    store.get(CacheKey(f"content/page{page_num}.md"))
+                    
+                    # Random write (new pages)
+                    new_page = f"content/new{idx}_{random.randint(0, 100)}.md"
+                    prov = Provenance().with_input(
+                        "content",
+                        CacheKey(new_page),
+                        ContentHash(f"newhash{idx}"),
+                    )
+                    record = ProvenanceRecord(
+                        page_path=CacheKey(new_page),
+                        provenance=prov,
+                        output_hash=ContentHash(f"newoutput{idx}"),
+                    )
+                    store.store(record)
+            except Exception as e:
+                errors.append(e)
+        
+        threads = [
+            threading.Thread(target=reader_writer, args=(i,))
+            for i in range(10)
+        ]
+        
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        assert not errors, f"Thread errors: {errors}"
+
+    def test_concurrent_is_fresh_checks(self, store: ProvenanceCache) -> None:
+        """Concurrent is_fresh checks are thread-safe."""
+        import threading
+        
+        # Store a record
+        prov = Provenance().with_input(
+            "content", CacheKey("content/test.md"), ContentHash("hash123")
+        )
+        record = ProvenanceRecord(
+            page_path=CacheKey("content/test.md"),
+            provenance=prov,
+            output_hash=ContentHash("output"),
+        )
+        store.store(record)
+        
+        results: list[bool] = []
+        errors: list[Exception] = []
+        lock = threading.Lock()
+        
+        def check_fresh() -> None:
+            try:
+                is_fresh = store.is_fresh(record.page_path, prov)
+                with lock:
+                    results.append(is_fresh)
+            except Exception as e:
+                errors.append(e)
+        
+        threads = [
+            threading.Thread(target=check_fresh)
+            for _ in range(20)
+        ]
+        
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        assert not errors, f"Thread errors: {errors}"
+        assert all(r is True for r in results)
+
+    def test_concurrent_subvenance_queries(self, store: ProvenanceCache) -> None:
+        """Concurrent subvenance queries are thread-safe."""
+        import threading
+        
+        # Create records that share a common input
+        common_hash = ContentHash("shared_template")
+        for i in range(10):
+            prov = Provenance().with_input("template", CacheKey("base.html"), common_hash)
+            record = ProvenanceRecord(
+                page_path=CacheKey(f"content/page{i}.md"),
+                provenance=prov,
+                output_hash=ContentHash(f"output{i}"),
+            )
+            store.store(record)
+        
+        results: list[set[CacheKey]] = []
+        errors: list[Exception] = []
+        lock = threading.Lock()
+        
+        def query_affected() -> None:
+            try:
+                affected = store.get_affected_by(common_hash)
+                with lock:
+                    results.append(affected)
+            except Exception as e:
+                errors.append(e)
+        
+        threads = [
+            threading.Thread(target=query_affected)
+            for _ in range(20)
+        ]
+        
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        assert not errors, f"Thread errors: {errors}"
+        # All results should have 10 pages
+        assert all(len(r) == 10 for r in results)
+
+    def test_concurrent_store_batch(self, store: ProvenanceCache) -> None:
+        """Concurrent store_batch operations are thread-safe."""
+        import threading
+        
+        errors: list[Exception] = []
+        
+        def batch_store(batch_idx: int) -> None:
+            try:
+                records = []
+                for i in range(5):
+                    prov = Provenance().with_input(
+                        "content",
+                        CacheKey(f"batch{batch_idx}/page{i}.md"),
+                        ContentHash(f"hash{batch_idx}_{i}"),
+                    )
+                    records.append(ProvenanceRecord(
+                        page_path=CacheKey(f"batch{batch_idx}/page{i}.md"),
+                        provenance=prov,
+                        output_hash=ContentHash(f"output{batch_idx}_{i}"),
+                    ))
+                store.store_batch(records)
+            except Exception as e:
+                errors.append(e)
+        
+        threads = [
+            threading.Thread(target=batch_store, args=(i,))
+            for i in range(10)
+        ]
+        
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        assert not errors, f"Thread errors: {errors}"
+        
+        # Verify all batches stored
+        for batch_idx in range(10):
+            for i in range(5):
+                result = store.get(CacheKey(f"batch{batch_idx}/page{i}.md"))
+                assert result is not None

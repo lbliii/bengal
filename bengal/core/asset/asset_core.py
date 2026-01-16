@@ -602,8 +602,30 @@ class Asset:
                 tmp_path.unlink(missing_ok=True)
                 raise
         else:
-            # Simple copy (shutil.copy2 is already safe for most cases)
-            shutil.copy2(self.source_path, output_path)
+            # Atomic copy using temporary file and rename (crash-safe)
+            import os
+            import threading
+            import uuid
+
+            pid = os.getpid()
+            tid = threading.get_ident()
+            unique_id = uuid.uuid4().hex[:8]
+            tmp_path = output_path.parent / f".{output_path.name}.{pid}.{tid}.{unique_id}.tmp"
+            try:
+                shutil.copy2(self.source_path, tmp_path)
+                tmp_path.replace(output_path)
+            except Exception as e:
+                emit_diagnostic(
+                    self,
+                    "error",
+                    "atomic_asset_copy_failed",
+                    source=str(self.source_path),
+                    target=str(output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                tmp_path.unlink(missing_ok=True)
+                raise
 
         self.output_path = output_path
         return output_path

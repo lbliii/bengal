@@ -154,15 +154,19 @@ class ContentLayerManager:
         # Aggregate results, logging errors
         entries: list[ContentEntry] = []
         for name, result in zip(self.sources.keys(), results, strict=True):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
+                # Re-raise critical exceptions that shouldn't be caught
+                if isinstance(result, (KeyboardInterrupt, SystemExit)):
+                    raise result
+
                 # Wrap in Bengal error for tracking
-                error = BengalDiscoveryError(
+                fetch_error = BengalDiscoveryError(
                     f"Failed to fetch from source '{name}': {result}",
                     code=ErrorCode.D008,
                     original_error=result if isinstance(result, Exception) else None,
                     suggestion=f"Check network connectivity and source configuration for '{name}'",
                 )
-                record_error(error)
+                record_error(fetch_error)
                 logger.error(f"Failed to fetch from source '{name}': {result}")
                 if self.offline:
                     # Try to use stale cache in offline mode

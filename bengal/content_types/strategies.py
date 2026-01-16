@@ -110,8 +110,8 @@ class BlogStrategy(ContentTypeStrategy):
         return False
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """Blog-specific template selection."""
-        from bengal.rendering.engines.utils import safe_template_exists
+        """Blog-specific template selection with proper fallback cascade."""
+        from bengal.content_types.templates import resolve_template_cascade
 
         # Backward compatibility
         if page is None:
@@ -121,15 +121,32 @@ class BlogStrategy(ContentTypeStrategy):
         is_section_index = page.source_path.stem == "_index"
 
         if is_home:
-            # Try blog/home.html first
-            if safe_template_exists(template_engine, "blog/home.html"):
-                return "blog/home.html"
-            # Fallback to generic home
-            return super().get_template(page, template_engine)
+            templates_to_try = [
+                "blog/home.html",
+                "blog/index.html",
+                "home.html",
+                "index.html",
+            ]
         elif is_section_index:
-            return "blog/list.html"
+            templates_to_try = [
+                "blog/list.html",
+                "blog/index.html",
+                "list.html",
+                "index.html",
+            ]
         else:
-            return "blog/single.html"
+            templates_to_try = [
+                "blog/single.html",
+                "blog/page.html",
+                "single.html",
+                "page.html",
+            ]
+
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
 
 class ArchiveStrategy(BlogStrategy):
@@ -203,8 +220,8 @@ class DocsStrategy(ContentTypeStrategy):
         return name in ("docs", "documentation", "guides", "reference")
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """Docs-specific template selection."""
-        from bengal.rendering.engines.utils import safe_template_exists
+        """Docs-specific template selection with proper fallback cascade."""
+        from bengal.content_types.templates import resolve_template_cascade
 
         # Backward compatibility
         if page is None:
@@ -214,15 +231,32 @@ class DocsStrategy(ContentTypeStrategy):
         is_section_index = page.source_path.stem == "_index"
 
         if is_home:
-            # Try doc/home.html first
-            if safe_template_exists(template_engine, "doc/home.html"):
-                return "doc/home.html"
-            # Fallback to generic home
-            return super().get_template(page, template_engine)
+            templates_to_try = [
+                "doc/home.html",
+                "doc/index.html",
+                "home.html",
+                "index.html",
+            ]
         elif is_section_index:
-            return "doc/list.html"
+            templates_to_try = [
+                "doc/list.html",
+                "doc/index.html",
+                "list.html",
+                "index.html",
+            ]
         else:
-            return "doc/single.html"
+            templates_to_try = [
+                "doc/single.html",
+                "doc/page.html",
+                "single.html",
+                "page.html",
+            ]
+
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
 
 class ApiReferenceStrategy(ContentTypeStrategy):
@@ -292,8 +326,8 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         return False
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """API reference-specific template selection."""
-        from bengal.rendering.engines.utils import safe_template_exists
+        """API reference-specific template selection with proper fallback cascade."""
+        from bengal.content_types.templates import resolve_template_cascade
 
         # Backward compatibility
         if page is None:
@@ -303,15 +337,35 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         is_section_index = page.source_path.stem == "_index"
 
         if is_home:
-            # Try autodoc/python/home.html first
-            if safe_template_exists(template_engine, "autodoc/python/home.html"):
-                return "autodoc/python/home.html"
-            # Fallback to generic home
-            return super().get_template(page, template_engine)
+            templates_to_try = [
+                "autodoc/python/home.html",
+                "autodoc/python/index.html",
+                "autodoc/home.html",
+                "home.html",
+                "index.html",
+            ]
         elif is_section_index:
-            return "autodoc/python/list.html"
+            templates_to_try = [
+                "autodoc/python/list.html",
+                "autodoc/python/index.html",
+                "autodoc/list.html",
+                "list.html",
+                "index.html",
+            ]
         else:
-            return "autodoc/python/single.html"
+            templates_to_try = [
+                "autodoc/python/single.html",
+                "autodoc/python/page.html",
+                "autodoc/single.html",
+                "single.html",
+                "page.html",
+            ]
+
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
 
 class CliReferenceStrategy(ContentTypeStrategy):
@@ -378,8 +432,8 @@ class CliReferenceStrategy(ContentTypeStrategy):
         return False
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """CLI reference-specific template selection."""
-        from bengal.rendering.engines.utils import safe_template_exists
+        """CLI reference-specific template selection with proper fallback cascade."""
+        from bengal.content_types.templates import resolve_template_cascade
 
         # Backward compatibility
         if page is None:
@@ -389,15 +443,35 @@ class CliReferenceStrategy(ContentTypeStrategy):
         is_section_index = page.source_path.stem == "_index"
 
         if is_home:
-            # Try autodoc/cli/home.html first
-            if safe_template_exists(template_engine, "autodoc/cli/home.html"):
-                return "autodoc/cli/home.html"
-            # Fallback to generic home
-            return super().get_template(page, template_engine)
+            templates_to_try = [
+                "autodoc/cli/home.html",
+                "autodoc/cli/index.html",
+                "autodoc/home.html",
+                "home.html",
+                "index.html",
+            ]
         elif is_section_index:
-            return "autodoc/cli/list.html"
+            templates_to_try = [
+                "autodoc/cli/list.html",
+                "autodoc/cli/index.html",
+                "autodoc/list.html",
+                "list.html",
+                "index.html",
+            ]
         else:
-            return "autodoc/cli/single.html"
+            templates_to_try = [
+                "autodoc/cli/single.html",
+                "autodoc/cli/page.html",
+                "autodoc/single.html",
+                "single.html",
+                "page.html",
+            ]
+
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
 
 class TutorialStrategy(ContentTypeStrategy):
@@ -537,22 +611,43 @@ class TrackStrategy(ContentTypeStrategy):
         return name == "tracks"
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """
-        Track-specific template selection.
+        """Track-specific template selection with proper fallback cascade."""
+        from bengal.content_types.templates import resolve_template_cascade
 
-        Uses dedicated track templates without fallback chain since tracks
-        have specific layout requirements.
-        """
         # Backward compatibility
         if page is None:
             return self.default_template
 
+        is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
-        if is_section_index:
-            return "tracks/list.html"
+        if is_home:
+            templates_to_try = [
+                "tracks/home.html",
+                "tracks/index.html",
+                "home.html",
+                "index.html",
+            ]
+        elif is_section_index:
+            templates_to_try = [
+                "tracks/list.html",
+                "tracks/index.html",
+                "list.html",
+                "index.html",
+            ]
         else:
-            return "tracks/single.html"
+            templates_to_try = [
+                "tracks/single.html",
+                "tracks/page.html",
+                "single.html",
+                "page.html",
+            ]
+
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
 
 class PageStrategy(ContentTypeStrategy):

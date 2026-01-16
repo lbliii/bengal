@@ -93,24 +93,36 @@ class ConfigValidator:
 
     # Define expected types for known fields
     BOOLEAN_FIELDS = {
+        # Build settings
         "parallel",
         "incremental",
         "pretty_urls",
-        "minify",
-        "optimize",
-        "fingerprint",
-        "minify_assets",
-        "optimize_assets",
-        "fingerprint_assets",
-        "generate_sitemap",
-        "generate_rss",
-        "validate_links",
+        "minify_html",
         "strict_mode",
         "debug",
         "validate_build",
-        "validate_templates",  # Proactive template syntax validation
-        "stable_section_references",  # Path-based section references
-        "expose_metadata_json",  # Opt-in JSON bootstrap in head
+        "validate_templates",
+        "validate_links",
+        "transform_links",
+        "fast_writes",
+        "fast_mode",
+        "stable_section_references",
+        
+        # Assets (after flattening from assets.*)
+        "minify_assets",
+        "optimize_assets",
+        "fingerprint_assets",
+        "pipeline_assets",
+        
+        # Features (after flattening from features.*)
+        "rss",
+        "sitemap",
+        "search",
+        "json",
+        "llm_txt",
+        
+        # Other
+        "expose_metadata_json",
     }
 
     INTEGER_FIELDS = {"max_workers", "min_page_size", "port"}
@@ -138,7 +150,7 @@ class ConfigValidator:
 
         Performs type validation, range checking, and dependency validation
         on the provided configuration. Type coercion is applied where sensible
-        (e.g., string ``"true"`` to boolean ``True``).
+        (e.g., string ``"true"`` → ``True``).
 
         Args:
             config: Raw configuration dictionary to validate.
@@ -154,16 +166,38 @@ class ConfigValidator:
         """
         errors = []
 
-        # Flatten nested config if present (support both flat and nested)
+        # 1. Validate top-level flat fields
+        errors.extend(self._validate_section(config))
+
+        # 2. Validate nested sections
+        for section in ("site", "build", "dev"):
+            if section in config and isinstance(config[section], dict):
+                errors.extend(self._validate_section(config[section], prefix=section))
+
+        # 3. Validate features (can be bool or dict)
+        if "features" in config and isinstance(config["features"], dict):
+            features = config["features"]
+            from bengal.config.defaults import BOOL_OR_DICT_KEYS
+            
+            for key, value in features.items():
+                if key in BOOL_OR_DICT_KEYS:
+                    if isinstance(value, dict):
+                        errors.extend(self._validate_section(value, prefix=f"features.{key}"))
+            
+            errors.extend(self._validate_section(features, prefix="features"))
+
+        # 4. Validate assets
+        if "assets" in config and isinstance(config["assets"], dict):
+            assets = config["assets"]
+            # Map assets.minify -> minify_assets for type checking
+            asset_errors = self._validate_section(assets, prefix="assets", is_assets=True)
+            errors.extend(asset_errors)
+
+        # 5. Range validation (uses a flattened view for simplicity)
         flat_config = self._flatten_config(config)
-
-        # Validate and coerce types
-        errors.extend(self._validate_types(flat_config))
-
-        # Validate ranges
         errors.extend(self._validate_ranges(flat_config))
 
-        # Validate dependencies
+        # 6. Dependency validation
         errors.extend(self._validate_dependencies(flat_config))
 
         if errors:
@@ -175,7 +209,83 @@ class ConfigValidator:
             record_error(error, file_path=str(source_file) if source_file else None)
             raise error
 
-        return flat_config
+        return config
+
+    def _validate_section(
+        self, 
+        section_dict: dict[str, Any], 
+        prefix: str = "", 
+        is_assets: bool = False
+    ) -> list[str]:
+        """Validate a single configuration section."""
+        errors = []
+        from bengal.config.defaults import BOOL_OR_DICT_KEYS
+
+        # Boolean fields
+        for key, value in section_dict.items():
+            # Resolve the canonical field name for lookup
+            field_name = f"{key}_assets" if is_assets else key
+            
+            if field_name in self.BOOLEAN_FIELDS:
+                # Allow None for auto-detection
+                if value is None:
+                    continue
+
+                # Allow dict for BOOL_OR_DICT_KEYS (only if not at root of section already)
+                if key in BOOL_OR_DICT_KEYS and isinstance(value, dict):
+                    continue
+
+                match value:
+                    case bool():
+                        continue  # Already correct
+                    case str() as s:
+                        # Coerce string to boolean
+                        match s.lower():
+                            case "true" | "yes" | "1" | "on":
+                                section_dict[key] = True
+                            case "false" | "no" | "0" | "off":
+                                section_dict[key] = False
+                            case _:
+                                path = f"{prefix}.{key}" if prefix else key
+                                errors.append(
+                                    f"'{path}': expected boolean or 'true'/'false', got '{value}'"
+                                )
+                    case int():
+                        # Coerce int to boolean (0=False, non-zero=True)
+                        section_dict[key] = bool(value)
+                    case _:
+                        path = f"{prefix}.{key}" if prefix else key
+                        errors.append(f"'{path}': expected boolean, got {type(value).__name__}")
+
+            elif field_name in self.INTEGER_FIELDS:
+                if value is None:
+                    continue
+
+                match value:
+                    case int():
+                        continue  # Already correct
+                    case str():
+                        # Try to coerce string to int
+                        try:
+                            section_dict[key] = int(value)
+                        except ValueError:
+                            path = f"{prefix}.{key}" if prefix else key
+                            errors.append(
+                                f"'{path}': expected integer, got non-numeric string '{value}'"
+                            )
+                    case _:
+                        path = f"{prefix}.{key}" if prefix else key
+                        errors.append(f"'{path}': expected integer, got {type(value).__name__}")
+
+            elif field_name in self.STRING_FIELDS:
+                if value is None:
+                    continue
+
+                if not isinstance(value, str):
+                    # Coerce to string if not already
+                    section_dict[key] = str(value)
+
+        return errors
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -228,61 +338,9 @@ class ConfigValidator:
         Returns:
             List of error messages for type violations that couldn't be coerced.
         """
-        errors = []
-
-        # Boolean fields
-        for key in self.BOOLEAN_FIELDS:
-            if key in config:
-                value = config[key]
-
-                match value:
-                    case bool():
-                        continue  # Already correct
-                    case str() as s:
-                        # Coerce string to boolean
-                        match s.lower():
-                            case "true" | "yes" | "1" | "on":
-                                config[key] = True
-                            case "false" | "no" | "0" | "off":
-                                config[key] = False
-                            case _:
-                                errors.append(
-                                    f"'{key}': expected boolean or 'true'/'false', got '{value}'"
-                                )
-                    case int():
-                        # Coerce int to boolean (0=False, non-zero=True)
-                        config[key] = bool(value)
-                    case _:
-                        errors.append(f"'{key}': expected boolean, got {type(value).__name__}")
-
-        # Integer fields
-        for key in self.INTEGER_FIELDS:
-            if key in config:
-                value = config[key]
-
-                match value:
-                    case int():
-                        continue  # Already correct
-                    case str():
-                        # Try to coerce string to int
-                        try:
-                            config[key] = int(value)
-                        except ValueError:
-                            errors.append(
-                                f"'{key}': expected integer, got non-numeric string '{value}'"
-                            )
-                    case _:
-                        errors.append(f"'{key}': expected integer, got {type(value).__name__}")
-
-        # String fields (mostly for type checking, less coercion needed)
-        for key in self.STRING_FIELDS:
-            if key in config:
-                value = config[key]
-                if not isinstance(value, str):
-                    # Coerce to string if not already
-                    config[key] = str(value)
-
-        return errors
+        # Note: This method is now replaced by _validate_section in validate()
+        # but kept for backward compatibility if any other code calls it.
+        return self._validate_section(config)
 
     def _validate_ranges(self, config: dict[str, Any]) -> list[str]:
         """

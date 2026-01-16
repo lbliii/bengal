@@ -182,33 +182,33 @@ class NotionSource(ContentSource):
                     if resp.status == 404:
                         from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                        error = BengalDiscoveryError(
+                        not_found_error = BengalDiscoveryError(
                             f"Notion database not found: {self.database_id}",
                             code=ErrorCode.D011,
                             suggestion="Verify database ID is correct and database is shared with the integration",
                         )
-                        record_error(error)
-                        raise error
+                        record_error(not_found_error)
+                        raise not_found_error
                     if resp.status == 401:
                         from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                        error = BengalDiscoveryError(
+                        auth_error = BengalDiscoveryError(
                             "Invalid Notion token or database not shared with integration",
                             code=ErrorCode.D010,
                             suggestion="Check NOTION_TOKEN is valid and database is shared with the integration at https://www.notion.so/my-integrations",
                         )
-                        record_error(error)
-                        raise error
+                        record_error(auth_error)
+                        raise auth_error
                     if resp.status == 403:
                         from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                        error = BengalDiscoveryError(
+                        access_error = BengalDiscoveryError(
                             f"Access denied to Notion database: {self.database_id}",
                             code=ErrorCode.D010,
                             suggestion="Ensure the integration has been added to the database with 'Add connections'",
                         )
-                        record_error(error)
-                        raise error
+                        record_error(access_error)
+                        raise access_error
                     resp.raise_for_status()
                     data = await resp.json()
 
@@ -242,13 +242,13 @@ class NotionSource(ContentSource):
                     from bengal.errors import BengalContentError, ErrorCode, record_error
 
                     failed_count += 1
-                    error = BengalContentError(
+                    process_error = BengalContentError(
                         f"Failed to process Notion page: {e}",
                         code=ErrorCode.N016,
                         suggestion="Check page content and block structure",
                         original_error=e,
                     )
-                    record_error(error)
+                    record_error(process_error)
                     logger.error(f"Failed to process page: {e}")
 
             if failed_count > 0:

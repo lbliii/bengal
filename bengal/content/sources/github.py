@@ -127,33 +127,33 @@ class GitHubSource(ContentSource):
                 if resp.status == 404:
                     from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                    error = BengalDiscoveryError(
+                    not_found_error = BengalDiscoveryError(
                         f"GitHub repository not found: {self.repo}",
                         code=ErrorCode.D011,
                         suggestion=f"Verify repository exists and is accessible: https://github.com/{self.repo}",
                     )
-                    record_error(error)
-                    raise error
+                    record_error(not_found_error)
+                    raise not_found_error
                 if resp.status == 403:
                     from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                    error = BengalDiscoveryError(
+                    access_error = BengalDiscoveryError(
                         f"Access denied to GitHub repository: {self.repo}",
                         code=ErrorCode.D010,
                         suggestion="Check GITHUB_TOKEN is set and has read access to the repository",
                     )
-                    record_error(error)
-                    raise error
+                    record_error(access_error)
+                    raise access_error
                 if resp.status == 401:
                     from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-                    error = BengalDiscoveryError(
+                    auth_error = BengalDiscoveryError(
                         f"Authentication failed for GitHub repository: {self.repo}",
                         code=ErrorCode.D010,
                         suggestion="Check GITHUB_TOKEN is valid and not expired",
                     )
-                    record_error(error)
-                    raise error
+                    record_error(auth_error)
+                    raise auth_error
                 resp.raise_for_status()
                 data = await resp.json()
 
@@ -207,13 +207,13 @@ class GitHubSource(ContentSource):
                     from bengal.errors import BengalContentError, ErrorCode, record_error
 
                     failed_count += 1
-                    error = BengalContentError(
+                    fetch_error = BengalContentError(
                         f"Failed to fetch file from GitHub: {e}",
                         code=ErrorCode.N016,
                         suggestion="Check file exists and is accessible in the repository",
                         original_error=e,
                     )
-                    record_error(error)
+                    record_error(fetch_error)
                     logger.error(f"Failed to fetch file: {e}")
 
             if failed_count > 0:

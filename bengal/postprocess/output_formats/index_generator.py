@@ -648,18 +648,18 @@ class SiteIndexGenerator:
             return None
         if isinstance(value, (list, tuple)):
             # Filter out Mock objects from lists
-            filtered = [
+            filtered_list = [
                 v for v in value if not isinstance(v, Mock) and self._is_json_serializable(v)
             ]
-            return filtered if filtered else None
+            return filtered_list if filtered_list else None
         if isinstance(value, dict):
             # Recursively filter dict values
-            filtered = {
+            filtered_dict = {
                 k: v
                 for k, v in value.items()
                 if not isinstance(v, Mock) and self._is_json_serializable(v)
             }
-            return filtered if filtered else None
+            return filtered_dict if filtered_dict else None
         if self._is_json_serializable(value):
             return value
         return None

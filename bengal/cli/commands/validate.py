@@ -163,6 +163,8 @@ def validate(
 
     # Determine context for validation
     context: list[Path] | None = None
+    cache: BuildCache | None = None
+
     if files:
         context = list(files)
     elif changed:
@@ -182,9 +184,8 @@ def validate(
         else:
             cli.info(f"Found {len(context)} changed file(s)")
 
-    # Load cache for incremental validation
-    cache: BuildCache | None = None
-    if incremental or changed:
+    # Load cache for incremental validation if not already loaded
+    if (incremental or changed) and cache is None:
         from bengal.cache import BuildCache
 
         cache = BuildCache.load(site.paths.build_cache)

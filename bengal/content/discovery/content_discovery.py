@@ -121,7 +121,7 @@ class ContentDiscovery:
         self.content_dir = content_dir
         self.site = site
         self.sections: list[Section] = []
-        self.pages: list[Page] = []
+        self.pages: list[Page | PageProxy] = []
         self.current_section: Section | None = None
         self._strict_validation = strict_validation
         self._build_context = build_context
@@ -158,7 +158,7 @@ class ContentDiscovery:
         self,
         use_cache: bool = False,
         cache: Any | None = None,
-    ) -> tuple[list[Section], list[Page]]:
+    ) -> tuple[list[Section], list[Page | PageProxy]]:
         """
         Discover all content in the content directory.
 
@@ -169,14 +169,14 @@ class ContentDiscovery:
             cache: PageDiscoveryCache instance (if use_cache=True)
 
         Returns:
-            Tuple of (sections, pages)
+            Tuple of (sections, pages) - pages may be Page or PageProxy instances
         """
         if use_cache and cache:
             return self._discover_surgical(cache)
         else:
             return self._discover_full()
 
-    def _discover_surgical(self, cache: Any) -> tuple[list[Section], list[Page]]:
+    def _discover_surgical(self, cache: Any) -> tuple[list[Section], list[Page | PageProxy]]:
         """
         Surgical discovery - use cache to skip parsing unchanged files.
         
@@ -261,8 +261,20 @@ class ContentDiscovery:
 
         if item_path.is_file() and self._walker.is_content_file(item_path):
             page = self._create_page_surgical(item_path, cache, current_lang=current_lang)
-            if page:
+            if page is not None:
+                # Cache hit: got a PageProxy
                 self._section_builder.pages.append(page)
+            elif self._executor:
+                # Cache miss: submit to executor
+                future = self._executor.submit(
+                    self._create_page, item_path, current_lang, None
+                )
+                # Resolve immediately for top-level pages (no section)
+                self._resolve_page_futures([future])
+            else:
+                # No executor, parse synchronously
+                full_page = self._create_page(item_path, current_lang=current_lang, section=None)
+                self._section_builder.pages.append(full_page)
 
         elif item_path.is_dir():
             if self._walker.is_versioning_infrastructure(item_path):
@@ -295,21 +307,22 @@ class ContentDiscovery:
                 page = self._create_page_surgical(
                     item, cache, current_lang=current_lang, section=parent_section
                 )
-                if page:
-                    if isinstance(page, PageProxy):
-                        parent_section.add_page(page)
-                        self._section_builder.pages.append(page)
-                    else:
-                        # Full page - use executor for parsing (it's a change or cache miss)
-                        if self._executor:
-                            file_futures.append(
-                                self._executor.submit(
-                                    self._create_page, item, current_lang, parent_section
-                                )
-                            )
-                        else:
-                            parent_section.add_page(page)
-                            self._section_builder.pages.append(page)
+                if page is not None:
+                    # Cache hit: got a PageProxy, add it directly
+                    parent_section.add_page(page)
+                    self._section_builder.pages.append(page)
+                elif self._executor:
+                    # Cache miss: None returned, submit to executor for parsing
+                    file_futures.append(
+                        self._executor.submit(
+                            self._create_page, item, current_lang, parent_section
+                        )
+                    )
+                else:
+                    # No executor available, parse synchronously
+                    full_page = self._create_page(item, current_lang=current_lang, section=parent_section)
+                    parent_section.add_page(full_page)
+                    self._section_builder.pages.append(full_page)
 
             elif item.is_dir():
                 section = self._section_builder.create_section(item)
@@ -327,12 +340,13 @@ class ContentDiscovery:
         cache: Any,
         current_lang: str | None = None,
         section: Section | None = None,
-    ) -> Page | None:
+    ) -> Page | PageProxy | None:
         """
-        Create a Page object surgically: try cache first, then full parse.
+        Create a Page object surgically: try cache first, then signal for full parse.
         
-        Returns a PageProxy on cache hit, a full Page on cache miss (if not using executor),
-        or None if it should be parsed via executor.
+        Returns:
+            PageProxy on cache hit (use directly)
+            None on cache miss (caller should parse via executor or synchronously)
         """
         # Check cache
         cache_lookup_path = file_path
@@ -380,15 +394,12 @@ class ContentDiscovery:
                     proxy._site = self.site
                     return proxy
             except (OSError, PermissionError):
-                pass # Fall through to full parse
+                pass  # Fall through to return None (cache miss)
 
-        # CACHE MISS or CHANGE: Return None to signal it should be parsed (potentially via executor)
-        if self._executor:
-            return None
-        
-        return self._create_page(file_path, current_lang=current_lang, section=section)
+        # CACHE MISS or CHANGE: Return None to signal caller should parse
+        return None
 
-    def _discover_full(self) -> tuple[list[Section], list[Page]]:
+    def _discover_full(self) -> tuple[list[Section], list[Page | PageProxy]]:
         """Full discovery - discover all pages completely."""
         logger.info("content_discovery_start", content_dir=str(self.content_dir))
 
@@ -604,7 +615,7 @@ class ContentDiscovery:
         pages: list[Page] = []
         for fut in futures:
 
-            def get_page_result(f=fut):
+            def get_page_result(f: Any = fut) -> Page:
                 return f.result()
 
             page = with_error_recovery(
@@ -720,7 +731,11 @@ class ContentDiscovery:
         if self.site is None or not getattr(self.site, "versioning_enabled", False):
             return
 
-        version = self.site.version_config.get_version_for_path(file_path)
+        version_config = getattr(self.site, "version_config", None)
+        if version_config is None:
+            return
+
+        version = version_config.get_version_for_path(file_path)
         if version:
             if page.metadata is None:
                 page.metadata = {}
