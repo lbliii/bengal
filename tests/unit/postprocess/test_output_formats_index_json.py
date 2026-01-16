@@ -364,11 +364,15 @@ class TestSiteIndexJsonGeneration:
 
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:
         """Create a mock Site instance."""
+        from datetime import datetime
+        
         site = Mock()
         site.site_dir = site_dir
         site.output_dir = output_dir
         site.dev_mode = False  # Ensure build_time is included in index.json
         site.versioning_enabled = False  # Prevent Mock auto-creation (bool(Mock) is True)
+        # Set a real datetime for build_time (required for JSON serialization)
+        site.build_time = datetime(2024, 1, 1, 12, 0, 0)
         site.config = {
             "title": "Test Site",
             "baseurl": baseurl,

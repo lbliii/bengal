@@ -40,25 +40,18 @@ class CachedModuleInfo:
     allowing us to skip AST parsing on subsequent builds if the source
     file hasn't changed.
     
+    RFC: rfc-build-performance-optimizations Phase 3
+    Stores the full DocElement serialization to enable complete reconstruction
+    without AST parsing.
+    
     Attributes:
         source_hash: Content hash of the source file (for validation)
-        module_name: Inferred module name
-        docstring: Module-level docstring
-        classes: List of class metadata dicts
-        functions: List of function metadata dicts
-        aliases: Dict of alias_name → canonical_name mappings
-        ast_tree: Optional serialized AST tree (if needed for inheritance synthesis)
+        module_element_dict: Full DocElement serialization (from to_dict())
+                          This allows complete reconstruction without AST parsing
     """
     
     source_hash: str
-    module_name: str
-    docstring: str | None
-    classes: list[dict[str, Any]]
-    functions: list[dict[str, Any]]
-    aliases: dict[str, str]
-    # Optional: Store AST tree if needed for inheritance synthesis
-    # For now, we'll re-parse if inheritance is enabled (simpler)
-    # ast_tree: Any | None = None
+    module_element_dict: dict[str, Any]  # Full DocElement.to_dict() serialization
 
 
 class AutodocContentCacheMixin:
@@ -123,12 +116,13 @@ class AutodocContentCacheMixin:
             info: CachedModuleInfo with parsed module data
         """
         self.autodoc_content_cache[source_path] = info
+        # Extract child count from serialized element for logging
+        children_count = len(info.module_element_dict.get("children", []))
         logger.debug(
             "autodoc_module_cached",
             source_path=source_path,
             hash=info.source_hash[:8],
-            classes=len(info.classes),
-            functions=len(info.functions),
+            children=children_count,
         )
     
     def clear_autodoc_content_cache(self) -> None:

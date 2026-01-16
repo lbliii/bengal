@@ -145,6 +145,7 @@ class CSSOptimizer:
             return site_theme_dir
 
         # Check in Bengal's bundled themes
+        assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / theme_name
         if bundled_theme_dir.exists():

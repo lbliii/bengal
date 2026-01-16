@@ -59,6 +59,7 @@ from .strategies import (
 )
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.section import Section
 
 
@@ -154,7 +155,7 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
     return CONTENT_TYPE_REGISTRY.get(content_type, PageStrategy())
 
 
-def detect_content_type(section: Section, config: dict[str, Any] | None = None) -> str:
+def detect_content_type(section: Section, config: Config | dict[str, Any] | None = None) -> str:
     """
     Auto-detect content type from section characteristics.
     

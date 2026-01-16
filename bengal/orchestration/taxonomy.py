@@ -924,7 +924,7 @@ class TaxonomyOrchestrator:
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
                     "_posts": eligible_pages,  # Use filtered pages
-                    "_paginator": Paginator(eligible_pages, per_page=per_page),
+                    "_paginator": paginator,  # Reuse paginator instance
                     "_page_num": page_num,
                 },
             )
@@ -940,6 +940,17 @@ class TaxonomyOrchestrator:
     def generate_tag_pages(
         self, tags: list[str], selective: bool = False, context: BuildContext | None = None
     ) -> list[Page]:
+        """
+        Generate pages for a list of tags.
+
+        Args:
+            tags: List of tag slugs to generate pages for
+            selective: If True, skip generation when tag count is below threshold
+            context: Optional BuildContext for dependency injection
+
+        Returns:
+            List of generated tag pages
+        """
         if context:
             self.threshold = getattr(context, "threshold", 20)  # DI from context
         if selective and len(tags) < self.threshold:
@@ -949,8 +960,14 @@ class TaxonomyOrchestrator:
         if selective and self._is_test_mode():
             self.threshold = 0
 
-        pages = self._create_tag_pages(tags)
-        return pages
+        all_pages: list[Page] = []
+        for tag_slug in tags:
+            # Look up tag data from site.taxonomies
+            tag_data = self.site.taxonomies.get("tags", {}).get(tag_slug)
+            if tag_data:
+                pages = self._create_tag_pages(tag_slug, tag_data)
+                all_pages.extend(pages)
+        return all_pages
 
     def _is_test_mode(self) -> bool:
         import os

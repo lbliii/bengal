@@ -21,6 +21,8 @@ Related:
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from compression import zstd
 from pathlib import Path
 from typing import Any, cast
@@ -48,7 +50,7 @@ ZstdError = zstd.ZstdError
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:
     """
-    Save data as compressed JSON (.json.zst).
+    Save data as compressed JSON (.json.zst) with atomic write.
     
     Args:
         data: Dictionary to serialize
@@ -80,9 +82,24 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
     versioned = prepend_cache_header(compressed)
     compressed_size = len(versioned)
 
-    # Write atomically
+    # Atomic write: write to temp file, then rename
+    # This prevents corrupted cache files on crash during write
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(versioned)
+    
+    # Create temp file in same directory (ensures same filesystem for atomic rename)
+    fd, temp_path = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(versioned)
+        # Atomic rename (POSIX guarantees this is atomic on same filesystem)
+        os.replace(temp_path, path)
+    except Exception:
+        # Clean up temp file on failure
+        try:
+            os.unlink(temp_path)
+        except OSError:
+            pass
+        raise
 
     ratio = original_size / compressed_size if compressed_size > 0 else 0
     logger.debug(

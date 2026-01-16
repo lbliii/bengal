@@ -21,6 +21,7 @@ with logger.phase("discovery", page_count=100):
 from __future__ import annotations
 
 import json
+import threading
 import time
 import traceback
 import tracemalloc
@@ -533,10 +534,11 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
     return truncate_str(str(e), max_len, f"\n... (truncated {len(str(e)) - max_len} chars)")
 
 
-# Global logger registry
+# Global logger registry with lock for thread-safe access (PEP 703)
 _loggers: dict[str, BengalLogger] = {}
 _lazy_loggers: dict[str, LazyLogger] = {}  # Cache of proxy objects
 _registry_version: int = 0  # Incremented on reset_loggers()
+_logger_lock = threading.RLock()  # Protects _loggers, _lazy_loggers, _registry_version (reentrant for nested calls)
 
 
 class _GlobalConfig(TypedDict):
@@ -555,16 +557,25 @@ _global_config: _GlobalConfig = {
 
 
 def _get_actual_logger(name: str) -> BengalLogger:
-    """Internal helper to fetch or create the real logger instance."""
-    if name not in _loggers:
-        _loggers[name] = BengalLogger(
-            name=name,
-            level=_global_config["level"],
-            log_file=_global_config["log_file"],
-            verbose=_global_config["verbose"],
-            quiet_console=_global_config["quiet_console"],
-        )
-    return _loggers[name]
+    """Internal helper to fetch or create the real logger instance.
+    
+    Thread-safe: Uses double-checked locking pattern for safe concurrent
+    access under free-threading (PEP 703).
+    """
+    # Fast path: already exists (no lock needed)
+    if name in _loggers:
+        return _loggers[name]
+    # Slow path: acquire lock and double-check
+    with _logger_lock:
+        if name not in _loggers:
+            _loggers[name] = BengalLogger(
+                name=name,
+                level=_global_config["level"],
+                log_file=_global_config["log_file"],
+                verbose=_global_config["verbose"],
+                quiet_console=_global_config["quiet_console"],
+            )
+        return _loggers[name]
 
 
 class LazyLogger:
@@ -615,6 +626,8 @@ def configure_logging(
     """
     Configure global logging settings.
     
+    Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
+    
     Args:
         level: Minimum log level to emit
         log_file: Path to log file
@@ -622,46 +635,47 @@ def configure_logging(
         track_memory: Enable memory profiling (adds overhead)
         
     """
-    _global_config["level"] = level
-    _global_config["log_file"] = log_file
-    _global_config["verbose"] = verbose
+    with _logger_lock:
+        _global_config["level"] = level
+        _global_config["log_file"] = log_file
+        _global_config["verbose"] = verbose
 
-    # Clear log file if specified (truncate once at start)
-    if log_file:
-        try:
-            # Ensure parent directory exists before truncating
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-            # Truncate the file to ensure we start fresh
-            with open(log_file, "w", encoding="utf-8"):
+        # Clear log file if specified (truncate once at start)
+        if log_file:
+            try:
+                # Ensure parent directory exists before truncating
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+                # Truncate the file to ensure we start fresh
+                with open(log_file, "w", encoding="utf-8"):
+                    pass
+            except Exception:
+                # Ignore errors (file might not be writable, etc.)
                 pass
-        except Exception:
-            # Ignore errors (file might not be writable, etc.)
-            pass
 
-    # Enable memory tracking if requested
-    if track_memory and not tracemalloc.is_tracing():
-        tracemalloc.start()
+        # Enable memory tracking if requested
+        if track_memory and not tracemalloc.is_tracing():
+            tracemalloc.start()
 
-    # Update existing loggers
-    for logger in _loggers.values():
-        logger.level = level
-        logger.verbose = verbose
+        # Update existing loggers
+        for logger in _loggers.values():
+            logger.level = level
+            logger.verbose = verbose
 
-        # Update log_file for existing loggers if changed
-        # This is needed when reusing loggers across test runs with different log files
-        if logger.log_file != log_file:
-            # Close old file handle if exists
-            if logger._file_handle:
-                logger._file_handle.close()
-                logger._file_handle = None
-            logger.log_file = log_file
-            # Open new file handle if log_file specified
-            if log_file:
-                from contextlib import suppress
+            # Update log_file for existing loggers if changed
+            # This is needed when reusing loggers across test runs with different log files
+            if logger.log_file != log_file:
+                # Close old file handle if exists
+                if logger._file_handle:
+                    logger._file_handle.close()
+                    logger._file_handle = None
+                logger.log_file = log_file
+                # Open new file handle if log_file specified
+                if log_file:
+                    from contextlib import suppress
 
-                with suppress(Exception):
-                    log_file.parent.mkdir(parents=True, exist_ok=True)
-                logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
+                    with suppress(Exception):
+                        log_file.parent.mkdir(parents=True, exist_ok=True)
+                    logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
 def get_logger(name: str) -> BengalLogger:
@@ -675,6 +689,9 @@ def get_logger(name: str) -> BengalLogger:
     The proxy is cached, so calling get_logger() with the same name
     returns the same proxy instance.
     
+    Thread-safe: Uses double-checked locking pattern for safe concurrent
+    access under free-threading (PEP 703).
+    
     Args:
         name: Logger name (typically __name__)
     
@@ -682,9 +699,14 @@ def get_logger(name: str) -> BengalLogger:
         LazyLogger proxy (type-compatible with BengalLogger)
         
     """
-    if name not in _lazy_loggers:
-        _lazy_loggers[name] = LazyLogger(name)
-    return _lazy_loggers[name]  # type: ignore[return-value]
+    # Fast path: already exists (no lock needed)
+    if name in _lazy_loggers:
+        return _lazy_loggers[name]  # type: ignore[return-value]
+    # Slow path: acquire lock and double-check
+    with _logger_lock:
+        if name not in _lazy_loggers:
+            _lazy_loggers[name] = LazyLogger(name)
+        return _lazy_loggers[name]  # type: ignore[return-value]
 
 
 def set_console_quiet(quiet: bool = True) -> None:
@@ -694,42 +716,58 @@ def set_console_quiet(quiet: bool = True) -> None:
     Used by live progress manager to suppress structured log events
     while preserving file logging for debugging.
     
+    Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
+    
     Args:
         quiet: If True, suppress console output; if False, enable it
         
     """
-    _global_config["quiet_console"] = quiet
+    with _logger_lock:
+        _global_config["quiet_console"] = quiet
 
-    # Update existing loggers
-    for logger in _loggers.values():
-        logger.quiet_console = quiet
+        # Update existing loggers
+        for logger in _loggers.values():
+            logger.quiet_console = quiet
 
 
 def close_all_loggers() -> None:
-    """Close all logger file handles."""
-    for logger in _loggers.values():
-        logger.close()
+    """Close all logger file handles.
+    
+    Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
+    """
+    with _logger_lock:
+        for logger in _loggers.values():
+            logger.close()
 
 
 def reset_loggers() -> None:
-    """Close all loggers, clear registry, and increment version counter."""
+    """Close all loggers, clear registry, and increment version counter.
+    
+    Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
+    """
     global _registry_version
-    close_all_loggers()
-    _loggers.clear()
-    _lazy_loggers.clear()  # Also clear proxy cache
-    _registry_version += 1
-    _global_config["level"] = LogLevel.INFO
-    _global_config["log_file"] = None
-    _global_config["verbose"] = False
-    _global_config["quiet_console"] = False
+    with _logger_lock:
+        close_all_loggers()
+        _loggers.clear()
+        _lazy_loggers.clear()  # Also clear proxy cache
+        _registry_version += 1
+        # Reset config
+        _global_config["level"] = LogLevel.INFO
+        _global_config["log_file"] = None
+        _global_config["verbose"] = False
+        _global_config["quiet_console"] = False
 
 
 def print_all_summaries() -> None:
-    """Print timing and memory summaries from all loggers."""
-    # Merge all events
-    all_events = []
-    for logger in _loggers.values():
-        all_events.extend(logger.get_events())
+    """Print timing and memory summaries from all loggers.
+    
+    Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
+    """
+    # Merge all events (copy under lock to avoid iteration during mutation)
+    with _logger_lock:
+        all_events = []
+        for logger in _loggers.values():
+            all_events.extend(logger.get_events())
 
     # Extract phase timings and memory
     timings = {}

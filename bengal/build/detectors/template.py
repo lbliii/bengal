@@ -107,7 +107,7 @@ class TemplateChangeDetector:
                     rel_path = template_path.relative_to(site_templates_dir)
                     return str(rel_path.as_posix())
                 except ValueError:
-                    pass
+                    pass  # Not relative to site templates, try theme
 
             theme_templates_dir = self._get_theme_templates_dir(ctx)
             if theme_templates_dir and theme_templates_dir.exists():
@@ -115,9 +115,14 @@ class TemplateChangeDetector:
                     rel_path = template_path.relative_to(theme_templates_dir)
                     return str(rel_path.as_posix())
                 except ValueError:
-                    pass
-        except Exception:
-            pass
+                    pass  # Not relative to theme templates either
+        except OSError as e:
+            # File system errors (permission denied, etc.)
+            logger.debug(
+                "template_name_resolution_failed",
+                template_path=str(template_path),
+                error=str(e),
+            )
         return None
 
     def _template_key(self, ctx: "DetectionContext", template_path: Path) -> CacheKey:

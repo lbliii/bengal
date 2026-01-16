@@ -25,8 +25,9 @@ site.indexes.status.get('published')    # O(1) - published posts
 from __future__ import annotations
 
 import json
+import threading
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -56,7 +57,7 @@ class IndexEntry(Cacheable):
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
         page_paths: Set of page source paths for O(1) operations
         metadata: Extra data for display (e.g., section title, author email)
-        updated_at: ISO timestamp of last update
+        updated_at: ISO timestamp of last update (UTC)
         content_hash: Hash of page_paths for change detection
         
     """
@@ -73,7 +74,7 @@ class IndexEntry(Cacheable):
         self.key = key
         self.page_paths: set[str] = page_paths if page_paths is not None else set()
         self.metadata = metadata if metadata is not None else {}
-        self.updated_at = updated_at if updated_at else datetime.now().isoformat()
+        self.updated_at = updated_at if updated_at else datetime.now(timezone.utc).isoformat()
         self.content_hash = content_hash if content_hash else self._compute_hash()
 
     def add_page(self, page_path: str) -> bool:
@@ -121,7 +122,7 @@ class IndexEntry(Cacheable):
             key=data["key"],
             page_paths=set(data.get("page_paths", [])),
             metadata=data.get("metadata", {}),
-            updated_at=data.get("updated_at", datetime.now().isoformat()),
+            updated_at=data.get("updated_at", datetime.now(timezone.utc).isoformat()),
             content_hash=data.get("content_hash", ""),
         )
 
@@ -140,6 +141,10 @@ class QueryIndex(ABC):
     - Incremental updates
     - Change detection
     - O(1) lookups
+    
+    Thread Safety:
+    - All mutating operations are protected by an RLock
+    - Safe for concurrent access during parallel builds
     
     Example:
         class SectionIndex(QueryIndex):
@@ -163,6 +168,8 @@ class QueryIndex(ABC):
         self.cache_path = Path(cache_path)
         self.entries: dict[str, IndexEntry] = {}
         self._page_to_keys: dict[str, set[str]] = {}  # Reverse index for updates
+        # Thread safety lock for concurrent access
+        self._lock = threading.RLock()
         self._load_from_disk()
 
     @abstractmethod
@@ -212,30 +219,31 @@ class QueryIndex(ABC):
         """
         page_path = str(page.source_path)
 
-        # Get old keys for this page
-        old_keys = self._page_to_keys.get(page_path, set())
-
-        # Get new keys
+        # Get new keys outside lock (extract_keys may be slow)
         new_keys_data = self.extract_keys(page)
         new_keys = {k for k, _ in new_keys_data}
 
-        # Find changes
-        removed = old_keys - new_keys
-        added = new_keys - old_keys
-        unchanged = old_keys & new_keys
+        with self._lock:
+            # Get old keys for this page
+            old_keys = self._page_to_keys.get(page_path, set())
 
-        # Update index
-        for key in removed:
-            self._remove_page_from_key(key, page_path)
+            # Find changes
+            removed = old_keys - new_keys
+            added = new_keys - old_keys
+            unchanged = old_keys & new_keys
 
-        for key, metadata in new_keys_data:
-            self._add_page_to_key(key, page_path, metadata)
+            # Update index
+            for key in removed:
+                self._remove_page_from_key(key, page_path)
 
-        # Update reverse index
-        self._page_to_keys[page_path] = new_keys
+            for key, metadata in new_keys_data:
+                self._add_page_to_key(key, page_path, metadata)
 
-        # Return all affected keys (for incremental regeneration)
-        affected = removed | added | unchanged
+            # Update reverse index
+            self._page_to_keys[page_path] = new_keys
+
+            # Return all affected keys (for incremental regeneration)
+            affected = removed | added | unchanged
 
         if affected:
             logger.debug(
@@ -259,15 +267,16 @@ class QueryIndex(ABC):
         Returns:
             Set of affected keys
         """
-        old_keys = self._page_to_keys.get(page_path, set())
+        with self._lock:
+            old_keys = self._page_to_keys.get(page_path, set())
 
-        for key in old_keys:
-            self._remove_page_from_key(key, page_path)
+            for key in old_keys:
+                self._remove_page_from_key(key, page_path)
 
-        if page_path in self._page_to_keys:
-            del self._page_to_keys[page_path]
+            if page_path in self._page_to_keys:
+                del self._page_to_keys[page_path]
 
-        return old_keys
+            return old_keys
 
     def get(self, key: str) -> set[str]:
         """
@@ -279,12 +288,14 @@ class QueryIndex(ABC):
         Returns:
             Set of page paths (copy, safe to modify)
         """
-        entry = self.entries.get(key)
-        return entry.page_paths.copy() if entry else set()
+        with self._lock:
+            entry = self.entries.get(key)
+            return entry.page_paths.copy() if entry else set()
 
     def keys(self) -> list[str]:
         """Get all index keys."""
-        return list(self.entries.keys())
+        with self._lock:
+            return list(self.entries.keys())
 
     def has_changed(self, key: str, page_paths: set[str]) -> bool:
         """
@@ -297,11 +308,12 @@ class QueryIndex(ABC):
         Returns:
             True if entry changed and needs regeneration
         """
-        entry = self.entries.get(key)
-        if not entry:
-            return True  # New key
+        with self._lock:
+            entry = self.entries.get(key)
+            if not entry:
+                return True  # New key
 
-        return entry.page_paths != page_paths
+            return entry.page_paths != page_paths
 
     def get_metadata(self, key: str) -> dict[str, Any]:
         """
@@ -313,31 +325,35 @@ class QueryIndex(ABC):
         Returns:
             Metadata dict (empty if key not found)
         """
-        entry = self.entries.get(key)
-        return entry.metadata.copy() if entry else {}
+        with self._lock:
+            entry = self.entries.get(key)
+            return entry.metadata.copy() if entry else {}
 
     def save_to_disk(self) -> None:
         """Persist index to disk."""
-        # Verify consistency before save (debug mode only)
-        # RFC: Cache Lifecycle Hardening - Phase 3
-        # Note: Check invariants unconditionally but only log violations
-        # This is a simple O(n) check that detects index corruption
-        violations = self._check_invariants()
-        if violations:
-            logger.warning(
-                "query_index_invariant_violation",
-                index=self.name,
-                violations=violations[:5],  # First 5
-                total=len(violations),
-                action="saving_anyway",
-            )
+        with self._lock:
+            # Verify consistency before save
+            # RFC: Cache Lifecycle Hardening - Phase 3
+            violations = self._check_invariants()
+            if violations:
+                logger.warning(
+                    "query_index_invariant_violation",
+                    index=self.name,
+                    violations=violations[:5],  # First 5
+                    total=len(violations),
+                    action="clearing_and_skipping_save",
+                )
+                # Don't save corrupted data - clear and let next build recreate
+                self.entries.clear()
+                self._page_to_keys.clear()
+                return
 
-        data = {
-            "version": self.VERSION,
-            "name": self.name,
-            "entries": {key: entry.to_cache_dict() for key, entry in self.entries.items()},
-            "updated_at": datetime.now().isoformat(),
-        }
+            data = {
+                "version": self.VERSION,
+                "name": self.name,
+                "entries": {key: entry.to_cache_dict() for key, entry in self.entries.items()},
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
 
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -452,6 +468,8 @@ class QueryIndex(ABC):
     def _add_page_to_key(self, key: str, page_path: str, metadata: dict[str, Any]) -> None:
         """
         Add page to index key (O(1) via set).
+        
+        Note: Caller must hold self._lock.
 
         Args:
             key: Index key
@@ -466,7 +484,7 @@ class QueryIndex(ABC):
 
         # O(1) set add
         if self.entries[key].add_page(page_path):
-            self.entries[key].updated_at = datetime.now().isoformat()
+            self.entries[key].updated_at = datetime.now(timezone.utc).isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
     def _remove_page_from_key(self, key: str, page_path: str) -> None:
@@ -475,6 +493,8 @@ class QueryIndex(ABC):
 
         Performance: O(1) instead of O(p) list.remove().
         (RFC: Cache Algorithm Optimization)
+        
+        Note: Caller must hold self._lock.
 
         Args:
             key: Index key
@@ -485,7 +505,7 @@ class QueryIndex(ABC):
 
         # O(1) set discard
         if self.entries[key].remove_page(page_path):
-            self.entries[key].updated_at = datetime.now().isoformat()
+            self.entries[key].updated_at = datetime.now(timezone.utc).isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
             # Remove empty entries
@@ -495,8 +515,9 @@ class QueryIndex(ABC):
 
     def clear(self) -> None:
         """Clear all index data."""
-        self.entries.clear()
-        self._page_to_keys.clear()
+        with self._lock:
+            self.entries.clear()
+            self._page_to_keys.clear()
 
     def _check_invariants(self) -> list[str]:
         """
@@ -535,16 +556,17 @@ class QueryIndex(ABC):
         Returns:
             Dictionary with index stats
         """
-        total_pages = sum(len(entry.page_paths) for entry in self.entries.values())
-        unique_pages = len(self._page_to_keys)
+        with self._lock:
+            total_pages = sum(len(entry.page_paths) for entry in self.entries.values())
+            unique_pages = len(self._page_to_keys)
 
-        return {
-            "name": self.name,
-            "total_keys": len(self.entries),
-            "total_page_entries": total_pages,
-            "unique_pages": unique_pages,
-            "avg_pages_per_key": total_pages / len(self.entries) if self.entries else 0,
-        }
+            return {
+                "name": self.name,
+                "total_keys": len(self.entries),
+                "total_page_entries": total_pages,
+                "unique_pages": unique_pages,
+                "avg_pages_per_key": total_pages / len(self.entries) if self.entries else 0,
+            }
 
     def __repr__(self) -> str:
         """String representation."""

@@ -48,6 +48,13 @@ def decrement_active_renders() -> None:
     """
     global _active_render_count
     with _active_render_lock:
+        if _active_render_count <= 0:
+            logger.warning(
+                "decrement_active_renders_underflow",
+                current_count=_active_render_count,
+                hint="Possible mismatched increment/decrement calls",
+            )
+            return
         _active_render_count -= 1
 
 

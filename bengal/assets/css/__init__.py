@@ -25,17 +25,24 @@ bengal/assets/css/directives/: Individual directive CSS files
 
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 
+from bengal.utils.primitives.lru_cache import LRUCache
 
-@lru_cache(maxsize=1)
+# Thread-safe cache for directive base CSS (replaces @lru_cache for free-threading)
+# maxsize=1 because we only cache a single bundled CSS string
+_directive_css_cache: LRUCache[str, str] = LRUCache(maxsize=1, name="directive_css")
+
+
 def get_directive_base_css() -> str:
     """
     Return bundled directive base CSS as a single string.
     
     Reads and bundles all CSS files from the directives/ subdirectory,
     resolving @import statements. The result is cached for performance.
+    
+    Thread-safe: Uses LRUCache with RLock for safe concurrent access
+    under free-threading (PEP 703).
     
     Returns:
         Bundled CSS content (~200 lines, < 2KB)
@@ -45,14 +52,17 @@ def get_directive_base_css() -> str:
             >>> print(len(css))  # ~2000 characters
         
     """
-    directives_dir = Path(__file__).parent / "directives"
-    index_file = directives_dir / "_index.css"
+    def _load_css() -> str:
+        directives_dir = Path(__file__).parent / "directives"
+        index_file = directives_dir / "_index.css"
 
-    if not index_file.exists():
-        return ""
+        if not index_file.exists():
+            return ""
 
-    # Read the index file and resolve @import statements
-    return _bundle_css(index_file)
+        # Read the index file and resolve @import statements
+        return _bundle_css(index_file)
+    
+    return _directive_css_cache.get_or_set("directive_base_css", _load_css)
 
 
 def _bundle_css(css_file: Path) -> str:

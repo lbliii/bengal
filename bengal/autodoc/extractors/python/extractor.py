@@ -87,7 +87,10 @@ class PythonExtractor(Extractor):
     """
 
     def __init__(
-        self, exclude_patterns: list[str] | None = None, config: dict[str, Any] | None = None
+        self,
+        exclude_patterns: list[str] | None = None,
+        config: dict[str, Any] | None = None,
+        cache: Any | None = None,
     ):
         """
         Initialize extractor.
@@ -95,8 +98,10 @@ class PythonExtractor(Extractor):
         Args:
             exclude_patterns: Glob patterns to exclude (e.g., "*/tests/*")
             config: Configuration dict with include_inherited, exclude_patterns, etc.
+            cache: Optional BuildCache instance for AST caching (RFC: rfc-build-performance-optimizations)
         """
         self.config = config or {}
+        self.cache = cache  # RFC: rfc-build-performance-optimizations Phase 3
 
         # Read exclude_patterns from parameter, config, or use defaults
         if exclude_patterns is not None:
@@ -388,7 +393,69 @@ class PythonExtractor(Extractor):
         return elements
 
     def _extract_file(self, file_path: Path) -> list[DocElement]:
-        """Extract documentation from a single Python file."""
+        """
+        Extract documentation from a single Python file.
+        
+        RFC: rfc-build-performance-optimizations Phase 3
+        Checks cache before parsing AST to skip parsing for unchanged files.
+        On cache hit, reconstructs DocElement from cached serialization.
+        """
+        # RFC: rfc-build-performance-optimizations Phase 3
+        # Check cache before parsing - skip AST parsing on cache hit
+        if self.cache:
+            from bengal.utils.primitives.hashing import hash_file
+            from bengal.autodoc.base import DocElement
+            
+            source_hash = hash_file(file_path, truncate=16)
+            cached_info = self.cache.get_cached_module(str(file_path), source_hash)
+            
+            if cached_info:
+                # Cache hit - reconstruct DocElement from cached serialization
+                # This skips AST parsing entirely, providing the full performance benefit
+                try:
+                    module_element = DocElement.from_dict(cached_info.module_element_dict)
+                    
+                    # Build class index from reconstructed module (needed for inheritance synthesis)
+                    for child in module_element.children:
+                        if child.element_type == "class":
+                            qualified = child.qualified_name
+                            self.class_index[qualified] = child
+                            # Also index by simple name for O(1) inheritance lookup
+                            simple_name = qualified.rsplit(".", 1)[-1]
+                            if simple_name not in self.simple_name_index:
+                                self.simple_name_index[simple_name] = []
+                            self.simple_name_index[simple_name].append(qualified)
+                    
+                    # Synthesize inherited members if enabled
+                    # Note: This may require AST if inheritance info isn't fully cached
+                    # For now, we'll synthesize from cached class index
+                    if should_include_inherited(self.config):
+                        for child in module_element.children:
+                            if child.element_type == "class":
+                                synthesize_inherited_members(
+                                    child,
+                                    self.class_index,
+                                    self.config,
+                                    self.simple_name_index,
+                                )
+                    
+                    logger.debug(
+                        "autodoc_cache_reconstruction_success",
+                        source_path=str(file_path),
+                        children=len(module_element.children),
+                    )
+                    return [module_element]
+                except Exception as e:
+                    # Cache deserialization failed - fall back to parsing
+                    logger.debug(
+                        "autodoc_cache_reconstruction_failed",
+                        source_path=str(file_path),
+                        error=str(e)[:100],
+                        action="falling_back_to_ast_parsing",
+                    )
+                    # Fall through to normal parsing below
+        
+        # Cache miss or reconstruction failed - parse AST normally
         source = file_path.read_text(encoding="utf-8")
 
         try:
@@ -398,6 +465,11 @@ class PythonExtractor(Extractor):
 
         # Extract module-level documentation
         module_element = self._extract_module(tree, file_path, source)
+        
+        # RFC: rfc-build-performance-optimizations Phase 3
+        # Cache parsed module info after extraction
+        if self.cache and module_element:
+            self._cache_module_info(file_path, source, module_element)
 
         if not module_element:
             return []
@@ -425,6 +497,45 @@ class PythonExtractor(Extractor):
                     )
 
         return [module_element]
+
+    def _cache_module_info(
+        self,
+        file_path: Path,
+        source: str,
+        module_element: DocElement,
+    ) -> None:
+        """
+        Cache parsed module information for future builds.
+        
+        RFC: rfc-build-performance-optimizations Phase 3
+        Stores full DocElement serialization in cache to skip AST parsing on subsequent builds.
+        
+        Args:
+            file_path: Path to Python source file
+            source: Source file content
+            module_element: Extracted DocElement for the module
+        """
+        if not self.cache:
+            return
+        
+        from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+        from bengal.utils.primitives.hashing import hash_str
+        
+        # Compute source hash
+        source_hash = hash_str(source, truncate=16)
+        
+        # Store full DocElement serialization (enables complete reconstruction)
+        # This includes all metadata, children, typed_metadata, etc.
+        module_element_dict = module_element.to_dict()
+        
+        # Create cached info with full serialization
+        cached_info = CachedModuleInfo(
+            source_hash=source_hash,
+            module_element_dict=module_element_dict,
+        )
+        
+        # Store in cache
+        self.cache.cache_module(str(file_path), cached_info)
 
     def _extract_module(self, tree: ast.Module, file_path: Path, source: str) -> DocElement | None:
         """Extract module documentation."""

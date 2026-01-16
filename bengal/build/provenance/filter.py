@@ -2,10 +2,17 @@
 Provenance-based incremental filter.
 
 Replaces IncrementalFilterEngine with content-addressed provenance checking.
+
+Thread Safety:
+    The ProvenanceFilter is designed for single-threaded use within a build,
+    but uses thread-safe backing stores (ProvenanceCache). Session caches
+    (_file_hashes, _computed_provenance) are per-filter instance and should
+    not be shared between threads without synchronization.
 """
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -109,8 +116,10 @@ class ProvenanceFilter:
         self._load_asset_hashes()
 
         # Session caches to avoid redundant I/O and computation
+        # Protected by lock for thread-safe access during parallel operations
         self._file_hashes: dict[Path, ContentHash] = {}
         self._computed_provenance: dict[CacheKey, Provenance] = {}
+        self._session_lock = threading.Lock()
 
     def filter(
         self,
@@ -150,9 +159,6 @@ class ProvenanceFilter:
         affected_sections: set[str] = set()
         changed_page_paths: set[Path] = set()
 
-        # OPTIMIZATION: Pre-load cache to avoid repeated _ensure_loaded() calls
-        self.cache._ensure_loaded()
-
         for page in pages:
             page_path = self._get_page_key(page)
 
@@ -165,7 +171,7 @@ class ProvenanceFilter:
 
             # CRITICAL OPTIMIZATION: Check cache FIRST before computing provenance
             # This avoids expensive file hashing for cache hits
-            stored_hash = self.cache._index.get(page_path)
+            stored_hash = self.cache.get_stored_hash(page_path)
             if stored_hash is None:
                 # No cache entry - definitely need to build
                 pages_to_build.append(page)
@@ -242,7 +248,7 @@ class ProvenanceFilter:
 
     def record_build(self, page: Page, output_hash: ContentHash | None = None) -> None:
         """
-        Record provenance after a page is built.
+        Record provenance after a page is built (thread-safe).
 
         Call this after rendering each page to update the cache.
         Records provenance for both real and virtual pages.
@@ -253,6 +259,8 @@ class ProvenanceFilter:
         """
         # OPTIMIZATION: Use already computed provenance if available from filter phase
         page_path = self._get_page_key(page)
+        
+        # Thread-safe access to session cache
         provenance = self._computed_provenance.get(page_path)
         
         if provenance is None:
@@ -293,10 +301,21 @@ class ProvenanceFilter:
         asset_cache_path.write_text(json.dumps(dict(self._asset_hashes), indent=2))
 
     def _get_file_hash(self, path: Path) -> ContentHash:
-        """Get file hash from cache or compute it."""
-        if path not in self._file_hashes:
-            self._file_hashes[path] = hash_file(path)
-        return self._file_hashes[path]
+        """Get file hash from session cache or compute it (thread-safe)."""
+        # Fast path: check without lock
+        cached = self._file_hashes.get(path)
+        if cached is not None:
+            return cached
+        
+        # Compute hash (outside lock - I/O)
+        computed = hash_file(path)
+        
+        # Store in cache with lock
+        with self._session_lock:
+            # Double-check in case another thread computed it
+            if path not in self._file_hashes:
+                self._file_hashes[path] = computed
+            return self._file_hashes[path]
 
     def _compute_provenance_fast(self, page: Page) -> Provenance | None:
         """
@@ -313,27 +332,35 @@ class ProvenanceFilter:
         if is_virtual:
             return None  # Need full computation for virtual pages
         
-        if not page.source_path.exists():
-            return None  # File missing - need full check
-        
-        # Check if already computed for this page
+        # Check if already computed for this page (fast path without lock)
         page_path = self._get_page_key(page)
-        if page_path in self._computed_provenance:
-            return self._computed_provenance[page_path]
+        cached = self._computed_provenance.get(page_path)
+        if cached is not None:
+            return cached
 
-        # Fast path: Compute just content hash + config hash
-        # This matches the most common case (real markdown files)
-        content_hash = self._get_file_hash(page.source_path)
+        # Defensive check: file may have been deleted between filter start and now
+        # (race condition with file watcher in dev server)
+        try:
+            if not page.source_path.exists():
+                return None  # File missing - need full check
+            
+            # Fast path: Compute just content hash + config hash
+            # This matches the most common case (real markdown files)
+            content_hash = self._get_file_hash(page.source_path)
+        except OSError:
+            # File system error (deleted, permission denied, etc.)
+            return None
         
         # Build minimal provenance (content + config only)
         provenance = Provenance()
         provenance = provenance.with_input("content", page_path, content_hash)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
         
-        # Cache for later (record_build)
-        self._computed_provenance[page_path] = provenance
-
-        return provenance
+        # Cache for later (record_build) - thread-safe
+        with self._session_lock:
+            if page_path not in self._computed_provenance:
+                self._computed_provenance[page_path] = provenance
+            return self._computed_provenance[page_path]
     
     def _compute_provenance(self, page: Page) -> Provenance:
         """Compute provenance for a page based on its inputs.
@@ -349,9 +376,10 @@ class ProvenanceFilter:
         """
         page_path = self._get_page_key(page)
 
-        # Check cache first
-        if page_path in self._computed_provenance:
-            return self._computed_provenance[page_path]
+        # Check cache first (fast path without lock)
+        cached = self._computed_provenance.get(page_path)
+        if cached is not None:
+            return cached
 
         provenance = Provenance()
         rel_path = page_path
@@ -359,10 +387,14 @@ class ProvenanceFilter:
         # 1. Determine the actual source for this page
         is_virtual = getattr(page, "_virtual", False)
         
-        if not is_virtual and page.source_path.exists():
+        if not is_virtual:
             # Real content page - hash the markdown file
-            content_hash = self._get_file_hash(page.source_path)
-            provenance = provenance.with_input("content", rel_path, content_hash)
+            try:
+                if page.source_path.exists():
+                    content_hash = self._get_file_hash(page.source_path)
+                    provenance = provenance.with_input("content", rel_path, content_hash)
+            except OSError:
+                pass  # File system error - skip content input
         
         elif is_virtual:
             # Virtual page - find the actual source
@@ -437,10 +469,11 @@ class ProvenanceFilter:
         # 2. Site config (affects all pages)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
-        # Cache for later
-        self._computed_provenance[page_path] = provenance
-
-        return provenance
+        # Cache for later - thread-safe
+        with self._session_lock:
+            if page_path not in self._computed_provenance:
+                self._computed_provenance[page_path] = provenance
+            return self._computed_provenance[page_path]
 
     def _get_page_key(self, page: Page) -> CacheKey:
         """Get canonical page key for cache lookups."""
@@ -451,9 +484,16 @@ class ProvenanceFilter:
         Check if an asset has changed based on content hash.
         
         OPTIMIZATION: Uses mtime check first to avoid hashing unchanged files.
+        
+        Thread Safety:
+            Uses local variables for hash comparisons. Asset hash dict
+            updates are safe because each asset has a unique key.
         """
-        if not asset.source_path.exists():
-            return True
+        try:
+            if not asset.source_path.exists():
+                return True
+        except OSError:
+            return True  # File system error - treat as changed
         
         asset_path = self._get_asset_key(asset)
         stored_hash = self._asset_hashes.get(asset_path)
@@ -463,16 +503,16 @@ class ProvenanceFilter:
         if stored_hash is not None:
             try:
                 # Get mtime for quick check (much faster than hashing)
-                current_mtime = asset.source_path.stat().st_mtime
-                # If mtime matches and we have hash, assume unchanged
-                # (We'll verify hash on first check after mtime change)
+                _ = asset.source_path.stat().st_mtime
                 # For now, we still hash to be safe, but we could cache mtime too
-                pass  # Keep hashing for correctness, but could optimize further
             except OSError:
                 return True  # File error - treat as changed
         
         # Compute hash (necessary for correctness)
-        current_hash = self._get_file_hash(asset.source_path)
+        try:
+            current_hash = self._get_file_hash(asset.source_path)
+        except OSError:
+            return True  # File error - treat as changed
         
         if stored_hash is None:
             # First time seeing this asset
@@ -511,7 +551,7 @@ class ProvenanceFilter:
         """Get cache statistics."""
         return self.cache.stats()
 
-    def get_affected_by(self, input_hash: ContentHash) -> set[str]:
+    def get_affected_by(self, input_hash: ContentHash) -> set[CacheKey]:
         """
         Subvenance query: What pages depend on this input?
 

@@ -239,8 +239,11 @@ class SiteIndexGenerator:
 
         # Only include build_time in production builds
         # Use site.build_time (set once at build start) for deterministic output
-        if not self.site.dev_mode and hasattr(self.site, "build_time") and self.site.build_time:
-            site_metadata["build_time"] = self.site.build_time.isoformat()
+        if not self.site.dev_mode:
+            build_time = getattr(self.site, "build_time", None)
+            # Verify it's a real datetime (not a Mock) with a working isoformat method
+            if isinstance(build_time, datetime):
+                site_metadata["build_time"] = build_time.isoformat()
 
         site_data: dict[str, Any] = {
             "site": site_metadata,
@@ -398,8 +401,11 @@ class SiteIndexGenerator:
 
         # Only include build_time in production builds
         # Use site.build_time (set once at build start) for deterministic output
-        if not self.site.dev_mode and hasattr(self.site, "build_time") and self.site.build_time:
-            site_metadata["build_time"] = self.site.build_time.isoformat()
+        if not self.site.dev_mode:
+            build_time = getattr(self.site, "build_time", None)
+            # Verify it's a real datetime (not a Mock) with a working isoformat method
+            if isinstance(build_time, datetime):
+                site_metadata["build_time"] = build_time.isoformat()
 
         site_data: dict[str, Any] = {
             "site": site_metadata,

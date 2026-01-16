@@ -226,7 +226,9 @@ class TestBuildProperties:
         site.dev_mode = True
 
         # First build
-        options = BuildOptions(incremental=False, quiet=True)
+        # Note: force_sequential=True due to parallel deadlock in free-threaded Python
+        # TODO: Fix parallel rendering deadlock and remove this workaround
+        options = BuildOptions(incremental=False, quiet=True, force_sequential=True)
         site.build(options=options)
         first_hashes = _hash_output_dir(site.output_dir)
 

@@ -133,6 +133,16 @@ class ProgressManagerProtocol(Protocol):
         """Remove a completed task."""
         ...
 
+    def update_phase(
+        self,
+        phase_id: str,
+        current: int | None = None,
+        current_item: str | None = None,
+        **metadata: object,
+    ) -> None:
+        """Update phase progress."""
+        ...
+
 
 # =============================================================================
 # Output Types

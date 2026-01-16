@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
+from bengal.utils.concurrency.thread_local import ThreadSafeSet
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.observability import ComponentStats
 
@@ -45,10 +46,11 @@ logger = get_logger(__name__)
 # =============================================================================
 # Observability: Fallback Warning Deduplication
 # RFC: rfc-asset-resolution-observability.md (Phase 1)
+# Thread-safe: Uses ThreadSafeSet for safe concurrent access (PEP 703)
 # =============================================================================
 
 # Track paths that have already warned about fallback (avoid log spam)
-_fallback_warned: set[str] = set()
+_fallback_warned: ThreadSafeSet = ThreadSafeSet()
 
 
 # =============================================================================
@@ -327,8 +329,8 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
             stats.items_skipped.get("unexpected_fallback", 0) + 1
         )
         # Warn once per unique path to avoid log spam during render
-        if logical_path not in _fallback_warned:
-            _fallback_warned.add(logical_path)
+        # Thread-safe: add_if_new returns True if item was new (not present before)
+        if _fallback_warned.add_if_new(logical_path):
             logger.warning(
                 "asset_manifest_disk_fallback",
                 logical_path=logical_path,
@@ -404,12 +406,13 @@ def clear_manifest_cache(site: Site | None = None) -> None:
     Also resets resolution stats and fallback warning deduplication.
     The site parameter is kept for backward compatibility but is not used.
 
+    Thread-safe: Uses ThreadSafeSet.clear() for safe concurrent access (PEP 703).
+
     RFC: rfc-asset-resolution-observability.md
 
     Args:
         site: Unused (kept for backward compatibility)
     """
-    global _fallback_warned
     reset_asset_manifest()
     _resolution_stats.set(None)
-    _fallback_warned = set()
+    _fallback_warned.clear()

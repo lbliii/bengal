@@ -345,3 +345,113 @@ class TestTaxonomyIndex:
         # Subsequent load should use compressed format
         idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
         assert idx2.has_tag("python") is True
+
+
+class TestTaxonomyIndexThreadSafety:
+    """Thread safety tests for TaxonomyIndex."""
+
+    def test_concurrent_tag_updates(self, cache_dir):
+        """Multiple threads can safely update tags concurrently."""
+        import threading
+
+        idx = TaxonomyIndex(cache_dir / "taxonomy.json")
+        errors: list[str] = []
+
+        def update_tags(thread_id: int):
+            """Update tags from a specific thread."""
+            try:
+                for i in range(50):
+                    tag_slug = f"tag-{thread_id}-{i}"
+                    pages = [f"page-{thread_id}-{i}-{j}.md" for j in range(3)]
+                    idx.update_tag(tag_slug, f"Tag {thread_id}-{i}", pages)
+            except Exception as e:
+                errors.append(f"Thread {thread_id}: {e}")
+
+        # Spawn multiple threads
+        threads = [threading.Thread(target=update_tags, args=(i,)) for i in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety violations: {errors}"
+
+        # Verify all tags were created
+        for thread_id in range(4):
+            for i in range(50):
+                tag_slug = f"tag-{thread_id}-{i}"
+                assert idx.has_tag(tag_slug), f"Missing tag: {tag_slug}"
+
+    def test_concurrent_read_write(self, cache_dir):
+        """Readers and writers can operate concurrently."""
+        import threading
+
+        idx = TaxonomyIndex(cache_dir / "taxonomy.json")
+        # Pre-populate some tags
+        for i in range(10):
+            idx.update_tag(f"tag-{i}", f"Tag {i}", [f"page-{i}.md"])
+
+        errors: list[str] = []
+        read_count = [0]
+
+        def reader():
+            """Read tags repeatedly."""
+            try:
+                for _ in range(100):
+                    for i in range(10):
+                        _ = idx.get_tag(f"tag-{i}")
+                        _ = idx.get_pages_for_tag(f"tag-{i}")
+                        read_count[0] += 1
+            except Exception as e:
+                errors.append(f"Reader: {e}")
+
+        def writer():
+            """Update tags repeatedly."""
+            try:
+                for i in range(100):
+                    idx.update_tag(f"tag-{i % 10}", f"Tag {i}", [f"new-page-{i}.md"])
+            except Exception as e:
+                errors.append(f"Writer: {e}")
+
+        threads = [threading.Thread(target=reader) for _ in range(3)]
+        threads.append(threading.Thread(target=writer))
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety violations: {errors}"
+        assert read_count[0] > 0, "Reads should have occurred"
+
+
+class TestTaxonomyIndexInvariantViolation:
+    """Tests for handling invariant violations in TaxonomyIndex."""
+
+    def test_save_clears_index_on_invariant_violation(self, cache_dir):
+        """save_to_disk clears index if invariants are violated instead of saving corrupted data."""
+        idx = TaxonomyIndex(cache_dir / "taxonomy.json")
+
+        # Add valid data
+        idx.update_tag("python", "Python", ["post1.md", "post2.md"])
+
+        # Manually corrupt the internal state (simulate invariant violation)
+        # Add an entry to tags that references pages not in _page_to_tags
+        idx.tags["orphan-tag"] = TagEntry(
+            tag_slug="orphan-tag",
+            tag_name="Orphan",
+            page_paths=["nonexistent-page.md"],  # Not in _page_to_tags
+            updated_at="2025-10-16T12:00:00",
+            is_valid=True,
+        )
+
+        # save_to_disk should detect corruption and clear the index
+        idx.save_to_disk()
+
+        # Index should be cleared
+        assert len(idx.tags) == 0
+        assert len(idx._page_to_tags) == 0
+
+        # On next load, it should be empty (no corrupted data saved)
+        idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
+        assert len(idx2.tags) == 0

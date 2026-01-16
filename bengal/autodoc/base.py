@@ -29,17 +29,22 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalCacheError, ErrorCode
+from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from bengal.autodoc.models import DocMetadata
 
 
-@lru_cache(maxsize=1024)
+# Thread-safe LRU cache for parameter info (replaces @lru_cache for free-threading)
+_param_info_cache: LRUCache[tuple[str, str | None, str | None, str | None], Any] = LRUCache(
+    maxsize=1024, name="param_info"
+)
+
+
 def _cached_param_info(
     name: str,
     type_hint: str | None,
@@ -52,6 +57,9 @@ def _cached_param_info(
     Memoizes ParameterInfo construction to avoid repeated object creation
     for common signatures (e.g., "self", "cls", common type hints).
     
+    Thread-safe: Uses LRUCache with RLock for safe concurrent access
+    under free-threading (PEP 703).
+    
     Args:
         name: Parameter name
         type_hint: Type annotation string
@@ -62,15 +70,19 @@ def _cached_param_info(
         ParameterInfo dataclass instance
         
     """
-    # Import here to avoid circular imports
-    from bengal.autodoc.models.python import ParameterInfo
-
-    return ParameterInfo(
-        name=name,
-        type_hint=type_hint,
-        default=default,
-        description=description,
-    )
+    key = (name, type_hint, default, description)
+    
+    def _create_param_info() -> Any:
+        # Import here to avoid circular imports
+        from bengal.autodoc.models.python import ParameterInfo
+        return ParameterInfo(
+            name=name,
+            type_hint=type_hint,
+            default=default,
+            description=description,
+        )
+    
+    return _param_info_cache.get_or_set(key, _create_param_info)
 
 
 def clear_autodoc_caches() -> None:
@@ -80,7 +92,7 @@ def clear_autodoc_caches() -> None:
     Call between builds or when cache invalidation is needed.
         
     """
-    _cached_param_info.cache_clear()
+    _param_info_cache.clear()
 
 
 @dataclass

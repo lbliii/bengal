@@ -44,6 +44,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.page import Page
     from bengal.core.section import Section
 
@@ -148,7 +149,7 @@ class ContentTypeStrategy:
             return [p for p in pages if p != index_page]
         return list(pages)
 
-    def should_paginate(self, page_count: int, config: dict[str, Any]) -> bool:
+    def should_paginate(self, page_count: int, config: Config | dict[str, Any]) -> bool:
         """
         Determine if this content type should use pagination.
 

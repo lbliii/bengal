@@ -669,7 +669,7 @@ class AssetOrchestrator:
                 output_path=Path("js/bundle.js"),
                 asset_type="javascript",
             )
-            bundle_asset._site = self.site  # type: ignore[attr-defined]
+            bundle_asset._site = self.site
             # Mark as already minified to avoid double-minification
             if minify:
                 bundle_asset._minified_content = bundled_content
@@ -709,7 +709,7 @@ class AssetOrchestrator:
             Exception: If CSS bundling or minification fails
         """
         try:
-            css_entry._site = self.site  # type: ignore[attr-defined]
+            css_entry._site = self.site
             assets_output = self.site.output_dir / "assets"
 
             # Step 1: Get directive base CSS (functional styles)
@@ -775,7 +775,7 @@ class AssetOrchestrator:
         try:
             # Provide site context for best-effort performance caches and diagnostics.
             # (Assets are passive models, but storing context on the instance is safe and local.)
-            asset._site = self.site  # type: ignore[attr-defined]
+            asset._site = self.site
             if minify and asset.asset_type in ("css", "javascript"):
                 asset.minify()
 

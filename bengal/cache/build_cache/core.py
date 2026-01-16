@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -56,6 +56,7 @@ class BuildCache(
     ParsedContentCacheMixin,
     RenderedOutputCacheMixin,
     AutodocTrackingMixin,
+    AutodocContentCacheMixin,
 ):
     """
     Tracks file hashes and dependencies between builds.
@@ -137,6 +138,11 @@ class BuildCache(
     # Enables fine-grained incremental builds and self-validation.
     # See: plan/rfc-autodoc-incremental-caching.md
     autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
+    
+    # Autodoc content cache: source_file → CachedModuleInfo
+    # RFC: rfc-build-performance-optimizations Phase 3
+    # Caches parsed module data to skip AST parsing for unchanged sources
+    autodoc_content_cache: dict[str, Any] = field(default_factory=dict)
 
     # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
     # Enables skipping asset discovery walk during hot reload if no assets changed.
@@ -354,6 +360,25 @@ class BuildCache(
             if "discovered_assets" not in data or not isinstance(data["discovered_assets"], dict):
                 data["discovered_assets"] = {}
 
+            # Autodoc content cache (tolerate missing, reconstruct CachedModuleInfo)
+            if "autodoc_content_cache" not in data or not isinstance(
+                data["autodoc_content_cache"], dict
+            ):
+                data["autodoc_content_cache"] = {}
+            else:
+                # Reconstruct CachedModuleInfo from serialized dicts
+                from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+                reconstructed: dict[str, Any] = {}
+                for source_path, info_dict in data["autodoc_content_cache"].items():
+                    if isinstance(info_dict, dict) and "source_hash" in info_dict:
+                        reconstructed[source_path] = CachedModuleInfo(
+                            source_hash=info_dict["source_hash"],
+                            module_element_dict=info_dict.get("module_element_dict", {}),
+                        )
+                    # Skip malformed entries
+                data["autodoc_content_cache"] = reconstructed
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -491,6 +516,20 @@ class BuildCache(
             compress: Whether to use compression (default: True)
         """
         # Convert sets to lists for JSON serialization
+        # Serialize CachedModuleInfo to dict for JSON
+        from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+        autodoc_content_serialized = {}
+        for source_path, info in self.autodoc_content_cache.items():
+            if isinstance(info, CachedModuleInfo):
+                autodoc_content_serialized[source_path] = {
+                    "source_hash": info.source_hash,
+                    "module_element_dict": info.module_element_dict,
+                }
+            elif isinstance(info, dict):
+                # Already serialized (shouldn't happen but handle gracefully)
+                autodoc_content_serialized[source_path] = info
+
         data = {
             "version": self.VERSION,
             "file_fingerprints": self.file_fingerprints,
@@ -513,12 +552,14 @@ class BuildCache(
             "autodoc_source_metadata": {
                 k: list(v) for k, v in self.autodoc_source_metadata.items()
             },
+            # Autodoc content cache (CachedModuleInfo serialized to dict)
+            "autodoc_content_cache": autodoc_content_serialized,
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
-            "last_build": datetime.now().isoformat(),
+            "last_build": datetime.now(timezone.utc).isoformat(),
         }
 
         if compress:
@@ -566,7 +607,9 @@ class BuildCache(
         self.validation_results.clear()
         self.autodoc_dependencies.clear()
         self.autodoc_source_metadata.clear()
+        self.autodoc_content_cache.clear()
         self.discovered_assets.clear()
+        self.url_claims.clear()
         self.config_hash = None
         self.last_build = None
 

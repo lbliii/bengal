@@ -49,7 +49,10 @@ See Also:
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.config.accessor import Config
 
 # =============================================================================
 # Worker Configuration
@@ -619,7 +622,7 @@ def normalize_bool_or_dict(
 
 
 def is_feature_enabled(
-    config: dict[str, Any],
+    config: Config | dict[str, Any],
     key: str,
     default: bool = True,
 ) -> bool:
@@ -664,7 +667,7 @@ def is_feature_enabled(
 
 
 def get_feature_config(
-    config: dict[str, Any],
+    config: Config | dict[str, Any],
     key: str,
     default_enabled: bool = True,
 ) -> dict[str, Any]:

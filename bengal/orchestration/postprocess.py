@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.orchestration.build_context import BuildContext
+    from bengal.utils.observability.cli_progress import LiveProgressManager
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
@@ -103,7 +104,7 @@ class PostprocessOrchestrator:
     def run(
         self,
         parallel: bool = True,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         build_context: BuildContext | None = None,
         incremental: bool = False,
         collector: OutputCollector | None = None,
@@ -213,7 +214,7 @@ class PostprocessOrchestrator:
     def _run_sequential(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         reporter: ProgressReporter | None = None,
     ) -> None:
         """
@@ -281,7 +282,7 @@ class PostprocessOrchestrator:
     def _run_parallel(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         reporter: ProgressReporter | None = None,
     ) -> None:
         """

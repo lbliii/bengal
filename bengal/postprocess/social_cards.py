@@ -54,6 +54,7 @@ from PIL import Image, ImageDraw, ImageFont
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.page import Page
     from bengal.core.site import Site
 
@@ -109,7 +110,7 @@ class SocialCardConfig:
     cache: bool = True
 
 
-def parse_social_cards_config(config: dict[str, Any]) -> SocialCardConfig:
+def parse_social_cards_config(config: Config | dict[str, Any]) -> SocialCardConfig:
     """
     Parse [social_cards] section from bengal.toml.
     

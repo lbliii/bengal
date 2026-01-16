@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
+from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import (
     FilterResult,

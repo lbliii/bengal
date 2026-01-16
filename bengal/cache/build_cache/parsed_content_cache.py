@@ -20,7 +20,7 @@ Related Modules:
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -121,7 +121,7 @@ class ParsedContentCacheMixin:
             "cascade_metadata_hash": cascade_metadata_hash,
             "template": template,
             "parser_version": parser_version,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "size_bytes": size_bytes,
         }
 

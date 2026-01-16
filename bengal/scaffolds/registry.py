@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import builtins
 import importlib
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -254,22 +255,31 @@ class TemplateRegistry:
         return template_id in self._templates
 
 
-# Global registry instance
+# Global registry instance with lock for thread-safe initialization
 _registry: TemplateRegistry | None = None
+_registry_lock = threading.Lock()
 
 
 def _get_registry() -> TemplateRegistry:
     """
     Get or create the global registry instance.
     
+    Thread-safe: Uses double-checked locking pattern for safe concurrent
+    initialization under free-threading (PEP 703).
+    
     Returns:
         Singleton TemplateRegistry instance
         
     """
     global _registry
-    if _registry is None:
-        _registry = TemplateRegistry()
-    return _registry
+    # Fast path: registry already exists (no lock needed)
+    if _registry is not None:
+        return _registry
+    # Slow path: acquire lock and double-check
+    with _registry_lock:
+        if _registry is None:
+            _registry = TemplateRegistry()
+        return _registry
 
 
 def get_template(template_id: str) -> SiteTemplate | None:

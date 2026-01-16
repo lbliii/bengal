@@ -54,8 +54,10 @@ class DataChangeDetector:
         rebuild_reasons: dict[CacheKey, RebuildReason] = {}
 
         for data_file in changed_data_files:
-            dep_key = Path(f"data:{data_file}")
-            affected_pages = ctx.cache.get_affected_pages(dep_key)
+            # Use string key with data: prefix for dependency lookup
+            # (matches how dependencies are tracked in DependencyTracker.track_data_file)
+            dep_key = f"data:{data_file}"
+            affected_pages = ctx.cache.get_affected_pages(Path(dep_key))
             for page_path_str in affected_pages:
                 page_path = normalize_source_path(ctx.site.root_path, page_path_str)
                 page_key = page_key_for_path(ctx.site.root_path, page_path)

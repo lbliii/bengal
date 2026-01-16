@@ -215,6 +215,61 @@ class TestBuildCache:
         assert len(cache.dependencies) == 0
         assert cache.last_build is None
 
+    def test_clear_clears_all_fields(self, tmp_path):
+        """Test that clear() clears ALL cache fields including url_claims and autodoc_content_cache."""
+        from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+        cache = BuildCache()
+
+        # Populate various cache fields
+        page = tmp_path / "page.md"
+        page.write_text("Content")
+        cache.update_file(page)
+        cache.add_dependency(page, page)
+        cache.add_taxonomy_dependency("tag:python", page)
+        cache.update_tags(page, {"python", "web"})
+        cache.config_hash = "abc123"
+
+        # Add url_claims
+        cache.url_claims["/about/"] = {
+            "owner": "content/about.md",
+            "source": "content",
+            "priority": 100,
+        }
+
+        # Add autodoc_content_cache
+        cache.autodoc_content_cache["test/module.py"] = CachedModuleInfo(
+            source_hash="abc123",
+            module_element_dict={"name": "test", "element_type": "module"},
+        )
+
+        # Add discovered assets
+        cache.discovered_assets["image.png"] = "assets/image.png"
+
+        # Clear everything
+        cache.clear()
+
+        # Verify ALL fields are cleared
+        assert len(cache.file_fingerprints) == 0
+        assert len(cache.dependencies) == 0
+        assert len(cache.reverse_dependencies) == 0
+        assert len(cache.output_sources) == 0
+        assert len(cache.taxonomy_deps) == 0
+        assert len(cache.page_tags) == 0
+        assert len(cache.tag_to_pages) == 0
+        assert len(cache.known_tags) == 0
+        assert len(cache.parsed_content) == 0
+        assert len(cache.rendered_output) == 0
+        assert len(cache.synthetic_pages) == 0
+        assert len(cache.validation_results) == 0
+        assert len(cache.autodoc_dependencies) == 0
+        assert len(cache.autodoc_source_metadata) == 0
+        assert len(cache.autodoc_content_cache) == 0  # NEW: verify this is cleared
+        assert len(cache.discovered_assets) == 0
+        assert len(cache.url_claims) == 0  # NEW: verify this is cleared
+        assert cache.config_hash is None
+        assert cache.last_build is None
+
     def test_save_and_load(self, tmp_path):
         """Test saving and loading cache."""
         cache = BuildCache()
@@ -896,3 +951,125 @@ class TestInvalidationMethods:
         assert str(test_file) not in cache.file_fingerprints
         assert str(test_file) not in cache.parsed_content
         assert str(test_file) not in cache.rendered_output
+
+
+class TestAutodocContentCacheSaveLoad:
+    """Tests for autodoc_content_cache save/load roundtrip."""
+
+    def test_autodoc_content_cache_survives_save_load_roundtrip(self, tmp_path):
+        """CachedModuleInfo objects survive serialization and deserialization."""
+        from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+        cache = BuildCache()
+
+        # Add autodoc content cache entries
+        cache.autodoc_content_cache["module1.py"] = CachedModuleInfo(
+            source_hash="hash123",
+            module_element_dict={
+                "name": "module1",
+                "element_type": "module",
+                "classes": [{"name": "MyClass", "methods": []}],
+            },
+        )
+        cache.autodoc_content_cache["module2.py"] = CachedModuleInfo(
+            source_hash="hash456",
+            module_element_dict={
+                "name": "module2",
+                "element_type": "module",
+                "functions": [{"name": "my_func", "docstring": "Does stuff"}],
+            },
+        )
+
+        # Save
+        cache_file = tmp_path / ".bengal-cache.json"
+        cache.save(cache_file)
+
+        # Load
+        loaded_cache = BuildCache.load(cache_file)
+
+        # Verify entries exist
+        assert "module1.py" in loaded_cache.autodoc_content_cache
+        assert "module2.py" in loaded_cache.autodoc_content_cache
+
+        # Verify they are CachedModuleInfo instances (not dicts)
+        entry1 = loaded_cache.autodoc_content_cache["module1.py"]
+        entry2 = loaded_cache.autodoc_content_cache["module2.py"]
+
+        assert isinstance(entry1, CachedModuleInfo)
+        assert isinstance(entry2, CachedModuleInfo)
+
+        # Verify content preserved
+        assert entry1.source_hash == "hash123"
+        assert entry1.module_element_dict["name"] == "module1"
+        assert entry1.module_element_dict["classes"][0]["name"] == "MyClass"
+
+        assert entry2.source_hash == "hash456"
+        assert entry2.module_element_dict["functions"][0]["name"] == "my_func"
+
+    def test_autodoc_content_cache_empty_survives_roundtrip(self, tmp_path):
+        """Empty autodoc_content_cache survives save/load."""
+        cache = BuildCache()
+
+        # Ensure it's empty
+        assert len(cache.autodoc_content_cache) == 0
+
+        # Save and load
+        cache_file = tmp_path / ".bengal-cache.json"
+        cache.save(cache_file)
+        loaded_cache = BuildCache.load(cache_file)
+
+        # Still empty
+        assert len(loaded_cache.autodoc_content_cache) == 0
+
+    def test_autodoc_content_cache_malformed_entry_skipped_on_load(self, tmp_path):
+        """Malformed entries in autodoc_content_cache are skipped gracefully."""
+        from bengal.cache.compression import save_compressed
+
+        # Create a cache file with malformed autodoc_content_cache entries
+        cache_data = {
+            "version": 7,
+            "file_fingerprints": {},
+            "dependencies": {},
+            "output_sources": {},
+            "taxonomy_deps": {},
+            "page_tags": {},
+            "tag_to_pages": {},
+            "known_tags": [],
+            "reverse_dependencies": {},
+            "autodoc_dependencies": {},
+            "autodoc_source_metadata": {},
+            "autodoc_content_cache": {
+                "valid.py": {"source_hash": "abc", "module_element_dict": {"name": "valid"}},
+                "malformed.py": "not a dict",  # Malformed - should be skipped
+                "incomplete.py": {"source_hash": "xyz"},  # Missing module_element_dict
+            },
+            "url_claims": {},
+            "discovered_assets": {},
+            "parsed_content": {},
+            "rendered_output": {},
+            "synthetic_pages": {},
+            "validation_results": {},
+            "config_hash": None,
+            "last_build": None,
+        }
+
+        # Use Bengal's save_compressed - must use .json.zst extension
+        compressed_file = tmp_path / ".bengal-cache.json.zst"
+        save_compressed(cache_data, compressed_file)
+
+        # Load using the .json path (BuildCache.load checks for .json.zst automatically)
+        cache_file = tmp_path / ".bengal-cache.json"
+        loaded_cache = BuildCache.load(cache_file)
+
+        # Valid entry should be loaded as CachedModuleInfo
+        assert "valid.py" in loaded_cache.autodoc_content_cache
+        assert loaded_cache.autodoc_content_cache["valid.py"].source_hash == "abc"
+
+        # Malformed entry (not a dict) should be skipped
+        assert "malformed.py" not in loaded_cache.autodoc_content_cache
+
+        # Incomplete entry (missing module_element_dict) loads with best-effort defaults
+        assert "incomplete.py" in loaded_cache.autodoc_content_cache
+        assert loaded_cache.autodoc_content_cache["incomplete.py"].source_hash == "xyz"
+        # module_element_dict defaults to empty dict for incomplete entries
+        assert loaded_cache.autodoc_content_cache["incomplete.py"].module_element_dict == {}

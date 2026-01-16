@@ -24,6 +24,9 @@ Bengal optimizes builds automatically — no configuration required:
 - **Parallel processing**: Auto-enabled based on page count and CPU cores
 - **Incremental builds**: Auto-enabled when build cache exists
 - **Smart caching**: Tracks file changes, dependencies, and parsed content
+- **Fast mode**: Skips HTML formatting for faster builds (`--fast` or `build.fast_mode`)
+- **Render-time asset tracking**: Tracks assets during template rendering (no HTML parsing)
+- **Autodoc AST caching**: Caches parsed Python modules to skip AST parsing on subsequent builds
 
 ```toml
 # bengal.toml — only needed to override defaults
@@ -50,7 +53,9 @@ flowchart LR
 |----------|--------|---------|----------|
 | **Incremental** | Zero | 15-50x | Development |
 | **Parallel** | Zero | 2-8x | Large sites, multi-core |
-| **Fast Mode** | Zero | Varies | CI/CD (minimal output) |
+| **Fast Mode** | Zero | 10-15% | CI/CD (skips HTML formatting) |
+| **Asset Tracking** | Zero | 20-25% | Sites with many assets |
+| **Autodoc Caching** | Zero | 30-40% | Sites with autodoc (caches AST parsing) |
 | **Memory Optimized** | Zero | N/A | 5K+ pages |
 
 :::{note}

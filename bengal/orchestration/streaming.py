@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.orchestration.build_context import BuildContext
+    from bengal.utils.observability.cli_progress import LiveProgressManager
 
 logger = get_logger(__name__)
 
@@ -116,7 +117,7 @@ class StreamingRenderOrchestrator:
         tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
         batch_size: int = 100,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         reporter: ProgressReporter | None = None,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
@@ -304,7 +305,7 @@ class StreamingRenderOrchestrator:
                 "mid-tier",
                 progress_manager=progress_manager,
                 changed_sources=changed_sources,
-                # reporter and context forwarded inside _render_batches via renderer.process
+                build_context=build_context,
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
 
@@ -313,7 +314,7 @@ class StreamingRenderOrchestrator:
             msg = f"  🍃 Streaming {total_leaves} leaf page(s)..."
             if reporter:
                 reporter.log(msg)
-            else:
+            elif not quiet:
                 print(msg)
             self._render_batches(
                 renderer,
@@ -327,6 +328,7 @@ class StreamingRenderOrchestrator:
                 release_memory=True,
                 progress_manager=progress_manager,
                 changed_sources=changed_sources,
+                build_context=build_context,
             )
             logger.debug("streaming_render_leaves_complete", count=total_leaves)
 
@@ -354,8 +356,9 @@ class StreamingRenderOrchestrator:
         stats: BuildStats | None,
         batch_label: str = "pages",
         release_memory: bool = False,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         changed_sources: set[Path] | None = None,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Render pages in batches with optional memory release.
@@ -371,6 +374,8 @@ class StreamingRenderOrchestrator:
             batch_label: Label for logging
             release_memory: Whether to force garbage collection after each batch
             progress_manager: Optional progress manager to use for unified progress display
+            changed_sources: Set of paths that were explicitly changed
+            build_context: Optional BuildContext for build-scoped caching and lazy artifacts
         """
         total = len(pages)
         batches = (total + batch_size - 1) // batch_size  # Ceiling division
@@ -387,7 +392,7 @@ class StreamingRenderOrchestrator:
                 tracker,
                 stats,
                 progress_manager=progress_manager,
-                build_context=None,
+                build_context=build_context,
                 changed_sources=changed_sources,
             )
 

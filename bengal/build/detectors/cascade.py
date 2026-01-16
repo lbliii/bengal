@@ -78,7 +78,7 @@ class SectionCascadeDetector:
 
             cached_cascade_hash = cached.get("cascade_metadata_hash")
             if cached_cascade_hash is not None:
-                return cached_cascade_hash == current_hash
+                return bool(cached_cascade_hash == current_hash)
 
             # Fallback: Compare full metadata hash
             cached_full_hash = cached.get("metadata_hash")
@@ -86,10 +86,17 @@ class SectionCascadeDetector:
                 current_full_hash = hash_str(
                     json.dumps(page.metadata or {}, sort_keys=True, default=str)
                 )
-                return cached_full_hash == current_full_hash
+                return bool(cached_full_hash == current_full_hash)
 
             return False
-        except Exception:
+        except (KeyError, TypeError, json.JSONDecodeError) as e:
+            # Log at debug level for expected cache misses
+            logger.debug(
+                "cascade_unchanged_check_failed",
+                path=str(path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return False
 
     def _find_cascade_affected_pages(self, ctx: "DetectionContext", index_page: Page) -> set[Path]:

@@ -346,3 +346,130 @@ class TestIncrementalUpdates:
         assert len(pages) == 2
         assert str(page1.source_path) in pages
         assert str(page2.source_path) in pages
+
+
+class TestQueryIndexThreadSafety:
+    """Thread safety tests for QueryIndex."""
+
+    def test_concurrent_page_updates(self, build_cache, temp_cache_path):
+        """Multiple threads can safely update pages concurrently."""
+        import threading
+
+        index = AuthorIndex(temp_cache_path)
+        errors: list[str] = []
+
+        def update_pages(thread_id: int):
+            """Update pages from a specific thread."""
+            try:
+                for i in range(50):
+                    page = Page(
+                        source_path=Path(f"post-{thread_id}-{i}.md"),
+                        _raw_content="Test",
+                        metadata={"author": f"Author {thread_id}"},
+                    )
+                    index.update_page(page, build_cache)
+            except Exception as e:
+                errors.append(f"Thread {thread_id}: {e}")
+
+        # Spawn multiple threads
+        threads = [threading.Thread(target=update_pages, args=(i,)) for i in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety violations: {errors}"
+
+        # Verify all authors have pages
+        for thread_id in range(4):
+            pages = index.get(f"Author {thread_id}")
+            assert len(pages) == 50, f"Author {thread_id} should have 50 pages"
+
+    def test_concurrent_read_write(self, build_cache, temp_cache_path):
+        """Readers and writers can operate concurrently."""
+        import threading
+
+        index = AuthorIndex(temp_cache_path)
+        # Pre-populate
+        for i in range(10):
+            page = Page(
+                source_path=Path(f"initial-{i}.md"),
+                _raw_content="Test",
+                metadata={"author": f"Author {i % 3}"},
+            )
+            index.update_page(page, build_cache)
+
+        errors: list[str] = []
+        read_count = [0]
+
+        def reader():
+            """Read index repeatedly."""
+            try:
+                for _ in range(100):
+                    for i in range(3):
+                        _ = index.get(f"Author {i}")
+                        _ = index.keys()
+                        read_count[0] += 1
+            except Exception as e:
+                errors.append(f"Reader: {e}")
+
+        def writer():
+            """Update pages repeatedly."""
+            try:
+                for i in range(100):
+                    page = Page(
+                        source_path=Path(f"new-post-{i}.md"),
+                        _raw_content="Test",
+                        metadata={"author": f"Author {i % 3}"},
+                    )
+                    index.update_page(page, build_cache)
+            except Exception as e:
+                errors.append(f"Writer: {e}")
+
+        threads = [threading.Thread(target=reader) for _ in range(3)]
+        threads.append(threading.Thread(target=writer))
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety violations: {errors}"
+        assert read_count[0] > 0, "Reads should have occurred"
+
+
+class TestQueryIndexInvariantViolation:
+    """Tests for handling invariant violations in QueryIndex."""
+
+    def test_save_clears_index_on_invariant_violation(self, build_cache, temp_cache_path):
+        """save_to_disk clears index if invariants are violated."""
+        from bengal.cache.query_index import IndexEntry
+
+        index = AuthorIndex(temp_cache_path)
+
+        # Add valid data
+        page = Page(
+            source_path=Path("post1.md"),
+            _raw_content="Test",
+            metadata={"author": "Jane"},
+        )
+        index.update_page(page, build_cache)
+
+        # Manually corrupt the internal state (simulate invariant violation)
+        # Add an entry that references pages not in _page_to_keys
+        index.entries["Orphan Author"] = IndexEntry(
+            key="Orphan Author",
+            page_paths={"nonexistent-page.md"},  # Not in _page_to_keys
+            metadata={},
+        )
+
+        # save_to_disk should detect corruption and clear the index
+        index.save_to_disk()
+
+        # Index should be cleared
+        assert len(index.entries) == 0
+        assert len(index._page_to_keys) == 0
+
+        # On next load, it should be empty (no corrupted data saved)
+        index2 = AuthorIndex(temp_cache_path)
+        assert len(index2.entries) == 0
