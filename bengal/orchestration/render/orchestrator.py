@@ -20,7 +20,7 @@ Related Modules:
 - bengal.orchestration.render.tracking: Active render tracking
 
 See Also:
-- bengal/orchestration/render.py:render_pages() for rendering entry point
+- bengal/orchestration/render/orchestrator.py: RenderOrchestrator.process() entry point
 - plan/active/rfc-template-performance-optimization.md: Performance RFC
 
 """
