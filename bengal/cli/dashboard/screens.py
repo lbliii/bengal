@@ -395,16 +395,18 @@ class BuildScreen(BengalScreen):
         try:
             self.app.call_from_thread(log.write_line, "Starting build...")
 
+            from bengal.orchestration.build.options import BuildOptions
             orchestrator = BuildOrchestrator(self.site)
 
             # Run the actual build with streaming callbacks (RFC: rfc-dashboard-api-integration)
-            stats = orchestrator.build(
-                parallel=True,
+            options = BuildOptions(
+                force_sequential=False,  # parallel=True
                 incremental=False,
                 quiet=True,
                 on_phase_start=on_phase_start,
                 on_phase_complete=on_phase_complete,
             )
+            stats = orchestrator.build(options)
 
             self.app.call_from_thread(progress.update, progress=100)
 

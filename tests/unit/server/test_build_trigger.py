@@ -543,6 +543,127 @@ weight: 5
         assert test_file in result2
 
 
+class TestBuildTriggerErrorHandling:
+    """
+    Tests for BuildTrigger error handling.
+    
+    BUG FIX: Error handling should not mutate the changed_paths set.
+    Previously, using set.pop() would modify the set unexpectedly.
+    """
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.root_path = Path("/test/site")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor that raises an exception."""
+        executor = MagicMock()
+        executor.submit.side_effect = RuntimeError("Build failed")
+        return executor
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.show_error")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.build_trigger.create_dev_error")
+    @patch("bengal.server.build_trigger.get_dev_server_state")
+    def test_changed_paths_not_mutated_on_error(
+        self,
+        mock_get_state: MagicMock,
+        mock_create_error: MagicMock,
+        mock_controller: MagicMock,
+        mock_show_error: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """
+        Test that changed_paths set is not mutated during error handling.
+        
+        BUG FIX: Previously used set.pop() which would modify the set.
+        Now uses next(iter(...)) which doesn't modify the set.
+        """
+        mock_pre_hooks.return_value = True
+        mock_state = MagicMock()
+        mock_state.record_failure.return_value = True
+        mock_get_state.return_value = mock_state
+        mock_context = MagicMock()
+        mock_context.get_likely_cause.return_value = "test"
+        mock_context.quick_actions = []
+        mock_context.auto_fixable = False
+        mock_context.auto_fix_command = None
+        mock_create_error.return_value = mock_context
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Create a set of changed paths
+        original_paths = {Path("a.md"), Path("b.md"), Path("c.md")}
+        paths_copy = original_paths.copy()
+
+        # Trigger build which will raise an exception
+        trigger.trigger_build(paths_copy, {"modified"})
+
+        # The set should NOT have been modified by the error handler
+        # (Previously, pop() would remove an element)
+        assert len(paths_copy) == 3
+        assert paths_copy == original_paths
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.show_error")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.build_trigger.create_dev_error")
+    @patch("bengal.server.build_trigger.get_dev_server_state")
+    def test_trigger_file_extracted_without_mutation(
+        self,
+        mock_get_state: MagicMock,
+        mock_create_error: MagicMock,
+        mock_controller: MagicMock,
+        mock_show_error: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that trigger_file is extracted without modifying the set."""
+        mock_pre_hooks.return_value = True
+        mock_state = MagicMock()
+        mock_state.record_failure.return_value = True
+        mock_get_state.return_value = mock_state
+        mock_context = MagicMock()
+        mock_context.get_likely_cause.return_value = "test"
+        mock_context.quick_actions = []
+        mock_context.auto_fixable = False
+        mock_context.auto_fix_command = None
+        mock_create_error.return_value = mock_context
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        paths = {Path("test.md")}
+        trigger.trigger_build(paths, {"modified"})
+
+        # Verify create_dev_error was called with a trigger_file
+        mock_create_error.assert_called_once()
+        call_kwargs = mock_create_error.call_args[1]
+        assert call_kwargs["trigger_file"] is not None
+        assert "test.md" in call_kwargs["trigger_file"]
+
+        # Set should still have the element
+        assert len(paths) == 1
+
+
 class TestBuildTriggerQueuing:
     """Tests for BuildTrigger change queuing during builds.
     

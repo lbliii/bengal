@@ -320,15 +320,22 @@ class ConfigInspector(DebugTool):
         "debug": "Affects logging verbosity and error details",
     }
 
-    def __init__(self, site: Any) -> None:
+    def __init__(
+        self,
+        site: Any = None,
+        cache: Any = None,
+        root_path: Path | None = None,
+    ) -> None:
         """
         Initialize inspector.
 
         Args:
             site: Site instance
+            cache: Optional BuildCache (unused but required by DebugTool)
+            root_path: Optional root path override
         """
-        self.site = site
-        self._config_dir = Path(site.root) / "config" if site else None
+        super().__init__(site=site, cache=cache, root_path=root_path)
+        self._config_dir = Path(site.root_path) / "config" if site else None
 
     def run(
         self,
@@ -642,7 +649,8 @@ class ConfigInspector(DebugTool):
         loader = UnifiedConfigLoader(track_origins=True)
         current_env = detect_environment()
         config_obj = loader.load(site_root, environment=current_env)
-        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
+        # Extract raw dict from Config object if available
+        config: dict[str, Any] = config_obj.raw if hasattr(config_obj, "raw") else dict(config_obj)
 
         # Get value
         value = self._get_nested_value(config, key_path)

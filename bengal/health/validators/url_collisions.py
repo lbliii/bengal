@@ -108,6 +108,9 @@ class URLCollisionValidator(BaseValidator):
             )
         # No success message - if no collisions, silence is golden
 
+        # Check for section/page URL conflicts
+        results.extend(self._check_section_page_conflicts(site))
+
         return results
 
     def _check_section_page_conflicts(self, site: Site) -> list[CheckResult]:

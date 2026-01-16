@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
@@ -163,7 +163,7 @@ class LocalSource(ContentSource):
             return
 
         # Get paths - optionally sort for deterministic ordering
-        paths = self.directory.glob(self.glob_pattern)
+        paths: Iterable[Path] = self.directory.glob(self.glob_pattern)
         if self.sort_entries:
             paths = sorted(paths)
 
@@ -214,53 +214,53 @@ class LocalSource(ContentSource):
         except FileNotFoundError as e:
             from bengal.errors import BengalContentError, ErrorCode, record_error
 
-            error = BengalContentError(
+            not_found_error = BengalContentError(
                 f"Content file not found: {path}",
                 code=ErrorCode.N004,
                 file_path=path,
                 suggestion="Verify the file exists and path is correct",
                 original_error=e,
             )
-            record_error(error, file_path=str(path))
+            record_error(not_found_error, file_path=str(path))
             logger.warning(f"Failed to read {path}: {e}")
             return None
         except UnicodeDecodeError as e:
             from bengal.errors import BengalContentError, ErrorCode, record_error
 
-            error = BengalContentError(
+            encoding_error = BengalContentError(
                 f"Failed to read content file (encoding error): {path}",
                 code=ErrorCode.N003,
                 file_path=path,
                 suggestion="Check file encoding (UTF-8 expected)",
                 original_error=e,
             )
-            record_error(error, file_path=str(path))
+            record_error(encoding_error, file_path=str(path))
             logger.warning(f"Failed to read {path}: {e}")
             return None
         except PermissionError as e:
             from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
-            error = BengalDiscoveryError(
+            perm_error = BengalDiscoveryError(
                 f"Permission denied reading file: {path}",
                 code=ErrorCode.D007,
                 file_path=path,
                 suggestion="Check file permissions",
                 original_error=e,
             )
-            record_error(error, file_path=str(path))
+            record_error(perm_error, file_path=str(path))
             logger.warning(f"Failed to read {path}: {e}")
             return None
         except Exception as e:
             from bengal.errors import BengalContentError, ErrorCode, record_error
 
-            error = BengalContentError(
+            read_error = BengalContentError(
                 f"Failed to read content file: {path}",
                 code=ErrorCode.N003,
                 file_path=path,
                 suggestion="Check file encoding (UTF-8 expected) and permissions",
                 original_error=e,
             )
-            record_error(error, file_path=str(path))
+            record_error(read_error, file_path=str(path))
             logger.warning(f"Failed to read {path}: {e}")
             return None
 

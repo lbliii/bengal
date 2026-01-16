@@ -572,12 +572,20 @@ class IncrementalBuildDebugger(DebugTool):
             if file_path in deps or str(file_path) in deps:
                 would_rebuild.append(page_path)
 
-        # Check taxonomy dependencies
-        for _term, pages in self.cache.taxonomy_deps.items():
-            for page in pages:
-                if page not in would_rebuild:
-                    # Check if this page's tags include pages affected
-                    would_rebuild.append(page)
+        # Check taxonomy dependencies only if the changed file is a content page
+        # Taxonomy pages rebuild when any page sharing their taxonomy term changes
+        if file_path.endswith((".md", ".markdown", ".rst")):
+            # Find which taxonomy terms this page belongs to
+            page_terms: set[str] = set()
+            for term, pages in self.cache.taxonomy_deps.items():
+                if file_path in pages:
+                    page_terms.add(term)
+            
+            # Add pages that share taxonomy terms with the changed page
+            for term in page_terms:
+                for page in self.cache.taxonomy_deps.get(term, []):
+                    if page not in would_rebuild:
+                        would_rebuild.append(page)
 
         return list(set(would_rebuild))
 

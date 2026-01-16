@@ -38,10 +38,10 @@ if not icon_html:
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 
 from bengal.icons import resolver as icon_resolver
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.lru_cache import LRUCache
 
 __all__ = [
     "render_svg_icon",
@@ -59,6 +59,11 @@ logger = get_logger(__name__)
 _RE_WIDTH_HEIGHT = re.compile(r'\s+(width|height)="[^"]*"')
 _RE_CLASS = re.compile(r'\s+class="[^"]*"')
 _RE_SVG_TAG = re.compile(r"<svg\s")
+
+# Thread-safe LRU cache for SVG icon rendering (replaces @lru_cache for free-threading)
+_svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(
+    maxsize=512, name="svg_icon"
+)
 
 
 def get_icon_svg(name: str) -> str | None:
@@ -86,7 +91,6 @@ def _escape_attr(value: str) -> str:
     )
 
 
-@lru_cache(maxsize=512)
 def render_svg_icon(
     name: str,
     size: int = 20,
@@ -98,6 +102,9 @@ def render_svg_icon(
     
     Uses LRU caching to avoid repeated regex processing for identical
     icon render calls. Typical hit rate >95% for navigation icons.
+    
+    Thread-safe: Uses LRUCache with RLock for safe concurrent access
+    under free-threading (PEP 703).
     
     Applies ICON_MAP to resolve semantic names (e.g., "alert" -> "warning")
     before loading the icon file.
@@ -118,37 +125,42 @@ def render_svg_icon(
             '<svg ...'
         
     """
-    # Map semantic name to actual icon name (e.g., "alert" -> "warning")
-    icon_name = ICON_MAP.get(name, name)
+    key = (name, size, css_class, aria_label)
+    
+    def _render_impl() -> str:
+        # Map semantic name to actual icon name (e.g., "alert" -> "warning")
+        icon_name = ICON_MAP.get(name, name)
 
-    svg_content = icon_resolver.load_icon(icon_name)
-    if svg_content is None:
-        return ""
+        svg_content = icon_resolver.load_icon(icon_name)
+        if svg_content is None:
+            return ""
 
-    # Build class list
-    classes = ["bengal-icon", f"icon-{name}"]
-    if css_class:
-        classes.extend(css_class.split())
-    class_attr = " ".join(classes)
+        # Build class list
+        classes = ["bengal-icon", f"icon-{name}"]
+        if css_class:
+            classes.extend(css_class.split())
+        class_attr = " ".join(classes)
 
-    # Accessibility attributes
-    if aria_label:
-        aria_attrs = f'aria-label="{_escape_attr(aria_label)}" role="img"'
-    else:
-        aria_attrs = 'aria-hidden="true"'
+        # Accessibility attributes
+        if aria_label:
+            aria_attrs = f'aria-label="{_escape_attr(aria_label)}" role="img"'
+        else:
+            aria_attrs = 'aria-hidden="true"'
 
-    # Remove existing width/height/class attributes from SVG (use pre-compiled regex)
-    svg_modified = _RE_WIDTH_HEIGHT.sub("", svg_content)
-    svg_modified = _RE_CLASS.sub("", svg_modified)
+        # Remove existing width/height/class attributes from SVG (use pre-compiled regex)
+        svg_modified = _RE_WIDTH_HEIGHT.sub("", svg_content)
+        svg_modified = _RE_CLASS.sub("", svg_modified)
 
-    # Add our attributes to <svg> tag
-    svg_modified = _RE_SVG_TAG.sub(
-        f'<svg width="{size}" height="{size}" class="{class_attr}" {aria_attrs} ',
-        svg_modified,
-        count=1,
-    )
+        # Add our attributes to <svg> tag
+        svg_modified = _RE_SVG_TAG.sub(
+            f'<svg width="{size}" height="{size}" class="{class_attr}" {aria_attrs} ',
+            svg_modified,
+            count=1,
+        )
 
-    return svg_modified
+        return svg_modified
+    
+    return _svg_icon_cache.get_or_set(key, _render_impl)
 
 
 # Icon mapping from semantic names to Phosphor icon names
@@ -294,7 +306,7 @@ def clear_icon_cache() -> None:
         
     """
     icon_resolver.clear_cache()
-    render_svg_icon.cache_clear()
+    _svg_icon_cache.clear()
 
 
 # =============================================================================

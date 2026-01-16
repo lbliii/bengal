@@ -180,6 +180,35 @@ class TestContentValidationError:
         assert result["errors"][0]["field"] == "title"
         assert result["errors"][0]["expected_type"] == "str"
 
+    def test_to_dict_preserves_value_type(self) -> None:
+        """Test to_dict returns values as-is, not repr'd."""
+        error = ContentValidationError(
+            message="Validation failed",
+            path=Path("content/post.md"),
+            errors=[
+                ValidationError(
+                    field="count",
+                    message="Expected int",
+                    value="not-a-number",  # String value
+                    expected_type="int",
+                ),
+                ValidationError(
+                    field="tags",
+                    message="Expected list",
+                    value=123,  # Int value
+                    expected_type="list[str]",
+                ),
+            ],
+            collection_name="blog",
+        )
+
+        result = error.to_dict()
+
+        # Values should be preserved as-is, not repr'd
+        # (Previously this would return "'not-a-number'" instead of "not-a-number")
+        assert result["errors"][0]["value"] == "not-a-number"
+        assert result["errors"][1]["value"] == 123
+
     def test_is_exception(self) -> None:
         """Test that ContentValidationError is an Exception."""
         error = ContentValidationError(

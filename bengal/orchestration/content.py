@@ -42,7 +42,7 @@ bengal.orchestration.build: Build coordinator that calls this orchestrator
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.orchestration.build_context import BuildContext
@@ -138,10 +139,11 @@ class ContentOrchestrator:
 
         # Ensure absolute path - relative paths break URL computation silently
         if not content_dir.is_absolute():
+            original_path = str(content_dir)
             content_dir = content_dir.resolve()
             logger.debug(
                 "content_dir_resolved_to_absolute",
-                original=str(content_dir),
+                original=original_path,
                 resolved=str(content_dir),
             )
 
@@ -220,7 +222,9 @@ class ContentOrchestrator:
         # template context (including navigation) is available.
         # Pass build_cache (not page discovery cache) for autodoc dependency registration
         t0 = time.perf_counter()
-        autodoc_pages, autodoc_sections = self._discover_autodoc_content(cache=build_cache)
+        autodoc_pages, autodoc_sections = self._discover_autodoc_content(
+            cache=cache, build_cache=build_cache
+        )
         breakdown_ms["autodoc"] = (time.perf_counter() - t0) * 1000
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
@@ -282,14 +286,16 @@ class ContentOrchestrator:
         self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
-        self, cache: PageDiscoveryCache | None = None
-    ) -> tuple[list[Page], list[Asset]]:
+        self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
+    ) -> tuple[list[Page], list[Section]]:
         """
         Generate virtual autodoc pages if enabled.
 
         Args:
-            cache: Optional BuildCache for registering autodoc dependencies.
-                   Enables selective rebuilding of autodoc pages in incremental builds.
+            cache: Optional PageDiscoveryCache for incremental autodoc page loading.
+            build_cache: Optional BuildCache for AST caching and dependency tracking.
+                        RFC: rfc-build-performance-optimizations Phase 3
+                        Enables AST caching to skip parsing unchanged Python files.
 
         Returns:
             Tuple of (pages, sections) from virtual autodoc generation.
@@ -306,7 +312,9 @@ class ContentOrchestrator:
             from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
             from bengal.utils.primitives.hashing import hash_dict
 
-            orchestrator = VirtualAutodocOrchestrator(self.site)
+            # RFC: rfc-build-performance-optimizations Phase 3
+            # Pass build_cache to orchestrator for AST caching
+            orchestrator = VirtualAutodocOrchestrator(self.site, cache=build_cache)
 
             if not orchestrator.is_enabled():
                 logger.debug("virtual_autodoc_not_enabled")
@@ -372,8 +380,8 @@ class ContentOrchestrator:
                             pages, sections, run_result = orchestrator.generate_from_cache_payload(
                                 cached_payload
                             )
-                            # Register autodoc dependencies with cache so has_autodoc_tracking is True
-                            if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+                            # Register autodoc dependencies with build_cache so has_autodoc_tracking is True
+                            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
                                 from bengal.utils.primitives.hashing import hash_file
 
                                 for source_file, page_hashes in run_result.autodoc_dependencies.items():
@@ -389,7 +397,7 @@ class ContentOrchestrator:
                                     source_hash = hash_file(src_path)
                                     source_mtime = src_path.stat().st_mtime
                                     for page_path, content_hash in page_hashes.items():
-                                        cache.add_autodoc_dependency(
+                                        build_cache.add_autodoc_dependency(
                                             source_file,
                                             page_path,
                                             site_root=self.site.root_path,
@@ -422,9 +430,9 @@ class ContentOrchestrator:
             if run_result.has_failures() or run_result.has_warnings():
                 self._log_autodoc_summary(run_result)
 
-            # Register autodoc dependencies with cache for selective rebuilds
+            # Register autodoc dependencies with build_cache for selective rebuilds
             # CRITICAL: Pass source_hash and source_mtime for incremental detection.
-            if cache is not None and hasattr(cache, "add_autodoc_dependency"):
+            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
                 from bengal.utils.primitives.hashing import hash_file
 
                 for source_file, page_hashes in run_result.autodoc_dependencies.items():
@@ -449,7 +457,7 @@ class ContentOrchestrator:
                         continue
 
                     for page_path, content_hash in page_hashes.items():
-                        cache.add_autodoc_dependency(
+                        build_cache.add_autodoc_dependency(
                             source_file,
                             page_path,
                             site_root=self.site.root_path,
@@ -506,10 +514,6 @@ class ContentOrchestrator:
                             error=str(e),
                             error_type=type(e).__name__,
                         )
-            else:
-                # 2-tuple return
-                pages, sections = result
-                run_result = None
 
             return pages, sections
 
@@ -968,6 +972,7 @@ class ContentOrchestrator:
         # Check in Bengal's bundled themes
         import bengal
 
+        assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / self.site.theme / "assets"
         if bundled_theme_dir.exists():

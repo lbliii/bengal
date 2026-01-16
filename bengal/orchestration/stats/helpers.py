@@ -63,7 +63,12 @@ def show_clean_success(output_dir: str) -> None:
 
 def display_template_errors(stats: BuildStats) -> None:
     """
-    Display all collected template errors.
+    Display all collected template errors cleanly after build completes.
+    
+    This function is called after rendering finishes to show all errors
+    in a clean, non-interleaved format. Errors are collected during
+    rendering via build_stats.add_template_error() and deduplicated
+    via the ErrorDeduplicator.
     
     Args:
         stats: Build statistics with template errors
@@ -93,3 +98,7 @@ def display_template_errors(stats: BuildStats) -> None:
                 cli.console.print("[info]" + "─" * 80 + "[/info]")
             else:
                 cli.info("─" * 80)
+
+    # Show summary of suppressed duplicate errors (if any)
+    dedup = stats.get_error_deduplicator()
+    dedup.display_summary()

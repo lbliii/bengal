@@ -220,10 +220,12 @@ def _determine_template(
     if should_run_wizard:
         wizard_selection = run_init_wizard(init_preset)
 
-        if wizard_selection is not None and wizard_selection != "default":
-            effective_template = wizard_selection
-        elif wizard_selection == "__custom__":
+        if wizard_selection == "__custom__":
+            # User selected custom - use default template but flag for hint
             is_custom = True
+            effective_template = "default"
+        elif wizard_selection is not None and wizard_selection != "default":
+            effective_template = wizard_selection
 
     return effective_template, is_custom, wizard_selection
 

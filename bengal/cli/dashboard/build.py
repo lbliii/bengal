@@ -285,16 +285,18 @@ class BengalBuildDashboard(BengalDashboard):
             self.app.call_from_thread(self._update_phase_running, "Discovery")
             self.app.call_from_thread(log.write_line, "→ Discovery...")
 
+            from bengal.orchestration.build.options import BuildOptions
             orchestrator = BuildOrchestrator(self.site)
 
             # Run the actual build
-            stats = orchestrator.build(
-                parallel=self.parallel,
+            options = BuildOptions(
+                force_sequential=not self.parallel,
                 incremental=self.incremental,
                 quiet=True,  # Dashboard handles output
                 profile=self.build_profile,
                 **self.build_kwargs,
             )
+            stats = orchestrator.build(options)
 
             duration_ms = (monotonic() - start_time) * 1000
 

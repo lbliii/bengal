@@ -205,11 +205,20 @@ class ContentParser:
         Returns:
             Content without frontmatter section
         """
+        # Check if file starts with frontmatter delimiter
+        if not file_content.startswith("---"):
+            return file_content.strip()
+
         parts = file_content.split("---", 2)
 
         if len(parts) >= 3:
+            # Normal case: parts[0] is empty (before first ---), parts[1] is frontmatter, parts[2] is content
             return parts[2].strip()
         elif len(parts) == 2:
+            # Edge case: File starts with --- but has no closing ---
+            # parts[0] is empty, parts[1] is everything after the first ---
+            # Since there's no closing delimiter, treat the whole thing as content
+            # (minus the leading ---)
             return parts[1].strip()
         else:
             return file_content.strip()

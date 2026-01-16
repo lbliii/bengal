@@ -64,6 +64,9 @@ class HybridHTMLTransformer:
     
             >>> transformer.transform('<a href="./guide.md">Guide</a>')
             '<a href="./guide/">Guide</a>'
+    
+            >>> transformer.transform('<a href="./guide.md#section">Guide</a>')
+            '<a href="./guide/#section">Guide</a>'
         
     """
 
@@ -83,8 +86,9 @@ class HybridHTMLTransformer:
             self.baseurl = "/" + self.baseurl
 
         # Compiled regex patterns for link transformations
-        # Pattern for .md links: href="...md" or href='...md'
-        self._md_pattern = re.compile(r'(href)=(["\'])([^"\']*?\.md)\2')
+        # Pattern for .md links: href="...md" or href='...md' with optional #anchor
+        # Captures: (href)(quote)(path.md)(optional #anchor)
+        self._md_pattern = re.compile(r'(href)=(["\'])([^"\'#]*?\.md)(#[^"\']*)?\2')
 
         # Pattern for internal links: href="/..." or src="/..."
         # Excludes external URLs (http/https) and anchors (#)
@@ -134,12 +138,13 @@ class HybridHTMLTransformer:
             )
             return html
 
-    def _md_replacer(self, match: re.Match) -> str:
+    def _md_replacer(self, match: re.Match[str]) -> str:
         """
-        Transform .md link to clean URL.
+        Transform .md link to clean URL, preserving anchors.
 
         Handles special cases:
         - ./page.md -> ./page/
+        - ./page.md#section -> ./page/#section
         - ./_index.md -> ./
         - ../other.md -> ../other/
         - path/page.md -> path/page/
@@ -147,6 +152,7 @@ class HybridHTMLTransformer:
         attr = match.group(1)
         quote = match.group(2)
         path = match.group(3)
+        anchor = match.group(4) or ""  # Optional #anchor
 
         # Handle _index.md and index.md special cases
         if path.endswith("/_index.md"):
@@ -163,9 +169,9 @@ class HybridHTMLTransformer:
             # Regular .md file -> strip extension, add trailing slash
             clean = path[:-3] + "/"
 
-        return f"{attr}={quote}{clean}{quote}"
+        return f"{attr}={quote}{clean}{anchor}{quote}"
 
-    def _internal_replacer(self, match: re.Match) -> str:
+    def _internal_replacer(self, match: re.Match[str]) -> str:
         """
         Transform internal link with baseurl prefix.
 
@@ -178,7 +184,7 @@ class HybridHTMLTransformer:
 
         # Skip if already has baseurl
         if path.startswith(self.baseurl + "/") or path == self.baseurl:
-            return match.group(0)
+            return str(match.group(0))
 
         return f"{attr}={quote}{self.baseurl}{path}{quote}"
 

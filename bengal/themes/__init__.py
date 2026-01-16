@@ -55,12 +55,14 @@ from bengal.themes.generate import (
     validate_tcss_tokens,
     write_generated_css,
 )
+from bengal.themes.swizzle import ModificationStatus
 from bengal.themes.tokens import (
     BENGAL_MASCOT,
     BENGAL_PALETTE,
     PALETTE_VARIANTS,
     BengalMascots,
     BengalPalette,
+    ColorPalette,
     PaletteVariant,
     get_palette,
 )
@@ -75,12 +77,16 @@ __all__ = [
     "BengalMascots",
     "BengalPalette",
     "PaletteVariant",
+    # Token protocols
+    "ColorPalette",
     # Token instances
     "BENGAL_MASCOT",
     "BENGAL_PALETTE",
     "PALETTE_VARIANTS",
     # Token utilities
     "get_palette",
+    # Swizzle utilities
+    "ModificationStatus",
     # Generation utilities
     "generate_tcss_reference",
     "generate_web_css",

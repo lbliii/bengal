@@ -204,7 +204,9 @@ class PageJSONGenerator:
         count = 0
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                results = executor.map(write_json, page_items)
+                # Consume iterator fully before exiting context manager
+                # This ensures all tasks complete and exceptions are raised properly
+                results = list(executor.map(write_json, page_items))
                 count = sum(1 for r in results if r)
         except RuntimeError as e:
             # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
@@ -383,6 +385,10 @@ class PageJSONGenerator:
         if self._node_url_index is None or self._edge_index is None:
             self._build_graph_indexes(graph_data)
 
+        # Safety check: if index building failed, return None
+        if self._node_url_index is None or self._edge_index is None:
+            return None
+
         # Get page URL for matching
         page_url = get_page_url(page, self.site)
         page_url_normalized = normalize_url(page_url)
@@ -425,7 +431,9 @@ class PageJSONGenerator:
             key=lambda n: (n.get("incoming_refs", 0) + n.get("outgoing_refs", 0)),
             reverse=True,
         )
-        limited_nodes = connected_nodes[:max_connections]
+        # IMPORTANT: Copy nodes to avoid mutating shared graph_data
+        # Without this copy, adding isCurrent=True would persist across pages
+        limited_nodes = [dict(node) for node in connected_nodes[:max_connections]]
         limited_node_ids = {n["id"] for n in limited_nodes}
 
         # Filter edges to only include connections between limited nodes
@@ -446,7 +454,7 @@ class PageJSONGenerator:
             in limited_node_ids
         ]
 
-        # Mark current page
+        # Mark current page (safe now since we copied the nodes)
         for node in limited_nodes:
             if node["id"] == current_node["id"]:
                 node["isCurrent"] = True

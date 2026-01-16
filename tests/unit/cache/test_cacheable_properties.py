@@ -14,7 +14,7 @@ from typing import Any, Self
 
 import pytest
 
-from bengal.cache.cacheable import Cacheable
+from bengal.protocols import Cacheable
 
 # Test implementation for property testing
 

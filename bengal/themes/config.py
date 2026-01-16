@@ -144,29 +144,56 @@ class AppearanceConfig:
     Appearance configuration for theme mode and color palette.
     
     Controls the default visual appearance including light/dark mode preference
-    and optional color palette variant. Validates mode against allowed values.
+    and optional color palette variant. Validates mode and palette against allowed values.
     
     Attributes:
         default_mode: Theme mode preference ("light", "dark", or "system")
-        default_palette: Optional palette variant name (e.g., "blue-bengal")
+        default_palette: Optional palette variant name (e.g., "blue-bengal", "snow-lynx").
+            Must be one of the valid palette names from PALETTE_VARIANTS or empty string.
     
     Raises:
         BengalConfigError: If default_mode is not one of: light, dark, system
+        BengalConfigError: If default_palette is not a valid palette variant name
         
     """
 
     default_mode: str = "system"
     default_palette: str = ""
 
+    # Valid palette names - imported lazily to avoid circular imports
+    _VALID_PALETTES: frozenset[str] = frozenset({
+        "",  # Empty string is valid (no palette override)
+        "default",
+        "blue-bengal",
+        "brown-bengal",
+        "charcoal-bengal",
+        "silver-bengal",
+        "snow-lynx",
+    })
+
     def __post_init__(self) -> None:
         """Validate appearance configuration."""
+        # Validate mode
         valid_modes = {"light", "dark", "system"}
         if self.default_mode not in valid_modes:
             error = BengalConfigError(
                 f"Invalid default_mode '{self.default_mode}'. "
-                f"Must be one of: {', '.join(valid_modes)}",
+                f"Must be one of: {', '.join(sorted(valid_modes))}",
                 code=ErrorCode.C003,
-                suggestion=f"Set default_mode to one of: {', '.join(valid_modes)}",
+                suggestion=f"Set default_mode to one of: {', '.join(sorted(valid_modes))}",
+            )
+            record_error(error)
+            raise error
+        
+        # Validate palette
+        if self.default_palette not in self._VALID_PALETTES:
+            valid_palettes = sorted(p for p in self._VALID_PALETTES if p)  # Exclude empty string
+            error = BengalConfigError(
+                f"Invalid default_palette '{self.default_palette}'. "
+                f"Must be one of: {', '.join(valid_palettes)}",
+                code=ErrorCode.C003,
+                suggestion=f"Set default_palette to one of: {', '.join(valid_palettes)} "
+                "(or remove to use the default palette)",
             )
             record_error(error)
             raise error
@@ -418,6 +445,20 @@ class ThemeConfig:
 
         # Merge: features.header provides defaults, top-level header overrides
         merged_header = {**features_header, **header_data}
+        
+        # Warn about unknown keys in header config - these might be misplaced
+        # feature flags that won't take effect as layout settings
+        valid_header_keys = {"nav_position", "sticky", "autohide"}
+        unknown_keys = set(merged_header.keys()) - valid_header_keys
+        if unknown_keys:
+            logger.warning(
+                "theme_config_unknown_header_keys",
+                unknown_keys=sorted(unknown_keys),
+                valid_keys=sorted(valid_header_keys),
+                hint="These may be feature flags that belong in 'features.header' "
+                "rather than layout settings in 'header'",
+            )
+        
         header = HeaderConfig.from_dict(merged_header)
 
         return cls(

@@ -51,9 +51,11 @@ See Also:
 from __future__ import annotations
 
 import builtins
+import copy
 import json
 import time
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -65,6 +67,21 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+
+class ModificationStatus(Enum):
+    """Status of a swizzled template's local modifications.
+    
+    Provides clear semantics for `is_modified()` results, distinguishing
+    between templates that were never swizzled, have been deleted, are
+    unchanged, or have local modifications.
+    """
+    
+    NOT_SWIZZLED = "not_swizzled"  # Template was never swizzled
+    FILE_MISSING = "file_missing"  # Swizzled but local file was deleted
+    UNCHANGED = "unchanged"  # Swizzled and unchanged from original
+    MODIFIED = "modified"  # Swizzled and has local modifications
+    CHECKSUM_ERROR = "checksum_error"  # Could not compute checksum
 
 
 @dataclass(frozen=True)
@@ -186,15 +203,17 @@ class SwizzleManager:
         content = source.read_text(encoding="utf-8")
         atomic_write_text(dest, content)
 
-        upstream_checksum = _checksum_str(content)
-        local_checksum = _checksum_file(dest)
+        # Use consistent checksum method: hash the content string
+        # This avoids any potential encoding differences between
+        # hash_str(content) and hash_file(dest)
+        content_checksum = _checksum_str(content)
 
         record = SwizzleRecord(
             target=str(dest.relative_to(self.root / "templates")),
             source=str(source),
             theme=self.site.theme or "default",
-            upstream_checksum=upstream_checksum,
-            local_checksum=local_checksum,
+            upstream_checksum=content_checksum,
+            local_checksum=content_checksum,  # Same as upstream at swizzle time
             timestamp=time.time(),
         )
         self._save_record(record)
@@ -260,6 +279,7 @@ class SwizzleManager:
             Dictionary with update counts:
                 - updated (int): Files successfully updated
                 - skipped_changed (int): Files skipped (local modifications)
+                - skipped_error (int): Files skipped (checksum error)
                 - missing_upstream (int): Files skipped (theme source not found)
 
         Example:
@@ -268,11 +288,13 @@ class SwizzleManager:
             >>> print(f"Skipped {results['skipped_changed']} modified files")
         """
         data = self._load_registry()
-        records = data.get("records", [])
+        # Make explicit copy to avoid mutating during iteration
+        records = copy.deepcopy(data.get("records", []))
         logger.info("swizzle_update_start", total_records=len(records))
 
         updated = 0
         skipped_changed = 0
+        skipped_error = 0
         missing_upstream = 0
 
         for rec in records:
@@ -308,6 +330,17 @@ class SwizzleManager:
 
             current_checksum = _checksum_file(target_path)
             expected_checksum = rec.get("local_checksum")
+            
+            # Handle checksum errors explicitly - don't update if we can't verify
+            if current_checksum is None:
+                skipped_error += 1
+                logger.warning(
+                    "swizzle_update_skipped_checksum_error",
+                    target=rec.get("target"),
+                    reason="could_not_compute_local_checksum",
+                )
+                continue
+            
             if current_checksum != expected_checksum:
                 skipped_changed += 1
                 logger.info(
@@ -320,9 +353,10 @@ class SwizzleManager:
             new_content = source_path.read_text(encoding="utf-8")
             atomic_write_text(target_path, new_content)
 
-            # Update checksums
-            rec["upstream_checksum"] = _checksum_str(new_content)
-            rec["local_checksum"] = _checksum_str(new_content)
+            # Update checksums using consistent string hashing
+            new_checksum = _checksum_str(new_content)
+            rec["upstream_checksum"] = new_checksum
+            rec["local_checksum"] = new_checksum
             rec["timestamp"] = time.time()
             updated += 1
             logger.info("swizzle_update_success", target=rec.get("target"), source=str(source_path))
@@ -335,24 +369,35 @@ class SwizzleManager:
             "swizzle_update_complete",
             updated=updated,
             skipped_changed=skipped_changed,
+            skipped_error=skipped_error,
             missing_upstream=missing_upstream,
         )
         return {
             "updated": updated,
             "skipped_changed": skipped_changed,
+            "skipped_error": skipped_error,
             "missing_upstream": missing_upstream,
         }
 
     # Internal helpers
 
-    def _is_modified(self, template_rel_path: str) -> bool:
-        """Check if a swizzled template has been modified locally.
+    def get_modification_status(self, template_rel_path: str) -> ModificationStatus:
+        """Check the modification status of a swizzled template.
+
+        Provides detailed status information about a template's local state,
+        distinguishing between templates that were never swizzled, have been
+        deleted, are unchanged, or have local modifications.
 
         Args:
             template_rel_path: Relative path inside templates/ (e.g., 'partials/toc.html')
 
         Returns:
-            True if template has been modified locally, False otherwise
+            ModificationStatus enum indicating the template's state:
+            - NOT_SWIZZLED: Template was never swizzled
+            - FILE_MISSING: Swizzled but local file was deleted
+            - UNCHANGED: Swizzled and unchanged from original
+            - MODIFIED: Swizzled and has local modifications
+            - CHECKSUM_ERROR: Could not compute checksum
         """
         data = self._load_registry()
         records = data.get("records", [])
@@ -365,16 +410,38 @@ class SwizzleManager:
                 break
 
         if not record:
-            return False  # Not swizzled, so not modified
+            return ModificationStatus.NOT_SWIZZLED
 
         target_path = self.root / "templates" / template_rel_path
         if not target_path.exists():
-            return False  # File doesn't exist, not modified
+            return ModificationStatus.FILE_MISSING
 
         current_checksum = _checksum_file(target_path)
+        if current_checksum is None:
+            return ModificationStatus.CHECKSUM_ERROR
+            
         expected_checksum = record.get("local_checksum")
+        if current_checksum != expected_checksum:
+            return ModificationStatus.MODIFIED
+            
+        return ModificationStatus.UNCHANGED
 
-        return bool(current_checksum != expected_checksum)
+    def is_modified(self, template_rel_path: str) -> bool:
+        """Check if a swizzled template has been modified locally.
+
+        This is a convenience wrapper around get_modification_status() that
+        returns a simple boolean. For more detailed status information,
+        use get_modification_status() instead.
+
+        Args:
+            template_rel_path: Relative path inside templates/ (e.g., 'partials/toc.html')
+
+        Returns:
+            True if template has been modified locally, False otherwise.
+            Returns False for templates that were never swizzled or have errors.
+        """
+        status = self.get_modification_status(template_rel_path)
+        return status == ModificationStatus.MODIFIED
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:
@@ -448,21 +515,35 @@ class SwizzleManager:
             raise
 
 
-def _checksum_file(path: Path) -> str:
-    """Compute truncated checksum of file content."""
+def _checksum_file(path: Path) -> str | None:
+    """Compute truncated checksum of file content.
+    
+    Args:
+        path: Path to file to checksum
+        
+    Returns:
+        16-character truncated SHA-256 hash, or None if checksumming fails
+        (file not found, permission denied, etc.)
+    """
     try:
         return hash_file(path, truncate=16)
     except Exception as e:
-        logger.debug(
+        logger.warning(
             "swizzle_checksum_file_failed",
             path=str(path),
             error=str(e),
             error_type=type(e).__name__,
-            action="returning_empty_string",
         )
-        return ""
+        return None
 
 
 def _checksum_str(content: str) -> str:
-    """Compute truncated checksum of string content."""
+    """Compute truncated checksum of string content.
+    
+    Args:
+        content: String content to hash
+        
+    Returns:
+        16-character truncated SHA-256 hash
+    """
     return hash_str(content, truncate=16)

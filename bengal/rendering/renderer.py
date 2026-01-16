@@ -25,6 +25,7 @@ See Also:
 from __future__ import annotations
 
 import re
+import threading
 from typing import Any
 
 from bengal.core.page import Page
@@ -85,6 +86,8 @@ class Renderer:
         # PERF: Cache for resolved tag pages (computed once per build)
         # Maps tag_slug -> list of filtered, resolved Page objects
         self._tag_pages_cache: dict[str, list[Page]] | None = None
+        # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
+        self._cache_lock = threading.Lock()
 
     def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
         """
@@ -128,14 +131,25 @@ class Renderer:
         PERF: O(T × P) total once, then O(1) lookups per tag page render.
         Previously: O(P) per render × R pagination pages per tag.
 
+        Thread Safety:
+            Uses double-checked locking pattern for safe initialization under
+            free-threading (PEP 703 / Python 3.14t).
+
         Args:
             tag_slug: The tag slug to get pages for
 
         Returns:
             List of filtered, resolved Page objects for the tag
         """
-        if self._tag_pages_cache is None:
-            self._tag_pages_cache = self._build_all_tag_pages_cache()
+        # Fast path: cache already built (no lock needed for reads)
+        if self._tag_pages_cache is not None:
+            return self._tag_pages_cache.get(tag_slug, [])
+
+        # Slow path: build cache under lock (thread-safe initialization)
+        with self._cache_lock:
+            # Double-check after acquiring lock
+            if self._tag_pages_cache is None:
+                self._tag_pages_cache = self._build_all_tag_pages_cache()
 
         return self._tag_pages_cache.get(tag_slug, [])
 
@@ -393,12 +407,14 @@ class Renderer:
                 # Raise TemplateRenderError directly (now extends Exception)
                 raise rich_error from e
 
-            # In production mode, collect error and continue
+            # In production mode, collect error for deferred display
+            # (prevents interleaved output during parallel rendering)
             if self.build_stats:
-                self.build_stats.add_template_error(rich_error)
-            else:
-                # No build stats available, display immediately
-                display_template_error(rich_error)
+                # Use deduplicator to avoid collecting duplicate errors
+                dedup = self.build_stats.get_error_deduplicator()
+                if dedup.should_display(rich_error):
+                    self.build_stats.add_template_error(rich_error)
+            # Note: If no build_stats, error is silently dropped (fallback HTML is still generated)
 
             if debug_mode:
                 # Show exception using the configured renderer
@@ -469,7 +485,9 @@ class Renderer:
         if paginator:
             posts = paginator.page(page_num)
             section_name = section.name if section is not None else ""
-            pagination = paginator.page_context(page_num, f"/{section_name}/")
+            # Guard against empty section name to avoid double-slash URLs like "//page/"
+            base_url = f"/{section_name}/" if section_name else "/"
+            pagination = paginator.page_context(page_num, base_url)
         else:
             posts = all_posts
             pagination = {

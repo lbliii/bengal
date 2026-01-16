@@ -240,7 +240,10 @@ def format_html(html: str, page: Page, site: Site) -> str:
     RFC: Output Cache Architecture - Content hash is computed BEFORE formatting
     to ensure deterministic results. This enables accurate change detection.
     
+    RFC: rfc-build-performance-optimizations - fast_mode skips formatting entirely.
+    
     Respects page-level and site-level configuration:
+    - site.config.build.fast_mode: Skip formatting (highest priority)
     - page.metadata.no_format: Skip formatting
     - site.config.html_output.mode: 'minify', 'pretty', or 'raw'
     - site.config.minify_html: Option
@@ -264,6 +267,11 @@ def format_html(html: str, page: Page, site: Site) -> str:
     try:
         from bengal.postprocess.html_output import format_html_output
 
+        # RFC: rfc-build-performance-optimizations Phase 1.1
+        # Check fast_mode first (highest priority) - skip all formatting
+        if build_cfg.get("fast_mode", False):
+            return html  # Return raw HTML without formatting
+        
         # Resolve mode from config with backward compatibility
         # Priority: page.metadata.no_format → html_output.mode → minify_html
         if page.metadata.get("no_format") is True:

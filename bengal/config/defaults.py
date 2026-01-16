@@ -49,7 +49,10 @@ See Also:
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.config.accessor import Config
 
 # =============================================================================
 # Worker Configuration
@@ -587,6 +590,8 @@ def normalize_bool_or_dict(
         {'enabled': True, 'path': '/graph/'}
         
     """
+    from bengal.config.merge import deep_merge
+
     # Get defaults for this key if available
     key_defaults = DEFAULTS.get(key, {})
     if not isinstance(key_defaults, dict):
@@ -594,21 +599,20 @@ def normalize_bool_or_dict(
 
     if value is None:
         # Use defaults
-        result = dict(key_defaults)
+        result = deep_merge({}, key_defaults)
         if "enabled" not in result:
             result["enabled"] = default_enabled
         return result
 
     if isinstance(value, bool):
         # Convert bool to dict with enabled flag
-        result = dict(key_defaults)
+        result = deep_merge({}, key_defaults)
         result["enabled"] = value
         return result
 
     if isinstance(value, dict):
         # Merge with defaults, user values take precedence
-        result = dict(key_defaults)
-        result.update(value)
+        result = deep_merge(key_defaults, value)
         # Ensure 'enabled' exists
         if "enabled" not in result:
             result["enabled"] = default_enabled
@@ -619,7 +623,7 @@ def normalize_bool_or_dict(
 
 
 def is_feature_enabled(
-    config: dict[str, Any],
+    config: Config | dict[str, Any],
     key: str,
     default: bool = True,
 ) -> bool:
@@ -664,7 +668,7 @@ def is_feature_enabled(
 
 
 def get_feature_config(
-    config: dict[str, Any],
+    config: Config | dict[str, Any],
     key: str,
     default_enabled: bool = True,
 ) -> dict[str, Any]:

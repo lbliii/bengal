@@ -29,10 +29,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.build_cache.autodoc_content_cache import AutodocContentCacheMixin
 from bengal.cache.build_cache.autodoc_tracking import AutodocTrackingMixin
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
 from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixin
@@ -55,6 +56,7 @@ class BuildCache(
     ParsedContentCacheMixin,
     RenderedOutputCacheMixin,
     AutodocTrackingMixin,
+    AutodocContentCacheMixin,
 ):
     """
     Tracks file hashes and dependencies between builds.
@@ -135,9 +137,12 @@ class BuildCache(
     # Autodoc source metadata: source_file → (content_hash, mtime, {page_path: doc_hash})
     # Enables fine-grained incremental builds and self-validation.
     # See: plan/rfc-autodoc-incremental-caching.md
-    autodoc_source_metadata: dict[
-        str, tuple[str, float] | tuple[str, float, dict[str, str]]
-    ] = field(default_factory=dict)
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
+    
+    # Autodoc content cache: source_file → CachedModuleInfo
+    # RFC: rfc-build-performance-optimizations Phase 3
+    # Caches parsed module data to skip AST parsing for unchanged sources
+    autodoc_content_cache: dict[str, Any] = field(default_factory=dict)
 
     # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
     # Enables skipping asset discovery walk during hot reload if no assets changed.
@@ -315,14 +320,29 @@ class BuildCache(
                 }
 
             # Autodoc source metadata (new in v0.1.8, tolerate missing)
-            # Structure: {source_path: [hash, mtime]} → convert to tuple
+            # Structure: {source_path: [hash, mtime, doc_hashes]} → convert to tuple
             if "autodoc_source_metadata" not in data:
                 data["autodoc_source_metadata"] = {}
             else:
-                # Convert lists back to tuples
-                data["autodoc_source_metadata"] = {
-                    k: tuple(v) for k, v in data["autodoc_source_metadata"].items()
-                }
+                # Convert lists back to tuples and normalize missing doc_hashes
+                normalized: dict[str, tuple[str, float, dict[str, str]]] = {}
+                for key, value in data["autodoc_source_metadata"].items():
+                    if isinstance(value, (list, tuple)):
+                        if len(value) == 2:
+                            source_hash, mtime = value
+                            normalized[key] = (source_hash, mtime, {})
+                        elif len(value) == 3:
+                            source_hash, mtime, doc_hashes = value
+                            normalized[key] = (source_hash, mtime, doc_hashes or {})
+                        else:
+                            raise ValueError(
+                                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                            )
+                    else:
+                        raise ValueError(
+                            "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                        )
+                data["autodoc_source_metadata"] = normalized
 
             # Rendered output cache (tolerate missing - Optimization #3)
             if "rendered_output" not in data or not isinstance(data["rendered_output"], dict):
@@ -339,6 +359,25 @@ class BuildCache(
             # Discovered assets (tolerate missing)
             if "discovered_assets" not in data or not isinstance(data["discovered_assets"], dict):
                 data["discovered_assets"] = {}
+
+            # Autodoc content cache (tolerate missing, reconstruct CachedModuleInfo)
+            if "autodoc_content_cache" not in data or not isinstance(
+                data["autodoc_content_cache"], dict
+            ):
+                data["autodoc_content_cache"] = {}
+            else:
+                # Reconstruct CachedModuleInfo from serialized dicts
+                from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+                reconstructed: dict[str, Any] = {}
+                for source_path, info_dict in data["autodoc_content_cache"].items():
+                    if isinstance(info_dict, dict) and "source_hash" in info_dict:
+                        reconstructed[source_path] = CachedModuleInfo(
+                            source_hash=info_dict["source_hash"],
+                            module_element_dict=info_dict.get("module_element_dict", {}),
+                        )
+                    # Skip malformed entries
+                data["autodoc_content_cache"] = reconstructed
 
             # Inject default version if missing
             if "version" not in data:
@@ -477,6 +516,20 @@ class BuildCache(
             compress: Whether to use compression (default: True)
         """
         # Convert sets to lists for JSON serialization
+        # Serialize CachedModuleInfo to dict for JSON
+        from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
+
+        autodoc_content_serialized = {}
+        for source_path, info in self.autodoc_content_cache.items():
+            if isinstance(info, CachedModuleInfo):
+                autodoc_content_serialized[source_path] = {
+                    "source_hash": info.source_hash,
+                    "module_element_dict": info.module_element_dict,
+                }
+            elif isinstance(info, dict):
+                # Already serialized (shouldn't happen but handle gracefully)
+                autodoc_content_serialized[source_path] = info
+
         data = {
             "version": self.VERSION,
             "file_fingerprints": self.file_fingerprints,
@@ -499,12 +552,14 @@ class BuildCache(
             "autodoc_source_metadata": {
                 k: list(v) for k, v in self.autodoc_source_metadata.items()
             },
+            # Autodoc content cache (CachedModuleInfo serialized to dict)
+            "autodoc_content_cache": autodoc_content_serialized,
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
-            "last_build": datetime.now().isoformat(),
+            "last_build": datetime.now(timezone.utc).isoformat(),
         }
 
         if compress:
@@ -552,7 +607,9 @@ class BuildCache(
         self.validation_results.clear()
         self.autodoc_dependencies.clear()
         self.autodoc_source_metadata.clear()
+        self.autodoc_content_cache.clear()
         self.discovered_assets.clear()
+        self.url_claims.clear()
         self.config_hash = None
         self.last_build = None
 

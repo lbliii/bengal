@@ -2,10 +2,17 @@
 Provenance-based incremental filter.
 
 Replaces IncrementalFilterEngine with content-addressed provenance checking.
+
+Thread Safety:
+    The ProvenanceFilter is designed for single-threaded use within a build,
+    but uses thread-safe backing stores (ProvenanceCache). Session caches
+    (_file_hashes, _computed_provenance) are per-filter instance and should
+    not be shared between threads without synchronization.
 """
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -20,6 +27,9 @@ from bengal.build.provenance.types import (
     hash_dict,
     hash_file,
 )
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
@@ -105,6 +115,12 @@ class ProvenanceFilter:
         self._asset_hashes: dict[CacheKey, ContentHash] = {}
         self._load_asset_hashes()
 
+        # Session caches to avoid redundant I/O and computation
+        # Protected by lock for thread-safe access during parallel operations
+        self._file_hashes: dict[Path, ContentHash] = {}
+        self._computed_provenance: dict[CacheKey, Provenance] = {}
+        self._session_lock = threading.Lock()
+
     def filter(
         self,
         pages: list[Page],
@@ -153,29 +169,57 @@ class ProvenanceFilter:
                 self._collect_affected(page, affected_tags, affected_sections)
                 continue
 
-            # OPTIMIZATION: Check cache first using stored hash (no file I/O)
-            # Only compute provenance if cache miss (lazy evaluation)
-            stored_hash = self.cache._index.get(page_path) if self.cache._loaded else None
+            # CRITICAL OPTIMIZATION: Check cache FIRST before computing provenance
+            # This avoids expensive file hashing for cache hits
+            stored_hash = self.cache.get_stored_hash(page_path)
             if stored_hash is None:
-                # Cache miss - need to compute provenance
-                self.cache._ensure_loaded()
-                stored_hash = self.cache._index.get(page_path)
-            
-            if stored_hash is not None:
-                # Fast path: Check if we can skip without computing provenance
-                # We need to compute provenance to compare, but we can optimize
-                # by checking if it's a simple content page first
-                provenance = self._compute_provenance_fast(page, stored_hash)
-                if provenance is not None:
-                    # Fast path succeeded - provenance matches cache
+                # No cache entry - definitely need to build
+                pages_to_build.append(page)
+                changed_page_paths.add(page.source_path)
+                self._collect_affected(page, affected_tags, affected_sections)
+                continue
+
+            # Cache entry exists - check if it's still valid
+            # For simple content pages, use fast-path (content + config only)
+            is_virtual = getattr(page, "_virtual", False)
+            if not is_virtual and page.source_path.exists():
+                provenance_fast = self._compute_provenance_fast(page)
+                if provenance_fast is not None and provenance_fast.combined_hash == stored_hash:
+                    # Cache hit via fast path - skip full computation
                     pages_skipped.append(page)
                     continue
             
-            # Cache miss or fast path failed - compute full provenance
-            provenance = self._compute_provenance(page)
+            # Fast path didn't match or page is virtual - compute full provenance
+            try:
+                provenance = self._compute_provenance(page)
+            except Exception as e:
+                # If provenance computation fails, treat as cache miss (rebuild)
+                logger.debug(
+                    "provenance_computation_failed",
+                    page_path=str(page_path),
+                    error=str(e),
+                    is_virtual=is_virtual,
+                )
+                pages_to_build.append(page)
+                changed_page_paths.add(page.source_path)
+                self._collect_affected(page, affected_tags, affected_sections)
+                continue
             
-            # Check if provenance is fresh
-            if self.cache.is_fresh(page_path, provenance):
+            # Ensure provenance has at least config input (sanity check)
+            if provenance.input_count == 0:
+                logger.warning(
+                    "empty_provenance_computed",
+                    page_path=str(page_path),
+                    is_virtual=is_virtual,
+                    suggestion="Page may have no valid source - treating as cache miss",
+                )
+                pages_to_build.append(page)
+                changed_page_paths.add(page.source_path)
+                self._collect_affected(page, affected_tags, affected_sections)
+                continue
+            
+            # Check if provenance matches stored hash
+            if provenance.combined_hash == stored_hash:
                 pages_skipped.append(page)
             else:
                 pages_to_build.append(page)
@@ -204,7 +248,7 @@ class ProvenanceFilter:
 
     def record_build(self, page: Page, output_hash: ContentHash | None = None) -> None:
         """
-        Record provenance after a page is built.
+        Record provenance after a page is built (thread-safe).
 
         Call this after rendering each page to update the cache.
         Records provenance for both real and virtual pages.
@@ -213,13 +257,18 @@ class ProvenanceFilter:
             page: The page that was built
             output_hash: Hash of the rendered output (optional)
         """
-        provenance = self._compute_provenance(page)
+        # OPTIMIZATION: Use already computed provenance if available from filter phase
+        page_path = self._get_page_key(page)
+        
+        # Thread-safe access to session cache
+        provenance = self._computed_provenance.get(page_path)
+        
+        if provenance is None:
+            provenance = self._compute_provenance(page)
         
         # Skip pages with no meaningful provenance (fallback only)
         if provenance.input_count <= 1:  # Only config, no real source
             return
-
-        page_path = self._get_page_key(page)
 
         record = ProvenanceRecord(
             page_path=page_path,
@@ -251,38 +300,67 @@ class ProvenanceFilter:
         asset_cache_path.parent.mkdir(parents=True, exist_ok=True)
         asset_cache_path.write_text(json.dumps(dict(self._asset_hashes), indent=2))
 
-    def _compute_provenance_fast(
-        self, page: Page, stored_hash: ContentHash
-    ) -> Provenance | None:
-        """
-        Fast-path provenance check for common case (real content pages).
+    def _get_file_hash(self, path: Path) -> ContentHash:
+        """Get file hash from session cache or compute it (thread-safe)."""
+        # Fast path: check without lock
+        cached = self._file_hashes.get(path)
+        if cached is not None:
+            return cached
         
-        Returns Provenance if cache hit (matches stored_hash), None if need full check.
-        This avoids file I/O for cache hits on simple content pages.
+        # Compute hash (outside lock - I/O)
+        computed = hash_file(path)
+        
+        # Store in cache with lock
+        with self._session_lock:
+            # Double-check in case another thread computed it
+            if path not in self._file_hashes:
+                self._file_hashes[path] = computed
+            return self._file_hashes[path]
+
+    def _compute_provenance_fast(self, page: Page) -> Provenance | None:
+        """
+        Fast-path provenance computation for simple content pages.
+        
+        Only computes content + config hash (most common case).
+        Returns None if page needs full provenance computation (virtual, etc.).
+        
+        This is an optimization to avoid full provenance computation for
+        cache hits on regular markdown files.
         """
         # Only works for real content pages (not virtual)
         is_virtual = getattr(page, "_virtual", False)
         if is_virtual:
             return None  # Need full computation for virtual pages
         
-        if not page.source_path.exists():
-            return None  # File missing - need full check
-        
-        # Fast path: Compute just content hash + config hash
-        # This matches the most common case (real markdown files)
-        rel_path = self._get_page_key(page)
-        content_hash = hash_file(page.source_path)
+        # Check if already computed for this page (fast path without lock)
+        page_path = self._get_page_key(page)
+        cached = self._computed_provenance.get(page_path)
+        if cached is not None:
+            return cached
+
+        # Defensive check: file may have been deleted between filter start and now
+        # (race condition with file watcher in dev server)
+        try:
+            if not page.source_path.exists():
+                return None  # File missing - need full check
+            
+            # Fast path: Compute just content hash + config hash
+            # This matches the most common case (real markdown files)
+            content_hash = self._get_file_hash(page.source_path)
+        except OSError:
+            # File system error (deleted, permission denied, etc.)
+            return None
         
         # Build minimal provenance (content + config only)
         provenance = Provenance()
-        provenance = provenance.with_input("content", rel_path, content_hash)
+        provenance = provenance.with_input("content", page_path, content_hash)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
         
-        # Check if this matches stored hash
-        if provenance.combined_hash == stored_hash:
-            return provenance  # Cache hit!
-        
-        return None  # Cache miss - need full computation
+        # Cache for later (record_build) - thread-safe
+        with self._session_lock:
+            if page_path not in self._computed_provenance:
+                self._computed_provenance[page_path] = provenance
+            return self._computed_provenance[page_path]
     
     def _compute_provenance(self, page: Page) -> Provenance:
         """Compute provenance for a page based on its inputs.
@@ -296,16 +374,27 @@ class ProvenanceFilter:
         Note: We intentionally exclude dynamic metadata because it can be
         modified by cascades. The source file content captures frontmatter.
         """
+        page_path = self._get_page_key(page)
+
+        # Check cache first (fast path without lock)
+        cached = self._computed_provenance.get(page_path)
+        if cached is not None:
+            return cached
+
         provenance = Provenance()
-        rel_path = self._get_page_key(page)
+        rel_path = page_path
 
         # 1. Determine the actual source for this page
         is_virtual = getattr(page, "_virtual", False)
         
-        if not is_virtual and page.source_path.exists():
+        if not is_virtual:
             # Real content page - hash the markdown file
-            content_hash = hash_file(page.source_path)
-            provenance = provenance.with_input("content", rel_path, content_hash)
+            try:
+                if page.source_path.exists():
+                    content_hash = self._get_file_hash(page.source_path)
+                    provenance = provenance.with_input("content", rel_path, content_hash)
+            except OSError:
+                pass  # File system error - skip content input
         
         elif is_virtual:
             # Virtual page - find the actual source
@@ -317,14 +406,29 @@ class ProvenanceFilter:
                 source_path = Path(autodoc_source) if isinstance(autodoc_source, str) else autodoc_source
                 # Resolve relative paths from site root
                 if not source_path.is_absolute():
-                    source_path = self.site.root_path / source_path
+                    # Try site root first
+                    candidate = self.site.root_path / source_path
+                    if candidate.exists():
+                        source_path = candidate
+                    else:
+                        # Try parent (repo root)
+                        candidate = self.site.root_path.parent / source_path
+                        if candidate.exists():
+                            source_path = candidate
+                
                 if source_path.exists():
-                    source_hash = hash_file(source_path)
+                    source_hash = self._get_file_hash(source_path)
                     # Use relative path for cache key stability
                     try:
-                        rel_source = str(source_path.relative_to(self.site.root_path.parent))
+                        # Try relative to site root first
+                        rel_source = str(source_path.relative_to(self.site.root_path))
                     except ValueError:
-                        rel_source = str(source_path)
+                        try:
+                            # Try relative to repo root
+                            rel_source = str(source_path.relative_to(self.site.root_path.parent))
+                        except ValueError:
+                            # Fallback to absolute path string
+                            rel_source = str(source_path)
                     provenance = provenance.with_input(
                         "autodoc_source",
                         CacheKey(rel_source),
@@ -348,7 +452,7 @@ class ProvenanceFilter:
                 if not source_path.is_absolute():
                     source_path = self.site.root_path / source_path
                 if source_path.exists():
-                    source_hash = hash_file(source_path)
+                    source_hash = self._get_file_hash(source_path)
                     provenance = provenance.with_input(
                         "cli_source",
                         CacheKey(str(source_path)),
@@ -365,7 +469,11 @@ class ProvenanceFilter:
         # 2. Site config (affects all pages)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
-        return provenance
+        # Cache for later - thread-safe
+        with self._session_lock:
+            if page_path not in self._computed_provenance:
+                self._computed_provenance[page_path] = provenance
+            return self._computed_provenance[page_path]
 
     def _get_page_key(self, page: Page) -> CacheKey:
         """Get canonical page key for cache lookups."""
@@ -376,9 +484,16 @@ class ProvenanceFilter:
         Check if an asset has changed based on content hash.
         
         OPTIMIZATION: Uses mtime check first to avoid hashing unchanged files.
+        
+        Thread Safety:
+            Uses local variables for hash comparisons. Asset hash dict
+            updates are safe because each asset has a unique key.
         """
-        if not asset.source_path.exists():
-            return True
+        try:
+            if not asset.source_path.exists():
+                return True
+        except OSError:
+            return True  # File system error - treat as changed
         
         asset_path = self._get_asset_key(asset)
         stored_hash = self._asset_hashes.get(asset_path)
@@ -388,16 +503,16 @@ class ProvenanceFilter:
         if stored_hash is not None:
             try:
                 # Get mtime for quick check (much faster than hashing)
-                current_mtime = asset.source_path.stat().st_mtime
-                # If mtime matches and we have hash, assume unchanged
-                # (We'll verify hash on first check after mtime change)
+                _ = asset.source_path.stat().st_mtime
                 # For now, we still hash to be safe, but we could cache mtime too
-                pass  # Keep hashing for correctness, but could optimize further
             except OSError:
                 return True  # File error - treat as changed
         
         # Compute hash (necessary for correctness)
-        current_hash = hash_file(asset.source_path)
+        try:
+            current_hash = self._get_file_hash(asset.source_path)
+        except OSError:
+            return True  # File error - treat as changed
         
         if stored_hash is None:
             # First time seeing this asset
@@ -436,7 +551,7 @@ class ProvenanceFilter:
         """Get cache statistics."""
         return self.cache.stats()
 
-    def get_affected_by(self, input_hash: ContentHash) -> set[str]:
+    def get_affected_by(self, input_hash: ContentHash) -> set[CacheKey]:
         """
         Subvenance query: What pages depend on this input?
 

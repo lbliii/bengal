@@ -189,9 +189,11 @@ class StyledAttrs(DirectiveAttrs, total=False):
 
 
 class TitledAttrs(DirectiveAttrs, total=False):
-    """Attributes for titled directives (admonitions, dropdowns)."""
+    """Attributes for titled directives (admonitions, dropdowns).
+    
+    Note: title is inherited from DirectiveAttrs.
+    """
 
-    title: str
     icon: str | None
     collapsible: bool
     open: bool
@@ -240,9 +242,11 @@ class TabItemAttrs(DirectiveAttrs, total=False):
 
 
 class DropdownAttrs(DirectiveAttrs, total=False):
-    """Attributes for dropdown/details directives."""
+    """Attributes for dropdown/details directives.
+    
+    Note: title is inherited from DirectiveAttrs.
+    """
 
-    title: str
     open: bool
     icon: str | None
 
@@ -270,9 +274,11 @@ class IncludeAttrs(DirectiveAttrs, total=False):
 
 
 class CardAttrs(DirectiveAttrs, total=False):
-    """Attributes for card directives."""
+    """Attributes for card directives.
+    
+    Note: title is inherited from DirectiveAttrs.
+    """
 
-    title: str
     link: str | None
     image: str | None
     footer: str | None
@@ -288,10 +294,12 @@ class GridAttrs(DirectiveAttrs, total=False):
 
 
 class StepAttrs(DirectiveAttrs, total=False):
-    """Attributes for step directives."""
+    """Attributes for step directives.
+    
+    Note: title is inherited from DirectiveAttrs.
+    """
 
     number: int | None
-    title: str
 
 
 class GlossaryAttrs(DirectiveAttrs, total=False):

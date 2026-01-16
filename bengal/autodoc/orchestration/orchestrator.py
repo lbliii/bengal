@@ -74,18 +74,20 @@ class VirtualAutodocOrchestrator:
         
     """
 
-    def __init__(self, site: Site):
+    def __init__(self, site: Site, cache: Any | None = None):
         """
         Initialize virtual autodoc orchestrator.
 
         Args:
             site: Site instance for configuration and context
+            cache: Optional BuildCache instance for AST caching (RFC: rfc-build-performance-optimizations)
 
         Note:
             Uses the site's already-loaded config, which supports both
             YAML (config/_default/autodoc.yaml) and TOML (bengal.toml) formats.
         """
         self.site = site
+        self.cache = cache  # RFC: rfc-build-performance-optimizations Phase 3
         # Use site's config directly (supports both YAML and TOML)
         self.config = site.config.get("autodoc", {})
         self.normalized_config = normalize_autodoc_config(site.config)
@@ -485,7 +487,9 @@ class VirtualAutodocOrchestrator:
             "enabled", True
         ):
             try:
-                python_elements = extract_python(self.site, self.python_config)
+                # RFC: rfc-build-performance-optimizations Phase 3
+                # Pass cache to extractor if available
+                python_elements = extract_python(self.site, self.python_config, cache=self.cache)
                 if python_elements:
                     self._last_extracted_elements["python"] = python_elements
                     all_elements.extend(python_elements)

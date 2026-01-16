@@ -270,7 +270,7 @@ class ErrorCode(Enum):
     V003 = "autofix_failed"  # AutoFixer operation failed
     V004 = "linkcheck_timeout"  # External link check timed out
     V005 = "linkcheck_network_error"  # Network error during link check
-    V006 = "graph_analysis_failed"  # Connectivity/graph analysis failed in health
+    V006 = "health_graph_analysis_failed"  # Connectivity/graph analysis failed in health
 
     # ============================================================
     # Build/Orchestration errors (B001-B099)

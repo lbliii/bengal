@@ -39,7 +39,7 @@ See Also:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -82,19 +82,28 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 
 def _merge_into(target: dict[str, Any], source: dict[str, Any]) -> None:
-    """Merge source into target in place. Copies source dicts to avoid mutation."""
+    """Merge source into target in place. Copies source dicts/lists to avoid mutation."""
     for key, value in source.items():
         if key in target and isinstance(target[key], dict) and isinstance(value, dict):
             _merge_into(target[key], value)
-        elif isinstance(value, dict):
-            target[key] = _copy_dict(value)
+        elif isinstance(value, (dict, list)):
+            target[key] = _copy_value(value)
         else:
             target[key] = value
 
 
+def _copy_value(v: Any) -> Any:
+    """Recursively copy dictionaries and lists to ensure true deep copies."""
+    if isinstance(v, dict):
+        return {k: _copy_value(val) for k, val in v.items()}
+    if isinstance(v, list):
+        return [_copy_value(i) for i in v]
+    return v
+
+
 def _copy_dict(d: dict[str, Any]) -> dict[str, Any]:
-    """Recursively copy dict. Leaves primitives/lists as-is (not mutated by merge)."""
-    return {k: _copy_dict(v) if isinstance(v, dict) else v for k, v in d.items()}
+    """Recursively copy dict. Deeply copies dictionaries and lists."""
+    return cast(dict[str, Any], _copy_value(d))
 
 
 def batch_deep_merge(configs: list[dict[str, Any]]) -> dict[str, Any]:

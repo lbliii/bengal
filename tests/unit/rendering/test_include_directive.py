@@ -31,25 +31,27 @@ def temp_site_dir(tmp_path):
 
 @pytest.fixture
 def mock_state_with_root(temp_site_dir):
-    """Create a mock state object with root_path."""
+    """Create a mock state object with root_path and env dict."""
 
     class State:
         pass
 
     state = State()
     state.root_path = temp_site_dir
+    state.env = {}  # Include tracking uses state.env dict
     return state
 
 
 @pytest.fixture
 def mock_state_with_source(temp_site_dir):
-    """Create a mock state object with root_path and source_path."""
+    """Create a mock state object with root_path, source_path, and env dict."""
 
     class State:
         pass
 
     state = State()
     state.root_path = temp_site_dir
+    state.env = {}  # Include tracking uses state.env dict
     # Simulate a page in content/docs/guides/
     guides_dir = temp_site_dir / "content" / "docs" / "guides"
     guides_dir.mkdir(parents=True)
@@ -403,8 +405,8 @@ class TestIncludeDirectiveRobustness:
         test_file = snippets_dir / "depth-test.md"
         test_file.write_text("Test content")
 
-        # Simulate being at max depth already
-        mock_state_with_root._include_depth = MAX_INCLUDE_DEPTH
+        # Simulate being at max depth already (tracked in state.env)
+        mock_state_with_root.env["_include_depth"] = MAX_INCLUDE_DEPTH
 
         match = MagicMock()
         # Path is relative to content dir, so use "snippets/depth-test.md"
@@ -437,8 +439,8 @@ class TestIncludeDirectiveRobustness:
         block = MagicMock()
         directive.parse_tokens = MagicMock(return_value=[])
 
-        # Initially no depth set
-        assert getattr(mock_state_with_root, "_include_depth", 0) == 0
+        # Initially no depth set (tracked in state.env)
+        assert mock_state_with_root.env.get("_include_depth", 0) == 0
 
         result = directive.parse(block, match, mock_state_with_root)
 
@@ -446,7 +448,7 @@ class TestIncludeDirectiveRobustness:
         assert "error" not in result["attrs"]
 
         # After parsing, depth should be restored to original (0)
-        assert getattr(mock_state_with_root, "_include_depth", 0) == 0
+        assert mock_state_with_root.env.get("_include_depth", 0) == 0
 
     def test_cycle_detection_same_file(self, temp_site_dir, mock_state_with_root):
         """Test that including the same file twice is detected as a cycle."""
@@ -458,9 +460,9 @@ class TestIncludeDirectiveRobustness:
         test_file = snippets_dir / "cycle-test.md"
         test_file.write_text("Test content")
 
-        # Simulate that this file was already included
+        # Simulate that this file was already included (tracked in state.env)
         canonical_path = str(test_file.resolve())
-        mock_state_with_root._included_files = {canonical_path}
+        mock_state_with_root.env["_included_files"] = {canonical_path}
 
         match = MagicMock()
         directive.parse_title = lambda m: "snippets/cycle-test.md"
@@ -486,9 +488,9 @@ class TestIncludeDirectiveRobustness:
         file_a.write_text("Content A")
         file_b.write_text("Content B")
 
-        # Simulate that file_a was already included (we're in a→b and trying to include a)
+        # Simulate that file_a was already included (tracked in state.env)
         canonical_a = str(file_a.resolve())
-        mock_state_with_root._included_files = {canonical_a}
+        mock_state_with_root.env["_included_files"] = {canonical_a}
 
         match = MagicMock()
         directive.parse_title = lambda m: "snippets/indirect-a.md"
@@ -552,8 +554,8 @@ class TestIncludeDirectiveRobustness:
         directive.parse_options = lambda m: []
         directive.parse(block, match, mock_state_with_root)
 
-        # Verify file A is now in the included files set
-        included_files = getattr(mock_state_with_root, "_included_files", set())
+        # Verify file A is now in the included files set (tracked in state.env)
+        included_files = mock_state_with_root.env.get("_included_files", set())
         assert str(file_a.resolve()) in included_files
 
         # Include file B
@@ -561,7 +563,7 @@ class TestIncludeDirectiveRobustness:
         directive.parse(block, match, mock_state_with_root)
 
         # Verify both files are now tracked
-        included_files = mock_state_with_root._included_files
+        included_files = mock_state_with_root.env.get("_included_files", set())
         assert str(file_a.resolve()) in included_files
         assert str(file_b.resolve()) in included_files
 
@@ -702,3 +704,173 @@ class TestIncludeSymlinkRejection:
         # What matters is that is_symlink() on the final resolved path returns False
         if resolved:
             assert not resolved.is_symlink()
+
+
+class TestIncludeStateIsolation:
+    """Test that include directive state doesn't leak between parses.
+    
+    These tests verify the state.env storage pattern works correctly,
+    particularly around empty dict handling (regression test for falsy {} bug).
+    """
+
+    def test_state_env_initialized_when_none(self, temp_site_dir):
+        """Test that state.env is properly initialized when None."""
+        directive = IncludeDirective()
+
+        class StateWithoutEnv:
+            pass
+
+        state = StateWithoutEnv()
+        state.root_path = temp_site_dir
+
+        # Deliberately no state.env attribute
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        (snippets_dir / "test.md").write_text("Content")
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/test.md"
+        directive.parse_options = lambda m: []
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        block = MagicMock()
+        result = directive.parse(block, match, state)
+
+        # state.env should be created and populated
+        assert hasattr(state, "env")
+        assert state.env is not None
+        assert "_include_depth" in state.env
+        assert "error" not in result["attrs"]
+
+    def test_state_env_empty_dict_not_replaced(self, temp_site_dir, mock_state_with_root):
+        """Test that empty state.env dict is properly handled (not treated as falsy).
+        
+        Regression test: Empty dict {} is falsy in Python, so `env or {}` would
+        create a new dict instead of using the existing one. This test ensures
+        we use `is None` check instead.
+        """
+        directive = IncludeDirective()
+
+        # Ensure env is empty dict (not None)
+        original_env = {}
+        mock_state_with_root.env = original_env
+
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        (snippets_dir / "test.md").write_text("Content")
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/test.md"
+        directive.parse_options = lambda m: []
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        block = MagicMock()
+        directive.parse(block, match, mock_state_with_root)
+
+        # env should still be the SAME dict object, not a new one
+        assert mock_state_with_root.env is original_env
+        assert "_include_depth" in mock_state_with_root.env
+        assert "_included_files" in mock_state_with_root.env
+
+    def test_parallel_includes_isolated(self, temp_site_dir):
+        """Test that parallel include parses don't share state incorrectly."""
+
+        class State:
+            pass
+
+        # Create two separate states
+        state1 = State()
+        state1.root_path = temp_site_dir
+        state1.env = {}
+
+        state2 = State()
+        state2.root_path = temp_site_dir
+        state2.env = {}
+
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        file_a = snippets_dir / "a.md"
+        file_b = snippets_dir / "b.md"
+        file_a.write_text("Content A")
+        file_b.write_text("Content B")
+
+        directive = IncludeDirective()
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        match = MagicMock()
+        block = MagicMock()
+
+        # Parse in state1
+        directive.parse_title = lambda m: "snippets/a.md"
+        directive.parse_options = lambda m: []
+        directive.parse(block, match, state1)
+
+        # Parse in state2
+        directive.parse_title = lambda m: "snippets/b.md"
+        directive.parse(block, match, state2)
+
+        # States should be independent
+        files1 = state1.env.get("_included_files", set())
+        files2 = state2.env.get("_included_files", set())
+
+        # Each state should only have its own file
+        assert len(files1) == 1
+        assert len(files2) == 1
+        assert "a.md" in str(list(files1)[0])
+        assert "b.md" in str(list(files2)[0])
+        # No cross-contamination
+        assert "b.md" not in str(files1)
+        assert "a.md" not in str(files2)
+
+    def test_depth_restored_after_parse(self, temp_site_dir, mock_state_with_root):
+        """Test that include depth is restored after parsing completes."""
+        directive = IncludeDirective()
+
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        (snippets_dir / "test.md").write_text("Content")
+
+        # Set initial depth
+        mock_state_with_root.env["_include_depth"] = 5
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/test.md"
+        directive.parse_options = lambda m: []
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        block = MagicMock()
+        directive.parse(block, match, mock_state_with_root)
+
+        # Depth should be restored to original value
+        assert mock_state_with_root.env["_include_depth"] == 5
+
+    def test_included_files_persist_across_siblings(self, temp_site_dir, mock_state_with_root):
+        """Test that included files tracking persists across sibling includes."""
+        directive = IncludeDirective()
+
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        file_a = snippets_dir / "persist-a.md"
+        file_b = snippets_dir / "persist-b.md"
+        file_a.write_text("A")
+        file_b.write_text("B")
+
+        match = MagicMock()
+        block = MagicMock()
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        # Include A
+        directive.parse_title = lambda m: "snippets/persist-a.md"
+        directive.parse_options = lambda m: []
+        directive.parse(block, match, mock_state_with_root)
+
+        # Include B
+        directive.parse_title = lambda m: "snippets/persist-b.md"
+        directive.parse(block, match, mock_state_with_root)
+
+        # Both should be tracked
+        files = mock_state_with_root.env.get("_included_files", set())
+        assert len(files) == 2
+        paths_str = str(files)
+        assert "persist-a.md" in paths_str
+        assert "persist-b.md" in paths_str

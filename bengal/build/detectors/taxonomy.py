@@ -27,7 +27,8 @@ class TaxonomyCascadeDetector:
 
     def detect(self, ctx: "DetectionContext") -> ChangeDetectionResult:
         affected_tags: set[str] = set()
-        affected_sections: set[Path] = set()
+        # Store section paths as strings for consistent comparison with metadata
+        affected_sections: set[str] = set()
         pages_to_rebuild: set[CacheKey] = set()
         rebuild_reasons: dict[CacheKey, RebuildReason] = {}
 
@@ -45,8 +46,14 @@ class TaxonomyCascadeDetector:
                 if tag is not None:
                     affected_tags.add(str(tag).lower().replace(" ", "-"))
 
+            # Get section path as string for consistent comparison
             if hasattr(page, "section") and page.section:
-                affected_sections.add(page.section)
+                section = page.section
+                # Handle both Section objects and path-like values
+                if hasattr(section, "path"):
+                    affected_sections.add(str(section.path))
+                else:
+                    affected_sections.add(str(section))
 
         if affected_tags:
             for page in ctx.site.generated_pages:
@@ -67,7 +74,8 @@ class TaxonomyCascadeDetector:
             for page in ctx.site.pages:
                 if page.metadata.get("_generated") and page.metadata.get("type") == "archive":
                     page_section = page.metadata.get("_section")
-                    if page_section and page_section in affected_sections:
+                    # Compare as strings since affected_sections contains string paths
+                    if page_section and str(page_section) in affected_sections:
                         key = page_key_for_page(ctx.site.root_path, page)
                         pages_to_rebuild.add(key)
                         rebuild_reasons.setdefault(

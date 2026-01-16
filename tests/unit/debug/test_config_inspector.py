@@ -250,7 +250,7 @@ class TestConfigInspector:
     def mock_site(self, tmp_path):
         """Create a mock site with config directory."""
         site = MagicMock()
-        site.root = str(tmp_path)
+        site.root_path = tmp_path  # Use root_path (Path), not root (str)
         site.config = {
             "site": {"title": "Test Site", "baseurl": "/"},
             "build": {"parallel": True, "incremental": True},
@@ -440,7 +440,7 @@ class TestConfigInspectorExplainKey:
     def mock_site(self, tmp_path):
         """Create a mock site with config."""
         site = MagicMock()
-        site.root = str(tmp_path)
+        site.root_path = tmp_path  # Use root_path (Path), not root (str)
 
         # Create config directory
         config_dir = tmp_path / "config"

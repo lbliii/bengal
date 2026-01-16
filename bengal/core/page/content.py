@@ -27,12 +27,12 @@ See: plan/active/rfc-content-ast-architecture.md
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
-    pass
+    from bengal.parsing.ast.types import ASTNode
 
 
 class PageContentMixin:
@@ -62,7 +62,7 @@ class PageContentMixin:
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)
-    _ast_cache: list[dict[str, Any]] | None
+    _ast_cache: list[ASTNode] | None
     _html_cache: str | None
     _plain_text_cache: str | None
 
@@ -91,7 +91,7 @@ class PageContentMixin:
         return self.html
 
     @property
-    def ast(self) -> list[dict[str, Any]] | None:
+    def ast(self) -> list[ASTNode] | None:
         """
         True AST - list of tokens from markdown parser.
 
@@ -205,7 +205,8 @@ class PageContentMixin:
 
             renderer = HTMLRenderer()
             state = BlockState()
-            return renderer(self._ast_cache, state)
+            # Cast to expected type - ASTNode TypedDicts are dict subtypes
+            return renderer(cast(list[dict[str, Any]], self._ast_cache), state)
         except (ImportError, AttributeError, Exception) as e:
             # Fallback to empty string if rendering fails
             emit_diagnostic(

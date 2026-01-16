@@ -50,7 +50,7 @@ class ExternalRefValidator(BaseValidator):
                 CheckResult(
                     status=CheckStatus.WARNING,
                     message=f"Unresolved external reference: [[ext:{ref.project}:{ref.target}]]",
-                    code="H701",
+                    code="H710",
                     recommendation="Add template or index entry in external_refs config",
                     details=details or None,
                     validator=self.name,

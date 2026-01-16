@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.io.atomic_write import atomic_write_bytes, atomic_write_text
 from bengal.utils.observability.logger import get_logger
@@ -109,7 +109,7 @@ class BaseOutputGenerator(ABC):
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_bytes(path, content)
 
-    def get_accumulated_data(self) -> list | None:
+    def get_accumulated_data(self) -> list[Any] | None:
         """
         Get accumulated page data from build context.
 

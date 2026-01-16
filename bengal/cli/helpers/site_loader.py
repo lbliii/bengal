@@ -203,7 +203,7 @@ def load_site_from_cli(
     source: str = ".",
     config: str | None = None,
     environment: str | None = None,
-    profile: str | None = None,
+    profile: str | BuildProfile | None = None,
     cli: CLIOutput | None = None,
 ) -> Site:
     """
@@ -213,7 +213,7 @@ def load_site_from_cli(
         source: Source directory path (default: current directory)
         config: Optional config file path
         environment: Optional environment name (local, preview, production)
-        profile: Optional profile name (writer, theme-dev, dev)
+        profile: Optional profile name or BuildProfile object
         cli: Optional CLIOutput instance (creates new if not provided)
     
     Returns:
@@ -231,6 +231,11 @@ def load_site_from_cli(
     """
     if cli is None:
         cli = CLIOutput()
+    
+    from bengal.utils.observability.profile import BuildProfile
+
+    # Normalize profile to string if it's an enum
+    profile_name = str(profile) if isinstance(profile, BuildProfile) else profile
 
     root_path = Path(source).resolve()
 
@@ -257,7 +262,7 @@ def load_site_from_cli(
         raise click.Abort()
 
     try:
-        site = Site.from_config(root_path, config_path, environment=environment, profile=profile)
+        site = Site.from_config(root_path, config_path, environment=environment, profile=profile_name)
         return site
     except Exception as e:
         cli.error(f"Failed to load site from {root_path}: {e}")

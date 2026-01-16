@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
+from bengal.utils.concurrency.thread_local import ThreadSafeSet
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.observability import ComponentStats
 
@@ -45,10 +46,11 @@ logger = get_logger(__name__)
 # =============================================================================
 # Observability: Fallback Warning Deduplication
 # RFC: rfc-asset-resolution-observability.md (Phase 1)
+# Thread-safe: Uses ThreadSafeSet for safe concurrent access (PEP 703)
 # =============================================================================
 
 # Track paths that have already warned about fallback (avoid log spam)
-_fallback_warned: set[str] = set()
+_fallback_warned: ThreadSafeSet = ThreadSafeSet()
 
 
 # =============================================================================
@@ -217,6 +219,9 @@ def resolve_asset_url(
     This is the single source of truth for asset URL resolution.
     Handles fingerprinting, baseurl, and file:// protocol.
     
+    RFC: rfc-build-performance-optimizations Phase 2
+    Tracks asset references during render-time if AssetTracker is active.
+    
     Args:
         asset_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
@@ -235,28 +240,51 @@ def resolve_asset_url(
     from bengal.rendering.template_engine.url_helpers import with_baseurl
 
     if not asset_path:
-        return with_baseurl("/assets/", site)
+        url = with_baseurl("/assets/", site)
+    else:
+        # Normalize path
+        clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
 
-    # Normalize path
-    clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
+        baseurl_value = (site.baseurl or "").rstrip("/")
 
-    baseurl_value = (site.baseurl or "").rstrip("/")
+        # Handle file:// protocol - generate relative URLs
+        if baseurl_value.startswith("file://"):
+            url = _resolve_file_protocol(clean_path, site, page)
+        # In dev server mode, prefer stable URLs without fingerprints
+        elif getattr(site, "dev_mode", False):
+            url = with_baseurl(f"/assets/{clean_path}", site)
+        else:
+            # Look up fingerprinted path from manifest
+            fingerprinted_path = _resolve_fingerprinted(clean_path, site)
+            if fingerprinted_path:
+                url = with_baseurl(f"/{fingerprinted_path}", site)
+            else:
+                # Fallback: return direct asset path
+                url = with_baseurl(f"/assets/{clean_path}", site)
+    
+    # RFC: rfc-build-performance-optimizations Phase 2
+    # Track asset reference if tracker is active (render-time tracking)
+    tracker = _get_asset_tracker()
+    if tracker:
+        # Track the original logical path, not the resolved URL
+        # (the logical path is what we need for dependency tracking)
+        tracker.track(asset_path if asset_path else "/assets/")
+    
+    return url
 
-    # Handle file:// protocol - generate relative URLs
-    if baseurl_value.startswith("file://"):
-        return _resolve_file_protocol(clean_path, site, page)
 
-    # In dev server mode, prefer stable URLs without fingerprints
-    if getattr(site, "dev_mode", False):
-        return with_baseurl(f"/assets/{clean_path}", site)
-
-    # Look up fingerprinted path from manifest
-    fingerprinted_path = _resolve_fingerprinted(clean_path, site)
-    if fingerprinted_path:
-        return with_baseurl(f"/{fingerprinted_path}", site)
-
-    # Fallback: return direct asset path
-    return with_baseurl(f"/assets/{clean_path}", site)
+def _get_asset_tracker() -> Any | None:
+    """Get current asset tracker if available.
+    
+    Returns:
+        Current AssetTracker instance, or None
+    """
+    try:
+        from bengal.rendering.asset_tracking import get_current_tracker
+        return get_current_tracker()
+    except ImportError:
+        # Graceful degradation if module not available
+        return None
 
 
 def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
@@ -301,8 +329,8 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
             stats.items_skipped.get("unexpected_fallback", 0) + 1
         )
         # Warn once per unique path to avoid log spam during render
-        if logical_path not in _fallback_warned:
-            _fallback_warned.add(logical_path)
+        # Thread-safe: add_if_new returns True if item was new (not present before)
+        if _fallback_warned.add_if_new(logical_path):
             logger.warning(
                 "asset_manifest_disk_fallback",
                 logical_path=logical_path,
@@ -378,12 +406,13 @@ def clear_manifest_cache(site: Site | None = None) -> None:
     Also resets resolution stats and fallback warning deduplication.
     The site parameter is kept for backward compatibility but is not used.
 
+    Thread-safe: Uses ThreadSafeSet.clear() for safe concurrent access (PEP 703).
+
     RFC: rfc-asset-resolution-observability.md
 
     Args:
         site: Unused (kept for backward compatibility)
     """
-    global _fallback_warned
     reset_asset_manifest()
     _resolution_stats.set(None)
-    _fallback_warned = set()
+    _fallback_warned.clear()

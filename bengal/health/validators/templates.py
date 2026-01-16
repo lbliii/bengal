@@ -2,10 +2,11 @@
 Template validation for catching syntax errors before rendering.
 
 This module provides the single source of truth for template validation in Bengal.
-It validates Jinja2 template syntax and checks for missing includes/dependencies.
+It validates template syntax and checks for missing includes/dependencies.
+Works with any template engine implementing TemplateEngineProtocol.
 
 Key features:
-- Validates template syntax before rendering
+- Validates template syntax before rendering (engine-agnostic)
 - Checks that included templates exist
 - Provides detailed error context
 - CLI integration for validation commands
@@ -17,19 +18,17 @@ while validate_templates() provides CLI integration.
 
 Related:
 - bengal/health/validators/__init__.py: Validator exports
-- bengal/rendering/engines/jinja.py: TemplateEngine.validate_templates()
-- plan/ready/plan-architecture-refactoring.md: Sprint 3 consolidation
+- bengal/rendering/engines/jinja.py: JinjaTemplateEngine.validate()
+- bengal/rendering/engines/kida.py: KidaTemplateEngine.validate()
+- bengal/protocols/rendering.py: TemplateValidator protocol
 
 """
 
 from __future__ import annotations
 
-import re
-from pathlib import Path
 from typing import Any
 
 import click
-from jinja2 import TemplateSyntaxError
 
 from bengal.utils.observability.logger import get_logger
 
@@ -40,14 +39,15 @@ class TemplateValidator:
     """
     Validates templates for syntax errors and missing dependencies.
     
-    This validator checks Jinja2 templates for:
+    This validator uses the template engine's built-in validation to check:
     - Syntax errors (unclosed tags, invalid expressions)
     - Missing included templates
     - Invalid extends references
     
+    Works with any engine implementing TemplateEngineProtocol (Jinja2, Kida, etc.).
+    
     Attributes:
         template_engine: TemplateEngine instance to validate
-        env: Jinja2 environment from the template engine
         
     """
 
@@ -56,65 +56,36 @@ class TemplateValidator:
         Initialize validator.
 
         Args:
-            template_engine: TemplateEngine instance
+            template_engine: TemplateEngine instance implementing validate() method
         """
         self.template_engine = template_engine
-        self.env = template_engine.env
 
     def validate_all(self) -> list[Any]:
         """
         Validate all templates in the theme.
+        
+        Uses the engine's built-in validate() method which is engine-agnostic.
+        Works with Jinja2, Kida, and any other engine implementing the protocol.
 
         Returns:
-            List of errors found
+            List of TemplateRenderError objects for display
         """
-        errors = []
-
-        for template_dir in self.template_engine.template_dirs:
-            if not template_dir.exists():
-                continue
-
-            # Find all template files
-            for template_file in template_dir.rglob("*.html"):
-                template_name = str(template_file.relative_to(template_dir))
-
-                # Validate syntax
-                syntax_errors = self._validate_syntax(template_name, template_file)
-                errors.extend(syntax_errors)
-
-                # Validate includes (check if included templates exist)
-                include_errors = self._validate_includes(template_name, template_file)
-                errors.extend(include_errors)
-
-        return errors
-
-    def _validate_syntax(self, template_name: str, template_path: Path) -> list[Any]:
-        """Validate template syntax."""
         from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
 
-        try:
-            # Try to compile the template
-            with open(template_path, encoding="utf-8") as f:
-                source = f.read()
+        # Use the engine's validate() method - works with all engines
+        # This returns list[TemplateError] (simple dataclass)
+        template_errors = self.template_engine.validate()
 
-            self.env.parse(source, template_name, str(template_path))
-            return []
-
-        except TemplateSyntaxError as e:
-            # Create error object
-            error = TemplateRenderError.from_jinja2_error(
-                e, template_name, None, self.template_engine
-            )
-            return [error]
-
-        except Exception as e:
-            # Other parsing errors
+        # Convert TemplateError to TemplateRenderError for rich display
+        errors: list[Any] = []
+        for err in template_errors:
+            template_path = self.template_engine.get_template_path(err.template)
             error = TemplateRenderError(
-                error_type="other",
-                message=str(e),
+                error_type=err.error_type or "syntax",
+                message=err.message,
                 template_context=TemplateErrorContext(
-                    template_name=template_name,
-                    line_number=None,
+                    template_name=err.template,
+                    line_number=err.line,
                     column=None,
                     source_line=None,
                     surrounding_lines=[],
@@ -125,51 +96,7 @@ class TemplateValidator:
                 suggestion=None,
                 available_alternatives=[],
             )
-            return [error]
-
-    def _validate_includes(self, template_name: str, template_path: Path) -> list[Any]:
-        """Check if all included templates exist."""
-        from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
-
-        errors = []
-
-        # Parse template to find includes
-        with open(template_path, encoding="utf-8") as f:
-            source = f.read()
-
-        # Simple regex to find includes (not perfect but good enough)
-        includes = re.findall(r"{%\s*include\s+['\"]([^'\"]+)['\"]", source)
-
-        for include_name in includes:
-            try:
-                self.env.get_template(include_name)
-            except Exception as e:
-                # Include not found
-                logger.debug(
-                    "template_validator_include_check_failed",
-                    include_name=include_name,
-                    template=template_name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="marking_as_not_found",
-                )
-                error = TemplateRenderError(
-                    error_type="other",
-                    message=f"Included template not found: {include_name}",
-                    template_context=TemplateErrorContext(
-                        template_name=template_name,
-                        line_number=None,
-                        column=None,
-                        source_line=None,
-                        surrounding_lines=[],
-                        template_path=template_path,
-                    ),
-                    inclusion_chain=None,
-                    page_source=None,
-                    suggestion=f"Create {include_name} or fix the include path",
-                    available_alternatives=[],
-                )
-                errors.append(error)
+            errors.append(error)
 
         return errors
 

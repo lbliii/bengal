@@ -49,7 +49,7 @@ class ContentChangeDetector:
                     RebuildReasonCode.ADJACENT_NAV_CHANGED,
                     trigger=str(page.source_path),
                 )
-            elif ctx.cache.is_changed(page.source_path):
+            elif ctx.cache.should_bypass(page.source_path):
                 reason = RebuildReason(
                     RebuildReasonCode.CONTENT_CHANGED,
                     trigger=str(page.source_path),
@@ -61,11 +61,15 @@ class ContentChangeDetector:
                 rebuild_reasons.setdefault(page_key, reason)
 
                 if page.tags:
+                    # Update affected tags for cascade detection
                     affected_tags.update(
                         str(tag).lower().replace(" ", "-")
                         for tag in page.tags
                         if tag is not None
                     )
+                    # Register taxonomy with dependency tracker (RFC: incremental gaps)
+                    if ctx.tracker:
+                        ctx.tracker.track_taxonomy(page.source_path, set(page.tags))
 
                 section_path = resolve_page_section_path(page)
                 if section_path:
@@ -75,7 +79,7 @@ class ContentChangeDetector:
             asset_key = asset_key_for_asset(ctx.site.root_path, asset)
             if asset_key in forced_changed or asset_key in nav_changed:
                 assets_to_process.add(asset_key)
-            elif ctx.cache.is_changed(asset.source_path):
+            elif ctx.cache.should_bypass(asset.source_path):
                 assets_to_process.add(asset_key)
 
         if not pages_to_rebuild and not assets_to_process:

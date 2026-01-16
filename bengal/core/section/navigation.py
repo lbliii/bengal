@@ -76,9 +76,11 @@ class SectionNavigationMixin:
     _site: Site | None
     _diagnostics: DiagnosticsSink | None
 
-    # From other mixins
-    sorted_pages: list[Page]
-    sorted_subsections: list[Section]
+    # From other mixins - accessed via self but defined in other mixins.
+    # Type declarations for static analysis (actual implementations in other mixins).
+    if TYPE_CHECKING:
+        sorted_pages: list[Page]  # from SectionQueryMixin
+        sorted_subsections: list[Section]  # from SectionHierarchyMixin
 
     # =========================================================================
     # URL PROPERTIES
@@ -134,14 +136,15 @@ class SectionNavigationMixin:
 
         if self._virtual:
             if not self._relative_url_override:
-                if self._diagnostics:
-                    self._diagnostics.emit(
-                        self,  # type: ignore[arg-type]
-                        "error",
-                        "virtual_section_missing_url",
-                        section_name=self.name,
-                        tip="Virtual sections must have a _relative_url_override set.",
-                    )
+                from bengal.core.diagnostics import emit as emit_diagnostic
+
+                emit_diagnostic(
+                    self,
+                    "error",
+                    "virtual_section_missing_url",
+                    section_name=self.name,
+                    tip="Virtual sections must have a _relative_url_override set.",
+                )
                 return "/"
             return normalize_url(self._relative_url_override)
 

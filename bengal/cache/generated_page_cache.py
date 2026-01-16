@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -399,7 +399,7 @@ class GeneratedPageCache:
                 if hasattr(p, "source_path")
             },
             cached_html=cached_html,
-            last_generated=datetime.now().isoformat(),
+            last_generated=datetime.now(timezone.utc).isoformat(),
             generation_time_ms=generation_time_ms,
             is_compressed=False,
         )

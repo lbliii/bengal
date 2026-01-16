@@ -133,8 +133,8 @@ class ContentBrowser(Vertical):
                 orphan_pages.append(page)
 
         # Add sections with their pages
-        for section in sorted(self._site.sections, key=lambda s: str(s.source_path)):
-            section_path = str(section.source_path)
+        for section in sorted(self._site.sections, key=lambda s: str(s.path)):
+            section_path = str(section.path)
             pages = section_pages.get(section_path, [])
             page_count = len(pages)
 
@@ -181,7 +181,7 @@ class ContentBrowser(Vertical):
             indicators.append("📝")
         if metadata.get("_generated"):
             indicators.append("⚡")
-        if page.template == "archive.html":
+        if page.assigned_template == "archive.html":
             indicators.append("📚")
 
         indicator_str = " ".join(indicators)

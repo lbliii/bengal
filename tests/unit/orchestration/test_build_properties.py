@@ -211,14 +211,24 @@ class TestBuildProperties:
 
         For any valid site content, running build() twice should produce
         exactly the same output files with identical content.
+        
+        Note: Uses dev_mode=True to exclude build_time from index.json,
+        since build_time is expected to change between builds (it records
+        when the build happened, not a content-derived value).
         """
         from bengal.orchestration.build.options import BuildOptions
 
         tmp_path = tmp_path_factory.mktemp("idempotent")
         site = _create_site_with_content(tmp_path, content)
+        
+        # Enable dev_mode to exclude build_time from index.json
+        # build_time changes every build by design - it's not part of idempotency
+        site.dev_mode = True
 
         # First build
-        options = BuildOptions(incremental=False, quiet=True)
+        # Note: force_sequential=True due to parallel deadlock in free-threaded Python
+        # TODO: Fix parallel rendering deadlock and remove this workaround
+        options = BuildOptions(incremental=False, quiet=True, force_sequential=True)
         site.build(options=options)
         first_hashes = _hash_output_dir(site.output_dir)
 

@@ -54,6 +54,7 @@ from PIL import Image, ImageDraw, ImageFont
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.page import Page
     from bengal.core.site import Site
 
@@ -109,7 +110,7 @@ class SocialCardConfig:
     cache: bool = True
 
 
-def parse_social_cards_config(config: dict[str, Any]) -> SocialCardConfig:
+def parse_social_cards_config(config: Config | dict[str, Any]) -> SocialCardConfig:
     """
     Parse [social_cards] section from bengal.toml.
     
@@ -304,9 +305,9 @@ class SocialCardGenerator:
         # Try to use site's configured fonts and download TTF version
         site_fonts = self.site.config.get("fonts", {})
         if site_fonts:
-            font_path = self._download_site_font_as_ttf(site_fonts, fonts_dir, bold)
-            if font_path:
-                return font_path
+            downloaded_path = self._download_site_font_as_ttf(site_fonts, fonts_dir, bold)
+            if downloaded_path:
+                return downloaded_path
 
         # Try common font file name patterns (family-weight format)
         weight = 700 if bold else 400
@@ -521,6 +522,7 @@ class SocialCardGenerator:
         description: str,
         site_name: str,
         site_url: str | None = None,
+        config: SocialCardConfig | None = None,
     ) -> Image.Image | None:
         """
         Render default branded template.
@@ -535,6 +537,7 @@ class SocialCardGenerator:
             description: Page description
             site_name: Site name for branding
             site_url: Optional site URL for footer
+            config: Optional config override for per-page styling
 
         Returns:
             Rendered PIL Image, or None if fonts unavailable
@@ -545,10 +548,12 @@ class SocialCardGenerator:
         assert self._body_font is not None
         assert self._small_font is not None
 
-        bg_color = _hex_to_rgb(self.config.background_color)
-        text_color = _hex_to_rgb(self.config.text_color)
-        accent_color = _hex_to_rgb(self.config.accent_color)
-        secondary_color = _hex_to_rgb(self.config.secondary_color)
+        # Use provided config or fall back to instance config
+        cfg = config or self.config
+        bg_color = _hex_to_rgb(cfg.background_color)
+        text_color = _hex_to_rgb(cfg.text_color)
+        accent_color = _hex_to_rgb(cfg.accent_color)
+        secondary_color = _hex_to_rgb(cfg.secondary_color)
 
         img = Image.new("RGB", (CARD_WIDTH, CARD_HEIGHT), bg_color)
         draw = ImageDraw.Draw(img)
@@ -562,7 +567,7 @@ class SocialCardGenerator:
         draw.rectangle([(0, 0), (CARD_WIDTH, 8)], fill=accent_color)
 
         # Site name (top left)
-        if self.config.show_site_name and site_name:
+        if cfg.show_site_name and site_name:
             draw.text(
                 (margin_x, margin_y),
                 site_name.upper(),
@@ -616,6 +621,7 @@ class SocialCardGenerator:
         description: str,
         site_name: str,
         site_url: str | None = None,
+        config: SocialCardConfig | None = None,
     ) -> Image.Image | None:
         """
         Render minimal centered template.
@@ -629,6 +635,7 @@ class SocialCardGenerator:
             description: Page description (unused in minimal)
             site_name: Site name for branding
             site_url: Optional site URL (unused in minimal)
+            config: Optional config override for per-page styling
 
         Returns:
             Rendered PIL Image, or None if fonts unavailable
@@ -638,10 +645,12 @@ class SocialCardGenerator:
         assert self._title_font is not None
         assert self._small_font is not None
 
-        bg_color = _hex_to_rgb(self.config.background_color)
-        text_color = _hex_to_rgb(self.config.text_color)
-        accent_color = _hex_to_rgb(self.config.accent_color)
-        secondary_color = _hex_to_rgb(self.config.secondary_color)
+        # Use provided config or fall back to instance config
+        cfg = config or self.config
+        bg_color = _hex_to_rgb(cfg.background_color)
+        text_color = _hex_to_rgb(cfg.text_color)
+        accent_color = _hex_to_rgb(cfg.accent_color)
+        secondary_color = _hex_to_rgb(cfg.secondary_color)
 
         img = Image.new("RGB", (CARD_WIDTH, CARD_HEIGHT), bg_color)
         draw = ImageDraw.Draw(img)
@@ -667,7 +676,7 @@ class SocialCardGenerator:
         )
 
         # Site name (centered below)
-        if self.config.show_site_name and site_name:
+        if cfg.show_site_name and site_name:
             bbox = self._small_font.getbbox(site_name)
             name_width = bbox[2] - bbox[0]
             x = (CARD_WIDTH - name_width) // 2
@@ -713,19 +722,25 @@ class SocialCardGenerator:
         site_name = self.site.title or ""
         site_url = self.site.baseurl or ""
 
-        # Apply per-page overrides
+        # Apply per-page overrides using a local copy to avoid mutating shared config
+        # This prevents one page's overrides from affecting subsequent pages
+        config = self.config
         if isinstance(social_card_meta, dict):
+            from dataclasses import replace
+            overrides = {}
             if "background_color" in social_card_meta:
-                self.config.background_color = social_card_meta["background_color"]
+                overrides["background_color"] = social_card_meta["background_color"]
             if "accent_color" in social_card_meta:
-                self.config.accent_color = social_card_meta["accent_color"]
+                overrides["accent_color"] = social_card_meta["accent_color"]
+            if overrides:
+                config = replace(self.config, **overrides)
 
-        # Select template
-        template = self.config.template
+        # Select template (use local config for per-page overrides)
+        template = config.template
         if template == "minimal":
-            img = self._render_minimal_template(title, description, site_name, site_url)
+            img = self._render_minimal_template(title, description, site_name, site_url, config)
         else:
-            img = self._render_default_template(title, description, site_name, site_url)
+            img = self._render_default_template(title, description, site_name, site_url, config)
 
         # Skip if fonts unavailable (img is None)
         if img is None:

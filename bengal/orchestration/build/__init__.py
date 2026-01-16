@@ -896,17 +896,13 @@ class BuildOrchestrator:
                         record_error(error, file_path="build:unknown")
 
             # Log session summary if errors occurred
-            if session.has_errors():
-                by_category: dict[str, int] = {}
-                for err in session.errors:
-                    cat = getattr(err, "category", "unknown")
-                    by_category[cat] = by_category.get(cat, 0) + 1
-
+            summary = session.get_summary()
+            if summary["total_errors"] > 0:
                 logger.info(
                     "build_error_session_summary",
-                    total_errors=session.error_count,
-                    by_category=by_category,
-                    recurring_patterns=len(session.get_recurring_patterns()),
+                    total_errors=summary["total_errors"],
+                    by_phase=summary["errors_by_phase"],
+                    recurring_patterns=summary["recurring_errors"],
                 )
         except Exception as e:
             # Don't fail build on session tracking errors

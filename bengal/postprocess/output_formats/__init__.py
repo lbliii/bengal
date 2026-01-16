@@ -150,8 +150,15 @@ class OutputFormatsGenerator:
             normalized.update(config)
         else:
             # Simple format conversion
-            per_page = []
-            site_wide = []
+            per_page: list[str] = []
+            site_wide: list[str] = []
+
+            # Track whether user explicitly configured per_page or site_wide options
+            # This distinguishes "not configured" (use defaults) from "all disabled"
+            per_page_keys = {"json", "llm_txt"}
+            site_wide_keys = {"site_json", "site_llm"}
+            has_per_page_config = any(key in config for key in per_page_keys)
+            has_site_wide_config = any(key in config for key in site_wide_keys)
 
             if config.get("json", False):
                 per_page.append("json")
@@ -162,8 +169,16 @@ class OutputFormatsGenerator:
             if config.get("site_llm", False):
                 site_wide.append("llm_full")
 
-            normalized["per_page"] = per_page if per_page else normalized["per_page"]
-            normalized["site_wide"] = site_wide if site_wide else normalized["site_wide"]
+            # Only override defaults if user explicitly configured these options
+            # This allows {"json": False, "llm_txt": False} to disable all per-page formats
+            if has_per_page_config:
+                normalized["per_page"] = per_page
+            elif per_page:
+                normalized["per_page"] = per_page
+            if has_site_wide_config:
+                normalized["site_wide"] = site_wide
+            elif site_wide:
+                normalized["site_wide"] = site_wide
 
         # Propagate enabled flag
         if "enabled" in config:

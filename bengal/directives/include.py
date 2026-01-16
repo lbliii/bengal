@@ -129,7 +129,16 @@ class IncludeDirective(DirectivePlugin):
             }
 
         # --- Robustness: Check depth limit ---
-        current_depth = getattr(state, "_include_depth", 0)
+        # Use state.env dict for type-safe state tracking
+        # Note: Must check for None explicitly since empty dict {} is falsy
+        env_attr = getattr(state, "env", None)
+        if env_attr is None:
+            env: dict[str, object] = {}
+            state.env = env  # type: ignore[attr-defined]
+        else:
+            env = env_attr  # type: ignore[assignment]
+        depth_value = env.get("_include_depth", 0)
+        current_depth: int = depth_value if isinstance(depth_value, int) else 0
         if current_depth >= MAX_INCLUDE_DEPTH:
             logger.warning(
                 "include_max_depth_exceeded",
@@ -147,7 +156,8 @@ class IncludeDirective(DirectivePlugin):
             }
 
         # --- Robustness: Check for include cycles ---
-        included_files: set[str] = getattr(state, "_included_files", set())
+        files_value = env.get("_included_files")
+        included_files: set[str] = files_value if isinstance(files_value, set) else set()
         canonical_path = str(file_path.resolve())
         if canonical_path in included_files:
             logger.warning(
@@ -175,17 +185,17 @@ class IncludeDirective(DirectivePlugin):
             }
 
         # --- Update state for nested includes ---
-        # Track this file to detect cycles
+        # Track this file to detect cycles using state.env dict
         new_included_files = included_files | {canonical_path}
-        state._included_files = new_included_files  # type: ignore[attr-defined]
-        state._include_depth = current_depth + 1  # type: ignore[attr-defined]
+        env["_included_files"] = new_included_files
+        env["_include_depth"] = current_depth + 1
 
         # Parse included content as markdown
         # Use parse_tokens to allow nested directives in included content
         children = self.parse_tokens(block, content, state)
 
         # Restore depth after parsing (allows sibling includes at same depth)
-        state._include_depth = current_depth  # type: ignore[attr-defined]
+        env["_include_depth"] = current_depth
 
         return {
             "type": "include",

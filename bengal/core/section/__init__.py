@@ -66,8 +66,8 @@ from .weighted import WeightedPage
 @dataclass(eq=False)
 class Section(
     SectionHierarchyMixin,
-    SectionNavigationMixin,
     SectionQueryMixin,
+    SectionNavigationMixin,
     SectionErgonomicsMixin,
 ):
     """

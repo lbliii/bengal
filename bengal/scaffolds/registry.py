@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import builtins
 import importlib
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -117,7 +118,7 @@ class TemplateRegistry:
 
         from bengal.cli.skeleton.schema import Skeleton
 
-        skeleton_yaml = skeleton_path.read_text()
+        skeleton_yaml = skeleton_path.read_text(encoding="utf-8")
 
         # Replace {{date}} placeholders with current date
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -254,22 +255,31 @@ class TemplateRegistry:
         return template_id in self._templates
 
 
-# Global registry instance
+# Global registry instance with lock for thread-safe initialization
 _registry: TemplateRegistry | None = None
+_registry_lock = threading.Lock()
 
 
 def _get_registry() -> TemplateRegistry:
     """
     Get or create the global registry instance.
     
+    Thread-safe: Uses double-checked locking pattern for safe concurrent
+    initialization under free-threading (PEP 703).
+    
     Returns:
         Singleton TemplateRegistry instance
         
     """
     global _registry
-    if _registry is None:
-        _registry = TemplateRegistry()
-    return _registry
+    # Fast path: registry already exists (no lock needed)
+    if _registry is not None:
+        return _registry
+    # Slow path: acquire lock and double-check
+    with _registry_lock:
+        if _registry is None:
+            _registry = TemplateRegistry()
+        return _registry
 
 
 def get_template(template_id: str) -> SiteTemplate | None:
@@ -304,8 +314,15 @@ def register_template(template: SiteTemplate) -> None:
     Use this to add templates programmatically at runtime, such as
     from plugins or application-specific code.
     
+    Thread-safe: Uses lock to protect concurrent modifications under
+    free-threading (PEP 703).
+    
     Args:
         template: SiteTemplate instance to register
         
     """
-    _get_registry()._templates[template.id] = template
+    # Get registry first (may initialize under its own lock)
+    registry = _get_registry()
+    # Then protect the modification with the lock
+    with _registry_lock:
+        registry._templates[template.id] = template

@@ -177,30 +177,42 @@ class VersionDiffer:
 
         # Find added pages (in new, not in old)
         for path in new_files - old_files:
-            content = (self.new_path / path).read_text(encoding="utf-8")
-            result.added_pages.append(
-                PageDiff(
-                    path=path,
-                    status="added",
-                    new_content=content,
+            content = self._read_file_safe(self.new_path / path)
+            if content is not None:
+                result.added_pages.append(
+                    PageDiff(
+                        path=path,
+                        status="added",
+                        new_content=content,
+                    )
                 )
-            )
 
         # Find removed pages (in old, not in new)
         for path in old_files - new_files:
-            content = (self.old_path / path).read_text(encoding="utf-8")
-            result.removed_pages.append(
-                PageDiff(
-                    path=path,
-                    status="removed",
-                    old_content=content,
+            content = self._read_file_safe(self.old_path / path)
+            if content is not None:
+                result.removed_pages.append(
+                    PageDiff(
+                        path=path,
+                        status="removed",
+                        old_content=content,
+                    )
                 )
-            )
 
         # Compare pages that exist in both
         for path in old_files & new_files:
-            old_content = (self.old_path / path).read_text(encoding="utf-8")
-            new_content = (self.new_path / path).read_text(encoding="utf-8")
+            old_content = self._read_file_safe(self.old_path / path)
+            new_content = self._read_file_safe(self.new_path / path)
+
+            # Skip if either file couldn't be read
+            if old_content is None or new_content is None:
+                logger.warning(
+                    "version_diff_file_read_failed",
+                    path=path,
+                    old_readable=old_content is not None,
+                    new_readable=new_content is not None,
+                )
+                continue
 
             if old_content == new_content:
                 result.unchanged_pages.append(
@@ -261,6 +273,52 @@ class VersionDiffer:
                 files.add(rel_path)
 
         return files
+
+    def _read_file_safe(self, file_path: Path) -> str | None:
+        """
+        Read a file with graceful error handling.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            File content as string, or None if read failed
+        """
+        try:
+            return file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            # Try with fallback encoding
+            try:
+                return file_path.read_text(encoding="latin-1")
+            except Exception as e:
+                logger.warning(
+                    "version_diff_file_encoding_error",
+                    path=str(file_path),
+                    error=str(e),
+                )
+                return None
+        except PermissionError as e:
+            logger.warning(
+                "version_diff_file_permission_denied",
+                path=str(file_path),
+                error=str(e),
+            )
+            return None
+        except FileNotFoundError as e:
+            logger.warning(
+                "version_diff_file_not_found",
+                path=str(file_path),
+                error=str(e),
+            )
+            return None
+        except OSError as e:
+            logger.warning(
+                "version_diff_file_read_error",
+                path=str(file_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return None
 
     def _calculate_change_percentage(self, old: str, new: str) -> float:
         """Calculate what percentage of content changed."""

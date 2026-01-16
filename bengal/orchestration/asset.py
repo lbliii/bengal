@@ -207,7 +207,18 @@ class AssetOrchestrator:
                             rel = Path(*parts[idx + 1 :])
                         assets.append(Asset(source_path=out_path, output_path=rel))
         except Exception as e:
-            # Log and continue with normal asset processing
+            # Fail build on pipeline error if in strict mode, otherwise log warning
+            # The asset pipeline is often critical for theme appearance/functionality.
+            strict = getattr(self.site, "config", {}).get("build", {}).get("strict", False)
+            if strict:
+                from bengal.errors import BengalAssetError, ErrorCode
+
+                raise BengalAssetError(
+                    f"Asset pipeline failed: {e}",
+                    code=ErrorCode.X003,
+                    suggestion="Check Node.js installation and tool logs",
+                ) from e
+
             logger.warning("asset_pipeline_failed", error=str(e))
 
         if not assets:
@@ -625,8 +636,12 @@ class AssetOrchestrator:
             # Order files according to bundle order
             ordered_files: list[Path] = []
             for name in bundle_order:
-                if name in module_map and name not in excluded:
-                    ordered_files.append(module_map[name])
+                if name in module_map:
+                    target_file = module_map[name]
+                    # Canonicalize for exclusion check
+                    rel_path_str = str(target_file.relative_to(js_dir)).replace("\\", "/") if js_dir else target_file.name
+                    if rel_path_str not in excluded:
+                        ordered_files.append(target_file)
 
             # Add any remaining files not in explicit order
             remaining = sorted(
@@ -650,11 +665,13 @@ class AssetOrchestrator:
             if not bundled_content:
                 return None
 
-            # Write bundle to temp location
+            # Write bundle to temp location atomically
+            from bengal.utils.io.atomic_write import atomic_write_text
+
             bundle_dir = self.site.paths.js_bundle_dir
             bundle_dir.mkdir(parents=True, exist_ok=True)
             bundle_path = bundle_dir / "bundle.js"
-            bundle_path.write_text(bundled_content, encoding="utf-8")
+            atomic_write_text(bundle_path, bundled_content, encoding="utf-8")
 
             logger.info(
                 "js_bundle_created",
@@ -669,7 +686,7 @@ class AssetOrchestrator:
                 output_path=Path("js/bundle.js"),
                 asset_type="javascript",
             )
-            bundle_asset._site = self.site  # type: ignore[attr-defined]
+            bundle_asset._site = self.site
             # Mark as already minified to avoid double-minification
             if minify:
                 bundle_asset._minified_content = bundled_content
@@ -709,7 +726,7 @@ class AssetOrchestrator:
             Exception: If CSS bundling or minification fails
         """
         try:
-            css_entry._site = self.site  # type: ignore[attr-defined]
+            css_entry._site = self.site
             assets_output = self.site.output_dir / "assets"
 
             # Step 1: Get directive base CSS (functional styles)
@@ -775,7 +792,7 @@ class AssetOrchestrator:
         try:
             # Provide site context for best-effort performance caches and diagnostics.
             # (Assets are passive models, but storing context on the instance is safe and local.)
-            asset._site = self.site  # type: ignore[attr-defined]
+            asset._site = self.site
             if minify and asset.asset_type in ("css", "javascript"):
                 asset.minify()
 

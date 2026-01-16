@@ -59,6 +59,7 @@ from .strategies import (
 )
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.section import Section
 
 
@@ -129,7 +130,7 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
     Get the strategy for a content type.
     
     Retrieves a strategy instance from the registry by name. If the content
-    type is not found, returns a ``PageStrategy`` instance as the default
+    type is not found, returns the ``PageStrategy`` singleton as the default
     fallback, ensuring graceful degradation for unknown types.
     
     Args:
@@ -151,10 +152,11 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
         True
         
     """
-    return CONTENT_TYPE_REGISTRY.get(content_type, PageStrategy())
+    # Use the registered "page" singleton as fallback, not a new instance
+    return CONTENT_TYPE_REGISTRY.get(content_type, CONTENT_TYPE_REGISTRY["page"])
 
 
-def detect_content_type(section: Section, config: dict[str, Any] | None = None) -> str:
+def detect_content_type(section: Section, config: Config | dict[str, Any] | None = None) -> str:
     """
     Auto-detect content type from section characteristics.
     
@@ -218,16 +220,18 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
             return parent_cascade["type"]
 
     # 3. Auto-detect using strategy heuristics
-    # Try strategies in priority order
+    # Try strategies in priority order (use registry singletons, not new instances)
     detection_order = [
-        ("autodoc-python", ApiReferenceStrategy()),
-        ("autodoc-cli", CliReferenceStrategy()),
-        ("blog", BlogStrategy()),
-        ("tutorial", TutorialStrategy()),
-        ("doc", DocsStrategy()),
+        "autodoc-python",
+        "autodoc-cli",
+        "blog",
+        "changelog",  # Detect changelog/releases sections
+        "tutorial",
+        "doc",
     ]
 
-    for content_type, strategy in detection_order:
+    for content_type in detection_order:
+        strategy = CONTENT_TYPE_REGISTRY[content_type]
         if strategy.detect_from_section(section):
             return content_type
 

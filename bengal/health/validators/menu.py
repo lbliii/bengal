@@ -69,34 +69,20 @@ class MenuValidator(BaseValidator):
             )
             return results
 
-        # Check menu structure
+        # Count items (handles nested children)
+        total_items = self._count_menu_items(items)
+        results.append(CheckResult.success(f"Menu '{menu_name}' has {total_items} item(s)"))
 
-        # Get the menu builder if available
-        if menu_name in site.menu_builders:
-            site.menu_builders[menu_name]
-
-            # Check for issues that MenuBuilder may have found
-            # (MenuBuilder already does validation, we just surface it here)
-
-            # Count items
-            total_items = self._count_menu_items(items)
-            results.append(CheckResult.success(f"Menu '{menu_name}' has {total_items} item(s)"))
-
-            # Validate menu item URLs
-            broken_links = self._check_menu_urls(site, items)
-            if broken_links:
-                results.append(
-                    CheckResult.warning(
-                        f"Menu '{menu_name}' has {len(broken_links)} item(s) with potentially broken links",
-                        code="H121",
-                        details=broken_links[:3],
-                    )
+        # Validate menu item URLs
+        broken_links = self._check_menu_urls(site, items)
+        if broken_links:
+            results.append(
+                CheckResult.warning(
+                    f"Menu '{menu_name}' has {len(broken_links)} item(s) with potentially broken links",
+                    code="H121",
+                    details=broken_links[:3],
                 )
-
-        else:
-            # Basic validation without builder
-            total_items = len(items)
-            results.append(CheckResult.success(f"Menu '{menu_name}' has {total_items} item(s)"))
+            )
 
         return results
 
@@ -116,20 +102,18 @@ class MenuValidator(BaseValidator):
             # Check if URL points to a page
             url = getattr(item, "_path", None) or getattr(item, "href", None)
             if url:
-                # Skip external URLs
-                if url.startswith(("http://", "https://", "//")):
-                    continue
+                # Skip external URLs (but still check children below)
+                if not url.startswith(("http://", "https://", "//")):
+                    # Check if any page has this URL (use _path for internal comparison)
+                    found = any(
+                        (getattr(page, "_path", None) == url) or (getattr(page, "href", None) == url)
+                        for page in site.pages
+                    )
 
-                # Check if any page has this URL (use _path for internal comparison)
-                found = any(
-                    (getattr(page, "_path", None) == url) or (getattr(page, "href", None) == url)
-                    for page in site.pages
-                )
+                    if not found:
+                        broken.append(f"{item.name} → {url}")
 
-                if not found:
-                    broken.append(f"{item.name} → {url}")
-
-            # Recurse into children
+            # Recurse into children (always, even if parent URL is external)
             if hasattr(item, "children") and item.children:
                 broken.extend(self._check_menu_urls(site, item.children))
 

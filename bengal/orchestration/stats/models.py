@@ -62,6 +62,7 @@ class BuildStats:
     parallel: bool = True
     incremental: bool = False
     skipped: bool = False
+    dry_run: bool = False
 
     # Directive statistics
     total_directives: int = 0

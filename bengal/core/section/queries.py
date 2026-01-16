@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.diagnostics import DiagnosticEvent
-    from bengal.core.page import Page
+    from bengal.core.page import Page, PageProxy
     from bengal.core.section import Section
 
 from .weighted import WeightedPage
@@ -179,7 +179,7 @@ class SectionQueryMixin:
     # PAGE MANAGEMENT METHODS
     # =========================================================================
 
-    def add_page(self, page: Page) -> None:
+    def add_page(self, page: Page | PageProxy) -> None:
         """
         Add a page to this section.
 
@@ -187,7 +187,7 @@ class SectionQueryMixin:
         Invalidates cached properties that depend on the pages list.
 
         Args:
-            page: Page to add
+            page: Page or PageProxy to add
         """
         from bengal.core.diagnostics import DiagnosticEvent
 

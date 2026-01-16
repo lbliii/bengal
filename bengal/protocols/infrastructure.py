@@ -42,6 +42,7 @@ T = TypeVar("T", bound="Cacheable")
 # =============================================================================
 
 
+@runtime_checkable
 class ProgressReporter(Protocol):
     """
     Protocol for reporting build progress and user-facing messages.

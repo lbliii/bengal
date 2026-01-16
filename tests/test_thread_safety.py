@@ -1,329 +1,379 @@
 """
-Thread safety tests for Bengal's concurrent execution paths.
+Thread-safety stress tests for free-threading (PEP 703).
 
-These tests verify that shared state is properly protected for safe
-concurrent access during parallel rendering with Python 3.14 free-threading.
+These tests verify that Bengal's critical subsystems are thread-safe
+when running with PYTHON_GIL=0 (free-threaded Python 3.14+).
 
-Test Coverage:
-- DirectiveCache concurrent access (directives/cache.py)
-- Icon resolver concurrent loading (icons/resolver.py)
-- Context cache concurrent access (rendering/context/__init__.py)
-- Directive registry lazy initialization (directives/registry.py)
+RFC: rfc-free-threading-hardening.md
 
-See Also:
-- plan/drafted/rfc-thread-safety-sweep.md — Thread safety RFC
-- THREAD_SAFETY.md — Patterns and guidelines
+Run with:
+    pytest tests/test_thread_safety.py -v -x
+
+Run with GIL disabled (requires Python 3.14t):
+    PYTHON_GIL=0 pytest tests/test_thread_safety.py -v -x
 """
 
 from __future__ import annotations
 
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 
-class TestDirectiveCacheThreadSafety:
-    """Verify DirectiveCache handles concurrent access without corruption."""
+class TestLRUCacheThreadSafety:
+    """Verify LRUCache replacements are thread-safe."""
 
-    def test_concurrent_put_and_get(self) -> None:
-        """Multiple threads can safely put and get cache entries."""
-        from bengal.directives.cache import DirectiveCache
+    def test_param_info_cache_concurrent_access(self) -> None:
+        """Test autodoc param_info cache under concurrent access."""
+        from bengal.autodoc.base import _cached_param_info, _param_info_cache
 
-        cache = DirectiveCache(max_size=100)
-        errors: list[str] = []
-        errors_lock = threading.Lock()
+        errors: list[Exception] = []
+        results: list[Any] = []
+        lock = threading.Lock()
 
         def worker(thread_id: int) -> None:
             try:
                 for i in range(100):
-                    key = f"test:{thread_id}:{i}"
-                    value = {"thread": thread_id, "iteration": i}
-                    cache.put("test", key, value)
-
-                    result = cache.get("test", key)
-                    # Result may be None due to LRU eviction, that's OK
-                    if result is not None and (
-                        result["thread"] != thread_id or result["iteration"] != i
-                    ):
-                        with errors_lock:
-                            errors.append(f"Thread {thread_id}: value mismatch at {i}")
+                    # Each thread creates param infos with overlapping names
+                    result = _cached_param_info(
+                        name=f"param_{i % 10}",
+                        type_hint=f"str | int" if i % 2 == 0 else None,
+                        default=f"default_{i % 5}" if i % 3 == 0 else None,
+                        description=f"Description for param {i}",
+                    )
+                    with lock:
+                        results.append(result)
             except Exception as e:
-                with errors_lock:
-                    errors.append(f"Thread {thread_id}: exception {e!r}")
+                with lock:
+                    errors.append(e)
 
-        with ThreadPoolExecutor(max_workers=10) as pool:
-            futures = [pool.submit(worker, i) for i in range(10)]
-            for f in as_completed(futures):
-                f.result()  # Raise any exceptions
-
-        assert not errors, f"Race conditions detected: {errors}"
-
-    def test_concurrent_stats_access(self) -> None:
-        """Stats can be safely read while cache is being modified."""
-        from bengal.directives.cache import DirectiveCache
-
-        cache = DirectiveCache(max_size=50)
-        errors: list[str] = []
-        stop_event = threading.Event()
-
-        def writer() -> None:
-            i = 0
-            while not stop_event.is_set():
-                cache.put("test", f"key:{i}", {"value": i})
-                i += 1
-                if i > 1000:
-                    break
-
-        def reader() -> None:
-            try:
-                while not stop_event.is_set():
-                    stats = cache.stats()
-                    # Verify stats are internally consistent
-                    if stats["size"] > stats["max_size"]:
-                        errors.append(f"size {stats['size']} > max_size {stats['max_size']}")
-            except Exception as e:
-                errors.append(f"Reader exception: {e!r}")
-
-        writer_thread = threading.Thread(target=writer)
-        reader_thread = threading.Thread(target=reader)
-
-        writer_thread.start()
-        reader_thread.start()
-
-        # Let them run briefly
-        writer_thread.join(timeout=1.0)
-        stop_event.set()
-        reader_thread.join(timeout=1.0)
-
-        assert not errors, f"Race conditions detected: {errors}"
-
-    def test_concurrent_clear(self) -> None:
-        """Cache can be safely cleared while being accessed."""
-        from bengal.directives.cache import DirectiveCache
-
-        cache = DirectiveCache(max_size=100)
-        stop_event = threading.Event()
-
-        def writer() -> None:
-            i = 0
-            while not stop_event.is_set() and i < 500:
-                cache.put("test", f"key:{i}", {"value": i})
-                i += 1
-
-        def clearer() -> None:
-            for _ in range(10):
-                cache.clear()
-                if stop_event.is_set():
-                    break
-
-        writer_thread = threading.Thread(target=writer)
-        clearer_thread = threading.Thread(target=clearer)
-
-        writer_thread.start()
-        clearer_thread.start()
-
-        writer_thread.join(timeout=2.0)
-        stop_event.set()
-        clearer_thread.join(timeout=1.0)
-
-        # If we get here without deadlock or exception, test passes
-        assert True
-
-
-class TestIconResolverThreadSafety:
-    """Verify icon resolver handles concurrent loading safely."""
-
-    def test_concurrent_load_icon(self, tmp_path) -> None:
-        """Multiple threads can safely load icons concurrently."""
-        from bengal.icons import resolver
-
-        # Create test icons
-        icons_dir = tmp_path / "icons"
-        icons_dir.mkdir()
-        for name in ["warning", "info", "success", "error"]:
-            (icons_dir / f"{name}.svg").write_text(f"<svg>{name}</svg>")
-
-        # Reset resolver state for test isolation
-        resolver.clear_cache()
-        resolver._search_paths = [icons_dir]
-        resolver._initialized = True
-
-        errors: list[str] = []
-        errors_lock = threading.Lock()
-
-        def worker(thread_id: int) -> None:
-            try:
-                for _ in range(50):
-                    for icon_name in ["warning", "info", "success", "error"]:
-                        content = resolver.load_icon(icon_name)
-                        expected = f"<svg>{icon_name}</svg>"
-                        if content != expected:
-                            with errors_lock:
-                                errors.append(f"Thread {thread_id}: {icon_name} content mismatch")
-            except Exception as e:
-                with errors_lock:
-                    errors.append(f"Thread {thread_id}: exception {e!r}")
-
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            futures = [pool.submit(worker, i) for i in range(8)]
-            for f in as_completed(futures):
-                f.result()
-
-        assert not errors, f"Race conditions detected: {errors}"
-
-    def test_concurrent_cache_operations(self, tmp_path) -> None:
-        """Cache operations are safe during concurrent access."""
-        from bengal.icons import resolver
-
-        icons_dir = tmp_path / "icons"
-        icons_dir.mkdir()
-        (icons_dir / "test.svg").write_text("<svg>test</svg>")
-
-        resolver.clear_cache()
-        resolver._search_paths = [icons_dir]
-        resolver._initialized = True
-
-        errors: list[str] = []
-        stop_event = threading.Event()
-
-        def loader() -> None:
-            while not stop_event.is_set():
-                try:
-                    resolver.load_icon("test")
-                except Exception as e:
-                    errors.append(f"Loader exception: {e!r}")
-                    break
-
-        def clearer() -> None:
-            for _ in range(20):
-                resolver.clear_cache()
-                if stop_event.is_set():
-                    break
-
-        threads = [threading.Thread(target=loader) for _ in range(4)] + [
-            threading.Thread(target=clearer)
-        ]
-
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
         for t in threads:
             t.start()
-
-        # Let them run briefly
-        threads[-1].join(timeout=1.0)  # Wait for clearer
-        stop_event.set()
-
         for t in threads:
-            t.join(timeout=1.0)
+            t.join()
 
-        assert not errors, f"Race conditions detected: {errors}"
+        assert not errors, f"Thread safety errors: {errors}"
+        assert len(results) == 1000  # 10 threads * 100 iterations
 
+        # Verify cache is working (should have hits)
+        stats = _param_info_cache.stats()
+        assert stats["hits"] > 0, "Cache should have hits from repeated calls"
 
-class TestContextCacheThreadSafety:
-    """Verify context cache handles concurrent access safely."""
+    def test_icon_render_cache_concurrent_access(self) -> None:
+        """Test icon render cache under concurrent access."""
+        from bengal.rendering.template_functions.icons import (
+            _icon_render_cache,
+            _render_icon_cached,
+            clear_icon_cache,
+        )
 
-    def test_concurrent_context_access(self, tmp_path) -> None:
-        """Multiple threads can safely get global contexts."""
-        from unittest.mock import MagicMock
+        # Clear cache before test
+        clear_icon_cache()
 
-        from bengal.rendering.context import _get_global_contexts, clear_global_context_cache
+        errors: list[Exception] = []
+        results: list[str] = []
+        lock = threading.Lock()
 
-        # Create mock site
-        mock_site = MagicMock()
-        mock_site.config = {"title": "Test Site"}
-        mock_site.theme_config = None
-        mock_site.pages = []
-        mock_site.menus = {}
+        def worker(thread_id: int) -> None:
+            try:
+                for i in range(50):
+                    # Each thread renders icons with overlapping names
+                    result = _render_icon_cached(
+                        name=f"icon_{i % 5}",
+                        size=20 + (i % 3),
+                        css_class=f"class_{i % 2}",
+                        aria_label="",
+                    )
+                    with lock:
+                        results.append(result)
+            except Exception as e:
+                with lock:
+                    errors.append(e)
 
-        clear_global_context_cache()
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-        errors: list[str] = []
+        assert not errors, f"Thread safety errors: {errors}"
+        assert len(results) == 500  # 10 threads * 50 iterations
+
+    def test_directive_icon_cache_concurrent_access(self) -> None:
+        """Test directive icon cache under concurrent access."""
+        from bengal.directives._icons import _svg_icon_cache, clear_icon_cache, render_svg_icon
+
+        # Clear cache before test
+        clear_icon_cache()
+
+        errors: list[Exception] = []
+        results: list[str] = []
+        lock = threading.Lock()
+
+        def worker(thread_id: int) -> None:
+            try:
+                for i in range(50):
+                    result = render_svg_icon(
+                        name=f"icon_{i % 5}",
+                        size=16 + (i % 3),
+                        css_class="",
+                        aria_label="",
+                    )
+                    with lock:
+                        results.append(result)
+            except Exception as e:
+                with lock:
+                    errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+        assert len(results) == 500
+
+    def test_theme_cache_concurrent_access(self) -> None:
+        """Test theme discovery cache under concurrent access."""
+        from bengal.core.theme.registry import _installed_themes_cache, get_installed_themes
+
+        errors: list[Exception] = []
         results: list[dict] = []
-        results_lock = threading.Lock()
+        lock = threading.Lock()
 
         def worker(thread_id: int) -> None:
             try:
-                for _ in range(100):
-                    ctx = _get_global_contexts(mock_site)
-                    if "site" not in ctx:
-                        with results_lock:
-                            errors.append(f"Thread {thread_id}: missing 'site' in context")
-                    with results_lock:
-                        results.append(ctx)
+                for _ in range(20):
+                    result = get_installed_themes()
+                    with lock:
+                        results.append(result)
             except Exception as e:
-                with results_lock:
-                    errors.append(f"Thread {thread_id}: exception {e!r}")
+                with lock:
+                    errors.append(e)
 
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            futures = [pool.submit(worker, i) for i in range(8)]
-            for f in as_completed(futures):
-                f.result()
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-        assert not errors, f"Race conditions detected: {errors}"
-        # All results should be the same cached instance
-        assert len(set(id(r) for r in results)) == 1, "Expected same cached context instance"
+        assert not errors, f"Thread safety errors: {errors}"
+        assert len(results) == 200
+
+        # All results should be the same dict (singleton pattern)
+        if results:
+            first_id = id(results[0])
+            assert all(id(r) == first_id for r in results), "All results should be same instance"
 
 
-class TestDirectiveRegistryThreadSafety:
-    """Verify directive registry lazy initialization is thread-safe."""
+class TestScaffoldRegistryThreadSafety:
+    """Verify scaffold registry singleton is thread-safe."""
 
-    def test_concurrent_get_directive_classes(self) -> None:
-        """Multiple threads can safely get directive classes."""
-        from bengal.directives.registry import _get_directive_classes
+    def test_singleton_initialization_race(self) -> None:
+        """Verify scaffold registry singleton handles concurrent initialization."""
+        from bengal.scaffolds import registry
 
-        errors: list[str] = []
-        results: list[list] = []
-        results_lock = threading.Lock()
+        # Reset to test initialization race
+        registry._registry = None
+
+        instances: list[int] = []
+        errors: list[Exception] = []
+        lock = threading.Lock()
+
+        def worker() -> None:
+            try:
+                instance = registry._get_registry()
+                with lock:
+                    instances.append(id(instance))
+            except Exception as e:
+                with lock:
+                    errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+        # All threads should get the same singleton instance
+        assert len(set(instances)) == 1, f"Multiple instances created: {set(instances)}"
+
+    def test_concurrent_template_access(self) -> None:
+        """Verify concurrent template lookups work correctly."""
+        from bengal.scaffolds import registry
+
+        errors: list[Exception] = []
+        results: list[Any] = []
+        lock = threading.Lock()
 
         def worker(thread_id: int) -> None:
             try:
-                for _ in range(10):
-                    classes = _get_directive_classes()
-                    if not isinstance(classes, list):
-                        with results_lock:
-                            errors.append(f"Thread {thread_id}: unexpected type {type(classes)}")
-                    with results_lock:
-                        results.append(classes)
+                for _ in range(20):
+                    # Attempt various operations
+                    templates = registry.list_templates()
+                    for tid, _ in templates[:3]:  # Limit to first 3
+                        template = registry.get_template(tid)
+                        with lock:
+                            results.append(template)
             except Exception as e:
-                with results_lock:
-                    errors.append(f"Thread {thread_id}: exception {e!r}")
+                with lock:
+                    errors.append(e)
 
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            futures = [pool.submit(worker, i) for i in range(8)]
-            for f in as_completed(futures):
-                f.result()
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-        assert not errors, f"Race conditions detected: {errors}"
-        # All results should be the same cached instance
-        assert len(set(id(r) for r in results)) == 1, "Expected same cached list instance"
+        assert not errors, f"Thread safety errors: {errors}"
 
 
-class TestLockOrdering:
-    """
-    Document and verify lock acquisition order to prevent deadlocks.
-    
-    Lock order (acquire in this order to prevent deadlocks):
-    1. _icon_lock (icons/resolver.py)
-    2. DirectiveCache._lock (directives/cache.py)
-    3. _cache_lock (rendering/pygments_cache.py)
-    4. _context_lock (rendering/context/__init__.py)
-    5. _registry_lock (directives/registry.py)
-    6. _reload_condition (server/live_reload.py)
-        
-    """
+class TestLoggerRegistryThreadSafety:
+    """Verify logger registry handles concurrent get_logger calls."""
 
-    def test_no_circular_lock_dependencies(self) -> None:
-        """
-        Verify no code path acquires locks in reverse order.
+    def test_get_logger_concurrent_access(self) -> None:
+        """Test concurrent get_logger calls with overlapping names."""
+        from bengal.utils.observability.logger import get_logger, reset_loggers
 
-        This is a documentation test - actual verification requires
-        code review or runtime lock order tracking.
-        """
-        # This test documents the expected lock order
-        # Actual deadlock detection requires runtime analysis
-        lock_order = [
-            "icons/resolver.py:_icon_lock",
-            "directives/cache.py:DirectiveCache._lock",
-            "rendering/pygments_cache.py:_cache_lock",
-            "rendering/context/__init__.py:_context_lock",
-            "directives/registry.py:_registry_lock",
-            "server/live_reload.py:_reload_condition",
+        reset_loggers()
+        errors: list[Exception] = []
+
+        def worker(thread_id: int) -> None:
+            try:
+                for i in range(50):
+                    # Each thread creates loggers with overlapping names
+                    logger = get_logger(f"test.module.{i % 10}")
+                    logger.debug("test", thread_id=thread_id)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+
+    def test_reset_during_concurrent_access(self) -> None:
+        """Test reset_loggers while other threads are accessing loggers."""
+        from bengal.utils.observability.logger import get_logger, reset_loggers
+
+        reset_loggers()
+        errors: list[Exception] = []
+        stop_flag = threading.Event()
+
+        def worker(thread_id: int) -> None:
+            try:
+                while not stop_flag.is_set():
+                    logger = get_logger(f"test.reset.{thread_id}")
+                    logger.debug("test", thread_id=thread_id)
+            except Exception as e:
+                errors.append(e)
+
+        def resetter() -> None:
+            try:
+                for _ in range(5):
+                    reset_loggers()
+            except Exception as e:
+                errors.append(e)
+
+        workers = [threading.Thread(target=worker, args=(i,)) for i in range(5)]
+        reset_thread = threading.Thread(target=resetter)
+
+        for w in workers:
+            w.start()
+        reset_thread.start()
+
+        reset_thread.join()
+        stop_flag.set()
+
+        for w in workers:
+            w.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+
+
+class TestThreadSafeSetUsage:
+    """Verify ThreadSafeSet usage in asset fallback warnings."""
+
+    def test_fallback_warned_concurrent_access(self) -> None:
+        """Test concurrent access to _fallback_warned set."""
+        from bengal.rendering.assets import _fallback_warned
+
+        _fallback_warned.clear()
+        added_paths: list[tuple[str, bool]] = []
+        errors: list[Exception] = []
+        lock = threading.Lock()
+
+        def worker(thread_id: int) -> None:
+            try:
+                for i in range(50):
+                    path = f"assets/test_{i % 10}.css"
+                    was_new = _fallback_warned.add_if_new(path)
+                    with lock:
+                        added_paths.append((path, was_new))
+            except Exception as e:
+                with lock:
+                    errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+
+        # Each unique path should only be "new" once across all threads
+        unique_paths = set(path for path, _ in added_paths)
+        new_counts = {}
+        for path, was_new in added_paths:
+            if was_new:
+                new_counts[path] = new_counts.get(path, 0) + 1
+
+        # Each path should have been new exactly once
+        for path, count in new_counts.items():
+            assert count == 1, f"Path {path} was marked new {count} times (should be 1)"
+
+
+class TestDirectiveCacheConfiguration:
+    """Verify directive cache configuration is thread-safe."""
+
+    def test_configure_cache_concurrent(self) -> None:
+        """Test concurrent cache configuration changes."""
+        from bengal.directives.cache import configure_cache, get_cache
+
+        errors: list[Exception] = []
+
+        def config_worker(enabled: bool) -> None:
+            try:
+                for _ in range(20):
+                    configure_cache(enabled=enabled)
+            except Exception as e:
+                errors.append(e)
+
+        def use_worker() -> None:
+            try:
+                cache = get_cache()
+                for _ in range(50):
+                    cache.get("test", "content")
+                    cache.put("test", "content", {"parsed": True})
+            except Exception as e:
+                errors.append(e)
+
+        config_threads = [
+            threading.Thread(target=config_worker, args=(True,)),
+            threading.Thread(target=config_worker, args=(False,)),
         ]
-        assert len(lock_order) == 6, "Document all protected modules"
+        use_threads = [threading.Thread(target=use_worker) for _ in range(5)]
+
+        all_threads = config_threads + use_threads
+        for t in all_threads:
+            t.start()
+        for t in all_threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"

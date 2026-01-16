@@ -56,6 +56,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.parsing.ast.types import ASTNode
 
 from .bundle import BundleType, PageBundleMixin, PageResource, PageResources
 from .computed import PageComputedMixin
@@ -214,7 +215,7 @@ class Page(
 
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
-    _ast_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
+    _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 

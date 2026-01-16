@@ -308,9 +308,12 @@ class SitemapGenerator:
                 elem.text = indent + "  "
             if not elem.tail or not elem.tail.strip():
                 elem.tail = indent
+            last_child: ET.Element | None = None
             for child in elem:
                 self._indent(child, level + 1)
-            if not child.tail or not child.tail.strip():
-                child.tail = indent
+                last_child = child
+            # Set tail on last child (last_child is guaranteed non-None when len(elem) > 0)
+            if last_child is not None and (not last_child.tail or not last_child.tail.strip()):
+                last_child.tail = indent
         elif level and (not elem.tail or not elem.tail.strip()):
             elem.tail = indent

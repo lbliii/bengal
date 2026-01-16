@@ -204,7 +204,11 @@ class ContentValidationError(BengalContentError):
             - ``path``: File path as a string
             - ``collection``: Collection name or ``None``
             - ``errors``: List of error dicts with ``field``, ``message``,
-              ``value`` (repr'd), and ``expected_type``
+              ``value``, and ``expected_type``
+
+        Note:
+            Values are serialized as-is for JSON compatibility. Complex objects
+            that aren't JSON-serializable should be handled by the caller.
         """
         return {
             "message": self.message,
@@ -214,7 +218,7 @@ class ContentValidationError(BengalContentError):
                 {
                     "field": e.field,
                     "message": e.message,
-                    "value": repr(e.value) if e.value is not None else None,
+                    "value": e.value,
                     "expected_type": e.expected_type,
                 }
                 for e in self.errors

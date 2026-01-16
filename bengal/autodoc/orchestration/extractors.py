@@ -22,14 +22,25 @@ logger = get_logger(__name__)
 def extract_python(
     site: Site,
     python_config: dict,
+    cache: Any | None = None,
 ) -> list[DocElement]:
-    """Extract Python API documentation."""
+    """
+    Extract Python API documentation.
+    
+    RFC: rfc-build-performance-optimizations Phase 3
+    Accepts optional cache for AST caching.
+    
+    Args:
+        site: Site instance
+        python_config: Python autodoc configuration
+        cache: Optional BuildCache instance for AST caching
+    """
     from bengal.autodoc.extractors.python import PythonExtractor
 
     source_dirs = python_config.get("source_dirs", [])
     exclude_patterns = python_config.get("exclude", [])
 
-    extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config)
+    extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config, cache=cache)
     all_elements = []
 
     for source_dir in source_dirs:

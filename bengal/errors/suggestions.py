@@ -795,7 +795,9 @@ def search_suggestions(query: str) -> list[tuple[str, str, ActionableSuggestion]
         List of (category, key, suggestion) tuples matching query
         
     """
-    query_lower = query.lower()
+    if not query or not query.strip():
+        return []
+    query_lower = query.lower().strip()
     results = []
 
     for category, suggestions in _SUGGESTIONS.items():

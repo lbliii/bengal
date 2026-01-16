@@ -15,6 +15,9 @@ BengalPalette: Complete color palette with all token categories
 BengalMascots: Terminal mascots and status/navigation icons
 PaletteVariant: Subset of colors for theme variants
 
+Protocols:
+ColorPalette: Common interface for all palette types (BengalPalette, PaletteVariant)
+
 Instances:
 BENGAL_PALETTE: Default palette instance for direct access
 BENGAL_MASCOT: Default mascots instance for terminal output
@@ -41,6 +44,58 @@ bengal/themes/default/assets/css/tokens/: Generated web CSS
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class ColorPalette(Protocol):
+    """
+    Protocol defining the common interface for color palettes.
+    
+    Both BengalPalette (full palette) and PaletteVariant (subset) implement
+    this interface, ensuring type safety when using get_palette().
+    
+    This protocol guarantees that callers can access these core color
+    attributes regardless of which palette type is returned:
+    
+    Attributes:
+        primary: Primary brand color
+        accent: Accent/highlight color  
+        success: Success state color
+        error: Error state color
+        surface: Widget surface color
+        background: Base background color
+    
+    Example:
+            >>> def apply_theme(palette: ColorPalette) -> None:
+            ...     # Safe to access these attributes on any palette
+            ...     print(f"Primary: {palette.primary}")
+            ...     print(f"Background: {palette.background}")
+        
+    Note:
+        BengalPalette has additional attributes (secondary, warning, info,
+        muted, foreground, border, border_focus, text_primary, text_secondary,
+        text_muted, surface_light) that are NOT part of this protocol.
+        Access them only after checking isinstance(palette, BengalPalette).
+    """
+    
+    @property
+    def primary(self) -> str: ...
+    
+    @property
+    def accent(self) -> str: ...
+    
+    @property
+    def success(self) -> str: ...
+    
+    @property
+    def error(self) -> str: ...
+    
+    @property
+    def surface(self) -> str: ...
+    
+    @property
+    def background(self) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -269,29 +324,38 @@ PALETTE_VARIANTS: dict[str, PaletteVariant] = {
 }
 
 
-def get_palette(name: str = "default") -> BengalPalette | PaletteVariant:
+def get_palette(name: str = "default") -> ColorPalette:
     """
     Get a color palette by name.
     
     Retrieves either the default BengalPalette or a named PaletteVariant.
     Falls back to the default palette if the requested name is not found.
     
+    The returned palette implements the ColorPalette protocol, guaranteeing
+    access to: primary, accent, success, error, surface, background.
+    
     Args:
         name: Palette variant name. Use "default" for the full BengalPalette,
             or a variant name like "blue-bengal", "charcoal-bengal", etc.
     
     Returns:
-        BengalPalette for "default", or the matching PaletteVariant.
-        Falls back to BENGAL_PALETTE if name is not found.
+        A ColorPalette instance. May be BengalPalette (for "default") or
+        PaletteVariant (for named variants). Falls back to BENGAL_PALETTE
+        if name is not found.
     
     Example:
             >>> palette = get_palette("default")
-            >>> palette.primary
+            >>> palette.primary  # Safe: ColorPalette guarantees this
             '#FF9D00'
-            >>> variant = get_palette("blue-bengal")
-            >>> variant.primary
-            '#1976D2'
+            >>> 
+            >>> # For BengalPalette-specific attributes, check type first:
+            >>> if isinstance(palette, BengalPalette):
+            ...     print(palette.secondary)  # Only on BengalPalette
         
+    Note:
+        If you need BengalPalette-specific attributes (secondary, warning, 
+        info, muted, foreground, border, text_* colors), use isinstance()
+        to check the type or access BENGAL_PALETTE directly.
     """
     if name == "default":
         return BENGAL_PALETTE

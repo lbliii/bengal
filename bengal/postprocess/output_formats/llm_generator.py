@@ -180,8 +180,13 @@ class SiteLlmTxtGenerator:
                 f.write(f"Site: {baseurl}\n")
 
             # Only include build date in production
+            # Use site.build_time for deterministic output (matches index_generator behavior)
             if not self.site.dev_mode:
-                f.write(f"Build Date: {datetime.now().isoformat()}\n")
+                build_time = getattr(self.site, "build_time", None)
+                if isinstance(build_time, datetime):
+                    f.write(f"Build Date: {build_time.isoformat()}\n")
+                else:
+                    f.write(f"Build Date: {datetime.now().isoformat()}\n")
 
             f.write(f"Total Pages: {len(pages)}\n\n")
             f.write(separator + "\n")

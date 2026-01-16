@@ -402,7 +402,7 @@ def debug(source: str, template: str | None) -> None:
         cli.header("Common Template Sources")
         common_templates = ["base.html", "page.html", "home.html", "404.html"]
         for tpl_name in common_templates:
-            tpl_path = engine._find_template_path(tpl_name)
+            tpl_path = engine.get_template_path(tpl_name)
             if tpl_path:
                 source_type = _get_template_dir_source_type(site.root_path, tpl_path.parent)
                 cli.info(f"  {tpl_name}: {tpl_path} ({source_type})")
@@ -412,7 +412,7 @@ def debug(source: str, template: str | None) -> None:
     # Show specific template resolution if requested
     if template:
         cli.header(f"Template Resolution: {template}")
-        tpl_path = engine._find_template_path(template)
+        tpl_path = engine.get_template_path(template)
         if tpl_path:
             source_type = _get_template_dir_source_type(site.root_path, tpl_path.parent)
             cli.info(f"  Found: {tpl_path}")

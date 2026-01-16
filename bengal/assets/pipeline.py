@@ -98,6 +98,7 @@ class PipelineConfig:
     bundle_js: bool
     esbuild_target: str
     sourcemaps: bool
+    session_id: str | None = None
 
 
 class NodePipeline:
@@ -143,7 +144,11 @@ class NodePipeline:
 
         self.config = config
         paths = BengalPaths(config.root_path)
-        self.temp_out_dir = paths.pipeline_out_dir
+        base_temp = paths.pipeline_out_dir
+        if config.session_id:
+            self.temp_out_dir = base_temp / config.session_id
+        else:
+            self.temp_out_dir = base_temp
 
     def build(self) -> list[Path]:
         """
@@ -160,6 +165,8 @@ class NodePipeline:
             return []
 
         # Clean temp output
+        # If using a session-specific directory, we only clean that subdirectory.
+        # If using the shared directory, we clean it entirely (legacy behavior).
         if self.temp_out_dir.exists():
             shutil.rmtree(self.temp_out_dir)
         self.temp_out_dir.mkdir(parents=True, exist_ok=True)
@@ -533,6 +540,12 @@ def from_site(site: Site) -> NodePipeline:
     assets_cfg = (
         site.config.get("assets", {}) if isinstance(site.config.get("assets"), dict) else {}
     )
+    # Use session ID from build state for thread-safe temporary directories
+    session_id = None
+    if site.build_state:
+        # Use ISO format without colons for filename safety
+        session_id = site.build_state.build_time.strftime("%Y%m%dT%H%M%S")
+
     pc = PipelineConfig(
         root_path=site.root_path,
         theme_name=site.theme,
@@ -543,5 +556,6 @@ def from_site(site: Site) -> NodePipeline:
         bundle_js=bool(assets_cfg.get("bundle_js", True)),
         esbuild_target=str(assets_cfg.get("esbuild_target", "es2018")),
         sourcemaps=bool(assets_cfg.get("sourcemaps", True)),
+        session_id=session_id,
     )
     return NodePipeline(pc)

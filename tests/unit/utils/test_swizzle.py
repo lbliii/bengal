@@ -217,36 +217,39 @@ class TestListSwizzled:
 
 
 class TestDetectModifications:
-    """Test _is_modified() method for detecting local changes."""
+    """Test is_modified() and get_modification_status() methods for detecting local changes."""
 
     def test_unmodified_template(self, swizzle_manager, temp_site):
         """Test detecting unmodified template."""
+        from bengal.themes.swizzle import ModificationStatus
+        
         swizzle_manager.swizzle("partials/test-component.html")
 
-        # Template not modified
-        is_modified = swizzle_manager._is_modified("partials/test-component.html")
-
-        assert is_modified is False
+        # Template not modified - use public API
+        assert swizzle_manager.is_modified("partials/test-component.html") is False
+        assert swizzle_manager.get_modification_status("partials/test-component.html") == ModificationStatus.UNCHANGED
 
     def test_modified_template(self, swizzle_manager, temp_site):
         """Test detecting modified template."""
+        from bengal.themes.swizzle import ModificationStatus
+        
         swizzle_manager.swizzle("partials/test-component.html")
 
         # Modify the local template
         local_file = temp_site / "templates" / "partials" / "test-component.html"
         local_file.write_text("<div>Modified content</div>")
 
-        is_modified = swizzle_manager._is_modified("partials/test-component.html")
-
-        assert is_modified is True
+        # Use public API
+        assert swizzle_manager.is_modified("partials/test-component.html") is True
+        assert swizzle_manager.get_modification_status("partials/test-component.html") == ModificationStatus.MODIFIED
 
     def test_modified_detection_for_missing_template(self, swizzle_manager):
         """Test modification detection for template not in registry."""
-        # Template never swizzled
-        is_modified = swizzle_manager._is_modified("partials/nonexistent.html")
-
-        # Should return False (or handle gracefully)
-        assert is_modified is False or is_modified is None
+        from bengal.themes.swizzle import ModificationStatus
+        
+        # Template never swizzled - use public API
+        assert swizzle_manager.is_modified("partials/nonexistent.html") is False
+        assert swizzle_manager.get_modification_status("partials/nonexistent.html") == ModificationStatus.NOT_SWIZZLED
 
 
 class TestChecksumCalculation:
@@ -470,9 +473,9 @@ class TestRealWorldScenarios:
         # Customize some
         (temp_site / "templates" / "partials" / "header.html").write_text("<header>Custom</header>")
 
-        # Check modification detection
-        assert swizzle_manager._is_modified("partials/header.html") is True
-        assert swizzle_manager._is_modified("partials/footer.html") is False
+        # Check modification detection using public API
+        assert swizzle_manager.is_modified("partials/header.html") is True
+        assert swizzle_manager.is_modified("partials/footer.html") is False
 
     def test_list_and_inspect_swizzled_files(self, swizzle_manager, temp_site):
         """Test listing swizzled files for inspection."""

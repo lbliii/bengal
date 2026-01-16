@@ -92,8 +92,6 @@ class IncrementalOrchestrator:
         self._cache_manager = CacheManager(site)
         self._early_pipeline = None
         self._full_pipeline = None
-        # Legacy compatibility (pre-pipeline refactor)
-        self._change_detector = None
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
@@ -248,12 +246,10 @@ class IncrementalOrchestrator:
         if phase == "early":
             if self._early_pipeline is None:
                 self._early_pipeline = create_early_pipeline()
-                self._change_detector = self._early_pipeline
             return self._early_pipeline.run(ctx)
 
         if self._early_pipeline is None:
             self._early_pipeline = create_early_pipeline()
-            self._change_detector = self._early_pipeline
         early_result = self._early_pipeline.run(ctx)
         full_ctx = DetectionContext(
             cache=self.cache,
@@ -320,6 +316,21 @@ class IncrementalOrchestrator:
             change_summary.extra_changes["Data file changes"] = [
                 str(key_to_path(self.site.root_path, key)) for key in result.data_files_changed
             ]
+
+        # Extract extra change info from rebuild reasons (observability)
+        cascade_triggers: set[str] = set()
+        nav_triggers: set[str] = set()
+        from bengal.build.contracts.results import RebuildReasonCode
+        for reason in result.rebuild_reasons.values():
+            if reason.code == RebuildReasonCode.CASCADE:
+                cascade_triggers.add(reason.trigger)
+            elif reason.code == RebuildReasonCode.ADJACENT_NAV_CHANGED:
+                nav_triggers.add(reason.trigger)
+
+        if cascade_triggers:
+            change_summary.extra_changes["Cascade changes"] = sorted(list(cascade_triggers))
+        if nav_triggers:
+            change_summary.extra_changes["Navigation changes"] = sorted(list(nav_triggers))
 
         return pages_to_build, assets_to_process, change_summary
 

@@ -135,7 +135,7 @@ class TestKnowledgeGraphLazyLoading:
         mock_graph = MagicMock()
 
         with (
-            patch("bengal.analysis.knowledge_graph.KnowledgeGraph") as MockKnowledgeGraph,
+            patch("bengal.analysis.graph.knowledge_graph.KnowledgeGraph") as MockKnowledgeGraph,
             patch("bengal.config.defaults.is_feature_enabled", return_value=True),
         ):
             MockKnowledgeGraph.return_value = mock_graph

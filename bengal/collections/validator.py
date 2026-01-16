@@ -224,6 +224,35 @@ class SchemaValidator:
             ...     for error in result.errors:
             ...         print(f"{error.field}: {error.message}")
         """
+        # Validate input is a dict
+        if data is None:
+            return ValidationResult(
+                valid=False,
+                data=None,
+                errors=[
+                    ValidationError(
+                        field="(root)",
+                        message="Expected dict, got None",
+                        expected_type="dict",
+                    )
+                ],
+                warnings=[],
+            )
+        if not isinstance(data, dict):
+            return ValidationResult(
+                valid=False,
+                data=None,
+                errors=[
+                    ValidationError(
+                        field="(root)",
+                        message=f"Expected dict, got {type(data).__name__}",
+                        value=data,
+                        expected_type="dict",
+                    )
+                ],
+                warnings=[],
+            )
+
         if self._is_pydantic:
             return self._validate_pydantic(data, source_file)
         return self._validate_dataclass(data, source_file)
@@ -401,7 +430,7 @@ class SchemaValidator:
         self,
         name: str,
         value: Any,
-        expected: type,
+        expected: Any,  # Can be type, generic alias (list[str]), or typing construct
         _depth: int = 0,
     ) -> tuple[Any, list[ValidationError]]:
         """
@@ -572,8 +601,9 @@ class SchemaValidator:
 
             if isinstance(value, dict):
                 # Pass max_depth to nested validator
+                # Type cast: we've already verified expected is a dataclass via is_dataclass()
                 nested_validator = SchemaValidator(
-                    expected,
+                    expected,  # type: ignore[arg-type]
                     strict=self.strict,
                     max_depth=self.max_depth,
                 )
@@ -588,12 +618,14 @@ class SchemaValidator:
                     return value, result.errors
             else:
                 # Not a dict - can't validate as nested dataclass
+                # Get type name safely
+                type_name = getattr(expected, "__name__", str(expected))
                 return value, [
                     ValidationError(
                         field=name,
                         message=f"Expected dict for nested schema, got {type(value).__name__}",
                         value=value,
-                        expected_type=expected.__name__,
+                        expected_type=type_name,
                     )
                 ]
 
@@ -602,14 +634,22 @@ class SchemaValidator:
         if isinstance(expected, type) and isinstance(value, expected):
             return value, []
 
-        # Unknown type - accept as-is with warning
+        # Unknown type - log warning and accept as-is
+        # This handles complex generics like tuple[str, int] that aren't fully supported
+        logger.debug(
+            "unknown_type_accepted",
+            field=name,
+            expected_type=str(expected),
+            value_type=type(value).__name__,
+            note="Type not fully supported for validation; value accepted as-is",
+        )
         return value, []
 
     def _coerce_datetime(
         self,
         name: str,
         value: Any,
-    ) -> tuple[datetime | None, list[ValidationError]]:
+    ) -> tuple[Any, list[ValidationError]]:
         """
         Coerce a value to datetime.
 
@@ -617,6 +657,10 @@ class SchemaValidator:
         - ``datetime`` objects (returned as-is)
         - ``date`` objects (converted to datetime at midnight)
         - Strings (parsed via dateutil.parser if available, then ISO format)
+
+        Returns:
+            Tuple of ``(coerced_value, errors)``. On success, returns
+            ``(datetime_instance, [])``. On failure, returns ``(None, [error])``.
         """
         if isinstance(value, datetime):
             return value, []
@@ -628,12 +672,24 @@ class SchemaValidator:
         if isinstance(value, str):
             # Try dateutil parser for flexible parsing
             try:
-                from dateutil.parser import parse
+                from dateutil.parser import parse as dateutil_parse
+                from dateutil.parser import ParserError
 
-                return parse(value), []
+                return dateutil_parse(value), []
             except ImportError:
                 pass
-            except Exception as e:
+            except ParserError as e:
+                # Known parsing error - try ISO fallback
+                logger.debug(
+                    "datetime_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type="ParserError",
+                    action="trying_iso_fallback",
+                )
+            except (ValueError, TypeError) as e:
+                # Other expected errors during parsing
                 logger.debug(
                     "datetime_parse_failed",
                     field=name,
@@ -642,7 +698,6 @@ class SchemaValidator:
                     error_type=type(e).__name__,
                     action="trying_iso_fallback",
                 )
-                pass
 
             # Fallback: try ISO format
             try:
@@ -650,7 +705,8 @@ class SchemaValidator:
             except ValueError:
                 pass
 
-        return value, [
+        # Return None on failure (not the original value) to match type contract
+        return None, [
             ValidationError(
                 field=name,
                 message=f"Cannot parse '{value}' as datetime",
@@ -663,7 +719,7 @@ class SchemaValidator:
         self,
         name: str,
         value: Any,
-    ) -> tuple[date | None, list[ValidationError]]:
+    ) -> tuple[Any, list[ValidationError]]:
         """
         Coerce a value to date.
 
@@ -671,6 +727,10 @@ class SchemaValidator:
         - ``date`` objects (returned as-is, unless it's a datetime)
         - ``datetime`` objects (extracts the date portion)
         - Strings (parsed via dateutil.parser if available, then ISO format)
+
+        Returns:
+            Tuple of ``(coerced_value, errors)``. On success, returns
+            ``(date_instance, [])``. On failure, returns ``(None, [error])``.
         """
         if isinstance(value, date) and not isinstance(value, datetime):
             return value, []
@@ -681,12 +741,24 @@ class SchemaValidator:
         if isinstance(value, str):
             # Try dateutil parser
             try:
-                from dateutil.parser import parse
+                from dateutil.parser import parse as dateutil_parse
+                from dateutil.parser import ParserError
 
-                return parse(value).date(), []
+                return dateutil_parse(value).date(), []
             except ImportError:
                 pass
-            except Exception as e:
+            except ParserError as e:
+                # Known parsing error - try ISO fallback
+                logger.debug(
+                    "date_parse_failed",
+                    field=name,
+                    value=value,
+                    error=str(e),
+                    error_type="ParserError",
+                    action="trying_iso_fallback",
+                )
+            except (ValueError, TypeError) as e:
+                # Other expected errors during parsing
                 logger.debug(
                     "date_parse_failed",
                     field=name,
@@ -695,7 +767,6 @@ class SchemaValidator:
                     error_type=type(e).__name__,
                     action="trying_iso_fallback",
                 )
-                pass
 
             # Fallback: try ISO format
             try:
@@ -703,7 +774,8 @@ class SchemaValidator:
             except ValueError:
                 pass
 
-        return value, [
+        # Return None on failure (not the original value) to match type contract
+        return None, [
             ValidationError(
                 field=name,
                 message=f"Cannot parse '{value}' as date",

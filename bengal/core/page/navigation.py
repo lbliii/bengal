@@ -21,7 +21,7 @@ See Also:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -65,7 +65,7 @@ class PageNavigationMixin:
 
         try:
             pages = self._site.pages
-            idx = pages.index(self)
+            idx = pages.index(cast("Page", self))
             if idx < len(pages) - 1:
                 return pages[idx + 1]
         except (ValueError, IndexError):
@@ -91,7 +91,7 @@ class PageNavigationMixin:
 
         try:
             pages = self._site.pages
-            idx = pages.index(self)
+            idx = pages.index(cast("Page", self))
             if idx > 0:
                 return pages[idx - 1]
         except (ValueError, IndexError):
@@ -122,7 +122,7 @@ class PageNavigationMixin:
         try:
             # Use sorted_pages to respect weight ordering
             sorted_pages = self._section.sorted_pages
-            idx = sorted_pages.index(self)
+            idx = sorted_pages.index(cast("Page", self))
 
             # Find next non-index page
             next_idx = idx + 1
@@ -160,7 +160,7 @@ class PageNavigationMixin:
         try:
             # Use sorted_pages to respect weight ordering
             sorted_pages = self._section.sorted_pages
-            idx = sorted_pages.index(self)
+            idx = sorted_pages.index(cast("Page", self))
 
             # Find previous non-index page
             prev_idx = idx - 1

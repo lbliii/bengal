@@ -99,12 +99,12 @@ class AutodocChangeDetector:
                 skipped_count = 0
 
                 for page_path_str in autodoc_pages_to_rebuild:
-                    source_key = page_to_source.get(page_path_str)
+                    page_source_key = page_to_source.get(page_path_str)
                     page = ctx.site.page_by_source_path.get(Path(page_path_str))
                     doc_hash = page.metadata.get("doc_content_hash") if page else None
 
-                    if source_key and doc_hash:
-                        if ctx.cache.is_doc_content_changed(source_key, page_path_str, doc_hash):
+                    if page_source_key is not None and doc_hash is not None:
+                        if ctx.cache.is_doc_content_changed(page_source_key, page_path_str, doc_hash):
                             filtered_pages.add(page_path_str)
                         else:
                             skipped_count += 1
@@ -125,7 +125,13 @@ class AutodocChangeDetector:
                     affected_pages=len(autodoc_pages_to_rebuild),
                     reason="source_files_changed",
                 )
-        except (TypeError, AttributeError):
-            pass
+        except (TypeError, AttributeError) as e:
+            # Expected when cache doesn't have autodoc methods (first build, etc.)
+            logger.debug(
+                "autodoc_change_detection_skipped",
+                error=str(e),
+                error_type=type(e).__name__,
+                reason="autodoc_cache_methods_unavailable",
+            )
 
         return autodoc_pages_to_rebuild

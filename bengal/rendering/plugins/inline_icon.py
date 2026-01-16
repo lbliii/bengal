@@ -18,6 +18,8 @@ Icons are loaded via the theme-aware resolver (site > theme > parent > default).
 from __future__ import annotations
 
 import re
+import threading
+from html import escape as html_escape
 from typing import Any
 
 from bengal.errors import ErrorCode
@@ -29,6 +31,8 @@ logger = get_logger(__name__)
 __all__ = ["InlineIconPlugin"]
 
 # Track warned icons to avoid duplicate warnings
+# Thread-safe: protected by _warned_lock for concurrent access
+_warned_lock = threading.Lock()
 _warned_icons: set[str] = set()
 
 
@@ -149,18 +153,20 @@ class InlineIconPlugin:
         # Load the SVG content via theme-aware resolver
         svg_content = icon_resolver.load_icon(name)
         if svg_content is None:
-            # Warn once per icon name (deduplicated)
-            if name not in _warned_icons:
-                _warned_icons.add(name)
-                logger.warning(
-                    "icon_not_found",
-                    icon=name,
-                    error_code=ErrorCode.T010.value,
-                    searched=[str(p) for p in icon_resolver.get_search_paths()],
-                    suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
-                    hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
-                )
-            return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {name}">❓</span>'
+            # Warn once per icon name (deduplicated, thread-safe)
+            with _warned_lock:
+                if name not in _warned_icons:
+                    _warned_icons.add(name)
+                    logger.warning(
+                        "icon_not_found",
+                        icon=name,
+                        error_code=ErrorCode.T010.value,
+                        searched=[str(p) for p in icon_resolver.get_search_paths()],
+                        suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
+                        hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
+                    )
+            # Escape name to prevent XSS in title attribute
+            return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {html_escape(name)}">❓</span>'
 
         # Build class list
         classes = ["bengal-icon", f"icon-{name}"]
@@ -187,5 +193,6 @@ class InlineIconPlugin:
 
 def clear_inline_icon_cache() -> None:
     """Clear the inline icon cache and warned icons set."""
-    _warned_icons.clear()
+    with _warned_lock:
+        _warned_icons.clear()
     icon_resolver.clear_cache()

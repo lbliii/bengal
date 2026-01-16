@@ -56,8 +56,7 @@ class CollectionPathTrie:
     Prefix trie for O(P) collection path matching.
     
     For overlapping directories (e.g., ``docs/`` and ``docs/api/``), returns
-    the **deepest** matching collection. This differs from linear scan which
-    returns the **first** match based on dict iteration order.
+    the **deepest** matching collection.
     
     Example:
             >>> trie = CollectionPathTrie()
@@ -72,6 +71,16 @@ class CollectionPathTrie:
         - insert: O(P) where P = path depth
         - find: O(P) where P = path depth
         - Space: O(C × P) where C = collections, P = avg path depth
+    
+    Thread Safety:
+        This class is **NOT thread-safe**. The trie should be built once during
+        site initialization and treated as read-only thereafter. Do not call
+        :meth:`insert` while other threads may be calling :meth:`find`.
+        
+        For concurrent access during builds, either:
+        - Build the trie before spawning worker threads
+        - Use a separate trie instance per thread
+        - Protect access with a lock (not recommended for performance)
         
     """
 
@@ -305,6 +314,9 @@ def get_collection_for_path(
     applicable collection. Used during content discovery to apply the
     correct schema validation.
     
+    For overlapping directories (e.g., ``docs/`` and ``docs/api/``), returns
+    the **deepest** (most specific) matching collection.
+    
     Args:
         file_path: Absolute or relative path to the content file.
         content_root: Root content directory (e.g., ``site/content/``).
@@ -318,8 +330,7 @@ def get_collection_for_path(
         belong to any defined collection.
     
     Note:
-        - With trie: Returns **deepest** matching collection (most specific).
-        - Without trie: Returns **first** matching collection (dict order).
+        - Both trie and linear scan return the **deepest** matching collection.
         - Files outside the content root always return ``(None, None)``.
         - Remote collections (with ``loader`` but no ``directory``) are skipped.
     
@@ -352,19 +363,26 @@ def get_collection_for_path(
     if trie is not None:
         return trie.find(rel_path)
 
-    # Fallback: Linear scan (existing behavior, first match wins)
+    # Linear scan: Find deepest (most specific) matching collection
+    best_match: tuple[str | None, CollectionConfig[Any] | None] = (None, None)
+    best_depth = -1
+
     for name, config in collections.items():
         if config.directory is None:
             continue
         try:
             # Check if file is under this collection's directory
             rel_path.relative_to(config.directory)
-            return name, config
+            # Track the deepest match (most path parts = most specific)
+            depth = len(config.directory.parts)
+            if depth > best_depth:
+                best_depth = depth
+                best_match = (name, config)
         except ValueError:
             # Not under this collection's directory
             continue
 
-    return None, None
+    return best_match
 
 
 def validate_collections_config(

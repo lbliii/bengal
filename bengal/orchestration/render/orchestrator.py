@@ -20,7 +20,7 @@ Related Modules:
 - bengal.orchestration.render.tracking: Active render tracking
 
 See Also:
-- bengal/orchestration/render.py:render_pages() for rendering entry point
+- bengal/orchestration/render/orchestrator.py: RenderOrchestrator.process() entry point
 - plan/active/rfc-template-performance-optimization.md: Performance RFC
 
 """
@@ -28,6 +28,7 @@ See Also:
 from __future__ import annotations
 
 import concurrent.futures
+import contextvars
 import sys
 import threading
 from pathlib import Path
@@ -61,6 +62,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.orchestration.build_context import BuildContext
+    from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
 # Re-export for backward compatibility (deprecated, use render.tracking module)
@@ -212,7 +214,7 @@ class RenderOrchestrator:
         quiet: bool = False,
         tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         reporter: ProgressReporter | None = None,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
@@ -259,7 +261,7 @@ class RenderOrchestrator:
         quiet: bool,
         tracker: DependencyTracker | None,
         stats: BuildStats | None,
-        progress_manager: ProgressManagerProtocol | None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None,
         reporter: ProgressReporter | None,
         build_context: BuildContext | None,
         changed_sources: set[Path] | None,
@@ -334,7 +336,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
@@ -418,7 +420,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: ProgressManagerProtocol | None = None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
@@ -527,16 +529,18 @@ class RenderOrchestrator:
 
         # Log complexity distribution at debug level
         complexity_stats = get_complexity_stats(sorted_pages)
+        mean_score = float(complexity_stats["mean"])
+        variance_ratio = float(complexity_stats["variance_ratio"])
         logger.debug(
             "complexity_distribution",
             page_count=complexity_stats["count"],
             min_score=complexity_stats["min"],
             max_score=complexity_stats["max"],
-            mean_score=round(complexity_stats["mean"], 1),
-            variance_ratio=round(complexity_stats["variance_ratio"], 1),
+            mean_score=round(mean_score, 1),
+            variance_ratio=round(variance_ratio, 1),
         )
         # Log ordering effectiveness (high variance = big benefit)
-        if complexity_stats["variance_ratio"] > 10:
+        if variance_ratio > 10:
             logger.debug(
                 "complexity_ordering_beneficial",
                 reason="high variance detected",
@@ -596,8 +600,17 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
                 # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                # 
+                # CRITICAL: Copy parent context for each task to propagate ContextVars
+                # (e.g., asset_manifest_context) to worker threads. Without this,
+                # workers start with empty context in free-threaded Python (PEP 703).
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
+                    executor.submit(
+                        contextvars.copy_context().run,  # type: ignore[arg-type]
+                        process_page_with_pipeline,
+                        page,
+                    ): page
+                    for page in sorted_pages
                 }
 
                 # Track errors for aggregation
@@ -708,7 +721,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: ProgressManagerProtocol,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
@@ -745,11 +758,13 @@ class RenderOrchestrator:
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
-                # When using progress manager, suppress individual page output
+                # When using progress manager, always suppress individual page output
+                # (quiet=True) because progress_manager handles display. The `quiet`
+                # parameter from the caller is intentionally ignored here.
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     tracker,
-                    quiet=True,
+                    quiet=True,  # Always True when progress_manager is active
                     build_stats=stats,
                     build_context=build_context,
                     changed_sources=changed_sources,
@@ -790,8 +805,17 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
                 # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                #
+                # CRITICAL: Copy parent context for each task to propagate ContextVars
+                # (e.g., asset_manifest_context) to worker threads. Without this,
+                # workers start with empty context in free-threaded Python (PEP 703).
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
+                    executor.submit(
+                        contextvars.copy_context().run,  # type: ignore[arg-type]
+                        process_page_with_pipeline,
+                        page,
+                    ): page
+                    for page in sorted_pages
                 }
 
                 # Track errors for aggregation
@@ -908,8 +932,17 @@ class RenderOrchestrator:
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                    #
+                    # CRITICAL: Copy parent context for each task to propagate ContextVars
+                    # (e.g., asset_manifest_context) to worker threads. Without this,
+                    # workers start with empty context in free-threaded Python (PEP 703).
                     futures = [
-                        executor.submit(process_page_with_pipeline, page) for page in sorted_pages
+                        executor.submit(
+                            contextvars.copy_context().run,  # type: ignore[arg-type]
+                            process_page_with_pipeline,
+                            page,
+                        )
+                        for page in sorted_pages
                     ]
 
                     # Track errors for aggregation

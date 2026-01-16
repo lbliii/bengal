@@ -80,3 +80,35 @@ appearance:
         for mode in ("light", "dark", "system"):
             config = AppearanceConfig(default_mode=mode)
             assert config.default_mode == mode
+
+    def test_invalid_palette_has_error_code(self) -> None:
+        """Verify AppearanceConfig raises BengalConfigError with C003 for invalid palette."""
+        with pytest.raises(BengalConfigError) as exc_info:
+            AppearanceConfig(default_palette="nonexistent-palette")
+
+        assert exc_info.value.code == ErrorCode.C003
+        assert "default_palette" in str(exc_info.value)
+
+    def test_valid_palettes_accepted(self) -> None:
+        """Verify all valid palette names are accepted."""
+        valid_palettes = [
+            "",  # Empty string = no override
+            "default",
+            "blue-bengal",
+            "brown-bengal",
+            "charcoal-bengal",
+            "silver-bengal",
+            "snow-lynx",
+        ]
+        for palette in valid_palettes:
+            config = AppearanceConfig(default_palette=palette)
+            assert config.default_palette == palette
+
+    def test_invalid_palette_suggestion_lists_valid_options(self) -> None:
+        """Verify invalid palette error includes valid options in suggestion."""
+        with pytest.raises(BengalConfigError) as exc_info:
+            AppearanceConfig(default_palette="invalid-palette")
+
+        assert exc_info.value.suggestion is not None
+        # Should mention at least one valid palette
+        assert "blue-bengal" in exc_info.value.suggestion or "snow-lynx" in exc_info.value.suggestion

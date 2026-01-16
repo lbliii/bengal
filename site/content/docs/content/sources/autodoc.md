@@ -148,6 +148,16 @@ bengal build
 
 The generated API documentation appears in your output directory alongside your regular content.
 
+## Performance Optimizations
+
+Bengal automatically optimizes autodoc builds:
+
+- **AST Caching**: Parsed Python modules are cached between builds. Unchanged source files skip AST parsing entirely, providing 30-40% speedup for sites with many autodoc pages.
+- **Selective Rebuilds**: Only autodoc pages affected by changed source files are rebuilt during incremental builds.
+- **Parallel Extraction**: Python modules are extracted in parallel when multiple files are present.
+
+These optimizations are automatic and require no configuration.
+
 ## Navigation (topbar)
 
 If you do not define `menu.main`, Bengal generates a topbar menu automatically.

@@ -287,7 +287,11 @@ class DirectiveSyntaxValidator:
                 if not in_code_block:
                     in_code_block = True
                     code_block_fence = fence
-                elif fence.startswith(code_block_fence[0]) and len(fence) >= len(code_block_fence):
+                elif (
+                    code_block_fence is not None
+                    and fence.startswith(code_block_fence[0])
+                    and len(fence) >= len(code_block_fence)
+                ):
                     # Closing fence (same or longer)
                     in_code_block = False
                     code_block_fence = None

@@ -5,6 +5,7 @@ Change detectors for incremental builds.
 from __future__ import annotations
 
 from bengal.build.detectors.autodoc import AutodocChangeDetector
+from bengal.build.detectors.cascade import NavigationDependencyDetector, SectionCascadeDetector
 from bengal.build.detectors.content import ContentChangeDetector
 from bengal.build.detectors.data import DataChangeDetector
 from bengal.build.detectors.taxonomy import TaxonomyCascadeDetector
@@ -15,6 +16,8 @@ __all__ = [
     "AutodocChangeDetector",
     "ContentChangeDetector",
     "DataChangeDetector",
+    "NavigationDependencyDetector",
+    "SectionCascadeDetector",
     "TemplateChangeDetector",
     "TaxonomyCascadeDetector",
     "VersionChangeDetector",

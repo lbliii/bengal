@@ -247,6 +247,15 @@ class KidaTemplateEngine:
         self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
         return self._menu_dict_cache[cache_key]
 
+    def invalidate_menu_cache(self) -> None:
+        """
+        Invalidate the menu dict cache.
+
+        Call this after menus are rebuilt to ensure fresh dicts are generated.
+        This ensures active menu states are correct for each page render.
+        """
+        self._menu_dict_cache.clear()
+
     def _url_for(self, page: Any) -> str:
         """Generate URL for a page with base URL support."""
         # If page has _path, use it to apply baseurl (for MockPage and similar)
@@ -277,6 +286,9 @@ class KidaTemplateEngine:
             TemplateNotFoundError: If template doesn't exist
             TemplateRenderError: If rendering fails
         """
+        # Invalidate menu cache to ensure fresh active states for each page
+        self.invalidate_menu_cache()
+
         # Track template dependency for incremental builds
         if self._dependency_tracker:
             template_path = self.get_template_path(name)
@@ -365,6 +377,9 @@ class KidaTemplateEngine:
             Rendered HTML string
         """
         from kida.environment.exceptions import UndefinedError
+
+        # Invalidate menu cache to ensure fresh active states
+        self.invalidate_menu_cache()
 
         try:
             tmpl = self._env.from_string(template)

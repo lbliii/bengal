@@ -19,7 +19,7 @@ Related Modules:
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -125,7 +125,7 @@ class RenderedOutputCacheMixin:
             "template": template,
             "metadata_hash": metadata_hash,
             "dependencies": dependencies or [],
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "size_bytes": size_bytes,
             "asset_manifest_mtime": asset_manifest_mtime,
         }

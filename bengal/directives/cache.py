@@ -3,10 +3,15 @@ Directive content caching for performance optimization.
 
 Caches parsed directive content by content hash to avoid expensive
 re-parsing of identical directive blocks.
+
+Thread Safety (Free-Threading / PEP 703):
+    DirectiveCache uses LRUCache internally which is already thread-safe.
+    configure_cache() uses a lock to protect the global instance replacement.
 """
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from bengal.utils.primitives.hashing import hash_str
@@ -121,6 +126,7 @@ class DirectiveCache:
 # Global cache instance (shared across all threads)
 # Thread-safe: Uses LRUCache with internal RLock
 _directive_cache = DirectiveCache(max_size=1000)
+_config_lock = threading.Lock()  # Protects _directive_cache replacement in configure_cache
 
 
 def get_cache() -> DirectiveCache:
@@ -138,6 +144,9 @@ def configure_cache(max_size: int | None = None, enabled: bool | None = None) ->
     """
     Configure the global directive cache.
     
+    Thread-safe: Uses lock to protect global instance replacement under
+    free-threading (PEP 703).
+    
     Args:
         max_size: Maximum cache size (None to keep current)
         enabled: Whether to enable caching (None to keep current)
@@ -148,18 +157,19 @@ def configure_cache(max_size: int | None = None, enabled: bool | None = None) ->
     """
     global _directive_cache
 
-    if max_size is not None:
-        # Recreate cache with new size
-        was_enabled = _directive_cache._cache.enabled
-        _directive_cache = DirectiveCache(max_size=max_size)
-        if not was_enabled:
-            _directive_cache.disable()
+    with _config_lock:
+        if max_size is not None:
+            # Recreate cache with new size
+            was_enabled = _directive_cache._cache.enabled
+            _directive_cache = DirectiveCache(max_size=max_size)
+            if not was_enabled:
+                _directive_cache.disable()
 
-    if enabled is not None:
-        if enabled:
-            _directive_cache.enable()
-        else:
-            _directive_cache.disable()
+        if enabled is not None:
+            if enabled:
+                _directive_cache.enable()
+            else:
+                _directive_cache.disable()
 
 
 def clear_cache() -> None:

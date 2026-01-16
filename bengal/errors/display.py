@@ -182,7 +182,7 @@ def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:
     """
     # Handle file not found
     if isinstance(e, FileNotFoundError):
-        filename = getattr(e, "filename", str(e))
+        filename = getattr(e, "filename", None) or str(e)
         return (
             f"File not found: {filename}",
             "Check the path exists and spelling is correct",

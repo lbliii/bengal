@@ -192,6 +192,8 @@ bengal build --no-incremental
 - **Template rendering** — Output cached by content hash
 - **Asset hashing** — Fingerprints cached
 - **Query indexes** — Updated incrementally
+- **Autodoc AST parsing** — Python modules cached to skip AST parsing (30-40% speedup for autodoc-heavy sites)
+- **Asset dependencies** — Tracked during render-time (no HTML parsing needed)
 
 ### Cache Location
 
@@ -229,6 +231,11 @@ bengal build --fast
 - Quiet output (minimal console I/O)
 - Suppresses verbose logging
 - Parallelism auto-detected as normal
+- **Skips HTML formatting** (raw HTML output, ~10-15% faster)
+
+:::{note}
+Fast mode skips HTML pretty-printing and minification. Output is still valid HTML but not formatted. Use for development and CI builds where formatting doesn't matter.
+:::
 
 ---
 

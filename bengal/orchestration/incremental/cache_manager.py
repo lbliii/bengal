@@ -301,6 +301,7 @@ class CacheManager:
         # Check in Bengal's bundled themes
         import bengal
 
+        assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / theme / "templates"
         if bundled_theme_dir.exists():

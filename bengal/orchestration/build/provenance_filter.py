@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
+from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import (
     FilterResult,
@@ -81,36 +82,109 @@ def phase_incremental_filter_provenance(
         pages_list = list(site.pages)
         assets_list = list(site.assets)
         
-        # CRITICAL: If no pages were discovered, this is a build failure
+        # CRITICAL: If no pages were discovered, attempt recovery
         # This should never happen in a normal build - discovery should always find pages
+        # But we can recover by re-running discovery with full discovery (bypasses cache issues)
         if not pages_list:
-            orchestrator.logger.error(
-                "no_pages_discovered_for_filtering",
+            orchestrator.logger.warning(
+                "no_pages_discovered_for_filtering_attempting_recovery",
                 total_pages=len(site.pages),
                 incremental=incremental,
-                suggestion="Check content directory exists and contains markdown files",
+                suggestion="Re-running discovery with full discovery to recover",
             )
-            cli.error("✗ Build failed: No pages discovered")
-            cli.detail(
-                f"Expected pages in {site.root_path / 'content'}",
-                indent=1,
-            )
-            # Force a full rebuild to recover
-            incremental = False
-            # Re-run discovery to ensure pages are found
+            # Force full discovery (incremental=False) to bypass any cache issues
+            # This ensures we find pages even if the page discovery cache is broken
             from bengal.orchestration.build import initialization
             initialization.phase_discovery(
                 orchestrator,
                 cli,
-                incremental=False,
+                incremental=False,  # Force full discovery to recover
                 build_context=None,
-                build_cache=None,
+                build_cache=cache,  # Pass cache for autodoc dependency registration
             )
             pages_list = list(site.pages)
             if not pages_list:
-                # Still no pages - this is a real error
+                # Still no pages after recovery - this is a real error
+                orchestrator.logger.error(
+                    "no_pages_discovered_after_recovery",
+                    total_pages=len(site.pages),
+                    content_dir=str(site.root_path / "content"),
+                    suggestion="Check content directory exists and contains markdown files",
+                )
+                cli.error("✗ Build failed: No pages discovered after recovery")
+                cli.detail(
+                    f"Expected pages in {site.root_path / 'content'}",
+                    indent=1,
+                )
                 orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
-                return orchestrator.stats
+                return None  # Return None to signal build failure
+            
+            # Recovery succeeded - log success
+            orchestrator.logger.info(
+                "recovery_succeeded",
+                pages_found=len(pages_list),
+                reason="Full discovery recovered pages",
+            )
+            cli.success(f"✓ Recovery succeeded: Found {len(pages_list)} pages")
+            
+            # Check if provenance cache entries match the recovered pages
+            # If they match, we can keep the cache (no need to rebuild)
+            # If they don't match, clear cache to force rebuild
+            provenance_cache._ensure_loaded()
+            cache_matches = True
+            if provenance_cache._index:
+                # Sample check: verify a few pages have matching cache entries
+                sample_pages = pages_list[:min(10, len(pages_list))]
+                for page in sample_pages:
+                    page_key = provenance_filter._get_page_key(page)
+                    if page_key not in provenance_cache._index:
+                        cache_matches = False
+                        break
+                    # Compute provenance to check if it matches
+                    try:
+                        provenance = provenance_filter._compute_provenance(page)
+                        stored_hash = provenance_cache._index[page_key]
+                        if provenance.combined_hash != stored_hash:
+                            cache_matches = False
+                            break
+                    except Exception:
+                        # If provenance computation fails, assume mismatch
+                        cache_matches = False
+                        break
+            
+            if not cache_matches or not provenance_cache._index:
+                # Cache doesn't match or is empty - clear it to force rebuild
+                orchestrator.logger.debug(
+                    "provenance_cache_cleared_after_recovery",
+                    reason="Cache entries don't match recovered pages",
+                    pages_found=len(pages_list),
+                )
+                cli.detail(
+                    "Clearing provenance cache - entries don't match recovered pages",
+                    indent=1,
+                )
+                provenance_cache.cache_dir.mkdir(parents=True, exist_ok=True)
+                index_path = provenance_cache.cache_dir / "index.json"
+                if index_path.exists():
+                    index_path.unlink()
+                provenance_cache._index = {}
+                provenance_cache._loaded = False
+                # Also clear asset hashes to be safe
+                asset_hash_path = provenance_cache.cache_dir / "asset_hashes.json"
+                if asset_hash_path.exists():
+                    asset_hash_path.unlink()
+                provenance_filter._asset_hashes = {}
+            else:
+                # Cache matches - keep it, pages should be cache hits
+                orchestrator.logger.debug(
+                    "provenance_cache_preserved_after_recovery",
+                    reason="Cache entries match recovered pages",
+                    pages_found=len(pages_list),
+                )
+                cli.detail(
+                    "Provenance cache matches - pages should be cache hits",
+                    indent=1,
+                )
         
         result = provenance_filter.filter(
             pages=pages_list,

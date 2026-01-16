@@ -279,7 +279,7 @@ class PageExplainer:
             try:
                 return self._resolve_chain_from_engine(template_name)
             except Exception as e:
-                logger.debug("template_chain_resolution_failed", error=str(e))
+                logger.debug("template_chain_resolution_failed", template=template_name, error=str(e))
 
         # Fallback: basic info without full chain
         chain.append(
@@ -345,7 +345,7 @@ class PageExplainer:
         # Find the template file
         if self.template_engine is None:
             return chain
-        template_path = self.template_engine._find_template_path(template_name)
+        template_path = self.template_engine.get_template_path(template_name)
 
         info = TemplateInfo(
             name=template_name,
@@ -679,7 +679,7 @@ class PageExplainer:
         # Check template exists
         template_name = self._get_template_name(page)
         if template_name and self.template_engine:
-            template_path = self.template_engine._find_template_path(template_name)
+            template_path = self.template_engine.get_template_path(template_name)
             if not template_path:
                 issues.append(
                     Issue(

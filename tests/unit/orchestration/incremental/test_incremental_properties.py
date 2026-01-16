@@ -15,6 +15,8 @@ Invariants tested:
 
 Usage:
     pytest tests/unit/orchestration/incremental/test_incremental_properties.py -v
+
+Note: Requires `hypothesis` package (optional dev dependency).
 """
 
 from __future__ import annotations
@@ -27,6 +29,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+
+# hypothesis is an optional dev dependency
+hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
@@ -144,10 +149,7 @@ class TestIncrementalProperties:
     @settings(
         max_examples=30,
         deadline=None,
-        suppress_health_check=[
-            HealthCheck.too_slow,
-            HealthCheck.function_scoped_fixture,
-        ],
+        suppress_health_check=[HealthCheck.too_slow],
     )
     def test_modified_files_always_rebuilt(
         self,
@@ -190,10 +192,7 @@ class TestIncrementalProperties:
     @settings(
         max_examples=20,
         deadline=None,
-        suppress_health_check=[
-            HealthCheck.too_slow,
-            HealthCheck.function_scoped_fixture,
-        ],
+        suppress_health_check=[HealthCheck.too_slow],
     )
     def test_any_content_change_detected(
         self,
@@ -285,10 +284,7 @@ class TestIncrementalEquivalence:
     @settings(
         max_examples=20,
         deadline=None,
-        suppress_health_check=[
-            HealthCheck.too_slow,
-            HealthCheck.function_scoped_fixture,
-        ],
+        suppress_health_check=[HealthCheck.too_slow],
     )
     def test_incremental_matches_full_build(
         self,
@@ -366,10 +362,7 @@ class TestCacheProperties:
         )
 
     @given(content=st.text(min_size=1, max_size=1000))
-    @settings(
-        max_examples=50,
-        suppress_health_check=[HealthCheck.function_scoped_fixture],
-    )
+    @settings(max_examples=50)
     def test_fingerprint_changes_with_content(
         self,
         content: str,

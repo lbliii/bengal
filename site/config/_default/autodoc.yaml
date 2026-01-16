@@ -14,7 +14,7 @@ autodoc:
 
   # Python API Documentation
   python:
-    enabled: false
+    enabled: true
     source_dirs:
       - ../bengal  # Document the main Bengal package
     docstring_style: auto  # Auto-detect docstring format
@@ -58,7 +58,7 @@ autodoc:
 
   # CLI Documentation
   cli:
-    enabled: false
+    enabled: true
     app_module: "bengal.cli:main"
     framework: click
 
@@ -72,7 +72,7 @@ autodoc:
 
   # OpenAPI Documentation
   openapi:
-    enabled: false
+    enabled: true
     spec_file: "api/openapi.yaml"  # Relative to site root
 
     # Output prefix for OpenAPI docs

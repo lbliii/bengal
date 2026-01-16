@@ -28,13 +28,13 @@ See Also:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import lru_cache
 from importlib import metadata, resources
 from pathlib import Path
 
 from jinja2 import PackageLoader
 
 from bengal.core.diagnostics import emit
+from bengal.utils.primitives.lru_cache import LRUCache
 
 
 @dataclass(frozen=True)
@@ -245,67 +245,78 @@ class ThemePackage:
         return None
 
 
-@lru_cache(maxsize=1)
+# Thread-safe cache for installed themes (replaces @lru_cache for free-threading)
+_installed_themes_cache: LRUCache[str, dict[str, ThemePackage]] = LRUCache(
+    maxsize=1, name="installed_themes"
+)
+
+
 def get_installed_themes() -> dict[str, ThemePackage]:
     """
     Discover installed themes via entry points.
+    
+    Thread-safe: Uses LRUCache with RLock for safe concurrent access
+    under free-threading (PEP 703).
     
     Returns:
         Mapping of slug -> ThemePackage
         
     """
-    themes: dict[str, ThemePackage] = {}
-    try:
-        eps = metadata.entry_points(group="bengal.themes")
-    except Exception as e:
-        emit(None, "debug", "entry_point_discovery_failed", error=str(e))
-        # On error, return empty dict (no themes found)
-        return themes
-
-    for ep in eps:
-        slug = ep.name
-        package = ep.value  # import path of theme package/module
-
-        dist_name: str | None = None
-        version: str | None = None
+    def _discover_themes() -> dict[str, ThemePackage]:
+        themes: dict[str, ThemePackage] = {}
         try:
-            # Best-effort: find the owning distribution
-            distributions = metadata.packages_distributions()
-            # ep.module contains top-level package; use first segment
-            top_pkg = package.split(".")[0]
-            owning_list = distributions.get(top_pkg) or []
-            owning = owning_list[0] if owning_list else None
-            if owning:
-                dist_name = owning
-                try:
-                    version = metadata.version(dist_name)
-                except Exception as e:
-                    emit(
-                        None,
-                        "debug",
-                        "theme_version_lookup_failed",
-                        distribution=dist_name,
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
-                    version = None
+            eps = metadata.entry_points(group="bengal.themes")
         except Exception as e:
-            emit(
-                None,
-                "debug",
-                "theme_distribution_lookup_failed",
-                slug=slug,
-                package=package,
-                error=str(e),
-                error_type=type(e).__name__,
+            emit(None, "debug", "entry_point_discovery_failed", error=str(e))
+            # On error, return empty dict (no themes found)
+            return themes
+
+        for ep in eps:
+            slug = ep.name
+            package = ep.value  # import path of theme package/module
+
+            dist_name: str | None = None
+            version: str | None = None
+            try:
+                # Best-effort: find the owning distribution
+                distributions = metadata.packages_distributions()
+                # ep.module contains top-level package; use first segment
+                top_pkg = package.split(".")[0]
+                owning_list = distributions.get(top_pkg) or []
+                owning = owning_list[0] if owning_list else None
+                if owning:
+                    dist_name = owning
+                    try:
+                        version = metadata.version(dist_name)
+                    except Exception as e:
+                        emit(
+                            None,
+                            "debug",
+                            "theme_version_lookup_failed",
+                            distribution=dist_name,
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+                        version = None
+            except Exception as e:
+                emit(
+                    None,
+                    "debug",
+                    "theme_distribution_lookup_failed",
+                    slug=slug,
+                    package=package,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+            themes[slug] = ThemePackage(
+                slug=slug, package=package, distribution=dist_name, version=version
             )
 
-        themes[slug] = ThemePackage(
-            slug=slug, package=package, distribution=dist_name, version=version
-        )
-
-    emit(None, "debug", "installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
-    return themes
+        emit(None, "debug", "installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
+        return themes
+    
+    return _installed_themes_cache.get_or_set("themes", _discover_themes)
 
 
 def get_theme_package(slug: str) -> ThemePackage | None:
@@ -314,7 +325,7 @@ def get_theme_package(slug: str) -> ThemePackage | None:
 
 def clear_theme_cache() -> None:
     """Clear theme discovery cache."""
-    get_installed_themes.cache_clear()
+    _installed_themes_cache.clear()
 
 
 # Register cache for centralized cleanup (prevents memory leaks in tests)
