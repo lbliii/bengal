@@ -28,6 +28,7 @@ See Also:
 from __future__ import annotations
 
 import concurrent.futures
+import contextvars
 import sys
 import threading
 from pathlib import Path
@@ -591,8 +592,17 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
                 # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                #
+                # CRITICAL: Copy parent context for each task to propagate ContextVars
+                # (e.g., asset_manifest_context) to worker threads. Without this,
+                # workers start with empty context in free-threaded Python (PEP 703).
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
+                    executor.submit(
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
+                        page,
+                    ): page
+                    for page in sorted_pages
                 }
 
                 # Track errors for aggregation
@@ -785,8 +795,17 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
                 # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                #
+                # CRITICAL: Copy parent context for each task to propagate ContextVars
+                # (e.g., asset_manifest_context) to worker threads. Without this,
+                # workers start with empty context in free-threaded Python (PEP 703).
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
+                    executor.submit(
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
+                        page,
+                    ): page
+                    for page in sorted_pages
                 }
 
                 # Track errors for aggregation
@@ -903,8 +922,17 @@ class RenderOrchestrator:
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                    #
+                    # CRITICAL: Copy parent context for each task to propagate ContextVars
+                    # (e.g., asset_manifest_context) to worker threads. Without this,
+                    # workers start with empty context in free-threaded Python (PEP 703).
                     futures = [
-                        executor.submit(process_page_with_pipeline, page) for page in sorted_pages
+                        executor.submit(
+                            contextvars.copy_context().run,
+                            process_page_with_pipeline,
+                            page,
+                        )
+                        for page in sorted_pages
                     ]
 
                     # Track errors for aggregation

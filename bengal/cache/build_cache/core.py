@@ -33,6 +33,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.build_cache.autodoc_content_cache import AutodocContentCacheMixin
 from bengal.cache.build_cache.autodoc_tracking import AutodocTrackingMixin
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
 from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixin
@@ -135,9 +136,7 @@ class BuildCache(
     # Autodoc source metadata: source_file → (content_hash, mtime, {page_path: doc_hash})
     # Enables fine-grained incremental builds and self-validation.
     # See: plan/rfc-autodoc-incremental-caching.md
-    autodoc_source_metadata: dict[
-        str, tuple[str, float] | tuple[str, float, dict[str, str]]
-    ] = field(default_factory=dict)
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
 
     # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
     # Enables skipping asset discovery walk during hot reload if no assets changed.
@@ -315,14 +314,29 @@ class BuildCache(
                 }
 
             # Autodoc source metadata (new in v0.1.8, tolerate missing)
-            # Structure: {source_path: [hash, mtime]} → convert to tuple
+            # Structure: {source_path: [hash, mtime, doc_hashes]} → convert to tuple
             if "autodoc_source_metadata" not in data:
                 data["autodoc_source_metadata"] = {}
             else:
-                # Convert lists back to tuples
-                data["autodoc_source_metadata"] = {
-                    k: tuple(v) for k, v in data["autodoc_source_metadata"].items()
-                }
+                # Convert lists back to tuples and normalize missing doc_hashes
+                normalized: dict[str, tuple[str, float, dict[str, str]]] = {}
+                for key, value in data["autodoc_source_metadata"].items():
+                    if isinstance(value, (list, tuple)):
+                        if len(value) == 2:
+                            source_hash, mtime = value
+                            normalized[key] = (source_hash, mtime, {})
+                        elif len(value) == 3:
+                            source_hash, mtime, doc_hashes = value
+                            normalized[key] = (source_hash, mtime, doc_hashes or {})
+                        else:
+                            raise ValueError(
+                                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                            )
+                    else:
+                        raise ValueError(
+                            "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                        )
+                data["autodoc_source_metadata"] = normalized
 
             # Rendered output cache (tolerate missing - Optimization #3)
             if "rendered_output" not in data or not isinstance(data["rendered_output"], dict):

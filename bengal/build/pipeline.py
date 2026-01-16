@@ -68,6 +68,8 @@ def create_early_pipeline() -> DetectionPipeline:
     from bengal.build.detectors import (
         ContentChangeDetector,
         DataChangeDetector,
+        NavigationDependencyDetector,
+        SectionCascadeDetector,
         TemplateChangeDetector,
     )
 
@@ -76,6 +78,8 @@ def create_early_pipeline() -> DetectionPipeline:
             ContentChangeDetector(),
             DataChangeDetector(),
             TemplateChangeDetector(),
+            SectionCascadeDetector(),
+            NavigationDependencyDetector(),
         ]
     )
 

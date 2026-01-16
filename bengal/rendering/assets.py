@@ -217,6 +217,9 @@ def resolve_asset_url(
     This is the single source of truth for asset URL resolution.
     Handles fingerprinting, baseurl, and file:// protocol.
     
+    RFC: rfc-build-performance-optimizations Phase 2
+    Tracks asset references during render-time if AssetTracker is active.
+    
     Args:
         asset_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
@@ -235,28 +238,51 @@ def resolve_asset_url(
     from bengal.rendering.template_engine.url_helpers import with_baseurl
 
     if not asset_path:
-        return with_baseurl("/assets/", site)
+        url = with_baseurl("/assets/", site)
+    else:
+        # Normalize path
+        clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
 
-    # Normalize path
-    clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
+        baseurl_value = (site.baseurl or "").rstrip("/")
 
-    baseurl_value = (site.baseurl or "").rstrip("/")
+        # Handle file:// protocol - generate relative URLs
+        if baseurl_value.startswith("file://"):
+            url = _resolve_file_protocol(clean_path, site, page)
+        # In dev server mode, prefer stable URLs without fingerprints
+        elif getattr(site, "dev_mode", False):
+            url = with_baseurl(f"/assets/{clean_path}", site)
+        else:
+            # Look up fingerprinted path from manifest
+            fingerprinted_path = _resolve_fingerprinted(clean_path, site)
+            if fingerprinted_path:
+                url = with_baseurl(f"/{fingerprinted_path}", site)
+            else:
+                # Fallback: return direct asset path
+                url = with_baseurl(f"/assets/{clean_path}", site)
+    
+    # RFC: rfc-build-performance-optimizations Phase 2
+    # Track asset reference if tracker is active (render-time tracking)
+    tracker = _get_asset_tracker()
+    if tracker:
+        # Track the original logical path, not the resolved URL
+        # (the logical path is what we need for dependency tracking)
+        tracker.track(asset_path if asset_path else "/assets/")
+    
+    return url
 
-    # Handle file:// protocol - generate relative URLs
-    if baseurl_value.startswith("file://"):
-        return _resolve_file_protocol(clean_path, site, page)
 
-    # In dev server mode, prefer stable URLs without fingerprints
-    if getattr(site, "dev_mode", False):
-        return with_baseurl(f"/assets/{clean_path}", site)
-
-    # Look up fingerprinted path from manifest
-    fingerprinted_path = _resolve_fingerprinted(clean_path, site)
-    if fingerprinted_path:
-        return with_baseurl(f"/{fingerprinted_path}", site)
-
-    # Fallback: return direct asset path
-    return with_baseurl(f"/assets/{clean_path}", site)
+def _get_asset_tracker() -> Any | None:
+    """Get current asset tracker if available.
+    
+    Returns:
+        Current AssetTracker instance, or None
+    """
+    try:
+        from bengal.rendering.asset_tracking import get_current_tracker
+        return get_current_tracker()
+    except ImportError:
+        # Graceful degradation if module not available
+        return None
 
 
 def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:

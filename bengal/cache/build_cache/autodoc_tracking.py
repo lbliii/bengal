@@ -53,12 +53,10 @@ class AutodocTrackingMixin:
     # Mixin expects these to be defined in the main dataclass
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
-    # source_file → (content_hash, mtime) OR (content_hash, mtime, {page_path: doc_content_hash})
-    # Using tuple allows mtime-first optimization. The optional third element stores
-    # fine-grained doc hashes for selective rebuilds.
-    autodoc_source_metadata: dict[
-        str, tuple[str, float] | tuple[str, float, dict[str, str]]
-    ] = field(default_factory=dict)
+    # source_file → (content_hash, mtime, {page_path: doc_content_hash})
+    # Using tuple allows mtime-first optimization.
+    # The third element is a mapping of autodoc pages to their fine-grained content hashes.
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
 
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
@@ -123,22 +121,16 @@ class AutodocTrackingMixin:
         existing = self.autodoc_source_metadata.get(source_key)
         doc_hashes: dict[str, str] = {}
         if existing:
-            if len(existing) == 2:
-                doc_hashes = {}
-            elif len(existing) == 3:
-                doc_hashes = existing[2]
-            else:
+            if len(existing) != 3:
                 raise ValueError(
-                    "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+                    "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
                 )
+            doc_hashes = existing[2]
 
         if content_hash:
             doc_hashes[page_key] = content_hash
 
-        if doc_hashes:
-            self.autodoc_source_metadata[source_key] = (source_hash, source_mtime, doc_hashes)
-        else:
-            self.autodoc_source_metadata[source_key] = (source_hash, source_mtime)
+        self.autodoc_source_metadata[source_key] = (source_hash, source_mtime, doc_hashes)
 
         logger.debug(
             "autodoc_dependency_registered",
@@ -241,15 +233,11 @@ class AutodocTrackingMixin:
         stale_sources: set[str] = set()
 
         for source_key, metadata in self.autodoc_source_metadata.items():
-            doc_hashes: dict[str, str] = {}
-            if len(metadata) == 2:
-                stored_hash, stored_mtime = metadata
-            elif len(metadata) == 3:
-                stored_hash, stored_mtime, doc_hashes = metadata
-            else:
+            if len(metadata) != 3:
                 raise ValueError(
-                    "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+                    "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
                 )
+            stored_hash, stored_mtime, doc_hashes = metadata
             
             # Resolve path - keys are normalized relative to site PARENT
             # (since autodoc sources are typically outside site root, e.g., ../bengal/)
@@ -286,17 +274,11 @@ class AutodocTrackingMixin:
                     )
                 else:
                     # Content unchanged, update mtime in metadata
-                    if doc_hashes:
-                        self.autodoc_source_metadata[source_key] = (
-                            stored_hash,
-                            current_mtime,
-                            doc_hashes,
-                        )
-                    else:
-                        self.autodoc_source_metadata[source_key] = (
-                            stored_hash,
-                            current_mtime,
-                        )
+                    self.autodoc_source_metadata[source_key] = (
+                        stored_hash,
+                        current_mtime,
+                        doc_hashes,
+                    )
             except OSError as e:
                 # Can't read file - mark as stale to be safe
                 logger.warning(
@@ -358,11 +340,9 @@ class AutodocTrackingMixin:
         metadata = self.autodoc_source_metadata.get(source_key)
         if not metadata:
             return True  # No metadata, assume changed
-        if len(metadata) == 2:
-            return True  # No per-page hashes; assume changed
         if len(metadata) != 3:
             raise ValueError(
-                "Autodoc source metadata must be a 2- or 3-tuple (hash, mtime, [doc_hashes])."
+                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
             )
 
         # metadata is (file_hash, mtime, {page_path: doc_hash})

@@ -48,10 +48,12 @@ class ProvenanceCache:
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
     _loaded: bool = False
     _dirty: bool = False
+    _records_dir_created: bool = False
     
     def __post_init__(self) -> None:
         self.cache_dir = Path(self.cache_dir)
         self._records_dir = self.cache_dir / "records"
+        self._records_dir_created = False
     
     def _ensure_loaded(self) -> None:
         """Load indexes from disk if not already loaded."""
@@ -149,10 +151,45 @@ class ProvenanceCache:
                 self._subvenance[inp.hash] = set()
             self._subvenance[inp.hash].add(record.page_path)
         
-        # Write record to disk
-        self._records_dir.mkdir(parents=True, exist_ok=True)
+        # Write record to disk (only if it doesn't exist)
+        if not self._records_dir_created:
+            self._records_dir.mkdir(parents=True, exist_ok=True)
+            self._records_dir_created = True
+            
         record_path = self._records_dir / f"{record.provenance.combined_hash}.json"
-        record_path.write_text(json.dumps(record.to_dict(), indent=2))
+        if not record_path.exists():
+            record_path.write_text(json.dumps(record.to_dict(), indent=2))
+        
+        self._dirty = True
+
+    def store_batch(self, records: list[ProvenanceRecord]) -> None:
+        """Store multiple provenance records efficiently."""
+        if not records:
+            return
+            
+        self._ensure_loaded()
+        
+        if not self._records_dir_created:
+            self._records_dir.mkdir(parents=True, exist_ok=True)
+            self._records_dir_created = True
+            
+        for record in records:
+            # Update page → hash index
+            self._index[record.page_path] = record.provenance.combined_hash
+            
+            # Store record in memory
+            self._records[record.provenance.combined_hash] = record
+            
+            # Update subvenance index
+            for inp in record.provenance.inputs:
+                if inp.hash not in self._subvenance:
+                    self._subvenance[inp.hash] = set()
+                self._subvenance[inp.hash].add(record.page_path)
+            
+            # Write record to disk (only if it doesn't exist)
+            record_path = self._records_dir / f"{record.provenance.combined_hash}.json"
+            if not record_path.exists():
+                record_path.write_text(json.dumps(record.to_dict(), indent=2))
         
         self._dirty = True
     

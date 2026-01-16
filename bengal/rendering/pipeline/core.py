@@ -527,10 +527,23 @@ class RenderingPipeline:
             page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
 
     def _render_and_write(self, page: Page, template: str) -> None:
-        """Render template and write output."""
-        html_content = self.renderer.render_content(page.parsed_ast or "")
-        page.rendered_html = self.renderer.render_page(page, html_content)
-        page.rendered_html = format_html(page.rendered_html, page, self.site)
+        """Render template and write output.
+        
+        RFC: rfc-build-performance-optimizations Phase 2
+        Uses render-time asset tracking to avoid post-render HTML parsing.
+        """
+        # RFC: rfc-build-performance-optimizations Phase 2
+        # Track assets during rendering (render-time tracking)
+        from bengal.rendering.asset_tracking import AssetTracker
+        
+        tracker = AssetTracker()
+        with tracker:
+            html_content = self.renderer.render_content(page.parsed_ast or "")
+            page.rendered_html = self.renderer.render_page(page, html_content)
+            page.rendered_html = format_html(page.rendered_html, page, self.site)
+        
+        # Get tracked assets from render-time tracking
+        tracked_assets = tracker.get_assets()
 
         # Store rendered output in cache
         self._cache_checker.cache_rendered_output(page, template)
@@ -546,33 +559,47 @@ class RenderingPipeline:
 
         # Accumulate unified page data during rendering (JSON + search index)
         self._json_accumulator.accumulate_unified_page_data(page)
-        # Inline asset extraction (eliminates separate Track assets phase)
-        self._accumulate_asset_deps(page)
+        
+        # RFC: rfc-build-performance-optimizations Phase 2
+        # Use render-time tracked assets, fall back to HTML parsing if needed
+        self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: Page) -> None:
+    def _accumulate_asset_deps(self, page: Page, tracked_assets: set[str] | None = None) -> None:
         """
         Accumulate asset dependencies during rendering.
 
-        Similar to _accumulate_json_data - extracts asset refs from rendered
-        HTML and stores in BuildContext for later persistence.
+        RFC: rfc-build-performance-optimizations Phase 2
+        Uses render-time tracked assets (fast) with fallback to HTML parsing (slow).
+
+        Args:
+            page: Page with rendered HTML
+            tracked_assets: Assets tracked during render-time (if available)
         """
         if not self.build_context or not page.rendered_html:
             return
 
-        try:
-            from bengal.rendering.asset_extractor import extract_assets_from_html
-
-            assets = extract_assets_from_html(page.rendered_html)
-            if assets:
-                self.build_context.accumulate_page_assets(page.source_path, assets)
-        except Exception as e:
-            # Extraction failure should not break render
-            # Fallback extraction will handle this page in phase_track_assets
-            logger.debug(
-                "asset_extraction_failed",
-                page=str(page.source_path),
-                error=str(e)[:100],
-            )
+        assets: set[str] = set()
+        
+        # RFC: rfc-build-performance-optimizations Phase 2
+        # Use render-time tracked assets if available (fast path)
+        if tracked_assets:
+            assets = tracked_assets
+        else:
+            # Fallback: parse HTML (slow, but catches assets not using filters)
+            try:
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+                assets = extract_assets_from_html(page.rendered_html)
+            except Exception as e:
+                # Extraction failure should not break render
+                # Fallback extraction will handle this page in phase_track_assets
+                logger.debug(
+                    "asset_extraction_failed",
+                    page=str(page.source_path),
+                    error=str(e)[:100],
+                )
+        
+        if assets:
+            self.build_context.accumulate_page_assets(page.source_path, assets)
 
     def _build_variable_context(self, page: Page) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""

@@ -238,8 +238,9 @@ class SiteIndexGenerator:
         }
 
         # Only include build_time in production builds
-        if not self.site.dev_mode:
-            site_metadata["build_time"] = datetime.now().isoformat()
+        # Use site.build_time (set once at build start) for deterministic output
+        if not self.site.dev_mode and hasattr(self.site, "build_time") and self.site.build_time:
+            site_metadata["build_time"] = self.site.build_time.isoformat()
 
         site_data: dict[str, Any] = {
             "site": site_metadata,
@@ -280,7 +281,7 @@ class SiteIndexGenerator:
                 page_summary = self.page_to_summary(page)
                 self._add_to_site_data(site_data, page_summary)
 
-        # Convert counts to lists
+        # Convert counts to lists (sorted for deterministic output)
         site_data["sections"] = [
             {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
         ]
@@ -288,6 +289,8 @@ class SiteIndexGenerator:
             {"name": name, "count": count}
             for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
         ]
+        # Sort pages by URL for deterministic output (important for idempotent builds)
+        site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
 
         logger.debug(
             "site_index_data_aggregated",
@@ -299,8 +302,8 @@ class SiteIndexGenerator:
         # Determine output path
         index_path = self._get_index_path()
 
-        # Write only if content changed
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False)
+        # Write only if content changed (sort_keys for deterministic JSON)
+        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(
@@ -394,8 +397,9 @@ class SiteIndexGenerator:
         }
 
         # Only include build_time in production builds
-        if not self.site.dev_mode:
-            site_metadata["build_time"] = datetime.now().isoformat()
+        # Use site.build_time (set once at build start) for deterministic output
+        if not self.site.dev_mode and hasattr(self.site, "build_time") and self.site.build_time:
+            site_metadata["build_time"] = self.site.build_time.isoformat()
 
         site_data: dict[str, Any] = {
             "site": site_metadata,
@@ -428,7 +432,7 @@ class SiteIndexGenerator:
                 page_summary = self.page_to_summary(page)
                 self._add_to_site_data(site_data, page_summary)
 
-        # Convert counts to lists
+        # Convert counts to lists (sorted for deterministic output)
         site_data["sections"] = [
             {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
         ]
@@ -436,6 +440,8 @@ class SiteIndexGenerator:
             {"name": name, "count": count}
             for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
         ]
+        # Sort pages by URL for deterministic output (important for idempotent builds)
+        site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
 
         # Determine output path
         if version_id is None or self._is_latest_version(version_id):
@@ -446,8 +452,8 @@ class SiteIndexGenerator:
             index_path = self.site.output_dir / "docs" / version_id / "index.json"
             index_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Write only if content changed
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False)
+        # Write only if content changed (sort_keys for deterministic JSON)
+        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(

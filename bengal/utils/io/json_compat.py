@@ -40,15 +40,19 @@ def dumps(
     obj: Any,
     *,
     indent: int | None = None,
+    sort_keys: bool = True,
 ) -> str:
     """
     Serialize object to JSON string.
     
     Uses robust serialization to handle dataclasses and module reloads.
+    Uses sort_keys=True by default for deterministic output (important
+    for idempotent builds in free-threaded Python).
     
     Args:
         obj: Object to serialize
         indent: Indentation level (None for compact, 2 for pretty)
+        sort_keys: Sort dictionary keys for deterministic output (default: True)
     
     Returns:
         JSON string
@@ -56,7 +60,7 @@ def dumps(
     """
     from bengal.utils.serialization import to_jsonable
 
-    return json.dumps(obj, indent=indent, ensure_ascii=False, default=to_jsonable)
+    return json.dumps(obj, indent=indent, ensure_ascii=False, default=to_jsonable, sort_keys=sort_keys)
 
 
 def loads(data: str | bytes) -> Any:

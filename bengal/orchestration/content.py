@@ -506,10 +506,6 @@ class ContentOrchestrator:
                             error=str(e),
                             error_type=type(e).__name__,
                         )
-            else:
-                # 2-tuple return
-                pages, sections = result
-                run_result = None
 
             return pages, sections
 

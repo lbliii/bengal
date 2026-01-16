@@ -29,8 +29,8 @@ def _build_section_menu_item(
         Menu item dict or None if section should be hidden
         
     """
-    # Skip sections without paths
-    if not hasattr(section, "path") or not section.path:
+    # Skip sections without paths (unless virtual)
+    if not section.path and not getattr(section, "_virtual", False):
         return None
 
     # Get section metadata from index page
@@ -141,17 +141,18 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
         # Manual config exists and is non-empty, return empty (let manual config handle it)
         return []
 
-    # Check if menu was already built (site.menu["main"] exists)
-    # MenuOrchestrator builds auto menu directly, so if menu exists, don't return auto-nav
-    if site.menu.get("main"):
-        return []
+    # Note: The check for site.menu.get("main") was removed to ensure
+    # that auto-navigation is always discoverable, especially for virtual
+    # sections like those used by autodoc. MenuOrchestrator and templates
+    # can then decide how to use these items.
 
     nav_items: list[dict[str, Any]] = []
 
     # Find all top-level sections (those with no parent)
     top_level_sections = []
     for section in site.sections:
-        if not hasattr(section, "path") or not section.path:
+        # Skip sections without paths (unless virtual)
+        if not section.path and not getattr(section, "_virtual", False):
             continue
 
         # Skip _versions and _shared directories (versioning internal directories)
