@@ -121,7 +121,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Pre-built Lunr search index (requires `pip install bengal[search]`)
     try:
-        from lunr import lunr  # type: ignore[import-untyped]  # noqa: F401
+        from lunr import lunr  # type: ignore[import-not-found]  # noqa: F401
 
         capabilities["prebuilt_search"] = True
     except ImportError:

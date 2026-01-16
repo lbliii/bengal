@@ -396,7 +396,7 @@ pytest
 
 ## The Bengal Cat Family
 
-Bengal is built on a zero-dependency Python stack:
+Bengal's core components are written in pure Python:
 
 | | | |
 |--:|---|---|

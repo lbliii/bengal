@@ -104,13 +104,13 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
 
             if in_blockquote == 0:
                 # Outside blockquote: add anchors
-                def replace_heading(m: re.Match[str]) -> str:
-                    tag = m.group(1)
-                    attrs = m.group(2)
-                    content = m.group(3)
+                def replace_heading(match: re.Match[str]) -> str:
+                    tag = match.group(1)
+                    attrs = match.group(2)
+                    content = match.group(3)
 
                     if "id=" in attrs or "id =" in attrs:
-                        return m.group(0)
+                        return match.group(0)
 
                     # Check for explicit {#custom-id} syntax (MyST-compatible)
                     id_match = EXPLICIT_ID_PATTERN.search(content)
@@ -120,7 +120,7 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
                     else:
                         text = HTML_TAG_PATTERN.sub("", content).strip()
                         if not text:
-                            return m.group(0)
+                            return match.group(0)
                         slug = slugify_func(text)
 
                     return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
@@ -145,13 +145,13 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
         remaining = html[current_pos:]
         if in_blockquote == 0:
 
-            def replace_heading(m: re.Match[str]) -> str:
-                tag = m.group(1)
-                attrs = m.group(2)
-                content = m.group(3)
+            def replace_heading(match: re.Match[str]) -> str:
+                tag = match.group(1)
+                attrs = match.group(2)
+                content = match.group(3)
 
                 if "id=" in attrs or "id =" in attrs:
-                    return m.group(0)
+                    return match.group(0)
 
                 # Check for explicit {#custom-id} syntax (MyST-compatible)
                 id_match = EXPLICIT_ID_PATTERN.search(content)
@@ -161,7 +161,7 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
                 else:
                     text = HTML_TAG_PATTERN.sub("", content).strip()
                     if not text:
-                        return m.group(0)
+                        return match.group(0)
                     slug = slugify_func(text)
 
                 return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'

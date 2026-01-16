@@ -191,7 +191,7 @@ def _get_directive_instances() -> list[Any]:
 
         # Conditionally add Marimo support (only if marimo is installed)
         try:
-            import marimo  # noqa: F401
+            import marimo  # type: ignore[import-not-found]  # noqa: F401
 
             _DIRECTIVE_INSTANCES.append(MarimoCellDirective())  # Executable Python cells via Marimo
         except ImportError:
@@ -297,7 +297,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
             # Note: Marimo is already added to singleton list if available,
             # but we check here for logging purposes
             try:
-                import marimo  # noqa: F401
+                import marimo  # type: ignore[import-not-found]  # noqa: F401
 
                 # Check if Marimo directive is already in the list
                 has_marimo = any(isinstance(d, MarimoCellDirective) for d in directives_list)

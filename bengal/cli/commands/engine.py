@@ -188,7 +188,7 @@ def _check_engine_available(engine_name: str) -> str:
     """Check if an optional engine is available."""
     if engine_name == "mako":
         try:
-            import mako  # noqa: F401
+            import mako  # type: ignore[import-not-found]  # noqa: F401
 
             return "✅ Available"
         except ImportError:
