@@ -530,8 +530,31 @@ def truncate_str(s: str, max_len: int = 500, suffix: str = " ... (truncated)") -
 
 
 def truncate_error(e: Exception, max_len: int = 500) -> str:
-    """Safely truncate an exception string representation."""
-    return truncate_str(str(e), max_len, f"\n... (truncated {len(str(e)) - max_len} chars)")
+    """Safely truncate an exception string representation.
+
+    Handles empty error messages by providing a fallback description
+    based on the exception type and any available attributes.
+    """
+    error_str = str(e).strip()
+
+    # Handle empty error messages (e.g., StopIteration, some custom exceptions)
+    if not error_str:
+        # Try to construct a meaningful message from exception type and attributes
+        error_type = type(e).__name__
+        # Check for common exception attributes that might have useful info
+        if hasattr(e, "message") and e.message:
+            error_str = f"{error_type}: {e.message}"
+        elif hasattr(e, "args") and e.args:
+            # Filter out empty args
+            non_empty_args = [str(a) for a in e.args if str(a).strip()]
+            if non_empty_args:
+                error_str = f"{error_type}: {', '.join(non_empty_args)}"
+            else:
+                error_str = f"{error_type} (no details available)"
+        else:
+            error_str = f"{error_type} (no details available)"
+
+    return truncate_str(error_str, max_len, f"\n... (truncated {len(error_str) - max_len} chars)")
 
 
 # Global logger registry with lock for thread-safe access (PEP 703)

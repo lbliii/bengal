@@ -247,26 +247,23 @@ class AutodocRenderer:
             )
         except Exception as e:  # Capture template errors with context
             # Create rich error object for better debugging
-            from bengal.rendering.errors import (
-                TemplateRenderError,
-                display_template_error,
-            )
+            from bengal.rendering.errors import TemplateRenderError
 
             rich_error = TemplateRenderError.from_jinja2_error(
                 e, template_name, page.source_path, self.template_engine
             )
 
-            # Display the rich error (with deduplication to reduce noise if stats available)
-            should_display = True
+            # Collect error for deferred display (prevents interleaved output during parallel rendering)
+            # Deduplication ensures same error on multiple pages is only shown once
+            should_collect = True
             if self.build_stats is not None:
                 dedup = self.build_stats.get_error_deduplicator()
-                should_display = dedup.should_display(rich_error)
+                should_collect = dedup.should_display(rich_error)
+                if should_collect:
+                    self.build_stats.add_template_error(rich_error)
 
-            if should_display:
-                display_template_error(rich_error)
-
-            # Also log with structured data for machine parsing
-            logger.error(
+            # Log to file only (debug level to avoid console output during parallel rendering)
+            logger.debug(
                 "autodoc_template_render_failed",
                 template=template_name,
                 page=str(page.source_path),

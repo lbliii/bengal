@@ -407,12 +407,14 @@ class Renderer:
                 # Raise TemplateRenderError directly (now extends Exception)
                 raise rich_error from e
 
-            # In production mode, collect error and continue
+            # In production mode, collect error for deferred display
+            # (prevents interleaved output during parallel rendering)
             if self.build_stats:
-                self.build_stats.add_template_error(rich_error)
-            else:
-                # No build stats available, display immediately
-                display_template_error(rich_error)
+                # Use deduplicator to avoid collecting duplicate errors
+                dedup = self.build_stats.get_error_deduplicator()
+                if dedup.should_display(rich_error):
+                    self.build_stats.add_template_error(rich_error)
+            # Note: If no build_stats, error is silently dropped (fallback HTML is still generated)
 
             if debug_mode:
                 # Show exception using the configured renderer

@@ -76,17 +76,11 @@ class SectionNavigationMixin:
     _site: Site | None
     _diagnostics: DiagnosticsSink | None
 
-    # From other mixins - accessed via self but defined in other mixins
-    # These are declared as properties to match the @cached_property definitions
-    @property
-    def sorted_pages(self) -> list[Page]:
-        """Sorted pages - provided by SectionQueryMixin."""
-        raise NotImplementedError
-
-    @property
-    def sorted_subsections(self) -> list[Section]:
-        """Sorted subsections - provided by SectionHierarchyMixin."""
-        raise NotImplementedError
+    # From other mixins - accessed via self but defined in other mixins.
+    # Type declarations for static analysis (actual implementations in other mixins).
+    if TYPE_CHECKING:
+        sorted_pages: list[Page]  # from SectionQueryMixin
+        sorted_subsections: list[Section]  # from SectionHierarchyMixin
 
     # =========================================================================
     # URL PROPERTIES

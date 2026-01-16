@@ -18,6 +18,14 @@ from typing import Any
 from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
+# Also import Kida exceptions for proper classification
+# Bengal now uses Kida as its template engine, so we need to handle both
+from kida.environment.exceptions import (
+    TemplateRuntimeError as KidaRuntimeError,
+    TemplateSyntaxError as KidaSyntaxError,
+    UndefinedError as KidaUndefinedError,
+)
+
 from bengal.errors import BengalRenderingError
 from bengal.utils.observability.logger import truncate_error
 
@@ -142,7 +150,7 @@ class TemplateRenderError(BengalRenderingError):
 
     @staticmethod
     def _classify_error(error: Exception) -> str:
-        """Classify Jinja2 error type."""
+        """Classify template error type (supports both Jinja2 and Kida exceptions)."""
         error_str = str(error).lower()
 
         # Check for "NoneType is not callable" errors first
@@ -171,16 +179,17 @@ class TemplateRenderError(BengalRenderingError):
         ):
             return "filter"
 
-        if isinstance(error, TemplateSyntaxError):
+        # Check both Jinja2 and Kida exception types
+        if isinstance(error, (TemplateSyntaxError, KidaSyntaxError)):
             return "syntax"
         elif isinstance(error, TemplateAssertionError):
             # Filter errors during compilation
             if "filter" in error_str or "unknown filter" in error_str:
                 return "filter"
             return "syntax"
-        elif isinstance(error, UndefinedError):
+        elif isinstance(error, (UndefinedError, KidaUndefinedError)):
             return "undefined"
-        elif isinstance(error, TemplateRuntimeError):
+        elif isinstance(error, (TemplateRuntimeError, KidaRuntimeError)):
             return "runtime"
         # Fallback: In Jinja2 <3.0, or in some sandboxed/embedded environments,
         # TemplateAssertionError may not be raised for unknown filters; instead,

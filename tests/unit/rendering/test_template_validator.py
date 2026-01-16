@@ -1,32 +1,41 @@
 """
 Unit tests for template validation system.
+
+Tests the TemplateValidator class which delegates to template engine's validate() method.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from jinja2 import Environment
 
 from bengal.health.validators.templates import TemplateValidator, validate_templates
+
+
+@dataclass
+class MockTemplateError:
+    """Mock template error returned by engine.validate()."""
+
+    template: str
+    message: str
+    line: int | None = None
+    error_type: str | None = "syntax"
 
 
 class MockTemplateEngine:
     """Mock template engine for testing."""
 
-    def __init__(self, template_dirs=None):
-        from jinja2 import FileSystemLoader
-
+    def __init__(self, template_dirs: list[Path] | None = None, errors: list[MockTemplateError] | None = None):
         self.template_dirs = template_dirs or []
+        self._errors = errors or []
 
-        # Create environment with FileSystemLoader so templates can be found
-        loader = FileSystemLoader([str(d) for d in self.template_dirs])
-        self.env = Environment(loader=loader)
-        self.env.filters["markdown"] = lambda x: x
-        self.env.filters["dateformat"] = lambda x, y: x
+    def validate(self) -> list[MockTemplateError]:
+        """Return configured errors for testing."""
+        return self._errors
 
-    def _find_template_path(self, template_name):
+    def get_template_path(self, template_name: str) -> Path | None:
         """Find template path."""
         for template_dir in self.template_dirs:
             template_path = template_dir / template_name
@@ -44,175 +53,99 @@ class TestTemplateValidator:
         validator = TemplateValidator(mock_engine)
 
         assert validator.template_engine == mock_engine
-        assert validator.env == mock_engine.env
 
-    def test_validate_all_empty_dirs(self):
-        """Test validation with no template directories."""
-        mock_engine = MockTemplateEngine(template_dirs=[])
+    def test_validate_all_no_errors(self):
+        """Test validation with no errors."""
+        mock_engine = MockTemplateEngine(errors=[])
         validator = TemplateValidator(mock_engine)
 
         errors = validator.validate_all()
         assert errors == []
 
-    def test_validate_all_nonexistent_dir(self):
-        """Test validation with non-existent directory."""
-        mock_engine = MockTemplateEngine(template_dirs=[Path("/nonexistent/path")])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator.validate_all()
-        assert errors == []
-
-    def test_validate_syntax_valid_template(self, tmp_path):
-        """Test syntax validation of valid template."""
-        # Create a valid template
-        template_file = tmp_path / "valid.html"
-        template_file.write_text("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ page.title }}</title>
-</head>
-<body>
-    {% if page.content %}
-        {{ page.content }}
-    {% endif %}
-</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_syntax("valid.html", template_file)
-        assert len(errors) == 0
-
-    def test_validate_syntax_invalid_template(self, tmp_path):
-        """Test syntax validation of invalid template."""
-        # Create an invalid template (missing endif)
+    def test_validate_all_with_syntax_error(self, tmp_path):
+        """Test validation with syntax error."""
         template_file = tmp_path / "invalid.html"
-        template_file.write_text("""
-<!DOCTYPE html>
-<html>
-<body>
-    {% if page.content %}
-        {{ page.content }}
-    {# Missing endif #}
-</body>
-</html>
-""")
+        template_file.write_text("{% if x %}missing endif")
 
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="invalid.html",
+                    message="Unexpected end of template. Missing endif.",
+                    line=1,
+                    error_type="syntax",
+                )
+            ],
+        )
         validator = TemplateValidator(mock_engine)
 
-        errors = validator._validate_syntax("invalid.html", template_file)
+        errors = validator.validate_all()
         assert len(errors) == 1
         assert errors[0].error_type == "syntax"
+        assert "endif" in errors[0].message
 
-    def test_validate_includes_all_exist(self, tmp_path):
-        """Test include validation when all includes exist."""
-        # Create base template
-        base_template = tmp_path / "base.html"
-        base_template.write_text("<html><body>{% block content %}{% endblock %}</body></html>")
-
-        # Create partial template
-        partial_template = tmp_path / "partial.html"
-        partial_template.write_text("<div>Partial content</div>")
-
-        # Create template with include
+    def test_validate_all_with_missing_include(self, tmp_path):
+        """Test validation with missing include."""
         template_file = tmp_path / "page.html"
-        template_file.write_text("""
-{% extends "base.html" %}
-{% block content %}
-    {% include "partial.html" %}
-{% endblock %}
-""")
+        template_file.write_text('{% include "nonexistent.html" %}')
 
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_includes("page.html", template_file)
-        assert len(errors) == 0
-
-    def test_validate_includes_missing(self, tmp_path):
-        """Test include validation when include is missing."""
-        # Create template with missing include
-        template_file = tmp_path / "page.html"
-        template_file.write_text("""
-<html>
-<body>
-    {% include "nonexistent.html" %}
-</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_includes("page.html", template_file)
-        assert len(errors) == 1
-        assert "nonexistent.html" in errors[0].message
-        assert errors[0].suggestion is not None
-
-    def test_validate_all_integration(self, tmp_path):
-        """Test full validation of template directory."""
-        # Create templates
-        valid_template = tmp_path / "valid.html"
-        valid_template.write_text("""
-<!DOCTYPE html>
-<html>
-<body>{% if page.title %}{{ page.title }}{% endif %}</body>
-</html>
-""")
-
-        invalid_template = tmp_path / "invalid.html"
-        invalid_template.write_text("""
-<!DOCTYPE html>
-<html>
-<body>{% if page.title %}{{ page.title }}</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="page.html",
+                    message="Template 'nonexistent.html' not found",
+                    line=1,
+                    error_type="include",
+                )
+            ],
+        )
         validator = TemplateValidator(mock_engine)
 
         errors = validator.validate_all()
+        assert len(errors) == 1
+        assert "nonexistent.html" in errors[0].message
 
-        # Should find error in invalid.html
-        assert len(errors) >= 1
-        error_files = [e.template_context.template_name for e in errors]
-        # Template name may be full path or just filename
-        assert any(name.endswith("invalid.html") for name in error_files)
-
-    def test_validate_multiple_includes(self, tmp_path):
-        """Test validation of template with multiple includes."""
-        # Create partials
-        (tmp_path / "header.html").write_text("<header>Header</header>")
-        (tmp_path / "footer.html").write_text("<footer>Footer</footer>")
-
-        # Create template with multiple includes
-        template_file = tmp_path / "page.html"
-        template_file.write_text("""
-<html>
-<body>
-    {% include "header.html" %}
-    <main>Content</main>
-    {% include "footer.html" %}
-    {% include "missing.html" %}
-</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+    def test_validate_all_multiple_errors(self, tmp_path):
+        """Test validation with multiple errors."""
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(template="a.html", message="Error in a", line=1),
+                MockTemplateError(template="b.html", message="Error in b", line=2),
+                MockTemplateError(template="c.html", message="Error in c", line=3),
+            ],
+        )
         validator = TemplateValidator(mock_engine)
 
-        errors = validator._validate_includes("page.html", template_file)
+        errors = validator.validate_all()
+        assert len(errors) == 3
 
-        # May find errors for all missing includes
-        # (validation may have changed to check file existence)
-        assert len(errors) >= 1
-        # Check that missing.html is among the errors
-        error_messages = [e.message for e in errors]
-        assert any("missing.html" in msg for msg in error_messages)
+    def test_validate_all_returns_template_render_errors(self, tmp_path):
+        """Test that validate_all returns TemplateRenderError objects."""
+        from bengal.rendering.errors import TemplateRenderError
+
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="test.html",
+                    message="Test error",
+                    line=5,
+                    error_type="syntax",
+                )
+            ],
+        )
+        validator = TemplateValidator(mock_engine)
+
+        errors = validator.validate_all()
+        assert len(errors) == 1
+        assert isinstance(errors[0], TemplateRenderError)
+        assert errors[0].error_type == "syntax"
+        assert errors[0].message == "Test error"
+        assert errors[0].template_context.template_name == "test.html"
+        assert errors[0].template_context.line_number == 5
 
 
 class TestValidateTemplatesFunction:
@@ -220,16 +153,7 @@ class TestValidateTemplatesFunction:
 
     def test_validate_templates_no_errors(self, tmp_path, capsys):
         """Test validate_templates with valid templates."""
-        # Create valid template
-        template_file = tmp_path / "valid.html"
-        template_file.write_text("""
-<!DOCTYPE html>
-<html>
-<body>{% if page.title %}{{ page.title }}{% endif %}</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+        mock_engine = MockTemplateEngine(template_dirs=[tmp_path], errors=[])
 
         error_count = validate_templates(mock_engine)
 
@@ -241,20 +165,21 @@ class TestValidateTemplatesFunction:
 
     def test_validate_templates_with_errors(self, tmp_path, capsys):
         """Test validate_templates with invalid templates."""
-        # Create invalid template
-        template_file = tmp_path / "invalid.html"
-        template_file.write_text("""
-<!DOCTYPE html>
-<html>
-<body>{% if page.title %}{{ page.title }}</body>
-</html>
-""")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="invalid.html",
+                    message="Syntax error",
+                    line=1,
+                    error_type="syntax",
+                )
+            ],
+        )
 
         error_count = validate_templates(mock_engine)
 
-        assert error_count >= 1
+        assert error_count == 1
 
         captured = capsys.readouterr()
         assert "Validating templates" in captured.out
@@ -265,53 +190,52 @@ class TestValidateTemplatesFunction:
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_empty_template_file(self, tmp_path):
-        """Test validation of empty template file."""
-        template_file = tmp_path / "empty.html"
-        template_file.write_text("")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_syntax("empty.html", template_file)
-        assert len(errors) == 0
-
-    def test_template_with_no_includes(self, tmp_path):
-        """Test validation of template with no includes."""
-        template_file = tmp_path / "no_includes.html"
-        template_file.write_text("<html><body>Static content</body></html>")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_includes("no_includes.html", template_file)
-        assert len(errors) == 0
-
-    def test_template_with_comments_only(self, tmp_path):
-        """Test validation of template with only comments."""
-        template_file = tmp_path / "comments.html"
-        template_file.write_text("{# This is a comment #}\n{# Another comment #}")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
-        validator = TemplateValidator(mock_engine)
-
-        errors = validator._validate_syntax("comments.html", template_file)
-        assert len(errors) == 0
-
-    def test_nested_template_directory(self, tmp_path):
-        """Test validation with nested template directories."""
-        # Create nested structure
-        partials_dir = tmp_path / "partials"
-        partials_dir.mkdir()
-
-        template_file = partials_dir / "nested.html"
-        template_file.write_text("<div>Nested template</div>")
-
-        mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
+    def test_empty_error_list(self):
+        """Test validation with empty error list."""
+        mock_engine = MockTemplateEngine(errors=[])
         validator = TemplateValidator(mock_engine)
 
         errors = validator.validate_all()
-        assert isinstance(errors, list)
+        assert errors == []
+
+    def test_error_without_line_number(self, tmp_path):
+        """Test handling errors without line numbers."""
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="test.html",
+                    message="General error",
+                    line=None,  # No line number
+                    error_type="syntax",
+                )
+            ],
+        )
+        validator = TemplateValidator(mock_engine)
+
+        errors = validator.validate_all()
+        assert len(errors) == 1
+        assert errors[0].template_context.line_number is None
+
+    def test_error_without_error_type(self, tmp_path):
+        """Test handling errors without explicit error type."""
+        mock_engine = MockTemplateEngine(
+            template_dirs=[tmp_path],
+            errors=[
+                MockTemplateError(
+                    template="test.html",
+                    message="Unknown error",
+                    line=1,
+                    error_type=None,  # No error type
+                )
+            ],
+        )
+        validator = TemplateValidator(mock_engine)
+
+        errors = validator.validate_all()
+        assert len(errors) == 1
+        # Should default to "syntax"
+        assert errors[0].error_type == "syntax"
 
 
 if __name__ == "__main__":
