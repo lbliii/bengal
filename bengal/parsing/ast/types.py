@@ -193,7 +193,7 @@ def is_raw_html(node: ASTNode) -> bool:
 def get_heading_level(node: ASTNode) -> int | None:
     """Get heading level if node is a heading."""
     if is_heading(node):
-        return node.get("level")  # type: ignore[return-value]
+        return node.get("level")
     return None
 
 

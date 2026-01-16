@@ -137,7 +137,7 @@ def file_size(path: str, root_path: Path) -> str:
             "path_not_file",
             path=path,
             file_path=str(file_path),
-            message="Path exists but is not a file",
+            detail="Path exists but is not a file",
             caller="template",
         )
         return "0 B"

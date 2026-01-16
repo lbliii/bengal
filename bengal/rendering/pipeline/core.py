@@ -659,7 +659,7 @@ class RenderingPipeline:
                     base_version = "mistune-unknown"
             case "PythonMarkdownParser":
                 try:
-                    import markdown  # type: ignore[import-untyped]
+                    import markdown
 
                     base_version = f"markdown-{markdown.__version__}"
                 except (ImportError, AttributeError):

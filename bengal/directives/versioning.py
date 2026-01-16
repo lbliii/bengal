@@ -227,7 +227,7 @@ class DeprecatedDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: DeprecatedOptions,  # type: ignore[override]
+        options: DeprecatedOptions,
         content: str,
         children: list[Any],
         state: Any,
@@ -342,7 +342,7 @@ class ChangedDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ChangedOptions,  # type: ignore[override]
+        options: ChangedOptions,
         content: str,
         children: list[Any],
         state: Any,

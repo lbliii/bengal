@@ -25,6 +25,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.site import Site
     from bengal.health.report import CheckResult
     from bengal.orchestration.build_context import BuildContext
@@ -117,7 +118,7 @@ class BaseValidator(ABC):
         """
         pass
 
-    def is_enabled(self, config: dict[str, Any]) -> bool:
+    def is_enabled(self, config: Config | dict[str, Any]) -> bool:
         """
         Check if this validator is enabled in config.
 

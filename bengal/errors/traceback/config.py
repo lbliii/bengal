@@ -69,6 +69,7 @@ import contextlib
 import os
 from dataclasses import dataclass
 from enum import Enum
+from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
@@ -188,7 +189,7 @@ class TracebackConfig:
                 return
 
             # Build suppress modules from names
-            suppress_modules: list[object] = []
+            suppress_modules: list[str | ModuleType] = []
             for name in self.suppress:
                 try:
                     mod = __import__(name)

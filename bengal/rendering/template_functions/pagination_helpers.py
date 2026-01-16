@@ -134,7 +134,7 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
     # If we can show all pages, do it
     if total_pages <= (window * 2 + 5):
         # Return list[int] which is compatible with list[int | None]
-        return list(range(1, total_pages + 1))  # type: ignore[return-value]
+        return list(range(1, total_pages + 1))
 
     pages = []
 

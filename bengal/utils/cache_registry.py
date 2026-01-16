@@ -54,7 +54,6 @@ Related Modules:
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
 from collections.abc import Callable
@@ -62,7 +61,9 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from graphlib import TopologicalSorter
 
-logger = logging.getLogger(__name__)
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class InvalidationReason(Enum):

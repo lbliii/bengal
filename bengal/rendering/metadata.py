@@ -51,11 +51,11 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
     version: str | None = None
     try:
         if engine == "mistune":
-            import mistune  # type: ignore
+            import mistune
 
             version = getattr(mistune, "__version__", None)
         elif engine in ("python-markdown", "markdown", "python_markdown"):
-            import markdown  # type: ignore
+            import markdown
 
             version = getattr(markdown, "__version__", None)
     except Exception as e:
@@ -129,7 +129,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
     try:
-        import aiohttp  # type: ignore[import-untyped]  # noqa: F401
+        import aiohttp  # noqa: F401
 
         capabilities["remote_content"] = True
     except ImportError:

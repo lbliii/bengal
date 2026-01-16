@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Exposed for test patching; will be bound on first validate() call
-KnowledgeGraph = None  # type: ignore
+KnowledgeGraph = None
 
 
 class ConnectivityValidator(BaseValidator):
@@ -78,10 +78,10 @@ class ConnectivityValidator(BaseValidator):
 
         # Import here to avoid circular dependency, but keep a module-level alias
         # so tests can monkeypatch bengal.health.validators.connectivity.KnowledgeGraph
-        global KnowledgeGraph  # type: ignore
+        global KnowledgeGraph
         try:
             # Respect pre-patched symbol from tests; only import if not set
-            if KnowledgeGraph is None:  # type: ignore
+            if KnowledgeGraph is None:
                 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KG  # local alias
 
                 KnowledgeGraph = _KG  # expose for test patching
@@ -117,7 +117,7 @@ class ConnectivityValidator(BaseValidator):
             if graph is None:
                 logger.debug("connectivity_validator_start", total_pages=len(site.pages))
                 try:
-                    graph = KnowledgeGraph(site)  # type: ignore[operator]
+                    graph = KnowledgeGraph(site)
                 except ImportError as e:  # Align behavior with import-path failure for tests
                     msg = "Knowledge graph analysis unavailable"
                     results.append(
@@ -138,8 +138,8 @@ class ConnectivityValidator(BaseValidator):
                     for item in h or []:
                         if isinstance(item, tuple) and len(item) >= 1:
                             normalized.append(item[0])
-                        else:
-                            normalized.append(item)
+                        elif hasattr(item, "path"):  # Duck-type check for Page
+                            normalized.append(item)  # type: ignore[arg-type]
                 except Exception as e:
                     logger.debug(
                         "health_connectivity_hub_normalize_failed",
@@ -154,10 +154,12 @@ class ConnectivityValidator(BaseValidator):
                 try:
                     m = graph.get_metrics()
                     if isinstance(m, dict):
+                        # Cast to dict[str, Any] for proper type narrowing
+                        metrics_dict: dict[str, Any] = m
                         return {
-                            "total_pages": m.get("nodes", 0),
-                            "total_links": m.get("edges", 0),
-                            "avg_connectivity": float(m.get("average_degree", 0.0) or 0.0),
+                            "total_pages": metrics_dict.get("nodes", 0),
+                            "total_links": metrics_dict.get("edges", 0),
+                            "avg_connectivity": float(metrics_dict.get("average_degree", 0.0) or 0.0),
                             "hub_count": 0,
                             "orphan_count": 0,
                         }

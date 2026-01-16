@@ -114,15 +114,6 @@ select = [
 "__init__.py" = ["F401"]   # Allow unused imports in __init__ files
 "tests/**/*.py" = ["S101"] # Allow assert in tests
 
-[tool.mypy]
-python_version = "3.14"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-strict_optional = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-
 [tool.ty.environment]
 python-version = "3.14"
 
@@ -142,7 +133,6 @@ dev = [
     "pytest-textual-snapshot>=0.4.0", # Textual dashboard snapshot testing
     "hypothesis>=6.92.0",
     # Linting & Type Checking
-    "mypy>=1.11.0",
     "ty>=0.0.11",   # Astral type checker (Rust-based, 10-100x faster than mypy)
     "ruff>=0.14.0", # 0.14+ required for Python 3.14 support
     # Test Utilities

@@ -62,7 +62,7 @@ class DevServerOutputMixin:
 
     def should_show(self, level: MessageLevel) -> bool:
         """Check if message should be shown based on level and settings."""
-        ...
+        raise NotImplementedError("should_show must be provided by CLIOutput")
 
     def separator(self, width: int = 78, style: str = "dim") -> None:
         """

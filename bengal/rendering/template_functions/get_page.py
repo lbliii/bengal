@@ -126,7 +126,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         # Enable cross-references if available
         if hasattr(site, "xref_index") and hasattr(
             site._template_parser,
-            "enable_cross_references",  # type: ignore[attr-defined]
+            "enable_cross_references",
         ):
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
@@ -140,7 +140,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
 
                 external_ref_resolver = ExternalRefResolver(site.config)
 
-            site._template_parser.enable_cross_references(  # type: ignore[attr-defined]
+            site._template_parser.enable_cross_references(
                 site.xref_index, version_config, None, external_ref_resolver
             )
 

@@ -399,12 +399,11 @@ class CrossReferenceValidator(BaseValidator):
                         status=CheckStatus.WARNING,
                         validator=self.name,
                         message=f"References deprecated version '{version}'",
-                        file_path=file_path,
-                        line=line,
-                        suggestion=f"Update to current version '{self.current_version}'"
+                        recommendation=f"Update to current version '{self.current_version}'"
                         if self.current_version
                         else "Update to current version",
-                        metadata={"found_version": version},
+                        details=[f"{file_path}:{line}"],
+                        metadata={"found_version": version, "file_path": file_path, "line": line},
                     )
                 )
 

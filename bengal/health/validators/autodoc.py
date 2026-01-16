@@ -140,10 +140,10 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.ERROR,
                         message=f"Autodoc {prefix}: {len(orphans)} directories have TXT but no HTML",
-                        details={
+                        details=orphan_list,
+                        metadata={
                             "prefix": prefix,
                             "orphan_count": len(orphans),
-                            "sample": orphan_list,
                         },
                     )
                 )
@@ -169,10 +169,10 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.ERROR,
                         message=f"Autodoc {prefix}: {len(missing)} directories missing index.html",
-                        details={
+                        details=missing[:10],
+                        metadata={
                             "prefix": prefix,
                             "missing_count": len(missing),
-                            "sample": missing[:10],
                         },
                     )
                 )
@@ -221,11 +221,11 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.WARNING,
                         message=f"Autodoc {prefix}: {len(type_mismatches)} pages have wrong type (expected {expected_type})",
-                        details={
+                        details=type_mismatches[:5],
+                        metadata={
                             "prefix": prefix,
                             "expected_type": expected_type,
                             "mismatch_count": len(type_mismatches),
-                            "sample": type_mismatches[:5],
                         },
                     )
                 )

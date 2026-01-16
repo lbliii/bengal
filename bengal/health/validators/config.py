@@ -13,8 +13,12 @@ from bengal.health.report import CheckResult
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+
+# Type for config that supports dict-like access
+ConfigLike = "Config | dict[str, Any]"
 
 
 class ConfigValidatorWrapper(BaseValidator):
@@ -49,7 +53,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_essential_fields(self, config: dict[str, Any]) -> list[CheckResult]:
+    def _check_essential_fields(self, config: Config | dict[str, Any]) -> list[CheckResult]:
         """Check that essential config fields are present."""
         results = []
 
@@ -70,7 +74,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_common_issues(self, config: dict[str, Any]) -> list[CheckResult]:
+    def _check_common_issues(self, config: Config | dict[str, Any]) -> list[CheckResult]:
         """Check for common configuration issues."""
         results = []
 
@@ -80,28 +84,29 @@ class ConfigValidatorWrapper(BaseValidator):
         # Check if max_workers is very high
         # Use a typical workload estimate to see what workers would be used
         # Access from build section (supports both Config and dict)
-        if hasattr(config, "build"):
-            max_workers_override = config.build.max_workers
-            incremental = config.build.incremental
-            parallel = config.build.parallel
+        build_section = getattr(config, "build", None)
+        if build_section is not None and hasattr(build_section, "max_workers"):
+            max_workers_override = getattr(build_section, "max_workers", None)
+            incremental = getattr(build_section, "incremental", None)
+            parallel = getattr(build_section, "parallel", True)
         else:
-            build_section = config.get("build", {})
-            if isinstance(build_section, dict):
-                max_workers_override = build_section.get("max_workers")
-                incremental = build_section.get("incremental")
-                parallel = build_section.get("parallel", True)
+            build_dict = config.get("build", {}) if hasattr(config, "get") else {}
+            if isinstance(build_dict, dict):
+                max_workers_override = build_dict.get("max_workers")
+                incremental = build_dict.get("incremental")
+                parallel = build_dict.get("parallel", True)
                 # Fall back to top-level if not present in build.*
                 if max_workers_override is None:
-                    max_workers_override = config.get("max_workers")
+                    max_workers_override = config.get("max_workers") if hasattr(config, "get") else None
                 if incremental is None:
-                    incremental = config.get("incremental")
-                if "parallel" not in build_section:
+                    incremental = config.get("incremental") if hasattr(config, "get") else None
+                if "parallel" not in build_dict and hasattr(config, "get"):
                     parallel = config.get("parallel", parallel)
             else:
                 # Fallback to flat access for backward compatibility
-                max_workers_override = config.get("max_workers")
-                incremental = config.get("incremental")
-                parallel = config.get("parallel", True)
+                max_workers_override = config.get("max_workers") if hasattr(config, "get") else None
+                incremental = config.get("incremental") if hasattr(config, "get") else None
+                parallel = config.get("parallel", True) if hasattr(config, "get") else True
 
         max_workers = get_optimal_workers(
             100,

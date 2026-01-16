@@ -161,7 +161,7 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
         logger.warning(
             "pillow_not_available",
             path=path,
-            message="Pillow library not installed, cannot get image dimensions",
+            detail="Pillow library not installed, cannot get image dimensions",
             suggestion="Install with: pip install Pillow",
             caller="template",
         )

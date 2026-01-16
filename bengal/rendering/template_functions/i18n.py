@@ -331,7 +331,7 @@ def _locale_date(
         return ""
     # Try Babel for formatting
     try:
-        from babel.dates import format_date
+        from babel.dates import format_date  # type: ignore[import-not-found]
 
         pattern = _DEF_FORMATS.get(format, format)
         return format_date(date, format=pattern, locale=lang or "en")
