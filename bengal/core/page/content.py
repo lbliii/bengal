@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
-    pass
+    from bengal.parsing.ast.types import ASTNode
 
 
 class PageContentMixin:
@@ -62,7 +62,7 @@ class PageContentMixin:
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)
-    _ast_cache: list[dict[str, Any]] | None
+    _ast_cache: list[ASTNode] | None
     _html_cache: str | None
     _plain_text_cache: str | None
 
@@ -91,7 +91,7 @@ class PageContentMixin:
         return self.html
 
     @property
-    def ast(self) -> list[dict[str, Any]] | None:
+    def ast(self) -> list[ASTNode] | None:
         """
         True AST - list of tokens from markdown parser.
 

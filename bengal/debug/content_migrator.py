@@ -387,14 +387,15 @@ class ContentMigrator(DebugTool):
         dest_url = self._path_to_url(destination)
 
         for page in self.site.pages:
-            content = getattr(page, "content", "") or ""
+            # Use _source (raw markdown) not content (rendered HTML) for link detection
+            source = getattr(page, "_source", "") or ""
             page_path = str(getattr(page, "source_path", ""))
 
             # Find links to source
-            for match in re.finditer(r"\[([^\]]*)\]\(([^)]+)\)", content):
+            for match in re.finditer(r"\[([^\]]*)\]\(([^)]+)\)", source):
                 link_target = match.group(2)
                 if self._links_match(link_target, source_url):
-                    line = content[: match.start()].count("\n") + 1
+                    line = source[: match.start()].count("\n") + 1
                     preview.affected_links.append(
                         LinkUpdate(
                             file_path=page_path,
@@ -705,8 +706,9 @@ class ContentMigrator(DebugTool):
         # Find orphan pages
         incoming_links: dict[str, int] = {}
         for page in self.site.pages:
-            content = getattr(page, "content", "") or ""
-            for match in re.finditer(r"\[([^\]]*)\]\(([^)]+)\)", content):
+            # Use _source (raw markdown) not content (rendered HTML) for link detection
+            source = getattr(page, "_source", "") or ""
+            for match in re.finditer(r"\[([^\]]*)\]\(([^)]+)\)", source):
                 target = match.group(2)
                 if not target.startswith(("http://", "https://", "#")):
                     incoming_links[target] = incoming_links.get(target, 0) + 1
@@ -732,8 +734,9 @@ class ContentMigrator(DebugTool):
         # Find very large pages
         large_pages = []
         for page in self.site.pages:
-            content = getattr(page, "content", "") or ""
-            line_count = content.count("\n")
+            # Use _source (raw markdown) not content (rendered HTML) for line counting
+            source = getattr(page, "_source", "") or ""
+            line_count = source.count("\n")
             if line_count > 500:
                 large_pages.append((str(getattr(page, "source_path", "")), line_count))
 

@@ -118,8 +118,8 @@ class ImageResource:
                 return img.size
         except ImportError:
             logger.warning(
-                "pillow_not_available",
-                message="Pillow required for image dimensions. Install: pip install bengal[images]",
+                "Pillow required for image dimensions. Install: pip install bengal[images]",
+                event="pillow_not_available",
             )
             return None
         except Exception as e:
@@ -252,9 +252,9 @@ class ImageResource:
 
             if self.site is None:
                 logger.warning(
-                    "image_process_no_site",
+                    "Cannot process image without site context",
+                    event="image_process_no_site",
                     path=str(self.source_path),
-                    message="Cannot process image without site context",
                 )
                 return None
 
@@ -263,10 +263,10 @@ class ImageResource:
 
         except ImportError as e:
             logger.warning(
-                "image_processing_unavailable",
+                "Install Pillow: pip install bengal[images]",
+                event="image_processing_unavailable",
                 path=str(self.source_path),
                 error=str(e),
-                message="Install Pillow: pip install bengal[images]",
             )
             return None
         except Exception as e:

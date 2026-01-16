@@ -785,3 +785,369 @@ class TestRecursionDepthLimit:
         result = validator.validate(data)
 
         assert result.valid is True
+
+
+# Union type tests
+
+
+@dataclass
+class UnionSchema:
+    """Schema with union types."""
+
+    value: str | int
+    optional_union: str | int | None = None
+
+
+class TestUnionTypeCoercion:
+    """Tests for union type handling.
+    
+    Note: Union coercion tries types in order. For `str | int`, `str` is tried
+    first. Since most values can be coerced to str, the first type often wins.
+    """
+
+    def test_union_accepts_first_type(self) -> None:
+        """Test union accepts the first type (str)."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": "hello"})
+
+        assert result.valid is True
+        assert result.data.value == "hello"
+
+    def test_union_coerces_to_first_matching_type(self) -> None:
+        """Test union coerces to the first type that works.
+        
+        For `str | int`, even an int value gets coerced to str since
+        str(42) succeeds. This matches how unions try types in order.
+        """
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": 42})
+
+        assert result.valid is True
+        # Int gets coerced to str since str is first in union
+        assert result.data.value == "42"
+        assert isinstance(result.data.value, str)
+
+    def test_union_string_stays_string(self) -> None:
+        """Test string value stays as string for str | int."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": "42"})
+
+        assert result.valid is True
+        # Should stay as string
+        assert result.data.value == "42"
+        assert isinstance(result.data.value, str)
+
+    def test_union_rejects_invalid_type(self) -> None:
+        """Test union rejects types that don't match any option."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": ["not", "valid"]})
+
+        assert result.valid is False
+        assert any("value" in e.field for e in result.errors)
+
+    def test_optional_union_with_none(self) -> None:
+        """Test optional union accepts None."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": "test", "optional_union": None})
+
+        assert result.valid is True
+        assert result.data.optional_union is None
+
+    def test_optional_union_with_string(self) -> None:
+        """Test optional union accepts string values."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": "test", "optional_union": "hello"})
+
+        assert result.valid is True
+        assert result.data.optional_union == "hello"
+
+    def test_optional_union_int_coerced_to_str(self) -> None:
+        """Test optional union coerces int to str (first type wins)."""
+        validator = SchemaValidator(UnionSchema)
+        result = validator.validate({"value": "test", "optional_union": 123})
+
+        assert result.valid is True
+        # Int gets coerced to str since str is first in the union
+        assert result.data.optional_union == "123"
+        assert isinstance(result.data.optional_union, str)
+
+
+# Test union with int first to show order matters
+@dataclass
+class IntFirstUnionSchema:
+    """Schema with int | str (int first)."""
+
+    value: int | str
+
+
+class TestUnionOrderMatters:
+    """Tests showing that union type order affects coercion."""
+
+    def test_int_first_union_keeps_int(self) -> None:
+        """Test int | str keeps int values as int."""
+        validator = SchemaValidator(IntFirstUnionSchema)
+        result = validator.validate({"value": 42})
+
+        assert result.valid is True
+        assert result.data.value == 42
+        assert isinstance(result.data.value, int)
+
+    def test_int_first_union_coerces_numeric_string(self) -> None:
+        """Test int | str coerces numeric strings to int."""
+        validator = SchemaValidator(IntFirstUnionSchema)
+        result = validator.validate({"value": "42"})
+
+        assert result.valid is True
+        # String "42" gets coerced to int since int is first
+        assert result.data.value == 42
+        assert isinstance(result.data.value, int)
+
+    def test_int_first_union_falls_back_to_str(self) -> None:
+        """Test int | str falls back to str for non-numeric strings."""
+        validator = SchemaValidator(IntFirstUnionSchema)
+        result = validator.validate({"value": "hello"})
+
+        assert result.valid is True
+        # "hello" can't be int, so falls back to str
+        assert result.data.value == "hello"
+        assert isinstance(result.data.value, str)
+
+
+# Error message quality tests
+
+
+class TestErrorMessageQuality:
+    """Tests to ensure error messages are helpful and informative."""
+
+    def test_missing_field_mentions_field_name(self) -> None:
+        """Test that missing field errors include the field name."""
+        validator = SchemaValidator(SimpleSchema)
+        result = validator.validate({})
+
+        assert result.valid is False
+        assert any("title" in e.message for e in result.errors)
+
+    def test_type_error_mentions_expected_type(self) -> None:
+        """Test that type errors mention the expected type."""
+        validator = SchemaValidator(SimpleSchema)
+        result = validator.validate({"title": ["not", "a", "string"], "count": 1})
+
+        assert result.valid is False
+        error = next(e for e in result.errors if e.field == "title")
+        assert error.expected_type == "str"
+
+    def test_type_error_mentions_actual_type(self) -> None:
+        """Test that type errors mention the actual type received."""
+        validator = SchemaValidator(SimpleSchema)
+        result = validator.validate({"title": ["not", "a", "string"], "count": 1})
+
+        assert result.valid is False
+        error = next(e for e in result.errors if e.field == "title")
+        assert "list" in error.message
+
+    def test_nested_error_has_full_path(self) -> None:
+        """Test that nested field errors include the full field path."""
+        validator = SchemaValidator(NestedSchema)
+        result = validator.validate({"name": "Parent", "metadata": {"count": "not-int"}})
+
+        assert result.valid is False
+        # Error should reference metadata.title (missing) or metadata.count (wrong type)
+        field_paths = [e.field for e in result.errors]
+        assert any("metadata." in path for path in field_paths)
+
+    def test_unknown_field_error_includes_field_name(self) -> None:
+        """Test that unknown field errors name the offending field."""
+        validator = SchemaValidator(SimpleSchema, strict=True)
+        result = validator.validate({"title": "Hello", "mystery_field": "value"})
+
+        assert result.valid is False
+        assert any("mystery_field" in e.field for e in result.errors)
+        assert any("mystery_field" in e.message for e in result.errors)
+
+    def test_datetime_parse_error_shows_value(self) -> None:
+        """Test that datetime parse errors show the problematic value."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({"title": "Post", "date": "not-a-date"})
+
+        assert result.valid is False
+        error = next(e for e in result.errors if e.field == "date")
+        assert "not-a-date" in error.message
+
+    def test_list_item_error_shows_index(self) -> None:
+        """Test that list item errors show the index."""
+        validator = SchemaValidator(ComplexTypesSchema)
+        result = validator.validate({
+            "items": ["valid"],
+            "mapping": {},
+            "optional_list": [1, 2, "not-int", 4],
+        })
+
+        assert result.valid is False
+        # Error should mention optional_list[2]
+        assert any("optional_list[2]" in e.field for e in result.errors)
+
+
+# Datetime edge case tests
+
+
+class TestDatetimeEdgeCases:
+    """Tests for datetime parsing edge cases."""
+
+    def test_datetime_with_timezone(self) -> None:
+        """Test datetime with timezone offset."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({
+            "title": "Post",
+            "date": "2025-01-15T10:30:00+05:00",
+        })
+
+        assert result.valid is True
+        assert result.data.date.year == 2025
+
+    def test_datetime_iso_format_with_microseconds(self) -> None:
+        """Test datetime with microseconds."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({
+            "title": "Post",
+            "date": "2025-01-15T10:30:00.123456",
+        })
+
+        assert result.valid is True
+
+    def test_datetime_date_only_string(self) -> None:
+        """Test datetime from date-only string."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({"title": "Post", "date": "2025-01-15"})
+
+        assert result.valid is True
+        assert result.data.date.year == 2025
+        assert result.data.date.month == 1
+        assert result.data.date.day == 15
+
+    def test_datetime_empty_string_fails(self) -> None:
+        """Test that empty string fails datetime parsing."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({"title": "Post", "date": ""})
+
+        assert result.valid is False
+
+    def test_datetime_whitespace_only_fails(self) -> None:
+        """Test that whitespace-only string fails datetime parsing."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({"title": "Post", "date": "   "})
+
+        assert result.valid is False
+
+    def test_datetime_from_date_object(self) -> None:
+        """Test datetime field accepts date object (converts to midnight)."""
+        validator = SchemaValidator(BlogPostSchema)
+        result = validator.validate({"title": "Post", "date": date(2025, 1, 15)})
+
+        assert result.valid is True
+        assert isinstance(result.data.date, datetime)
+        assert result.data.date.hour == 0
+        assert result.data.date.minute == 0
+
+
+# Date coercion edge cases
+
+
+@dataclass
+class DateOnlySchema:
+    """Schema with date field (not datetime)."""
+
+    published: date
+    title: str = ""
+
+
+class TestDateEdgeCases:
+    """Tests for date parsing edge cases."""
+
+    def test_date_from_datetime_object(self) -> None:
+        """Test date field extracts date from datetime."""
+        validator = SchemaValidator(DateOnlySchema)
+        result = validator.validate({"published": datetime(2025, 1, 15, 10, 30)})
+
+        assert result.valid is True
+        assert result.data.published == date(2025, 1, 15)
+        assert not isinstance(result.data.published, datetime)
+
+    def test_date_from_iso_string(self) -> None:
+        """Test date from ISO format string."""
+        validator = SchemaValidator(DateOnlySchema)
+        result = validator.validate({"published": "2025-01-15"})
+
+        assert result.valid is True
+        assert result.data.published == date(2025, 1, 15)
+
+    def test_date_rejects_invalid_string(self) -> None:
+        """Test date rejects invalid string."""
+        validator = SchemaValidator(DateOnlySchema)
+        result = validator.validate({"published": "not-a-date"})
+
+        assert result.valid is False
+
+
+# Pydantic integration tests (optional - only run if pydantic is installed)
+
+
+class TestPydanticIntegration:
+    """Tests for Pydantic model support (skipped if pydantic not installed)."""
+
+    def test_pydantic_model_detection(self) -> None:
+        """Test that Pydantic models are detected via model_validate."""
+        pydantic = pytest.importorskip("pydantic")
+
+        class PydanticSchema(pydantic.BaseModel):
+            title: str
+            count: int = 0
+
+        validator = SchemaValidator(PydanticSchema)
+        assert validator._is_pydantic is True
+
+    def test_pydantic_valid_data(self) -> None:
+        """Test Pydantic model validation with valid data."""
+        pydantic = pytest.importorskip("pydantic")
+
+        class PydanticSchema(pydantic.BaseModel):
+            title: str
+            count: int = 0
+
+        validator = SchemaValidator(PydanticSchema)
+        result = validator.validate({"title": "Hello", "count": 42})
+
+        assert result.valid is True
+        assert result.data.title == "Hello"
+        assert result.data.count == 42
+
+    def test_pydantic_missing_required(self) -> None:
+        """Test Pydantic model validation with missing required field."""
+        pydantic = pytest.importorskip("pydantic")
+
+        class PydanticSchema(pydantic.BaseModel):
+            title: str
+            count: int = 0
+
+        validator = SchemaValidator(PydanticSchema)
+        result = validator.validate({"count": 42})
+
+        assert result.valid is False
+        assert len(result.errors) >= 1
+
+    def test_pydantic_type_coercion(self) -> None:
+        """Test Pydantic's built-in type coercion."""
+        pydantic = pytest.importorskip("pydantic")
+
+        class PydanticSchema(pydantic.BaseModel):
+            count: int
+
+        validator = SchemaValidator(PydanticSchema)
+        # Pydantic should coerce "42" to 42
+        result = validator.validate({"count": "42"})
+
+        assert result.valid is True
+        assert result.data.count == 42
+
+
+# Import pytest for importorskip
+import pytest

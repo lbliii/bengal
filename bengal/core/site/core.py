@@ -737,7 +737,7 @@ class Site(
                     urls_seen[url] = source
         else:
             # Fallback: iterate pages
-            urls_seen: dict[str, str] = {}  # url -> source description
+            urls_seen = {}  # url -> source description
 
             for page in self.pages:
                 url = page._path

@@ -282,13 +282,13 @@ class ImageProcessor:
             from bengal.core.resources.image import ImageResource, ProcessedImage
         except ImportError:
             logger.error(
-                "pillow_not_installed",
-                message="Pillow required for image processing. Install: pip install bengal[images]",
+                "Pillow required for image processing. Install: pip install bengal[images]",
+                event="pillow_not_installed",
             )
             return None
 
-        # Open image
-        img = Image.open(source)
+        # Open image - explicitly type as Image.Image since processing returns Image
+        img: Image.Image = Image.open(source)
 
         # Memory optimization for large images
         if img.width * img.height > LARGE_IMAGE_THRESHOLD and params.width and params.height:
@@ -384,7 +384,7 @@ class ImageProcessor:
             return self._smart_crop(img, target)
         else:
             centering = self._anchor_to_centering(params.anchor)
-            return ImageOps.fit(img, target, method=3, centering=centering)  # LANCZOS = 3
+            return ImageOps.fit(img, target, method=Image.Resampling.LANCZOS, centering=centering)
 
     def _fit(self, img: Image.Image, params: Any) -> Image.Image:
         """Resize to fit within dimensions.
@@ -403,7 +403,7 @@ class ImageProcessor:
         if img.width <= target_w and img.height <= target_h:
             return img
 
-        img.thumbnail((target_w, target_h), 3)  # LANCZOS = 3
+        img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
         return img
 
     def _resize(self, img: Image.Image, params: Any) -> Image.Image:
@@ -420,15 +420,15 @@ class ImageProcessor:
             # Width specified, calculate height
             ratio = params.width / img.width
             new_height = int(img.height * ratio)
-            return img.resize((params.width, new_height), 3)  # LANCZOS = 3
+            return img.resize((params.width, new_height), Image.Resampling.LANCZOS)
         elif params.height and not params.width:
             # Height specified, calculate width
             ratio = params.height / img.height
             new_width = int(img.width * ratio)
-            return img.resize((new_width, params.height), 3)
+            return img.resize((new_width, params.height), Image.Resampling.LANCZOS)
         elif params.width and params.height:
             # Both specified - resize to exact dimensions
-            return img.resize((params.width, params.height), 3)
+            return img.resize((params.width, params.height), Image.Resampling.LANCZOS)
         else:
             # No dimensions specified
             return img
@@ -490,16 +490,16 @@ class ImageProcessor:
                 result["top_crop"]["x"] + result["top_crop"]["width"],
                 result["top_crop"]["y"] + result["top_crop"]["height"],
             )
-            return img.crop(box).resize(target, 3)  # LANCZOS = 3
+            return img.crop(box).resize(target, Image.Resampling.LANCZOS)
         except ImportError:
             logger.info(
-                "smartcrop_not_available",
-                message="Install with: pip install bengal[smartcrop]",
+                "Install smartcrop with: pip install bengal[smartcrop]",
+                event="smartcrop_not_available",
                 fallback="center crop",
             )
             from PIL import ImageOps
 
-            return ImageOps.fit(img, target, method=3)
+            return ImageOps.fit(img, target, method=Image.Resampling.LANCZOS)
 
     def _anchor_to_centering(self, anchor: str) -> tuple[float, float]:
         """Convert anchor name to PIL centering tuple.

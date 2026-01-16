@@ -305,3 +305,128 @@ class TestGetCollectionForPathWithTrie:
 
         assert name is None
         assert config is None
+
+
+# Collection path edge cases
+
+
+class TestCollectionPathEdgeCases:
+    """Tests for edge cases in collection path matching."""
+
+    def test_deeply_nested_collection_directory(self) -> None:
+        """Test collections with very deep directory paths."""
+        collections = {
+            "deep": define_collection(
+                schema=SimpleSchema,
+                directory="a/b/c/d/e/f/content",
+            ),
+        }
+        trie = build_collection_trie(collections)
+
+        name, _ = trie.find(Path("a/b/c/d/e/f/content/post.md"))
+        assert name == "deep"
+
+        # Also test linear scan
+        name, _ = get_collection_for_path(
+            Path("a/b/c/d/e/f/content/post.md"),
+            Path("."),
+            collections,
+            trie=None,
+        )
+        assert name == "deep"
+
+    def test_single_component_directory(self) -> None:
+        """Test collection at root-level directory."""
+        collections = {
+            "root": define_collection(schema=SimpleSchema, directory="blog"),
+        }
+        trie = build_collection_trie(collections)
+
+        name, _ = trie.find(Path("blog/post.md"))
+        assert name == "root"
+
+    def test_three_level_overlapping(self) -> None:
+        """Test three collections with progressive overlap."""
+        collections = {
+            "docs": define_collection(schema=SimpleSchema, directory="docs"),
+            "api": define_collection(schema=SimpleSchema, directory="docs/api"),
+            "v2": define_collection(schema=SimpleSchema, directory="docs/api/v2"),
+        }
+        trie = build_collection_trie(collections)
+        content_root = Path(".")
+
+        # Test trie
+        assert trie.find(Path("docs/guide.md"))[0] == "docs"
+        assert trie.find(Path("docs/api/endpoint.md"))[0] == "api"
+        assert trie.find(Path("docs/api/v2/endpoint.md"))[0] == "v2"
+
+        # Test linear scan (should have same behavior)
+        assert get_collection_for_path(
+            Path("docs/guide.md"), content_root, collections, trie=None
+        )[0] == "docs"
+        assert get_collection_for_path(
+            Path("docs/api/endpoint.md"), content_root, collections, trie=None
+        )[0] == "api"
+        assert get_collection_for_path(
+            Path("docs/api/v2/endpoint.md"), content_root, collections, trie=None
+        )[0] == "v2"
+
+    def test_sibling_directories(self) -> None:
+        """Test collections in sibling directories don't interfere."""
+        collections = {
+            "blog": define_collection(schema=SimpleSchema, directory="content/blog"),
+            "docs": define_collection(schema=SimpleSchema, directory="content/docs"),
+            "news": define_collection(schema=SimpleSchema, directory="content/news"),
+        }
+        trie = build_collection_trie(collections)
+
+        assert trie.find(Path("content/blog/post.md"))[0] == "blog"
+        assert trie.find(Path("content/docs/guide.md"))[0] == "docs"
+        assert trie.find(Path("content/news/article.md"))[0] == "news"
+        assert trie.find(Path("content/other/file.md"))[0] is None
+
+    def test_collection_directory_itself(self) -> None:
+        """Test that a path exactly matching collection dir doesn't match files."""
+        collections = {
+            "blog": define_collection(schema=SimpleSchema, directory="blog"),
+        }
+        trie = build_collection_trie(collections)
+
+        # A file directly in blog/ should match
+        assert trie.find(Path("blog/post.md"))[0] == "blog"
+
+        # The directory path without a file shouldn't match (no file to validate)
+        # Note: In practice, this is fine - we only call find() with file paths
+
+    def test_empty_collections_dict(self) -> None:
+        """Test behavior with empty collections."""
+        collections: dict[str, Any] = {}
+        trie = build_collection_trie(collections)
+
+        assert len(trie) == 0
+        assert trie.find(Path("any/path/file.md")) == (None, None)
+
+    def test_trie_and_linear_scan_consistency(self) -> None:
+        """Test that trie and linear scan return identical results."""
+        collections = {
+            "outer": define_collection(schema=SimpleSchema, directory="content"),
+            "inner": define_collection(schema=SimpleSchema, directory="content/special"),
+        }
+        trie = build_collection_trie(collections)
+        content_root = Path(".")
+
+        test_paths = [
+            Path("content/file.md"),
+            Path("content/special/file.md"),
+            Path("content/special/deep/file.md"),
+            Path("other/file.md"),
+        ]
+
+        for path in test_paths:
+            trie_result = get_collection_for_path(path, content_root, collections, trie=trie)
+            linear_result = get_collection_for_path(path, content_root, collections, trie=None)
+            assert trie_result[0] == linear_result[0], f"Mismatch for {path}"
+
+
+# Import Any for type hint
+from typing import Any

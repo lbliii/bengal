@@ -14,7 +14,7 @@ autodoc:
 
   # Python API Documentation
   python:
-    enabled: false
+    enabled: true
     source_dirs:
       - ../bengal  # Document the main Bengal package
     docstring_style: auto  # Auto-detect docstring format

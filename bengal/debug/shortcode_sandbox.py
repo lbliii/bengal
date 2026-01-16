@@ -209,6 +209,8 @@ class ShortcodeSandbox(DebugTool):
     def __init__(
         self,
         site: Any = None,
+        cache: Any = None,
+        root_path: Path | None = None,
         mock_context: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -221,11 +223,13 @@ class ShortcodeSandbox(DebugTool):
         Args:
             site: Optional Site instance for full context. If None, uses
                 mock context for template variables.
+            cache: Optional BuildCache (unused but required by DebugTool).
+            root_path: Optional root path override.
             mock_context: Optional dictionary to use as mock context.
                 Keys should include 'page' and 'site' with appropriate
                 nested structures. Defaults to a sensible mock context.
         """
-        self._site = site
+        super().__init__(site=site, cache=cache, root_path=root_path)
         self._mock_context = mock_context or self._create_default_context()
         self._markdown_parser: Any = None
         self._known_directives: frozenset[str] | None = None

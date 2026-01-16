@@ -41,9 +41,9 @@ class ProcessParams:
         """Validate parameters."""
         if self.quality < 1 or self.quality > 100:
             logger.warning(
-                "invalid_quality",
+                "Quality must be 1-100, using 85",
+                event="invalid_quality",
                 quality=self.quality,
-                message="Quality must be 1-100, using 85",
             )
             self.quality = 85
 

@@ -30,6 +30,7 @@ Example:
 
 from __future__ import annotations
 
+from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
@@ -67,15 +68,20 @@ class SectionErgonomicsMixin:
     metadata: dict[str, Any]
     index_page: Page | None
 
-    # From other mixins
-    sorted_pages: list[Page]
-    regular_pages_recursive: list[Page]
-    hierarchy: list[str]
+    # From other mixins - these are @cached_property in their respective mixins
+    # Not declared here to avoid attribute override conflicts
+    # - sorted_pages: list[Page] (from SectionQueryMixin)
+    # - regular_pages_recursive: list[Page] (from SectionQueryMixin)
+    # - hierarchy: list[str] (from SectionHierarchyMixin)
 
     @property
-    def title(self) -> str: ...
+    def title(self) -> str:
+        """Section title - must be provided by host class."""
+        raise NotImplementedError
 
-    def get_all_pages(self, recursive: bool = True) -> list[Page]: ...
+    def get_all_pages(self, recursive: bool = True) -> list[Page]:
+        """Get all pages - must be provided by host class."""
+        raise NotImplementedError
 
     # =========================================================================
     # CONTENT PAGE HELPERS
@@ -124,7 +130,7 @@ class SectionErgonomicsMixin:
             {% endfor %}
         """
         dated_pages = [p for p in self.sorted_pages if getattr(p, "date", None)]
-        dated_pages.sort(key=lambda p: p.date, reverse=True)
+        dated_pages.sort(key=lambda p: p.date or datetime.min, reverse=True)
         return dated_pages[:limit]
 
     def pages_with_tag(self, tag: str) -> list[Page]:

@@ -40,7 +40,7 @@ import contextlib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
@@ -616,7 +616,7 @@ class ContentDiscovery:
         for fut in futures:
 
             def get_page_result(f: Any = fut) -> Page:
-                return f.result()
+                return cast(Page, f.result())
 
             page = with_error_recovery(
                 get_page_result,
