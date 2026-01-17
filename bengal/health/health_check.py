@@ -48,8 +48,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
     from bengal.utils.observability.profile import BuildProfile
 
 
@@ -136,7 +136,7 @@ class HealthCheck:
         
     """
 
-    def __init__(self, site: Site, auto_register: bool = True):
+    def __init__(self, site: SiteLike, auto_register: bool = True):
         """
         Initialize health check system.
 

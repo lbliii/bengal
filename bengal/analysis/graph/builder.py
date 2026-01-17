@@ -31,6 +31,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)

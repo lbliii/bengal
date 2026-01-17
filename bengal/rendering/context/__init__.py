@@ -67,8 +67,7 @@ from bengal.rendering.context.site_wrappers import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 __all__ = [
     # Data wrappers
@@ -136,7 +135,7 @@ except ImportError:
     pass
 
 
-def _create_global_contexts(site: Site) -> dict[str, Any]:
+def _create_global_contexts(site: SiteLike) -> dict[str, Any]:
     """
     Create fresh global context wrappers for a site.
     
@@ -160,7 +159,7 @@ def _create_global_contexts(site: Site) -> dict[str, Any]:
 
 
 def _get_global_contexts(
-    site: Site,
+    site: SiteLike,
     build_context: BuildContextType | None = None,
 ) -> dict[str, Any]:
     """
@@ -220,7 +219,7 @@ def clear_global_context_cache() -> None:
     _clear_global_context_cache()
 
 
-def get_engine_globals(site: Site) -> dict[str, Any]:
+def get_engine_globals(site: SiteLike) -> dict[str, Any]:
     """
     Get all engine-agnostic globals for template engine initialization.
     
@@ -290,8 +289,8 @@ def get_engine_globals(site: Site) -> dict[str, Any]:
 
 
 def build_page_context(
-    page: Page | SimpleNamespace,
-    site: Site,
+    page: PageLike | SimpleNamespace,
+    site: SiteLike,
     content: str = "",
     *,
     section: Any = None,
@@ -424,7 +423,7 @@ def build_special_page_context(
     title: str,
     description: str,
     url: str,
-    site: Site,
+    site: SiteLike,
     *,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:

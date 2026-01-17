@@ -46,13 +46,12 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
 
-def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
+def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
     """
     Get href for any object. Prefer obj.href directly.
     
@@ -79,7 +78,7 @@ def href_for(obj: Page | Mapping[str, Any] | Any, site: Site) -> str:
     return obj.href
 
 
-def with_baseurl(path: str, site: Site) -> str:
+def with_baseurl(path: str, site: SiteLike) -> str:
     """
     Apply baseurl prefix to a site-relative path.
     

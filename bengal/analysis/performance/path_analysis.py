@@ -88,14 +88,14 @@ class PathAnalysisResults:
         
     """
 
-    betweenness_centrality: dict[Page, float]
-    closeness_centrality: dict[Page, float]
+    betweenness_centrality: dict[PageLike, float]
+    closeness_centrality: dict[PageLike, float]
     avg_path_length: float
     diameter: int  # Longest shortest path
     is_approximate: bool = False
     pivots_used: int = 0
 
-    def get_top_bridges(self, limit: int = 20) -> list[tuple[Page, float]]:
+    def get_top_bridges(self, limit: int = 20) -> list[tuple[PageLike, float]]:
         """
         Get pages with highest betweenness centrality (bridge pages).
 
@@ -108,7 +108,7 @@ class PathAnalysisResults:
         sorted_pages = sorted(self.betweenness_centrality.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_most_accessible(self, limit: int = 20) -> list[tuple[Page, float]]:
+    def get_most_accessible(self, limit: int = 20) -> list[tuple[PageLike, float]]:
         """
         Get most accessible pages (highest closeness centrality).
 
@@ -121,11 +121,11 @@ class PathAnalysisResults:
         sorted_pages = sorted(self.closeness_centrality.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_betweenness(self, page: Page) -> float:
+    def get_betweenness(self, page: PageLike) -> float:
         """Get betweenness centrality for specific page."""
         return self.betweenness_centrality.get(page, 0.0)
 
-    def get_closeness(self, page: Page) -> float:
+    def get_closeness(self, page: PageLike) -> float:
         """Get closeness centrality for specific page."""
         return self.closeness_centrality.get(page, 0.0)
 
@@ -142,7 +142,7 @@ class PathSearchResult:
         
     """
 
-    paths: list[list[Page]] = field(default_factory=list)
+    paths: list[list[PageLike]] = field(default_factory=list)
     complete: bool = True
     termination_reason: str | None = None
 
@@ -195,7 +195,7 @@ class PathAnalyzer:
         self.seed = seed
         self.auto_approximate_threshold = auto_approximate_threshold
 
-    def find_shortest_path(self, source: Page, target: Page) -> list[Page] | None:
+    def find_shortest_path(self, source: PageLike, target: PageLike) -> list[PageLike] | None:
         """
         Find shortest path between two pages using BFS.
 
@@ -215,9 +215,9 @@ class PathAnalyzer:
             return [source]
 
         # BFS
-        queue: deque[Page] = deque([source])
-        visited: set[Page] = {source}
-        parent: dict[Page, Page] = {}
+        queue: deque[PageLike] = deque([source])
+        visited: set[PageLike] = {source}
+        parent: dict[PageLike, PageLike] = {}
 
         while queue:
             current = queue.popleft()
@@ -322,10 +322,10 @@ class PathAnalyzer:
 
     def _compute_betweenness_centrality(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         use_approximate: bool,
         progress_callback: ProgressCallback | None = None,
-    ) -> dict[Page, float]:
+    ) -> dict[PageLike, float]:
         """
         Compute betweenness centrality using Brandes' algorithm.
 
@@ -343,7 +343,7 @@ class PathAnalyzer:
         Returns:
             Dictionary mapping pages to betweenness centrality scores
         """
-        betweenness: dict[Page, float] = {page: 0.0 for page in pages}
+        betweenness: dict[PageLike, float] = {page: 0.0 for page in pages}
 
         # Select sources (all pages for exact, k pivots for approximate)
         if use_approximate:
@@ -360,14 +360,14 @@ class PathAnalyzer:
                 progress_callback(i + 1, total_sources, "betweenness")
 
             # BFS to find shortest paths
-            stack: list[Page] = []
-            predecessors: dict[Page, list[Page]] = {p: [] for p in pages}
-            sigma: dict[Page, int] = {p: 0 for p in pages}
+            stack: list[PageLike] = []
+            predecessors: dict[PageLike, list[PageLike]] = {p: [] for p in pages}
+            sigma: dict[PageLike, int] = {p: 0 for p in pages}
             sigma[source] = 1
-            distance: dict[Page, int] = {p: -1 for p in pages}
+            distance: dict[PageLike, int] = {p: -1 for p in pages}
             distance[source] = 0
 
-            queue: deque[Page] = deque([source])
+            queue: deque[PageLike] = deque([source])
 
             while queue:
                 current = queue.popleft()
@@ -389,7 +389,7 @@ class PathAnalyzer:
                         predecessors[neighbor].append(current)
 
             # Accumulation (back-propagation)
-            delta: dict[Page, float] = {p: 0.0 for p in pages}
+            delta: dict[PageLike, float] = {p: 0.0 for p in pages}
 
             while stack:
                 current = stack.pop()
@@ -417,10 +417,10 @@ class PathAnalyzer:
 
     def _compute_closeness_centrality(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         use_approximate: bool,
         progress_callback: ProgressCallback | None = None,
-    ) -> tuple[dict[Page, float], float, int]:
+    ) -> tuple[dict[PageLike, float], float, int]:
         """
         Compute closeness centrality and network metrics.
 
@@ -454,7 +454,7 @@ class PathAnalyzer:
 
         if use_approximate:
             # Compute distances from each pivot to all nodes
-            pivot_distances: dict[Page, list[int]] = {page: [] for page in pages}
+            pivot_distances: dict[PageLike, list[int]] = {page: [] for page in pages}
 
             for i, pivot in enumerate(sample_pages):
                 if progress_callback:
@@ -469,7 +469,7 @@ class PathAnalyzer:
                         max_distance = max(max_distance, dist)
 
             # Estimate closeness: 1 / average distance from pivots
-            closeness: dict[Page, float] = {}
+            closeness: dict[PageLike, float] = {}
             for page in pages:
                 dists = pivot_distances[page]
                 if dists:
@@ -506,12 +506,12 @@ class PathAnalyzer:
 
         return closeness, avg_path_length, diameter
 
-    def _bfs_distances(self, source: Page, pages: list[Page]) -> dict[Page, int]:
+    def _bfs_distances(self, source: PageLike, pages: list[PageLike]) -> dict[PageLike, int]:
         """Compute shortest path distances from source to all other pages."""
-        distances: dict[Page, int] = {p: -1 for p in pages}
+        distances: dict[PageLike, int] = {p: -1 for p in pages}
         distances[source] = 0
 
-        queue: deque[Page] = deque([source])
+        queue: deque[PageLike] = deque([source])
 
         while queue:
             current = queue.popleft()
@@ -527,8 +527,8 @@ class PathAnalyzer:
 
     def find_all_paths(
         self,
-        source: Page,
-        target: Page,
+        source: PageLike,
+        target: PageLike,
         max_length: int = 10,
         max_paths: int = 1000,
         timeout_seconds: float | None = 30.0,
@@ -561,11 +561,11 @@ class PathAnalyzer:
         if source == target:
             return PathSearchResult(paths=[[source]], complete=True)
 
-        all_paths: list[list[Page]] = []
+        all_paths: list[list[PageLike]] = []
         start_time = time.monotonic()
         termination_reason: str | None = None
 
-        def dfs(current: Page, path: list[Page], visited: set[Page]) -> bool:
+        def dfs(current: PageLike, path: list[PageLike], visited: set[PageLike]) -> bool:
             """DFS helper. Returns False to signal early termination."""
             nonlocal termination_reason
 
@@ -611,10 +611,10 @@ class PathAnalyzer:
 
     def find_all_paths_simple(
         self,
-        source: Page,
-        target: Page,
+        source: PageLike,
+        target: PageLike,
         max_length: int = 10,
-    ) -> list[list[Page]]:
+    ) -> list[list[PageLike]]:
         """
         Find all simple paths between two pages (legacy API).
 

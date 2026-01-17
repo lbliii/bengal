@@ -104,7 +104,7 @@ flowchart LR
 |--------------|----------------|--------|
 | **BuildOrchestrator** | Main conductor, calls all phases | `bengal/orchestration/build/` |
 | **ContentOrchestrator** | Find/organize content, apply cascades | `bengal/orchestration/content.py` |
-| **RenderOrchestrator** | Parallel rendering, write output | `bengal/orchestration/render.py` |
+| **RenderOrchestrator** | Parallel rendering, write output | `bengal/orchestration/render/` |
 | **StreamingRenderOrchestrator** | Memory-optimized batched rendering | `bengal/orchestration/streaming.py` |
 | **IncrementalOrchestrator** | Detect changes, filter work, coordinate cache invalidation | `bengal/orchestration/incremental/` |
 | **SectionOrchestrator** | Validate section hierarchy | `bengal/orchestration/section.py` |
@@ -128,7 +128,8 @@ The coordinator ensures that when a dependency changes (data file, template, tax
 
 ### Detection Pipeline (Phase 5)
 
-Phase 5 (`phase_incremental_filter`) runs a **detection pipeline** from `bengal/build/`:
+Phase 5 (`phase_incremental_filter`) uses the **provenance-based filter** (`bengal/orchestration/build/provenance_filter.py`)
+and composes detectors from `bengal/build/` (e.g., `bengal/build/detectors/`):
 
 - `DetectionPipeline` composes ordered `ChangeDetector` implementations.
 - Each detector returns a `ChangeDetectionResult`, merged as the pipeline runs.
@@ -144,35 +145,34 @@ Shared context passed through rendering and post-processing (simplified view):
 ```python
 @dataclass
 class BuildContext:
-    # Core (required)
-    site: Site
-    stats: BuildStats
+    # Core (required by most phases)
+    site: Site | None = None
+    stats: BuildStats | None = None
 
     # Build mode flags
     incremental: bool = False
-    parallel: bool = True
     verbose: bool = False
     quiet: bool = False
     strict: bool = False
+    parallel: bool = True
 
     # Work items (populated during filtering)
-    pages: list[Page] = None
-    pages_to_build: list[Page] = None
+    pages: list[Page] | None = None
+    pages_to_build: list[Page] | None = None
+    assets_to_process: list[Asset] | None = None
     changed_page_paths: set[Path] = field(default_factory=set)
 
     # Cache and tracking
-    cache: BuildCache = None
-    tracker: DependencyTracker = None
-    cache_coordinator: CacheCoordinator = None  # Unified invalidation
-    path_registry: PathRegistry = None  # Canonical paths
+    cache: BuildCache | None = None
+    tracker: DependencyTracker | None = None
 
-    @property
-    def knowledge_graph(self) -> KnowledgeGraph | None:
-        """Lazy-computed for streaming render optimization."""
-        ...
+    # Output/progress
+    cli: CLIOutput | None = None
+    reporter: ProgressReporter | None = None
+    output_collector: OutputCollector | None = None
 ```
 
-Created before Phase 2 (discovery) and enriched through the build. See `bengal/orchestration/build_context.py` for the complete definition.
+Created early (during build setup) and enriched through the build. See `bengal/orchestration/build_context.py` for the complete definition.
 
 ## Parallelization
 

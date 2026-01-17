@@ -41,7 +41,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from bengal.debug.models import (
     CacheInfo,
@@ -57,7 +57,8 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.core.page import Page
+    from bengal.protocols import SiteLike
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
@@ -181,7 +182,8 @@ class PageExplainer:
         """
         search_path = Path(page_path)
 
-        for page in self.site.pages:
+        for page_like in self.site.pages:
+            page = cast("Page", page_like)  # Explainer needs concrete Page for introspection
             # Exact match
             if page.source_path == search_path:
                 return page
@@ -201,7 +203,7 @@ class PageExplainer:
 
         return None
 
-    def _get_source_info(self, page: PageLike) -> SourceInfo:
+    def _get_source_info(self, page: Page) -> SourceInfo:
         """
         Get source file information for a page.
 
@@ -256,7 +258,7 @@ class PageExplainer:
             encoding="UTF-8",
         )
 
-    def _resolve_template_chain(self, page: PageLike) -> list[TemplateInfo]:
+    def _resolve_template_chain(self, page: Page) -> list[TemplateInfo]:
         """
         Resolve the complete template inheritance chain.
 
@@ -293,7 +295,7 @@ class PageExplainer:
 
         return chain
 
-    def _get_template_name(self, page: PageLike) -> str | None:
+    def _get_template_name(self, page: Page) -> str | None:
         """
         Determine the template name for a page.
 
@@ -429,7 +431,7 @@ class PageExplainer:
         matches = re.findall(r'{%\s*include\s*["\']([^"\']+)["\']\s*%}', content)
         return matches
 
-    def _get_dependencies(self, page: PageLike) -> DependencyInfo:
+    def _get_dependencies(self, page: Page) -> DependencyInfo:
         """
         Collect all dependencies for a page.
 
@@ -527,7 +529,7 @@ class PageExplainer:
 
         return assets
 
-    def _get_shortcode_usage(self, page: PageLike) -> list[ShortcodeUsage]:
+    def _get_shortcode_usage(self, page: Page) -> list[ShortcodeUsage]:
         """
         Extract shortcode/directive usage statistics from page content.
 
@@ -558,7 +560,7 @@ class PageExplainer:
 
         return sorted(usages.values(), key=lambda x: -x.count)
 
-    def _get_cache_status(self, page: PageLike) -> CacheInfo:
+    def _get_cache_status(self, page: Page) -> CacheInfo:
         """
         Determine cache status for a page.
 
@@ -626,7 +628,7 @@ class PageExplainer:
             rendered_cached=rendered_cached,
         )
 
-    def _get_output_info(self, page: PageLike) -> OutputInfo:
+    def _get_output_info(self, page: Page) -> OutputInfo:
         """
         Get output information for a page.
 
@@ -658,7 +660,7 @@ class PageExplainer:
             size_bytes=size_bytes,
         )
 
-    def _diagnose_issues(self, page: PageLike) -> list[Issue]:
+    def _diagnose_issues(self, page: Page) -> list[Issue]:
         """
         Diagnose potential issues with a page.
 

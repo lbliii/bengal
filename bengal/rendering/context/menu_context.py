@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class MenusContext:
@@ -30,7 +30,7 @@ class MenusContext:
 
     __slots__ = ("_site", "_cache")
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         self._site = site
         self._cache: dict[str, list] = {}
 

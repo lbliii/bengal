@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.context.data_wrappers import ParamsContext, SmartDict
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.theme import Theme
+    from bengal.protocols import SiteLike
 
 
 class SiteContext:
@@ -43,7 +43,7 @@ class SiteContext:
 
     __slots__ = ("_site", "_params_cache", "_tracked_data_cache")
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         self._site = site
         self._params_cache: ParamsContext | None = None
         self._tracked_data_cache: Any = None

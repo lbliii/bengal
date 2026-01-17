@@ -251,6 +251,11 @@ class SiteLike(Protocol):
         """Whether site is in development mode."""
         ...
 
+    @property
+    def theme(self) -> str:
+        """Active theme name."""
+        ...
+
 
 # =============================================================================
 # Navigation Protocols

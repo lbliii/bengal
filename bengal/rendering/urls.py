@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.assets import resolve_asset_url
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 __all__ = [
     "resolve_asset_url",
@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-def resolve_tag_url(tag: str, site: Site, page: Any = None) -> str:
+def resolve_tag_url(tag: str, site: SiteLike, page: Any = None) -> str:
     """
     Generate a tag URL with i18n prefix support.
     
@@ -79,7 +79,7 @@ def resolve_tag_url(tag: str, site: Site, page: Any = None) -> str:
     return apply_baseurl(relative_url, site)
 
 
-def apply_baseurl(path: str, site: Site) -> str:
+def apply_baseurl(path: str, site: SiteLike) -> str:
     """
     Apply baseurl prefix to a path.
     

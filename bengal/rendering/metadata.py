@@ -32,7 +32,7 @@ from bengal.core.theme import get_theme_package
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -74,7 +74,7 @@ def _get_highlighter_version() -> str | None:
         return None
 
 
-def _get_theme_info(site: Site) -> dict[str, Any]:
+def _get_theme_info(site: SiteLike) -> dict[str, Any]:
     theme_name = getattr(site, "theme", None) or "default"
     # Prefer installed theme package metadata when available
     version: str | None = None
@@ -138,7 +138,7 @@ def _get_capabilities() -> dict[str, bool]:
     return capabilities
 
 
-def build_template_metadata(site: Site) -> dict[str, Any]:
+def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
     

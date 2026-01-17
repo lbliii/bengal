@@ -26,10 +26,10 @@ from jinja2.utils import pass_context
 if TYPE_CHECKING:
     from jinja2 import Environment
 
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
-def register_context_functions(env: Environment, site: Site) -> None:
+def register_context_functions(env: Environment, site: SiteLike) -> None:
     """Register context-dependent template functions for Jinja2.
     
     These functions use @pass_context to extract page from the template context.
