@@ -88,9 +88,8 @@ from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -133,7 +132,7 @@ class SiteIndexGenerator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         excerpt_length: int = 200,
         json_indent: int | None = None,
         include_full_content: bool = False,

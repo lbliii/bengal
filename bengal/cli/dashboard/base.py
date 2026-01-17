@@ -120,7 +120,7 @@ class BengalDashboard(App[None]):
         # TODO: Implement help screen in Phase 7
         self.notify("Help: Press 'q' to quit", title="Keyboard Shortcuts")
 
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
         """Quit the dashboard."""
         self.exit()
 

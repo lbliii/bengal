@@ -100,13 +100,17 @@ target-version = "py314"
 [tool.ruff.lint]
 # Enable Python upgrade rules and other quality checks
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "UP",  # pyupgrade - Python modernization
-    "B",   # flake8-bugbear - common bugs
-    "SIM", # flake8-simplify - simplify code
-    "I",   # isort - import sorting
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (unused imports, variables, etc.)
+    "UP",   # pyupgrade - Python modernization
+    "B",    # flake8-bugbear - common bugs
+    "SIM",  # flake8-simplify - simplify code
+    "I",    # isort - import sorting
+    "PIE",  # misc lints (unnecessary pass, duplicate dict keys, etc.)
+    "PERF", # perflint - performance anti-patterns
+    "C4",   # unnecessary comprehensions/list()/dict() calls
+    "RUF",  # Ruff-specific (unused noqa, mutable class defaults, etc.)
 ]
 
 # Per-file ignore rules

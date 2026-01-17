@@ -61,8 +61,8 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class SpecialPagesGenerator:
@@ -102,7 +102,7 @@ class SpecialPagesGenerator:
         
     """
 
-    def __init__(self, site: Site) -> None:
+    def __init__(self, site: SiteLike) -> None:
         """
         Initialize special pages generator.
 

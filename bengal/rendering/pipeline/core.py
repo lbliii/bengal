@@ -153,9 +153,7 @@ class RenderingPipeline:
             markdown_engine = markdown_config.get("parser", "patitas")
 
         # Allow injection of parser via BuildContext for tests/experiments
-        injected_parser = None
-        if build_context and getattr(build_context, "markdown_parser", None):
-            injected_parser = build_context.markdown_parser
+        injected_parser = getattr(build_context, "markdown_parser", None) if build_context else None
 
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = injected_parser or get_thread_parser(markdown_engine)
@@ -190,8 +188,9 @@ class RenderingPipeline:
         self.build_stats = build_stats
 
         # Allow injection of TemplateEngine via BuildContext
-        if build_context and getattr(build_context, "template_engine", None):
-            self.template_engine = build_context.template_engine
+        injected_engine = getattr(build_context, "template_engine", None) if build_context else None
+        if injected_engine:
+            self.template_engine = injected_engine
         else:
             profile_templates = (
                 getattr(build_context, "profile_templates", False) if build_context else False
@@ -248,8 +247,9 @@ class RenderingPipeline:
 
         # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
         try:
-            if build_context and getattr(build_context, "api_doc_enhancer", None):
-                self._api_doc_enhancer = build_context.api_doc_enhancer
+            injected_enhancer = getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            if injected_enhancer:
+                self._api_doc_enhancer = injected_enhancer
             else:
                 from bengal.rendering.api_doc_enhancer import get_enhancer
 
@@ -415,7 +415,8 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
-            page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
+            if page.parsed_ast:
+                page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing

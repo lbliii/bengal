@@ -34,6 +34,9 @@ Migration:
 
 """
 
+from bengal.protocols.analysis import (
+    KnowledgeGraphProtocol,
+)
 from bengal.protocols.build import (
     BuildContextDict,
     BuildOptionsDict,
@@ -44,7 +47,20 @@ from bengal.protocols.build import (
     RenderContext,
     RenderResult,
 )
+from bengal.protocols.capabilities import (
+    HasActionRebuild,
+    HasClearTemplateCache,
+    HasConfigChangedSignal,
+    HasErrors,
+    HasWalk,
+    has_action_rebuild,
+    has_clear_template_cache,
+    has_config_changed_signal,
+    has_errors,
+    has_walk,
+)
 from bengal.protocols.core import (
+    ConfigLike,
     NavigableSection,
     PageLike,
     QueryableSection,
@@ -71,9 +87,6 @@ from bengal.protocols.rendering import (
     TemplateRenderer,
     TemplateValidator,
 )
-from bengal.protocols.analysis import (
-    KnowledgeGraphProtocol,
-)
 from bengal.protocols.stats import (
     BuildStatsProtocol,
 )
@@ -94,6 +107,7 @@ __all__ = [
     "SiteLike",
     "NavigableSection",
     "QueryableSection",
+    "ConfigLike",
     # Rendering - Template
     "TemplateEnvironment",
     "EngineCapability",
@@ -118,4 +132,15 @@ __all__ = [
     "KnowledgeGraphProtocol",
     # Stats
     "BuildStatsProtocol",
+    # Capabilities (TypeGuard protocols)
+    "HasClearTemplateCache",
+    "HasActionRebuild",
+    "HasConfigChangedSignal",
+    "HasErrors",
+    "HasWalk",
+    "has_clear_template_cache",
+    "has_action_rebuild",
+    "has_config_changed_signal",
+    "has_errors",
+    "has_walk",
 ]

@@ -49,8 +49,8 @@ from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
+    from bengal.protocols import SiteLike
 
 
 @dataclass
@@ -531,7 +531,7 @@ class BuildDeltaAnalyzer(DebugTool):
 
     def __init__(
         self,
-        site: Site | None = None,
+        site: SiteLike | None = None,
         cache: BuildCache | None = None,
         root_path: Path | None = None,
         history: BuildHistory | None = None,

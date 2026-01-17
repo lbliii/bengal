@@ -14,8 +14,8 @@ from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 # Type for config that supports dict-like access
 ConfigLike = "Config | dict[str, Any]"
@@ -37,7 +37,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Validate configuration."""
         results = []

@@ -26,9 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
-    from bengal.core.site import Site
     from bengal.health.report import CheckResult
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class BaseValidator(ABC):
@@ -54,7 +54,7 @@ class BaseValidator(ABC):
             ...     name = "My System"
             ...     description = "Validates my system configuration"
             ...
-            ...     def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+            ...     def validate(self, site: SiteLike, build_context=None) -> list[CheckResult]:
             ...         results = []
             ...         if something_wrong:
             ...             results.append(CheckResult.error(
@@ -76,7 +76,7 @@ class BaseValidator(ABC):
 
     @abstractmethod
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """
         Run validation checks and return results.

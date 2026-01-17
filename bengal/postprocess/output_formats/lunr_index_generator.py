@@ -37,7 +37,7 @@ from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -88,7 +88,7 @@ class LunrIndexGenerator:
         "kind": 1,
     }
 
-    def __init__(self, site: Site) -> None:
+    def __init__(self, site: SiteLike) -> None:
         """
         Initialize the Lunr index generator.
 

@@ -13,7 +13,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus, ValidatorStats
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class AutodocValidator(BaseValidator):
@@ -44,7 +44,7 @@ class AutodocValidator(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Run autodoc HTML validation checks.
 
@@ -119,7 +119,7 @@ class AutodocValidator(BaseValidator):
 
         return results
 
-    def _check_html_parity(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_html_parity(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check HTML and TXT file count parity."""
         results: list[CheckResult] = []
 
@@ -150,7 +150,7 @@ class AutodocValidator(BaseValidator):
 
         return results
 
-    def _check_missing_html(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_missing_html(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check for directories missing index.html."""
         results: list[CheckResult] = []
 
@@ -179,7 +179,7 @@ class AutodocValidator(BaseValidator):
 
         return results
 
-    def _check_page_types(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_page_types(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check page types are correctly set."""
         results: list[CheckResult] = []
 

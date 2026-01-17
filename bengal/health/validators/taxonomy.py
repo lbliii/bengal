@@ -16,8 +16,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class TaxonomyValidator(BaseValidator):
@@ -38,7 +38,7 @@ class TaxonomyValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run taxonomy validation checks."""
         results = []
@@ -57,7 +57,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_tag_pages(self, site: Site) -> list[CheckResult]:
+    def _check_tag_pages(self, site: SiteLike) -> list[CheckResult]:
         """Check that all tags have corresponding tag pages."""
         results = []
 
@@ -135,7 +135,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_archive_pages(self, site: Site) -> list[CheckResult]:
+    def _check_archive_pages(self, site: SiteLike) -> list[CheckResult]:
         """Check that sections with content have archive pages."""
         results = []
         issues = []
@@ -186,7 +186,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_taxonomy_consistency(self, site: Site) -> list[CheckResult]:
+    def _check_taxonomy_consistency(self, site: SiteLike) -> list[CheckResult]:
         """Check taxonomy data consistency."""
         results = []
         issues = []
@@ -232,7 +232,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_pagination(self, site: Site) -> list[CheckResult]:
+    def _check_pagination(self, site: SiteLike) -> list[CheckResult]:
         """Check pagination integrity."""
         results = []
         issues = []

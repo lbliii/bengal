@@ -284,8 +284,10 @@ class Page(
         This should be called before caching to ensure all paths are relative
         to the site root, preventing absolute path leakage into cache.
 
-        Note: Directly mutates self.core.source_path since dataclasses are mutable.
+        Uses dataclasses.replace() since PageCore is frozen (immutable).
         """
+        from dataclasses import replace
+
         if not self._site or not self.core:
             return
 
@@ -294,8 +296,8 @@ class Page(
         if Path(source_path_str).is_absolute():
             try:
                 rel_path = Path(source_path_str).relative_to(self._site.root_path)
-                # Directly update the field - no need to recreate entire PageCore
-                self.core.source_path = str(rel_path)
+                # Create new frozen PageCore with updated path
+                self.core = replace(self.core, source_path=str(rel_path))
             except (ValueError, AttributeError):
                 pass  # Keep absolute if not under root
 

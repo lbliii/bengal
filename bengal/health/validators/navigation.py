@@ -17,8 +17,8 @@ from bengal.health.report import CheckResult
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,7 @@ class NavigationValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []
@@ -66,7 +66,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_next_prev_chains(self, site: Site) -> list[CheckResult]:
+    def _check_next_prev_chains(self, site: SiteLike) -> list[CheckResult]:
         """Check that next/prev links form valid chains."""
         results = []
         issues = []
@@ -109,7 +109,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_breadcrumbs(self, site: Site) -> list[CheckResult]:
+    def _check_breadcrumbs(self, site: SiteLike) -> list[CheckResult]:
         """Check that breadcrumb trails (ancestors) are valid."""
         results = []
         issues = []
@@ -195,7 +195,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_section_navigation(self, site: Site) -> list[CheckResult]:
+    def _check_section_navigation(self, site: SiteLike) -> list[CheckResult]:
         """Check section-level navigation consistency."""
         results = []
         issues = []
@@ -240,7 +240,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_navigation_coverage(self, site: Site) -> list[CheckResult]:
+    def _check_navigation_coverage(self, site: SiteLike) -> list[CheckResult]:
         """Check how many pages are reachable through navigation."""
         results = []
 
@@ -275,7 +275,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_weight_based_navigation(self, site: Site) -> list[CheckResult]:
+    def _check_weight_based_navigation(self, site: SiteLike) -> list[CheckResult]:
         """
         Check that weight-based navigation works correctly.
 
@@ -365,7 +365,7 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_output_path_completeness(self, site: Site) -> list[CheckResult]:
+    def _check_output_path_completeness(self, site: SiteLike) -> list[CheckResult]:
         """
         Check that all pages have output_path set AND the file exists on disk.
 

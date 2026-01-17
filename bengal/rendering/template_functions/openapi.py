@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.utils.observability.logger import get_logger
 
@@ -34,8 +34,26 @@ if TYPE_CHECKING:
     from bengal.autodoc.models.openapi import OpenAPIEndpointMetadata, OpenAPISchemaMetadata
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
+
+
+class DocElementLike(Protocol):
+    """Protocol for objects with DocElement-like interface."""
+
+    @property
+    def typed_metadata(self) -> Any:
+        """Typed metadata object."""
+        ...
+
+    @property
+    def description(self) -> str:
+        """Element description."""
+        ...
+
+    @property
+    def href(self) -> str | None:
+        """URL to the element."""
+        ...
 
 
 # =============================================================================
@@ -78,7 +96,7 @@ class EndpointView:
     typed_metadata: Any  # OpenAPIEndpointMetadata or None
 
     @classmethod
-    def from_doc_element(cls, el: DocElement, consolidated: bool) -> EndpointView:
+    def from_doc_element(cls, el: DocElementLike, consolidated: bool) -> EndpointView:
         """Create from DocElement (consolidated or individual mode)."""
         meta: OpenAPIEndpointMetadata = el.typed_metadata  # type: ignore[assignment]
 
@@ -102,7 +120,7 @@ class EndpointView:
         )
 
     @classmethod
-    def from_page(cls, page: Page) -> EndpointView:
+    def from_page(cls, page: PageLike) -> EndpointView:
         """Create from Page (individual mode)."""
         meta = page.metadata
         return cls(
@@ -272,7 +290,7 @@ def schemas_filter(section: Section | None) -> list[SchemaView]:
     ]
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register OpenAPI functions with template environment.
     
     Args:

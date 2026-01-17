@@ -51,7 +51,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -127,7 +127,7 @@ class GraphVisualizer:
         
     """
 
-    def __init__(self, site: Site, graph: KnowledgeGraph):
+    def __init__(self, site: SiteLike, graph: KnowledgeGraph):
         """
         Initialize graph visualizer.
 

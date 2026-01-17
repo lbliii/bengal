@@ -77,8 +77,7 @@ from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -116,7 +115,7 @@ class XRefIndexGenerator:
         
     """
 
-    def __init__(self, site: Site) -> None:
+    def __init__(self, site: SiteLike) -> None:
         """
         Initialize the xref index generator.
 
@@ -400,7 +399,7 @@ class XRefIndexGenerator:
                 entries[endpoint_key] = entry
 
 
-def should_export_xref_index(site: Site) -> bool:
+def should_export_xref_index(site: SiteLike) -> bool:
     """
     Check if xref.json export is enabled.
     

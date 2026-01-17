@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 __all__ = [
     "ContentIntelligence",
@@ -142,7 +142,7 @@ class ContentIntelligence:
         
     """
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         """
         Initialize content intelligence analyzer.
 
@@ -299,7 +299,7 @@ class ContentIntelligence:
                 report.speculation_recommendations[section] = "conservative"
 
 
-def analyze_content_intelligence(site: Site) -> ContentAnalysisReport:
+def analyze_content_intelligence(site: SiteLike) -> ContentAnalysisReport:
     """
     Convenience function to analyze content intelligence.
     

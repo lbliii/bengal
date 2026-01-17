@@ -105,8 +105,8 @@ class DataTableDirective(DirectivePlugin):
         except (AttributeError, TypeError):
             options = {}
 
-        # Load data from file
-        data_result = self._load_data(path, state)
+        # Load data from file (path_str is validated to be non-empty above)
+        data_result = self._load_data(path_str, state)
 
         if "error" in data_result:
             logger.error(
@@ -121,7 +121,7 @@ class DataTableDirective(DirectivePlugin):
             }
 
         # Generate unique table ID
-        table_id = self._generate_table_id(path)
+        table_id = self._generate_table_id(path_str)
 
         # Build attributes for renderer
         attrs = {
@@ -402,7 +402,9 @@ def render_data_table(renderer: Any, text: str, **attrs: Any) -> str:
 
     # Add header filter if enabled
     if filter_enabled:
-        for col in config["columns"]:
+        columns_list = config["columns"]
+        assert isinstance(columns_list, list), "columns should be a list"
+        for col in columns_list:
             col["headerFilter"] = "input"
 
     # Convert config to JSON

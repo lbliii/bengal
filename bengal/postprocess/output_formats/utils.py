@@ -55,8 +55,7 @@ from bengal.utils.primitives.text import strip_html as _strip_html_base
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 
 def strip_html(text: str) -> str:
@@ -113,7 +112,7 @@ def generate_excerpt(text: str, length: int = 200) -> str:
     return excerpt + "..."
 
 
-def get_page_relative_url(page: Page, site: Any) -> str:
+def get_page_relative_url(page: PageLike, site: Any) -> str:
     """
     Get clean relative URL for page (without baseurl).
     
@@ -129,7 +128,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
     return page._path
 
 
-def get_page_public_url(page: Page, site: Site) -> str:
+def get_page_public_url(page: PageLike, site: SiteLike) -> str:
     """
     Get the page's public URL including baseurl.
     
@@ -145,7 +144,7 @@ def get_page_public_url(page: Page, site: Site) -> str:
     return page.href
 
 
-def get_page_url(page: Page, site: Any) -> str:
+def get_page_url(page: PageLike, site: Any) -> str:
     """
     Get the public URL for a page.
     
@@ -161,7 +160,7 @@ def get_page_url(page: Page, site: Any) -> str:
     return page.href
 
 
-def get_page_json_path(page: Page) -> Path | None:
+def get_page_json_path(page: PageLike) -> Path | None:
     """
     Get the output path for a page's JSON file.
     
@@ -188,7 +187,7 @@ def get_page_json_path(page: Page) -> Path | None:
     return output_path.with_suffix(".json")
 
 
-def get_page_txt_path(page: Page) -> Path | None:
+def get_page_txt_path(page: PageLike) -> Path | None:
     """
     Get the output path for a page's TXT file.
     

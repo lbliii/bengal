@@ -1,8 +1,9 @@
 """
-Tests for Dev dropdown auto-registration in auto menu mode.
+Tests for menu orchestration features in auto menu mode.
 
-These tests exercise MenuOrchestrator's auto-menu path, which bundles dev assets
-(GitHub + API + CLI) into a "Dev" dropdown when 2+ are present.
+Tests:
+- Dev dropdown auto-registration (bundles GitHub + API + CLI into "Dev" dropdown)
+- menu.extra config (appending extra items to auto-generated menu)
 """
 
 from __future__ import annotations
@@ -112,3 +113,105 @@ def test_auto_menu_cli_only_no_dev_dropdown() -> None:
     # Dev bundle should NOT be created with only 1 asset
     dev_bundle = orch._create_default_dev_bundle(assets)
     assert dev_bundle is None  # Needs 2+ assets for bundling
+
+
+# =============================================================================
+# menu.extra tests - Appending items to auto-generated menu
+# =============================================================================
+
+
+def test_menu_extra_appends_items_to_auto_menu() -> None:
+    """
+    menu.extra config should append items to the auto-generated menu.
+    
+    This allows users to add one-off links (like forums) without
+    replacing the entire auto-discovered menu.
+    """
+    site = MagicMock()
+    site.config = {
+        "menu": {
+            "extra": [
+                {"name": "Forum", "url": "https://forum.example.com/", "weight": 100},
+                {"name": "Discord", "url": "https://discord.gg/example", "weight": 101},
+            ]
+        },
+        "params": {},
+    }
+    site.menu = {}
+    site.menu_localized = {}
+    site.pages = []
+    site._dev_menu_metadata = None
+
+    # Only have a docs section (no dev assets)
+    docs_section = Section.create_virtual(
+        name="docs", relative_url="/docs/", title="Docs", metadata={}
+    )
+    site.sections = [docs_section]
+
+    items = MenuOrchestrator(site)._build_auto_menu_with_dev_bundling()
+
+    # Extra items should be appended
+    assert any(
+        i.get("name") == "Forum" and i.get("url") == "https://forum.example.com/" for i in items
+    )
+    assert any(
+        i.get("name") == "Discord" and i.get("url") == "https://discord.gg/example" for i in items
+    )
+
+
+def test_menu_extra_deduplicates_by_url() -> None:
+    """
+    menu.extra items with duplicate URLs should be skipped.
+    """
+    site = MagicMock()
+    site.config = {
+        "menu": {
+            "extra": [
+                {"name": "Forum", "url": "https://forum.example.com/", "weight": 100},
+                # Duplicate URL
+                {"name": "Forum Copy", "url": "https://forum.example.com/", "weight": 101},
+            ]
+        },
+        "params": {},
+    }
+    site.menu = {}
+    site.menu_localized = {}
+    site.pages = []
+    site._dev_menu_metadata = None
+    site.sections = []
+
+    items = MenuOrchestrator(site)._build_auto_menu_with_dev_bundling()
+
+    # Only one Forum item should exist (not the duplicate)
+    forum_items = [i for i in items if "forum" in i.get("url", "").lower()]
+    assert len(forum_items) == 1
+    assert forum_items[0]["name"] == "Forum"
+
+
+def test_menu_extra_requires_name_and_url() -> None:
+    """
+    menu.extra items missing name or url should be skipped.
+    """
+    site = MagicMock()
+    site.config = {
+        "menu": {
+            "extra": [
+                {"name": "Valid", "url": "https://example.com/"},  # Valid
+                {"name": "Missing URL"},  # Invalid - no url
+                {"url": "https://example.com/no-name"},  # Invalid - no name
+                "not a dict",  # Invalid - not a dict
+            ]
+        },
+        "params": {},
+    }
+    site.menu = {}
+    site.menu_localized = {}
+    site.pages = []
+    site._dev_menu_metadata = None
+    site.sections = []
+
+    items = MenuOrchestrator(site)._build_auto_menu_with_dev_bundling()
+
+    # Only the valid item should be added
+    assert len(items) == 1
+    assert items[0]["name"] == "Valid"

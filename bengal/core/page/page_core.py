@@ -118,7 +118,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class PageCore(Cacheable):
     """
     Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
@@ -239,10 +239,11 @@ class PageCore(Cacheable):
         Validate and normalize fields after initialization.
 
         This runs automatically after dataclass initialization.
+        Uses object.__setattr__ because PageCore is frozen (immutable after init).
         """
         # Ensure title is not empty
         if not self.title:
-            self.title = "Untitled"
+            object.__setattr__(self, "title", "Untitled")
 
         # Sanitize list fields: YAML edge cases can produce unexpected types
         # - 'null' or '~' → None
@@ -251,8 +252,12 @@ class PageCore(Cacheable):
         # - '2024-01-01' → datetime.date
         # - nested [a, b] → list
         # Filter out None, empty strings, and non-scalar types; convert rest to strings
-        self.tags, tags_filtered = self._sanitize_string_list_with_report(self.tags)
-        self.aliases, aliases_filtered = self._sanitize_string_list_with_report(self.aliases)
+        sanitized_tags, tags_filtered = self._sanitize_string_list_with_report(self.tags)
+        sanitized_aliases, aliases_filtered = self._sanitize_string_list_with_report(self.aliases)
+
+        # Use object.__setattr__ for frozen dataclass field updates in __post_init__
+        object.__setattr__(self, "tags", sanitized_tags)
+        object.__setattr__(self, "aliases", sanitized_aliases)
 
         # Log warnings for filtered values (helps users catch YAML issues)
         if tags_filtered:

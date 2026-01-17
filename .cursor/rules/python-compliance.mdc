@@ -1,0 +1,153 @@
+---
+alwaysApply: true
+---
+
+# Python Compliance (ruff + ty, Python 3.14t)
+
+## Ruff Rules I Must Follow
+
+```yaml
+line-length: 100
+rules: E, W, F, UP, B, SIM, I, PIE, PERF, C4, RUF
+```
+
+### Import Order (I - isort)
+```python
+# 1. Standard library
+import threading
+from collections.abc import Callable, Mapping
+from contextvars import ContextVar
+from dataclasses import dataclass
+
+# 2. Third-party
+import click
+
+# 3. Local
+from bengal.core import Page
+```
+
+### Modern Syntax (UP - pyupgrade)
+```python
+# Use these (3.14 syntax)
+list[str]           # not List[str]
+dict[str, int]      # not Dict[str, int]  
+str | None          # not Optional[str]
+type[MyClass]       # not Type[MyClass]
+X | Y               # not Union[X, Y]
+
+# Generics
+class MyClass[T]:   # not class MyClass(Generic[T])
+    pass
+```
+
+### Bugbear (B) - Avoid
+```python
+# B006: No mutable default args
+def bad(items: list[str] = []):    # ❌
+def good(items: list[str] | None = None):  # ✅
+
+# B008: No function calls in defaults  
+def bad(now: datetime = datetime.now()):  # ❌
+def good(now: datetime | None = None):    # ✅
+
+# B905: zip() needs strict=True
+for a, b in zip(x, y):           # ❌
+for a, b in zip(x, y, strict=True):  # ✅
+```
+
+### Simplify (SIM)
+```python
+# SIM102: Collapse nested ifs
+if a:
+    if b:  # ❌
+if a and b:  # ✅
+
+# SIM108: Use ternary
+if x:
+    y = a
+else:
+    y = b  # ❌
+y = a if x else b  # ✅
+
+# SIM118: Use `in` for dict keys
+if key in dict.keys():  # ❌
+if key in dict:         # ✅
+```
+
+## Type Annotations (ty)
+
+```python
+# Always annotate public functions
+def process(items: list[str]) -> dict[str, int]: ...
+
+# Use frozen dataclasses for immutable data
+@dataclass(frozen=True, slots=True)
+class Config:
+    name: str
+    value: int
+
+# Protocols over ABCs when possible
+from typing import Protocol
+
+class Renderable(Protocol):
+    def render(self) -> str: ...
+```
+
+## Free-Threading (3.14t) Patterns
+
+### Immutable by Default
+```python
+@dataclass(frozen=True, slots=True)  # Always use both
+class ASTNode:
+    children: tuple[Node, ...]  # tuple not list
+```
+
+### Thread-Local via ContextVar
+```python
+from contextvars import ContextVar
+
+_config: ContextVar[Config] = ContextVar('config')
+
+def get_config() -> Config:
+    return _config.get()
+```
+
+### Locks for Shared Mutable State
+```python
+import threading
+
+class Cache:
+    def __init__(self) -> None:
+        self._data: dict[str, str] = {}
+        self._lock = threading.Lock()
+    
+    def get_or_set(self, key: str, compute: Callable[[], str]) -> str:
+        if key in self._data:  # Fast path
+            return self._data[key]
+        with self._lock:
+            if key in self._data:  # Double-check
+                return self._data[key]
+            self._data[key] = compute()
+            return self._data[key]
+```
+
+### Avoid
+```python
+# ❌ Global mutable state
+_cache: dict[str, str] = {}
+
+# ❌ Module-level initialization  
+_instance = HeavyObject()
+
+# ❌ Assuming atomicity
+counter += 1
+```
+
+## Common Mistakes to Avoid
+
+1. **Don't use `Optional`** → use `X | None`
+2. **Don't use `List`, `Dict`, `Type`** → use lowercase `list`, `dict`, `type`
+3. **Don't use `from __future__ import annotations`** → not needed in 3.14
+4. **Don't put mutable defaults** → use `None` and create in function body
+5. **Don't forget `slots=True`** on dataclasses for performance
+6. **Don't use bare `zip()`** → use `zip(..., strict=True)`

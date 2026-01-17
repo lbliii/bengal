@@ -21,8 +21,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -91,7 +90,7 @@ def _normalize_cache_key(path: str) -> str:
     return normalized
 
 
-def _ensure_page_parsed(page: Page, site: Site) -> None:
+def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     """
     Ensure a page is parsed if it hasn't been parsed yet.
     
@@ -213,7 +212,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
 
             enhancer = get_enhancer()
             page_type = page.metadata.get("type")
-            if enhancer and enhancer.should_enhance(page_type):
+            if enhancer and page.parsed_ast and enhancer.should_enhance(page_type):
                 page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
         except Exception as e:
             logger.debug(
@@ -236,7 +235,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         # On parse failure, leave parsed_ast as None so template can fall back to content
 
 
-def _build_lookup_maps(site: Site) -> None:
+def _build_lookup_maps(site: SiteLike) -> None:
     """
     Build page lookup maps on the site object if not already built.
     
@@ -273,7 +272,7 @@ def _build_lookup_maps(site: Site) -> None:
     site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
 
 
-def page_exists(path: str, site: Site) -> bool:
+def page_exists(path: str, site: SiteLike) -> bool:
     """
     Check if a page exists without loading it.
     
@@ -299,6 +298,7 @@ def page_exists(path: str, site: Site) -> bool:
     _build_lookup_maps(site)
 
     maps = site._page_lookup_maps
+    assert maps is not None, "_build_lookup_maps should have set maps"
     normalized = path.replace("\\", "/")
 
     if normalized in maps["relative"]:
@@ -311,7 +311,7 @@ def page_exists(path: str, site: Site) -> bool:
     return False
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     def page_exists_wrapper(path: str) -> bool:
@@ -374,6 +374,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
         _build_lookup_maps(site)
 
         maps = site._page_lookup_maps
+        assert maps is not None, "_build_lookup_maps should have set maps"
 
         # Strategy 1: Direct lookup in relative map (exact match)
         page = None

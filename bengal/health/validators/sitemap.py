@@ -18,8 +18,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class SitemapValidator(BaseValidator):
@@ -42,7 +42,7 @@ class SitemapValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run sitemap validation checks."""
         results = []
@@ -120,7 +120,7 @@ class SitemapValidator(BaseValidator):
 
         return results
 
-    def _check_sitemap_urls(self, root: ET.Element, site: Site) -> list[CheckResult]:
+    def _check_sitemap_urls(self, root: ET.Element, site: SiteLike) -> list[CheckResult]:
         """Check URLs in sitemap are properly formatted."""
         results = []
 
@@ -223,7 +223,7 @@ class SitemapValidator(BaseValidator):
 
         return results
 
-    def _check_sitemap_coverage(self, root: ET.Element, site: Site) -> list[CheckResult]:
+    def _check_sitemap_coverage(self, root: ET.Element, site: SiteLike) -> list[CheckResult]:
         """Check sitemap includes expected pages."""
         results = []
 
