@@ -347,9 +347,9 @@ class OutputTarget(Protocol):
 # =============================================================================
 
 __all__ = [
-    "ProgressReporter",
     "Cacheable",
-    "OutputCollector",
     "ContentSourceProtocol",
+    "OutputCollector",
     "OutputTarget",
+    "ProgressReporter",
 ]

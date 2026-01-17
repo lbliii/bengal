@@ -13,13 +13,12 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closure for resolve_pages with access to site
@@ -585,7 +584,7 @@ def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
     return result
 
 
-def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
+def resolve_pages(page_paths: list[str], site: SiteLike) -> list[Any]:
     """
     Resolve page paths to Page objects.
     

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from bengal.build.contracts.keys import CacheKey
 from bengal.build.contracts.results import ChangeDetectionResult, RebuildReason, RebuildReasonCode
 from bengal.build.detectors.base import normalize_source_path, page_key_for_path
+from bengal.protocols import has_clear_template_cache
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -139,7 +140,7 @@ class TemplateChangeDetector:
             from bengal.rendering.engines import create_engine
 
             engine = create_engine(ctx.site)
-            if hasattr(engine, "clear_template_cache"):
+            if has_clear_template_cache(engine):
                 engine.clear_template_cache(template_names)
                 logger.debug(
                     "template_engine_cache_invalidated",

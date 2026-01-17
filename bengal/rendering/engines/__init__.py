@@ -136,7 +136,7 @@ def create_engine(
 
     if engine_name == "mako":
         try:
-            from bengal.rendering.engines.mako import MakoTemplateEngine
+            from bengal.rendering.engines.mako import MakoTemplateEngine  # type: ignore[import-not-found]
         except ImportError as e:
             raise BengalConfigError(
                 "Mako engine requires mako package. Install with: pip install bengal[mako]",
@@ -148,7 +148,7 @@ def create_engine(
 
     if engine_name == "patitas":
         try:
-            from bengal.rendering.engines.patitas import PatitasTemplateEngine
+            from bengal.rendering.engines.patitas import PatitasTemplateEngine  # type: ignore[import-not-found]
         except ImportError as e:
             raise BengalConfigError(
                 "Patitas engine requires patitas package. Install with: pip install bengal[patitas]",

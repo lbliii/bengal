@@ -9,8 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
 def feature_enabled(feature: str, theme_config: Any) -> bool:
@@ -33,7 +32,7 @@ def feature_enabled(feature: str, theme_config: Any) -> bool:
     return theme_config.has_feature(feature)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register theme-related template functions and filters.
     

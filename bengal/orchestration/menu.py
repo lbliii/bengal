@@ -318,6 +318,15 @@ class MenuOrchestrator:
             menu_items, seen_identifiers, seen_urls, seen_names
         )
 
+        # Append extra items from menu.extra config (allows adding one-off links in auto mode)
+        extra_items = menu_config.get("extra", [])
+        if extra_items and isinstance(extra_items, list):
+            for item in extra_items:
+                if isinstance(item, dict) and "name" in item and "url" in item:
+                    self._add_item_if_unique(
+                        item, menu_items, seen_identifiers, seen_urls, seen_names
+                    )
+
         return menu_items
 
     def _detect_bundleable_assets(self) -> dict[str, dict[str, Any]]:

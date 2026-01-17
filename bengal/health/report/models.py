@@ -347,7 +347,7 @@ class ValidatorStats:
 
         # Flatten metrics
         for metric_key, metric_val in self.metrics.items():
-            ctx[f"metric_{metric_key}"] = metric_val  # type: ignore[assignment]
+            ctx[f"metric_{metric_key}"] = metric_val
 
         return ctx
 

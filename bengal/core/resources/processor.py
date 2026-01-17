@@ -487,7 +487,7 @@ class ImageProcessor:
         from PIL import Image as PILImage
 
         try:
-            import smartcrop
+            import smartcrop  # type: ignore[import-not-found]
 
             sc = smartcrop.SmartCrop()
             result = sc.crop(img, target[0], target[1])

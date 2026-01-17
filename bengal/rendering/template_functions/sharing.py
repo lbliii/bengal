@@ -24,11 +24,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlencode
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closure for share_url with access to site
@@ -59,7 +58,7 @@ def share_url(
     page: Any,
     text: str | None = None,
     via: str | None = None,
-    site: Site | None = None,
+    site: SiteLike | None = None,
 ) -> str:
     """
     Generate share URL for a given platform and page.

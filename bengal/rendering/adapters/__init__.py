@@ -31,7 +31,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 def detect_adapter_type(env: Any) -> str:
@@ -63,7 +63,7 @@ def detect_adapter_type(env: Any) -> str:
     return "generic"
 
 
-def get_adapter_type(env: Any, site: Site) -> str:
+def get_adapter_type(env: Any, site: SiteLike) -> str:
     """Get adapter type with config override support.
     
     Args:
@@ -89,7 +89,7 @@ def get_adapter_type(env: Any, site: Site) -> str:
     return detect_adapter_type(env)
 
 
-def register_context_functions(env: Any, site: Site, adapter_type: str | None = None) -> None:
+def register_context_functions(env: Any, site: SiteLike, adapter_type: str | None = None) -> None:
     """Register context-dependent template functions using the appropriate adapter.
     
     These functions need access to the current page context (e.g., for i18n).

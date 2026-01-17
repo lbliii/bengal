@@ -27,8 +27,7 @@ if TYPE_CHECKING:
     from datetime import date, datetime
 
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -91,7 +90,7 @@ _DEF_FORMATS = {
 }
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register i18n helpers into template environment.
     
     Context-dependent functions (t, current_lang) are registered via the
@@ -134,7 +133,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
     # and context injection for Kida
 
 
-def _current_lang(site: Site, page: Page | None = None) -> str | None:
+def _current_lang(site: SiteLike, page: Page | None = None) -> str | None:
     i18n = site.config.get("i18n", {}) or {}
     default = i18n.get("default_language", "en")
     if page is not None and getattr(page, "lang", None):
@@ -142,7 +141,7 @@ def _current_lang(site: Site, page: Page | None = None) -> str | None:
     return getattr(site, "current_language", None) or default
 
 
-def _languages(site: Site) -> list[LanguageInfo]:
+def _languages(site: SiteLike) -> list[LanguageInfo]:
     """
     Get normalized list of configured languages.
     
@@ -181,7 +180,7 @@ def _languages(site: Site) -> list[LanguageInfo]:
     return normalized
 
 
-def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None, str | None], str]:
+def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None, str | None], str]:
     cache: dict[str, dict[str, Any]] = {}
     i18n_dir = site.root_path / "i18n"
 
@@ -254,7 +253,7 @@ def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None, str
 _translation_key_index_cache: dict[int, tuple[int, dict[str, list[Any]]]] = {}
 
 
-def _get_translation_key_index(site: Site) -> dict[str, list[Any]]:
+def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
     """
     Get or build translation_key -> pages index.
     
@@ -287,7 +286,7 @@ def _get_translation_key_index(site: Site) -> dict[str, list[Any]]:
     return index
 
 
-def _alternate_links(site: Site, page: Page | None) -> list[dict[str, str]]:
+def _alternate_links(site: SiteLike, page: Page | None) -> list[dict[str, str]]:
     if page is None:
         return []
     # Build alternates via translation_key
@@ -331,7 +330,7 @@ def _locale_date(
         return ""
     # Try Babel for formatting
     try:
-        from babel.dates import format_date
+        from babel.dates import format_date  # type: ignore[import-not-found]
 
         pattern = _DEF_FORMATS.get(format, format)
         return format_date(date, format=pattern, locale=lang or "en")

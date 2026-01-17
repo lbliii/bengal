@@ -157,7 +157,10 @@ class IncludeDirective(DirectivePlugin):
 
         # --- Robustness: Check for include cycles ---
         files_value = env.get("_included_files")
-        included_files: set[str] = files_value if isinstance(files_value, set) else set()
+        if isinstance(files_value, set):
+            included_files: set[str] = files_value  # type: ignore[assignment]
+        else:
+            included_files = set()
         canonical_path = str(file_path.resolve())
         if canonical_path in included_files:
             logger.warning(

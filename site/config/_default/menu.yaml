@@ -1,0 +1,11 @@
+# Menu Configuration
+# ==================
+# Extra items appended to the auto-generated navigation menu.
+# See: docs/content/organization/menus.md
+
+menu:
+  extra:
+    - name: "Forum"
+      url: "https://bengal.discourse.group/"
+      weight: 100
+      icon: chat-circle

@@ -29,7 +29,7 @@ Related:
 
 from __future__ import annotations
 
-import logging
+from bengal.utils.observability.logger import get_logger as _get_bengal_logger
 from typing import Any
 
 import click
@@ -40,7 +40,7 @@ from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
 from bengal.output.icons import IconSet, get_icon_set
 
-logger = logging.getLogger(__name__)
+logger = _get_bengal_logger(__name__)
 
 
 class CLIOutput(DevServerOutputMixin):

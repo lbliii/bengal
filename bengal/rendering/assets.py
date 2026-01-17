@@ -32,14 +32,25 @@ from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import Any, Iterator, Protocol
 
 from bengal.utils.concurrency.thread_local import ThreadSafeSet
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.observability import ComponentStats
 
-if TYPE_CHECKING:
-    from bengal.core.site import Site
+class AssetSiteLike(Protocol):
+    """Minimal protocol for site objects used in asset resolution."""
+
+    @property
+    def output_dir(self) -> Path:
+        """Output directory for the site."""
+        ...
+
+    @property
+    def baseurl(self) -> str:
+        """Base URL for the site."""
+        ...
+
 
 logger = get_logger(__name__)
 
@@ -210,7 +221,7 @@ def asset_manifest_context(ctx: AssetManifestContext) -> Iterator[AssetManifestC
 
 def resolve_asset_url(
     asset_path: str,
-    site: Site,
+    site: AssetSiteLike,
     page: Any = None,
 ) -> str:
     """
@@ -287,7 +298,7 @@ def _get_asset_tracker() -> Any | None:
         return None
 
 
-def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
+def _resolve_fingerprinted(logical_path: str, site: AssetSiteLike) -> str | None:
     """
     Resolve a logical asset path to its fingerprinted output path.
 
@@ -364,7 +375,7 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
     return None
 
 
-def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str:
+def _resolve_file_protocol(asset_path: str, site: AssetSiteLike, page: Any = None) -> str:
     """
     Generate asset URL for file:// protocol using relative paths.
     
@@ -398,7 +409,7 @@ def _resolve_file_protocol(asset_path: str, site: Site, page: Any = None) -> str
     return f"./{asset_url_path}"
 
 
-def clear_manifest_cache(site: Site | None = None) -> None:
+def clear_manifest_cache(site: AssetSiteLike | None = None) -> None:
     """
     Clear the asset manifest cache and reset observability state.
 

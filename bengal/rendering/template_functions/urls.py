@@ -10,11 +10,10 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closures that have access to site
@@ -178,7 +177,7 @@ def ensure_trailing_slash(url: str) -> str:
     return url if url.endswith("/") else url + "/"
 
 
-def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str = "") -> str:
+def build_artifact_url(site: SiteLike, filename: str = "build.json", dir_name: str = "") -> str:
     """
     Compute URL for build artifacts (build.json, build.svg).
     

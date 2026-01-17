@@ -22,9 +22,9 @@ Foundational data models and build coordination for Bengal's static site generat
 ## Design Principles
 
 - **No God Objects**: Each class has single responsibility (Site uses 7 focused mixins)
-- **Passive Core**: Data models don't perform I/O—orchestrators handle all file operations
+- **Passive Core**: Core models (PageCore, Section) are data-only; Site and Asset provide I/O convenience APIs that orchestrators coordinate
 - **Composition over Inheritance**: BuildContext passes services between build phases
-- **Immutable Where Possible**: PageCore is frozen after parsing, minimizing side effects
+- **Immutable PageCore**: PageCore uses `frozen=True` for thread-safety and cache integrity (Python 3.14t compatible)
 
 ## In This Section
 

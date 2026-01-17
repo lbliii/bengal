@@ -129,7 +129,7 @@ class WatchfilesWatcher:
 def create_watcher(
     paths: list[Path],
     ignore_filter: Callable[[Path], bool],
-) -> FileWatcher:
+) -> WatchfilesWatcher:
     """
     Create a file watcher for the given paths.
     

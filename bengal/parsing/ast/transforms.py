@@ -67,7 +67,7 @@ def transform_links_in_ast(
         # Transform link nodes
         if node_type == "link":
             # Get URL from direct field or attrs
-            url = node.get("url")  # type: ignore[union-attr]
+            url = node.get("url")
             if url is None:
                 attrs = node.get("attrs", {})
                 if isinstance(attrs, dict):
@@ -94,7 +94,7 @@ def transform_links_in_ast(
 
         # Transform image src
         if node_type == "image":
-            src = node.get("src")  # type: ignore[union-attr]
+            src = node.get("src")
             if src:
                 new_src = transformer(src)
                 new_node = dict(node)

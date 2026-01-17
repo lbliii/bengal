@@ -76,8 +76,8 @@ class ColonDirectiveRange:
 
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class DirectiveAnalyzer:
@@ -94,7 +94,7 @@ class DirectiveAnalyzer:
     """
 
     def analyze(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> dict[str, Any]:
         """
         Analyze all directives in site source files.
@@ -103,7 +103,7 @@ class DirectiveAnalyzer:
         redundant disk I/O (~4 seconds saved for 773-page sites).
 
         Args:
-            site: Site instance to analyze
+            site: SiteLike instance to analyze
             build_context: Optional BuildContext with cached page contents.
                           When provided, uses cached content instead of
                           reading from disk (build-integrated validation).

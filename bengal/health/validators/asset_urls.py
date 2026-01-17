@@ -21,8 +21,8 @@ from bengal.health.report import CheckResult, CheckStatus
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class AssetURLValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run asset URL validation checks."""
         results: list[CheckResult] = []
@@ -136,19 +136,15 @@ class AssetURLValidator(BaseValidator):
             urls = [m["url"] for m in sample]
             results.append(
                 CheckResult(
-                    name="asset_url_fingerprint_mismatch",
                     status=CheckStatus.ERROR,
                     message=f"{len(fingerprint_issues)} asset URL(s) reference non-fingerprinted files but only fingerprinted versions exist",
-                    details={
+                    code="asset_url_fingerprint_mismatch",
+                    recommendation="Check that asset manifest is loaded during template rendering; verify asset_url() uses manifest for fingerprint resolution; run `make deploy-test` to catch this locally",
+                    details=urls,
+                    metadata={
                         "count": len(fingerprint_issues),
-                        "sample_urls": urls,
                         "hint": "asset_url() should resolve to fingerprinted paths via manifest lookup",
                     },
-                    recommendations=[
-                        "Check that asset manifest is loaded during template rendering",
-                        "Verify asset_url() uses manifest for fingerprint resolution",
-                        "Run `make deploy-test` to catch this locally before pushing",
-                    ],
                 )
             )
 
@@ -156,21 +152,18 @@ class AssetURLValidator(BaseValidator):
         case_issues = [m for m in unique_missing if m.get("case_mismatch")]
         if case_issues:
             sample = case_issues[:3]
-            details = [f"{m['url']} -> actual: {m['case_mismatch']}" for m in sample]
+            detail_strs = [f"{m['url']} -> actual: {m['case_mismatch']}" for m in sample]
             results.append(
                 CheckResult(
-                    name="asset_url_case_mismatch",
                     status=CheckStatus.WARNING,
                     message=f"{len(case_issues)} asset URL(s) have case mismatches - will break on case-sensitive systems (Linux CI)",
-                    details={
+                    code="asset_url_case_mismatch",
+                    recommendation="Fix the case in asset URLs to match actual file names exactly; most themes use lowercase: css/, js/, not CSS/, JS/",
+                    details=detail_strs,
+                    metadata={
                         "count": len(case_issues),
-                        "sample_mismatches": details,
                         "warning": "Works on macOS but FAILS on Linux/GitHub Actions",
                     },
-                    recommendations=[
-                        "Fix the case in asset URLs to match actual file names exactly",
-                        "Most themes use lowercase: css/, js/, not CSS/, JS/",
-                    ],
                 )
             )
 
@@ -185,17 +178,12 @@ class AssetURLValidator(BaseValidator):
             urls = [m["url"] for m in sample]
             results.append(
                 CheckResult(
-                    name="asset_url_missing",
                     status=CheckStatus.WARNING,
                     message=f"{len(other_missing)} asset URL(s) reference files that don't exist",
-                    details={
-                        "count": len(other_missing),
-                        "sample_urls": urls,
-                    },
-                    recommendations=[
-                        "Check that referenced assets exist in theme or site assets",
-                        "Verify asset paths are correct in templates",
-                    ],
+                    code="asset_url_missing",
+                    recommendation="Check that referenced assets exist in theme or site assets; verify asset paths are correct in templates",
+                    details=urls,
+                    metadata={"count": len(other_missing)},
                 )
             )
 
@@ -203,9 +191,9 @@ class AssetURLValidator(BaseValidator):
         if not unique_missing:
             results.append(
                 CheckResult(
-                    name="asset_urls_valid",
                     status=CheckStatus.SUCCESS,
                     message=f"All {checked} asset references resolve to existing files",
+                    code="asset_urls_valid",
                 )
             )
 

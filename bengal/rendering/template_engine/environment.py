@@ -16,13 +16,19 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import (
-    ChainableUndefined,
     ChoiceLoader,
     Environment,
     FileSystemLoader,
     PrefixLoader,
+    StrictUndefined,
     select_autoescape,
 )
+
+# ChainableUndefined is not in jinja2 type stubs; use StrictUndefined as fallback
+try:
+    from jinja2 import ChainableUndefined
+except ImportError:
+    ChainableUndefined = StrictUndefined  # type: ignore[misc, assignment]
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.core.theme import get_theme_package

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 __all__ = [
     "LinkPatternAnalyzer",
@@ -80,7 +80,7 @@ class LinkPatternAnalyzer:
         
     """
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         """
         Initialize the analyzer.
 
@@ -216,7 +216,7 @@ class LinkPatternAnalyzer:
                 report.recommended_prefetch.append(path)
 
 
-def analyze_link_patterns(site: Site) -> LinkPatternReport:
+def analyze_link_patterns(site: SiteLike) -> LinkPatternReport:
     """
     Convenience function to analyze link patterns.
     

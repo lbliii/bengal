@@ -21,10 +21,9 @@ from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
-from bengal.utils.observability.logger import get_logger
+    from bengal.protocols import SiteLike
 
-if TYPE_CHECKING:
-    from bengal.core.site import Site
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -53,7 +52,7 @@ class AssetValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
@@ -227,7 +226,7 @@ class AssetValidator(BaseValidator):
 
         return results
 
-    def _check_asset_sizes(self, assets_dir: Path, site: Site) -> list[CheckResult]:
+    def _check_asset_sizes(self, assets_dir: Path, site: SiteLike) -> list[CheckResult]:
         """Check asset sizes are reasonable."""
         results = []
 
@@ -338,7 +337,7 @@ class AssetValidator(BaseValidator):
 
         return results
 
-    def _check_minification_hints(self, assets_dir: Path, site: Site) -> list[CheckResult]:
+    def _check_minification_hints(self, assets_dir: Path, site: SiteLike) -> list[CheckResult]:
         """Check if assets appear to be minified based on file size patterns."""
         results = []
 

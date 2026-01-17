@@ -129,9 +129,11 @@ def _get_icon_search_paths(site: Site) -> list[Path]:
     if extend_defaults:
         import bengal
 
-        default_icons = Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
-        if default_icons.exists() and default_icons not in paths:
-            paths.append(default_icons)
+        bengal_file = bengal.__file__
+        if bengal_file is not None:
+            default_icons = Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
+            if default_icons.exists() and default_icons not in paths:
+                paths.append(default_icons)
 
     return paths
 
@@ -140,7 +142,10 @@ def _get_fallback_path() -> Path:
     """Get fallback icon path when resolver not initialized."""
     import bengal
 
-    return Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
+    bengal_file = bengal.__file__
+    if bengal_file is None:
+        raise RuntimeError("Bengal package __file__ is None, cannot determine icon path")
+    return Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
 
 
 def load_icon(name: str) -> str | None:

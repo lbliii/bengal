@@ -9,11 +9,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
     env.filters.update(
         {
@@ -134,7 +133,7 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
     # If we can show all pages, do it
     if total_pages <= (window * 2 + 5):
         # Return list[int] which is compatible with list[int | None]
-        return list(range(1, total_pages + 1))  # type: ignore[return-value]
+        return list(range(1, total_pages + 1))
 
     pages = []
 

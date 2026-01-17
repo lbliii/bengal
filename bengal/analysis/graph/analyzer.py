@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from bengal.analysis.graph.metrics import PageConnectivity
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.analysis.results import PageLayers
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
 class GraphAnalyzer:
@@ -83,7 +83,7 @@ class GraphAnalyzer:
                 suggestion="Call graph.build() before performing analysis",
             )
 
-    def get_connectivity(self, page: Page) -> PageConnectivity:
+    def get_connectivity(self, page: PageLike) -> PageConnectivity:
         """
         Get connectivity information for a specific page.
 
@@ -114,7 +114,7 @@ class GraphAnalyzer:
             is_orphan=(incoming == 0 and outgoing == 0),
         )
 
-    def get_connectivity_score(self, page: Page) -> int:
+    def get_connectivity_score(self, page: PageLike) -> int:
         """
         Get total connectivity score for a page.
 

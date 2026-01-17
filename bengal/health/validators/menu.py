@@ -12,8 +12,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class MenuValidator(BaseValidator):
@@ -34,7 +34,7 @@ class MenuValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Validate menu structure."""
         results = []
@@ -55,7 +55,7 @@ class MenuValidator(BaseValidator):
 
         return results
 
-    def _validate_menu(self, site: Site, menu_name: str, items: list[Any]) -> list[CheckResult]:
+    def _validate_menu(self, site: SiteLike, menu_name: str, items: list[Any]) -> list[CheckResult]:
         """Validate a single menu."""
         results = []
 
@@ -94,7 +94,7 @@ class MenuValidator(BaseValidator):
                 count += self._count_menu_items(item.children, 0)
         return count
 
-    def _check_menu_urls(self, site: Site, items: list[Any]) -> list[str]:
+    def _check_menu_urls(self, site: SiteLike, items: list[Any]) -> list[str]:
         """Check if menu item URLs point to existing pages."""
         broken = []
 

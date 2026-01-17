@@ -179,6 +179,8 @@ def list_themes(source: str) -> None:
     try:
         import bengal
 
+        if bengal.__file__ is None:
+            raise RuntimeError("Bengal package __file__ is None")
         pkg_dir = Path(bengal.__file__).parent / "themes"
         if pkg_dir.exists():
             bundled = [p.name for p in pkg_dir.iterdir() if (p / "templates").exists()]
@@ -269,6 +271,8 @@ def info(slug: str, source: str) -> None:
     try:
         import bengal
 
+        if bengal.__file__ is None:
+            raise RuntimeError("Bengal package __file__ is None")
         bundled = Path(bengal.__file__).parent / "themes" / slug
         if bundled.exists():
             cli.info(f"  Bundled path: {bundled}")
@@ -505,6 +509,8 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
     try:
         import bengal
 
+        if bengal.__file__ is None:
+            raise RuntimeError("Bengal package __file__ is None")
         bundled = Path(bengal.__file__).parent / "themes" / theme_name
         if bundled.exists():
             return True
@@ -535,6 +541,8 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
     try:
         import bengal
 
+        if bengal.__file__ is None:
+            raise RuntimeError("Bengal package __file__ is None")
         bengal_themes = Path(bengal.__file__).parent / "themes"
         if template_dir.is_relative_to(bengal_themes):
             theme_name = template_dir.relative_to(bengal_themes).parts[0]

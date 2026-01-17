@@ -22,8 +22,8 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class RenderingValidator(BaseValidator):
@@ -46,7 +46,7 @@ class RenderingValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run rendering validation checks."""
         results = []
@@ -65,7 +65,7 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_html_structure(self, site: Site) -> list[CheckResult]:
+    def _check_html_structure(self, site: SiteLike) -> list[CheckResult]:
         """Check basic HTML structure in output pages."""
         results = []
         issues = []
@@ -112,7 +112,7 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_unrendered_jinja2(self, site: Site) -> list[CheckResult]:
+    def _check_unrendered_jinja2(self, site: SiteLike) -> list[CheckResult]:
         """Check for unrendered Jinja2 syntax in output."""
         results = []
         issues = []
@@ -194,7 +194,7 @@ class RenderingValidator(BaseValidator):
     # It created a new TemplateEngine (~137ms) just to verify filters exist.
     # This is redundant: if filters were missing, templates would error during build.
 
-    def _check_seo_metadata(self, site: Site) -> list[CheckResult]:
+    def _check_seo_metadata(self, site: SiteLike) -> list[CheckResult]:
         """Check for basic SEO metadata in pages."""
         results = []
         issues = []

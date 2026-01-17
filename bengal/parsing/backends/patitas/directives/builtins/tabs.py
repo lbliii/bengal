@@ -68,9 +68,9 @@ try:
 except ImportError:
     import hashlib
 
-    def hash_str(s: str, truncate: int = 12) -> str:
+    def hash_str(content: str, truncate: int | None = None, algorithm: str = "sha256") -> str:
         """Fallback hash function."""
-        return hashlib.md5(s.encode()).hexdigest()[:truncate]
+        return hashlib.md5(content.encode()).hexdigest()[: truncate or 12]
 
 
 @dataclass(frozen=True, slots=True)

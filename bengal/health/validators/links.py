@@ -36,8 +36,7 @@ from bengal.health.report import CheckResult, ValidatorStats
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -59,7 +58,7 @@ class LinkValidator:
         
     """
 
-    def __init__(self, site: Site | None = None) -> None:
+    def __init__(self, site: SiteLike | None = None) -> None:
         """
         Initialize the link validator.
 
@@ -70,7 +69,7 @@ class LinkValidator:
         self.broken_links: list[tuple[Path | None, str]] = []
         self._page_urls: set[str] | None = None
         self._source_paths: set[str] | None = None
-        self._site: Site | None = site
+        self._site: SiteLike | None = site
 
     def _build_page_url_index(self, site: Any) -> set[str]:
         """

@@ -27,8 +27,8 @@ from bengal.utils.io.atomic_write import atomic_write_bytes, atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class BaseOutputGenerator(ABC):
@@ -53,7 +53,7 @@ class BaseOutputGenerator(ABC):
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         build_context: BuildContext | None = None,
     ) -> None:
         """

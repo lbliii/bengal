@@ -32,7 +32,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class AnchorValidator(BaseValidator):
@@ -77,7 +77,7 @@ class AnchorValidator(BaseValidator):
         super().__init__()
         self.strict = strict
 
-    def validate(self, site: Site, build_context: Any | None = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any | None = None) -> list[CheckResult]:
         """
         Validate anchors across all site pages.
 
@@ -105,7 +105,7 @@ class AnchorValidator(BaseValidator):
 
         return results
 
-    def _build_valid_anchor_set(self, site: Site) -> set[str]:
+    def _build_valid_anchor_set(self, site: SiteLike) -> set[str]:
         """
         Build set of all valid anchor IDs from xref_index.
 

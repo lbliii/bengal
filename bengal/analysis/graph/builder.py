@@ -31,8 +31,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -70,7 +69,7 @@ class GraphBuilder:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         exclude_autodoc: bool = True,
         parallel: bool | None = None,
     ):
@@ -203,7 +202,7 @@ class GraphBuilder:
             workers=max_workers,
         )
 
-        def analyze_page(page: Page) -> dict[str, Any]:
+        def analyze_page(page: PageLike) -> dict[str, Any]:
             """
             Analyze a single page's connections.
 

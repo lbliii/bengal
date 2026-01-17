@@ -11,10 +11,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
-def get_section(path: str, site: Site) -> Section | None:
+def get_section(path: str, site: SiteLike) -> Section | None:
     """
     Get a section by its path.
     
@@ -43,7 +43,7 @@ def get_section(path: str, site: Site) -> Section | None:
     return site.get_section_by_path(normalized)
 
 
-def section_pages(path: str, site: Site, recursive: bool = False) -> list[Page]:
+def section_pages(path: str, site: SiteLike, recursive: bool = False) -> list[Page]:
     """
     Get pages in a section.
     

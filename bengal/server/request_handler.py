@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import http.server
 import io
+import os
 import threading
 import time
 from collections.abc import Callable
@@ -405,7 +406,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         self.command = ""  # HTTP command (GET, POST, etc.)
 
     # In dev, aggressively prevent browser caching to avoid stale assets
-    def end_headers(self) -> None:  # type: ignore[override]
+    def end_headers(self) -> None:
         try:
             # If cache headers not already set, add sensible dev defaults
             if (
@@ -415,9 +416,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                 )
                 and getattr(self, "path", "") != "/__bengal_reload__"
             ):
-                from bengal.server.utils import apply_dev_no_cache_headers
+                from bengal.server.utils import HeaderSender, apply_dev_no_cache_headers
+                from typing import cast
 
-                apply_dev_no_cache_headers(self)
+                apply_dev_no_cache_headers(cast(HeaderSender, self))
         except Exception as e:
             logger.debug(
                 "dev_cache_header_application_failed",
@@ -659,7 +661,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         super().send_error(code, message, explain)
 
     @override
-    def list_directory(self, path: str) -> io.BytesIO | None:
+    def list_directory(self, path: str | os.PathLike[str]) -> io.BytesIO | None:
         """
         Show themed "rebuilding" page during builds instead of directory listing.
 

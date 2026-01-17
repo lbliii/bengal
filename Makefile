@@ -4,7 +4,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run build serve clean test shell ty typecheck typecheck-strict deploy-test dist publish release
+.PHONY: all help setup install run build serve clean test shell ty deploy-test dist publish release
 
 all: help
 
@@ -22,8 +22,6 @@ help:
 	@echo "  make run      - Run bengal CLI (use ARGS='...' to pass arguments)"
 	@echo "  make test     - Run the test suite"
 	@echo "  make ty        - Run ty type checker (fast, Rust-based)"
-	@echo "  make typecheck - Run mypy type checking (legacy)"
-	@echo "  make typecheck-strict - Run mypy with strict mode (for debugging)"
 	@echo "  make dist     - Build distribution packages"
 	@echo "  make publish  - Publish to PyPI (uses .env for token)"
 	@echo "  make release  - Build and publish in one step"
@@ -72,14 +70,6 @@ ty:
 	@echo "Running ty type checker (Astral, Rust-based)..."
 	uv run ty check bengal/
 
-typecheck:
-	@echo "Running mypy type checking (legacy)..."
-	uv run mypy bengal/ --show-error-codes
-
-typecheck-strict:
-	@echo "Running mypy with strict mode (for debugging)..."
-	uv run mypy bengal/ --strict --show-error-codes --show-error-context
-
 # =============================================================================
 # Build & Release
 # =============================================================================
@@ -112,7 +102,6 @@ clean:
 	rm -rf build/ dist/ *.egg-info site/public
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
-	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type d -name ".ty_cache" -exec rm -rf {} +
 

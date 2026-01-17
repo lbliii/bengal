@@ -40,7 +40,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 

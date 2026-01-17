@@ -20,8 +20,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 __all__ = ["AccessibilityValidator"]
 
@@ -61,7 +61,7 @@ class AccessibilityValidator(BaseValidator):
         r"^this$",
     ]
 
-    def validate(self, site: Site, build_context: BuildContext | None = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: BuildContext | None = None) -> list[CheckResult]:
         """
         Run accessibility validation.
 
@@ -81,7 +81,7 @@ class AccessibilityValidator(BaseValidator):
 
         return results
 
-    def _get_config(self, site: Site) -> dict[str, Any]:
+    def _get_config(self, site: SiteLike) -> dict[str, Any]:
         """Get accessibility validation config."""
         health_config = site.config.get("health_check", {})
         return health_config.get(

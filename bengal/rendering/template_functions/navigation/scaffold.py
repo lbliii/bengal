@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from bengal.core.nav_tree import NavNode, NavTree
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 @dataclass
@@ -88,7 +88,7 @@ class NavScaffoldCache:
     _cache: LRUCache[str, str] = LRUCache(maxsize=50, name="nav_scaffold")
     _lock = threading.Lock()
     _render_locks = PerKeyLockManager()  # Per-scaffold render serialization
-    _site: Site | None = None
+    _site: SiteLike | None = None
 
     @classmethod
     def _make_key(cls, version_id: str | None, root_url: str) -> str:
@@ -98,7 +98,7 @@ class NavScaffoldCache:
     @classmethod
     def get_html(
         cls,
-        site: Site,
+        site: SiteLike,
         version_id: str | None,
         root_url: str,
         renderer: object,

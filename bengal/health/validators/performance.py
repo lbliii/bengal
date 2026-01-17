@@ -15,8 +15,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class PerformanceValidator(BaseValidator):
@@ -41,7 +41,7 @@ class PerformanceValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run performance validation checks."""
         results = []
@@ -68,7 +68,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_build_time(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
+    def _check_build_time(self, site: SiteLike, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check if overall build time is reasonable."""
         results = []
 
@@ -106,7 +106,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_throughput(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
+    def _check_throughput(self, site: SiteLike, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check pages per second throughput."""
         results: list[CheckResult] = []
 
@@ -140,7 +140,7 @@ class PerformanceValidator(BaseValidator):
 
         return results
 
-    def _check_slow_pages(self, site: Site, build_stats: dict[str, Any]) -> list[CheckResult]:
+    def _check_slow_pages(self, site: SiteLike, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check for individual slow pages."""
         results: list[CheckResult] = []
 

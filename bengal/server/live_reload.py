@@ -69,15 +69,33 @@ from __future__ import annotations
 import json
 import os
 import threading
+from http.server import SimpleHTTPRequestHandler
 from io import BufferedIOBase
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     pass
+
+
+class HTTPHandlerProtocol(Protocol):
+    """Protocol for HTTP request handler methods used by LiveReloadMixin."""
+
+    path: str
+    wfile: BufferedIOBase
+    # Class-level cache attributes from LiveReloadMixin
+    _html_cache: dict[tuple[str, float], bytes]
+    _html_cache_max_size: int
+    _html_cache_lock: threading.Lock
+
+    def send_response(self, code: int, message: str | None = None) -> None: ...
+    def send_header(self, keyword: str, value: str) -> None: ...
+    def end_headers(self) -> None: ...
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None: ...
+    def translate_path(self, path: str) -> str: ...
 
 logger = get_logger(__name__)
 
@@ -249,7 +267,7 @@ class LiveReloadMixin:
     # would shadow the real implementations. The type checker can find the methods
     # from SimpleHTTPRequestHandler in the concrete class's MRO.
 
-    def handle_sse(self) -> None:
+    def handle_sse(self: HTTPHandlerProtocol) -> None:
         """
         Handle Server-Sent Events endpoint for live reload.
 
@@ -381,7 +399,7 @@ class LiveReloadMixin:
                 keepalives_sent=keepalive_count,
             )
 
-    def serve_html_with_live_reload(self) -> bool:
+    def serve_html_with_live_reload(self: HTTPHandlerProtocol) -> bool:
         """
         Serve HTML file with live reload script injected (with caching).
 

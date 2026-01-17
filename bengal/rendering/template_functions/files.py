@@ -13,13 +13,12 @@ from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closures that have access to site
@@ -137,7 +136,7 @@ def file_size(path: str, root_path: Path) -> str:
             "path_not_file",
             path=path,
             file_path=str(file_path),
-            message="Path exists but is not a file",
+            detail="Path exists but is not a file",
             caller="template",
         )
         return "0 B"

@@ -11,11 +11,11 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 def _build_section_menu_item(
-    section: Any, site: Site, parent_identifier: str | None = None
+    section: Any, site: SiteLike, parent_identifier: str | None = None
 ) -> dict[str, Any] | None:
     """
     Build a menu item from a section, recursively including subsections.
@@ -96,7 +96,7 @@ def _build_section_menu_item(
     }
 
 
-def get_auto_nav(site: Site) -> list[dict[str, Any]]:
+def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     """
     Auto-discover hierarchical navigation from site sections.
     

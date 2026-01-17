@@ -83,8 +83,9 @@ class SitePropertiesMixin:
             site.title  # Returns "My Blog" or None
         """
         # Support both Config and dict access
-        if hasattr(self.config, "site"):
-            return self.config.site.title
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "title", None)
         return self.config.get("site", {}).get("title") or self.config.get("title")
 
     @property
@@ -98,8 +99,9 @@ class SitePropertiesMixin:
         if getattr(self, "_description_override", None) is not None:
             return self._description_override
 
-        if hasattr(self.config, "site"):
-            return self.config.site.get("description")
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "get", lambda k: None)("description")
 
         site_section = self.config.get("site", {})
         if isinstance(site_section, dict) and "description" in site_section:
@@ -136,8 +138,9 @@ class SitePropertiesMixin:
             return flat_baseurl
 
         # Fall back to nested site.baseurl
-        if hasattr(self.config, "site"):
-            return self.config.site.baseurl
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "baseurl", None)
         return self.config.get("site", {}).get("baseurl")
 
     @property
@@ -152,8 +155,9 @@ class SitePropertiesMixin:
             site.author  # Returns "Jane Doe" or None
         """
         # Support both Config and dict access
-        if hasattr(self.config, "site"):
-            return self.config.site.author
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "author", None)
         return self.config.get("site", {}).get("author") or self.config.get("author")
 
     @property
@@ -165,8 +169,9 @@ class SitePropertiesMixin:
             Favicon path string from config, or None if not configured
         """
         # Support both Config and dict access
-        if hasattr(self.config, "site"):
-            return self.config.site.get("favicon")
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "get", lambda k: None)("favicon")
         return self.config.get("site", {}).get("favicon")
 
     @property
@@ -178,8 +183,10 @@ class SitePropertiesMixin:
             Logo image path string from config, or None if not configured
         """
         # Support both Config and dict access
-        if hasattr(self.config, "site"):
-            return self.config.site.get("logo_image") or self.config.site.get("logo")
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            get_fn = getattr(site_attr, "get", lambda k: None)
+            return get_fn("logo_image") or get_fn("logo")
         site_section = self.config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("logo_image") or site_section.get("logo")
@@ -194,8 +201,10 @@ class SitePropertiesMixin:
             Logo text string from config, or None if not configured
         """
         # Support both Config and dict access
-        if hasattr(self.config, "site"):
-            return self.config.site.get("logo_text") or self.config.site.title
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            get_fn = getattr(site_attr, "get", lambda k: None)
+            return get_fn("logo_text") or getattr(site_attr, "title", None)
         site_section = self.config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("logo_text") or site_section.get("title")
@@ -374,9 +383,11 @@ class SitePropertiesMixin:
             parallel = site.build_config.get("parallel", True)
         """
         # Support both Config and dict access
-        if hasattr(self.config, "build"):
+        build_attr = getattr(self.config, "build", None)
+        if build_attr is not None:
             # ConfigSection - access raw dict
-            return dict(self.config.build._data) if hasattr(self.config.build, "_data") else {}
+            data_attr = getattr(build_attr, "_data", None)
+            return dict(data_attr) if data_attr is not None else {}
         value = self.config.get("build")
         return dict(value) if isinstance(value, dict) else {}
 

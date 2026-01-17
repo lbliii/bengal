@@ -32,7 +32,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 @dataclass
@@ -187,7 +187,7 @@ class CrossReferenceValidator(BaseValidator):
         self.deprecated_versions = deprecated_versions or []
         self.code_index: CodeIndex | None = None
 
-    def validate(self, site: Site, build_context: Any | None = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any | None = None) -> list[CheckResult]:
         """
         Validate cross-references in all site pages.
 
@@ -399,12 +399,11 @@ class CrossReferenceValidator(BaseValidator):
                         status=CheckStatus.WARNING,
                         validator=self.name,
                         message=f"References deprecated version '{version}'",
-                        file_path=file_path,
-                        line=line,
-                        suggestion=f"Update to current version '{self.current_version}'"
+                        recommendation=f"Update to current version '{self.current_version}'"
                         if self.current_version
                         else "Update to current version",
-                        metadata={"found_version": version},
+                        details=[f"{file_path}:{line}"],
+                        metadata={"found_version": version, "file_path": file_path, "line": line},
                     )
                 )
 

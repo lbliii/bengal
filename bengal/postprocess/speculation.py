@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 __all__ = [
     "SpeculationRulesGenerator",
@@ -107,7 +107,7 @@ class SpeculationRulesGenerator:
         
     """
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         """
         Initialize the speculation rules generator.
 
@@ -274,7 +274,7 @@ class SpeculationRulesGenerator:
         return json.dumps(rules, indent=indent)
 
 
-def generate_speculation_rules(site: Site) -> str:
+def generate_speculation_rules(site: SiteLike) -> str:
     """
     Convenience function to generate speculation rules JSON.
     

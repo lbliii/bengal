@@ -65,7 +65,7 @@ class MarimoCellDirective(DirectivePlugin):
         """Check if Marimo is installed."""
         if self._marimo_available is None:
             try:
-                import marimo  # noqa: F401
+                import marimo  # type: ignore[import-not-found]  # noqa: F401
 
                 self._marimo_available = True
             except ImportError:

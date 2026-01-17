@@ -15,13 +15,12 @@ from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closures that have access to site
@@ -161,7 +160,7 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
         logger.warning(
             "pillow_not_available",
             path=path,
-            message="Pillow library not installed, cannot get image dimensions",
+            detail="Pillow library not installed, cannot get image dimensions",
             suggestion="Install with: pip install Pillow",
             caller="template",
         )

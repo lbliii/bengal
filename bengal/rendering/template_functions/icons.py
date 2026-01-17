@@ -22,8 +22,7 @@ from typing import TYPE_CHECKING
 from kida import Markup
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 from bengal.directives._icons import ICON_MAP
 from bengal.errors import ErrorCode
@@ -227,7 +226,7 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     return Markup(svg_html)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register icon template functions.
     

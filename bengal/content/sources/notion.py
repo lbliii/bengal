@@ -28,7 +28,7 @@ except ImportError as e:
 
 # Optional cachetools for block caching (graceful degradation if unavailable)
 try:
-    from cachetools import TTLCache
+    from cachetools import TTLCache  # type: ignore[import-untyped]
 
     CACHETOOLS_AVAILABLE = True
 except ImportError:

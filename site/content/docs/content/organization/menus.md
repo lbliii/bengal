@@ -75,6 +75,34 @@ min_items = 2          # Minimum items to show dropdown
 weight = 90
 ```
 
+### Add Extra Links (menu.extra)
+
+Add one-off links to the auto-generated menu without replacing it entirely. Perfect for external links like forums, documentation, or social links:
+
+```yaml
+# config/_default/menu.yaml (or bengal.toml)
+menu:
+  extra:
+    - name: "Forum"
+      url: "https://community.example.com/"
+      weight: 100
+    - name: "Discord"
+      url: "https://discord.gg/example"
+      weight: 101
+      icon: chat-circle
+```
+
+Or in TOML:
+
+```toml
+[[menu.extra]]
+name = "Forum"
+url = "https://community.example.com/"
+weight = 100
+```
+
+Extra items are appended to the auto-discovered menu and respect the same properties as manual menu items (`name`, `url`, `weight`, `icon`).
+
 ## Section Dropdowns
 
 Make any section display its children as a dropdown in the navigation.

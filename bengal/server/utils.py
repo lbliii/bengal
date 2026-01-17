@@ -26,13 +26,14 @@ Related:
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 
+@runtime_checkable
 class HeaderSender(Protocol):
     """
     Protocol for objects that can send HTTP headers.

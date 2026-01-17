@@ -530,7 +530,7 @@ class CLIExtractor(Extractor):
         Raises:
             ValueError: If unable to extract Click app from Typer
         """
-        import typer
+        import typer  # type: ignore[import-not-found]
 
         # Typer apps have multiple ways to expose their Click structure
         click_app = None
@@ -626,7 +626,7 @@ class CLIExtractor(Extractor):
             Click group or None
         """
         try:
-            import typer
+            import typer  # type: ignore[import-not-found]
 
             if hasattr(typer.main, "get_group"):
                 return typer.main.get_group(typer_app)

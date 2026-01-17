@@ -48,7 +48,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -392,14 +392,16 @@ class LinkSuggestionEngine:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:
-            categories = set()
-            if hasattr(page, "category") and page.category:
+            categories: set[str] = set()
+            category_value = getattr(page, "category", None)
+            categories_value = getattr(page, "categories", None)
+            if category_value:
                 # Single category - convert to string for safety
-                categories = {str(page.category).lower().replace(" ", "-")}
-            elif hasattr(page, "categories") and page.categories:
+                categories = {str(category_value).lower().replace(" ", "-")}
+            elif categories_value:
                 # Multiple categories - filter None and convert to strings
                 categories = {
-                    str(cat).lower().replace(" ", "-") for cat in page.categories if cat is not None
+                    str(cat).lower().replace(" ", "-") for cat in categories_value if cat is not None
                 }
             category_map[page] = categories
         return category_map

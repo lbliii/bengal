@@ -38,7 +38,7 @@ from .constants import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 # Re-export for public API
 __all__ = [
@@ -91,7 +91,7 @@ class DirectiveValidator(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Run directive validation checks.
 
@@ -99,7 +99,7 @@ class DirectiveValidator(BaseValidator):
         redundant disk I/O (build-integrated validation).
 
         Args:
-            site: Site instance to validate
+            site: SiteLike instance to validate
             build_context: Optional BuildContext with cached page contents.
                           When provided, uses cached content instead of
                           reading from disk (~4 seconds saved for large sites).

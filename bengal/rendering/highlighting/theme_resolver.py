@@ -109,4 +109,4 @@ def resolve_css_class_style(config: dict[str, Any]) -> CssClassStyle:
     if style not in ("semantic", "pygments"):
         return "semantic"
 
-    return style  # type: ignore[return-value]
+    return style

@@ -161,7 +161,7 @@ def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:
     for node in walk_ast(ast):
         if is_heading(node):
             # Get level from node or attrs
-            level = node.get("level")  # type: ignore[union-attr]
+            level = node.get("level")
             if level is None:
                 attrs = node.get("attrs", {})
                 level = attrs.get("level", 1)
@@ -210,7 +210,7 @@ def extract_links_from_ast(ast: list[ASTNode]) -> list[str]:
     for node in walk_ast(ast):
         if is_link(node):
             # Try direct url field first (our typed LinkNode)
-            url = node.get("url")  # type: ignore[union-attr]
+            url = node.get("url")
 
             # Fallback: Mistune 3.x stores URL in attrs.url
             if not url:
@@ -255,12 +255,12 @@ def extract_plain_text(ast: list[ASTNode]) -> str:
 
             # Extract raw text
             if is_text(node) or node_type == "codespan":
-                raw = node.get("raw", "")  # type: ignore[union-attr]
+                raw = node.get("raw", "")
                 if raw:
                     parts.append(raw)
             elif node_type == "block_code":
                 # Include code block content for search
-                raw = node.get("raw", "")  # type: ignore[union-attr]
+                raw = node.get("raw", "")
                 if raw:
                     parts.append(raw)
 

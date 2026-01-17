@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from jinja2 import pass_context
+from jinja2.utils import pass_context
 
 if TYPE_CHECKING:
     from jinja2 import Environment

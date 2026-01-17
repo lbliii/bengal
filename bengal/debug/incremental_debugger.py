@@ -52,7 +52,7 @@ from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugToo
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class RebuildReason(Enum):
@@ -304,7 +304,7 @@ class IncrementalBuildDebugger(DebugTool):
 
     def __init__(
         self,
-        site: Site | None = None,
+        site: SiteLike | None = None,
         cache: BuildCache | None = None,
         root_path: Path | None = None,
         rebuild_log: list[str] | None = None,
