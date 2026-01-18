@@ -298,7 +298,7 @@ class TestEstimatePageWeight:
     def test_simple_page_weight_near_one(self) -> None:
         """Simple page with minimal content has weight ~1.0."""
         page = MagicMock()
-        page.raw_content = "# Simple Page\n\nJust some text."
+        page._raw_content = "# Simple Page\n\nJust some text."
         page.metadata = {}
 
         weight = estimate_page_weight(page)
@@ -307,7 +307,7 @@ class TestEstimatePageWeight:
     def test_large_content_increases_weight(self) -> None:
         """Large content (>10KB) increases weight."""
         page = MagicMock()
-        page.raw_content = "x" * 30000  # 30KB
+        page._raw_content = "x" * 30000  # 30KB
         page.metadata = {}
 
         weight = estimate_page_weight(page)
@@ -318,7 +318,7 @@ class TestEstimatePageWeight:
         """Many code blocks (>5) increase weight."""
         page = MagicMock()
         code_blocks = "```python\ncode\n```\n" * 10  # 10 code blocks
-        page.raw_content = f"# Page\n\n{code_blocks}"
+        page._raw_content = f"# Page\n\n{code_blocks}"
         page.metadata = {}
 
         weight = estimate_page_weight(page)
@@ -329,7 +329,7 @@ class TestEstimatePageWeight:
         """Many directives (>10) increase weight."""
         page = MagicMock()
         directives = ".. note::\n   Note\n\n" * 20  # 20 directives
-        page.raw_content = f"# Page\n\n{directives}"
+        page._raw_content = f"# Page\n\n{directives}"
         page.metadata = {}
 
         weight = estimate_page_weight(page)
@@ -339,7 +339,7 @@ class TestEstimatePageWeight:
     def test_autodoc_flag_adds_bonus(self) -> None:
         """is_autodoc metadata adds +1.0 weight bonus."""
         page = MagicMock()
-        page.raw_content = "# API Reference"
+        page._raw_content = "# API Reference"
         page.metadata = {"is_autodoc": True}
 
         weight = estimate_page_weight(page)
@@ -348,7 +348,7 @@ class TestEstimatePageWeight:
     def test_autodoc_key_adds_bonus(self) -> None:
         """autodoc metadata key also adds +1.0 weight bonus."""
         page = MagicMock()
-        page.raw_content = "# API Reference"
+        page._raw_content = "# API Reference"
         page.metadata = {"autodoc": {"module": "mymodule"}}
 
         weight = estimate_page_weight(page)
@@ -358,7 +358,7 @@ class TestEstimatePageWeight:
         """Weight is capped at 5.0 to avoid outlier distortion."""
         page = MagicMock()
         # Huge content + many code blocks + many directives + autodoc
-        page.raw_content = "```\ncode\n```\n::\n" * 100 + "x" * 100000
+        page._raw_content = "```\ncode\n```\n::\n" * 100 + "x" * 100000
         page.metadata = {"is_autodoc": True}
 
         weight = estimate_page_weight(page)
@@ -371,15 +371,15 @@ class TestOrderByComplexity:
     def test_orders_heavy_pages_first_by_default(self) -> None:
         """Heavy pages are ordered first by default (descending)."""
         light_page = MagicMock()
-        light_page.raw_content = "# Light"
+        light_page._raw_content = "# Light"
         light_page.metadata = {}
 
         heavy_page = MagicMock()
-        heavy_page.raw_content = "# Heavy\n" + "```\ncode\n```\n" * 20
+        heavy_page._raw_content = "# Heavy\n" + "```\ncode\n```\n" * 20
         heavy_page.metadata = {"is_autodoc": True}
 
         medium_page = MagicMock()
-        medium_page.raw_content = "# Medium\n" + "x" * 15000
+        medium_page._raw_content = "# Medium\n" + "x" * 15000
         medium_page.metadata = {}
 
         pages = [light_page, heavy_page, medium_page]
@@ -393,11 +393,11 @@ class TestOrderByComplexity:
     def test_ascending_order_light_first(self) -> None:
         """descending=False puts light pages first."""
         light_page = MagicMock()
-        light_page.raw_content = "# Light"
+        light_page._raw_content = "# Light"
         light_page.metadata = {}
 
         heavy_page = MagicMock()
-        heavy_page.raw_content = "x" * 50000
+        heavy_page._raw_content = "x" * 50000
         heavy_page.metadata = {"is_autodoc": True}
 
         pages = [heavy_page, light_page]
@@ -409,11 +409,11 @@ class TestOrderByComplexity:
     def test_does_not_mutate_input(self) -> None:
         """Returns new list, does not mutate input."""
         page1 = MagicMock()
-        page1.raw_content = "# Page 1"
+        page1._raw_content = "# Page 1"
         page1.metadata = {}
 
         page2 = MagicMock()
-        page2.raw_content = "# Page 2"
+        page2._raw_content = "# Page 2"
         page2.metadata = {}
 
         pages = [page1, page2]
@@ -434,7 +434,7 @@ class TestOrderByComplexity:
     def test_single_page_returns_same(self) -> None:
         """Single page list returns list with that page."""
         page = MagicMock()
-        page.raw_content = "# Single"
+        page._raw_content = "# Single"
         page.metadata = {}
 
         ordered = order_by_complexity([page])

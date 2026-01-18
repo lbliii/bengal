@@ -2,18 +2,22 @@
 Main IncrementalOrchestrator coordinating incremental build components.
 
 This module provides the IncrementalOrchestrator class that coordinates
-cache management, change detection, and rebuild filtering through specialized
-component classes.
+cache management, change detection, and rebuild filtering through the
+unified EffectBasedDetector.
 
 Key Concepts:
-- Component delegation: Work delegated to focused component classes
+- Unified change detection: Uses EffectBasedDetector for all dependency tracking
 - Phase-based detection: Early (pre-taxonomy) and full (post-taxonomy)
 
 Related Modules:
 - bengal.orchestration.incremental.cache_manager: Cache operations
-- bengal.build.pipeline: Change detection pipeline
+- bengal.orchestration.incremental.effect_detector: Unified change detection
 - bengal.orchestration.incremental.cleanup: Deleted file cleanup
 - bengal.core.nav_tree: NavTreeCache for cached navigation
+
+RFC: Aggressive Cleanup
+- Replaced 8 legacy detector classes with EffectBasedDetector
+- Eliminated DetectionPipeline in favor of direct detector usage
 
 """
 
@@ -22,24 +26,24 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.build.contracts.keys import CacheKey, content_key, data_key
-from bengal.build.contracts.protocol import DetectionContext
-from bengal.build.detectors.base import key_to_path
-from bengal.build.pipeline import create_early_pipeline, create_full_pipeline
 from bengal.orchestration.build.results import ChangeSummary
+from bengal.orchestration.build_context import BuildContext
 from bengal.orchestration.incremental.cache_manager import CacheManager
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
-from bengal.orchestration.build_context import BuildContext
+from bengal.orchestration.incremental.effect_detector import (
+    EffectBasedDetector,
+    create_detector_from_build,
+)
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache
     from bengal.build.tracking import DependencyTracker
-    from bengal.orchestration.build.coordinator import CacheCoordinator
+    from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.orchestration.build.coordinator import CacheCoordinator
 
 logger = get_logger(__name__)
 
@@ -47,33 +51,33 @@ logger = get_logger(__name__)
 class IncrementalOrchestrator:
     """
     Orchestrates incremental build logic for efficient rebuilds.
-    
+
     Coordinates cache management, change detection, dependency tracking, and
-    selective rebuilding through specialized component classes. Uses file hashes,
+    selective rebuilding using the unified EffectBasedDetector. Uses file hashes,
     dependency graphs, and taxonomy indexes to minimize rebuild work.
-    
+
     Component Delegation:
         - CacheManager: Cache loading, saving, and migration
-        - DetectionPipeline: Change detection via bengal.build.pipeline
+        - EffectBasedDetector: Unified change detection (replaces old pipeline)
         - cleanup: Deleted file cleanup
-    
+
     Creation:
         Direct instantiation: IncrementalOrchestrator(site)
             - Created by BuildOrchestrator when incremental builds enabled
             - Requires Site instance with content populated
-    
+
     Attributes:
         site: Site instance for incremental builds
         cache: BuildCache instance for build state persistence
         tracker: DependencyTracker instance for dependency graph construction
         _cache_manager: CacheManager instance for cache operations
-        _early_pipeline/_full_pipeline: Detection pipelines (lazy)
-    
+        _detector: EffectBasedDetector instance for change detection
+
     Example:
             >>> orchestrator = IncrementalOrchestrator(site)
             >>> cache, tracker = orchestrator.initialize(enabled=True)
             >>> pages, assets, summary = orchestrator.find_work_early()
-        
+
     """
 
     def __init__(self, site: Site) -> None:
@@ -90,8 +94,7 @@ class IncrementalOrchestrator:
 
         # Component instances
         self._cache_manager = CacheManager(site)
-        self._early_pipeline = None
-        self._full_pipeline = None
+        self._detector: EffectBasedDetector | None = None
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
@@ -108,9 +111,8 @@ class IncrementalOrchestrator:
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
         # Expose coordinator for use by detectors
         self.coordinator = self._cache_manager.coordinator
-        # Reset pipelines so they pick up the new cache
-        self._early_pipeline = None
-        self._full_pipeline = None
+        # Create unified detector from effect tracer
+        self._detector = create_detector_from_build(self.site)
         return self.cache, self.tracker
 
     def check_config_changed(self) -> bool:
@@ -173,26 +175,33 @@ class IncrementalOrchestrator:
             raise BengalError(
                 "Cache not initialized - call initialize() first",
                 code=ErrorCode.B010,
-                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+                suggestion="Call IncrementalOrchestrator.initialize() before use",
             )
 
-        change_set = self._run_pipeline(
-            phase="early",
-            verbose=verbose,
-            forced_changed_sources=forced_changed_sources,
-            nav_changed_sources=nav_changed_sources,
-        )
+        # Use EffectBasedDetector for change detection
+        changed_paths = forced_changed_sources or set()
+        if nav_changed_sources:
+            changed_paths = changed_paths | nav_changed_sources
+
+        pages_to_rebuild, content_changed = self._detect_changes(changed_paths, verbose=verbose)
 
         # Invalidate caches if structural changes detected
-        # Structural changes: new/deleted pages or nav-affecting metadata
-        has_structural_changes = bool(change_set.content_files_changed) or bool(nav_changed_sources)
+        has_structural_changes = bool(content_changed) or bool(nav_changed_sources)
         if has_structural_changes:
-            # Use centralized cache registry for coordinated invalidation
             invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
             logger.debug("caches_invalidated", reason="structural_changes", caches=invalidated)
 
-        pages_to_build, assets_to_process, change_summary = self._convert_result(change_set)
-        return pages_to_build, assets_to_process, change_summary
+        # Convert paths to page/asset objects
+        pages_to_build_objs, assets_to_process = self._convert_paths_to_objects(pages_to_rebuild)
+
+        change_summary = ChangeSummary(
+            modified_content=list(content_changed),
+            modified_assets=[a.source_path for a in assets_to_process],
+            modified_templates=[],
+            taxonomy_changes=[],
+        )
+
+        return pages_to_build_objs, assets_to_process, change_summary
 
     def find_work(
         self, verbose: bool = False
@@ -215,124 +224,89 @@ class IncrementalOrchestrator:
             raise BengalError(
                 "Cache not initialized - call initialize() first",
                 code=ErrorCode.B010,
-                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+                suggestion="Call IncrementalOrchestrator.initialize() before use",
             )
 
-        change_set = self._run_pipeline(phase="full", verbose=verbose)
-        pages_to_build, assets_to_process, change_summary = self._convert_result(change_set)
+        # In full phase, we detect additional changes including generated pages
+        pages_to_rebuild, content_changed = self._detect_changes(set(), verbose=verbose)
 
-        return pages_to_build, assets_to_process, change_summary
+        # Convert paths to page/asset objects
+        pages_to_build_objs, assets_to_process = self._convert_paths_to_objects(pages_to_rebuild)
 
-    def _run_pipeline(
+        change_summary = ChangeSummary(
+            modified_content=list(content_changed),
+            modified_assets=[a.source_path for a in assets_to_process],
+            modified_templates=[],
+            taxonomy_changes=[],
+        )
+
+        return pages_to_build_objs, assets_to_process, change_summary
+
+    def _detect_changes(
         self,
+        changed_paths: set[Path],
         *,
-        phase: str,
-        verbose: bool,
-        forced_changed_sources: set[Path] | None = None,
-        nav_changed_sources: set[Path] | None = None,
-    ):
-        forced_keys = self._build_forced_keys(forced_changed_sources or set())
-        nav_keys = self._build_forced_keys(nav_changed_sources or set())
-        ctx = DetectionContext(
-            cache=self.cache,
-            site=self.site,
-            tracker=self.tracker,
-            coordinator=self.coordinator,
-            verbose=verbose,
-            forced_changed=forced_keys,
-            nav_changed=nav_keys,
-        )
+        verbose: bool = False,
+    ) -> tuple[set[Path], set[Path]]:
+        """
+        Detect pages that need rebuilding using EffectBasedDetector.
 
-        if phase == "early":
-            if self._early_pipeline is None:
-                self._early_pipeline = create_early_pipeline()
-            return self._early_pipeline.run(ctx)
+        Args:
+            changed_paths: Paths explicitly changed
+            verbose: Whether to log detailed info
 
-        if self._early_pipeline is None:
-            self._early_pipeline = create_early_pipeline()
-        early_result = self._early_pipeline.run(ctx)
-        full_ctx = DetectionContext(
-            cache=self.cache,
-            site=self.site,
-            tracker=self.tracker,
-            coordinator=self.coordinator,
-            verbose=verbose,
-            forced_changed=forced_keys,
-            nav_changed=nav_keys,
-            previous=early_result,
-        )
-        if self._full_pipeline is None:
-            self._full_pipeline = create_full_pipeline()
-        return self._full_pipeline.run(full_ctx)
+        Returns:
+            Tuple of (pages_to_rebuild, content_changed)
+        """
+        if self._detector is None:
+            self._detector = create_detector_from_build(self.site)
 
-    def _build_forced_keys(self, paths: set[Path]) -> frozenset[CacheKey]:
-        keys: set[CacheKey] = set()
-        for path in paths:
-            key = content_key(path, self.site.root_path)
-            keys.add(key)
-            try:
-                path.resolve().relative_to((self.site.root_path / "data").resolve())
-            except ValueError:
+        # Also check for cache-based changes (files modified since last build)
+        all_changed: set[Path] = set(changed_paths)
+        for page in self.site.pages:
+            if page.metadata.get("_generated"):
                 continue
-            keys.add(data_key(path, self.site.root_path))
-        return frozenset(keys)
+            if self.cache and self.cache.should_bypass(page.source_path):
+                all_changed.add(page.source_path)
 
-    def _convert_result(self, result):
+        # Use EffectBasedDetector for change detection
+        pages_to_rebuild = self._detector.detect_changes(all_changed, verbose=verbose)
+
+        # Content changed = intersection of changed and markdown files
+        content_changed = {p for p in all_changed if p.suffix == ".md"}
+
+        return pages_to_rebuild, content_changed
+
+    def _convert_paths_to_objects(
+        self, pages_to_rebuild: set[Path]
+    ) -> tuple[list[Page], list[Asset]]:
+        """
+        Convert source paths to Page/Asset objects.
+
+        Args:
+            pages_to_rebuild: Set of page source paths to rebuild
+
+        Returns:
+            Tuple of (pages_to_build, assets_to_process)
+        """
         pages_by_path = self.site.page_by_source_path
-        assets_by_path = {asset.source_path: asset for asset in self.site.assets}
 
         pages_to_build: list[Page] = []
-        assets_to_process: list[Asset] = []
-
-        for key in result.pages_to_rebuild:
-            path = key_to_path(self.site.root_path, key)
+        for path in pages_to_rebuild:
             page = pages_by_path.get(path)
             if page is None:
-                # Fallback to scan when cache map isn't populated.
+                # Fallback to scan when cache map isn't populated
                 page = next((p for p in self.site.pages if p.source_path == path), None)
             if page is not None:
                 pages_to_build.append(page)
 
-        for key in result.assets_to_process:
-            path = key_to_path(self.site.root_path, key)
-            asset = assets_by_path.get(path)
-            if asset is not None:
-                assets_to_process.append(asset)
+        # Check for changed assets
+        assets_to_process: list[Asset] = [
+            asset for asset in self.site.assets
+            if self.cache and self.cache.should_bypass(asset.source_path)
+        ]
 
-        change_summary = ChangeSummary(
-            modified_content=[
-                key_to_path(self.site.root_path, key) for key in result.content_files_changed
-            ],
-            modified_assets=[
-                key_to_path(self.site.root_path, key) for key in result.assets_to_process
-            ],
-            modified_templates=[
-                key_to_path(self.site.root_path, key) for key in result.templates_changed
-            ],
-            taxonomy_changes=list(result.affected_tags),
-        )
-
-        if result.data_files_changed:
-            change_summary.extra_changes["Data file changes"] = [
-                str(key_to_path(self.site.root_path, key)) for key in result.data_files_changed
-            ]
-
-        # Extract extra change info from rebuild reasons (observability)
-        cascade_triggers: set[str] = set()
-        nav_triggers: set[str] = set()
-        from bengal.build.contracts.results import RebuildReasonCode
-        for reason in result.rebuild_reasons.values():
-            if reason.code == RebuildReasonCode.CASCADE:
-                cascade_triggers.add(reason.trigger)
-            elif reason.code == RebuildReasonCode.ADJACENT_NAV_CHANGED:
-                nav_triggers.add(reason.trigger)
-
-        if cascade_triggers:
-            change_summary.extra_changes["Cascade changes"] = sorted(list(cascade_triggers))
-        if nav_triggers:
-            change_summary.extra_changes["Navigation changes"] = sorted(list(nav_triggers))
-
-        return pages_to_build, assets_to_process, change_summary
+        return pages_to_build, assets_to_process
 
     def process(self, change_type: str, changed_paths: set[str]) -> None:
         """
@@ -346,7 +320,7 @@ class IncrementalOrchestrator:
             raise BengalError(
                 "Tracker not initialized - call initialize() first",
                 code=ErrorCode.B010,
-                suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
+                suggestion="Call IncrementalOrchestrator.initialize() before use",
             )
 
         import sys
@@ -403,7 +377,6 @@ class IncrementalOrchestrator:
 
     def full_rebuild(self, pages: list[Any], context: BuildContext) -> None:
         """Full rebuild placeholder (unused)."""
-        pass
 
     def _cleanup_deleted_files(self) -> None:
         """Clean up output files for deleted source files."""
