@@ -508,6 +508,10 @@ def phase_render(
                 # Transfer incremental state (changed pages) for validators.
                 if early_context is not None:
                     ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+                # Transfer snapshot from early context (RFC: rfc-bengal-snapshot-engine)
+                if early_context and hasattr(early_context, "snapshot"):
+                    ctx.snapshot = early_context.snapshot
+                
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
                 from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
@@ -517,17 +521,71 @@ def phase_render(
                 # Update stats with actual execution mode
                 orchestrator.stats.parallel = use_parallel
 
-                orchestrator.render.process(
-                    pages_to_build,
-                    parallel=use_parallel,
-                    quiet=quiet_mode,
-                    tracker=tracker,
-                    stats=orchestrator.stats,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                    build_context=ctx,
-                    changed_sources=changed_sources,
-                )
+                # Use WaveScheduler if snapshot is available and parallel rendering is enabled
+                # (RFC: rfc-bengal-snapshot-engine)
+                if use_parallel and ctx.snapshot:
+                    from bengal.snapshots.scheduler import WaveScheduler
+                    from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+                    
+                    # Get max_workers from config (same approach as RenderOrchestrator)
+                    config = orchestrator.site.config
+                    if hasattr(config, "build"):
+                        max_workers_override = getattr(config.build, "max_workers", None)
+                    else:
+                        build_section = config.get("build", {})
+                        max_workers_override = (
+                            build_section.get("max_workers")
+                            if isinstance(build_section, dict)
+                            else config.get("max_workers")
+                        )
+                    
+                    max_workers = get_optimal_workers(
+                        len(pages_to_build),
+                        workload_type=WorkloadType.MIXED,
+                        config_override=max_workers_override,
+                    )
+                    
+                    # Create write-behind collector for async I/O (RFC: rfc-path-to-200-pgs)
+                    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
+                    
+                    write_behind = WriteBehindCollector() if use_parallel else None
+                    
+                    scheduler = WaveScheduler(
+                        snapshot=ctx.snapshot,
+                        site=orchestrator.site,
+                        tracker=tracker,
+                        quiet=quiet_mode,
+                        stats=orchestrator.stats,
+                        build_context=ctx,
+                        max_workers=max_workers,
+                        write_behind=write_behind,
+                        progress_manager=progress_manager,
+                    )
+                    render_stats = scheduler.render_all(pages_to_build)
+                    # RenderStats are for internal tracking only
+                    # BuildStats tracks timing via rendering_time_ms (set below)
+                    # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
+                    
+                    # Flush write-behind collector if enabled (same as RenderOrchestrator)
+                    if ctx.write_behind:
+                        try:
+                            written = ctx.write_behind.flush_and_close()
+                            orchestrator.logger.debug("write_behind_flushed", files_written=written)
+                        except Exception as e:
+                            orchestrator.logger.error("write_behind_flush_error", error=str(e))
+                else:
+                    # Fallback to existing renderer (sequential or when snapshot unavailable)
+                    orchestrator.render.process(
+                        pages_to_build,
+                        parallel=use_parallel,
+                        quiet=quiet_mode,
+                        tracker=tracker,
+                        stats=orchestrator.stats,
+                        progress_manager=progress_manager,
+                        reporter=reporter,
+                        build_context=ctx,
+                        changed_sources=changed_sources,
+                    )
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 

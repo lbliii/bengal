@@ -92,6 +92,11 @@ class KidaTemplateEngine:
             cache_dir = site.root_path / ".bengal" / "cache" / "kida"
             bytecode_cache = BytecodeCache(cache_dir)
 
+        # Fragment cache configuration
+        # Larger cache for static site generation (many partials rendered repeatedly)
+        fragment_cache_size = kida_config.get("fragment_cache_size", 2000)
+        fragment_ttl = kida_config.get("fragment_ttl", 3600.0)  # 1 hour for SSG
+
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
@@ -101,6 +106,9 @@ class KidaTemplateEngine:
             bytecode_cache=bytecode_cache,
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,
+            # Fragment caching for {% cache "key" %}...{% end %} blocks
+            fragment_cache_size=fragment_cache_size,
+            fragment_ttl=fragment_ttl,
         )
 
         # Register Bengal-specific globals and filters
@@ -736,6 +744,54 @@ class KidaTemplateEngine:
         """
         if hasattr(self._env, "clear_template_cache"):
             self._env.clear_template_cache(names)
+
+    def precompile_templates(self, template_names: list[str] | None = None) -> int:
+        """Pre-compile templates to warm the cache.
+
+        Compiles templates ahead of rendering to avoid compile-on-demand
+        overhead during the render phase. This is especially beneficial
+        when using bytecode caching (templates are compiled and cached to disk).
+
+        Args:
+            template_names: Optional list of template names to precompile.
+                           If None, precompiles all templates in template_dirs.
+
+        Returns:
+            Number of templates compiled
+
+        Example:
+            >>> # Precompile all templates at build start
+            >>> count = engine.precompile_templates()
+            >>> print(f"Precompiled {count} templates")
+        """
+        templates = template_names or self.list_templates()
+        compiled = 0
+
+        for name in templates:
+            try:
+                self._env.get_template(name)
+                compiled += 1
+            except Exception:
+                # Skip templates that fail to compile
+                # (will be caught later during rendering)
+                pass
+
+        return compiled
+
+    def cache_info(self) -> dict[str, Any]:
+        """Get cache statistics for monitoring.
+
+        Returns:
+            Dict with template, fragment, and bytecode cache stats
+
+        Example:
+            >>> info = engine.cache_info()
+            >>> print(f"Template hits: {info['template']['hits']}")
+            >>> print(f"Fragment hits: {info['fragment']['hits']}")
+        """
+        if hasattr(self._env, "cache_info"):
+            return self._env.cache_info()
+        return {}
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """Resolve theme inheritance chain."""

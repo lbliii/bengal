@@ -439,6 +439,12 @@ class RenderOrchestrator:
             - ~1.5-2x faster rendering on multi-core machines
             - No code changes needed - works automatically
 
+        Snapshot Engine (RFC: rfc-bengal-snapshot-engine):
+            - If snapshot is available in build_context, uses WaveScheduler
+            - Topological wave-based rendering for cache locality
+            - Scout thread for predictive cache warming
+            - Zero lock contention (frozen snapshots)
+
         Caching Strategy:
             Thread-local caching at two levels:
             1. RenderingPipeline: One per thread (Jinja2 environment is expensive)
@@ -476,6 +482,20 @@ class RenderOrchestrator:
             If you're profiling and see N parser/pipeline instances created,
             where N = max_workers, this is OPTIMAL behavior.
         """
+        # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
+        if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
+            # Use WaveScheduler for topological wave-based rendering
+            self._render_with_snapshot(
+                build_context.snapshot,
+                pages,
+                tracker,
+                quiet,
+                stats,
+                progress_manager,
+                build_context,
+            )
+            return
+
         # If we have a progress manager, use it with parallel rendering
         if progress_manager:
             self._render_parallel_with_live_progress(
@@ -501,6 +521,73 @@ class RenderOrchestrator:
         else:
             self._render_parallel_simple(
                 pages, tracker, quiet, stats, build_context, changed_sources
+            )
+
+    def _render_with_snapshot(
+        self,
+        snapshot: Any,  # SiteSnapshot
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
+        build_context: BuildContext | None = None,
+    ) -> None:
+        """
+        Render pages using snapshot-based WaveScheduler.
+        
+        Uses topological wave-based rendering for cache locality and includes
+        scout thread for predictive cache warming.
+        
+        Args:
+            snapshot: SiteSnapshot from build context
+            pages: Pages to render (filtered to pages in snapshot)
+            tracker: Dependency tracker
+            quiet: Whether to suppress verbose output
+            stats: Build statistics tracker
+            progress_manager: Live progress manager (optional)
+            build_context: Build context
+        """
+        from bengal.snapshots import WaveScheduler
+
+        # Get max workers
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.MIXED,
+            config_override=self._get_max_workers(),
+        )
+
+        # Create wave scheduler
+        scheduler = WaveScheduler(
+            snapshot=snapshot,
+            site=self.site,
+            tracker=tracker,
+            quiet=quiet,
+            stats=stats,
+            build_context=build_context,
+            max_workers=max_workers,
+        )
+
+        # Render using wave scheduler
+        render_stats = scheduler.render_all(pages)
+
+        # Update build stats
+        if stats:
+            stats.pages_rendered = render_stats.pages_rendered
+            if render_stats.errors:
+                for page_path, error in render_stats.errors:
+                    logger.error(
+                        "page_rendering_error",
+                        page=str(page_path),
+                        error=str(error),
+                    )
+
+        # Update progress manager if provided
+        if progress_manager:
+            progress_manager.update_phase(
+                "rendering",
+                current=render_stats.pages_rendered,
+                current_item="",
             )
 
     def _should_use_complexity_ordering(self) -> bool:

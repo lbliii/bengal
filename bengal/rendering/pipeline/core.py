@@ -201,7 +201,10 @@ class RenderingPipeline:
             self.template_engine._dependency_tracker = self.dependency_tracker
 
         self.renderer = Renderer(
-            self.template_engine, build_stats=build_stats, block_cache=block_cache
+            self.template_engine,
+            build_stats=build_stats,
+            block_cache=block_cache,
+            build_context=build_context,
         )
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
@@ -361,7 +364,10 @@ class RenderingPipeline:
             return
 
         # Full pipeline execution
-        self._parse_content(page)
+        # Skip parsing if already done (e.g., by parsing phase before snapshot)
+        # This avoids redundant parsing when using WaveScheduler with pre-parsed content
+        if not page.parsed_ast:
+            self._parse_content(page)
         self._enhance_api_docs(page)
         # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
         try:
@@ -543,6 +549,12 @@ class RenderingPipeline:
         RFC: rfc-build-performance-optimizations Phase 2
         Uses render-time asset tracking to avoid post-render HTML parsing.
         """
+        # Allow empty parsed_ast - pages like home pages, section indexes, and 
+        # taxonomy pages may have no markdown body but should still render
+        # (they're driven by template logic and frontmatter, not content)
+        if page.parsed_ast is None:
+            page.parsed_ast = ""  # Ensure it's a string, not None
+        
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
         from bengal.rendering.asset_tracking import AssetTracker
@@ -616,12 +628,29 @@ class RenderingPipeline:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
             ParamsContext,
-            SectionContext,
             _get_global_contexts,
         )
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
 
         section = getattr(page, "_section", None)
         metadata = page.metadata if hasattr(page, "metadata") else {}
+
+        # Get snapshot from build_context if available (RFC: rfc-bengal-snapshot-engine)
+        snapshot = None
+        if self.build_context:
+            snapshot = getattr(self.build_context, "snapshot", None)
+
+        # Resolve section to SectionSnapshot (no wrapper needed)
+        section_for_context: SectionSnapshot = NO_SECTION
+        if snapshot and section:
+            # Find section snapshot
+            for sec_snap in snapshot.sections:
+                if (
+                    sec_snap.path == getattr(section, "path", None)
+                    or sec_snap.name == getattr(section, "name", "")
+                ):
+                    section_for_context = sec_snap
+                    break
 
         # Get cached global contexts (site/config are stateless wrappers)
         global_contexts = _get_global_contexts(self.site)
@@ -634,8 +663,8 @@ class RenderingPipeline:
             # Shortcuts with safe access (per-page, not cached)
             "params": ParamsContext(metadata),
             "meta": ParamsContext(metadata),
-            # Section with safe access (never None)
-            "section": SectionContext(section),
+            # Section: SectionSnapshot or NO_SECTION sentinel (has params and __bool__)
+            "section": section_for_context,
         }
 
         # Direct frontmatter access for convenience

@@ -1,9 +1,14 @@
 # Plan: Section → SectionLike Protocol Migration
 
-**Status**: Ready  
+**Status**: ⚠️ SUPERSEDED by `rfc-bengal-snapshot-engine.md`  
 **Effort**: 4-6 hours  
 **Risk**: Low  
 **Impact**: High (2% → 80%+ protocol adoption)
+
+> **Note**: This plan has been superseded by a more comprehensive architectural
+> change. See `rfc-bengal-snapshot-engine.md` for the Snapshot Engine approach
+> which solves the same problems (type safety, thread safety) while also enabling
+> 3x performance improvements through predictive caching and topological scheduling.
 
 ---
 
