@@ -270,10 +270,9 @@ def phase_assets(
         # exist yet (e.g., first incremental build after initial setup)
         if incremental and not assets_to_process and orchestrator.site.theme:
             # Check if theme has assets
-            from bengal.orchestration.content import ContentOrchestrator
+            from bengal.services.theme import get_theme_assets_dir
 
-            co = ContentOrchestrator(orchestrator.site)
-            theme_dir = co._get_theme_assets_dir()
+            theme_dir = get_theme_assets_dir(orchestrator.site.root_path, orchestrator.site.theme)
             if theme_dir and theme_dir.exists():
                 # Check if output/assets directory was populated
                 output_assets = orchestrator.site.output_dir / "assets"

@@ -5,6 +5,7 @@ Provides methods for loading data files from the data/ directory into site.data.
 
 Related Modules:
 - bengal.core.site.core: Main Site dataclass using this mixin
+- bengal.services.data: Pure functions for frozen data access
 - bengal.utils.dotdict: DotDict for dot-notation access
 - bengal.utils.file_io: Data file loading utilities
 
@@ -25,12 +26,13 @@ class DataLoadingMixin:
     """
     Mixin providing data directory loading methods.
     
+    Loads YAML, JSON, and TOML files from data/ directory
+    into a nested structure accessible via dot notation.
+    
     Requires these attributes on the host class:
         - root_path: Path
-        
     """
 
-    # Type hints for mixin attributes (provided by host class)
     root_path: Path
 
     def _load_data_directory(self) -> DotDict:
@@ -84,7 +86,6 @@ class DataLoadingMixin:
 
                 current[parts[-1]] = content
 
-                # Validate tracks.yaml structure if this is tracks data
                 if parts[-1] == "tracks" and isinstance(content, dict):
                     self._validate_tracks_structure(content)
 
@@ -121,15 +122,7 @@ class DataLoadingMixin:
         return wrapped_data
 
     def _validate_tracks_structure(self, tracks_data: dict[str, Any]) -> None:
-        """
-        Validate tracks.yaml structure during data loading.
-
-        Logs warnings for invalid tracks but doesn't fail the build.
-        This provides early feedback during development.
-
-        Args:
-            tracks_data: Dictionary loaded from tracks.yaml
-        """
+        """Validate tracks.yaml structure during data loading."""
         if not isinstance(tracks_data, dict):
             emit_diagnostic(
                 self,
@@ -150,7 +143,6 @@ class DataLoadingMixin:
                 )
                 continue
 
-            # Check required fields
             if "items" not in track:
                 emit_diagnostic(
                     self,
@@ -171,7 +163,6 @@ class DataLoadingMixin:
                 )
                 continue
 
-            # Warn about empty tracks (may be intentional, but worth noting)
             if len(track["items"]) == 0:
                 emit_diagnostic(
                     self,

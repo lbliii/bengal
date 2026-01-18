@@ -32,6 +32,7 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
+from bengal.config.snapshot import ConfigSnapshot
 from bengal.config.validation import validate_config
 from bengal.errors import ErrorCode, format_suggestion, record_error
 from bengal.utils.io.file_io import load_toml, load_yaml
@@ -358,6 +359,37 @@ class UnifiedConfigLoader:
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """Get the origin tracker instance if tracking is enabled."""
         return self.origin_tracker
+
+    def load_snapshot(
+        self,
+        site_root: Path,
+        environment: str | None = None,
+        profile: str | None = None,
+    ) -> ConfigSnapshot:
+        """
+        Load configuration and return a frozen ConfigSnapshot.
+        
+        This is the preferred entry point for RFC: Snapshot-Enabled v2.
+        Returns a frozen, typed configuration that is thread-safe by construction.
+        
+        Args:
+            site_root: Root directory of the site.
+            environment: Environment name (auto-detected if None).
+            profile: Profile name (optional).
+            
+        Returns:
+            Frozen ConfigSnapshot with typed sections.
+            
+        Example:
+            >>> loader = UnifiedConfigLoader()
+            >>> snapshot = loader.load_snapshot(site_root)
+            >>> snapshot.site.title
+            'My Site'
+            >>> snapshot.build.parallel
+            True
+        """
+        config = self.load(site_root, environment=environment, profile=profile)
+        return ConfigSnapshot.from_dict(config.raw)
 
     @staticmethod
     def _extract_baseurl(config: dict[str, Any] | None) -> Any:

@@ -961,21 +961,6 @@ class ContentOrchestrator:
         Returns:
             Path to theme assets or None if not found
         """
-        if not self.site.theme:
-            return None
-
-        # Check in site's themes directory first
-        site_theme_dir = self.site.root_path / "themes" / self.site.theme / "assets"
-        if site_theme_dir.exists():
-            return site_theme_dir
-
-        # Check in Bengal's bundled themes
-        import bengal
-
-        assert bengal.__file__ is not None, "bengal module has no __file__"
-        bengal_dir = Path(bengal.__file__).parent
-        bundled_theme_dir = bengal_dir / "themes" / self.site.theme / "assets"
-        if bundled_theme_dir.exists():
-            return bundled_theme_dir
-
-        return None
+        from bengal.services.theme import get_theme_assets_dir
+        
+        return get_theme_assets_dir(self.site.root_path, self.site.theme)

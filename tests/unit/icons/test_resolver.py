@@ -279,14 +279,21 @@ class TestIsInitialized:
 class TestInitializeWithSite:
     """Test initialize() with mock Site object."""
 
-    def test_initialize_with_mock_site(self, tmp_path: Path) -> None:
+    def test_initialize_with_mock_site(self, tmp_path: Path, monkeypatch) -> None:
         """initialize() sets up search paths from Site."""
         icons_dir = tmp_path / "theme" / "assets" / "icons"
         icons_dir.mkdir(parents=True)
 
+        # Mock the service function
+        monkeypatch.setattr(
+            "bengal.icons.resolver.get_theme_assets_chain",
+            lambda root_path, theme: [tmp_path / "theme" / "assets"],
+        )
+
         # Create mock site
         mock_site = MagicMock()
-        mock_site._get_theme_assets_chain.return_value = [tmp_path / "theme" / "assets"]
+        mock_site.root_path = tmp_path
+        mock_site.theme = "test-theme"
         mock_site.theme_config = MagicMock()
         mock_site.theme_config.icons = MagicMock()
         mock_site.theme_config.icons.extend_defaults = False
@@ -303,14 +310,21 @@ class TestInitializeWithSite:
         assert icon_resolver.is_initialized()
         assert icons_dir in icon_resolver.get_search_paths()
 
-    def test_initialize_with_extend_defaults(self, tmp_path: Path) -> None:
+    def test_initialize_with_extend_defaults(self, tmp_path: Path, monkeypatch) -> None:
         """initialize() includes default theme when extend_defaults=True."""
         icons_dir = tmp_path / "theme" / "assets" / "icons"
         icons_dir.mkdir(parents=True)
 
+        # Mock the service function
+        monkeypatch.setattr(
+            "bengal.icons.resolver.get_theme_assets_chain",
+            lambda root_path, theme: [tmp_path / "theme" / "assets"],
+        )
+
         # Create mock site with extend_defaults=True
         mock_site = MagicMock()
-        mock_site._get_theme_assets_chain.return_value = [tmp_path / "theme" / "assets"]
+        mock_site.root_path = tmp_path
+        mock_site.theme = "test-theme"
         mock_site.theme_config = MagicMock()
         mock_site.theme_config.icons = MagicMock()
         mock_site.theme_config.icons.extend_defaults = True

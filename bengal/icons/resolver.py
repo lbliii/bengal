@@ -110,11 +110,13 @@ def _get_icon_search_paths(site: Site) -> list[Path]:
     3. Default theme icons (if extend_defaults=True)
         
     """
+    from bengal.services.theme import get_theme_assets_chain
+    
     paths: list[Path] = []
 
     # Get theme asset chain (handles inheritance)
     # Returns paths from parent → child, we want child → parent for lookup
-    for assets_dir in reversed(site._get_theme_assets_chain()):
+    for assets_dir in reversed(get_theme_assets_chain(site.root_path, site.theme)):
         icons_dir = assets_dir / "icons"
         if icons_dir.exists() and icons_dir not in paths:
             paths.append(icons_dir)

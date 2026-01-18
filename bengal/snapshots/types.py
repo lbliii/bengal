@@ -5,14 +5,21 @@ All snapshot types are frozen dataclasses with slots for memory efficiency.
 They contain pre-computed values from the mutable Site/Page/Section objects,
 enabling lock-free parallel rendering.
 
+RFC: Snapshot-Enabled v2 Opportunities
+- TemplateSnapshot: Pre-analyzed template with dependency graph (Opportunity 5)
+- ConfigSnapshot: Frozen, typed configuration (Opportunity 6)
+
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.config.snapshot import ConfigSnapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +69,16 @@ class PageSnapshot:
     def params(self) -> MappingProxyType[str, Any]:
         """Alias for metadata (template compatibility)."""
         return self.metadata
+
+    def __hash__(self) -> int:
+        """Hash based on source_path and content_hash for set operations."""
+        return hash((self.source_path, self.content_hash))
+
+    def __eq__(self, other: object) -> bool:
+        """Equality based on source_path and content_hash."""
+        if not isinstance(other, PageSnapshot):
+            return NotImplemented
+        return self.source_path == other.source_path and self.content_hash == other.content_hash
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +148,40 @@ NO_SECTION = SectionSnapshot(
 
 
 @dataclass(frozen=True, slots=True)
+class TemplateSnapshot:
+    """
+    Pre-analyzed template with dependency graph.
+    
+    Created during snapshot phase via static template analysis.
+    Enables O(1) template→page lookup for incremental builds.
+    
+    RFC: Snapshot-Enabled v2 Opportunities (Opportunity 5)
+    """
+
+    # Identity
+    path: Path
+    name: str
+
+    # Template relationships (pre-resolved)
+    extends: str | None  # {% extends "base.html" %}
+    includes: tuple[str, ...]  # {% include "partial.html" %}
+    imports: tuple[str, ...]  # {% from "macros.html" import ... %}
+
+    # Block definitions
+    blocks: tuple[str, ...]  # {% block content %}
+
+    # Macros
+    macros_defined: tuple[str, ...]  # {% macro name() %}
+    macros_used: tuple[str, ...]  # {{ macros.name() }}
+
+    # Incremental build support
+    content_hash: str
+
+    # All direct and transitive dependencies (for invalidation)
+    all_dependencies: frozenset[str] = field(default_factory=frozenset)
+
+
+@dataclass(frozen=True, slots=True)
 class SiteSnapshot:
     """
     Immutable site snapshot - the complete render context.
@@ -145,6 +196,7 @@ class SiteSnapshot:
     root_section: SectionSnapshot
 
     # Configuration (immutable views)
+    # Legacy dict access - preserved for backward compatibility
     config: MappingProxyType[str, Any]
     params: MappingProxyType[str, Any]  # Site params shortcut
 
@@ -161,10 +213,29 @@ class SiteSnapshot:
     attention_order: tuple[PageSnapshot, ...]
     scout_hints: tuple[ScoutHint, ...]
 
-    # Metadata
+    # Metadata (required fields - must come before defaults)
     snapshot_time: float  # time.time() when snapshot created
     page_count: int
     section_count: int
+
+    # Template snapshots with dependency graph (RFC: Snapshot-Enabled v2)
+    # O(1) template→page lookup for incremental builds
+    templates: MappingProxyType[str, TemplateSnapshot] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    # Reverse index: template_name → frozenset of dependent template names
+    template_dependency_graph: MappingProxyType[str, frozenset[str]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    # Reverse index: template_name → pages that use it (directly or transitively)
+    template_dependents: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+    # Typed configuration snapshot (RFC: Snapshot-Enabled v2, Opportunity 6)
+    # Provides typed attribute access: config_snapshot.site.title
+    # None for backward compatibility - will be populated by snapshot builder
+    config_snapshot: ConfigSnapshot | None = None
 
 
 @dataclass(frozen=True, slots=True)

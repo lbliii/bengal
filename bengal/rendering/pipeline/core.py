@@ -548,6 +548,9 @@ class RenderingPipeline:
         
         RFC: rfc-build-performance-optimizations Phase 2
         Uses render-time asset tracking to avoid post-render HTML parsing.
+        
+        RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        Optionally records effects for unified dependency tracking.
         """
         # Allow empty parsed_ast - pages like home pages, section indexes, and 
         # taxonomy pages may have no markdown body but should still render
@@ -559,11 +562,25 @@ class RenderingPipeline:
         # Track assets during rendering (render-time tracking)
         from bengal.rendering.asset_tracking import AssetTracker
         
+        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        # Record render effects if effect tracing is enabled
+        from bengal.effects import BuildEffectTracer
+        
+        effect_tracer = BuildEffectTracer.get_instance()
+        effect_recorder = effect_tracer.record_page_render(page, template)
+        
         tracker = AssetTracker()
         with tracker:
-            html_content = self.renderer.render_content(page.parsed_ast or "")
-            page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            # Use effect recorder context if enabled
+            if effect_recorder:
+                with effect_recorder:
+                    html_content = self.renderer.render_content(page.parsed_ast or "")
+                    page.rendered_html = self.renderer.render_page(page, html_content)
+                    page.rendered_html = format_html(page.rendered_html, page, self.site)
+            else:
+                html_content = self.renderer.render_content(page.parsed_ast or "")
+                page.rendered_html = self.renderer.render_page(page, html_content)
+                page.rendered_html = format_html(page.rendered_html, page, self.site)
         
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()

@@ -22,7 +22,14 @@ See Also:
 
 from __future__ import annotations
 
-from bengal.snapshots.builder import create_site_snapshot
+from bengal.snapshots.builder import (
+    create_site_snapshot,
+    pages_affected_by_template_change,
+    predict_affected,
+    ShadowModeValidator,
+    SpeculativeRenderer,
+    update_snapshot,
+)
 from bengal.snapshots.scheduler import WaveScheduler
 from bengal.snapshots.scout import ScoutThread
 from bengal.snapshots.types import (
@@ -32,16 +39,28 @@ from bengal.snapshots.types import (
     ScoutHint,
     SectionSnapshot,
     SiteSnapshot,
+    TemplateSnapshot,
 )
 
 __all__ = [
+    # Snapshot creation
     "create_site_snapshot",
+    "update_snapshot",
+    # Incremental build helpers
+    "pages_affected_by_template_change",
+    "predict_affected",
+    # Speculative rendering
+    "SpeculativeRenderer",
+    "ShadowModeValidator",
+    # Scheduling
     "WaveScheduler",
     "ScoutThread",
+    # Snapshot types
     "PageSnapshot",
     "SectionSnapshot",
     "SiteSnapshot",
     "MenuItemSnapshot",
     "ScoutHint",
+    "TemplateSnapshot",
     "NO_SECTION",
 ]

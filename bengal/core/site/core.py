@@ -12,7 +12,7 @@ Key Responsibilities:
 Content Organization: Manages pages, sections, and assets in hierarchy
 Build Coordination: site.build() orchestrates full build pipeline
 Dev Server: site.serve() provides live-reload development server
-Theme Integration: Resolves theme chains for template/asset lookup
+Theme Integration: Uses bengal.services.theme for theme resolution
 Query Interfaces: Provides taxonomy, menu, and page query APIs
 
 Mixin Architecture:
@@ -21,9 +21,13 @@ Site is composed of focused mixins for separation of concerns:
 - PageCachesMixin: Cached page lists
 - SiteFactoriesMixin: Factory methods (from_config, for_testing)
 - ContentDiscoveryMixin: Content/asset discovery
-- ThemeIntegrationMixin: Theme resolution
 - DataLoadingMixin: data/ directory loading
 - SectionRegistryMixin: O(1) section lookups
+
+Related Services (RFC: Snapshot-Enabled v2):
+- bengal.services.theme: Pure functions for theme resolution
+- bengal.services.query: Pure functions for content queries
+- bengal.services.data: Pure functions for data loading
 
 Caching Strategy:
 Expensive computations (page lists, section lookups) are cached and
@@ -56,7 +60,6 @@ from bengal.core.site.factories import SiteFactoriesMixin
 from bengal.core.site.page_caches import PageCachesMixin
 from bengal.core.site.properties import SitePropertiesMixin
 from bengal.core.site.section_registry import SectionRegistryMixin
-from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
@@ -78,7 +81,6 @@ class Site(
     SitePropertiesMixin,
     PageCachesMixin,
     SiteFactoriesMixin,
-    ThemeIntegrationMixin,  # Must come before ContentDiscoveryMixin for _get_theme_assets_chain
     ContentDiscoveryMixin,
     DataLoadingMixin,
     SectionRegistryMixin,

@@ -8,6 +8,7 @@ Related Modules:
 - bengal.core.site.core: Main Site dataclass using this mixin
 - bengal.content.discovery.content_discovery: Content discovery implementation
 - bengal.content.discovery.asset_discovery: Asset discovery implementation
+- bengal.services.theme: Theme resolution (used for asset chain)
 
 """
 
@@ -36,7 +37,6 @@ class ContentDiscoveryMixin:
         - assets: list[Asset]
         - theme: str | None
         - register_sections: Callable (from SectionRegistryMixin)
-        - _get_theme_assets_chain: Callable (from ThemeIntegrationMixin)
         
     """
 
@@ -47,16 +47,6 @@ class ContentDiscoveryMixin:
     sections: list[Section]
     assets: list[Asset]
     theme: str | None
-
-    # Method stubs for type checking (provided by other mixins)
-    # NOTE: Do NOT add stub methods here that shadow real implementations in other mixins!
-    # Python MRO resolves methods left-to-right, so stubs here would override implementations
-    # in mixins listed later (like SectionRegistryMixin). Use NotImplementedError pattern only
-    # for methods that MUST be overridden by the concrete class.
-
-    def _get_theme_assets_chain(self) -> list[Path]:
-        """Get theme assets paths in inheritance order (from ThemeIntegrationMixin)."""
-        raise NotImplementedError("Implemented by ThemeIntegrationMixin")
 
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
@@ -204,12 +194,13 @@ class ContentDiscoveryMixin:
             site.discover_assets(Path('/custom/assets'))  # Custom assets directory
         """
         from bengal.content.discovery.asset_discovery import AssetDiscovery
+        from bengal.services.theme import get_theme_assets_chain
 
         self.assets = []
 
         # Theme assets first (lower priority), then site assets (higher priority)
         if self.theme:
-            for theme_dir in self._get_theme_assets_chain():
+            for theme_dir in get_theme_assets_chain(self.root_path, self.theme):
                 if theme_dir and theme_dir.exists():
                     theme_discovery = AssetDiscovery(theme_dir)
                     self.assets.extend(theme_discovery.discover())
