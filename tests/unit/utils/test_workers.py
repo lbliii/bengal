@@ -29,6 +29,22 @@ from bengal.utils.concurrency.workers import (
 )
 
 
+def _make_page_mock(raw_content: str, metadata: dict | None = None) -> MagicMock:
+    """
+    Create a properly configured page mock for estimate_page_weight tests.
+    
+    MagicMock auto-creates attributes, so hasattr(mock, "_source") is always True.
+    The estimate_page_weight function checks _source first, then _raw_content.
+    We set _source to the content so it works correctly.
+    """
+    page = MagicMock()
+    # Set _source to the content (estimate_page_weight checks _source first)
+    page._source = raw_content
+    page._raw_content = raw_content
+    page.metadata = metadata if metadata is not None else {}
+    return page
+
+
 class TestDetectEnvironment:
     """Test environment auto-detection."""
 
@@ -297,18 +313,14 @@ class TestEstimatePageWeight:
 
     def test_simple_page_weight_near_one(self) -> None:
         """Simple page with minimal content has weight ~1.0."""
-        page = MagicMock()
-        page._raw_content = "# Simple Page\n\nJust some text."
-        page.metadata = {}
+        page = _make_page_mock("# Simple Page\n\nJust some text.")
 
         weight = estimate_page_weight(page)
         assert 0.9 <= weight <= 1.1
 
     def test_large_content_increases_weight(self) -> None:
         """Large content (>10KB) increases weight."""
-        page = MagicMock()
-        page._raw_content = "x" * 30000  # 30KB
-        page.metadata = {}
+        page = _make_page_mock("x" * 30000)  # 30KB
 
         weight = estimate_page_weight(page)
         # (30000 - 10000) / 20000 = 1.0 additional weight
@@ -316,10 +328,8 @@ class TestEstimatePageWeight:
 
     def test_many_code_blocks_increase_weight(self) -> None:
         """Many code blocks (>5) increase weight."""
-        page = MagicMock()
         code_blocks = "```python\ncode\n```\n" * 10  # 10 code blocks
-        page._raw_content = f"# Page\n\n{code_blocks}"
-        page.metadata = {}
+        page = _make_page_mock(f"# Page\n\n{code_blocks}")
 
         weight = estimate_page_weight(page)
         # (10 - 5) * 0.1 = 0.5 additional weight
@@ -327,10 +337,8 @@ class TestEstimatePageWeight:
 
     def test_many_directives_increase_weight(self) -> None:
         """Many directives (>10) increase weight."""
-        page = MagicMock()
         directives = ".. note::\n   Note\n\n" * 20  # 20 directives
-        page._raw_content = f"# Page\n\n{directives}"
-        page.metadata = {}
+        page = _make_page_mock(f"# Page\n\n{directives}")
 
         weight = estimate_page_weight(page)
         # (20 - 10) * 0.05 = 0.5 additional weight
@@ -338,28 +346,25 @@ class TestEstimatePageWeight:
 
     def test_autodoc_flag_adds_bonus(self) -> None:
         """is_autodoc metadata adds +1.0 weight bonus."""
-        page = MagicMock()
-        page._raw_content = "# API Reference"
-        page.metadata = {"is_autodoc": True}
+        page = _make_page_mock("# API Reference", {"is_autodoc": True})
 
         weight = estimate_page_weight(page)
         assert weight >= 2.0
 
     def test_autodoc_key_adds_bonus(self) -> None:
         """autodoc metadata key also adds +1.0 weight bonus."""
-        page = MagicMock()
-        page._raw_content = "# API Reference"
-        page.metadata = {"autodoc": {"module": "mymodule"}}
+        page = _make_page_mock("# API Reference", {"autodoc": {"module": "mymodule"}})
 
         weight = estimate_page_weight(page)
         assert weight >= 2.0
 
     def test_weight_capped_at_five(self) -> None:
         """Weight is capped at 5.0 to avoid outlier distortion."""
-        page = MagicMock()
         # Huge content + many code blocks + many directives + autodoc
-        page._raw_content = "```\ncode\n```\n::\n" * 100 + "x" * 100000
-        page.metadata = {"is_autodoc": True}
+        page = _make_page_mock(
+            "```\ncode\n```\n::\n" * 100 + "x" * 100000,
+            {"is_autodoc": True},
+        )
 
         weight = estimate_page_weight(page)
         assert weight == 5.0
@@ -370,17 +375,12 @@ class TestOrderByComplexity:
 
     def test_orders_heavy_pages_first_by_default(self) -> None:
         """Heavy pages are ordered first by default (descending)."""
-        light_page = MagicMock()
-        light_page._raw_content = "# Light"
-        light_page.metadata = {}
-
-        heavy_page = MagicMock()
-        heavy_page._raw_content = "# Heavy\n" + "```\ncode\n```\n" * 20
-        heavy_page.metadata = {"is_autodoc": True}
-
-        medium_page = MagicMock()
-        medium_page._raw_content = "# Medium\n" + "x" * 15000
-        medium_page.metadata = {}
+        light_page = _make_page_mock("# Light")
+        heavy_page = _make_page_mock(
+            "# Heavy\n" + "```\ncode\n```\n" * 20,
+            {"is_autodoc": True},
+        )
+        medium_page = _make_page_mock("# Medium\n" + "x" * 15000)
 
         pages = [light_page, heavy_page, medium_page]
         ordered = order_by_complexity(pages)
@@ -392,13 +392,8 @@ class TestOrderByComplexity:
 
     def test_ascending_order_light_first(self) -> None:
         """descending=False puts light pages first."""
-        light_page = MagicMock()
-        light_page._raw_content = "# Light"
-        light_page.metadata = {}
-
-        heavy_page = MagicMock()
-        heavy_page._raw_content = "x" * 50000
-        heavy_page.metadata = {"is_autodoc": True}
+        light_page = _make_page_mock("# Light")
+        heavy_page = _make_page_mock("x" * 50000, {"is_autodoc": True})
 
         pages = [heavy_page, light_page]
         ordered = order_by_complexity(pages, descending=False)
@@ -408,13 +403,8 @@ class TestOrderByComplexity:
 
     def test_does_not_mutate_input(self) -> None:
         """Returns new list, does not mutate input."""
-        page1 = MagicMock()
-        page1._raw_content = "# Page 1"
-        page1.metadata = {}
-
-        page2 = MagicMock()
-        page2._raw_content = "# Page 2"
-        page2.metadata = {}
+        page1 = _make_page_mock("# Page 1")
+        page2 = _make_page_mock("# Page 2")
 
         pages = [page1, page2]
         original_order = list(pages)
@@ -433,9 +423,7 @@ class TestOrderByComplexity:
 
     def test_single_page_returns_same(self) -> None:
         """Single page list returns list with that page."""
-        page = MagicMock()
-        page._raw_content = "# Single"
-        page.metadata = {}
+        page = _make_page_mock("# Single")
 
         ordered = order_by_complexity([page])
         assert len(ordered) == 1

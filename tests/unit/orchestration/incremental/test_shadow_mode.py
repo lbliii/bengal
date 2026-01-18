@@ -1,8 +1,10 @@
 """
 Tests for IncrementalOrchestrator change detection.
 
-Tests that the orchestrator correctly delegates to ChangeDetector
-for both early and full phase change detection.
+Tests that the orchestrator correctly delegates to EffectBasedDetector
+for change detection.
+
+RFC: Aggressive Cleanup - EffectBasedDetector replaces old pipeline.
 """
 
 from unittest.mock import Mock, patch
@@ -43,7 +45,7 @@ def mock_site(tmp_path):
     site.regular_pages = site.pages
     site.generated_pages = []
     # page_by_source_path is a dict property built from site.pages
-    # The real implementation is a cached property on PageCachesMixin
+    # The real implementation is a cached property on Site
     site.page_by_source_path = {p.source_path: p for p in site.pages}
 
     return site
@@ -67,8 +69,7 @@ class TestOrchestratorInitialization:
         assert orch.site is mock_site
         assert orch.cache is None
         assert orch.tracker is None
-        assert orch._early_pipeline is None
-        assert orch._full_pipeline is None
+        assert orch._detector is None
 
     def test_initialize_creates_cache_and_tracker(self, mock_site):
         """initialize() should create cache and tracker."""
@@ -160,24 +161,15 @@ class TestFindWork:
 
 
 class TestChangeDetectorDelegation:
-    """Test that orchestrator properly delegates to ChangeDetector."""
+    """Test that orchestrator properly delegates to EffectBasedDetector."""
 
     def test_change_detector_lazily_initialized(self, orchestrator, mock_site):
-        """ChangeDetector should be lazily initialized on first use."""
-        assert orchestrator._early_pipeline is None
-
-        orchestrator.cache.should_bypass = Mock(return_value=False)
-        orchestrator.cache.is_changed = Mock(return_value=False)
-
-        with patch.object(
-            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
-        ):
-            orchestrator.find_work_early()
-
-        assert orchestrator._early_pipeline is not None
+        """EffectBasedDetector should be initialized during initialize()."""
+        # Detector is created during initialize(), not lazily
+        assert orchestrator._detector is not None
 
     def test_change_detector_reused(self, orchestrator, mock_site):
-        """Detection pipelines should be reused across calls."""
+        """Detector should be reused across calls."""
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
@@ -186,12 +178,12 @@ class TestChangeDetectorDelegation:
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
             orchestrator.find_work_early()
-            first_pipeline = orchestrator._early_pipeline
+            first_detector = orchestrator._detector
 
             orchestrator.find_work()
-            second_pipeline = orchestrator._early_pipeline
+            second_detector = orchestrator._detector
 
-        assert first_pipeline is second_pipeline
+        assert first_detector is second_detector
 
 
 if __name__ == "__main__":
