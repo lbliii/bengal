@@ -42,6 +42,8 @@ if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.analysis.results import PageLayers
     from bengal.protocols import PageLike
+else:
+    from bengal.protocols import PageLike
 
 
 class GraphAnalyzer:
@@ -134,7 +136,7 @@ class GraphAnalyzer:
         outgoing = len(self._graph.outgoing_refs.get(page, set()))
         return int(incoming + outgoing)
 
-    def get_hubs(self, threshold: int | None = None) -> list[Page]:
+    def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get hub pages (highly connected pages).
 
@@ -167,7 +169,7 @@ class GraphAnalyzer:
 
         return hubs
 
-    def get_leaves(self, threshold: int | None = None) -> list[Page]:
+    def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get leaf pages (low connectivity pages).
 
@@ -200,7 +202,7 @@ class GraphAnalyzer:
 
         return leaves
 
-    def get_orphans(self) -> list[Page]:
+    def get_orphans(self) -> list[PageLike]:
         """
         Get orphaned pages (no connections at all).
 

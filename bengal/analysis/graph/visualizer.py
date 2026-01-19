@@ -211,7 +211,7 @@ class GraphVisualizer:
             base_size = 8
             connectivity_bonus = min(connectivity.connectivity_score * 1.5, 20)  # max +20
             content_bonus = min(reading_time * 0.8, 15)  # max +15 (long articles get bigger)
-            size = min(50, base_size + connectivity_bonus + content_bonus)
+            size = int(min(50, base_size + connectivity_bonus + content_bonus))
 
             # Get tags safely
             tags = []
@@ -252,9 +252,15 @@ class GraphVisualizer:
                     )
                     if hasattr(page, "output_path") and page.output_path:
                         try:
-                            # Compute relative URL from output_dir
-                            rel_path = page.output_path.relative_to(self.site.output_dir)
-                            page_url = f"/{rel_path}".replace("\\", "/").replace("/index.html", "/")
+                            # Type narrowing: output_path should be a Path
+                            from pathlib import Path
+                            output_path = page.output_path
+                            if isinstance(output_path, Path) and isinstance(self.site.output_dir, Path):
+                                # Compute relative URL from output_dir
+                                rel_path = output_path.relative_to(self.site.output_dir)
+                                page_url = f"/{rel_path}".replace("\\", "/").replace("/index.html", "/")
+                            else:
+                                raise ValueError("output_path or output_dir is not a Path")
                             if not page_url.endswith("/"):
                                 page_url += "/"
                             # Apply baseurl for fallback path (since we computed it manually)
@@ -338,8 +344,8 @@ class GraphVisualizer:
             "stats": {
                 "total_pages": len(nodes),
                 "total_links": len(edges),
-                "hubs": self.graph.metrics.hub_count,
-                "orphans": self.graph.metrics.orphan_count,
+                "hubs": self.graph.metrics.hub_count if self.graph.metrics else 0,
+                "orphans": self.graph.metrics.orphan_count if self.graph.metrics else 0,
             },
         }
 
@@ -438,7 +444,11 @@ class GraphVisualizer:
             manifest_path = self.site.output_dir / "asset-manifest.json"
             if not manifest_path.exists():
                 # Fallback to .bengal cache location
-                manifest_path = self.site.paths.asset_manifest
+                # Type narrowing: paths may not be on SiteLike protocol
+                if hasattr(self.site, "paths") and self.site.paths:
+                    manifest_path = self.site.paths.asset_manifest
+                else:
+                    manifest_path = None
 
             if manifest_path.exists():
                 manifest = AssetManifest.load(manifest_path)

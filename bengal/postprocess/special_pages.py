@@ -50,7 +50,7 @@ Related:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.page.utils import create_synthetic_page
 from bengal.errors import ErrorCode
@@ -61,6 +61,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
 
@@ -220,9 +221,12 @@ class SpecialPagesGenerator:
 
             # Claim URL in registry before writing (claim-before-write pattern)
             # Priority 10 = special pages (fallback utility pages)
+            # Type narrowing: SiteLike doesn't have url_registry, but Site does
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
-                    self.site.url_registry.claim_output_path(
+                    # Type narrowing: we know url_registry exists from hasattr check
+                    url_registry = getattr(self.site, "url_registry")
+                    url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,
                         owner="special_pages",
@@ -287,7 +291,9 @@ class SpecialPagesGenerator:
             from bengal.config.defaults import get_feature_config
 
             # Get normalized search config (handles both bool and dict)
-            search_cfg = get_feature_config(self.site.config, "search")
+            # Cast SiteConfig (TypedDict) to dict[str, Any] for compatibility
+            config_dict = cast(dict[str, Any], self.site.config)
+            search_cfg = get_feature_config(config_dict, "search")
             if not search_cfg.get("enabled", True):
                 return False
 
@@ -308,7 +314,10 @@ class SpecialPagesGenerator:
             if hasattr(self.site, "template_engine"):
                 template_engine = self.site.template_engine
             else:
-                template_engine = create_engine(self.site)
+                # Cast SiteLike to Site for create_engine (which expects concrete Site)
+                from bengal.core.site import Site
+                site = cast(Site, self.site)
+                template_engine = create_engine(site)
 
             try:
                 template_engine.env.get_template(template_name)
@@ -356,9 +365,12 @@ class SpecialPagesGenerator:
 
             # Claim URL in registry before writing (claim-before-write pattern)
             # Priority 10 = special pages (fallback utility pages)
+            # Type narrowing: SiteLike doesn't have url_registry, but Site does
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
-                    self.site.url_registry.claim_output_path(
+                    # Type narrowing: we know url_registry exists from hasattr check
+                    url_registry = getattr(self.site, "url_registry")
+                    url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,
                         owner="special_pages",
@@ -410,7 +422,9 @@ class SpecialPagesGenerator:
             from bengal.config.defaults import get_feature_config
 
             # Get normalized graph config (handles both bool and dict)
-            graph_cfg = get_feature_config(self.site.config, "graph")
+            # Cast SiteConfig (TypedDict) to dict[str, Any] for compatibility
+            config_dict = cast(dict[str, Any], self.site.config)
+            graph_cfg = get_feature_config(config_dict, "graph")
             if not graph_cfg.get("enabled", True):
                 return False
 
@@ -452,9 +466,12 @@ class SpecialPagesGenerator:
 
             # Claim URL in registry before writing (claim-before-write pattern)
             # Priority 10 = special pages (fallback utility pages)
+            # Type narrowing: SiteLike doesn't have url_registry, but Site does
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
-                    self.site.url_registry.claim_output_path(
+                    # Type narrowing: we know url_registry exists from hasattr check
+                    url_registry = getattr(self.site, "url_registry")
+                    url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,
                         owner="special_pages",

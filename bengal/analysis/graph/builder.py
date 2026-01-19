@@ -23,7 +23,7 @@ import concurrent.futures
 import os
 import threading
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.analysis.links.types import LinkMetrics, LinkType
 from bengal.errors import BengalGraphError, ErrorCode, record_error
@@ -31,8 +31,9 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.protocols import PageLike, SiteLike
+else:
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -105,20 +106,20 @@ class GraphBuilder:
             )
 
         # Graph data structures
-        self.incoming_refs: dict[Page, float] = defaultdict(float)
-        self.outgoing_refs: dict[Page, set[Page]] = defaultdict(set)
-        self.link_types: dict[tuple[Page | None, Page], LinkType] = {}
-        self.link_metrics: dict[Page, LinkMetrics] = {}
+        self.incoming_refs: dict[PageLike, float] = defaultdict(float)
+        self.outgoing_refs: dict[PageLike, set[PageLike]] = defaultdict(set)
+        self.link_types: dict[tuple[PageLike | None, PageLike], LinkType] = {}
+        self.link_metrics: dict[PageLike, LinkMetrics] = {}
 
         # Reverse adjacency list for O(E) PageRank iteration
         # Maps each page to the list of pages that link TO it
         # RFC: rfc-analysis-algorithm-optimization
-        self.incoming_edges: dict[Page, list[Page]] = defaultdict(list)
+        self.incoming_edges: dict[PageLike, list[PageLike]] = defaultdict(list)
 
         # Thread-safe lock for merge phase
         self._lock = threading.Lock()
 
-    def get_analysis_pages(self) -> list[Page]:
+    def get_analysis_pages(self) -> list[PageLike]:
         """
         Get list of pages to analyze, excluding autodoc pages if configured.
 
@@ -211,10 +212,10 @@ class GraphBuilder:
             for this specific page to be merged after all workers complete.
             """
             # Per-page accumulators (not thread-local - each call gets fresh dicts)
-            incoming: dict[Page, float] = defaultdict(float)
-            outgoing: dict[Page, set[Page]] = defaultdict(set)
-            incoming_edges: dict[Page, list[Page]] = defaultdict(list)
-            link_types: dict[tuple[Page, Page], LinkType] = {}
+            incoming: dict[PageLike, float] = defaultdict(float)
+            outgoing: dict[PageLike, set[PageLike]] = defaultdict(set)
+            incoming_edges: dict[PageLike, list[PageLike]] = defaultdict(list)
+            link_types: dict[tuple[PageLike, PageLike], LinkType] = {}
 
             # Cross-references: analyze links from this page
             for link in getattr(page, "links", []):
@@ -337,7 +338,10 @@ class GraphBuilder:
         for page in analysis_pages:
             if not hasattr(page, "links") or not page.links:
                 try:
-                    page.extract_links()
+                    # Type narrowing: extract_links may not be on PageLike protocol
+                    extract_method = getattr(page, "extract_links", None)
+                    if extract_method and callable(extract_method):
+                        extract_method()
                 except (AttributeError, TypeError) as e:
                     logger.warning(
                         "knowledge_graph_link_extraction_error",
@@ -387,7 +391,7 @@ class GraphBuilder:
                     # Build reverse index for O(E) PageRank
                     self.incoming_edges[target].append(page)
 
-    def _resolve_link(self, link: str) -> Page | None:
+    def _resolve_link(self, link: str) -> PageLike | None:
         """
         Resolve a link string to a target page.
 
@@ -401,21 +405,34 @@ class GraphBuilder:
             return None
 
         xref = self.site.xref_index
+        # Type narrowing: xref_index is a dict-like structure
+        if not isinstance(xref, dict):
+            return None
+        
+        xref_dict = cast(dict[str, Any], xref)
 
         # Try by ID
         if link.startswith("id:"):
-            page = xref.get("by_id", {}).get(link[3:])
-            return page if page is not None else None
+            by_id = xref_dict.get("by_id", {})
+            if isinstance(by_id, dict):
+                page = by_id.get(link[3:])
+                return page if page is not None else None
 
         # Try by path
         if "/" in link or link.endswith(".md"):
             clean_link = link.replace(".md", "").strip("/")
-            page = xref.get("by_path", {}).get(clean_link)
-            return page if page is not None else None
+            by_path = xref_dict.get("by_path", {})
+            if isinstance(by_path, dict):
+                page = by_path.get(clean_link)
+                return page if page is not None else None
 
         # Try by slug
-        pages = xref.get("by_slug", {}).get(link, [])
-        return pages[0] if pages else None
+        by_slug = xref_dict.get("by_slug", {})
+        if isinstance(by_slug, dict):
+            pages = by_slug.get(link, [])
+            return pages[0] if pages else None
+        
+        return None
 
     def _analyze_taxonomies(self) -> None:
         """
@@ -430,9 +447,24 @@ class GraphBuilder:
 
         analysis_pages_set = set(self.get_analysis_pages())
 
-        for _taxonomy_name, taxonomy_dict in self.site.taxonomies.items():
-            for _term_slug, term_data in taxonomy_dict.items():
-                pages = term_data.get("pages", [])
+        # Type narrowing: taxonomies is a dict-like structure
+        taxonomies = self.site.taxonomies
+        if not isinstance(taxonomies, dict):
+            return
+        
+        taxonomies_dict = cast(dict[str, Any], taxonomies)
+        
+        for _taxonomy_name, taxonomy_dict in taxonomies_dict.items():
+            if not isinstance(taxonomy_dict, dict):
+                continue
+            taxonomy_dict_typed = cast(dict[str, Any], taxonomy_dict)
+            for _term_slug, term_data in taxonomy_dict_typed.items():
+                if not isinstance(term_data, dict):
+                    continue
+                term_data_typed = cast(dict[str, Any], term_data)
+                pages = term_data_typed.get("pages", [])
+                if not isinstance(pages, list):
+                    continue
                 for page in pages:
                     if page in analysis_pages_set:
                         self.incoming_refs[page] += 1
@@ -452,7 +484,12 @@ class GraphBuilder:
             if not hasattr(page, "related_posts") or not page.related_posts:
                 continue
 
-            for related in page.related_posts:
+            # Type narrowing: related_posts should be iterable
+            related_posts = getattr(page, "related_posts", [])
+            if not isinstance(related_posts, (list, tuple)):
+                continue
+
+            for related in related_posts:
                 if related != page and related in analysis_pages_set:
                     self.incoming_refs[related] += 1
                     self.outgoing_refs[page].add(related)
@@ -473,7 +510,14 @@ class GraphBuilder:
 
         analysis_pages_set = set(self.get_analysis_pages())
 
-        for _menu_name, menu_items in self.site.menu.items():
+        # Type narrowing: menu is a dict-like structure
+        menu = self.site.menu
+        if not isinstance(menu, dict):
+            return
+        
+        menu_dict = cast(dict[str, Any], menu)
+        
+        for _menu_name, menu_items in menu_dict.items():
             for item in menu_items:
                 if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
                     self.incoming_refs[item.page] += 10
@@ -570,7 +614,7 @@ class GraphBuilder:
 
         # Build inverted index: target -> {link_type: count}
         # O(L) single pass instead of O(P × L) nested loop
-        incoming_by_type: dict[Page, dict[LinkType, int]] = defaultdict(lambda: defaultdict(int))
+        incoming_by_type: dict[PageLike, dict[LinkType, int]] = defaultdict(lambda: defaultdict(int))
         for (_source, target), link_type in self.link_types.items():
             incoming_by_type[target][link_type] += 1
 

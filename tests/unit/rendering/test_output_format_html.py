@@ -26,7 +26,7 @@ class TestFormatHtmlFastMode:
             output_dir=Path("/tmp/test/output"),
             config={"build": {"fast_mode": True}},
         )
-        page = Page(source_path="/tmp/test/page.md")
+        page = Page(source_path=Path("/tmp/test/page.md"))
         
         result = format_html(html, page, site)
         
@@ -47,7 +47,7 @@ class TestFormatHtmlFastMode:
                 }
             },
         )
-        page = Page(source_path="/tmp/test/page.md")
+        page = Page(source_path=Path("/tmp/test/page.md"))
         
         result = format_html(html, page, site)
         
@@ -68,7 +68,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "pretty"},
             },
         )
-        page = Page(source_path="/tmp/test/page.md")
+        page = Page(source_path=Path("/tmp/test/page.md"))
         
         result = format_html(html, page, site)
         
@@ -88,7 +88,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "pretty"},
             },
         )
-        page = Page(source_path="/tmp/test/page.md")
+        page = Page(source_path=Path("/tmp/test/page.md"))
         page.metadata["no_format"] = False  # Would normally format
         
         result = format_html(html, page, site)
@@ -108,7 +108,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "minify"},  # Would normally minify
             },
         )
-        page = Page(source_path="/tmp/test/page.md")
+        page = Page(source_path=Path("/tmp/test/page.md"))
         
         result = format_html(html, page, site)
         

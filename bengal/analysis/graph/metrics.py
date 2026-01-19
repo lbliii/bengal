@@ -22,6 +22,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
+else:
+    from bengal.protocols import PageLike
 
 
 @dataclass
@@ -100,9 +102,9 @@ class MetricsCalculator:
 
     def __init__(
         self,
-        incoming_refs: dict[Page, float],
-        outgoing_refs: dict[Page, set[Page]],
-        analysis_pages: list[Page],
+        incoming_refs: dict[PageLike, float],
+        outgoing_refs: dict[PageLike, set[PageLike]],
+        analysis_pages: list[PageLike],
         hub_threshold: int = 10,
         leaf_threshold: int = 2,
     ):

@@ -17,7 +17,7 @@ import hashlib
 import time
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 if TYPE_CHECKING:
     from bengal.core.menu import MenuItem
@@ -1134,8 +1134,11 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                         if hasattr(template, "_optimized_ast"):
                             ast = template._optimized_ast
                             if hasattr(engine, "_extract_referenced_templates"):
-                                referenced = engine._extract_referenced_templates(ast)
-                                partials.update(referenced)
+                                # Type narrowing: check if method is callable
+                                extract_method = getattr(engine, "_extract_referenced_templates", None)
+                                if callable(extract_method):
+                                    referenced = extract_method(ast)
+                                    partials.update(referenced)
                     except Exception:
                         pass
         
@@ -1300,10 +1303,18 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                 # Load source
                 if hasattr(env, "loader") and env.loader:
                     try:
-                        source, _filename, _uptodate = env.loader.get_source(
-                            env, template_name
-                        )
-                        ast = env.parse(source)
+                        # Type narrowing: Jinja2 loader has get_source method
+                        loader = env.loader
+                        if not hasattr(loader, "get_source"):
+                            raise AttributeError("Loader does not have get_source method")
+                        get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                        source, _filename, _uptodate = get_source(env, template_name)
+                        
+                        # Type narrowing: Jinja2 Environment has parse method
+                        if not hasattr(env, "parse"):
+                            raise AttributeError("Environment does not have parse method")
+                        parse_method = cast(Callable[[str], Any], env.parse)
+                        ast = parse_method(source)
                         
                         # Find referenced templates (extends, includes, imports)
                         for ref in meta.find_referenced_templates(ast) or []:
