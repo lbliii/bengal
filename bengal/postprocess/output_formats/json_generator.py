@@ -66,7 +66,8 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.core.page import Page
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 

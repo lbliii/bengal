@@ -28,9 +28,8 @@ from bengal.health.report import CheckResult
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.orchestration.build_context import BuildContext
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 

@@ -36,7 +36,8 @@ from bengal.health.report import CheckResult, ValidatorStats
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.core.page import Page
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -473,7 +474,7 @@ class LinkValidatorWrapper(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Validate links in generated pages.
 
@@ -570,7 +571,7 @@ class LinkValidatorWrapper(BaseValidator):
 
 
 # Convenience function for direct validation
-def validate_links(page: Page, site: Site | None = None) -> list[str]:
+def validate_links(page: Page, site: SiteLike | None = None) -> list[str]:
     """
     Validate all links in a page.
     

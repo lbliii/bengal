@@ -32,18 +32,16 @@ import contextvars
 import sys
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
 from .parallel import (
-    get_or_create_pipeline,
     is_free_threaded,
     thread_local as _thread_local,
 )
 from .tracking import (
     clear_thread_local_pipelines,
     decrement_active_renders as _decrement_active_renders,
-    get_active_render_count,
     get_current_generation as _get_current_generation,
     increment_active_renders as _increment_active_renders,
 )
@@ -573,7 +571,7 @@ class RenderOrchestrator:
 
         # Update build stats
         if stats:
-            stats.pages_rendered = render_stats.pages_rendered
+            stats.pages_rendered = render_stats.pages_rendered  # type: ignore[assignment]
             if render_stats.errors:
                 for page_path, error in render_stats.errors:
                     logger.error(
@@ -616,8 +614,8 @@ class RenderOrchestrator:
 
         # Log complexity distribution at debug level
         complexity_stats = get_complexity_stats(sorted_pages)
-        mean_score = float(complexity_stats["mean"])
-        variance_ratio = float(complexity_stats["variance_ratio"])
+        mean_score = float(complexity_stats["mean"])  # type: ignore[arg-type]
+        variance_ratio = float(complexity_stats["variance_ratio"])  # type: ignore[arg-type]
         logger.debug(
             "complexity_distribution",
             page_count=complexity_stats["count"],
@@ -691,14 +689,16 @@ class RenderOrchestrator:
                 # CRITICAL: Copy parent context for each task to propagate ContextVars
                 # (e.g., asset_manifest_context) to worker threads. Without this,
                 # workers start with empty context in free-threaded Python (PEP 703).
+                # fmt: off
                 future_to_page = {
                     executor.submit(
                         contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,
+                        process_page_with_pipeline,  # type: ignore[arg-type]
                         page,
                     ): page
                     for page in sorted_pages
                 }
+                # fmt: on
 
                 # Track errors for aggregation
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -896,14 +896,16 @@ class RenderOrchestrator:
                 # CRITICAL: Copy parent context for each task to propagate ContextVars
                 # (e.g., asset_manifest_context) to worker threads. Without this,
                 # workers start with empty context in free-threaded Python (PEP 703).
+                # fmt: off
                 future_to_page = {
                     executor.submit(
                         contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,
+                        process_page_with_pipeline,  # type: ignore[arg-type]
                         page,
                     ): page
                     for page in sorted_pages
                 }
+                # fmt: on
 
                 # Track errors for aggregation
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -1023,14 +1025,16 @@ class RenderOrchestrator:
                     # CRITICAL: Copy parent context for each task to propagate ContextVars
                     # (e.g., asset_manifest_context) to worker threads. Without this,
                     # workers start with empty context in free-threaded Python (PEP 703).
+                    # fmt: off
                     futures = [
                         executor.submit(
                             contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,
+                            process_page_with_pipeline,  # type: ignore[arg-type]
                             page,
                         )
                         for page in sorted_pages
                     ]
+                    # fmt: on
 
                     # Track errors for aggregation
                     aggregator = ErrorAggregator(total_items=len(sorted_pages))

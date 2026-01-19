@@ -34,6 +34,7 @@ from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike, SiteLike
 
