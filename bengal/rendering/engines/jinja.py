@@ -399,7 +399,9 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         for err in errors:
             exc = err.original_exception
             if exc is None:
-                exc = TemplateSyntaxError(err.message, lineno=err.line)
+                # TemplateSyntaxError requires lineno (int), not optional
+                lineno = err.line if err.line is not None else 0
+                exc = TemplateSyntaxError(err.message, lineno=lineno)
             render_error = TemplateRenderError.from_jinja2_error(exc, err.template, err.path, self)
             render_errors.append(render_error)
         return render_errors

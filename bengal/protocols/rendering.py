@@ -310,6 +310,27 @@ class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, 
         """
         ...
 
+    def precompile_templates(self, template_names: list[str] | None = None) -> int:
+        """
+        Optional: Pre-compile templates to warm the cache.
+
+        Some engines support precompiling templates ahead of rendering
+        to avoid compile-on-demand overhead. This is especially beneficial
+        when using bytecode caching.
+
+        Args:
+            template_names: Optional list of template names to precompile.
+                           If None, precompiles all templates.
+
+        Returns:
+            Number of templates compiled
+
+        Note:
+            This is an optional method. Engines that don't support it
+            should not implement it. Callers should use hasattr() to check.
+        """
+        ...
+
 
 # Backwards compatibility alias
 TemplateEngineProtocol = TemplateEngine

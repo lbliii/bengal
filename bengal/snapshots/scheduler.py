@@ -204,7 +204,9 @@ class WaveScheduler:
                 )
                 templates_to_precompile.add(template_name)
             
-            precompiled = template_engine.precompile_templates(list(templates_to_precompile))
+            # Type guard: hasattr check ensures precompile_templates exists
+            precompile_method = getattr(template_engine, "precompile_templates")
+            precompiled = precompile_method(list(templates_to_precompile))
             logger.debug(
                 "templates_precompiled",
                 count=precompiled,

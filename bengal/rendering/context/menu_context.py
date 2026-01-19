@@ -6,7 +6,7 @@ Provides cached access to navigation menus.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -59,16 +59,24 @@ class MenusContext:
         if lang:
             localized = self._site.menu_localized.get(name, {}).get(lang)
             if localized is not None:
-                self._cache[cache_key] = [
-                    item.to_dict() if hasattr(item, "to_dict") else item for item in localized
-                ]
+                result: list[dict[str, Any]] = []
+                for item in localized:
+                    if hasattr(item, "to_dict"):
+                        result.append(item.to_dict())  # type: ignore[attr-defined]
+                    else:
+                        result.append(item)  # type: ignore[arg-type]
+                self._cache[cache_key] = result
                 return self._cache[cache_key]
 
         # Default menu
         menu = self._site.menu.get(name, [])
-        self._cache[cache_key] = [
-            item.to_dict() if hasattr(item, "to_dict") else item for item in menu
-        ]
+        result: list[dict[str, Any]] = []
+        for item in menu:
+            if hasattr(item, "to_dict"):
+                result.append(item.to_dict())  # type: ignore[attr-defined]
+            else:
+                result.append(item)  # type: ignore[arg-type]
+        self._cache[cache_key] = result
         return self._cache[cache_key]
 
     def invalidate(self) -> None:

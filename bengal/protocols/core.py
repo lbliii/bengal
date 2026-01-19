@@ -256,6 +256,11 @@ class SiteLike(Protocol):
         """Active theme name."""
         ...
 
+    @property
+    def data(self) -> dict[str, Any]:
+        """Data directory contents (loaded from data/ directory)."""
+        ...
+
 
 # =============================================================================
 # Navigation Protocols

@@ -127,7 +127,8 @@ def create_engine(
     if engine_name == "jinja2":
         from bengal.rendering.engines.jinja import JinjaTemplateEngine
 
-        return JinjaTemplateEngine(site, profile=profile)
+        engine = JinjaTemplateEngine(site, profile=profile)
+        return engine  # JinjaTemplateEngine implements TemplateEngineProtocol structurally
 
     if engine_name == "kida":
         from bengal.rendering.engines.kida import KidaTemplateEngine

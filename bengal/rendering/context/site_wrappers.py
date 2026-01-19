@@ -99,8 +99,12 @@ class SiteContext:
     def title(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.title or ""
+            site_config = config.site
+            if hasattr(site_config, "title"):
+                return site_config.title or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("title", "") or ""
@@ -110,8 +114,12 @@ class SiteContext:
     def description(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.description or ""
+            site_config = config.site
+            if hasattr(site_config, "description"):
+                return site_config.description or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("description", "") or ""
@@ -121,8 +129,12 @@ class SiteContext:
     def baseurl(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.baseurl or ""
+            site_config = config.site
+            if hasattr(site_config, "baseurl"):
+                return site_config.baseurl or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("baseurl", "") or ""

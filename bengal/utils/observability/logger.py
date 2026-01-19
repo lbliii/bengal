@@ -243,7 +243,12 @@ class BengalLogger:
         # Check if site is in context first (fast check before traceback)
         site = context.get("site") if "site" in context else None
         has_site_config = site is not None and hasattr(site, "config")
-        is_config_string = has_site_config and isinstance(site.config, str)
+        is_config_string = (
+            has_site_config
+            and site is not None
+            and hasattr(site, "config")
+            and isinstance(getattr(site, "config", None), str)
+        )
 
         # Format traceback once (only if we have a traceback)
         # This is typically <1ms and only happens during errors (rare)
