@@ -19,10 +19,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
-def register_context_functions(env: Any, site: Site) -> None:
+def register_context_functions(env: Any, site: SiteLike) -> None:
     """Register context-dependent template functions for Kida.
     
     Strategy: Context-aware function factory

@@ -33,7 +33,7 @@ Walks the content directory recursively to create Page and Section objects
 - Parses frontmatter
 - Organizes content into hierarchy
 - **Includes autodoc-generated markdown files**
-- **Uses Utilities**: Delegates to `bengal.utils.file_io.read_text_file()` for robust file reading with encoding fallback
+- **Uses Utilities**: Delegates to `bengal.utils.io.file_io.read_text_file()` for robust file reading with encoding fallback
 
 ### Process Flow
 1. Start at content root directory

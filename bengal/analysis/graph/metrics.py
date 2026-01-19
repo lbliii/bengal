@@ -21,7 +21,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
+else:
+    from bengal.protocols import PageLike
 
 
 @dataclass
@@ -63,7 +65,7 @@ class PageConnectivity:
         
     """
 
-    page: Page
+    page: PageLike
     incoming_refs: int
     outgoing_refs: int
     connectivity_score: int
@@ -100,9 +102,9 @@ class MetricsCalculator:
 
     def __init__(
         self,
-        incoming_refs: dict[Page, float],
-        outgoing_refs: dict[Page, set[Page]],
-        analysis_pages: list[Page],
+        incoming_refs: dict[PageLike, float],
+        outgoing_refs: dict[PageLike, set[PageLike]],
+        analysis_pages: list[PageLike],
         hub_threshold: int = 10,
         leaf_threshold: int = 2,
     ):
@@ -164,7 +166,7 @@ class MetricsCalculator:
             orphan_count=orphan_count,
         )
 
-    def get_connectivity(self, page: Page) -> PageConnectivity:
+    def get_connectivity(self, page: PageLike) -> PageConnectivity:
         """
         Get connectivity information for a specific page.
 
@@ -188,7 +190,7 @@ class MetricsCalculator:
             is_orphan=incoming == 0 and outgoing == 0,
         )
 
-    def get_connectivity_score(self, page: Page) -> int:
+    def get_connectivity_score(self, page: PageLike) -> int:
         """
         Get total connectivity score for a page.
 

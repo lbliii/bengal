@@ -67,7 +67,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -110,7 +110,7 @@ class PageJSONGenerator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         graph_data: dict[str, Any] | None = None,
         include_html: bool = False,
         include_text: bool = True,

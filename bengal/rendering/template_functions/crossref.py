@@ -14,13 +14,12 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     # Create closures that have access to site's xref_index and baseurl

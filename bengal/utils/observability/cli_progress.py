@@ -206,18 +206,42 @@ class LiveProgressManager:
         # Track last printed state for fallback
         self._last_fallback_phase: str | None = None
 
-    def __enter__(self) -> LiveProgressManager:
-        """Enter context manager."""
-        if self.use_live:
-            # Create Live display
+    def start(self) -> LiveProgressManager:
+        """
+        Start the live display explicitly.
+        
+        Alternative to using as context manager when the progress display
+        needs to span multiple function calls.
+        
+        Returns:
+            Self for method chaining.
+        """
+        if self.use_live and not self.live:
             self.live = Live(
                 self._render(),
                 console=self.console,
                 refresh_per_second=4,
-                transient=False,  # Keep final output
+                transient=True,  # Clear display after completion (notify_phase_complete shows final status)
             )
             self.live.__enter__()
         return self
+
+    def stop(self) -> None:
+        """
+        Stop the live display explicitly.
+        
+        Call this when done with progress updates to clean up the display.
+        """
+        if self.live:
+            self._update_display(force=True)
+            try:
+                self.live.__exit__(None, None, None)
+            finally:
+                self.live = None
+
+    def __enter__(self) -> LiveProgressManager:
+        """Enter context manager (uses transient display by default)."""
+        return self.start()
 
     def __exit__(
         self,

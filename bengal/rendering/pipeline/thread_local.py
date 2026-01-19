@@ -41,8 +41,14 @@ Related Modules:
 
 from __future__ import annotations
 
+import threading
+
 from bengal.parsing import BaseMarkdownParser, create_markdown_parser
 from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
+
+# Thread-local storage for pipeline instances (used by WaveScheduler)
+# Each worker thread gets its own pipeline to avoid contention
+thread_local = threading.local()
 
 # Thread-local cache for parser instances (reuse parsers per thread)
 _parser_cache: ThreadLocalCache[BaseMarkdownParser] = ThreadLocalCache(

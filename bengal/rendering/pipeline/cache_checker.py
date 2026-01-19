@@ -115,6 +115,11 @@ class CacheChecker:
                 self.build_stats.rendered_cache_hits = 0
             self.build_stats.rendered_cache_hits += 1
 
+        # Ensure output_path is set before writing (required by write_output)
+        if not page.output_path:
+            from bengal.rendering.pipeline.output import determine_output_path
+            page.output_path = determine_output_path(page, self.site)
+
         write_output(
             page, self.site, self.dependency_tracker,
             collector=self.output_collector,
@@ -165,6 +170,15 @@ class CacheChecker:
             self.build_stats.parsed_cache_hits += 1
 
         parsed_content = cached["html"]
+        
+        # Validate cached content is not empty
+        if not parsed_content:
+            logger.warning(
+                "parsed_cache_empty",
+                page=str(page.source_path),
+                template=template,
+            )
+            return False
 
         # Pre-compute plain_text cache
         _ = page.plain_text
@@ -190,6 +204,21 @@ class CacheChecker:
         html_content = self.renderer.render_content(parsed_content)
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
+        
+        # Validate rendered HTML is not empty
+        if not page.rendered_html:
+            logger.warning(
+                "rendered_html_empty_after_cache",
+                page=str(page.source_path),
+                template=template,
+                parsed_content_length=len(parsed_content) if parsed_content else 0,
+            )
+            return False
+
+        # Ensure output_path is set before writing (required by write_output)
+        if not page.output_path:
+            from bengal.rendering.pipeline.output import determine_output_path
+            page.output_path = determine_output_path(page, self.site)
 
         write_output(
             page, self.site, self.dependency_tracker,

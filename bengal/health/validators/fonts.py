@@ -20,9 +20,7 @@ from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
-
-if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class FontValidator(BaseValidator):
@@ -47,7 +45,7 @@ class FontValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run font validation checks."""
         results = []

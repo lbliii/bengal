@@ -8,8 +8,8 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class TrackValidator(BaseValidator):
@@ -28,7 +28,7 @@ class TrackValidator(BaseValidator):
     enabled_by_default = True
 
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Validate track definitions and references."""
         results = []
@@ -134,7 +134,7 @@ class TrackValidator(BaseValidator):
 
         return results
 
-    def _get_page(self, site: Site, path: str) -> object | None:
+    def _get_page(self, site: SiteLike, path: str) -> object | None:
         """
         Get page using same logic as get_page template function.
 

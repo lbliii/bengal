@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
 @dataclass
@@ -50,9 +50,9 @@ class PageLayers:
         
     """
 
-    hubs: list[Page]
-    mid_tier: list[Page]
-    leaves: list[Page]
+    hubs: list[PageLike]
+    mid_tier: list[PageLike]
+    leaves: list[PageLike]
 
     def __iter__(self):
         """Allow tuple unpacking for backward compatibility."""

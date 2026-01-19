@@ -22,8 +22,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,7 +272,7 @@ def _extract_github(value: str) -> str:
 
 
 # Store site reference for filter access
-_site_ref: Site | None = None
+_site_ref: "SiteLike | None" = None
 
 
 def author_view_filter(page: Any) -> AuthorView | None:
@@ -349,7 +348,7 @@ def authors_filter(pages: Any) -> list[AuthorView]:
     return result
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register author view filters with template environment."""
     global _site_ref
     _site_ref = site

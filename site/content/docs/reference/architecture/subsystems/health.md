@@ -51,7 +51,7 @@ Bengal includes a comprehensive health check system that validates builds across
   - Configuration-based enablement
   - Access to cached build artifacts via `build_context`
 
-## Health Report (`bengal/health/report.py`)
+## Health Report (`bengal/health/report/`)
 - **Purpose**: Unified reporting structure for health check results
 - **Components**:
   - `CheckStatus`: SUCCESS, INFO, SUGGESTION, WARNING, ERROR (ordered by severity)

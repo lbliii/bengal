@@ -68,7 +68,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class Severity(Enum):
@@ -449,7 +449,7 @@ class DebugTool(ABC):
 
     def __init__(
         self,
-        site: Site | None = None,
+        site: SiteLike | None = None,
         cache: BuildCache | None = None,
         root_path: Path | None = None,
     ):
@@ -611,7 +611,7 @@ class DebugRegistry:
     def create(
         cls,
         name: str,
-        site: Site | None = None,
+        site: SiteLike | None = None,
         cache: BuildCache | None = None,
         **kwargs: Any,
     ) -> DebugTool | None:

@@ -451,6 +451,8 @@ class NodePipeline:
         try:
             import bengal as bengal_pkg
 
+            if bengal_pkg.__file__ is None:
+                return None
             bundled = (
                 Path(bengal_pkg.__file__).parent / "themes" / self.config.theme_name / "assets"
             )

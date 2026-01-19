@@ -142,6 +142,11 @@ class ProvenanceFilter:
         """
         if not incremental:
             # Full rebuild - everything needs building
+            # CRITICAL: Still compute and cache asset hashes for subsequent incremental builds
+            # Without this, the next incremental build would see all assets as "changed"
+            # and trigger the fingerprint cascade (forcing a full page rebuild).
+            for asset in assets:
+                self._record_asset_hash(asset)
             return ProvenanceFilterResult(
                 pages_to_build=list(pages),
                 assets_to_process=list(assets),
@@ -529,6 +534,23 @@ class ProvenanceFilter:
     def _get_asset_key(self, asset: Asset) -> CacheKey:
         """Get canonical asset key for cache lookups."""
         return content_key(asset.source_path, self.site.root_path)
+
+    def _record_asset_hash(self, asset: Asset) -> None:
+        """
+        Record an asset's hash without checking if changed.
+        
+        Used during full builds to populate the asset hash cache for
+        subsequent incremental builds. Without this, the first incremental
+        build after a full build would see all assets as "changed".
+        """
+        try:
+            if not asset.source_path.exists():
+                return
+            current_hash = self._get_file_hash(asset.source_path)
+            asset_key = self._get_asset_key(asset)
+            self._asset_hashes[asset_key] = current_hash
+        except OSError:
+            pass  # Skip assets that can't be hashed
 
     def _collect_affected(
         self,

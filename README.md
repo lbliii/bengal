@@ -1,4 +1,4 @@
-# Bengal
+# ᓚᘏᗢ Bengal
 
 [![PyPI version](https://img.shields.io/pypi/v/bengal.svg)](https://pypi.org/project/bengal/)
 [![Build Status](https://github.com/lbliii/bengal/actions/workflows/tests.yml/badge.svg)](https://github.com/lbliii/bengal/actions/workflows/tests.yml)
@@ -391,6 +391,21 @@ cd bengal
 uv sync --group dev
 pytest
 ```
+
+---
+
+## The Bengal Cat Family
+
+Bengal's core components are written in pure Python:
+
+| | | |
+|--:|---|---|
+| **ᓚᘏᗢ** | **Bengal** | Static site generator ← You are here |
+| **)彡** | [Kida](https://github.com/lbliii/kida) | Template engine |
+| **⌾⌾⌾** | [Rosettes](https://github.com/lbliii/rosettes) | Syntax highlighter |
+| **ฅᨐฅ** | [Patitas](https://github.com/lbliii/patitas) | Markdown parser |
+
+Python-native. Free-threading ready. No npm required.
 
 ---
 

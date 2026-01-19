@@ -102,6 +102,16 @@ class PageLike(Protocol):
         """Path to source file."""
         ...
 
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Raw frontmatter/metadata dict for template access."""
+        ...
+
+    @property
+    def tags(self) -> list[str]:
+        """Tags for taxonomy filtering."""
+        ...
+
 
 # =============================================================================
 # Section Protocol
@@ -231,6 +241,26 @@ class SiteLike(Protocol):
         """Path to site root directory."""
         ...
 
+    @property
+    def output_dir(self) -> Path:
+        """Build output directory."""
+        ...
+
+    @property
+    def dev_mode(self) -> bool:
+        """Whether site is in development mode."""
+        ...
+
+    @property
+    def theme(self) -> str:
+        """Active theme name."""
+        ...
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """Data directory contents (loaded from data/ directory)."""
+        ...
+
 
 # =============================================================================
 # Navigation Protocols
@@ -303,13 +333,49 @@ class QueryableSection(Protocol):
 
 
 # =============================================================================
+# Config Protocol
+# =============================================================================
+
+
+@runtime_checkable
+class ConfigLike(Protocol):
+    """
+    Protocol for dict-like config access.
+
+    Provides a unified interface for config objects, enabling type-safe
+    access whether the config is a raw dict or a Config object.
+
+    Thread Safety:
+        Implementations should be thread-safe for concurrent access.
+
+    Example:
+            >>> def get_setting(config: ConfigLike, key: str) -> Any:
+            ...     return config.get(key)
+
+    """
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get config value with optional default."""
+        ...
+
+    def __getitem__(self, key: str) -> Any:
+        """Get config value by key."""
+        ...
+
+    def __contains__(self, key: object) -> bool:
+        """Check if key exists."""
+        ...
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
 __all__ = [
+    "ConfigLike",
+    "NavigableSection",
     "PageLike",
+    "QueryableSection",
     "SectionLike",
     "SiteLike",
-    "NavigableSection",
-    "QueryableSection",
 ]

@@ -23,7 +23,7 @@ class TestBuildOrchestrator:
         site.assets = []
         site.sections = []
         site.taxonomies = {}
-        site.menu = []
+        site.menu = {}  # dict[str, list[MenuItem]], not list
 
         # Configure indexes
         site.indexes.stats.return_value = {"total_indexes": 0}

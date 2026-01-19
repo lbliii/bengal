@@ -145,7 +145,9 @@ class DependencyTracker:
         self.site = site
         self.tracked_files: dict[Path, str] = {}
         self.dependencies: dict[Path, set[Path]] = {}
-        self.reverse_dependencies: dict[Path, set[Path]] = {}
+        # Note: reverse_dependencies uses strings for taxonomy/cross-version keys
+        # which are synthetic keys like "_generated/tags/tag:python" or "v2:docs/api.md"
+        self.reverse_dependencies: dict[str, set[str]] = {}
         self.lock = threading.Lock()
         # Use thread-local storage for current page to support parallel processing
         self.current_page = threading.local()

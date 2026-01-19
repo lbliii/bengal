@@ -175,13 +175,13 @@ class TestPhaseAssets:
         orchestrator.site.assets = [MagicMock()]
         cli = MockPhaseContext.create_cli()
 
-        # Mock theme assets check
-        with patch("bengal.orchestration.content.ContentOrchestrator") as MockContent:
-            mock_content = MagicMock()
-            MockContent.return_value = mock_content
-            mock_theme_dir = tmp_path / "themes" / "my-theme" / "assets"
-            mock_theme_dir.mkdir(parents=True)
-            mock_content._get_theme_assets_dir.return_value = mock_theme_dir
+        # Create mock theme assets directory
+        mock_theme_dir = tmp_path / "themes" / "my-theme" / "assets"
+        mock_theme_dir.mkdir(parents=True)
+
+        # Mock theme service function
+        with patch("bengal.orchestration.build.rendering.get_theme_assets_dir") as mock_get_theme:
+            mock_get_theme.return_value = mock_theme_dir
 
             result = phase_assets(
                 orchestrator,

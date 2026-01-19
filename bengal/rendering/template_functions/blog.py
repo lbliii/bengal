@@ -21,8 +21,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
 @dataclass(frozen=True, slots=True)
@@ -227,7 +226,7 @@ def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
     return featured[:limit]
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register blog view filters with template environment."""
     env.filters.update(
         {

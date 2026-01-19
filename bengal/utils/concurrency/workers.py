@@ -310,7 +310,7 @@ def estimate_page_weight(page: Page) -> float:
         
     """
     weight = 1.0
-    content = page.raw_content
+    content = page._source if hasattr(page, "_source") else getattr(page, "_raw_content", "")
     content_len = len(content)
 
     # Size factor (logarithmic, >10KB starts adding weight)

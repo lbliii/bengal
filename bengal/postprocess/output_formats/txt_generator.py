@@ -70,8 +70,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -114,7 +113,7 @@ class PageTxtGenerator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         separator_width: int = 80,
     ) -> None:
         """

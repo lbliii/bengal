@@ -128,70 +128,53 @@ bengal/utils/
 
 ## Build Utilities
 
-### BuildContext (`bengal/utils/build_context.py`)
-- **Purpose**: Dependency injection container for build pipeline
-- **Contains**: site, pages, assets, reporter, progress_manager, injected services
-- **Usage**: Threaded through orchestrators and rendering
-- **Benefits**: No globals, explicit dependencies, testability
+### BuildContext (`bengal/orchestration/build_context.py`)
+- **Purpose**: Shared context passed across build phases (build-scoped state + caches)
+- **Contains**: site, stats, cache/tracker, pages_to_build/assets_to_process, reporter, output_collector
+- **Usage**: Created by `BuildOrchestrator` and threaded through rendering + postprocess
+- **Benefits**: No globals, explicit dependencies, build-scoped caching to avoid cross-build leaks
 
-### BuildStats (`bengal/utils/build_stats.py`)
+### BuildStats (`bengal/orchestration/stats/`)
 - **Purpose**: Collect and report build statistics
-- **Tracks**: Build time, pages built, assets processed, errors
-- **Usage**: Returned by Site.build(), used in CLI output
+- **Tracks**: Phase timings, pages built, assets processed, errors, health summary
+- **Usage**: Returned by `BuildOrchestrator.build()` and used in CLI output
 
-### BuildSummary (`bengal/utils/build_summary.py`)
-- **Purpose**: Format build statistics for display
-- **Formats**: Console output, JSON export
-- **Usage**: CLI commands, health reports
+### Build Summary (`bengal/orchestration/summary.py`)
+- **Purpose**: Summarize build outcomes for display (including incremental decisions)
+- **Usage**: CLI/dashboard output and developer diagnostics
 
-### ProgressReporter (`bengal/utils/progress.py`)
-- **Purpose**: Protocol for progress output
-- **Implementations**: LiveProgressReporterAdapter (Rich), SimpleReporter
-- **Usage**: Orchestrators route progress via reporter
+### ProgressReporter (`bengal/protocols` + `bengal/utils/observability/progress.py`)
+- **Purpose**: Protocol + adapters for progress output
+- **Canonical protocol**: `bengal.protocols.ProgressReporter`
+- **Implementations/adapters**: `bengal.utils.observability.progress`
 
-### LiveProgress (`bengal/utils/live_progress.py`)
-- **Purpose**: Rich-based live progress display
-- **Features**: Multiple phases, per-item updates, spinners
-- **Usage**: CLI build commands with Rich output
+### Live Progress (`bengal/utils/observability/cli_progress.py`)
+- **Purpose**: Rich-based live progress display helpers (used when enabled)
+- **Usage**: CLI build commands / dashboard integrations
 
 ## Path Utilities (`bengal/utils/paths/paths.py`)
 
 ### BengalPaths
 - **Purpose**: Consistent path management for generated files
-- **Methods**:
-  - `get_profile_dir()` - Performance profiling directory
-  - `get_profile_path()` - Profile file path
-  - `get_cache_path()` - Build cache path
-  - `get_template_cache_dir()` - Template bytecode cache
-  - `get_build_log_path()` - Build log path
-- **Pattern**: Separates source, output, cache, and dev files
+- **Canonical implementation**: `bengal/cache/paths.py` (this module re-exports `BengalPaths`)
+- **Key paths**:
+  - `state_dir` (`.bengal/`)
+  - `build_cache` (`.bengal/cache.json` → typically written as `.json.zst`)
+  - `page_cache`, `asset_cache`, `taxonomy_cache`
+  - `logs_dir`, `build_log`, `serve_log`
+  - `metrics_dir`, `profiles_dir`, `templates_dir`, `generated_dir`
 
-## Metadata Utilities (`bengal/utils/metadata.py`)
-- **Purpose**: Frontmatter parsing and validation
-- **Functions**:
-  - Parse YAML/TOML frontmatter
-  - Validate required fields
-  - Merge cascade metadata
-  - Extract metadata from content
-- **Usage**: Content discovery, page initialization
+## Frontmatter & Metadata
+- **Frontmatter parsing**: `bengal/core/page/frontmatter.py`
+- **Page metadata helpers**: `bengal/core/page/metadata.py`
 
-## Section Utilities (`bengal/utils/sections.py`)
-- **Purpose**: Section hierarchy management
-- **Functions**:
-  - Build section tree
-  - Setup parent/child relationships
-  - Calculate section depth
-  - Traverse hierarchy
-- **Usage**: Content orchestrator, navigation
+## Section Utilities
+- **Section model + hierarchy/navigation/queries**: `bengal/core/section/`
+- **Fast lookups (registry)**: `bengal/core/registry.py` and `bengal/core/site/section_registry.py`
 
-## File Utilities (`bengal/utils/file_utils.py`)
-- **Purpose**: File system operations
-- **Functions**:
-  - Safe file operations
-  - Directory creation
-  - File copying with metadata
-  - Path resolution
-- **Usage**: Throughout build pipeline
+## File Utilities
+- **Robust reads/writes**: `bengal/utils/io/file_io.py`
+- **Atomic writes**: `bengal/utils/io/atomic_write.py`
 
 ## Atomic Write (`bengal/utils/io/atomic_write.py`)
 - **Purpose**: Atomic file writes for data integrity
@@ -206,49 +189,24 @@ bengal/utils/
 
 ## Theme Utilities
 
-### ThemeRegistry (`bengal/utils/theme_registry.py`)
-- **Purpose**: Manage available themes
-- **Functions**: Register, discover, validate themes
-- **Usage**: Theme selection and loading
-
-### ThemeResolution (`bengal/utils/theme_resolution.py`)
-- **Purpose**: Resolve theme inheritance chain
-- **Functions**: Resolve templates, resolve assets, fallback chain
-- **Usage**: Template engine, asset discovery
-
-### Swizzle (`bengal/utils/swizzle.py`)
-- **Purpose**: Override theme components (swizzling)
-- **Functions**: Copy theme file to site, track overrides
-- **Usage**: CLI swizzle command
+### Theme registry/resolution (`bengal/core/theme/`)
+- **Registry**: `bengal/core/theme/registry.py`
+- **Resolution**: `bengal/core/theme/resolution.py`
 
 ## Error Handling
 
-### ErrorHandlers (`bengal/utils/error_handlers.py`)
-- **Purpose**: Centralized error handling patterns
-- **Handlers**: File errors, template errors, build errors
-- **Usage**: Throughout build pipeline
-
-### TracebackConfig (`bengal/utils/traceback_config.py`)
-- **Purpose**: Configure Rich traceback display
-- **Features**: Colored output, local variables, filtering
-- **Usage**: CLI error display
-
-### TracebackRenderer (`bengal/utils/traceback_renderer.py`)
-- **Purpose**: Custom traceback formatting
-- **Features**: Context lines, syntax highlighting
-- **Usage**: Dev server, CLI error output
+### Errors (`bengal/errors/`)
+- **Purpose**: Centralized error codes + rich error context for build/render/config issues
 
 ## CLI Utilities
 
-### CLIOutput (`bengal/utils/cli_output.py`)
-- **Purpose**: Formatted CLI output helpers
-- **Functions**: Success/error/warning messages, tables, progress
-- **Usage**: All CLI commands
+### CLIOutput (`bengal/output/`)
+- **Purpose**: Centralized, profile-aware CLI output helpers
+- **Core class**: `bengal/output/core.py`
+- **Global helpers**: `bengal/output/globals.py`
 
-### RichConsole (`bengal/utils/rich_console.py`)
-- **Purpose**: Shared Rich console instance
-- **Features**: Consistent styling, color themes
-- **Usage**: CLI output, progress display
+### RichConsole (`bengal/utils/observability/rich_console.py`)
+- **Purpose**: Shared Rich console configuration for CLI output and progress
 
 ### Logger (`bengal/utils/observability/logger.py`)
 - **Purpose**: Structured logging for Bengal
@@ -257,26 +215,25 @@ bengal/utils/
 
 ## Performance Utilities
 
-### PerformanceCollector (`bengal/utils/performance_collector.py`)
+### PerformanceCollector (`bengal/utils/observability/performance_collector.py`)
 - **Purpose**: Collect performance metrics during build
 - **Tracks**: Phase timings, memory usage, bottlenecks
 - **Usage**: Performance profiling commands
 
-### PerformanceReport (`bengal/utils/performance_report.py`)
+### PerformanceReport (`bengal/utils/observability/performance_report.py`)
 - **Purpose**: Format performance metrics for display
 - **Features**: Flamegraphs, timing tables, bottleneck detection
 - **Usage**: CLI perf command
 
-### Profile (`bengal/utils/profile.py`)
+### Profile (`bengal/utils/observability/profile.py`)
 - **Purpose**: cProfile wrapper with context manager
 - **Usage**: Performance profiling with --perf-profile flag
 
 ## Page Utilities
 
-### PageInitializer (`bengal/utils/page_initializer.py`)
-- **Purpose**: Initialize Page objects from files
-- **Functions**: Parse frontmatter, extract content, setup metadata
-- **Usage**: Content discovery
+### Page creation (`bengal/content/discovery/page_factory.py`)
+- **Purpose**: Create `Page` objects during content discovery
+- **Usage**: Discovery pipeline
 
 ### DotDict (`bengal/utils/primitives/dotdict.py`)
 - **Purpose**: Dict with dot notation access

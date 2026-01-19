@@ -35,8 +35,8 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -98,7 +98,7 @@ class OutputFormatsGenerator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         config: dict[str, Any] | None = None,
         graph_data: dict[str, Any] | None = None,
         build_context: BuildContext | Any | None = None,

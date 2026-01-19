@@ -67,11 +67,10 @@ class TestAssetTracker:
 class TestAssetTrackingIntegration:
     """Integration tests for asset tracking with resolve_asset_url."""
 
-    def test_resolve_asset_url_tracks_assets(self) -> None:
+    def test_resolve_asset_url_tracks_assets(self, tmp_path) -> None:
         """Test that resolve_asset_url tracks assets when tracker is active."""
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=tmp_path,
             config={},
         )
         
@@ -90,11 +89,10 @@ class TestAssetTrackingIntegration:
         assert url1
         assert url2
 
-    def test_resolve_asset_url_no_tracking_when_inactive(self) -> None:
+    def test_resolve_asset_url_no_tracking_when_inactive(self, tmp_path) -> None:
         """Test that resolve_asset_url doesn't track when tracker is inactive."""
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=tmp_path,
             config={},
         )
         
@@ -109,11 +107,10 @@ class TestAssetTrackingIntegration:
         
         # But no tracker to check (this is expected behavior)
 
-    def test_tracking_with_multiple_assets(self) -> None:
+    def test_tracking_with_multiple_assets(self, tmp_path) -> None:
         """Test tracking multiple assets in sequence."""
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=tmp_path,
             config={},
         )
         

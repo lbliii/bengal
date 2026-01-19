@@ -153,9 +153,7 @@ class RenderingPipeline:
             markdown_engine = markdown_config.get("parser", "patitas")
 
         # Allow injection of parser via BuildContext for tests/experiments
-        injected_parser = None
-        if build_context and getattr(build_context, "markdown_parser", None):
-            injected_parser = build_context.markdown_parser
+        injected_parser = getattr(build_context, "markdown_parser", None) if build_context else None
 
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = injected_parser or get_thread_parser(markdown_engine)
@@ -181,17 +179,18 @@ class RenderingPipeline:
 
                 external_ref_resolver = ExternalRefResolver(site.config)
                 # Expose resolver for health checks (unresolved external refs)
-                site.external_ref_resolver = external_ref_resolver
+                setattr(site, "external_ref_resolver", external_ref_resolver)
 
-            self.parser.enable_cross_references(
+            self.parser.enable_cross_references(  # type: ignore[union-attr]
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver
             )
         self.quiet = quiet
         self.build_stats = build_stats
 
         # Allow injection of TemplateEngine via BuildContext
-        if build_context and getattr(build_context, "template_engine", None):
-            self.template_engine = build_context.template_engine
+        injected_engine = getattr(build_context, "template_engine", None) if build_context else None
+        if injected_engine:
+            self.template_engine = injected_engine
         else:
             profile_templates = (
                 getattr(build_context, "profile_templates", False) if build_context else False
@@ -199,10 +198,13 @@ class RenderingPipeline:
             self.template_engine = create_engine(site, profile=profile_templates)
 
         if self.dependency_tracker:
-            self.template_engine._dependency_tracker = self.dependency_tracker
+            self.template_engine._dependency_tracker = self.dependency_tracker  # type: ignore[union-attr]
 
         self.renderer = Renderer(
-            self.template_engine, build_stats=build_stats, block_cache=block_cache
+            self.template_engine,
+            build_stats=build_stats,
+            block_cache=block_cache,
+            build_context=build_context,
         )
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
@@ -248,8 +250,9 @@ class RenderingPipeline:
 
         # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
         try:
-            if build_context and getattr(build_context, "api_doc_enhancer", None):
-                self._api_doc_enhancer = build_context.api_doc_enhancer
+            injected_enhancer = getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            if injected_enhancer:
+                self._api_doc_enhancer = injected_enhancer
             else:
                 from bengal.rendering.api_doc_enhancer import get_enhancer
 
@@ -361,7 +364,10 @@ class RenderingPipeline:
             return
 
         # Full pipeline execution
-        self._parse_content(page)
+        # Skip parsing if already done (e.g., by parsing phase before snapshot)
+        # This avoids redundant parsing when using WaveScheduler with pre-parsed content
+        if not page.parsed_ast:
+            self._parse_content(page)
         self._enhance_api_docs(page)
         # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
         try:
@@ -415,7 +421,8 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
-            page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
+            if page.parsed_ast:
+                page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
@@ -425,12 +432,14 @@ class RenderingPipeline:
             # This is needed because deferred highlighting captures code BEFORE
             # restore_placeholders() runs, so {{/* */}} escapes appear as
             # BENGALESCAPED*ENDESC in the final highlighted HTML
+            # fmt: off
             if (
                 hasattr(self.parser, "_var_plugin")
                 and self.parser._var_plugin
-                and self.parser._var_plugin.escaped_placeholders
+                and self.parser._var_plugin.escaped_placeholders  # type: ignore[union-attr]
             ):
-                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)
+                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)  # type: ignore[union-attr]
+            # fmt: on
         finally:
             disable_deferred_highlighting()
 
@@ -476,11 +485,11 @@ class RenderingPipeline:
                 self.parser, "parse_with_context"
             ):
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc_and_context(
+                    parsed_content, toc = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
                         page._source, page.metadata, context
                     )
                 else:
-                    parsed_content = self.parser.parse_with_context(
+                    parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
                         page._source, page.metadata, context
                     )
                     toc = ""
@@ -503,7 +512,7 @@ class RenderingPipeline:
             ):
                 try:
                     ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
-                    page._ast_cache = ast_tokens
+                    page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -541,16 +550,39 @@ class RenderingPipeline:
         
         RFC: rfc-build-performance-optimizations Phase 2
         Uses render-time asset tracking to avoid post-render HTML parsing.
+        
+        RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        Optionally records effects for unified dependency tracking.
         """
+        # Allow empty parsed_ast - pages like home pages, section indexes, and 
+        # taxonomy pages may have no markdown body but should still render
+        # (they're driven by template logic and frontmatter, not content)
+        if page.parsed_ast is None:
+            page.parsed_ast = ""  # Ensure it's a string, not None
+        
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
         from bengal.rendering.asset_tracking import AssetTracker
         
+        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        # Record render effects if effect tracing is enabled
+        from bengal.effects import BuildEffectTracer
+        
+        effect_tracer = BuildEffectTracer.get_instance()
+        effect_recorder = effect_tracer.record_page_render(page, template)
+        
         tracker = AssetTracker()
         with tracker:
-            html_content = self.renderer.render_content(page.parsed_ast or "")
-            page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            # Use effect recorder context if enabled
+            if effect_recorder:
+                with effect_recorder:
+                    html_content = self.renderer.render_content(page.parsed_ast or "")
+                    page.rendered_html = self.renderer.render_page(page, html_content)
+                    page.rendered_html = format_html(page.rendered_html, page, self.site)
+            else:
+                html_content = self.renderer.render_content(page.parsed_ast or "")
+                page.rendered_html = self.renderer.render_page(page, html_content)
+                page.rendered_html = format_html(page.rendered_html, page, self.site)
         
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
@@ -615,15 +647,32 @@ class RenderingPipeline:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
             ParamsContext,
-            SectionContext,
             _get_global_contexts,
         )
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
 
         section = getattr(page, "_section", None)
         metadata = page.metadata if hasattr(page, "metadata") else {}
 
+        # Get snapshot from build_context if available (RFC: rfc-bengal-snapshot-engine)
+        snapshot = None
+        if self.build_context:
+            snapshot = getattr(self.build_context, "snapshot", None)
+
+        # Resolve section to SectionSnapshot (no wrapper needed)
+        section_for_context: SectionSnapshot = NO_SECTION
+        if snapshot and section:
+            # Find section snapshot
+            for sec_snap in snapshot.sections:
+                if (
+                    sec_snap.path == getattr(section, "path", None)
+                    or sec_snap.name == getattr(section, "name", "")
+                ):
+                    section_for_context = sec_snap
+                    break
+
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(self.site)
+        global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers
@@ -633,8 +682,8 @@ class RenderingPipeline:
             # Shortcuts with safe access (per-page, not cached)
             "params": ParamsContext(metadata),
             "meta": ParamsContext(metadata),
-            # Section with safe access (never None)
-            "section": SectionContext(section),
+            # Section: SectionSnapshot or NO_SECTION sentinel (has params and __bool__)
+            "section": section_for_context,
         }
 
         # Direct frontmatter access for convenience
@@ -659,7 +708,7 @@ class RenderingPipeline:
                     base_version = "mistune-unknown"
             case "PythonMarkdownParser":
                 try:
-                    import markdown  # type: ignore[import-untyped]
+                    import markdown
 
                     base_version = f"markdown-{markdown.__version__}"
                 except (ImportError, AttributeError):
@@ -686,7 +735,7 @@ class RenderingPipeline:
             return self.template_engine.render_string(
                 page._source,
                 {"page": page, "site": self.site, "config": self.site.config},
-                strict=False,
+                strict=False,  # type: ignore[call-arg]
             )
         except Exception as e:
             if self.build_stats:

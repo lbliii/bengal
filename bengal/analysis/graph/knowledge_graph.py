@@ -69,8 +69,7 @@ if TYPE_CHECKING:
     from bengal.analysis.graph.page_rank import PageRankResults
     from bengal.analysis.performance.path_analysis import PathAnalysisResults
     from bengal.analysis.results import PageLayers
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -105,7 +104,7 @@ class KnowledgeGraph:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         hub_threshold: int = 10,
         leaf_threshold: int = 2,
         exclude_autodoc: bool = True,
@@ -125,14 +124,14 @@ class KnowledgeGraph:
         self.exclude_autodoc = exclude_autodoc
 
         # Graph data structures (populated by GraphBuilder)
-        self.incoming_refs: dict[Page, float] = {}
-        self.outgoing_refs: dict[Page, set[Page]] = {}
-        self.link_metrics: dict[Page, LinkMetrics] = {}
-        self.link_types: dict[tuple[Page | None, Page], LinkType] = {}
+        self.incoming_refs: dict[PageLike, float] = {}
+        self.outgoing_refs: dict[PageLike, set[PageLike]] = {}
+        self.link_metrics: dict[PageLike, LinkMetrics] = {}
+        self.link_types: dict[tuple[PageLike | None, PageLike], LinkType] = {}
         # Reverse adjacency list for O(E) PageRank iteration
         # Maps each page to the list of pages that link TO it
         # RFC: rfc-analysis-algorithm-optimization
-        self.incoming_edges: dict[Page, list[Page]] = {}
+        self.incoming_edges: dict[PageLike, list[PageLike]] = {}
 
         # Analysis results
         self.metrics: GraphMetrics | None = None
@@ -221,7 +220,7 @@ class KnowledgeGraph:
             orphans=self.metrics.orphan_count,
         )
 
-    def get_analysis_pages(self) -> list[Page]:
+    def get_analysis_pages(self) -> list[PageLike]:
         """
         Get list of pages to analyze, excluding autodoc pages if configured.
 
@@ -238,12 +237,12 @@ class KnowledgeGraph:
             return list(self.site.pages)
         return [p for p in self.site.pages if not is_autodoc_page(p)]
 
-    def get_connectivity(self, page: Page) -> PageConnectivity:
+    def get_connectivity(self, page: PageLike) -> PageConnectivity:
         """
         Get connectivity information for a specific page.
 
         Args:
-            page: Page to analyze
+            page: PageLike to analyze
 
         Returns:
             PageConnectivity with detailed metrics
@@ -259,7 +258,7 @@ class KnowledgeGraph:
             )
         return self._analyzer.get_connectivity(page)
 
-    def get_hubs(self, threshold: int | None = None) -> list[Page]:
+    def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get hub pages (highly connected pages).
 
@@ -285,7 +284,7 @@ class KnowledgeGraph:
             )
         return self._analyzer.get_hubs(threshold)
 
-    def get_leaves(self, threshold: int | None = None) -> list[Page]:
+    def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get leaf pages (low connectivity pages).
 
@@ -311,7 +310,7 @@ class KnowledgeGraph:
             )
         return self._analyzer.get_leaves(threshold)
 
-    def get_orphans(self) -> list[Page]:
+    def get_orphans(self) -> list[PageLike]:
         """
         Get orphaned pages (no connections at all).
 
@@ -407,12 +406,12 @@ class KnowledgeGraph:
 
         return report
 
-    def get_page_link_metrics(self, page: Page) -> LinkMetrics:
+    def get_page_link_metrics(self, page: PageLike) -> LinkMetrics:
         """
         Get detailed link metrics for a specific page.
 
         Args:
-            page: Page to get metrics for
+            page: PageLike to get metrics for
 
         Returns:
             LinkMetrics with breakdown by link type
@@ -428,14 +427,14 @@ class KnowledgeGraph:
             )
         return self.link_metrics.get(page, LinkMetrics())
 
-    def get_connectivity_score(self, page: Page) -> int:
+    def get_connectivity_score(self, page: PageLike) -> int:
         """
         Get total connectivity score for a page.
 
         Connectivity = incoming_refs + outgoing_refs
 
         Args:
-            page: Page to analyze
+            page: PageLike to analyze
 
         Returns:
             Connectivity score (higher = more connected)
@@ -615,7 +614,7 @@ class KnowledgeGraph:
         return self._pagerank_results
 
     def compute_personalized_pagerank(
-        self, seed_pages: set[Page], damping: float = 0.85, max_iterations: int = 100
+        self, seed_pages: set[PageLike], damping: float = 0.85, max_iterations: int = 100
     ) -> PageRankResults:
         """
         Compute personalized PageRank from seed pages.
@@ -663,7 +662,7 @@ class KnowledgeGraph:
 
         return calculator.compute_personalized(seed_pages)
 
-    def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple[Page, float]]:
+    def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple[PageLike, float]]:
         """
         Get top-ranked pages by PageRank score.
 
@@ -688,14 +687,14 @@ class KnowledgeGraph:
             return []
         return self._pagerank_results.get_top_pages(limit)
 
-    def get_pagerank_score(self, page: Page) -> float:
+    def get_pagerank_score(self, page: PageLike) -> float:
         """
         Get PageRank score for a specific page.
 
         Automatically computes PageRank if not already computed.
 
         Args:
-            page: Page to get score for
+            page: PageLike to get score for
 
         Returns:
             PageRank score (0.0 if page not found)
@@ -759,14 +758,14 @@ class KnowledgeGraph:
         self._community_results = detector.detect()
         return self._community_results
 
-    def get_community_for_page(self, page: Page) -> int | None:
+    def get_community_for_page(self, page: PageLike) -> int | None:
         """
         Get community ID for a specific page.
 
         Automatically detects communities if not already computed.
 
         Args:
-            page: Page to get community for
+            page: PageLike to get community for
 
         Returns:
             Community ID or None if page not found
@@ -843,14 +842,14 @@ class KnowledgeGraph:
         self._path_results = analyzer.analyze()
         return self._path_results
 
-    def get_betweenness_centrality(self, page: Page) -> float:
+    def get_betweenness_centrality(self, page: PageLike) -> float:
         """
         Get betweenness centrality for a specific page.
 
         Automatically analyzes paths if not already computed.
 
         Args:
-            page: Page to get centrality for
+            page: PageLike to get centrality for
 
         Returns:
             Betweenness centrality score
@@ -862,14 +861,14 @@ class KnowledgeGraph:
             return 0.0
         return self._path_results.get_betweenness(page)
 
-    def get_closeness_centrality(self, page: Page) -> float:
+    def get_closeness_centrality(self, page: PageLike) -> float:
         """
         Get closeness centrality for a specific page.
 
         Automatically analyzes paths if not already computed.
 
         Args:
-            page: Page to get centrality for
+            page: PageLike to get centrality for
 
         Returns:
             Closeness centrality score
@@ -934,15 +933,15 @@ class KnowledgeGraph:
         return self._link_suggestions
 
     def get_suggestions_for_page(
-        self, page: Page, limit: int = 10
-    ) -> list[tuple[Page, float, list[str]]]:
+        self, page: PageLike, limit: int = 10
+    ) -> list[tuple[PageLike, float, list[str]]]:
         """
         Get link suggestions for a specific page.
 
         Automatically generates suggestions if not already computed.
 
         Args:
-            page: Page to get suggestions for
+            page: PageLike to get suggestions for
             limit: Maximum number of suggestions
 
         Returns:

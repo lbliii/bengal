@@ -32,18 +32,16 @@ import contextvars
 import sys
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
 from .parallel import (
-    get_or_create_pipeline,
     is_free_threaded,
     thread_local as _thread_local,
 )
 from .tracking import (
     clear_thread_local_pipelines,
     decrement_active_renders as _decrement_active_renders,
-    get_active_render_count,
     get_current_generation as _get_current_generation,
     increment_active_renders as _increment_active_renders,
 )
@@ -128,7 +126,7 @@ class RenderOrchestrator:
         """Get max_workers from config, supporting both Config and dict."""
         config = self.site.config
         if hasattr(config, "build"):
-            return config.build.max_workers
+            return config.build.max_workers  # type: ignore[union-attr]
         build_section = config.get("build", {})
         if isinstance(build_section, dict):
             return build_section.get("max_workers")
@@ -159,7 +157,7 @@ class RenderOrchestrator:
             self._block_cache = BlockCache(enabled=True)
 
             # Build site context for block rendering
-            site_context = get_engine_globals(self.site)
+            site_context = get_engine_globals(self.site)  # type: ignore[arg-type]
 
             # Warm cache for key templates
             templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
@@ -167,7 +165,7 @@ class RenderOrchestrator:
 
             for template_name in templates_to_warm:
                 try:
-                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
+                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)  # type: ignore[arg-type]
                     total_cached += cached
                 except Exception:
                     pass  # Skip templates that don't exist or fail to warm
@@ -439,6 +437,12 @@ class RenderOrchestrator:
             - ~1.5-2x faster rendering on multi-core machines
             - No code changes needed - works automatically
 
+        Snapshot Engine (RFC: rfc-bengal-snapshot-engine):
+            - If snapshot is available in build_context, uses WaveScheduler
+            - Topological wave-based rendering for cache locality
+            - Scout thread for predictive cache warming
+            - Zero lock contention (frozen snapshots)
+
         Caching Strategy:
             Thread-local caching at two levels:
             1. RenderingPipeline: One per thread (Jinja2 environment is expensive)
@@ -476,6 +480,20 @@ class RenderOrchestrator:
             If you're profiling and see N parser/pipeline instances created,
             where N = max_workers, this is OPTIMAL behavior.
         """
+        # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
+        if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
+            # Use WaveScheduler for topological wave-based rendering
+            self._render_with_snapshot(
+                build_context.snapshot,
+                pages,
+                tracker,
+                quiet,
+                stats,
+                progress_manager,
+                build_context,
+            )
+            return
+
         # If we have a progress manager, use it with parallel rendering
         if progress_manager:
             self._render_parallel_with_live_progress(
@@ -501,6 +519,73 @@ class RenderOrchestrator:
         else:
             self._render_parallel_simple(
                 pages, tracker, quiet, stats, build_context, changed_sources
+            )
+
+    def _render_with_snapshot(
+        self,
+        snapshot: Any,  # SiteSnapshot
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
+        build_context: BuildContext | None = None,
+    ) -> None:
+        """
+        Render pages using snapshot-based WaveScheduler.
+        
+        Uses topological wave-based rendering for cache locality and includes
+        scout thread for predictive cache warming.
+        
+        Args:
+            snapshot: SiteSnapshot from build context
+            pages: Pages to render (filtered to pages in snapshot)
+            tracker: Dependency tracker
+            quiet: Whether to suppress verbose output
+            stats: Build statistics tracker
+            progress_manager: Live progress manager (optional)
+            build_context: Build context
+        """
+        from bengal.snapshots import WaveScheduler
+
+        # Get max workers
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.MIXED,
+            config_override=self._get_max_workers(),
+        )
+
+        # Create wave scheduler
+        scheduler = WaveScheduler(
+            snapshot=snapshot,
+            site=self.site,
+            tracker=tracker,
+            quiet=quiet,
+            stats=stats,
+            build_context=build_context,
+            max_workers=max_workers,
+        )
+
+        # Render using wave scheduler
+        render_stats = scheduler.render_all(pages)
+
+        # Update build stats
+        if stats:
+            stats.pages_rendered = render_stats.pages_rendered  # type: ignore[assignment]
+            if render_stats.errors:
+                for page_path, error in render_stats.errors:
+                    logger.error(
+                        "page_rendering_error",
+                        page=str(page_path),
+                        error=str(error),
+                    )
+
+        # Update progress manager if provided
+        if progress_manager:
+            progress_manager.update_phase(
+                "rendering",
+                current=render_stats.pages_rendered,
+                current_item="",
             )
 
     def _should_use_complexity_ordering(self) -> bool:
@@ -529,8 +614,8 @@ class RenderOrchestrator:
 
         # Log complexity distribution at debug level
         complexity_stats = get_complexity_stats(sorted_pages)
-        mean_score = float(complexity_stats["mean"])
-        variance_ratio = float(complexity_stats["variance_ratio"])
+        mean_score = float(complexity_stats["mean"])  # type: ignore[arg-type]
+        variance_ratio = float(complexity_stats["variance_ratio"])  # type: ignore[arg-type]
         logger.debug(
             "complexity_distribution",
             page_count=complexity_stats["count"],
@@ -604,14 +689,16 @@ class RenderOrchestrator:
                 # CRITICAL: Copy parent context for each task to propagate ContextVars
                 # (e.g., asset_manifest_context) to worker threads. Without this,
                 # workers start with empty context in free-threaded Python (PEP 703).
+                # fmt: off
                 future_to_page = {
                     executor.submit(
                         contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,
+                        process_page_with_pipeline,  # type: ignore[arg-type]
                         page,
                     ): page
                     for page in sorted_pages
                 }
+                # fmt: on
 
                 # Track errors for aggregation
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -809,14 +896,16 @@ class RenderOrchestrator:
                 # CRITICAL: Copy parent context for each task to propagate ContextVars
                 # (e.g., asset_manifest_context) to worker threads. Without this,
                 # workers start with empty context in free-threaded Python (PEP 703).
+                # fmt: off
                 future_to_page = {
                     executor.submit(
                         contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,
+                        process_page_with_pipeline,  # type: ignore[arg-type]
                         page,
                     ): page
                     for page in sorted_pages
                 }
+                # fmt: on
 
                 # Track errors for aggregation
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -936,14 +1025,16 @@ class RenderOrchestrator:
                     # CRITICAL: Copy parent context for each task to propagate ContextVars
                     # (e.g., asset_manifest_context) to worker threads. Without this,
                     # workers start with empty context in free-threaded Python (PEP 703).
+                    # fmt: off
                     futures = [
                         executor.submit(
                             contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,
+                            process_page_with_pipeline,  # type: ignore[arg-type]
                             page,
                         )
                         for page in sorted_pages
                     ]
+                    # fmt: on
 
                     # Track errors for aggregation
                     aggregator = ErrorAggregator(total_items=len(sorted_pages))

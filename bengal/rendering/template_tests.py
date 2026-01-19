@@ -27,12 +27,10 @@ from typing import TYPE_CHECKING
 from bengal.rendering.jinja_utils import has_value, safe_get
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register custom template tests with template environment.
     
@@ -53,7 +51,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
     )
 
 
-def test_draft(page: Page) -> bool:
+def test_draft(page: object) -> bool:
     """
     Test if page is a draft.
     
@@ -62,7 +60,7 @@ def test_draft(page: Page) -> bool:
         {% if post is not draft %}
     
     Args:
-        page: Page object to test
+        page: Page-like object to test (duck-typed via safe_get)
     
     Returns:
         True if page is marked as draft
@@ -74,7 +72,7 @@ def test_draft(page: Page) -> bool:
     return bool(metadata.get("draft", False))
 
 
-def test_featured(page: Page) -> bool:
+def test_featured(page: object) -> bool:
     """
     Test if page has 'featured' tag.
     
@@ -83,7 +81,7 @@ def test_featured(page: Page) -> bool:
         {% if article is not featured %}
     
     Args:
-        page: Page object to test
+        page: Page-like object to test (duck-typed via safe_get)
     
     Returns:
         True if page has 'featured' in tags
@@ -117,7 +115,7 @@ def test_match(value: object, pattern: str) -> bool:
     return bool(re.search(pattern, str(value)))
 
 
-def test_outdated(page: Page, days: int = 90) -> bool:
+def test_outdated(page: object, days: int = 90) -> bool:
     """
     Test if page is older than N days.
     
@@ -127,7 +125,7 @@ def test_outdated(page: Page, days: int = 90) -> bool:
         {% if page is not outdated(180) %} # Within 6 months
     
     Args:
-        page: Page object to test
+        page: Page-like object to test (duck-typed via safe_get)
         days: Number of days threshold (default: 90)
     
     Returns:
@@ -167,7 +165,7 @@ def test_section(obj: object) -> bool:
     return isinstance(obj, Section)
 
 
-def test_translated(page: Page) -> bool:
+def test_translated(page: object) -> bool:
     """
     Test if page has translations.
     
@@ -176,7 +174,7 @@ def test_translated(page: Page) -> bool:
         {% if page is not translated %}
     
     Args:
-        page: Page object to test
+        page: Page-like object to test (duck-typed via safe_get)
     
     Returns:
         True if page has translations available

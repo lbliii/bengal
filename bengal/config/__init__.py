@@ -67,6 +67,16 @@ from bengal.config.deprecation import (
     migrate_deprecated_keys,
     print_deprecation_warnings,
 )
+from bengal.config.snapshot import (
+    AssetsSection,
+    BuildSection,
+    ConfigSnapshot,
+    ContentSection,
+    DevSection,
+    FeaturesSection,
+    SiteSection,
+    ThemeSection,
+)
 from bengal.config.unified_loader import UnifiedConfigLoader
 
 
@@ -97,6 +107,16 @@ class ConfigLoader(UnifiedConfigLoader):
 __all__ = [
     "ConfigLoader",  # Backward compatibility alias
     "UnifiedConfigLoader",
+    # Frozen config snapshot types (RFC: Snapshot-Enabled v2)
+    "ConfigSnapshot",
+    "SiteSection",
+    "BuildSection",
+    "DevSection",
+    "ThemeSection",
+    "ContentSection",
+    "FeaturesSection",
+    "AssetsSection",
+    # Deprecation utilities
     "DEPRECATED_KEYS",
     "RENAMED_KEYS",
     "check_deprecated_keys",

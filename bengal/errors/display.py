@@ -201,10 +201,13 @@ def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:
         import yaml
 
         if isinstance(e, yaml.YAMLError):
-            if hasattr(e, "problem_mark"):
+            if hasattr(e, "problem_mark") and e.problem_mark is not None:
                 mark = e.problem_mark
+                # Mark is yaml.Mark which has line and column attributes
+                line = getattr(mark, "line", 0)
+                column = getattr(mark, "column", 0)
                 return (
-                    f"YAML syntax error at line {mark.line + 1}, column {mark.column + 1}",
+                    f"YAML syntax error at line {line + 1}, column {column + 1}",
                     "Check for missing colons, incorrect indentation, or unquoted special characters",
                 )
             return (

@@ -56,7 +56,7 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -200,7 +200,7 @@ class SocialCardGenerator:
         
     """
 
-    def __init__(self, site: Site, config: SocialCardConfig) -> None:
+    def __init__(self, site: SiteLike, config: SocialCardConfig) -> None:
         """
         Initialize social card generator.
 

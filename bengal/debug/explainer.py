@@ -41,7 +41,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from bengal.debug.models import (
     CacheInfo,
@@ -58,7 +58,7 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
@@ -102,7 +102,7 @@ class PageExplainer:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         cache: BuildCache | None = None,
         template_engine: TemplateEngineProtocol | None = None,
     ) -> None:
@@ -182,7 +182,8 @@ class PageExplainer:
         """
         search_path = Path(page_path)
 
-        for page in self.site.pages:
+        for page_like in self.site.pages:
+            page = cast("Page", page_like)  # Explainer needs concrete Page for introspection
             # Exact match
             if page.source_path == search_path:
                 return page

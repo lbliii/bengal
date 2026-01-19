@@ -19,11 +19,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
     from bengal.postprocess.social_cards import (
         get_social_card_path,
@@ -141,7 +140,7 @@ def meta_keywords(tags: list[str], max_count: int = 10) -> str:
 def canonical_url(
     path: str,
     base_url: str,
-    site: Site | None = None,
+    site: SiteLike | None = None,
     page: Page | None = None,
 ) -> str:
     """

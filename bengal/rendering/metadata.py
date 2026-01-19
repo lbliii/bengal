@@ -32,7 +32,7 @@ from bengal.core.theme import get_theme_package
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -51,11 +51,11 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
     version: str | None = None
     try:
         if engine == "mistune":
-            import mistune  # type: ignore
+            import mistune
 
             version = getattr(mistune, "__version__", None)
         elif engine in ("python-markdown", "markdown", "python_markdown"):
-            import markdown  # type: ignore
+            import markdown
 
             version = getattr(markdown, "__version__", None)
     except Exception as e:
@@ -74,7 +74,7 @@ def _get_highlighter_version() -> str | None:
         return None
 
 
-def _get_theme_info(site: Site) -> dict[str, Any]:
+def _get_theme_info(site: SiteLike) -> dict[str, Any]:
     theme_name = getattr(site, "theme", None) or "default"
     # Prefer installed theme package metadata when available
     version: str | None = None
@@ -121,7 +121,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Pre-built Lunr search index (requires `pip install bengal[search]`)
     try:
-        from lunr import lunr  # type: ignore[import-untyped]  # noqa: F401
+        from lunr import lunr  # type: ignore[import-not-found]  # noqa: F401
 
         capabilities["prebuilt_search"] = True
     except ImportError:
@@ -129,7 +129,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
     try:
-        import aiohttp  # type: ignore[import-untyped]  # noqa: F401
+        import aiohttp  # noqa: F401
 
         capabilities["remote_content"] = True
     except ImportError:
@@ -138,7 +138,7 @@ def _get_capabilities() -> dict[str, bool]:
     return capabilities
 
 
-def build_template_metadata(site: Site) -> dict[str, Any]:
+def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
     

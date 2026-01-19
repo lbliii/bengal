@@ -22,8 +22,8 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 
 class RenderingValidator(BaseValidator):
@@ -46,7 +46,7 @@ class RenderingValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Run rendering validation checks."""
         results = []
@@ -65,34 +65,42 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_html_structure(self, site: Site) -> list[CheckResult]:
+    def _check_html_structure(self, site: SiteLike) -> list[CheckResult]:
         """Check basic HTML structure in output pages."""
         results = []
         issues = []
 
         # Sample a few pages (check first 10 to avoid slowing down)
-        pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:10]
+        # Type narrowing: output_path may not be on PageLike protocol
+        pages_to_check = []
+        for p in site.pages:
+            output_path = getattr(p, "output_path", None)
+            if output_path and hasattr(output_path, "exists") and output_path.exists():
+                pages_to_check.append(p)
+                if len(pages_to_check) >= 10:
+                    break
 
         for page in pages_to_check:
-            if page.output_path is None:
+            output_path = getattr(page, "output_path", None)
+            if output_path is None:
                 continue
             try:
-                content = page.output_path.read_text(encoding="utf-8")
+                content = output_path.read_text(encoding="utf-8")
 
                 # Check for basic HTML5 structure
                 if not content.strip().startswith(("<!DOCTYPE html>", "<!doctype html>")):
-                    issues.append(f"{page.output_path.name}: Missing DOCTYPE")
+                    issues.append(f"{output_path.name}: Missing DOCTYPE")
 
                 # Check for essential tags
                 if "<html" not in content.lower():
-                    issues.append(f"{page.output_path.name}: Missing <html> tag")
+                    issues.append(f"{output_path.name}: Missing <html> tag")
                 elif "<head" not in content.lower():
-                    issues.append(f"{page.output_path.name}: Missing <head> tag")
+                    issues.append(f"{output_path.name}: Missing <head> tag")
                 elif "<body" not in content.lower():
-                    issues.append(f"{page.output_path.name}: Missing <body> tag")
+                    issues.append(f"{output_path.name}: Missing <body> tag")
 
             except Exception as e:
-                issues.append(f"{page.output_path.name}: Error reading file - {e}")
+                issues.append(f"{output_path.name if output_path else 'unknown'}: Error reading file - {e}")
 
         if issues:
             results.append(
@@ -112,29 +120,37 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_unrendered_jinja2(self, site: Site) -> list[CheckResult]:
+    def _check_unrendered_jinja2(self, site: SiteLike) -> list[CheckResult]:
         """Check for unrendered Jinja2 syntax in output."""
         results = []
         issues = []
 
         # Sample pages (first 20 to be thorough but not too slow)
-        pages_to_check = [p for p in site.pages if p.output_path and p.output_path.exists()][:20]
+        # Type narrowing: output_path may not be on PageLike protocol
+        pages_to_check = []
+        for p in site.pages:
+            output_path = getattr(p, "output_path", None)
+            if output_path and hasattr(output_path, "exists") and output_path.exists():
+                pages_to_check.append(p)
+                if len(pages_to_check) >= 20:
+                    break
 
         for page in pages_to_check:
-            if page.output_path is None:
+            output_path = getattr(page, "output_path", None)
+            if output_path is None:
                 continue
             try:
-                content = page.output_path.read_text(encoding="utf-8")
+                content = output_path.read_text(encoding="utf-8")
                 has_unrendered = self._detect_unrendered_jinja2(content)
 
                 if has_unrendered:
-                    issues.append(page.output_path.name)
+                    issues.append(output_path.name)
 
             except Exception as e:
                 # Skip pages we can't read
                 logger.debug(
                     "rendering_validator_page_skip",
-                    page=str(page.output_path),
+                    page=str(output_path),
                     error=str(e),
                     error_type=type(e).__name__,
                 )
@@ -194,23 +210,27 @@ class RenderingValidator(BaseValidator):
     # It created a new TemplateEngine (~137ms) just to verify filters exist.
     # This is redundant: if filters were missing, templates would error during build.
 
-    def _check_seo_metadata(self, site: Site) -> list[CheckResult]:
+    def _check_seo_metadata(self, site: SiteLike) -> list[CheckResult]:
         """Check for basic SEO metadata in pages."""
         results = []
         issues = []
 
         # Sample first 10 pages
-        pages_to_check = [
-            p
-            for p in site.pages
-            if p.output_path and p.output_path.exists() and not p.metadata.get("_generated")
-        ][:10]
+        # Type narrowing: output_path may not be on PageLike protocol
+        pages_to_check = []
+        for p in site.pages:
+            output_path = getattr(p, "output_path", None)
+            if output_path and hasattr(output_path, "exists") and output_path.exists() and not p.metadata.get("_generated"):
+                pages_to_check.append(p)
+                if len(pages_to_check) >= 10:
+                    break
 
         for page in pages_to_check:
-            if page.output_path is None:
+            output_path = getattr(page, "output_path", None)
+            if output_path is None:
                 continue
             try:
-                content = page.output_path.read_text(encoding="utf-8")
+                content = output_path.read_text(encoding="utf-8")
 
                 # Check for basic SEO elements
                 missing_elements = []
@@ -225,7 +245,7 @@ class RenderingValidator(BaseValidator):
                     missing_elements.append("description")
 
                 if missing_elements:
-                    issues.append(f"{page.output_path.name}: missing {', '.join(missing_elements)}")
+                    issues.append(f"{output_path.name}: missing {', '.join(missing_elements)}")
 
             except Exception as e:
                 logger.debug(

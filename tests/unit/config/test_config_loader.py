@@ -244,9 +244,11 @@ class TestDefaultConfig:
         dir_loader = ConfigDirectoryLoader()
         dir_config = dir_loader.load(config_dir, environment="local")
 
-        # Key defaults should match between loaders
-        assert (
-            single_config["output_formats"]["site_wide"] == DEFAULTS["output_formats"]["site_wide"]
-        )
-        # Note: dir_config has feature expansion applied, so check the underlying value
+        # Key defaults should be present in both loaders' output
+        # Note: Both loaders apply feature expansion, so site_wide may include
+        # both 'index_json' (from features.search) and 'rss' (from features.rss)
+        assert "index_json" in single_config["output_formats"]["site_wide"]
         assert "index_json" in dir_config["output_formats"]["site_wide"]
+
+        # Core structure should match between loaders
+        assert single_config["search"]["enabled"] == dir_config["search"]["enabled"]

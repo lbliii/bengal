@@ -67,7 +67,7 @@ class Renderer:
     """
 
     def __init__(
-        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None
+        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None, build_context: Any = None
     ) -> None:
         """
         Initialize the renderer.
@@ -76,11 +76,13 @@ class Renderer:
             template_engine: Template engine instance
             build_stats: Optional BuildStats object for error collection
             block_cache: Optional BlockCache for KIDA template block caching
+            build_context: Optional BuildContext for accessing snapshot (RFC: rfc-bengal-snapshot-engine)
         """
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
         self.block_cache = block_cache  # Block cache for KIDA introspection optimization
+        self.build_context = build_context  # For accessing snapshot
         # PERF: Cache for top-level content (computed once per build)
         self._top_level_cache: tuple[list[Page], list[Any]] | None = None
         # PERF: Cache for resolved tag pages (computed once per build)
@@ -120,6 +122,60 @@ class Renderer:
 
         self._top_level_cache = (top_level_pages, top_level_subsections)
         return self._top_level_cache
+
+    def _to_section_snapshot(self, section: Any, snapshot: Any) -> Any:
+        """
+        Convert a mutable Section to its SectionSnapshot equivalent.
+        
+        Args:
+            section: Mutable Section object (or None)
+            snapshot: SiteSnapshot containing section snapshots
+            
+        Returns:
+            SectionSnapshot if found, NO_SECTION sentinel otherwise
+        """
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
+        
+        if section is None:
+            return NO_SECTION
+        
+        # If already a SectionSnapshot, return as-is
+        if isinstance(section, SectionSnapshot):
+            return section
+        
+        # Look up in snapshot
+        if snapshot:
+            for sec_snap in snapshot.sections:
+                if (
+                    sec_snap.path == getattr(section, "path", None)
+                    or sec_snap.name == getattr(section, "name", "")
+                ):
+                    return sec_snap
+        
+        # Fallback: return NO_SECTION sentinel
+        return NO_SECTION
+
+    def _to_section_snapshots(self, sections: list[Any], snapshot: Any) -> list[Any]:
+        """
+        Convert a list of mutable Sections to SectionSnapshots.
+        
+        Args:
+            sections: List of mutable Section objects
+            snapshot: SiteSnapshot containing section snapshots
+            
+        Returns:
+            List of SectionSnapshots
+        """
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
+        
+        result = []
+        for section in sections:
+            if section is None:
+                continue
+            snap = self._to_section_snapshot(section, snapshot)
+            if snap != NO_SECTION:
+                result.append(snap)
+        return result
 
     def _get_resolved_tag_pages(self, tag_slug: str) -> list[Page]:
         """
@@ -286,10 +342,16 @@ class Renderer:
         # Build base context using unified context builder
         # This handles: site/config/theme wrappers, params cascade, section context,
         # versioning, content, toc, meta_desc, reading_time, excerpt
+        # Get snapshot from build_context if available (RFC: rfc-bengal-snapshot-engine)
+        snapshot = None
+        if hasattr(self, "build_context") and self.build_context:
+            snapshot = getattr(self.build_context, "snapshot", None)
+        
         context = build_page_context(
             page=page,
             site=self.site,
             content=content,
+            snapshot=snapshot,
         )
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
@@ -343,18 +405,17 @@ class Renderer:
             # PERF: Use cached sets for O(n) instead of O(n²) filtering
             top_level_pages, top_level_subsections = self._get_top_level_content()
 
-            # Wrap subsections in SectionContext so subsection.params works correctly
-            # This prevents 'str' object has no attribute 'get' errors when accessing
-            # subsection?.params?.type in templates
-            from bengal.rendering.context import SectionContext
+            # Convert subsections to SectionSnapshots (no wrapper needed)
+            # SectionSnapshot has params property and __bool__ for template compatibility
+            subsections_for_context = self._to_section_snapshots(
+                top_level_subsections, snapshot
+            )
 
             context.update(
                 {
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
-                    "subsections": [
-                        SectionContext(sub) for sub in top_level_subsections if sub is not None
-                    ],
+                    "subsections": subsections_for_context,
                 }
             )
 
@@ -471,7 +532,7 @@ class Renderer:
         Note: Posts are already filtered and sorted by the content type strategy
         in the SectionOrchestrator, so we do not re-sort here.
         """
-        from bengal.rendering.context import SectionContext
+        from bengal.snapshots.types import NO_SECTION
 
         section = page.metadata.get("_section") if page.metadata is not None else None
         all_posts = (
@@ -498,9 +559,15 @@ class Renderer:
                 "base_url": f"/{section.name}/" if section else "/",
             }
 
+        # Convert section to SectionSnapshot (no wrapper needed)
+        snapshot = None
+        if hasattr(self, "build_context") and self.build_context:
+            snapshot = getattr(self.build_context, "snapshot", None)
+        section_for_context = self._to_section_snapshot(section, snapshot)
+
         context.update(
             {
-                "section": SectionContext(section),
+                "section": section_for_context,
                 "posts": posts,
                 "pages": posts,  # Alias
                 "subsections": subsections,

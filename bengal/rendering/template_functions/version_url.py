@@ -37,13 +37,12 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register functions with template environment.
     
@@ -105,7 +104,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 
 
 def get_version_target_url(
-    page: Page | None, target_version: dict[str, Any] | None, site: Site
+    page: Page | None, target_version: dict[str, Any] | None, site: SiteLike
 ) -> str:
     """
     Compute the best URL for navigating to a page in the target version.
@@ -181,7 +180,7 @@ def _construct_version_url(
     current_version_id: str | None,
     target_version_id: str,
     target_is_latest: bool,
-    site: Site,
+    site: SiteLike,
 ) -> str:
     """
     Construct the equivalent URL in the target version.
@@ -261,7 +260,7 @@ def _get_section_index_url(url: str) -> str | None:
     return parent_url
 
 
-def _get_version_root_url(version_id: str, is_latest: bool, site: Site) -> str:
+def _get_version_root_url(version_id: str, is_latest: bool, site: SiteLike) -> str:
     """
     Get the root URL for a version.
     
@@ -286,7 +285,7 @@ _version_page_index_cache: dict[int, dict[str, set[str]]] = {}
 _VERSION_INDEX_CACHE_MAX_SIZE = 10
 
 
-def _build_version_page_index(site: Site) -> dict[str, set[str]]:
+def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
     """
     Build an index of page URLs by version for O(1) existence checks.
     
@@ -332,7 +331,7 @@ def _build_version_page_index(site: Site) -> dict[str, set[str]]:
     return index
 
 
-def page_exists_in_version(path: str, version_id: str, site: Site) -> bool:
+def page_exists_in_version(path: str, version_id: str, site: SiteLike) -> bool:
     """
     Check if a page exists in a specific version.
     

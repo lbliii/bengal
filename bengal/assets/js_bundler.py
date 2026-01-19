@@ -86,7 +86,7 @@ def bundle_js_files(
 
     if minify and bundled:
         try:
-            from jsmin import jsmin
+            from jsmin import jsmin  # type: ignore[import-untyped]
 
             bundled = jsmin(bundled)
         except ImportError:

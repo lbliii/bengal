@@ -208,6 +208,9 @@ class BuildContext:
     # Created by BuildOrchestrator when build.write_behind=True
     write_behind: Any = None  # WriteBehindCollector (lazy import to avoid circular)
 
+    # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
+    snapshot: Any = None  # SiteSnapshot (lazy import to avoid circular)
+
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
 

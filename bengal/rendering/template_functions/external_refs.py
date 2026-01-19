@@ -46,15 +46,14 @@ from kida import Markup
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
     from bengal.rendering.external_refs import ExternalRefResolver
 
 logger = get_logger(__name__)
 
 
 def register(
-    env: TemplateEnvironment, site: Site, resolver: ExternalRefResolver | None = None
+    env: TemplateEnvironment, site: SiteLike, resolver: ExternalRefResolver | None = None
 ) -> None:
     """
     Register external reference template functions.

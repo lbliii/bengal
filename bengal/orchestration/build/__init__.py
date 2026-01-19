@@ -64,7 +64,7 @@ from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.utils.observability.logger import get_logger
 
-from . import content, finalization, initialization, rendering
+from . import content, finalization, initialization, parsing, rendering
 from .options import BuildOptions
 
 logger = get_logger(__name__)
@@ -122,6 +122,7 @@ class BuildOrchestrator:
         self.site = site
         self.stats = BuildStats()
         self.logger = get_logger(__name__)
+        self.options: BuildOptions | None = None  # Set during build() call
 
         # Import directly to avoid self-import through __getattr__
         from bengal.orchestration.incremental import IncrementalOrchestrator
@@ -155,6 +156,9 @@ class BuildOrchestrator:
             >>> stats = orchestrator.build(options)
         """
 
+        # Store options for use in build phases (e.g., max_workers for WaveScheduler)
+        self.options = options
+        
         # Extract values from options for use in build phases
         # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
         # We'll compute it when we know the page count (in rendering phase)
@@ -215,11 +219,18 @@ class BuildOrchestrator:
         # Initialize CLI output system with profile
         cli = init_cli_output(profile=profile, quiet=quiet, verbose=verbose)
 
-        # Simple phase completion messages (no live progress bar)
-        # Live progress bar was removed due to UX issues (felt stuck) and performance overhead
-        use_live_progress = False
+        # Live progress bar for rendering phase
+        # Re-enabled with improved throttled updates in WaveScheduler (RFC: rfc-bengal-snapshot-engine)
+        # Shows real-time progress during the rendering phase which can take 10+ seconds
+        from bengal.utils.observability.cli_progress import LiveProgressManager
+        from bengal.utils.observability.rich_console import should_use_rich
+        
+        use_live_progress = should_use_rich() and not quiet
         progress_manager = None
         reporter = None
+        
+        if use_live_progress:
+            progress_manager = LiveProgressManager(profile=profile, enabled=True)
 
         # Suppress console log noise (logs still go to file for debugging)
         from bengal.utils.observability.logger import set_console_quiet
@@ -471,6 +482,47 @@ class BuildOrchestrator:
             f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
         )
 
+        # === PARSING PHASE (after all pages known, before snapshot) ===
+        # Parse markdown content for ALL pages (including generated taxonomy pages)
+        # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
+        from bengal.orchestration.build import parsing
+        
+        parsing_start = time.time()
+        with self.logger.phase("parsing"):
+            parsing.phase_parse_content(
+                self,
+                cli,
+                pages_to_build,
+                parallel=not force_sequential,
+            )
+        parsing_duration_ms = (time.time() - parsing_start) * 1000
+        if hasattr(self.stats, "parsing_time_ms"):
+            self.stats.parsing_time_ms = parsing_duration_ms
+        
+        cli.phase("Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages")
+
+        # === SNAPSHOT CREATION (after parsing, before rendering) ===
+        # Create immutable snapshot for lock-free parallel rendering
+        # Snapshot now contains pre-parsed HTML content from all pages
+        from bengal.snapshots import create_site_snapshot
+        from bengal.snapshots.persistence import SnapshotCache
+
+        snapshot_start = time.time()
+        with self.logger.phase("snapshot"):
+            site_snapshot = create_site_snapshot(self.site)
+            snapshot_duration_ms = (time.time() - snapshot_start) * 1000
+            # Store snapshot in build context for rendering phase
+            early_ctx.snapshot = site_snapshot
+            # Store snapshot time in stats if available
+            if hasattr(self.stats, "snapshot_time_ms"):
+                self.stats.snapshot_time_ms = snapshot_duration_ms
+            
+            # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
+            # This enables near-instant parsing on subsequent builds
+            cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
+            snapshot_cache = SnapshotCache(cache_dir)
+            snapshot_cache.save(site_snapshot)
+
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
         # In dry-run mode, we skip rendering, assets, postprocessing, and health
@@ -512,26 +564,41 @@ class BuildOrchestrator:
         notify_phase_start("rendering")
         rendering_start = time.time()
 
+        # Set up live progress display for rendering (the longest phase)
+        if progress_manager:
+            total_pages = len(pages_to_build) if pages_to_build else 0
+            # IMPORTANT: start() must come BEFORE add_phase() to enable Rich Live display
+            progress_manager.start()  # Start the Rich Live display
+            progress_manager.add_phase("rendering", "Rendering", total=total_pages)
+            progress_manager.start_phase("rendering")
+
         # Phase 14: Render Pages (with cached content from discovery)
         # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
-        ctx = rendering.phase_render(
-            self,
-            cli,
-            incremental,
-            force_sequential,
-            quiet,
-            verbose,
-            memory_optimized,
-            pages_to_build,
-            tracker,
-            profile,
-            progress_manager,
-            reporter,
-            profile_templates=profile_templates,
-            early_context=early_ctx,
-            changed_sources=changed_sources,
-            collector=output_collector,
-        )
+        try:
+            ctx = rendering.phase_render(
+                self,
+                cli,
+                incremental,
+                force_sequential,
+                quiet,
+                verbose,
+                memory_optimized,
+                pages_to_build,
+                tracker,
+                profile,
+                progress_manager,
+                reporter,
+                profile_templates=profile_templates,
+                early_context=early_ctx,
+                changed_sources=changed_sources,
+                collector=output_collector,
+            )
+        finally:
+            # Stop progress display after rendering (success or failure)
+            if progress_manager:
+                rendering_elapsed_ms = (time.time() - rendering_start) * 1000
+                progress_manager.complete_phase("rendering", elapsed_ms=rendering_elapsed_ms)
+                progress_manager.stop()
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
         rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)

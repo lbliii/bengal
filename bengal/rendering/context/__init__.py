@@ -59,16 +59,17 @@ from bengal.rendering.context.data_wrappers import (
     SmartDict,
 )
 from bengal.rendering.context.menu_context import MenusContext
-from bengal.rendering.context.section_context import SectionContext
 from bengal.rendering.context.site_wrappers import (
     ConfigContext,
     SiteContext,
     ThemeContext,
 )
 
+# Import snapshot types for direct section handling (no wrapper needed)
+from bengal.snapshots.types import NO_SECTION, SectionSnapshot
+
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
 
 __all__ = [
     # Data wrappers
@@ -79,8 +80,9 @@ __all__ = [
     "SiteContext",
     "ThemeContext",
     "ConfigContext",
-    # Section wrapper
-    "SectionContext",
+    # Section types (from snapshots - no wrapper needed)
+    "SectionSnapshot",
+    "NO_SECTION",
     # Menu wrapper
     "MenusContext",
     # Context builders
@@ -136,7 +138,7 @@ except ImportError:
     pass
 
 
-def _create_global_contexts(site: Site) -> dict[str, Any]:
+def _create_global_contexts(site: SiteLike) -> dict[str, Any]:
     """
     Create fresh global context wrappers for a site.
     
@@ -160,7 +162,7 @@ def _create_global_contexts(site: Site) -> dict[str, Any]:
 
 
 def _get_global_contexts(
-    site: Site,
+    site: SiteLike,
     build_context: BuildContextType | None = None,
 ) -> dict[str, Any]:
     """
@@ -220,7 +222,7 @@ def clear_global_context_cache() -> None:
     _clear_global_context_cache()
 
 
-def get_engine_globals(site: Site) -> dict[str, Any]:
+def get_engine_globals(site: SiteLike) -> dict[str, Any]:
     """
     Get all engine-agnostic globals for template engine initialization.
     
@@ -290,8 +292,8 @@ def get_engine_globals(site: Site) -> dict[str, Any]:
 
 
 def build_page_context(
-    page: Page | SimpleNamespace,
-    site: Site,
+    page: PageLike | SimpleNamespace,
+    site: SiteLike,
     content: str = "",
     *,
     section: Any = None,
@@ -299,6 +301,7 @@ def build_page_context(
     posts: list | None = None,
     subsections: list | None = None,
     extra: dict[str, Any] | None = None,
+    snapshot: Any = None,  # SiteSnapshot (optional)
 ) -> dict[str, Any]:
     """
     Build complete template context for any page type.
@@ -320,6 +323,7 @@ def build_page_context(
         posts: Override posts list (for generated pages)
         subsections: Override subsections list
         extra: Additional context variables
+        snapshot: Optional SiteSnapshot for lock-free rendering (RFC: rfc-bengal-snapshot-engine)
     
     Returns:
         Complete template context dict with all wrappers applied
@@ -337,16 +341,41 @@ def build_page_context(
     if resolved_section is None:
         resolved_section = getattr(page, "_section", None) or getattr(page, "section", None)
 
+    # Resolve section to SectionSnapshot (no wrapper needed)
+    # SectionSnapshot has params property and __bool__ for template compatibility
+    section_snapshot: SectionSnapshot | None = None
+    
+    if snapshot and resolved_section:
+        # Find section snapshot by matching path or name
+        for sec_snap in snapshot.sections:
+            if (
+                sec_snap.path == getattr(resolved_section, "path", None)
+                or sec_snap.name == getattr(resolved_section, "name", "")
+            ):
+                section_snapshot = sec_snap
+                break
+    elif isinstance(resolved_section, SectionSnapshot):
+        # Already a snapshot
+        section_snapshot = resolved_section
+
     # Build cascading params context
     # Cascade: page → section → site (most to least specific)
     section_params = {}
-    if resolved_section and hasattr(resolved_section, "metadata"):
+    if section_snapshot:
+        section_params = dict(section_snapshot.metadata) if section_snapshot.metadata else {}
+    elif resolved_section and hasattr(resolved_section, "metadata"):
+        # Legacy path: mutable Section (should rarely happen)
         section_params = resolved_section.metadata or {}
 
     site_params = site.config.get("params", {})
 
     # Get cached global contexts (site/config/theme/menus are stateless wrappers)
     global_contexts = _get_global_contexts(site)
+
+    # Use SectionSnapshot directly (no wrapper needed)
+    # SectionSnapshot has params property and __bool__ for template compatibility
+    # NO_SECTION sentinel used when no section exists
+    section_for_context: SectionSnapshot = section_snapshot if section_snapshot else NO_SECTION
 
     context: dict[str, Any] = {
         # Layer 1: Globals (cached smart wrappers - no per-page allocation)
@@ -359,7 +388,7 @@ def build_page_context(
             site_params=site_params,
         ),
         "metadata": metadata,  # Raw dict for compatibility
-        "section": SectionContext(resolved_section),
+        "section": section_for_context,
         # Pre-computed content (marked safe)
         "content": Markup(content) if content else Markup(""),
         "title": getattr(page, "title", "") or "",
@@ -378,8 +407,18 @@ def build_page_context(
     }
 
     # Add section content lists
-    if resolved_section:
-        # Use override if provided, then pre-filtered _posts, finally section.pages
+    if section_snapshot and section_snapshot != NO_SECTION:
+        # Use snapshot data directly (SectionSnapshot has all needed properties)
+        context["posts"] = (
+            posts if posts is not None else list(section_snapshot.sorted_pages)
+        )
+        context["pages"] = context["posts"]  # Alias
+        # subsections are already SectionSnapshot instances - use directly
+        context["subsections"] = (
+            subsections if subsections is not None else list(section_snapshot.sorted_subsections)
+        )
+    elif resolved_section:
+        # Legacy path: mutable Section (should rarely happen with snapshot engine)
         context["posts"] = (
             posts
             if posts is not None
@@ -391,16 +430,13 @@ def build_page_context(
             if subsections is not None
             else metadata.get("_subsections", getattr(resolved_section, "subsections", []))
         )
-        # Wrap subsections in SectionContext so subsection.params works correctly
-        # This prevents 'str' object has no attribute 'get' errors when accessing
-        # subsection?.params?.type in templates
-        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
+        # Convert mutable subsections to NO_SECTION sentinel if needed
+        # In snapshot engine, this path should rarely execute
+        context["subsections"] = raw_subsections if raw_subsections else []
     else:
         context["posts"] = posts or []
         context["pages"] = context["posts"]
-        # Wrap subsections even when no section exists
-        raw_subsections = subsections or []
-        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
+        context["subsections"] = subsections or []
 
     # Add autodoc element if provided
     if element:
@@ -424,7 +460,7 @@ def build_special_page_context(
     title: str,
     description: str,
     url: str,
-    site: Site,
+    site: SiteLike,
     *,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:

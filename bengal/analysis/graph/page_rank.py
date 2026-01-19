@@ -55,7 +55,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -75,12 +75,12 @@ class PageRankResults:
         
     """
 
-    scores: dict[Page, float]
+    scores: dict[PageLike, float]
     iterations: int
     converged: bool
     damping_factor: float
 
-    def get_top_pages(self, limit: int = 20) -> list[tuple[Page, float]]:
+    def get_top_pages(self, limit: int = 20) -> list[tuple[PageLike, float]]:
         """
         Get top-ranked pages.
 
@@ -93,7 +93,7 @@ class PageRankResults:
         sorted_pages = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_pages_above_percentile(self, percentile: int) -> set[Page]:
+    def get_pages_above_percentile(self, percentile: int) -> set[PageLike]:
         """
         Get pages above a certain percentile.
 
@@ -114,7 +114,7 @@ class PageRankResults:
 
         return {page for page, score in self.scores.items() if score >= threshold_score}
 
-    def get_score(self, page: Page) -> float:
+    def get_score(self, page: PageLike) -> float:
         """Get PageRank score for a specific page."""
         return self.scores.get(page, 0.0)
 
@@ -177,7 +177,7 @@ class PageRankCalculator:
         self.threshold = convergence_threshold
 
     def compute(
-        self, seed_pages: set[Page] | None = None, personalized: bool = False
+        self, seed_pages: set[PageLike] | None = None, personalized: bool = False
     ) -> PageRankResults:
         """
         Compute PageRank scores for all pages.
@@ -222,10 +222,10 @@ class PageRankCalculator:
 
         # Use pre-computed incoming edges index for O(E) iteration
         # RFC: rfc-analysis-algorithm-optimization
-        incoming_edges: dict[Page, list[Page]] = self.graph.incoming_edges
+        incoming_edges: dict[PageLike, list[PageLike]] = self.graph.incoming_edges
 
         # Pre-compute outgoing link counts for efficiency
-        outgoing_counts: dict[Page, int] = {
+        outgoing_counts: dict[PageLike, int] = {
             page: len(self.graph.outgoing_refs.get(page, set())) for page in pages
         }
 
@@ -281,7 +281,7 @@ class PageRankCalculator:
             damping_factor=self.damping,
         )
 
-    def compute_personalized(self, seed_pages: set[Page]) -> PageRankResults:
+    def compute_personalized(self, seed_pages: set[PageLike]) -> PageRankResults:
         """
         Compute personalized PageRank from seed pages.
 
@@ -306,7 +306,7 @@ class PageRankCalculator:
 
 def analyze_page_importance(
     graph: KnowledgeGraph, damping: float = 0.85, top_n: int = 20
-) -> list[tuple[Page, float]]:
+) -> list[tuple[PageLike, float]]:
     """
     Convenience function to analyze page importance.
     

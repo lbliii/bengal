@@ -609,9 +609,10 @@ class ConfigDirectoryLoader:
         Sections flattened:
             - ``site.*`` → top level (title, baseurl, etc.)
             - ``build.*`` → top level (parallel, incremental, etc.)
-            - ``dev.*`` → top level (cache_templates, watch_backend, etc.)
             - ``features.*`` → top level (rss, sitemap, etc.)
             - ``assets.*`` → top level (minify, optimize, etc.)
+            
+        Note: ``dev.*`` is NOT flattened to preserve environment-specific nesting.
 
         Args:
             config: Nested configuration dictionary.
@@ -624,7 +625,8 @@ class ConfigDirectoryLoader:
 
         # Extract values from known sections to top level
         # Specific nested values override general flat values
-        for section in ("site", "build", "assets", "features", "dev"):
+        # Note: "dev" is excluded from flattening to preserve environment-specific nesting
+        for section in ("site", "build", "assets", "features"):
             if section in config and isinstance(config[section], dict):
                 flat.update(config[section])
 

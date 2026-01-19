@@ -280,7 +280,8 @@ theme = "my-theme"
 
 **Planned API**:
 ```python
-from bengal.rendering.plugins import ShortcodePlugin
+# Planned API (not implemented yet):
+# from bengal.rendering.plugins import ShortcodePlugin
 
 class AlertShortcode(ShortcodePlugin):
     name = "alert"
@@ -306,7 +307,8 @@ This is a warning message!
 
 **Planned API**:
 ```python
-from bengal.plugins import Plugin, hook
+# Planned API (not implemented yet):
+# from bengal.plugins import Plugin, hook
 
 class MyPlugin(Plugin):
     name = "my-plugin"

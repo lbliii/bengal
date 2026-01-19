@@ -40,7 +40,9 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
+else:
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -406,12 +408,14 @@ class GraphReporter:
 
         return insights
 
-    def _find_homepage(self, analysis_pages: list[Page]) -> Page | None:
+    def _find_homepage(self, analysis_pages: list[PageLike]) -> PageLike | None:
         """Find the homepage from a list of pages."""
         for page in analysis_pages:
+            # Type narrowing: slug may not be on PageLike protocol
+            slug = getattr(page, "slug", None)
             if (
                 page.metadata.get("is_home")
-                or page.slug == "index"
+                or slug == "index"
                 or str(page.source_path).endswith("index.md")
                 or str(page.source_path).endswith("_index.md")
             ):
@@ -440,7 +444,7 @@ class GraphReporter:
             # Find pages with shared tags but no links
             from collections import defaultdict
 
-            tag_to_pages: dict[str, list[Page]] = defaultdict(list)
+            tag_to_pages: dict[str, list[PageLike]] = defaultdict(list)
             for page in analysis_pages:
                 if hasattr(page, "tags") and page.tags:
                     for tag in page.tags:
@@ -477,7 +481,7 @@ class GraphReporter:
         try:
             from collections import defaultdict
 
-            section_to_pages: dict[str, list[Page]] = defaultdict(list)
+            section_to_pages: dict[str, list[PageLike]] = defaultdict(list)
             for page in analysis_pages:
                 section = getattr(page, "_section", None)
                 if section:

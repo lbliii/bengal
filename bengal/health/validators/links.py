@@ -37,7 +37,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -59,7 +59,7 @@ class LinkValidator:
         
     """
 
-    def __init__(self, site: Site | None = None) -> None:
+    def __init__(self, site: SiteLike | None = None) -> None:
         """
         Initialize the link validator.
 
@@ -70,7 +70,7 @@ class LinkValidator:
         self.broken_links: list[tuple[Path | None, str]] = []
         self._page_urls: set[str] | None = None
         self._source_paths: set[str] | None = None
-        self._site: Site | None = site
+        self._site: SiteLike | None = site
 
     def _build_page_url_index(self, site: Any) -> set[str]:
         """
@@ -474,7 +474,7 @@ class LinkValidatorWrapper(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Validate links in generated pages.
 
@@ -571,7 +571,7 @@ class LinkValidatorWrapper(BaseValidator):
 
 
 # Convenience function for direct validation
-def validate_links(page: Page, site: Site | None = None) -> list[str]:
+def validate_links(page: Page, site: SiteLike | None = None) -> list[str]:
     """
     Validate all links in a page.
     

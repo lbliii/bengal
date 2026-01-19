@@ -87,8 +87,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 from bengal.rendering import template_tests
 
@@ -128,7 +127,7 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: TemplateEnvironment, site: Site, engine_type: str | None = None) -> None:
+def register_all(env: TemplateEnvironment, site: SiteLike, engine_type: str | None = None) -> None:
     """
     Register all template functions with template environment.
     

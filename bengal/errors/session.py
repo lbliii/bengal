@@ -210,8 +210,10 @@ class ErrorSession:
             if hasattr(error, "code") and error.code:
                 error_code = str(error.code)
 
-            if hasattr(error, "build_phase") and error.build_phase:
-                build_phase = error.build_phase.value
+            # Extract build_phase from error if available
+            error_build_phase = getattr(error, "build_phase", None)
+            if error_build_phase is not None:
+                build_phase = error_build_phase.value
 
             # Create occurrence record
             occurrence = ErrorOccurrence(

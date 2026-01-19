@@ -13,7 +13,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class OutputValidator(BaseValidator):
@@ -39,7 +39,7 @@ class OutputValidator(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Run output validation checks.
 
@@ -94,7 +94,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_page_sizes(self, site: Site) -> list[CheckResult]:
+    def _check_page_sizes(self, site: SiteLike) -> list[CheckResult]:
         """Check if any pages are suspiciously small."""
         results = []
         min_size = site.config.get("min_page_size", 1000)
@@ -124,7 +124,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_assets(self, site: Site) -> list[CheckResult]:
+    def _check_assets(self, site: SiteLike) -> list[CheckResult]:
         """Check if theme assets are present in output."""
         results = []
         assets_dir = site.output_dir / "assets"
@@ -165,7 +165,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_output_directory(self, site: Site) -> list[CheckResult]:
+    def _check_output_directory(self, site: SiteLike) -> list[CheckResult]:
         """Check output directory structure."""
         results = []
 

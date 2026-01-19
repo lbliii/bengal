@@ -12,15 +12,16 @@ Site.from_config(path): Load from bengal.toml (recommended)
 Site.for_testing(): Minimal instance for unit tests
 Site(root_path, config): Direct instantiation (advanced)
 
-Package Structure:
-core.py: Site dataclass with build/serve methods
-properties.py: SitePropertiesMixin (config accessors)
-page_caches.py: PageCachesMixin (cached page lists)
-factories.py: SiteFactoriesMixin (from_config, for_testing)
-discovery.py: ContentDiscoveryMixin (content/asset discovery)
-theme.py: ThemeIntegrationMixin (theme resolution)
-data.py: DataLoadingMixin (data/ directory)
-section_registry.py: SectionRegistryMixin (O(1) section lookups)
+Architecture (RFC: Aggressive Cleanup):
+Site is now a unified dataclass with all functionality inlined:
+- Properties: Config accessors (title, baseurl, author, etc.)
+- Page Caches: Cached page lists (regular_pages, generated_pages, etc.)
+- Content Discovery: discover_content(), discover_assets()
+- Data Loading: _load_data_directory()
+- Section Registry: O(1) section lookups via registry
+
+Factory Methods:
+from_config() and for_testing() are classmethods on Site.
 
 Key Features:
 Build Coordination: site.build() orchestrates full build pipeline
@@ -41,8 +42,6 @@ bengal.rendering.template_engine: Template rendering
 bengal.cache.build_cache: Build state persistence
 
 """
-
-from __future__ import annotations
 
 from bengal.core.site.core import Site
 

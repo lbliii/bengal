@@ -13,7 +13,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus, ValidatorStats
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class AutodocValidator(BaseValidator):
@@ -44,7 +44,7 @@ class AutodocValidator(BaseValidator):
     last_stats: ValidatorStats | None = None
 
     @override
-    def validate(self, site: Site, build_context: Any = None) -> list[CheckResult]:
+    def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
         """
         Run autodoc HTML validation checks.
 
@@ -119,7 +119,7 @@ class AutodocValidator(BaseValidator):
 
         return results
 
-    def _check_html_parity(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_html_parity(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check HTML and TXT file count parity."""
         results: list[CheckResult] = []
 
@@ -140,17 +140,17 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.ERROR,
                         message=f"Autodoc {prefix}: {len(orphans)} directories have TXT but no HTML",
-                        details={
+                        details=orphan_list,
+                        metadata={
                             "prefix": prefix,
                             "orphan_count": len(orphans),
-                            "sample": orphan_list,
                         },
                     )
                 )
 
         return results
 
-    def _check_missing_html(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_missing_html(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check for directories missing index.html."""
         results: list[CheckResult] = []
 
@@ -169,17 +169,17 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.ERROR,
                         message=f"Autodoc {prefix}: {len(missing)} directories missing index.html",
-                        details={
+                        details=missing[:10],
+                        metadata={
                             "prefix": prefix,
                             "missing_count": len(missing),
-                            "sample": missing[:10],
                         },
                     )
                 )
 
         return results
 
-    def _check_page_types(self, site: Site, prefixes: list[str]) -> list[CheckResult]:
+    def _check_page_types(self, site: SiteLike, prefixes: list[str]) -> list[CheckResult]:
         """Check page types are correctly set."""
         results: list[CheckResult] = []
 
@@ -221,11 +221,11 @@ class AutodocValidator(BaseValidator):
                     CheckResult(
                         status=CheckStatus.WARNING,
                         message=f"Autodoc {prefix}: {len(type_mismatches)} pages have wrong type (expected {expected_type})",
-                        details={
+                        details=type_mismatches[:5],
+                        metadata={
                             "prefix": prefix,
                             "expected_type": expected_type,
                             "mismatch_count": len(type_mismatches),
-                            "sample": type_mismatches[:5],
                         },
                     )
                 )

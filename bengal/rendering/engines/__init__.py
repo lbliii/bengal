@@ -127,7 +127,8 @@ def create_engine(
     if engine_name == "jinja2":
         from bengal.rendering.engines.jinja import JinjaTemplateEngine
 
-        return JinjaTemplateEngine(site, profile=profile)
+        engine = JinjaTemplateEngine(site, profile=profile)
+        return engine  # JinjaTemplateEngine implements TemplateEngineProtocol structurally
 
     if engine_name == "kida":
         from bengal.rendering.engines.kida import KidaTemplateEngine
@@ -136,7 +137,7 @@ def create_engine(
 
     if engine_name == "mako":
         try:
-            from bengal.rendering.engines.mako import MakoTemplateEngine
+            from bengal.rendering.engines.mako import MakoTemplateEngine  # type: ignore[import-not-found]
         except ImportError as e:
             raise BengalConfigError(
                 "Mako engine requires mako package. Install with: pip install bengal[mako]",
@@ -148,7 +149,7 @@ def create_engine(
 
     if engine_name == "patitas":
         try:
-            from bengal.rendering.engines.patitas import PatitasTemplateEngine
+            from bengal.rendering.engines.patitas import PatitasTemplateEngine  # type: ignore[import-not-found]
         except ImportError as e:
             raise BengalConfigError(
                 "Patitas engine requires patitas package. Install with: pip install bengal[patitas]",

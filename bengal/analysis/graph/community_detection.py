@@ -51,7 +51,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -74,14 +74,14 @@ class Community:
     """
 
     id: int
-    pages: set[Page]
+    pages: set[PageLike]
 
     @property
     def size(self) -> int:
         """Number of pages in this community."""
         return len(self.pages)
 
-    def get_top_pages_by_degree(self, limit: int = 5) -> list[Page]:
+    def get_top_pages_by_degree(self, limit: int = 5) -> list[PageLike]:
         """Get most connected pages in this community."""
         # Will be populated with degree info from the detector
         return list(self.pages)[:limit]
@@ -106,7 +106,7 @@ class CommunityDetectionResults:
     modularity: float
     iterations: int
 
-    def get_community_for_page(self, page: Page) -> Community | None:
+    def get_community_for_page(self, page: PageLike) -> Community | None:
         """Find which community a page belongs to."""
         for community in self.communities:
             if page in community.pages:
@@ -184,7 +184,7 @@ class LouvainCommunityDetector:
         logger.info("community_detection_start", total_pages=len(pages), resolution=self.resolution)
 
         # Initialize: each page in its own community
-        page_to_community: dict[Page, int] = {page: i for i, page in enumerate(pages)}
+        page_to_community: dict[PageLike, int] = {page: i for i, page in enumerate(pages)}
 
         # Build edge weights (use bidirectional edges for undirected graph)
         edge_weights = self._build_edge_weights(pages)
@@ -262,7 +262,7 @@ class LouvainCommunityDetector:
             )
 
         # Convert to Community objects
-        community_map: dict[int, set[Page]] = defaultdict(set)
+        community_map: dict[int, set[PageLike]] = defaultdict(set)
         for page, community_id in page_to_community.items():
             community_map[community_id].add(page)
 
@@ -283,13 +283,13 @@ class LouvainCommunityDetector:
             communities=communities, modularity=best_modularity, iterations=iteration
         )
 
-    def _build_edge_weights(self, pages: list[Page]) -> dict[frozenset[Page], float]:
+    def _build_edge_weights(self, pages: list[PageLike]) -> dict[frozenset[PageLike], float]:
         """
         Build edge weights from the graph.
 
         Uses frozenset to represent undirected edges.
         """
-        edge_weights: dict[frozenset[Page], float] = defaultdict(float)
+        edge_weights: dict[frozenset[PageLike], float] = defaultdict(float)
 
         for page in pages:
             outgoing = self.graph.outgoing_refs.get(page, set())
@@ -301,10 +301,10 @@ class LouvainCommunityDetector:
         return edge_weights
 
     def _compute_node_degrees(
-        self, pages: list[Page], edge_weights: dict[frozenset[Page], float]
-    ) -> dict[Page, float]:
+        self, pages: list[PageLike], edge_weights: dict[frozenset[PageLike], float]
+    ) -> dict[PageLike, float]:
         """Compute weighted degree for each node."""
-        node_degrees: dict[Page, float] = defaultdict(float)
+        node_degrees: dict[PageLike, float] = defaultdict(float)
 
         for edge, weight in edge_weights.items():
             edge_list = list(edge)
@@ -320,9 +320,9 @@ class LouvainCommunityDetector:
 
     def _get_neighboring_communities(
         self,
-        page: Page,
-        page_to_community: dict[Page, int],
-        edge_weights: dict[frozenset[Page], float],
+        page: PageLike,
+        page_to_community: dict[PageLike, int],
+        edge_weights: dict[frozenset[PageLike], float],
     ) -> set[int]:
         """Get communities that are neighbors of this page."""
         neighboring_communities = set()
@@ -341,11 +341,11 @@ class LouvainCommunityDetector:
 
     def _modularity_gain(
         self,
-        page: Page,
+        page: PageLike,
         to_community: int,
-        page_to_community: dict[Page, int],
-        edge_weights: dict[frozenset[Page], float],
-        node_degrees: dict[Page, float],
+        page_to_community: dict[PageLike, int],
+        edge_weights: dict[frozenset[PageLike], float],
+        node_degrees: dict[PageLike, float],
         total_weight: float,
     ) -> float:
         """
@@ -374,9 +374,9 @@ class LouvainCommunityDetector:
 
     def _compute_modularity(
         self,
-        page_to_community: dict[Page, int],
-        edge_weights: dict[frozenset[Page], float],
-        node_degrees: dict[Page, float],
+        page_to_community: dict[PageLike, int],
+        edge_weights: dict[frozenset[PageLike], float],
+        node_degrees: dict[PageLike, float],
         total_weight: float,
     ) -> float:
         """Compute Newman's modularity Q."""

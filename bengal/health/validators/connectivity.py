@@ -28,14 +28,13 @@ from bengal.health.report import CheckResult
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
 # Exposed for test patching; will be bound on first validate() call
-KnowledgeGraph = None  # type: ignore
+KnowledgeGraph = None
 
 
 class ConnectivityValidator(BaseValidator):
@@ -62,7 +61,7 @@ class ConnectivityValidator(BaseValidator):
 
     @override
     def validate(
-        self, site: Site, build_context: BuildContext | Any | None = None
+        self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """
         Validate site connectivity.
@@ -78,10 +77,10 @@ class ConnectivityValidator(BaseValidator):
 
         # Import here to avoid circular dependency, but keep a module-level alias
         # so tests can monkeypatch bengal.health.validators.connectivity.KnowledgeGraph
-        global KnowledgeGraph  # type: ignore
+        global KnowledgeGraph
         try:
             # Respect pre-patched symbol from tests; only import if not set
-            if KnowledgeGraph is None:  # type: ignore
+            if KnowledgeGraph is None:
                 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KG  # local alias
 
                 KnowledgeGraph = _KG  # expose for test patching
@@ -117,7 +116,7 @@ class ConnectivityValidator(BaseValidator):
             if graph is None:
                 logger.debug("connectivity_validator_start", total_pages=len(site.pages))
                 try:
-                    graph = KnowledgeGraph(site)  # type: ignore[operator]
+                    graph = KnowledgeGraph(site)
                 except ImportError as e:  # Align behavior with import-path failure for tests
                     msg = "Knowledge graph analysis unavailable"
                     results.append(
@@ -131,14 +130,14 @@ class ConnectivityValidator(BaseValidator):
                 graph.build()
 
             # Normalize helpers to be robust to mocks
-            def _normalize_hubs(h: list[Page] | list[tuple[Page, int]] | None) -> list[Page]:
-                # Accept list[Page] or list[tuple[Page,int]]
-                normalized: list[Page] = []
+            def _normalize_hubs(h: Any) -> list[Any]:
+                # Accept list[Page] or list[tuple[Page,int]] or list[PageLike]
+                normalized: list[Any] = []
                 try:
                     for item in h or []:
                         if isinstance(item, tuple) and len(item) >= 1:
                             normalized.append(item[0])
-                        else:
+                        elif hasattr(item, "path"):  # Duck-type check for Page
                             normalized.append(item)
                 except Exception as e:
                     logger.debug(
@@ -154,10 +153,12 @@ class ConnectivityValidator(BaseValidator):
                 try:
                     m = graph.get_metrics()
                     if isinstance(m, dict):
+                        # Dict type is known but not to the type checker
+                        metrics_dict = dict(m)  # type: dict[str, Any]
                         return {
-                            "total_pages": m.get("nodes", 0),
-                            "total_links": m.get("edges", 0),
-                            "avg_connectivity": float(m.get("average_degree", 0.0) or 0.0),
+                            "total_pages": metrics_dict.get("nodes", 0),
+                            "total_links": metrics_dict.get("edges", 0),
+                            "avg_connectivity": float(metrics_dict.get("average_degree", 0.0) or 0.0),
                             "hub_count": 0,
                             "orphan_count": 0,
                         }
@@ -215,10 +216,14 @@ class ConnectivityValidator(BaseValidator):
 
             # Get config thresholds
             health_config = site.config.get("health_check", {})
-            isolated_threshold = health_config.get(
-                "isolated_threshold", health_config.get("orphan_threshold", 5)
-            )
-            lightly_linked_threshold = health_config.get("lightly_linked_threshold", 20)
+            if isinstance(health_config, dict):
+                isolated_threshold = health_config.get(
+                    "isolated_threshold", health_config.get("orphan_threshold", 5)
+                )
+                lightly_linked_threshold = health_config.get("lightly_linked_threshold", 20)
+            else:
+                isolated_threshold = 5
+                lightly_linked_threshold = 20
 
             # Check 1a: Isolated pages (score < 0.25)
             if isolated_pages:
@@ -284,8 +289,10 @@ class ConnectivityValidator(BaseValidator):
             # Check 2: Over-connected hubs (robust to mocked shapes)
             hubs = []
             try:
-                super_hub_threshold = site.config.get("health_check", {}).get(
-                    "super_hub_threshold", 50
+                health_cfg = site.config.get("health_check", {})
+                super_hub_threshold = (
+                    health_cfg.get("super_hub_threshold", 50)
+                    if isinstance(health_cfg, dict) else 50
                 )
                 hubs = _normalize_hubs(graph.get_hubs(threshold=super_hub_threshold))
                 if hubs:

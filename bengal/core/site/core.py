@@ -12,18 +12,25 @@ Key Responsibilities:
 Content Organization: Manages pages, sections, and assets in hierarchy
 Build Coordination: site.build() orchestrates full build pipeline
 Dev Server: site.serve() provides live-reload development server
-Theme Integration: Resolves theme chains for template/asset lookup
+Theme Integration: Uses bengal.services.theme for theme resolution
 Query Interfaces: Provides taxonomy, menu, and page query APIs
 
-Mixin Architecture:
-Site is composed of focused mixins for separation of concerns:
-- SitePropertiesMixin: Config property accessors
-- PageCachesMixin: Cached page lists
-- SiteFactoriesMixin: Factory methods (from_config, for_testing)
-- ContentDiscoveryMixin: Content/asset discovery
-- ThemeIntegrationMixin: Theme resolution
-- DataLoadingMixin: data/ directory loading
-- SectionRegistryMixin: O(1) section lookups
+Architecture (RFC: Aggressive Cleanup):
+All mixin functionality is now inlined directly into Site:
+- Properties: Config accessors (title, baseurl, author, etc.)
+- Page Caches: Cached page lists (regular_pages, generated_pages, etc.)
+- Content Discovery: discover_content(), discover_assets()
+- Data Loading: _load_data_directory()
+- Section Registry: O(1) section lookups via registry
+
+Factory Methods:
+Site.from_config() and Site.for_testing() are module-level functions
+re-exported as classmethods for backward compatibility.
+
+Related Services (RFC: Snapshot-Enabled v2):
+- bengal.services.theme: Pure functions for theme resolution
+- bengal.services.query: Pure functions for content queries
+- bengal.services.data: Pure functions for data loading
 
 Caching Strategy:
 Expensive computations (page lists, section lookups) are cached and
@@ -38,11 +45,12 @@ bengal.cache.build_cache: Build state persistence
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from bengal.core.asset import Asset
 from bengal.core.diagnostics import emit as emit_diagnostic
@@ -50,23 +58,19 @@ from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.registry import ContentRegistry
 from bengal.core.section import Section
-from bengal.core.site.data import DataLoadingMixin
-from bengal.core.site.discovery import ContentDiscoveryMixin
-from bengal.core.site.factories import SiteFactoriesMixin
-from bengal.core.site.page_caches import PageCachesMixin
-from bengal.core.site.properties import SitePropertiesMixin
-from bengal.core.site.section_registry import SectionRegistryMixin
-from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
 
 if TYPE_CHECKING:
+    from bengal.cache.paths import BengalPaths
+    from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.config.accessor import Config
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
     from bengal.orchestration.stats import BuildStats
+    from bengal.utils.primitives.dotdict import DotDict
 
 
 # Thread-safe output lock for parallel processing.
@@ -74,29 +78,21 @@ _print_lock = Lock()
 
 
 @dataclass
-class Site(
-    SitePropertiesMixin,
-    PageCachesMixin,
-    SiteFactoriesMixin,
-    ThemeIntegrationMixin,  # Must come before ContentDiscoveryMixin for _get_theme_assets_chain
-    ContentDiscoveryMixin,
-    DataLoadingMixin,
-    SectionRegistryMixin,
-):
+class Site:
     """
     Represents the entire website and orchestrates the build process.
-    
+
     Creation:
         Recommended: Site.from_config(root_path)
             - Loads configuration from bengal.toml
             - Applies all settings automatically
             - Use for production builds and CLI
-    
+
         Direct instantiation: Site(root_path=path, config=config)
             - For unit testing with controlled state
             - For programmatic config manipulation
             - Advanced use case only
-    
+
     Attributes:
         root_path: Root directory of the site
         config: Site configuration dictionary (from bengal.toml or explicit)
@@ -107,22 +103,22 @@ class Site(
         output_dir: Output directory for built site
         build_time: Timestamp of the last build
         taxonomies: Collected taxonomies (tags, categories, etc.)
-    
+
     Examples:
         # Production/CLI (recommended):
         site = Site.from_config(Path('/path/to/site'))
-    
+
         # Unit testing:
         site = Site(root_path=Path('/test'), config={})
         site.pages = [test_page1, test_page2]
-    
+
         # Programmatic config:
         from bengal.config import UnifiedConfigLoader
         loader = UnifiedConfigLoader()
         config = loader.load(path)
         # Note: config is now a Config object, use config.raw for dict access
         site = Site(root_path=path, config=config)
-        
+
     """
 
     root_path: Path
@@ -179,7 +175,7 @@ class Site(
     _config_hash: str | None = field(default=None, repr=False, init=False)
 
     # BengalPaths instance for centralized .bengal directory access
-    _paths: Any = field(default=None, repr=False, init=False)
+    _paths: BengalPaths | None = field(default=None, repr=False, init=False)
     # Optional runtime override for site description (used by postprocessors)
     _description_override: str | None = field(default=None, repr=False, init=False)
 
@@ -259,10 +255,10 @@ class Site(
             if isinstance(theme_value, str):
                 self.theme = theme_value
             elif (
-                isinstance(theme_value, dict)
-                and theme_value.get("name")
-                or hasattr(theme_value, "get")
-                and theme_value.get("name")
+                (isinstance(theme_value, dict)
+                and theme_value.get("name"))
+                or (hasattr(theme_value, "get")
+                and theme_value.get("name"))
             ):
                 self.theme = str(theme_value.get("name"))
             elif hasattr(theme_value, "name") and theme_value.name:
@@ -270,8 +266,15 @@ class Site(
             else:
                 self.theme = "default"
 
-        # Theme.from_config expects a dict; use .raw if available (Config object) else use directly (plain dict)
-        config_dict = self.config.raw if hasattr(self.config, "raw") else self.config
+        # Theme.from_config expects a dict; use .raw if available (Config object)
+        # else use directly (plain dict)
+        config_dict: dict[str, Any]
+        if hasattr(self.config, "raw"):
+            config_dict = self.config.raw  # type: ignore[union-attr]
+        elif isinstance(self.config, dict):
+            config_dict = self.config
+        else:
+            config_dict = {}
         self._theme_obj = Theme.from_config(
             config_dict,
             root_path=self.root_path,
@@ -283,8 +286,10 @@ class Site(
         icon_resolver.initialize(self)
 
         # Access output_dir from build section (supports both Config and dict)
+        output_dir_str: str | None = None
         if hasattr(self.config, "build"):
-            output_dir_str = self.config.build.output_dir
+            build_attr = self.config.build
+            output_dir_str = getattr(build_attr, "output_dir", "public")
         else:
             build_section = self.config.get("build", {})
             if isinstance(build_section, dict):
@@ -330,6 +335,142 @@ class Site(
             self._registry.set_root_path(self.root_path)
             # Share URL registry with content registry
             self._registry.url_ownership = self.url_registry
+
+    # =========================================================================
+    # FACTORY METHODS (module-level functions re-exported as classmethods)
+    # =========================================================================
+
+    @classmethod
+    def from_config(
+        cls,
+        root_path: Path,
+        config_path: Path | None = None,
+        environment: str | None = None,
+        profile: str | None = None,
+    ) -> Self:
+        """
+        Create a Site instance from configuration.
+
+        This is the PREFERRED way to create a Site - it loads configuration
+        from config/ directory or single config file and applies all settings.
+
+        Config Loading (Priority):
+            1. config/ directory (if exists) - Environment-aware, profile-native
+            2. bengal.yaml / bengal.toml (single file) - Traditional
+            3. Auto-detect environment from platform (Netlify, Vercel, GitHub Actions)
+
+        Directory Structure (Recommended):
+            config/
+            ├── _default/          # Base config
+            │   ├── site.yaml
+            │   ├── build.yaml
+            │   └── features.yaml
+            ├── environments/      # Environment overrides
+            │   ├── local.yaml
+            │   ├── preview.yaml
+            │   └── production.yaml
+            └── profiles/          # Build profiles
+                ├── writer.yaml
+                ├── theme-dev.yaml
+                └── dev.yaml
+
+        Important Config Sections:
+            - [site]: title, baseurl, author, etc.
+            - [build]: parallel, max_workers, incremental, etc.
+            - [markdown]: parser selection ('patitas' is default)
+            - [features]: rss, sitemap, search, json, etc.
+            - [taxonomies]: tags, categories, series
+
+        Args:
+            root_path: Root directory of the site (Path object)
+            config_path: Optional explicit path to config file (Path object)
+                        Only used for single-file configs, ignored if config/ exists
+            environment: Environment name (e.g., 'production', 'local')
+                        Auto-detected if not specified (Netlify, Vercel, GitHub)
+            profile: Profile name (e.g., 'writer', 'dev')
+                        Optional, only applies if config/ directory exists
+
+        Returns:
+            Configured Site instance with all settings loaded
+
+        Examples:
+            # Auto-detect config (prefers config/ directory)
+            site = Site.from_config(Path('/path/to/site'))
+
+            # Explicit environment
+            site = Site.from_config(
+                Path('/path/to/site'),
+                environment='production'
+            )
+
+            # With profile
+            site = Site.from_config(
+                Path('/path/to/site'),
+                environment='local',
+                profile='dev'
+            )
+
+        For Testing:
+            If you need a Site for testing, use Site.for_testing() instead.
+            It creates a minimal Site without requiring a config file.
+
+        See Also:
+            - Site() - Direct constructor for advanced use cases
+            - Site.for_testing() - Factory for test sites
+        """
+        from bengal.config.unified_loader import UnifiedConfigLoader
+
+        loader = UnifiedConfigLoader()
+        config = loader.load(root_path, environment=environment, profile=profile)
+
+        return cls(root_path=root_path, config=config)
+
+    @classmethod
+    def for_testing(
+        cls, root_path: Path | None = None, config: dict[str, Any] | None = None
+    ) -> Self:
+        """
+        Create a Site instance for testing without requiring a config file.
+
+        This is a convenience factory for unit tests and integration tests
+        that need a Site object with custom configuration.
+
+        Args:
+            root_path: Root directory of the test site (defaults to current dir)
+            config: Configuration dictionary (defaults to minimal config)
+
+        Returns:
+            Configured Site instance ready for testing
+
+        Example:
+            # Minimal test site
+            site = Site.for_testing()
+
+            # Test site with custom root path
+            site = Site.for_testing(Path('/tmp/test_site'))
+
+            # Test site with custom config
+            config = {'site': {'title': 'My Test Site'}}
+            site = Site.for_testing(config=config)
+
+        Note:
+            This bypasses config file loading, so you control all settings.
+            Perfect for unit tests that need predictable behavior.
+        """
+        if root_path is None:
+            root_path = Path(".")
+
+        if config is None:
+            config = {
+                "site": {"title": "Test Site"},
+                "build": {"output_dir": "public"},
+            }
+
+        return cls(root_path=root_path, config=config)
+
+    # =========================================================================
+    # CORE METHODS
+    # =========================================================================
 
     def build(
         self,
@@ -553,11 +694,12 @@ class Site(
               <article>{{ post.title }}</article>
             {% endfor %}
         """
-        return [
-            p
-            for p in self.pages
-            if getattr(p, "_section", None) and p._section.name == section_name
-        ]
+        result: list[Page] = []
+        for p in self.pages:
+            section = getattr(p, "_section", None)
+            if section is not None and section.name == section_name:
+                result.append(p)
+        return result
 
     def get_version_target_url(
         self, page: Page | None, target_version: dict[str, Any] | None
@@ -599,7 +741,7 @@ class Site(
             get_version_target_url as _get_version_target_url,
         )
 
-        return _get_version_target_url(page, target_version, self)
+        return _get_version_target_url(page, target_version, self)  # type: ignore[arg-type]
 
     def __repr__(self) -> str:
         pages = len(self.pages)
@@ -770,7 +912,1510 @@ class Site(
             raise BengalContentError(
                 "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
                 code=ErrorCode.D005,
-                suggestion="Check for duplicate slugs, conflicting autodoc output, or use different URLs for conflicting pages",
+                suggestion=(
+                    "Check for duplicate slugs, conflicting autodoc output, "
+                    "or use different URLs for conflicting pages"
+                ),
             )
 
         return collisions
+
+    # =========================================================================
+    # SITE PROPERTIES (inlined from SitePropertiesMixin)
+    # =========================================================================
+
+    @property
+    def paths(self) -> BengalPaths:
+        """
+        Access to .bengal directory paths.
+
+        Provides centralized access to all paths within the Bengal state directory.
+        Use this instead of hardcoding ".bengal" strings throughout the codebase.
+
+        Returns:
+            BengalPaths instance with all state directory paths
+
+        Examples:
+            site.paths.build_cache      # .bengal/cache.json
+            site.paths.page_cache       # .bengal/page_metadata.json
+            site.paths.templates_dir    # .bengal/templates/
+            site.paths.ensure_dirs()    # Create all necessary directories
+        """
+        if self._paths is None:
+            from bengal.cache.paths import BengalPaths
+
+            self._paths = BengalPaths(self.root_path)
+        return self._paths
+
+    @property
+    def title(self) -> str | None:
+        """
+        Get site title from configuration.
+
+        Returns:
+            Site title string from config, or None if not configured
+
+        Examples:
+            site.title  # Returns "My Blog" or None
+        """
+        # Support both Config and dict access
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "title", None)
+        return self.config.get("site", {}).get("title") or self.config.get("title")
+
+    @property
+    def description(self) -> str | None:
+        """
+        Get site description from configuration.
+
+        Respects runtime overrides set on the Site instance while falling back
+        to canonical config locations.
+        """
+        if getattr(self, "_description_override", None) is not None:
+            return self._description_override
+
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "get", lambda k: None)("description")
+
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and "description" in site_section:
+            return site_section.get("description")
+
+        return self.config.get("description")
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        """Allow runtime override of site description for generated outputs."""
+        self._description_override = value
+
+    @property
+    def baseurl(self) -> str | None:
+        """
+        Get site baseurl from configuration.
+
+        Baseurl is prepended to all page URLs. Can be empty, path-only (e.g., "/blog"),
+        or absolute (e.g., "https://example.com").
+
+        Priority order:
+        1. Flat config["baseurl"] (allows runtime overrides, e.g., dev server clearing)
+        2. Nested config.site.baseurl or config["site"]["baseurl"]
+
+        Returns:
+            Base URL string from config, or None if not configured
+
+        Examples:
+            site.baseurl  # Returns "/blog" or "https://example.com" or None
+        """
+        # Check flat baseurl first (allows runtime overrides like dev server clearing)
+        flat_baseurl = self.config.get("baseurl")
+        if flat_baseurl is not None:
+            return flat_baseurl
+
+        # Fall back to nested site.baseurl
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "baseurl", None)
+        return self.config.get("site", {}).get("baseurl")
+
+    @property
+    def author(self) -> str | None:
+        """
+        Get site author from configuration.
+
+        Returns:
+            Author name string from config, or None if not configured
+
+        Examples:
+            site.author  # Returns "Jane Doe" or None
+        """
+        # Support both Config and dict access
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "author", None)
+        return self.config.get("site", {}).get("author") or self.config.get("author")
+
+    @property
+    def favicon(self) -> str | None:
+        """
+        Get favicon path from site config.
+
+        Returns:
+            Favicon path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            return getattr(site_attr, "get", lambda k: None)("favicon")
+        return self.config.get("site", {}).get("favicon")
+
+    @property
+    def logo_image(self) -> str | None:
+        """
+        Get logo image path from site config.
+
+        Returns:
+            Logo image path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            get_fn = getattr(site_attr, "get", lambda k: None)
+            return get_fn("logo_image") or get_fn("logo")
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_image") or site_section.get("logo")
+        return self.config.get("logo_image") or self.config.get("logo")
+
+    @property
+    def logo_text(self) -> str | None:
+        """
+        Get logo text from site config.
+
+        Returns:
+            Logo text string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        site_attr = getattr(self.config, "site", None)
+        if site_attr is not None:
+            get_fn = getattr(site_attr, "get", lambda k: None)
+            return get_fn("logo_text") or getattr(site_attr, "title", None)
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_text") or site_section.get("title")
+        return self.config.get("logo_text") or self.config.get("title")
+
+    @property
+    def params(self) -> dict[str, Any]:
+        """
+        Site-level custom parameters from [params] config section.
+
+        Provides access to arbitrary site-wide configuration values
+        that can be used in templates.
+
+        Returns:
+            Dict of custom parameters (empty dict if not configured)
+
+        Examples:
+            # In bengal.toml:
+            # [params]
+            # repo_url = "https://github.com/org/repo"
+            # author = "Jane Doe"
+
+            # In templates:
+            # {{ site.params.repo_url }}
+            # {{ site.params.author }}
+        """
+        return self.config.get("params", {})
+
+    @property
+    def logo(self) -> str:
+        """
+        Logo URL from config (checks multiple locations).
+
+        Checks 'logo_image' at root level and under 'site' section
+        for flexibility in configuration.
+
+        Returns:
+            Logo URL string or empty string if not configured
+
+        Examples:
+            site.logo  # Returns "/assets/logo.png" or ""
+        """
+        cfg = self.config
+        return cfg.get("logo_image", "") or cfg.get("site", {}).get("logo_image", "") or ""
+
+    @property
+    def config_hash(self) -> str:
+        """
+        Get deterministic hash of the resolved configuration.
+
+        Used for automatic cache invalidation when configuration changes.
+        The hash captures the effective config state including:
+        - Base config from files
+        - Environment variable overrides
+        - Build profile settings
+
+        Returns:
+            16-character hex string (truncated SHA-256)
+        """
+        if self._config_hash is None:
+            self._compute_config_hash()
+        # After _compute_config_hash(), _config_hash is guaranteed to be set
+        assert self._config_hash is not None, "config_hash should be computed"
+        return self._config_hash
+
+    def _compute_config_hash(self) -> None:
+        """
+        Compute and cache the configuration hash.
+
+        Calculates SHA-256 hash of resolved configuration (including env overrides
+        and build profiles) and stores it in `_config_hash`. Used for automatic
+        cache invalidation when configuration changes.
+
+        Called during __post_init__ to ensure hash is available immediately.
+        Subsequent calls use cached value unless config changes.
+
+        See Also:
+            bengal.config.hash.compute_config_hash: Hash computation implementation
+        """
+        from bengal.config.hash import compute_config_hash
+
+        self._config_hash = compute_config_hash(self.config)
+        emit_diagnostic(
+            self,
+            "debug",
+            "config_hash_computed",
+            hash=self._config_hash[:8] if self._config_hash else "none",
+        )
+
+    @property
+    def theme_config(self) -> Theme:
+        """
+        Get theme configuration object.
+
+        Available in templates as `site.theme_config` for accessing theme settings:
+        - site.theme_config.name: Theme name
+        - site.theme_config.default_appearance: Default light/dark/system mode
+        - site.theme_config.default_palette: Default color palette
+        - site.theme_config.config: Additional theme-specific config
+
+        Returns:
+            Theme configuration object
+        """
+        if self._theme_obj is None:
+            from bengal.core.theme import Theme
+
+            config_dict: dict[str, Any]
+            if hasattr(self.config, "raw"):
+                config_dict = self.config.raw  # type: ignore[union-attr]
+            elif isinstance(self.config, dict):
+                config_dict = self.config
+            else:
+                config_dict = {}
+            self._theme_obj = Theme.from_config(
+                config_dict,
+                root_path=self.root_path,
+                diagnostics_site=self,
+            )
+        return self._theme_obj
+
+    @property
+    def indexes(self) -> QueryIndexRegistry:
+        """
+        Access to query indexes for O(1) page lookups.
+
+        Provides pre-computed indexes for common page queries:
+            site.indexes.section.get('blog')        # All blog posts
+            site.indexes.author.get('Jane Smith')   # Posts by Jane
+            site.indexes.category.get('tutorial')   # Tutorial pages
+            site.indexes.date_range.get('2024')     # 2024 posts
+
+        Indexes are built during the build phase and provide O(1) lookups
+        instead of O(n) filtering. This makes templates scale to large sites.
+
+        Returns:
+            QueryIndexRegistry instance
+
+        Example:
+            {% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+            {% for post in blog_posts %}
+                <h2>{{ post.title }}</h2>
+            {% endfor %}
+        """
+        if self._query_registry is None:
+            from bengal.cache.query_index_registry import QueryIndexRegistry
+
+            self._query_registry = QueryIndexRegistry(self, self.paths.indexes_dir)
+        return self._query_registry
+
+    # =========================================================================
+    # CONFIG SECTION ACCESSORS
+    # =========================================================================
+
+    @property
+    def assets_config(self) -> dict[str, Any]:
+        """
+        Get the assets configuration section.
+
+        Provides safe access to assets configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("assets", {})`` pattern.
+
+        Returns:
+            Assets configuration dict (empty dict if not configured)
+
+        Example:
+            pipeline_enabled = site.assets_config.get("pipeline", False)
+        """
+        value = self.config.get("assets")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def build_config(self) -> dict[str, Any]:
+        """
+        Get the build configuration section.
+
+        Provides safe access to build configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("build", {})`` pattern.
+
+        Returns:
+            Build configuration dict (empty dict if not configured)
+
+        Example:
+            parallel = site.build_config.get("parallel", True)
+        """
+        # Support both Config and dict access
+        build_attr = getattr(self.config, "build", None)
+        if build_attr is not None:
+            # ConfigSection - access raw dict
+            data_attr = getattr(build_attr, "_data", None)
+            return dict(data_attr) if data_attr is not None else {}
+        value = self.config.get("build")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def i18n_config(self) -> dict[str, Any]:
+        """
+        Get the internationalization configuration section.
+
+        Provides safe access to i18n configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("i18n", {})`` pattern.
+
+        Returns:
+            i18n configuration dict (empty dict if not configured)
+
+        Example:
+            default_lang = site.i18n_config.get("default_language", "en")
+        """
+        value = self.config.get("i18n")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def menu_config(self) -> dict[str, Any]:
+        """
+        Get the menu configuration section.
+
+        Provides safe access to menu configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("menu", {})`` pattern.
+
+        Returns:
+            Menu configuration dict (empty dict if not configured)
+
+        Example:
+            main_menu = site.menu_config.get("main", [])
+        """
+        value = self.config.get("menu")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def content_config(self) -> dict[str, Any]:
+        """
+        Get the content configuration section.
+
+        Provides safe access to content configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("content", {})`` pattern.
+
+        Returns:
+            Content configuration dict (empty dict if not configured)
+
+        Example:
+            content_dir = site.content_config.get("dir", "content")
+        """
+        value = self.config.get("content")
+        return dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def output_config(self) -> dict[str, Any]:
+        """
+        Get the output configuration section.
+
+        Provides safe access to output configuration with empty dict fallback.
+        Reduces repeated ``site.config.get("output", {})`` pattern.
+
+        Returns:
+            Output configuration dict (empty dict if not configured)
+
+        Example:
+            output_dir = site.output_config.get("dir", "public")
+        """
+        value = self.config.get("output")
+        return dict(value) if isinstance(value, dict) else {}
+
+    # =========================================================================
+    # NORMALIZED CONFIG ACCESSORS
+    # =========================================================================
+    # These properties normalize config values that support multiple formats
+    # (bool, dict, None) into consistent dictionaries with all defaults applied.
+    # Templates use these instead of manual .get() chains with fallbacks.
+
+    @property
+    def build_badge(self) -> dict[str, Any]:
+        """
+        Get normalized build badge configuration.
+
+        Handles all supported formats:
+        - None/False: disabled
+        - True: enabled with defaults
+        - dict: enabled with custom settings
+
+        Returns:
+            Normalized dict with keys: enabled, dir_name, label, label_color, message_color
+
+        Example:
+            {% if site.build_badge.enabled %}
+                <span>{{ site.build_badge.label }}</span>
+            {% endif %}
+        """
+        value = self.config.get("build_badge")
+
+        if value is None or value is False:
+            return {
+                "enabled": False,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if value is True:
+            return {
+                "enabled": True,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if isinstance(value, dict):
+            return {
+                "enabled": bool(value.get("enabled", True)),
+                "dir_name": str(value.get("dir_name", "bengal")),
+                "label": str(value.get("label", "built in")),
+                "label_color": str(value.get("label_color", "#555")),
+                "message_color": str(value.get("message_color", "#4c1d95")),
+            }
+
+        # Unknown type: treat as disabled
+        return {
+            "enabled": False,
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+
+    @property
+    def document_application(self) -> dict[str, Any]:
+        """
+        Get normalized document application configuration.
+
+        Document Application enables modern browser-native features:
+        - View Transitions API for smooth page transitions
+        - Speculation Rules for prefetching/prerendering
+        - Native <dialog>, popover, and CSS state machines
+
+        Returns:
+            Normalized dict with enabled flag and all sub-configs with defaults applied
+
+        Example:
+            {% if site.document_application.enabled %}
+            {% if site.document_application.navigation.view_transitions %}
+                <meta name="view-transition" content="same-origin">
+            {% endif %}
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["document_application"]
+        value = self.config.get("document_application", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            result = {
+                "enabled": False,
+                "navigation": dict(defaults["navigation"]),
+                "speculation": dict(defaults["speculation"]),
+                "interactivity": dict(defaults["interactivity"]),
+                "features": {},
+            }
+            return result
+
+        # Merge with defaults
+        navigation = value.get("navigation", {})
+        speculation = value.get("speculation", {})
+        interactivity = value.get("interactivity", {})
+
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "navigation": {
+                "view_transitions": navigation.get(
+                    "view_transitions", defaults["navigation"]["view_transitions"]
+                ),
+                "transition_style": navigation.get(
+                    "transition_style", defaults["navigation"]["transition_style"]
+                ),
+                "scroll_restoration": navigation.get(
+                    "scroll_restoration", defaults["navigation"]["scroll_restoration"]
+                ),
+            },
+            "speculation": {
+                "enabled": speculation.get("enabled", defaults["speculation"]["enabled"]),
+                "prerender": {
+                    "eagerness": speculation.get("prerender", {}).get(
+                        "eagerness", defaults["speculation"]["prerender"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prerender", {}).get(
+                        "patterns", defaults["speculation"]["prerender"]["patterns"]
+                    ),
+                },
+                "prefetch": {
+                    "eagerness": speculation.get("prefetch", {}).get(
+                        "eagerness", defaults["speculation"]["prefetch"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prefetch", {}).get(
+                        "patterns", defaults["speculation"]["prefetch"]["patterns"]
+                    ),
+                },
+                "auto_generate": speculation.get(
+                    "auto_generate", defaults["speculation"]["auto_generate"]
+                ),
+                "exclude_patterns": speculation.get(
+                    "exclude_patterns", defaults["speculation"]["exclude_patterns"]
+                ),
+            },
+            "interactivity": {
+                "tabs": interactivity.get("tabs", defaults["interactivity"]["tabs"]),
+                "accordions": interactivity.get(
+                    "accordions", defaults["interactivity"]["accordions"]
+                ),
+                "modals": interactivity.get("modals", defaults["interactivity"]["modals"]),
+                "tooltips": interactivity.get("tooltips", defaults["interactivity"]["tooltips"]),
+                "dropdowns": interactivity.get("dropdowns", defaults["interactivity"]["dropdowns"]),
+                "code_copy": interactivity.get("code_copy", defaults["interactivity"]["code_copy"]),
+            },
+            # Feature flags with defaults (all enabled by default)
+            "features": {
+                "speculation_rules": True,
+                "view_transitions_meta": True,
+                **value.get("features", {}),
+            },
+        }
+
+    @property
+    def link_previews(self) -> dict[str, Any]:
+        """
+        Get normalized link previews configuration.
+
+        Link Previews provide Wikipedia-style hover cards for internal links,
+        showing page title, excerpt, reading time, and tags. Requires per-page
+        JSON generation to be enabled.
+
+        Cross-site previews can be enabled for trusted hosts via allowed_hosts.
+        See: plan/rfc-cross-site-xref-link-previews.md
+
+        Returns:
+            Normalized dict with enabled flag and all display options
+
+        Example:
+            {% if site.link_previews.enabled %}
+                {# Include link preview script and config bridge #}
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["link_previews"]
+        value = self.config.get("link_previews", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            if value is False:
+                return {
+                    "enabled": False,
+                    "hover_delay": defaults["hover_delay"],
+                    "hide_delay": defaults["hide_delay"],
+                    "show_section": defaults["show_section"],
+                    "show_reading_time": defaults["show_reading_time"],
+                    "show_word_count": defaults["show_word_count"],
+                    "show_date": defaults["show_date"],
+                    "show_tags": defaults["show_tags"],
+                    "max_tags": defaults["max_tags"],
+                    "exclude_selectors": defaults["exclude_selectors"],
+                    # Cross-site preview defaults
+                    "allowed_hosts": defaults["allowed_hosts"],
+                    "allowed_schemes": defaults["allowed_schemes"],
+                    "host_failure_threshold": defaults["host_failure_threshold"],
+                }
+            # True or None: use defaults with enabled=True
+            return dict(defaults)
+
+        # Merge with defaults
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "hover_delay": value.get("hover_delay", defaults["hover_delay"]),
+            "hide_delay": value.get("hide_delay", defaults["hide_delay"]),
+            "show_section": value.get("show_section", defaults["show_section"]),
+            "show_reading_time": value.get("show_reading_time", defaults["show_reading_time"]),
+            "show_word_count": value.get("show_word_count", defaults["show_word_count"]),
+            "show_date": value.get("show_date", defaults["show_date"]),
+            "show_tags": value.get("show_tags", defaults["show_tags"]),
+            "max_tags": value.get("max_tags", defaults["max_tags"]),
+            "include_selectors": value.get("include_selectors", defaults["include_selectors"]),
+            "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
+            # Cross-site preview configuration (RFC: Cross-Site Link Previews)
+            "allowed_hosts": value.get("allowed_hosts", defaults["allowed_hosts"]),
+            "allowed_schemes": value.get("allowed_schemes", defaults["allowed_schemes"]),
+            "host_failure_threshold": value.get(
+                "host_failure_threshold", defaults["host_failure_threshold"]
+            ),
+        }
+
+    # =========================================================================
+    # VERSIONING PROPERTIES
+    # =========================================================================
+
+    @property
+    def versioning_enabled(self) -> bool:
+        """
+        Check if versioned documentation is enabled.
+
+        Returns:
+            True if versioning is configured and enabled
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        return version_config is not None and version_config.enabled
+
+    @property
+    def versions(self) -> list[dict[str, Any]]:
+        """
+        Get list of all versions for templates (cached).
+
+        Available in templates as `site.versions` for version selector rendering.
+        Each version dict contains: id, label, latest, deprecated, url_prefix.
+
+        Returns:
+            List of version dictionaries for template use
+
+        Example:
+            {% for v in site.versions %}
+                <option value="{{ v.url_prefix }}"
+                        {% if v.id == site.current_version.id %}selected{% endif %}>
+                    {{ v.label }}{% if v.latest %} (Latest){% endif %}
+                </option>
+            {% endfor %}
+
+        Performance:
+            Version dicts are cached on first access. For a 1000-page site with
+            version selector in header, this eliminates ~1000 list creations.
+        """
+        # Return cached value if available
+        cache_attr = "_versions_dict_cache"
+        cached = getattr(self, cache_attr, None)
+        if cached is not None:
+            return cached
+
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            result: list[dict[str, Any]] = []
+        else:
+            result = [v.to_dict() for v in version_config.versions]
+
+        # Cache the result
+        object.__setattr__(self, cache_attr, result)
+        return result
+
+    @property
+    def latest_version(self) -> dict[str, Any] | None:
+        """
+        Get the latest version info for templates (cached).
+
+        Returns:
+            Latest version dictionary or None if versioning disabled
+
+        Performance:
+            Cached on first access to avoid repeated .to_dict() calls.
+        """
+        # Return cached value if available
+        cache_attr = "_latest_version_dict_cache"
+        cached = getattr(self, cache_attr, None)
+        if cached is not None:
+            # None means "not cached yet", use sentinel for "cached None"
+            return cached if cached != "_NO_LATEST_VERSION_" else None
+
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            result = None
+        else:
+            latest = version_config.latest_version
+            result = latest.to_dict() if latest else None
+
+        # Cache the result (use sentinel for None to distinguish from "not cached")
+        object.__setattr__(
+            self, cache_attr, result if result is not None else "_NO_LATEST_VERSION_"
+        )
+        return result
+
+    def get_version(self, version_id: str) -> Version | None:
+        """
+        Get a version by ID or alias.
+
+        Args:
+            version_id: Version ID (e.g., 'v2') or alias (e.g., 'latest')
+
+        Returns:
+            Version object or None if not found
+        """
+        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
+        if not version_config or not version_config.enabled:
+            return None
+        return version_config.get_version_or_alias(version_id)
+
+    def invalidate_version_caches(self) -> None:
+        """
+        Invalidate cached version dict lists.
+
+        Call this when versioning configuration changes (e.g., during dev server reload).
+        """
+        for attr in ("_versions_dict_cache", "_latest_version_dict_cache"):
+            if hasattr(self, attr):
+                object.__delattr__(self, attr)
+
+    # =========================================================================
+    # PAGE CACHES (inlined from PageCachesMixin)
+    # =========================================================================
+
+    @property
+    def regular_pages(self) -> list[Page]:
+        """
+        Get only regular content pages (excludes generated taxonomy/archive pages).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of regular Page objects (excludes tag pages, archive pages, etc.)
+
+        Example:
+            {% for page in site.regular_pages %}
+                <article>{{ page.title }}</article>
+            {% endfor %}
+        """
+        if self._regular_pages_cache is not None:
+            return self._regular_pages_cache
+
+        self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
+        return self._regular_pages_cache
+
+    @property
+    def generated_pages(self) -> list[Page]:
+        """
+        Get only generated pages (taxonomy, archive, pagination pages).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of generated Page objects (tag pages, archive pages, pagination, etc.)
+
+        Example:
+            # Check if any tag pages need rebuilding
+            for page in site.generated_pages:
+                if page.metadata.get("type") == "tag":
+                    # ... process tag page
+        """
+        if self._generated_pages_cache is not None:
+            return self._generated_pages_cache
+
+        self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
+        return self._generated_pages_cache
+
+    @property
+    def listable_pages(self) -> list[Page]:
+        """
+        Get pages that should appear in listings (excludes hidden pages).
+
+        This property respects the visibility system:
+        - Excludes pages with `hidden: true`
+        - Excludes pages with `visibility.listings: false`
+        - Excludes draft pages
+
+        Use this for:
+        - "Recent posts" sections
+        - Archive pages
+        - Category/tag listings
+        - Any public-facing page list
+
+        Use `site.pages` when you need ALL pages including hidden ones
+        (e.g., for sitemap generation where you filter separately).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of Page objects that should appear in public listings
+
+        Example:
+            {% set posts = site.listable_pages | where('section', 'blog') %}
+            {% for post in posts | sort_by('date', reverse=true) | limit(5) %}
+                <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        if self._listable_pages_cache is not None:
+            return self._listable_pages_cache
+
+        self._listable_pages_cache = [p for p in self.pages if p.in_listings]
+        return self._listable_pages_cache
+
+    def get_page_path_map(self) -> dict[str, Page]:
+        """
+        Get cached page path lookup map for O(1) page resolution.
+
+        Cache is automatically invalidated when page count changes,
+        covering add/remove operations in dev server.
+
+        Returns:
+            Dictionary mapping source_path strings to Page objects
+
+        Example:
+            page_map = site.get_page_path_map()
+            page = page_map.get("content/posts/my-post.md")
+        """
+        current_version = len(self.pages)
+        if self._page_path_map is None or self._page_path_map_version != current_version:
+            self._page_path_map = {str(p.source_path): p for p in self.pages}
+            self._page_path_map_version = current_version
+        return self._page_path_map
+
+    @property
+    def page_by_source_path(self) -> dict[Path, Page]:
+        """
+        O(1) page lookup by source path (site-level cache).
+
+        Provides centralized page lookup cache shared across all consumers
+        (CascadeTracker, RebuildFilter, ContentOrchestrator). Built lazily
+        on first access, invalidated when pages change.
+
+        Returns:
+            Dictionary mapping source Path to Page objects
+
+        Performance:
+            - First access: O(P) to build cache
+            - Subsequent access: O(1)
+            - Replaces 3 separate O(P) builds with 1 shared build
+
+        Example:
+            page = site.page_by_source_path.get(source_path)
+
+        See Also:
+            get_page_path_map(): String-based path map (for template functions)
+            invalidate_page_caches(): Clears this cache
+        """
+        if self._page_by_source_path_cache is None:
+            self._page_by_source_path_cache = {p.source_path: p for p in self.pages}
+        return self._page_by_source_path_cache
+
+    def invalidate_page_caches(self) -> None:
+        """
+        Invalidate cached page lists when pages are modified.
+
+        Call this after:
+        - Adding/removing pages
+        - Modifying page metadata (especially _generated flag or visibility)
+        - Any operation that changes the pages list
+
+        This ensures cached properties (regular_pages, generated_pages, listable_pages,
+        page_path_map, page_by_source_path) will recompute on next access.
+        """
+        self._regular_pages_cache = None
+        self._generated_pages_cache = None
+        self._listable_pages_cache = None
+        self._page_path_map = None
+        self._page_path_map_version = -1
+        self._page_by_source_path_cache = None
+
+    def invalidate_regular_pages_cache(self) -> None:
+        """
+        Invalidate the regular_pages cache.
+
+        Call this after modifying the pages list or page metadata that affects
+        the _generated flag. More specific than invalidate_page_caches() if you
+        only need to invalidate regular_pages.
+
+        See Also:
+            invalidate_page_caches(): Invalidate all page caches at once
+        """
+        self._regular_pages_cache = None
+
+    # =========================================================================
+    # DATA LOADING (inlined from DataLoadingMixin)
+    # =========================================================================
+
+    def _load_data_directory(self) -> DotDict:
+        """
+        Load all data files from the data/ directory into site.data.
+
+        Supports YAML, JSON, and TOML files. Files are loaded into a nested
+        structure based on their path in the data/ directory.
+
+        Example:
+            data/resume.yaml → site.data.resume
+            data/team/members.json → site.data.team.members
+
+        Returns:
+            DotDict with loaded data accessible via dot notation
+        """
+        from bengal.utils.io.file_io import load_data_file
+        from bengal.utils.primitives.dotdict import DotDict, wrap_data
+
+        data_dir = self.root_path / "data"
+
+        if not data_dir.exists():
+            emit_diagnostic(self, "debug", "data_directory_not_found", path=str(data_dir))
+            return DotDict()
+
+        emit_diagnostic(self, "debug", "loading_data_directory", path=str(data_dir))
+
+        data: dict[str, Any] = {}
+        supported_extensions = [".json", ".yaml", ".yml", ".toml"]
+
+        for file_path in data_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+
+            if file_path.suffix not in supported_extensions:
+                continue
+
+            relative = file_path.relative_to(data_dir)
+            parts = list(relative.with_suffix("").parts)
+
+            try:
+                content = load_data_file(
+                    file_path, on_error="return_empty", caller="site_data_loader"
+                )
+
+                current = data
+                for part in parts[:-1]:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+
+                current[parts[-1]] = content
+
+                if parts[-1] == "tracks" and isinstance(content, dict):
+                    self._validate_tracks_structure(content)
+
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    "data_file_loaded",
+                    file=str(relative),
+                    key=".".join(parts),
+                    size=len(str(content)) if content else 0,
+                )
+
+            except Exception as e:
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    "data_file_load_failed",
+                    file=str(relative),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        wrapped_data: DotDict = wrap_data(data)
+
+        if data:
+            emit_diagnostic(
+                self,
+                "debug",
+                "data_directory_loaded",
+                files_loaded=len(list(data_dir.rglob("*.*"))),
+                top_level_keys=list(data.keys()) if isinstance(data, dict) else [],
+            )
+
+        return wrapped_data
+
+    def _validate_tracks_structure(self, tracks_data: dict[str, Any]) -> None:
+        """Validate tracks.yaml structure during data loading."""
+        if not isinstance(tracks_data, dict):
+            emit_diagnostic(
+                self,
+                "warning",
+                "tracks.yaml root must be a dictionary",
+                event="tracks_invalid_structure",
+            )
+            return
+
+        for track_id, track in tracks_data.items():
+            if not isinstance(track, dict):
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' must be a dictionary",
+                    event="track_invalid_structure",
+                    track_id=track_id,
+                )
+                continue
+
+            if "items" not in track:
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' is missing required 'items' field",
+                    event="track_missing_items",
+                    track_id=track_id,
+                )
+                continue
+
+            if not isinstance(track["items"], list):
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' has 'items' field that is not a list",
+                    event="track_items_not_list",
+                    track_id=track_id,
+                )
+                continue
+
+            if len(track["items"]) == 0:
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    f"Track '{track_id}' has no items",
+                    event="track_empty_items",
+                    track_id=track_id,
+                )
+
+    # =========================================================================
+    # SECTION REGISTRY (inlined from SectionRegistryMixin)
+    # =========================================================================
+
+    def get_section_by_path(self, path: Path | str) -> Section | None:
+        """
+        Look up a section by its path (O(1) operation).
+
+        Args:
+            path: Section path (absolute, relative to content/, or relative to root)
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        if isinstance(path, str):
+            path = Path(path)
+
+        if not path.is_absolute():
+            content_relative = self.root_path / "content" / path
+            if content_relative.exists():
+                path = content_relative
+            else:
+                root_relative = self.root_path / path
+                if root_relative.exists():
+                    path = root_relative
+
+        section = self.registry.get_section(path)
+
+        if section is None:
+            emit_diagnostic(
+                self,
+                "debug",
+                "section_not_found_in_registry",
+                path=str(path),
+                registry_size=self.registry.section_count,
+            )
+
+        return section
+
+    def get_section_by_url(self, url: str) -> Section | None:
+        """
+        Look up a section by its relative URL (O(1) operation).
+
+        Args:
+            url: Section relative URL (e.g., "/api/", "/api/core/")
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        section = self.registry.get_section_by_url(url)
+
+        if section is None:
+            emit_diagnostic(
+                self,
+                "debug",
+                "section_not_found_in_url_registry",
+                url=url,
+                registry_size=self.registry.section_count,
+            )
+
+        return section
+
+    def register_sections(self) -> None:
+        """
+        Build the section registry for path-based and URL-based lookups.
+
+        Populates ContentRegistry with all sections (recursive).
+        Must be called after discover_content().
+        """
+        start = time.time()
+
+        self.registry._sections_by_path.clear()
+        self.registry._sections_by_url.clear()
+
+        for section in self.sections:
+            self.registry.register_sections_recursive(section)
+
+        self.registry.increment_epoch()
+
+        elapsed_ms = (time.time() - start) * 1000
+
+        emit_diagnostic(
+            self,
+            "debug",
+            "section_registry_built",
+            sections=self.registry.section_count,
+            elapsed_ms=f"{elapsed_ms:.2f}",
+            avg_us_per_section=f"{(elapsed_ms * 1000 / self.registry.section_count):.2f}"
+            if self.registry.section_count
+            else "0",
+        )
+
+    # =========================================================================
+    # CONTENT DISCOVERY (inlined from ContentDiscoveryMixin)
+    # =========================================================================
+
+    def discover_content(self, content_dir: Path | None = None) -> None:
+        """
+        Discover all content (pages, sections) in the content directory.
+
+        Scans the content directory recursively, creating Page and Section
+        objects for all markdown files and organizing them into a hierarchy.
+
+        Args:
+            content_dir: Content directory path (defaults to root_path/content)
+
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.discover_content()
+            >>> print(f"Found {len(site.pages)} pages in {len(site.sections)} sections")
+        """
+        if content_dir is None:
+            content_dir = self.root_path / "content"
+
+        if not content_dir.exists():
+            emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
+            return
+
+        from bengal.collections import load_collections
+        from bengal.content.discovery.content_discovery import ContentDiscovery
+
+        collections = load_collections(self.root_path)
+
+        build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
+        strict_validation = build_config.get("strict_collections", False)
+
+        discovery = ContentDiscovery(
+            content_dir,
+            site=self,
+            collections=collections,
+            strict_validation=strict_validation,
+        )
+        self.sections, self.pages = discovery.discover()
+
+        # MUST come before _setup_page_references (registry needed for lookups)
+        self.register_sections()
+        self._setup_page_references()
+        self._validate_page_section_references()
+        self._apply_cascades()
+        # Set output paths for all pages immediately after discovery
+        self._set_output_paths()
+        # Detect features for CSS optimization (mermaid, data_tables, etc.)
+        self._detect_features()
+
+    def _set_output_paths(self) -> None:
+        """
+        Set output paths for all discovered pages.
+
+        This must be called after discovery and cascade application but before
+        any code tries to access page.href (which depends on output_path).
+        """
+        from bengal.utils.paths.url_strategy import URLStrategy
+
+        for page in self.pages:
+            # Skip if already set (e.g., generated pages)
+            if page.output_path:
+                continue
+
+            # Compute output path using centralized strategy for regular pages
+            page.output_path = URLStrategy.compute_regular_page_output_path(page, self)
+
+            # Claim URL in registry for ownership enforcement
+            # Priority 100 = user content (highest priority)
+            if hasattr(self, "url_registry") and self.url_registry:
+                try:
+                    url = URLStrategy.url_from_output_path(page.output_path, self)
+                    source = str(getattr(page, "source_path", page.title))
+                    version = getattr(page, "version", None)
+                    lang = getattr(page, "lang", None)
+                    self.url_registry.claim(
+                        url=url,
+                        owner="content",
+                        source=source,
+                        priority=100,  # User content always wins
+                        version=version,
+                        lang=lang,
+                    )
+                except Exception:
+                    # Don't fail discovery on registry errors (graceful degradation)
+                    # Registry errors will be caught during validation phase
+                    pass
+
+    def _detect_features(self) -> None:
+        """
+        Detect CSS-requiring features in page content.
+
+        Scans page content for features like mermaid diagrams, data tables,
+        and graph visualizations. Populates site.features_detected for use
+        by the CSSOptimizer during asset processing.
+
+        See Also:
+            bengal/orchestration/css_optimizer.py: Consumes detected features
+            plan/drafted/rfc-css-tree-shaking.md: Design rationale
+        """
+        from bengal.core.page.proxy import PageProxy
+        from bengal.orchestration.feature_detector import FeatureDetector
+
+        detector = FeatureDetector()
+
+        for page in self.pages:
+            # Skip PageProxy objects (they may not have content loaded)
+            if isinstance(page, PageProxy):
+                continue
+
+            # Detect features in page content
+            features = detector.detect_features_in_page(page)
+            self.features_detected.update(features)
+
+        # Also check config for explicitly enabled features
+        config = self.config
+
+        # Search enabled?
+        if config.get("search", {}).get("enabled", False):
+            self.features_detected.add("search")
+
+        # Graph enabled?
+        if config.get("graph", {}).get("enabled", False):
+            self.features_detected.add("graph")
+
+    def discover_assets(self, assets_dir: Path | None = None) -> None:
+        """
+        Discover all assets in the assets directory and theme assets.
+
+        Scans both theme assets (from theme inheritance chain) and site assets
+        (from assets/ directory). Theme assets are discovered first (lower priority),
+        then site assets (higher priority, can override theme assets). Assets are
+        deduplicated by output path with site assets taking precedence.
+
+        Args:
+            assets_dir: Assets directory path (defaults to root_path/assets).
+                       If None, uses site root_path / "assets"
+
+        Process:
+            1. Discover theme assets from inheritance chain (child → parent → default)
+            2. Discover site assets from assets_dir
+            3. Deduplicate by output path (site assets override theme assets)
+
+        Examples:
+            site.discover_assets()  # Discovers from root_path/assets
+            site.discover_assets(Path('/custom/assets'))  # Custom assets directory
+        """
+        from bengal.content.discovery.asset_discovery import AssetDiscovery
+        from bengal.services.theme import get_theme_assets_chain
+
+        self.assets = []
+
+        # Theme assets first (lower priority), then site assets (higher priority)
+        if self.theme:
+            for theme_dir in get_theme_assets_chain(self.root_path, self.theme):
+                if theme_dir and theme_dir.exists():
+                    theme_discovery = AssetDiscovery(theme_dir)
+                    self.assets.extend(theme_discovery.discover())
+
+        if assets_dir is None:
+            assets_dir = self.root_path / "assets"
+
+        if assets_dir.exists():
+            emit_diagnostic(self, "debug", "discovering_site_assets", path=str(assets_dir))
+            site_discovery = AssetDiscovery(assets_dir)
+            self.assets.extend(site_discovery.discover())
+        elif not self.assets:
+            emit_diagnostic(self, "warning", "assets_dir_not_found", path=str(assets_dir))
+
+        # Deduplicate by output path: later entries override earlier (site > child theme > parents)
+        if self.assets:
+            dedup: dict[str, Asset] = {}
+            order: list[str] = []
+            for asset in self.assets:
+                key = str(asset.output_path) if asset.output_path else str(asset.source_path.name)
+                if key in dedup:
+                    dedup[key] = asset
+                else:
+                    dedup[key] = asset
+                    order.append(key)
+            self.assets = [dedup[k] for k in order]
+
+    def _setup_page_references(self) -> None:
+        """
+        Set up page references for navigation (next, prev, parent, etc.).
+
+        Sets _site and _section references on all pages to enable navigation
+        properties. Must be called after content discovery and section registry
+        building, but before cascade application.
+
+        Process:
+            1. Set _site reference on all pages (including top-level pages)
+            2. Set _site reference on all sections
+            3. Set _section reference on section index pages
+            4. Set _section reference on pages based on their location
+            5. Recursively process subsections
+
+        Build Ordering Invariant:
+            This method must be called after register_sections() to ensure
+            the section registry is populated for virtual section URL lookups.
+
+        Called By:
+            discover_content() - Automatically called after content discovery
+
+        See Also:
+            _setup_section_references(): Sets up section parent-child relationships
+            plan/active/rfc-page-section-reference-contract.md
+        """
+        # Set site reference on all pages (including top-level pages not in sections)
+        for page in self.pages:
+            page._site = self
+
+        for section in self.sections:
+            # Set site reference on section
+            section._site = self
+
+            # Set section reference on the section's index page (if it has one)
+            if section.index_page:
+                section.index_page._section = section
+
+            # Set section reference on all pages in this section
+            for page in section.pages:
+                page._section = section
+
+            # Recursively set for subsections
+            self._setup_section_references(section)
+
+    def _setup_section_references(self, section: Section) -> None:
+        """
+        Recursively set up references for a section and its subsections.
+
+        Sets _site reference on subsections, _section reference on index pages,
+        and _section reference on pages within subsections. Recursively
+        processes all nested subsections.
+
+        Args:
+            section: Section to set up references for (processes its subsections)
+
+        Called By:
+            _setup_page_references() - Called for each top-level section
+
+        See Also:
+            _setup_page_references(): Main entry point for reference setup
+            plan/active/rfc-page-section-reference-contract.md
+        """
+        for subsection in section.subsections:
+            subsection._site = self
+
+            # Set section reference on the subsection's index page (if it has one)
+            if subsection.index_page:
+                subsection.index_page._section = subsection
+
+            # Set section reference on pages in subsection
+            for page in subsection.pages:
+                page._section = subsection
+
+            # Recurse into deeper subsections
+            self._setup_section_references(subsection)
+
+    def _validate_page_section_references(self) -> None:
+        """
+        Validate that pages in sections have correct _section references.
+
+        Logs warnings for pages that are in a section's pages list but have
+        _section = None, which would cause navigation to fall back to flat mode.
+
+        This validation catches bugs like the virtual section path=None issue
+        described in plan/active/rfc-page-section-reference-contract.md.
+
+        Called By:
+            discover_content() - After _setup_page_references()
+        """
+        pages_without_section: list[tuple[Page, Section]] = []
+
+        for section in self.sections:
+            pages_without_section.extend(
+                (page, section) for page in section.pages if page._section is None
+            )
+            # Check subsections recursively
+            self._validate_subsection_references(section, pages_without_section)
+
+        if pages_without_section:
+            # Log warning with samples (limit to 5 to avoid log spam)
+            sample_pages = [(str(p.source_path), s.name) for p, s in pages_without_section[:5]]
+            emit_diagnostic(
+                self,
+                "warning",
+                "pages_missing_section_reference",
+                count=len(pages_without_section),
+                samples=sample_pages,
+                note="These pages are in sections but have _section=None, navigation may be flat",
+            )
+
+    def _validate_subsection_references(
+        self, section: Section, pages_without_section: list[tuple[Page, Section]]
+    ) -> None:
+        """
+        Recursively validate page-section references in subsections.
+
+        Args:
+            section: Section to check subsections of
+            pages_without_section: List to append (page, expected_section) tuples to
+        """
+        for subsection in section.subsections:
+            pages_without_section.extend(
+                (page, subsection) for page in subsection.pages if page._section is None
+            )
+            # Recurse into deeper subsections
+            self._validate_subsection_references(subsection, pages_without_section)
+
+    def _apply_cascades(self) -> None:
+        """
+        Apply cascading metadata from sections to their child pages and subsections.
+
+        Section _index.md files can define metadata that automatically applies to all
+        descendant pages. This allows setting common metadata (like type, version, or
+        visibility) at the section level rather than repeating it on every page.
+
+        Cascade metadata is defined in a section's _index.md frontmatter:
+
+        Example:
+            ---
+            title: "Products"
+            cascade:
+              type: "product"
+              version: "2.0"
+              show_price: true
+            ---
+
+        All pages under this section will inherit these values unless they
+        define their own values (page values take precedence over cascaded values).
+
+        Delegates to CascadeEngine for the actual implementation.
+        """
+        from bengal.core.cascade_engine import CascadeEngine
+
+        engine = CascadeEngine(self.pages, self.sections)
+        engine.apply()

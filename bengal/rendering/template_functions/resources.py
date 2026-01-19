@@ -24,8 +24,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -39,7 +38,7 @@ class ResourcesProxy:
         
     """
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         self._site = site
         self._assets_dir = site.root_path / "assets"
 
@@ -132,7 +131,7 @@ class ResourcesProxy:
         return results
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment.
     
     Adds the `resources` proxy object to template globals.

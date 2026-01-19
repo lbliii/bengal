@@ -161,15 +161,16 @@ class TestAutodocContentCacheIntegration:
         from bengal.autodoc.extractors.python import PythonExtractor
         
         # Create a simple Python module
-        source_file = tmp_path / "test_module.py"
-        source_file.write_text('''"""Test module docstring."""
+        # Note: Use name that doesn't match exclude pattern "test_*.py"
+        source_file = tmp_path / "sample_module.py"
+        source_file.write_text('''"""Sample module docstring."""
 
-class TestClass:
-    """Test class."""
+class SampleClass:
+    """Sample class."""
     pass
 
-def test_function():
-    """Test function."""
+def sample_function():
+    """Sample function."""
     pass
 ''')
         
@@ -209,7 +210,8 @@ def test_function():
         """Test that cache is invalidated when source file changes."""
         from bengal.autodoc.extractors.python import PythonExtractor
         
-        source_file = tmp_path / "test_module.py"
+        # Note: Use name that doesn't match exclude pattern "test_*.py"
+        source_file = tmp_path / "sample_module.py"
         source_file.write_text('''"""Original docstring."""
 
 def original_function():
@@ -246,11 +248,12 @@ def modified_function():
         """Test that extractor falls back to parsing if cache deserialization fails."""
         from bengal.autodoc.extractors.python import PythonExtractor
         
-        source_file = tmp_path / "test_module.py"
-        source_file.write_text('''"""Test module."""
+        # Note: Use name that doesn't match exclude pattern "test_*.py"
+        source_file = tmp_path / "sample_module.py"
+        source_file.write_text('''"""Sample module."""
 
-def test_function():
-    """Test function."""
+def sample_function():
+    """Sample function."""
     pass
 ''')
         
@@ -258,8 +261,8 @@ def test_function():
         
         # Manually add corrupted cache entry
         corrupted_dict = {
-            "name": "test_module",
-            "qualified_name": "test.test_module",
+            "name": "sample_module",
+            "qualified_name": "sample.sample_module",
             # Missing required fields to cause deserialization error
         }
         
@@ -275,4 +278,4 @@ def test_function():
         
         # Should still extract successfully (fallback worked)
         assert len(elements) == 1
-        assert elements[0].description == "Test module."
+        assert elements[0].description == "Sample module."

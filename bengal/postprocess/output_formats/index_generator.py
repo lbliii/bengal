@@ -89,8 +89,14 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
+    from bengal.protocols import SiteLike
+else:
+    from bengal.protocols import PageLike as Page
+    from bengal.orchestration.build_context import AccumulatedPageData
+    from bengal.protocols import PageLike as Page
+    from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -133,7 +139,7 @@ class SiteIndexGenerator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         excerpt_length: int = 200,
         json_indent: int | None = None,
         include_full_content: bool = False,
@@ -233,7 +239,7 @@ class SiteIndexGenerator:
         # Ensure all values are strings, not Mock objects
         site_metadata = {
             "title": str(self.site.title or "Bengal Site"),
-            "description": str(self.site.description or ""),
+            "description": str(getattr(self.site, "description", "") or ""),
             "baseurl": str(self.site.baseurl or ""),
         }
 
@@ -395,7 +401,7 @@ class SiteIndexGenerator:
         # Build site metadata
         site_metadata = {
             "title": self.site.title or "Bengal Site",
-            "description": self.site.description or "",
+            "description": getattr(self.site, "description", "") or "",
             "baseurl": self.site.baseurl or "",
         }
 
@@ -483,10 +489,16 @@ class SiteIndexGenerator:
         """Check if version_id is the latest version."""
         if not hasattr(self.site, "version_config") or not self.site.version_config:
             return True
-        if not self.site.version_config.enabled:
+        version_config = self.site.version_config
+        # Type narrowing: check if enabled attribute exists
+        if not hasattr(version_config, "enabled") or not getattr(version_config, "enabled", False):
             return True
-        version = self.site.version_config.get_version(version_id)
-        return version is not None and version.latest
+        # Type narrowing: check if get_version method exists
+        get_version_method = getattr(version_config, "get_version", None)
+        if not callable(get_version_method):
+            return True
+        version = get_version_method(version_id)
+        return version is not None and getattr(version, "latest", False)
 
     def _get_index_path(self) -> Path:
         """Get the output path for index.json, handling i18n prefixes."""

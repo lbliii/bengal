@@ -48,7 +48,7 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -69,8 +69,8 @@ class LinkSuggestion:
         
     """
 
-    source: Page
-    target: Page
+    source: PageLike
+    target: PageLike
     score: float
     reasons: list[str] = field(default_factory=list)
 
@@ -96,7 +96,7 @@ class LinkSuggestionResults:
     total_suggestions: int
     pages_analyzed: int
 
-    def get_suggestions_for_page(self, page: Page, limit: int = 10) -> list[LinkSuggestion]:
+    def get_suggestions_for_page(self, page: PageLike, limit: int = 10) -> list[LinkSuggestion]:
         """
         Get link suggestions for a specific page.
 
@@ -114,7 +114,7 @@ class LinkSuggestionResults:
         """Get top N suggestions across all pages."""
         return sorted(self.suggestions, key=lambda x: x.score, reverse=True)[:limit]
 
-    def get_suggestions_by_target(self, target: Page) -> list[LinkSuggestion]:
+    def get_suggestions_by_target(self, target: PageLike) -> list[LinkSuggestion]:
         """Get all suggestions that point to a specific target page."""
         return [s for s in self.suggestions if s.target == target]
 
@@ -181,7 +181,7 @@ class LinkSuggestionEngine:
 
         # Pre-compute underlinked pages (pages with < 3 incoming refs)
         # These are always included as candidates because they receive the underlinked bonus
-        underlinked_pages: set[Page] = {
+        underlinked_pages: set[PageLike] = {
             page for page in pages if self.graph.incoming_refs.get(page, 0) < 3
         }
 
@@ -232,15 +232,15 @@ class LinkSuggestionEngine:
 
     def _generate_suggestions_for_page(
         self,
-        source: Page,
-        all_pages: list[Page],
-        page_tags: dict[Page, set[str]],
-        page_categories: dict[Page, set[str]],
-        pagerank_scores: dict[Page, float],
-        betweenness_scores: dict[Page, float],
-        tag_to_pages: dict[str, set[Page]],
-        category_to_pages: dict[str, set[Page]],
-        underlinked_pages: set[Page],
+        source: PageLike,
+        all_pages: list[PageLike],
+        page_tags: dict[PageLike, set[str]],
+        page_categories: dict[PageLike, set[str]],
+        pagerank_scores: dict[PageLike, float],
+        betweenness_scores: dict[PageLike, float],
+        tag_to_pages: dict[str, set[PageLike]],
+        category_to_pages: dict[str, set[PageLike]],
+        underlinked_pages: set[PageLike],
     ) -> list[LinkSuggestion]:
         """
         Generate link suggestions for a single page.
@@ -260,7 +260,7 @@ class LinkSuggestionEngine:
 
         # OPTIMIZED: Build candidate set from inverted indices instead of all_pages
         # This skips pages with no potential for high scores
-        candidate_pages: set[Page] = set()
+        candidate_pages: set[PageLike] = set()
 
         # Add pages with shared tags
         source_tags = page_tags.get(source, set())
@@ -276,7 +276,7 @@ class LinkSuggestionEngine:
         candidate_pages.update(underlinked_pages)
 
         # Score only filtered candidates
-        candidates: list[tuple[Page, float, list[str]]] = []
+        candidates: list[tuple[PageLike, float, list[str]]] = []
 
         for target in candidate_pages:
             # Skip self-links and existing links
@@ -305,12 +305,12 @@ class LinkSuggestionEngine:
 
     def _calculate_link_score(
         self,
-        source: Page,
-        target: Page,
-        page_tags: dict[Page, set[str]],
-        page_categories: dict[Page, set[str]],
-        pagerank_scores: dict[Page, float],
-        betweenness_scores: dict[Page, float],
+        source: PageLike,
+        target: PageLike,
+        page_tags: dict[PageLike, set[str]],
+        page_categories: dict[PageLike, set[str]],
+        pagerank_scores: dict[PageLike, float],
+        betweenness_scores: dict[PageLike, float],
     ) -> tuple[float, list[str]]:
         """
         Calculate link score between two pages.
@@ -377,7 +377,7 @@ class LinkSuggestionEngine:
 
         return score, reasons
 
-    def _build_tag_map(self, pages: list[Page]) -> dict[Page, set[str]]:
+    def _build_tag_map(self, pages: list[PageLike]) -> dict[PageLike, set[str]]:
         """Build mapping of page -> set of tags."""
         tag_map = {}
         for page in pages:
@@ -388,32 +388,34 @@ class LinkSuggestionEngine:
             tag_map[page] = tags
         return tag_map
 
-    def _build_category_map(self, pages: list[Page]) -> dict[Page, set[str]]:
+    def _build_category_map(self, pages: list[PageLike]) -> dict[PageLike, set[str]]:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:
-            categories = set()
-            if hasattr(page, "category") and page.category:
+            categories: set[str] = set()
+            category_value = getattr(page, "category", None)
+            categories_value = getattr(page, "categories", None)
+            if category_value:
                 # Single category - convert to string for safety
-                categories = {str(page.category).lower().replace(" ", "-")}
-            elif hasattr(page, "categories") and page.categories:
+                categories = {str(category_value).lower().replace(" ", "-")}
+            elif categories_value:
                 # Multiple categories - filter None and convert to strings
                 categories = {
-                    str(cat).lower().replace(" ", "-") for cat in page.categories if cat is not None
+                    str(cat).lower().replace(" ", "-") for cat in categories_value if cat is not None
                 }
             category_map[page] = categories
         return category_map
 
     def _build_inverted_tag_index(
-        self, pages: list[Page], page_tags: dict[Page, set[str]]
-    ) -> dict[str, set[Page]]:
+        self, pages: list[PageLike], page_tags: dict[PageLike, set[str]]
+    ) -> dict[str, set[PageLike]]:
         """
         Build inverted tag index: tag -> set of pages with that tag.
 
         RFC: rfc-analysis-algorithm-optimization
         This enables O(overlap) candidate filtering instead of O(N) brute force.
         """
-        tag_to_pages: dict[str, set[Page]] = {}
+        tag_to_pages: dict[str, set[PageLike]] = {}
         for page in pages:
             for tag in page_tags.get(page, set()):
                 if tag not in tag_to_pages:
@@ -422,15 +424,15 @@ class LinkSuggestionEngine:
         return tag_to_pages
 
     def _build_inverted_category_index(
-        self, pages: list[Page], page_categories: dict[Page, set[str]]
-    ) -> dict[str, set[Page]]:
+        self, pages: list[PageLike], page_categories: dict[PageLike, set[str]]
+    ) -> dict[str, set[PageLike]]:
         """
         Build inverted category index: category -> set of pages in that category.
 
         RFC: rfc-analysis-algorithm-optimization
         This enables O(overlap) candidate filtering instead of O(N) brute force.
         """
-        category_to_pages: dict[str, set[Page]] = {}
+        category_to_pages: dict[str, set[PageLike]] = {}
         for page in pages:
             for cat in page_categories.get(page, set()):
                 if cat not in category_to_pages:

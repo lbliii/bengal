@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 from bengal.core.site import Site
+from bengal.services.theme import get_theme_assets_chain
 
 
 def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
@@ -37,7 +38,8 @@ def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
     )
 
     site = Site.from_config(site_root)
-    dirs = site._get_theme_assets_chain()
+    # Use the service function instead of the removed mixin method
+    dirs = get_theme_assets_chain(site.root_path, site.theme)
     paths = [str(p) for p in dirs]
 
     # Should include the mock theme assets directory

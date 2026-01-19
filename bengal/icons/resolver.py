@@ -110,11 +110,13 @@ def _get_icon_search_paths(site: Site) -> list[Path]:
     3. Default theme icons (if extend_defaults=True)
         
     """
+    from bengal.services.theme import get_theme_assets_chain
+    
     paths: list[Path] = []
 
     # Get theme asset chain (handles inheritance)
     # Returns paths from parent → child, we want child → parent for lookup
-    for assets_dir in reversed(site._get_theme_assets_chain()):
+    for assets_dir in reversed(get_theme_assets_chain(site.root_path, site.theme)):
         icons_dir = assets_dir / "icons"
         if icons_dir.exists() and icons_dir not in paths:
             paths.append(icons_dir)
@@ -129,9 +131,11 @@ def _get_icon_search_paths(site: Site) -> list[Path]:
     if extend_defaults:
         import bengal
 
-        default_icons = Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
-        if default_icons.exists() and default_icons not in paths:
-            paths.append(default_icons)
+        bengal_file = bengal.__file__
+        if bengal_file is not None:
+            default_icons = Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
+            if default_icons.exists() and default_icons not in paths:
+                paths.append(default_icons)
 
     return paths
 
@@ -140,7 +144,10 @@ def _get_fallback_path() -> Path:
     """Get fallback icon path when resolver not initialized."""
     import bengal
 
-    return Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
+    bengal_file = bengal.__file__
+    if bengal_file is None:
+        raise RuntimeError("Bengal package __file__ is None, cannot determine icon path")
+    return Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
 
 
 def load_icon(name: str) -> str | None:

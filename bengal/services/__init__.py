@@ -1,56 +1,81 @@
 """
-Pluggable services for Bengal SSG.
+Service functions for Bengal SSG.
 
-This package provides protocol-based service interfaces with swappable
-default implementations. Services enable decoupled logic that can be
-replaced for different validation strategies, testing, or custom
-integrations without modifying core Bengal components.
+RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
 
-Design Pattern:
-Services follow a Protocol + Default Implementation pattern:
-- Protocol defines the interface contract
-- Default implementation provides standard behavior
-- Dependencies are injectable for testing without patches
+Replaces 7 Site mixins with pure functions that operate on SiteSnapshot:
+- ThemeService → theme.py
+- QueryService → query.py
+- DataService → data.py
 
-Available Services:
-TemplateValidationService: Protocol defining template validation interface.
-DefaultTemplateValidationService: Default adapter using health.validators.
+Key Benefits:
+- Pure functions: no hidden state, easier to test
+- Operates on immutable SiteSnapshot: thread-safe by construction
+- Explicit dependencies: functions declare what they need
+- Testable in isolation: no need for full Site instance
 
-Example:
-Basic usage with default implementation::
+Migration Path:
+1. Services implemented with both Site and SiteSnapshot support
+2. Site mixins delegate to services (compatibility layer)
+3. New code uses services directly with SiteSnapshot
+4. Eventually mixins can be deprecated
 
-    from bengal.services import DefaultTemplateValidationService
-
-    service = DefaultTemplateValidationService()
-    error_count = service.validate(site)
-
-Custom implementation for testing::
-
-    from bengal.services import TemplateValidationService
-
-    class MockValidationService:
-        def validate(self, site: Any) -> int:
-            return 0  # Always pass
-
-    # Use anywhere TemplateValidationService is expected
-    service: TemplateValidationService = MockValidationService()
-
-Related:
-bengal.health.validators: Concrete validation implementations.
-bengal.health.validators.templates: Template-specific validation.
-bengal.rendering.template_engine: TemplateEngine used by validators.
-bengal.cli.commands.validate: CLI command consuming these services.
-
+Usage:
+    >>> from bengal.services import get_section, get_page, get_theme_assets
+    >>> 
+    >>> # With SiteSnapshot
+    >>> section = get_section(snapshot, "/docs/")
+    >>> page = get_page(snapshot, "/docs/getting-started/")
+    >>> 
+    >>> # With Site (compatibility)
+    >>> section = get_section(site, "/docs/")
 """
 
-from __future__ import annotations
-
-from bengal.services.validation import (
-    DefaultTemplateValidationService,
-    TemplateValidationService,
+from bengal.services.theme import (
+    ThemeService,
+    get_theme_assets_dir,
+    get_theme_assets_chain,
+    get_theme_templates_chain,
+)
+from bengal.services.query import (
+    QueryService,
+    get_section,
+    get_section_by_path,
+    get_section_by_url,
+    get_page,
+    get_page_by_path,
+    get_page_by_url,
+    get_pages_by_tag,
+    get_pages_by_section,
+    get_children_pages,
+)
+from bengal.services.data import (
+    DataService,
+    load_data_directory,
+    get_data,
+    get_data_file,
 )
 
 __all__ = [
-    "DefaultTemplateValidationService",
-    "TemplateValidationService",
+    # Theme services
+    "ThemeService",
+    "get_theme_assets_dir",
+    "get_theme_assets_chain",
+    "get_theme_templates_chain",
+    # Query services
+    "QueryService",
+    "get_section",
+    "get_section_by_path",
+    "get_section_by_url",
+    "get_page",
+    "get_page_by_path",
+    "get_page_by_url",
+    "get_pages_by_tag",
+    "get_pages_by_section",
+    "get_children_pages",
+    # Data services
+    "DataService",
+    "load_data_directory",
+    "get_data",
+    "get_data_file",
 ]

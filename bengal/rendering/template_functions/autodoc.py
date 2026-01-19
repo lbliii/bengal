@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from bengal.autodoc.utils import get_function_parameters, get_function_return_info
 
@@ -45,8 +45,46 @@ if TYPE_CHECKING:
     from bengal.autodoc.base import DocElement
     from bengal.autodoc.models.cli import CLICommandMetadata, CLIOptionMetadata
     from bengal.autodoc.models.python import PythonFunctionMetadata
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
+
+
+class DocElementLike(Protocol):
+    """Protocol for objects with DocElement-like interface for autodoc."""
+
+    @property
+    def typed_metadata(self) -> Any:
+        """Typed metadata object."""
+        ...
+
+    @property
+    def description(self) -> str:
+        """Element description."""
+        ...
+
+    @property
+    def href(self) -> str | None:
+        """URL to the element."""
+        ...
+
+    @property
+    def name(self) -> str:
+        """Element name."""
+        ...
+
+    @property
+    def deprecated(self) -> str | None:
+        """Deprecation message if deprecated."""
+        ...
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Raw metadata dictionary."""
+        ...
+
+    @property
+    def children(self) -> list[Any]:
+        """Child elements."""
+        ...
 
 
 # =============================================================================
@@ -138,9 +176,9 @@ class MemberView:
     typed_metadata: Any  # PythonFunctionMetadata or None
 
     @classmethod
-    def from_doc_element(cls, el: DocElement) -> MemberView:
+    def from_doc_element(cls, el: DocElementLike) -> MemberView:
         """Create from DocElement."""
-        meta: PythonFunctionMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: PythonFunctionMetadata | None = el.typed_metadata
 
         # Extract from typed_metadata or fall back to metadata dict
         if meta and hasattr(meta, "signature"):
@@ -183,7 +221,8 @@ class MemberView:
             return_desc = m.get("return_description", "")
 
             # Build params from get_function_parameters
-            raw_params = get_function_parameters(el, exclude_self=True)
+            # Cast to DocElement for the utility function (protocol is compatible)
+            raw_params = get_function_parameters(cast("DocElement", el), exclude_self=True)
             params = tuple(ParamView.from_dict(p) for p in raw_params)
 
         # Check for deprecated in decorators
@@ -248,9 +287,9 @@ class OptionView:
     typed_metadata: Any  # CLIOptionMetadata or None
 
     @classmethod
-    def from_doc_element(cls, el: DocElement) -> OptionView:
+    def from_doc_element(cls, el: DocElementLike) -> OptionView:
         """Create from DocElement."""
-        meta: CLIOptionMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: CLIOptionMetadata | None = el.typed_metadata
 
         if meta and hasattr(meta, "param_type"):
             flags = meta.opts or ()
@@ -321,9 +360,9 @@ class CommandView:
     typed_metadata: Any  # CLICommandMetadata or None
 
     @classmethod
-    def from_doc_element(cls, el: DocElement) -> CommandView:
+    def from_doc_element(cls, el: DocElementLike) -> CommandView:
         """Create from DocElement."""
-        meta: CLICommandMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: CLICommandMetadata | None = el.typed_metadata
 
         # Count children by type
         children = el.children or []
@@ -562,7 +601,7 @@ def is_autodoc_page(page: Any) -> bool:
     return _is_autodoc_page(page)
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
     env.filters.update(
         {

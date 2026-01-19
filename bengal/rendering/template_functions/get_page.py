@@ -15,14 +15,15 @@ from __future__ import annotations
 import re
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
-    from bengal.protocols import TemplateEnvironment
+    from bengal.protocols import SiteLike, TemplateEnvironment
+else:
+    from bengal.protocols import PageLike as Page
 
 logger = get_logger(__name__)
 
@@ -91,7 +92,7 @@ def _normalize_cache_key(path: str) -> str:
     return normalized
 
 
-def _ensure_page_parsed(page: Page, site: Site) -> None:
+def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     """
     Ensure a page is parsed if it hasn't been parsed yet.
     
@@ -112,7 +113,9 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         return
 
     # Lazy-create parser on site object for reuse
-    if site._template_parser is None:
+    # Type narrowing: _template_parser may not be on SiteLike protocol
+    template_parser = getattr(site, "_template_parser", None)
+    if template_parser is None:
         from bengal.parsing import create_markdown_parser
 
         # Get parser engine from config (same logic as RenderingPipeline)
@@ -121,12 +124,15 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             markdown_config = site.config.get("markdown", {})
             markdown_engine = markdown_config.get("parser", "patitas")
 
-        site._template_parser = create_markdown_parser(markdown_engine)
+        template_parser = create_markdown_parser(markdown_engine)
+        # Type narrowing: set attribute if site supports it
+        if hasattr(site, "_template_parser"):
+            site._template_parser = template_parser  # type: ignore[attr-defined]
 
         # Enable cross-references if available
         if hasattr(site, "xref_index") and hasattr(
-            site._template_parser,
-            "enable_cross_references",  # type: ignore[attr-defined]
+            template_parser,
+            "enable_cross_references",
         ):
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
@@ -135,16 +141,19 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             # See: plan/rfc-external-references.md
             external_ref_resolver = None
             external_refs_config = site.config.get("external_refs", {})
-            if external_refs_config and external_refs_config.get("enabled", True):
+            if external_refs_config and isinstance(external_refs_config, dict) and external_refs_config.get("enabled", True):
                 from bengal.rendering.external_refs import ExternalRefResolver
 
-                external_ref_resolver = ExternalRefResolver(site.config)
+                # Cast SiteConfig to dict[str, Any] for compatibility
+                config_dict = cast(dict[str, Any], site.config)
+                external_ref_resolver = ExternalRefResolver(config_dict)
 
-            site._template_parser.enable_cross_references(  # type: ignore[attr-defined]
-                site.xref_index, version_config, None, external_ref_resolver
-            )
+            # Type narrowing: check if method is callable
+            enable_method = getattr(template_parser, "enable_cross_references", None)
+            if callable(enable_method):
+                enable_method(site.xref_index, version_config, None, external_ref_resolver)
 
-    parser = site._template_parser
+    parser = template_parser
 
     # Determine if TOC is needed
     need_toc = True
@@ -176,15 +185,24 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
                     parsed_content = parser.parse(page._source, page.metadata)
                     toc = ""
                 # Escape template syntax
-                parsed_content = parser._escape_template_syntax_in_html(parsed_content)
+                escape_method = getattr(parser, "_escape_template_syntax_in_html", None)
+                if callable(escape_method):
+                    parsed_content = escape_method(parsed_content)
             else:
                 # Parse with variable substitution
                 if need_toc:
-                    parsed_content, toc = parser.parse_with_toc_and_context(
-                        page._source, page.metadata, context
-                    )
+                    parse_method = getattr(parser, "parse_with_toc_and_context", None)
+                    if callable(parse_method):
+                        parsed_content, toc = parse_method(page._source, page.metadata, context)
+                    else:
+                        parsed_content = page._source
+                        toc = ""
                 else:
-                    parsed_content = parser.parse_with_context(page._source, page.metadata, context)
+                    parse_method = getattr(parser, "parse_with_context", None)
+                    if callable(parse_method):
+                        parsed_content = parse_method(page._source, page.metadata, context)
+                    else:
+                        parsed_content = page._source
                     toc = ""
         elif hasattr(parser, "parse_with_toc"):
             # Fallback parser
@@ -199,8 +217,9 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             toc = ""
 
         # Escape Jinja blocks
-        if hasattr(parser, "_escape_jinja_blocks"):
-            parsed_content = parser._escape_jinja_blocks(parsed_content)
+        escape_method = getattr(parser, "_escape_jinja_blocks", None)
+        if callable(escape_method):
+            parsed_content = escape_method(parsed_content)
 
         # Store parsed content
         page.parsed_ast = parsed_content
@@ -213,7 +232,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
 
             enhancer = get_enhancer()
             page_type = page.metadata.get("type")
-            if enhancer and enhancer.should_enhance(page_type):
+            if enhancer and page.parsed_ast and enhancer.should_enhance(page_type):
                 page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
         except Exception as e:
             logger.debug(
@@ -236,7 +255,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         # On parse failure, leave parsed_ast as None so template can fall back to content
 
 
-def _build_lookup_maps(site: Site) -> None:
+def _build_lookup_maps(site: SiteLike) -> None:
     """
     Build page lookup maps on the site object if not already built.
     
@@ -248,11 +267,15 @@ def _build_lookup_maps(site: Site) -> None:
         site: Site instance to build maps on
         
     """
-    if site._page_lookup_maps is not None:
+    # Type narrowing: _page_lookup_maps may not be on SiteLike protocol
+    page_lookup_maps = getattr(site, "_page_lookup_maps", None)
+    if page_lookup_maps is not None:
         return
 
-    by_full_path: dict[str, Page] = {}
-    by_content_relative: dict[str, Page] = {}
+    # Use PageLike since site.pages returns PageLike
+    from bengal.protocols import PageLike
+    by_full_path: dict[str, PageLike] = {}
+    by_content_relative: dict[str, PageLike] = {}
 
     content_root = site.root_path / "content"
 
@@ -270,10 +293,12 @@ def _build_lookup_maps(site: Site) -> None:
             # Path not relative to content root (maybe outside?), skip
             pass
 
-    site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
+    # Type narrowing: set attribute if site supports it
+    if hasattr(site, "_page_lookup_maps"):
+        site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}  # type: ignore[attr-defined]
 
 
-def page_exists(path: str, site: Site) -> bool:
+def page_exists(path: str, site: SiteLike) -> bool:
     """
     Check if a page exists without loading it.
     
@@ -298,7 +323,9 @@ def page_exists(path: str, site: Site) -> bool:
 
     _build_lookup_maps(site)
 
-    maps = site._page_lookup_maps
+    # Type narrowing: _page_lookup_maps may not be on SiteLike protocol
+    maps = getattr(site, "_page_lookup_maps", None)
+    assert maps is not None, "_build_lookup_maps should have set maps"
     normalized = path.replace("\\", "/")
 
     if normalized in maps["relative"]:
@@ -311,7 +338,7 @@ def page_exists(path: str, site: Site) -> bool:
     return False
 
 
-def register(env: TemplateEnvironment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
 
     def page_exists_wrapper(path: str) -> bool:
@@ -373,7 +400,9 @@ def register(env: TemplateEnvironment, site: Site) -> None:
         # Build lookup maps if not already built (shared helper)
         _build_lookup_maps(site)
 
-        maps = site._page_lookup_maps
+        # Type narrowing: _page_lookup_maps may not be on SiteLike protocol
+        maps = getattr(site, "_page_lookup_maps", None)
+        assert maps is not None, "_build_lookup_maps should have set maps"
 
         # Strategy 1: Direct lookup in relative map (exact match)
         page = None

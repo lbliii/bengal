@@ -1,1 +1,1 @@
-"""Tests for service protocols and implementations."""
+"""Unit tests for the services module."""

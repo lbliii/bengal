@@ -144,6 +144,18 @@ def write_output(
     # Ensure output_path is set
     if page.output_path is None:
         return
+    
+    # Ensure rendered_html is set and non-empty (required for writing)
+    if not hasattr(page, "rendered_html") or not page.rendered_html:
+        logger.warning(
+            "write_output_skipped_no_html",
+            page=str(page.source_path),
+            output_path=str(page.output_path),
+            has_attr=hasattr(page, "rendered_html"),
+            is_none=not hasattr(page, "rendered_html") or page.rendered_html is None,
+            is_empty=hasattr(page, "rendered_html") and page.rendered_html == "",
+        )
+        return
 
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:

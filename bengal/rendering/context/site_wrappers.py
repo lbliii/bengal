@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.context.data_wrappers import ParamsContext, SmartDict
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.theme import Theme
+    from bengal.protocols import SiteLike
 
 
 class SiteContext:
@@ -43,7 +43,7 @@ class SiteContext:
 
     __slots__ = ("_site", "_params_cache", "_tracked_data_cache")
 
-    def __init__(self, site: Site):
+    def __init__(self, site: SiteLike):
         self._site = site
         self._params_cache: ParamsContext | None = None
         self._tracked_data_cache: Any = None
@@ -99,8 +99,12 @@ class SiteContext:
     def title(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.title or ""
+            site_config = config.site
+            if hasattr(site_config, "title"):
+                return site_config.title or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("title", "") or ""
@@ -110,8 +114,12 @@ class SiteContext:
     def description(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.description or ""
+            site_config = config.site
+            if hasattr(site_config, "description"):
+                return site_config.description or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("description", "") or ""
@@ -121,8 +129,12 @@ class SiteContext:
     def baseurl(self) -> str:
         # Access from site section (supports both Config and dict)
         config = self._site.config
+        # Check if config is a Config object with site attribute
         if hasattr(config, "site"):
-            return config.site.baseurl or ""
+            site_config = config.site
+            if hasattr(site_config, "baseurl"):
+                return site_config.baseurl or ""
+        # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
             return site_section.get("baseurl", "") or ""

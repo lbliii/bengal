@@ -160,7 +160,7 @@ class AsyncLinkChecker:
                 )
             else:
                 # result is LinkCheckResult when not an exception
-                result_dict[url] = result  # type: ignore[assignment]
+                result_dict[url] = result
 
         return result_dict
 

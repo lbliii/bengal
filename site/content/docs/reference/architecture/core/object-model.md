@@ -79,7 +79,7 @@ Represents folder-based grouping of pages with hierarchical organization.
 :::
 
 :::{tab-item} Asset
-**Static Resource** (`bengal/core/asset.py`)
+**Static Resource** (`bengal/core/asset/`)
 
 Handles static files (images, CSS, JS) with optimization.
 
@@ -149,7 +149,6 @@ class Site:
 - **Stable Across Rebuilds**: Path strings persist in cache, not object references
 - **O(1) Lookup**: Dictionary lookup is constant time
 - **Reliable Incremental Builds**: Sections can be renamed/moved without breaking references
-- **Feature Flag**: `stable_section_references` config flag enables path-based tracking
 
 ### Implementation
 

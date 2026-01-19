@@ -27,7 +27,7 @@ The output system centralizes all CLI messaging, ensuring consistent formatting 
 
 ```python
 from bengal.output import CLIOutput
-from bengal.utils.profile import BuildProfile
+from bengal.utils.observability.profile import BuildProfile
 
 cli = CLIOutput(profile=BuildProfile.WRITER)
 
@@ -175,7 +175,7 @@ Use the global instance for convenience:
 
 ```python
 from bengal.output import get_cli_output, init_cli_output
-from bengal.utils.profile import BuildProfile
+from bengal.utils.observability.profile import BuildProfile
 
 # Initialize once at CLI entry point
 cli = init_cli_output(profile=BuildProfile.WRITER)
