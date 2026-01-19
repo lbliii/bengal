@@ -176,6 +176,36 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
                 template_name=root.template_name,
                 total_pages=root.total_pages,
             )
+            section_cache[id(virtual_root)] = root
+    
+    # Ensure all sections have root set (update any that don't)
+    for orig_section_id, section_snapshot in list(section_cache.items()):
+        if section_snapshot.root is None:
+            root_ref = find_root_snapshot(section_snapshot) if section_snapshot.parent is not None else root
+            updated = SectionSnapshot(
+                name=section_snapshot.name,
+                title=section_snapshot.title,
+                nav_title=section_snapshot.nav_title,
+                href=section_snapshot.href,
+                path=section_snapshot.path,
+                pages=section_snapshot.pages,
+                sorted_pages=section_snapshot.sorted_pages,
+                regular_pages=section_snapshot.regular_pages,
+                subsections=section_snapshot.subsections,
+                sorted_subsections=section_snapshot.sorted_subsections,
+                parent=section_snapshot.parent,
+                root=root_ref,
+                index_page=section_snapshot.index_page,
+                metadata=section_snapshot.metadata,
+                icon=section_snapshot.icon,
+                weight=section_snapshot.weight,
+                depth=section_snapshot.depth,
+                hierarchy=section_snapshot.hierarchy,
+                is_virtual=section_snapshot.is_virtual,
+                template_name=section_snapshot.template_name,
+                total_pages=section_snapshot.total_pages,
+            )
+            section_cache[orig_section_id] = updated
 
     # Phase 3: Resolve section references on pages
     for page in site.pages:

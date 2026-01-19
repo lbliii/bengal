@@ -6,6 +6,8 @@ RFC: rfc-build-performance-optimizations - Tests fast_mode skipping formatting.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.pipeline.output import format_html
@@ -20,8 +22,8 @@ class TestFormatHtmlFastMode:
         
         # Create a minimal site with fast_mode enabled
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=Path("/tmp/test"),
+            output_dir=Path("/tmp/test/output"),
             config={"build": {"fast_mode": True}},
         )
         page = Page(source_path="/tmp/test/page.md")
@@ -36,8 +38,8 @@ class TestFormatHtmlFastMode:
         html = "<html><head></head><body>Test</body></html>"
         
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=Path("/tmp/test"),
+            output_dir=Path("/tmp/test/output"),
             config={
                 "build": {
                     "fast_mode": True,
@@ -59,8 +61,8 @@ class TestFormatHtmlFastMode:
         html = "<div>  \n  Hello  \n  </div>"
         
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=Path("/tmp/test"),
+            output_dir=Path("/tmp/test/output"),
             config={
                 "build": {"fast_mode": False},
                 "html_output": {"mode": "pretty"},
@@ -79,8 +81,8 @@ class TestFormatHtmlFastMode:
         html = "<div>  \n  Hello  \n  </div>"
         
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=Path("/tmp/test"),
+            output_dir=Path("/tmp/test/output"),
             config={
                 "build": {"fast_mode": True},
                 "html_output": {"mode": "pretty"},
@@ -99,8 +101,8 @@ class TestFormatHtmlFastMode:
         html = "<div>  \n  Hello  \n  </div>"
         
         site = Site(
-            source_dir="/tmp/test",
-            output_dir="/tmp/test/output",
+            root_path=Path("/tmp/test"),
+            output_dir=Path("/tmp/test/output"),
             config={
                 "build": {"fast_mode": True},
                 "html_output": {"mode": "minify"},  # Would normally minify

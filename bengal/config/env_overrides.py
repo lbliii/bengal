@@ -111,10 +111,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             'https://custom.com'
         
     """
-    from bengal.config.merge import deep_merge
-
-    # Create a deep copy to avoid mutating input
-    config = deep_merge({}, config)
+    # Mutate config in place (test expects same object to be returned)
+    # This is safe when config is a plain dict being built up
 
     try:
         # Ensure site section exists

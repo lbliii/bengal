@@ -284,9 +284,9 @@ class TestInitializeWithSite:
         icons_dir = tmp_path / "theme" / "assets" / "icons"
         icons_dir.mkdir(parents=True)
 
-        # Mock the service function
+        # Mock the service function (it's imported inside the function, so mock at the source)
         monkeypatch.setattr(
-            "bengal.icons.resolver.get_theme_assets_chain",
+            "bengal.services.theme.get_theme_assets_chain",
             lambda root_path, theme: [tmp_path / "theme" / "assets"],
         )
 
@@ -315,9 +315,9 @@ class TestInitializeWithSite:
         icons_dir = tmp_path / "theme" / "assets" / "icons"
         icons_dir.mkdir(parents=True)
 
-        # Mock the service function
+        # Mock the service function (it's imported inside the function, so mock at the source)
         monkeypatch.setattr(
-            "bengal.icons.resolver.get_theme_assets_chain",
+            "bengal.services.theme.get_theme_assets_chain",
             lambda root_path, theme: [tmp_path / "theme" / "assets"],
         )
 

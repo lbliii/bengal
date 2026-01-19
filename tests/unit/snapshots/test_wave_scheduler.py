@@ -78,20 +78,17 @@ def test_wave_scheduler_topological_order(site, build_site):
     # Track render order
     render_order: list[Path] = []
     
-    # Mock RenderingPipeline to track order
-    original_process_page = None
-    
-    def track_process_page(page):
-        render_order.append(page.source_path)
-        if original_process_page:
-            original_process_page(page)
-    
+    # Mock RenderingPipeline.process_page instance method to track order
+    from unittest.mock import patch
     from bengal.rendering.pipeline import RenderingPipeline
     
     original_process_page = RenderingPipeline.process_page
     
-    try:
-        RenderingPipeline.process_page = track_process_page
+    def track_process_page(self, page):
+        render_order.append(page.source_path)
+        return original_process_page(self, page)
+    
+    with patch.object(RenderingPipeline, 'process_page', track_process_page):
         
         tracker = MagicMock()
         tracker.cache = None
@@ -121,9 +118,6 @@ def test_wave_scheduler_topological_order(site, build_site):
         
         # Verify pages were rendered (order may vary within waves)
         assert len(render_order) == len(site.pages)
-        
-    finally:
-        RenderingPipeline.process_page = original_process_page
 
 
 @pytest.mark.bengal(testroot="test-basic")

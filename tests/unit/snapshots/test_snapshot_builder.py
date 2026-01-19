@@ -116,7 +116,9 @@ def test_snapshot_template_groups(site, build_site):
     snapshot = create_site_snapshot(site)
     
     assert snapshot.template_groups is not None
-    assert isinstance(snapshot.template_groups, dict)
+    # template_groups is a MappingProxyType (immutable dict view)
+    from types import MappingProxyType
+    assert isinstance(snapshot.template_groups, MappingProxyType)
     
     # Each group should be a tuple of PageSnapshots
     for template_name, pages in snapshot.template_groups.items():
