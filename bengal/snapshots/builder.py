@@ -267,7 +267,11 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
 
     # Get config dict (handle both Config objects and plain dicts)
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
-    config_dict = dict(config_dict) if config_dict else {}
+    # Type narrowing: ensure config_dict is a dict
+    if isinstance(config_dict, dict):
+        config_dict = dict(config_dict)
+    else:
+        config_dict = {}
 
     # Create typed ConfigSnapshot (RFC: Snapshot-Enabled v2, Opportunity 6)
     config_snapshot = ConfigSnapshot.from_dict(config_dict)
@@ -498,7 +502,11 @@ def update_snapshot(
     
     # Reuse config if unchanged
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
-    config_dict = dict(config_dict) if config_dict else {}
+    # Type narrowing: ensure config_dict is a dict
+    if isinstance(config_dict, dict):
+        config_dict = dict(config_dict)
+    else:
+        config_dict = {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
     
     elapsed_ms = (time.perf_counter() - start) * 1000
@@ -940,28 +948,35 @@ def _snapshot_menu_item(
     section_cache: dict[int, SectionSnapshot],
 ) -> MenuItemSnapshot:
     """Snapshot a single menu item."""
+    # Type narrowing: page, section, title, is_active may be optional attributes
     page_snapshot = None
-    if item.page and id(item.page) in page_cache:
-        page_snapshot = page_cache[id(item.page)]
+    item_page = getattr(item, "page", None)
+    if item_page and id(item_page) in page_cache:
+        page_snapshot = page_cache[id(item_page)]
 
     section_snapshot = None
-    if item.section and id(item.section) in section_cache:
-        section_snapshot = section_cache[id(item.section)]
+    item_section = getattr(item, "section", None)
+    if item_section and id(item_section) in section_cache:
+        section_snapshot = section_cache[id(item_section)]
 
     children = tuple(
         _snapshot_menu_item(child, page_cache, section_cache)
         for child in item.children
     )
 
+    # Type narrowing: title and is_active may not be on MenuItem
+    item_title = getattr(item, "title", item.name)  # Fallback to name if title not available
+    item_is_active = getattr(item, "is_active", False)  # Default to False if not available
+
     return MenuItemSnapshot(
         name=item.name,
-        title=item.title,
+        title=item_title,
         href=item.href,
         weight=item.weight,
         children=children,
         page=page_snapshot,
         section=section_snapshot,
-        is_active=item.is_active,
+        is_active=item_is_active,
     )
 
 
@@ -1119,8 +1134,16 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                 if hasattr(env, "parse"):
                     try:
                         from jinja2 import meta
-                        source, _filename, _uptodate = env.loader.get_source(env, template_name)
-                        ast = env.parse(source)
+                        # Type narrowing: loader may not be on Protocol
+                        loader = getattr(env, "loader", None)
+                        if loader and hasattr(loader, "get_source"):
+                            get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                            source, _filename, _uptodate = get_source(env, template_name)
+                        else:
+                            raise AttributeError("Loader does not have get_source method")
+                        # Type narrowing: parse method
+                        parse_method = cast(Callable[[str], Any], env.parse)
+                        ast = parse_method(source)
                         for ref in meta.find_referenced_templates(ast) or []:
                             if isinstance(ref, str):
                                 partials.add(ref)
@@ -1130,7 +1153,11 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                 # Kida approach (if available)
                 if hasattr(env, "get_template"):
                     try:
-                        template = env.get_template(template_name)
+                        # Type narrowing: get_template may not be callable
+                        get_template_method = getattr(env, "get_template", None)
+                        if not callable(get_template_method):
+                            raise AttributeError("get_template is not callable")
+                        template = get_template_method(template_name)
                         if hasattr(template, "_optimized_ast"):
                             ast = template._optimized_ast
                             if hasattr(engine, "_extract_referenced_templates"):
@@ -1418,8 +1445,15 @@ def _get_transitive_deps_for_template(
                 all_deps.add(dep_name)
                 
                 try:
-                    source, _filename, _uptodate = env.loader.get_source(env, dep_name)
-                    ast = env.parse(source)
+                    # Type narrowing: loader and parse methods
+                    loader = getattr(env, "loader", None)
+                    if loader and hasattr(loader, "get_source"):
+                        get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                        source, _filename, _uptodate = get_source(env, dep_name)
+                    else:
+                        continue
+                    parse_method = cast(Callable[[str], Any], env.parse)
+                    ast = parse_method(source)
                     for ref in meta.find_referenced_templates(ast) or []:
                         if isinstance(ref, str) and ref not in seen:
                             next_queue.append(ref)

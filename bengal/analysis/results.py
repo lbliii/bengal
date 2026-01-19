@@ -50,9 +50,9 @@ class PageLayers:
         
     """
 
-    hubs: list[Page]
-    mid_tier: list[Page]
-    leaves: list[Page]
+    hubs: list[PageLike]
+    mid_tier: list[PageLike]
+    leaves: list[PageLike]
 
     def __iter__(self):
         """Allow tuple unpacking for backward compatibility."""

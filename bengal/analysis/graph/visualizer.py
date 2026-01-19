@@ -446,11 +446,12 @@ class GraphVisualizer:
                 # Fallback to .bengal cache location
                 # Type narrowing: paths may not be on SiteLike protocol
                 if hasattr(self.site, "paths") and self.site.paths:
-                    manifest_path = self.site.paths.asset_manifest
+                    paths = self.site.paths
+                    manifest_path = getattr(paths, "asset_manifest", None)
                 else:
                     manifest_path = None
 
-            if manifest_path.exists():
+            if manifest_path and manifest_path.exists():
                 manifest = AssetManifest.load(manifest_path)
                 if manifest:
                     css_entry = manifest.get("css/style.css")

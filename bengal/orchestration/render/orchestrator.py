@@ -128,7 +128,7 @@ class RenderOrchestrator:
         """Get max_workers from config, supporting both Config and dict."""
         config = self.site.config
         if hasattr(config, "build"):
-            return config.build.max_workers
+            return config.build.max_workers  # type: ignore[union-attr]
         build_section = config.get("build", {})
         if isinstance(build_section, dict):
             return build_section.get("max_workers")
@@ -159,7 +159,7 @@ class RenderOrchestrator:
             self._block_cache = BlockCache(enabled=True)
 
             # Build site context for block rendering
-            site_context = get_engine_globals(self.site)
+            site_context = get_engine_globals(self.site)  # type: ignore[arg-type]
 
             # Warm cache for key templates
             templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
@@ -167,7 +167,7 @@ class RenderOrchestrator:
 
             for template_name in templates_to_warm:
                 try:
-                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
+                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)  # type: ignore[arg-type]
                     total_cached += cached
                 except Exception:
                     pass  # Skip templates that don't exist or fail to warm

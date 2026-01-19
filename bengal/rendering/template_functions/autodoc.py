@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from bengal.autodoc.utils import get_function_parameters, get_function_return_info
 
@@ -74,6 +74,16 @@ class DocElementLike(Protocol):
     @property
     def deprecated(self) -> str | None:
         """Deprecation message if deprecated."""
+        ...
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Raw metadata dictionary."""
+        ...
+
+    @property
+    def children(self) -> list[Any]:
+        """Child elements."""
         ...
 
 
@@ -168,7 +178,7 @@ class MemberView:
     @classmethod
     def from_doc_element(cls, el: DocElementLike) -> MemberView:
         """Create from DocElement."""
-        meta: PythonFunctionMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: PythonFunctionMetadata | None = el.typed_metadata
 
         # Extract from typed_metadata or fall back to metadata dict
         if meta and hasattr(meta, "signature"):
@@ -211,7 +221,8 @@ class MemberView:
             return_desc = m.get("return_description", "")
 
             # Build params from get_function_parameters
-            raw_params = get_function_parameters(el, exclude_self=True)
+            # Cast to DocElement for the utility function (protocol is compatible)
+            raw_params = get_function_parameters(cast("DocElement", el), exclude_self=True)
             params = tuple(ParamView.from_dict(p) for p in raw_params)
 
         # Check for deprecated in decorators
@@ -278,7 +289,7 @@ class OptionView:
     @classmethod
     def from_doc_element(cls, el: DocElementLike) -> OptionView:
         """Create from DocElement."""
-        meta: CLIOptionMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: CLIOptionMetadata | None = el.typed_metadata
 
         if meta and hasattr(meta, "param_type"):
             flags = meta.opts or ()
@@ -351,7 +362,7 @@ class CommandView:
     @classmethod
     def from_doc_element(cls, el: DocElementLike) -> CommandView:
         """Create from DocElement."""
-        meta: CLICommandMetadata | None = el.typed_metadata  # type: ignore[assignment]
+        meta: CLICommandMetadata | None = el.typed_metadata
 
         # Count children by type
         children = el.children or []

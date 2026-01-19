@@ -239,8 +239,9 @@ class CLIExtractor(Extractor):
         description = sanitize_text(group.help)
 
         # Build typed metadata
+        callback_name = getattr(group.callback, "__name__", None) if group.callback else None
         typed_meta = CLIGroupMetadata(
-            callback=group.callback.__name__ if group.callback else None,
+            callback=callback_name,
             command_count=len(children),
         )
 
@@ -252,7 +253,7 @@ class CLIExtractor(Extractor):
             source_file=source_file,
             line_number=line_number,
             metadata={
-                "callback": group.callback.__name__ if group.callback else None,
+                "callback": callback_name,
                 "command_count": len(children),
             },
             typed_metadata=typed_meta,
@@ -325,8 +326,9 @@ class CLIExtractor(Extractor):
         is_hidden = hasattr(cmd, "hidden") and cmd.hidden
 
         # Build typed metadata
+        cmd_callback_name = getattr(cmd.callback, "__name__", None) if cmd.callback else None
         typed_meta = CLICommandMetadata(
-            callback=cmd.callback.__name__ if cmd.callback else None,
+            callback=cmd_callback_name,
             option_count=len(options),
             argument_count=len(arguments),
             is_group=False,
@@ -341,7 +343,7 @@ class CLIExtractor(Extractor):
             source_file=source_file,
             line_number=line_number,
             metadata={
-                "callback": cmd.callback.__name__ if cmd.callback else None,
+                "callback": cmd_callback_name,
                 "option_count": len(options),
                 "argument_count": len(arguments),
             },
@@ -396,11 +398,16 @@ class CLIExtractor(Extractor):
             "opts": param_decls,
         }
 
-        # Add envvar if present
-        envvar = None
+        # Add envvar if present (can be str or Sequence[str])
+        envvar: str | None = None
         if hasattr(param, "envvar") and param.envvar:
             metadata["envvar"] = param.envvar
-            envvar = param.envvar
+            # Convert Sequence[str] to comma-separated string for typed metadata
+            raw_envvar = param.envvar
+            if isinstance(raw_envvar, str):
+                envvar = raw_envvar
+            elif hasattr(raw_envvar, "__iter__"):
+                envvar = ",".join(raw_envvar)
 
         # Build typed metadata
         typed_meta = CLIOptionMetadata(

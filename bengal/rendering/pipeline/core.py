@@ -179,9 +179,9 @@ class RenderingPipeline:
 
                 external_ref_resolver = ExternalRefResolver(site.config)
                 # Expose resolver for health checks (unresolved external refs)
-                site.external_ref_resolver = external_ref_resolver
+                setattr(site, "external_ref_resolver", external_ref_resolver)
 
-            self.parser.enable_cross_references(
+            self.parser.enable_cross_references(  # type: ignore[union-attr]
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver
             )
         self.quiet = quiet
@@ -198,7 +198,7 @@ class RenderingPipeline:
             self.template_engine = create_engine(site, profile=profile_templates)
 
         if self.dependency_tracker:
-            self.template_engine._dependency_tracker = self.dependency_tracker
+            self.template_engine._dependency_tracker = self.dependency_tracker  # type: ignore[union-attr]
 
         self.renderer = Renderer(
             self.template_engine,
@@ -432,12 +432,14 @@ class RenderingPipeline:
             # This is needed because deferred highlighting captures code BEFORE
             # restore_placeholders() runs, so {{/* */}} escapes appear as
             # BENGALESCAPED*ENDESC in the final highlighted HTML
+            # fmt: off
             if (
                 hasattr(self.parser, "_var_plugin")
                 and self.parser._var_plugin
-                and self.parser._var_plugin.escaped_placeholders
+                and self.parser._var_plugin.escaped_placeholders  # type: ignore[union-attr]
             ):
-                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)
+                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)  # type: ignore[union-attr]
+            # fmt: on
         finally:
             disable_deferred_highlighting()
 
@@ -483,11 +485,11 @@ class RenderingPipeline:
                 self.parser, "parse_with_context"
             ):
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc_and_context(
+                    parsed_content, toc = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
                         page._source, page.metadata, context
                     )
                 else:
-                    parsed_content = self.parser.parse_with_context(
+                    parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
                         page._source, page.metadata, context
                     )
                     toc = ""
@@ -510,7 +512,7 @@ class RenderingPipeline:
             ):
                 try:
                     ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
-                    page._ast_cache = ast_tokens
+                    page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -670,7 +672,7 @@ class RenderingPipeline:
                     break
 
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(self.site)
+        global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers
@@ -733,7 +735,7 @@ class RenderingPipeline:
             return self.template_engine.render_string(
                 page._source,
                 {"page": page, "site": self.site, "config": self.site.config},
-                strict=False,
+                strict=False,  # type: ignore[call-arg]
             )
         except Exception as e:
             if self.build_stats:
