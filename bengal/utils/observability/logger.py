@@ -718,7 +718,8 @@ def get_logger(name: str) -> BengalLogger:
     returns the same proxy instance.
     
     Thread-safe: Uses double-checked locking pattern for safe concurrent
-    access under free-threading (PEP 703).
+    access under free-threading (PEP 703). The fast path uses .get() to
+    avoid KeyError if reset_loggers() clears the dict concurrently.
     
     Args:
         name: Logger name (typically __name__)
@@ -728,8 +729,10 @@ def get_logger(name: str) -> BengalLogger:
         
     """
     # Fast path: already exists (no lock needed)
-    if name in _lazy_loggers:
-        return _lazy_loggers[name]  # type: ignore[return-value]
+    # Use .get() to avoid KeyError if reset_loggers() clears dict concurrently
+    cached = _lazy_loggers.get(name)
+    if cached is not None:
+        return cached  # type: ignore[return-value]
     # Slow path: acquire lock and double-check
     with _logger_lock:
         if name not in _lazy_loggers:
