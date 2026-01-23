@@ -556,8 +556,9 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
 
-    # Get href (_path property)
-    href = getattr(page, "_path", None) or getattr(page, "href", "") or ""
+    # Get href (includes baseurl for public URLs)
+    # Note: page.href applies baseurl; _path is site-relative without baseurl
+    href = getattr(page, "href", None) or getattr(page, "_path", "") or ""
 
     # Get output_path
     output_path = getattr(page, "output_path", None)
