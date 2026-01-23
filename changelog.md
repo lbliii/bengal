@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## 0.1.9 - 2026-01-23
+
 ### ⚡ Build Performance Optimizations ✅
 - **rendering(output)**: wire `fast_mode` to skip HTML formatting (Phase 1.1)
   - `build.fast_mode=True` now returns raw HTML without pretty-printing or minification
@@ -17,12 +19,86 @@
   - Full DocElement reconstruction from cache on cache hit
   - Automatic cache invalidation on source file changes
   - RFC: rfc-build-performance-optimizations
+- **core(pool)**: re-enable ParserPool with patitas 0.1.1 `_reinit()` support
+  - ~78% faster instantiation for high-volume parsing via instance pooling
 
 ### 🔒 Thread Safety (Python 3.14t) ✅
 - **core(assets)**: ContextVar pattern for thread-safe asset manifest access (RFC: rfc-global-build-state-dependencies, Phase 2)
   - Fixes TOCTOU race condition in `Site._asset_manifest_cache` for free-threading
   - Manifest loaded once before rendering, accessed via thread-local ContextVar
   - ~8M ops/sec throughput, zero lock contention
+
+### 🚀 Developer Experience ✅
+- **cli(upgrade)**: add `bengal upgrade` self-update command with PyPI version checking and installer detection (uv/pip)
+- **cli(build)**: add incremental build observability flags (`--explain`, `--dry-run`, `--explain-json`) for debugging rebuild decisions
+- **cli**: add Python 3.14+ version warning on startup for compatibility awareness
+- **server(dev)**: implement serve-first startup for instant first paint when cache exists (~2-3s faster cold start)
+- **theme(link-previews)**: add dead link indicator styling for broken internal links
+- **build**: add `make release`, `make publish`, `make dist` targets with `.env` token support
+
+### 🎨 Theme Enhancements ✅
+- **theme(header)**: add configurable navigation options
+  - `nav_position`: left or center alignment
+  - `sticky`: fixed header on scroll
+  - `autohide`: hide header when scrolling down, show on scroll up
+  - CSS variants via `data-nav-position`, `data-sticky`, `data-autohide` attributes
+
+### 📝 Changelog & Releases Filter ✅
+- **core(changelog)**: smart version detection with semantic sorting (semver-aware)
+- **core(changelog)**: simplify releases filter API — always sort by default
+- **core(changelog)**: make releases filter domain-aware; respect content type strategy
+- **templates(changelog)**: trust ChangelogStrategy sorting, fix `sort_by` None handling
+
+### 🔧 Cache & Incremental Build Improvements ✅
+- **cache**: implement unified CacheCoordinator for coordinated cache invalidation across subsystems
+  - Centralized path registry, rebuild manifest, and invalidation coordination
+  - Documented in architecture docs with PathRegistry and RebuildManifest patterns
+- **core(cache)**: implement Output Cache Architecture RFC
+  - Content-hash embedding in rendered output for O(1) change detection
+  - Output type classification (authored, generated, static)
+  - GeneratedPageCache for taxonomy/archive page deduplication
+  - ContentHashRegistry for centralized hash storage
+- **orchestration(incremental)**: add IncrementalFilterEngine for rebuild decision hardening
+  - Unified filter pipeline for config, content, and dependency checks
+  - Fix FilterResult/ConfigCheckResult `__iter__` for proper unpacking
+- **incremental**: skip cascade rebuild on body-only changes to `_index.md` sections
+- **incremental**: fix section-level optimization to detect subsection changes; autodoc uses fingerprints as fallback
+- **server**: enable content-hash change detection; integrate into build_trigger and dev_server
+- **core(initialization)**: detect missing autodoc output on warm CI builds
+- **core(build)**: detect missing special pages (graph, search) on warm CI builds
+
+### 🔴 Error System Improvements ✅
+- **errors**: consolidate error handling per RFC with 5 new exception classes
+  - `BengalParsingError`, `BengalAutodocError`, `BengalValidatorError`, `BengalBuildError`, `BengalTemplateFunctionError`
+  - Convert 10 generic exceptions to structured Bengal errors with codes and suggestions
+  - Add O/V/B error code categories for orchestration, validation, and build errors
+  - 43 unit+integration tests for error handling
+
+### 🏗️ Architecture ✅
+- **protocols**: add `bengal.protocols` module as central protocol layer
+  - Migrate `Cacheable`, `ProgressReporter`, `HighlightService` to shared protocols
+  - Documented in architecture docs with protocol layer diagrams
+- **refactor**: migrate to external `patitas` package; delete embedded parser (~15k lines removed)
+  - Parser now maintained as separate PyPI package
+  - ContextVar configuration pattern for Parser and HtmlRenderer
+  - ParserPool, RendererPool, RenderMetadata, RequestContext for framework integration
+
+### 🔨 Refactoring & Code Health ✅
+- **refactor(rendering)**: decompose HtmlRenderer into block/inline/directive modules (Phase 3)
+  - Cleaner separation of concerns for markdown rendering subsystem
+- **refactor(utils)**: split into domain-aligned sub-packages; extract shared protocols
+- **core**: implement RFC code health improvements (Phase 1-2)
+  - Reduced coupling, improved testability, clearer module boundaries
+
+### 🐛 Bug Fixes
+- **core(taxonomy)**: fix duplicate tag page generation in incremental builds; track already-generated tags to prevent double append
+- **rendering(link_transformer)**: fix `.md` link normalization to preserve anchor fragments (e.g., `page.md#section` → `/page/#section`)
+- **server(dev)**: fix serve-first not activating when baseurl is `/`
+- **cache**: fix Python 3.14 import scoping issue in cache loading; move BengalCacheError import to function scope
+
+### 📦 Dependencies
+- Bump `patitas` to >=0.1.1 (adds `_reinit()` for parser pooling)
+- Bump `kida-templates` to >=0.1.2 (RenderContext, profiling support)
 
 ## 0.1.8 - 2026-01-12
 
