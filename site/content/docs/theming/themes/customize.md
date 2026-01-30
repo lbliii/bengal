@@ -295,7 +295,6 @@ Override theme defaults in your site's `bengal.toml`:
 name = "my-custom-theme"
 
 # Override theme config values
-[theme.params]
 show_author = true
 sidebar_position = "right"
 color_scheme = "dark"
@@ -311,18 +310,13 @@ Access theme configuration using `theme.get()` or direct property access:
 <p>By {{ page.author or site.author }}</p>
 {% end %}
 
-{# Direct config access (if params section exists) #}
-{% if theme.config.params.show_author %}
-<p>By {{ page.author or site.author }}</p>
-{% end %}
-
 {# Direct config key access #}
 {% if theme.config.show_author %}
 <p>By {{ page.author or site.author }}</p>
 {% end %}
 ```
 
-**Note**: When using `[theme.params]` in `bengal.toml`, values are nested under `theme.config.params`. For direct keys in `[theme]` section, use `theme.config.key` or `theme.get('key')`.
+**Note**: All keys in the `[theme]` section are accessible via `theme.get('key')` (with default) or `theme.config.key` (direct access).
 
 ## Best Practices
 

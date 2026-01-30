@@ -377,7 +377,7 @@ class MakoEnvironmentWrapper:
 
 - [Template Functions Reference](/docs/reference/template-functions/) — All available functions
 - [Engine Protocol Reference](/docs/reference/architecture/rendering/) — Full protocol details
-- [Kida Source Code](https://github.com/bengal-ssg/bengal/tree/main/bengal/rendering/kida/) — Reference implementation
+- [Kida Source Code](https://github.com/lbliii/bengal/tree/main/bengal/rendering/kida/) — Reference implementation
 
 :::{seealso}
 - [Add Custom Filter](/docs/theming/templating/kida/add-custom-filter/) — Add functions to existing engines

@@ -48,8 +48,6 @@ Open `http://localhost:5173` to see your scaffolded site.
 | `portfolio` | Developer portfolios, project showcases | `bengal new site --template portfolio` |
 | `product` | Product showcase sites | `bengal new site --template product` |
 | `resume` | CV/Resume with structured data | `bengal new site --template resume` |
-| `landing` | Marketing landing pages | `bengal new site --template landing` |
-| `changelog` | Version history, release notes | `bengal new site --template changelog` |
 
 ## What Gets Created
 
@@ -208,7 +206,7 @@ Skeletons will enable:
 - **Org standards** - Enforce consistent IA across projects
 - **Theme compatibility** - Find skeletons optimized for your theme
 
-See [RFC: Skeleton Manifests](https://github.com/bengal-ssg/bengal/blob/main/plan/active/rfc-shareable-site-skeletons.md) for the full proposal.
+See [RFC: Skeleton Manifests](https://github.com/lbliii/bengal/blob/main/plan/active/rfc-shareable-site-skeletons.md) for the full proposal.
 
 ## Next Steps
 

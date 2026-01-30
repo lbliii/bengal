@@ -53,9 +53,9 @@ flowchart LR
 :::{tab-item} Configuration
 ```toml
 # bengal.toml
-[build.assets]
-minify_css = true
-minify_js = true
+[assets]
+minify = true
+optimize = true
 fingerprint = true   # main.css → main.a1b2c3.css
 ```
 :::

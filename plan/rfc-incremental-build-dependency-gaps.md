@@ -540,10 +540,7 @@ def phase_post_processing(
 
 1. ~~**Should we track nested data file access?**~~ **Resolved**: Track at file level, not key level. Simpler and sufficient for real-world usage.
 
-2. **How to handle taxonomy changes in cascade frontmatter?**
-   - When `_index.md` cascade sets `tags: [featured]`, all children inherit
-   - Proposal: Track cascade source as dependency; cascade change → rebuild children
-   - Status: Deferred to Phase 2 implementation
+2. ~~**How to handle taxonomy changes in cascade frontmatter?**~~ **Resolved**: Track cascade sources (parent `_index.md` files) as provenance inputs. When any cascade source changes, child page provenance hash changes, triggering rebuild. Implemented in `ProvenanceFilter._get_cascade_sources()` and `_compute_provenance()`.
 
 3. ~~**Should sitemap regeneration be configurable?**~~ **Resolved**: No. Always regenerate. It's fast and correctness matters for SEO.
 
@@ -564,6 +561,7 @@ def phase_post_processing(
 | TBD | Phase 2 approved | Taxonomy propagation common workflow |
 | TBD | Phase 3 approved | Sitemap correctness important for SEO |
 | 2026-01-30 | Status changed to "Infrastructure Complete, Integration Pending" | Re-evaluation found infrastructure exists but invalidation methods are never called during incremental builds. Tests still failing for Gaps 1 & 2. Gap 3 (sitemap) works. |
+| 2026-01-30 | Cascade frontmatter tracking implemented | Added `_get_cascade_sources()` to ProvenanceFilter. Parent `_index.md` files now included in page provenance hash. Includes safety guards against infinite loops from circular references or mock objects. |
 
 ---
 

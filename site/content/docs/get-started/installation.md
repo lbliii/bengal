@@ -83,7 +83,7 @@ This installs Bengal in editable mode with development dependencies.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version 0.1.8`
+You should see output like: `Bengal SSG, version 0.1.9`
 
 ## Upgrade Bengal
 

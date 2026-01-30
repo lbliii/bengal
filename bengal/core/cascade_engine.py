@@ -108,6 +108,29 @@ class CascadeEngine:
         """
         return page not in self._pages_in_sections
 
+    def _clear_previous_cascades(self) -> None:
+        """
+        Clear previously cascaded values from all pages.
+        
+        This enables proper cascade refresh during incremental builds.
+        When pages are loaded from cache, they may have old cascade values
+        that need to be cleared before new cascades are applied.
+        
+        Only clears keys that were previously set by cascade (tracked in
+        page.metadata['_cascade_keys']), preserving page-level frontmatter values.
+        The _cascade_keys list is persisted with page metadata in the cache.
+        """
+        for page in self.pages:
+            # Get keys that were previously set by cascade (stored in metadata for persistence)
+            cascade_keys = page.metadata.get("_cascade_keys")
+            if cascade_keys and isinstance(cascade_keys, list):
+                # Clear those keys from metadata so new cascades can be applied
+                for key in cascade_keys:
+                    if key in page.metadata and key != "_cascade_keys":
+                        del page.metadata[key]
+            # Reset cascade tracking (will be populated during apply)
+            page.metadata["_cascade_keys"] = []
+
     def apply(self) -> dict[str, Any]:
         """
         Apply cascade metadata from sections to pages.
@@ -115,6 +138,11 @@ class CascadeEngine:
         Processes root-level cascades first, then recursively applies
         cascades through the section hierarchy. Returns statistics about
         what was cascaded.
+        
+        Cascade Refresh: Before applying cascades, any previously cascaded
+        values (tracked in page._cascade_keys) are cleared. This ensures
+        cascade changes are properly reflected during incremental builds
+        where pages may be loaded from cache with old cascade values.
 
         Returns:
             Dictionary with cascade statistics:
@@ -129,6 +157,11 @@ class CascadeEngine:
             "root_cascade_pages": 0,
             "cascade_keys_applied": {},
         }
+        
+        # Clear previously cascaded values from all pages before re-applying
+        # This ensures cascade changes are reflected during incremental builds
+        # where pages may be loaded from cache with old cascade values.
+        self._clear_previous_cascades()
 
         # First, collect root-level cascade from top-level pages
         root_cascade = None
@@ -157,9 +190,16 @@ class CascadeEngine:
         if root_cascade:
             for page in self.pages:
                 if self.is_top_level_page(page) and "cascade" not in page.metadata:
+                    # Initialize cascade tracking list if not present
+                    if "_cascade_keys" not in page.metadata:
+                        page.metadata["_cascade_keys"] = []
+                    
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
+                            # Track that this key was set by cascade
+                            if key not in page.metadata["_cascade_keys"]:
+                                page.metadata["_cascade_keys"].append(key)
                             stats["root_cascade_pages"] += 1
                             stats["cascade_keys_applied"][key] = (
                                 stats["cascade_keys_applied"].get(key, 0) + 1
@@ -201,10 +241,18 @@ class CascadeEngine:
         # (but only for keys not already defined in page metadata)
         for page in section.pages:
             if accumulated_cascade:
+                # Initialize cascade tracking list if not present
+                # (stored as list in metadata for JSON serialization in cache)
+                if "_cascade_keys" not in page.metadata:
+                    page.metadata["_cascade_keys"] = []
+                
                 for key, value in accumulated_cascade.items():
                     # Page metadata takes precedence over cascade
                     if key not in page.metadata:
                         page.metadata[key] = value
+                        # Track that this key was set by cascade (for refresh on rebuild)
+                        if key not in page.metadata["_cascade_keys"]:
+                            page.metadata["_cascade_keys"].append(key)
                         stats["pages_with_cascade"] = stats.get("pages_with_cascade", 0) + 1
                         cascade_keys = stats.setdefault("cascade_keys_applied", {})
                         if not isinstance(cascade_keys, dict):

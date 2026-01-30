@@ -180,6 +180,6 @@ ContentTypeRegistry.register("news", NewsStrategy)
 | `detect_from_section(section)` | Auto-detect content type | Returns `False` |
 
 :::{seealso}
-- [ContentTypeStrategy source](https://github.com/bengal-ssg/bengal/blob/main/bengal/content_types/base.py)
-- [Built-in strategies](https://github.com/bengal-ssg/bengal/blob/main/bengal/content_types/strategies.py)
+- [ContentTypeStrategy source](https://github.com/lbliii/bengal/blob/main/bengal/content_types/base.py)
+- [Built-in strategies](https://github.com/lbliii/bengal/blob/main/bengal/content_types/strategies.py)
 :::

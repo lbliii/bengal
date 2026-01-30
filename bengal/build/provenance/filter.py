@@ -322,11 +322,63 @@ class ProvenanceFilter:
                 self._file_hashes[path] = computed
             return self._file_hashes[path]
 
+    def _get_cascade_sources(self, page: Page) -> list[Path]:
+        """
+        Get all _index.md files that contribute cascade metadata to this page.
+        
+        Traverses from page._section up through parent sections, collecting
+        index page source paths. When any cascade source changes, the page's
+        provenance hash changes, triggering an incremental rebuild.
+        
+        Args:
+            page: The page to find cascade sources for
+            
+        Returns:
+            List of _index.md source paths, ordered from immediate parent to root
+        """
+        sources: list[Path] = []
+        section = getattr(page, "_section", None)
+        
+        # Safety guard: prevent infinite loops from circular references or mock objects
+        # Real hierarchies are never deeper than ~50 levels
+        max_depth = 100
+        depth = 0
+        seen_ids: set[int] = set()
+        
+        while section is not None and depth < max_depth:
+            # Detect circular references by tracking object ids
+            section_id = id(section)
+            if section_id in seen_ids:
+                break  # Circular reference detected
+            seen_ids.add(section_id)
+            
+            # Check if section has an index page
+            index_page = getattr(section, "index_page", None)
+            if index_page is not None:
+                index_path = getattr(index_page, "source_path", None)
+                if index_path is not None and isinstance(index_path, Path):
+                    # Verify file exists (could be virtual or deleted)
+                    try:
+                        if index_path.exists():
+                            sources.append(index_path)
+                    except OSError:
+                        pass  # Skip if file system error
+            
+            # Move to parent section
+            parent = getattr(section, "parent", None)
+            # Break if parent is the same object (self-reference) or not a real section
+            if parent is section or parent is None:
+                break
+            section = parent
+            depth += 1
+        
+        return sources
+
     def _compute_provenance_fast(self, page: Page) -> Provenance | None:
         """
         Fast-path provenance computation for simple content pages.
         
-        Only computes content + config hash (most common case).
+        Computes content + cascade sources + config hash.
         Returns None if page needs full provenance computation (virtual, etc.).
         
         This is an optimization to avoid full provenance computation for
@@ -349,16 +401,33 @@ class ProvenanceFilter:
             if not page.source_path.exists():
                 return None  # File missing - need full check
             
-            # Fast path: Compute just content hash + config hash
-            # This matches the most common case (real markdown files)
+            # Fast path: Compute content hash
             content_hash = self._get_file_hash(page.source_path)
         except OSError:
             # File system error (deleted, permission denied, etc.)
             return None
         
-        # Build minimal provenance (content + config only)
+        # Build provenance: content + cascade sources + config
         provenance = Provenance()
         provenance = provenance.with_input("content", page_path, content_hash)
+        
+        # Add cascade sources (parent _index.md files that contribute cascade metadata)
+        # When any cascade source changes, page provenance changes, triggering rebuild
+        cascade_sources = self._get_cascade_sources(page)
+        for idx, cascade_path in enumerate(cascade_sources):
+            try:
+                cascade_hash = self._get_file_hash(cascade_path)
+                # Use relative path for cache key stability
+                rel_cascade = str(cascade_path.relative_to(self.site.root_path))
+                provenance = provenance.with_input(
+                    f"cascade_{idx}",
+                    CacheKey(f"cascade:{rel_cascade}"),
+                    cascade_hash,
+                )
+            except (OSError, ValueError):
+                # Fall back to full computation if cascade source can't be hashed
+                return None
+        
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
         
         # Cache for later (record_build) - thread-safe
@@ -376,8 +445,8 @@ class ProvenanceFilter:
         - Taxonomy pages: hash of page list for that tag
         - Other virtual: template + metadata hash
         
-        Note: We intentionally exclude dynamic metadata because it can be
-        modified by cascades. The source file content captures frontmatter.
+        Also includes cascade sources (parent _index.md files) so that when
+        cascade metadata changes, affected pages are rebuilt.
         """
         page_path = self._get_page_key(page)
 
@@ -471,7 +540,23 @@ class ProvenanceFilter:
                 fallback_hash = hash_content(f"{template}:{title}")
                 provenance = provenance.with_input("virtual", rel_path, fallback_hash)
 
-        # 2. Site config (affects all pages)
+        # 2. Cascade sources (parent _index.md files that contribute cascade metadata)
+        # When any cascade source changes, page provenance changes, triggering rebuild
+        cascade_sources = self._get_cascade_sources(page)
+        for idx, cascade_path in enumerate(cascade_sources):
+            try:
+                cascade_hash = self._get_file_hash(cascade_path)
+                # Use relative path for cache key stability
+                rel_cascade = str(cascade_path.relative_to(self.site.root_path))
+                provenance = provenance.with_input(
+                    f"cascade_{idx}",
+                    CacheKey(f"cascade:{rel_cascade}"),
+                    cascade_hash,
+                )
+            except (OSError, ValueError):
+                pass  # Skip if cascade source can't be hashed
+
+        # 3. Site config (affects all pages)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
         # Cache for later - thread-safe

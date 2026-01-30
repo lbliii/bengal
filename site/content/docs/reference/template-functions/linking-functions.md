@@ -287,3 +287,79 @@ Check if an external reference is resolvable before rendering.
 ```
 
 **See also**: [[docs/content/authoring/external-references|External References Guide]]
+
+---
+
+# URL Filters
+
+These filters transform and manipulate URLs.
+
+## absolute_url
+
+Convert a relative URL to an absolute URL using the site's `baseurl`.
+
+```kida
+{{ page.href | absolute_url }}
+{# → "https://example.com/docs/getting-started/" #}
+
+{{ "/api/search.json" | absolute_url }}
+{# → "https://example.com/api/search.json" (no trailing slash for files) #}
+```
+
+Also available as `url` (alias).
+
+## href
+
+Apply the site's baseurl to a path. For manual paths in templates.
+
+```kida
+{{ "/assets/style.css" | href }}
+{# With baseurl="/docs": → "/docs/assets/style.css" #}
+```
+
+## url_encode / url_decode
+
+Encode or decode URL components.
+
+```kida
+{{ "hello world" | url_encode }}  {# → "hello%20world" #}
+{{ "hello%20world" | url_decode }}  {# → "hello world" #}
+```
+
+## url_parse
+
+Parse a URL into components.
+
+```kida
+{% let parsed = "https://example.com/path?q=1" | url_parse %}
+{{ parsed.scheme }}    {# → "https" #}
+{{ parsed.netloc }}    {# → "example.com" #}
+{{ parsed.path }}      {# → "/path" #}
+{{ parsed.query }}     {# → "q=1" #}
+```
+
+## url_param
+
+Get a specific query parameter from a URL.
+
+```kida
+{{ "https://example.com?page=2&sort=date" | url_param("page") }}
+{# → "2" #}
+```
+
+## url_query
+
+Build a query string from a dict.
+
+```kida
+{{ {"page": 2, "sort": "date"} | url_query }}
+{# → "page=2&sort=date" #}
+```
+
+## ensure_trailing_slash
+
+Ensure a URL has a trailing slash.
+
+```kida
+{{ ensure_trailing_slash("/docs/api") }}  {# → "/docs/api/" #}
+```

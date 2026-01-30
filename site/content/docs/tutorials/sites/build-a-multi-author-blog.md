@@ -377,7 +377,7 @@ Create the author page template at `templates/authors/single.html`:
 
 The `site.indexes.author` provides O(1) lookup for author posts, which is much faster than filtering all pages with `where('author.name', ...)`. The author index is automatically built during site generation and maps author names to their post references.
 
-For even more advanced use cases, consider using the `author_view` filter (see the [default theme implementation](https://github.com/bengal/bengal/blob/main/bengal/themes/default/templates/author/single.html) for examples).
+For even more advanced use cases, consider using the `author_view` filter (see the [default theme implementation](https://github.com/lbliii/bengal/blob/main/bengal/themes/default/templates/author/single.html) for examples).
 :::
 
 Add styles to `assets/css/author.css`:

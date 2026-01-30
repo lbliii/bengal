@@ -45,11 +45,14 @@ Complete reference for all frontmatter fields available in Bengal pages.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `tags` | list | Tags for categorization |
-| `categories` | list | Categories for grouping |
-| `keywords` | list | SEO keywords |
-| `category` | string | Single category for grouping |
-| `authors` | list | Page authors (strings or objects) |
+| `tags` | list | Tags for categorization (generates tag pages) |
+| `category` | string | Single category for grouping (generates category pages) |
+| `keywords` | list | SEO keywords (metadata only, no pages generated) |
+| `author` | string/object | Page author (see Author Patterns below) |
+
+:::{note}
+Only `tags` and `category` generate taxonomy pages by default. Use `author` (singular) for author attribution.
+:::
 
 ### Author Patterns
 
