@@ -192,6 +192,8 @@ def _normalize_html(html: str) -> str:
 # =============================================================================
 
 
+@pytest.mark.slow  # Each example runs full build (~100s total)
+@pytest.mark.parallel_unsafe  # Full builds conflict with xdist workers in Python 3.14t
 class TestBuildProperties:
     """Property-based tests for build behavior."""
 
@@ -371,6 +373,8 @@ class TestURLProperties:
         )
 
 
+@pytest.mark.slow  # Each example runs full build (~60s total)
+@pytest.mark.parallel_unsafe  # Full builds conflict with xdist workers in Python 3.14t
 class TestTaxonomyProperties:
     """Property-based tests for taxonomy behavior."""
 
