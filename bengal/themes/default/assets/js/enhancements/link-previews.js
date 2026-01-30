@@ -339,7 +339,33 @@
         clearHostFailures(link.hostname);
       }
 
-      const data = await response.json();
+      let data = await response.json();
+
+      // Handle site index JSON format (used for homepage links)
+      // Site index has: { site: {...}, pages: [...] }
+      // Per-page JSON has: { title: "...", excerpt: "...", ... }
+      if (data.site && data.pages && !data.title) {
+        // Try to find the homepage entry in pages array
+        // Homepage has uri: "/" or objectID: "/"
+        const homepage = data.pages.find(p => p.uri === '/' || p.objectID === '/');
+        if (homepage) {
+          // Use the homepage page entry
+          data = homepage;
+        } else {
+          // Fall back to site metadata
+          data = {
+            title: data.site.title || 'Untitled',
+            excerpt: data.site.description || '',
+            section: null,
+            tags: [],
+            reading_time: null,
+            word_count: null,
+            date: null,
+            _isSiteIndex: true,  // Flag for debugging
+          };
+        }
+      }
+
       cacheSet(cacheKey, data);
       pendingFetch = null;
       return data;
