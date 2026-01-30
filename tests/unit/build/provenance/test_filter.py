@@ -386,3 +386,174 @@ class TestProvenanceFilterResult:
         )
         
         assert result.is_skip is False
+
+
+# =============================================================================
+# Cascade Provenance Tests
+# =============================================================================
+
+
+class TestCascadeProvenance:
+    """Tests for cascade source tracking in provenance."""
+
+    def test_get_cascade_sources_returns_empty_for_page_without_section(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Page without _section returns empty cascade sources."""
+        page = MagicMock()
+        page.source_path = mock_site.root_path / "content" / "about.md"
+        page._section = None
+        
+        sources = provenance_filter._get_cascade_sources(page)
+        
+        assert sources == []
+
+    def test_get_cascade_sources_returns_index_page_path(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Page with section returns section's _index.md path."""
+        # Create the index file on disk
+        content_dir = mock_site.root_path / "content" / "docs"
+        content_dir.mkdir(parents=True, exist_ok=True)
+        index_path = content_dir / "_index.md"
+        index_path.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+        
+        # Create mock section with index page
+        index_page = MagicMock()
+        index_page.source_path = index_path
+        
+        section = MagicMock()
+        section.index_page = index_page
+        section.parent = None
+        
+        page = MagicMock()
+        page.source_path = content_dir / "intro.md"
+        page._section = section
+        
+        sources = provenance_filter._get_cascade_sources(page)
+        
+        assert len(sources) == 1
+        assert sources[0] == index_path
+
+    def test_get_cascade_sources_traverses_parent_hierarchy(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Page in nested section returns all parent _index.md paths."""
+        # Create index files on disk
+        docs_dir = mock_site.root_path / "content" / "docs"
+        guides_dir = docs_dir / "guides"
+        guides_dir.mkdir(parents=True, exist_ok=True)
+        
+        docs_index = docs_dir / "_index.md"
+        docs_index.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+        
+        guides_index = guides_dir / "_index.md"
+        guides_index.write_text("---\ncascade:\n  layout: guide\n---\n# Guides")
+        
+        # Create mock parent section
+        docs_index_page = MagicMock()
+        docs_index_page.source_path = docs_index
+        
+        parent_section = MagicMock()
+        parent_section.index_page = docs_index_page
+        parent_section.parent = None
+        
+        # Create mock child section
+        guides_index_page = MagicMock()
+        guides_index_page.source_path = guides_index
+        
+        child_section = MagicMock()
+        child_section.index_page = guides_index_page
+        child_section.parent = parent_section
+        
+        page = MagicMock()
+        page.source_path = guides_dir / "intro.md"
+        page._section = child_section
+        
+        sources = provenance_filter._get_cascade_sources(page)
+        
+        # Should return child first, then parent (ordered from immediate to root)
+        assert len(sources) == 2
+        assert sources[0] == guides_index
+        assert sources[1] == docs_index
+
+    def test_cascade_change_changes_provenance_hash(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Changing _index.md content changes page provenance hash."""
+        # Create content files
+        docs_dir = mock_site.root_path / "content" / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        
+        index_path = docs_dir / "_index.md"
+        index_path.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+        
+        page_path = docs_dir / "intro.md"
+        page_path.write_text("# Introduction")
+        
+        # Create mock section
+        index_page = MagicMock()
+        index_page.source_path = index_path
+        
+        section = MagicMock()
+        section.index_page = index_page
+        section.parent = None
+        
+        page = MagicMock()
+        page.source_path = page_path
+        page.metadata = {}
+        page._virtual = False
+        page._section = section
+        
+        # Compute initial provenance
+        prov1 = provenance_filter._compute_provenance(page)
+        hash1 = prov1.combined_hash
+        
+        # Clear session cache to force recomputation
+        provenance_filter._file_hashes.clear()
+        provenance_filter._computed_provenance.clear()
+        
+        # Change the _index.md content
+        index_path.write_text("---\ncascade:\n  type: reference\n---\n# Docs")
+        
+        # Compute provenance again
+        prov2 = provenance_filter._compute_provenance(page)
+        hash2 = prov2.combined_hash
+        
+        # Hashes should be different
+        assert hash1 != hash2
+
+    def test_fast_path_includes_cascade_sources(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Fast path provenance includes cascade source hashes."""
+        # Create content files
+        docs_dir = mock_site.root_path / "content" / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        
+        index_path = docs_dir / "_index.md"
+        index_path.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+        
+        page_path = docs_dir / "intro.md"
+        page_path.write_text("# Introduction")
+        
+        # Create mock section
+        index_page = MagicMock()
+        index_page.source_path = index_path
+        
+        section = MagicMock()
+        section.index_page = index_page
+        section.parent = None
+        
+        page = MagicMock()
+        page.source_path = page_path
+        page.metadata = {}
+        page._virtual = False
+        page._section = section
+        
+        # Compute fast-path provenance
+        prov = provenance_filter._compute_provenance_fast(page)
+        
+        assert prov is not None
+        # Should have at least 3 inputs: content, cascade_0, config
+        assert prov.input_count >= 3

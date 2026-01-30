@@ -1651,4 +1651,4 @@ If you encounter a health check issue:
 3. Run with `--verbose` for more details
 4. Check the [troubleshooting guide](/docs/building/troubleshooting/)
 
-For bugs or unclear errors, please [open an issue](https://github.com/bengal-ssg/bengal/issues).
+For bugs or unclear errors, please [open an issue](https://github.com/lbliii/bengal/issues).

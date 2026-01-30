@@ -179,24 +179,33 @@ cd benchmarks
 # Install dependencies
 pip install -r requirements.txt
 
+# Also install bengal in editable mode from project root
+pip install -e ..
+
 # Run all benchmarks
-pytest -v --benchmark
+pytest -v
 
 # Run specific benchmark
 pytest test_build.py -k "incremental" -v
 
 # Run cold build permutations
 pytest test_cold_build_permutations.py -v
+
+# Save and compare results
+pytest test_build.py --benchmark-save=baseline
+pytest test_build.py --benchmark-compare=baseline
 ```
 
 ### Available Benchmark Suites
 
 | Suite | Purpose |
 |-------|---------|
-| `test_build.py` | Core build performance, incremental builds |
-| `test_cold_build_permutations.py` | Compare build modes across site sizes |
-| `test_10k_site.py` | Large site performance (10,000 pages) |
+| `test_build.py` | Core build performance, incremental builds, fast mode |
+| `test_cold_build_permutations.py` | Compare build modes across site sizes (100-1000 pages) |
+| `test_10k_site.py` | Large site performance (10,000 pages), memory usage |
 | `test_nav_tree_performance.py` | Navigation tree generation |
+| `test_kida_vs_jinja.py` | Template engine concurrent performance comparison |
+| `test_github_pages_optimization.py` | Optimal configuration for GitHub Actions (2-core, 7GB) |
 
 ---
 

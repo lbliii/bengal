@@ -453,4 +453,4 @@ You've learned to:
 
 ---
 
-**Feedback?** Found this tutorial helpful or confusing? [Open an issue](https://github.com/bengal/bengal/issues) to let us know!
+**Feedback?** Found this tutorial helpful or confusing? [Open an issue](https://github.com/lbliii/bengal/issues) to let us know!

@@ -111,3 +111,31 @@ Get featured posts from a list.
   <div class="featured">{{ post.title }}</div>
 {% end %}
 ```
+
+## release_view
+
+Convert a single release item to a `ReleaseView`. Useful when you have a single release page.
+
+```kida
+{% let rel = page | release_view %}
+{% if rel %}
+  <h2>{{ rel.version }}</h2>
+  <p>Released: {{ rel.date | dateformat }}</p>
+{% end %}
+```
+
+Returns `None` if conversion fails.
+
+## post_view
+
+Convert a single page to a `PostView`. Useful for individual post pages.
+
+```kida
+{% let p = page | post_view %}
+{% if p %}
+  <h1>{{ p.title }}</h1>
+  <span>{{ p.reading_time }} min read</span>
+{% end %}
+```
+
+Returns `None` if conversion fails.

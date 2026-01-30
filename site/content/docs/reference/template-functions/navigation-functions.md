@@ -58,3 +58,31 @@ Check if a page exists without loading it. More efficient than `get_page()` for 
 {% if page_exists('docs/getting-started.md') %}...{% end %}
 {% if page_exists('docs/getting-started') %}...{% end %}
 ```
+
+## get_page
+
+Retrieve a page object by path. Similar to `doc()` but intended for programmatic page access.
+
+```kida
+{% let page = get_page('docs/getting-started') %}
+{% if page %}
+  <a href="{{ page.url }}">{{ page.title }}</a>
+{% end %}
+
+{# Works with various path formats #}
+{% let p1 = get_page('docs/api.md') %}       {# With extension #}
+{% let p2 = get_page('docs/api') %}          {# Without extension #}
+{% let p3 = get_page('/docs/api/') %}        {# Absolute path #}
+```
+
+**Parameters**:
+- `path`: Page path (with or without `.md` extension)
+
+**Returns**: `Page` object or `None`
+
+**Use cases**:
+- Track/series navigation
+- Related pages lookup
+- Dynamic content inclusion
+
+Results are cached per-render for performance.

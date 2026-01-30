@@ -38,11 +38,13 @@ Developed primarily on macOS/Linux. Windows works but may have edge cases with p
 Bengal provides image processing functions (`fill`, `fit`, `resize`, format conversion, srcset generation) that work in templates, but doesn't automatically generate responsive variants during the build phase. You call these functions explicitly in templates:
 
 ```kida
-{# Generate srcset in templates #}
-<img srcset="{{ image | image_srcset([400, 800, 1200]) }}" />
+{# Generate srcset using the filter #}
+<img src="{{ image_url('hero.jpg', width=800) }}"
+     srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}"
+     sizes="(max-width: 640px) 400px, 800px" />
 
-{# Or use the responsive_image macro #}
-{{ responsive_image('hero.jpg', alt='Hero', widths=[320, 640, 1024]) }}
+{# Or use the global function with default sizes (400, 800, 1200, 1600) #}
+<img srcset="{{ image_srcset_gen('hero.jpg') }}" sizes="100vw" />
 ```
 
 For automatic build-time generation, pre-process images or use a CDN with on-the-fly resizing.

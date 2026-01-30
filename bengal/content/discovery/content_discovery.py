@@ -348,6 +348,14 @@ class ContentDiscovery:
             PageProxy on cache hit (use directly)
             None on cache miss (caller should parse via executor or synchronously)
         """
+        # CRITICAL: Never cache _index.md files as PageProxy because they define
+        # cascade metadata for child pages. If loaded from cache, stale cascade
+        # values would be copied to section.metadata, causing incorrect template
+        # selection for child pages during incremental builds.
+        # See: bengal/core/section/queries.py add_page() - copies index metadata to section
+        if file_path.stem in ("_index", "index"):
+            return None  # Force fresh parse for section index files
+        
         # Check cache
         cache_lookup_path = file_path
         if self.site and file_path.is_absolute():

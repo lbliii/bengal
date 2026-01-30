@@ -133,7 +133,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## M
 
 **Menu**
-: Navigation structure defined in `bengal.toml` via `[[menu.main]]` entries. Accessible in templates via `site.menus.main`. Supports nested hierarchies and weights.
+: Navigation structure defined in configuration via `[[menu.main]]` entries (in `bengal.toml`) or `menu.main` sections (in `bengal.yaml` or directory-based config). Accessible in templates via `site.menus.main`. Supports nested hierarchies and weights.
 
 **MyST Markdown**
 : Markedly Structured Text—an extended Markdown syntax that adds directives, roles, and cross-references. Used by Bengal for admonitions, tabs, and other rich content.

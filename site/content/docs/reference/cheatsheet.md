@@ -33,7 +33,7 @@ bengal build --memory-optimized        # Streaming build (5K+ pages)
 bengal build --dry-run                 # Preview build without writing files
 bengal build --explain                 # Show why pages rebuilt/skipped
 bengal build --explain --explain-json  # Machine-readable explain output
-PYTHON_GIL=0 bengal build --fast       # Free-threaded mode (Python 3.13+)
+PYTHON_GIL=0 bengal build --fast       # Free-threaded mode (Python 3.14+)
 
 # Development server
 bengal serve                           # Default port 5173

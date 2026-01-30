@@ -342,6 +342,12 @@ class PageProxy:
         Returns cached metadata including cascaded fields like 'type'.
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
+        
+        For fields that can be cascaded (type, layout, variant), performs
+        lazy resolution by traversing the section hierarchy if the value
+        is not set in the page's own frontmatter. This ensures PageProxy
+        objects correctly inherit cascade values without requiring them
+        to be stored in the cache.
         """
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
@@ -362,8 +368,48 @@ class PageProxy:
             cached_metadata["slug"] = self.core.slug
         if self.core.lang:
             cached_metadata["lang"] = self.core.lang
+        # Include cascade so sections can access cascade metadata from index_page
+        if self.core.cascade:
+            cached_metadata["cascade"] = self.core.cascade
+
+        # Lazy cascade resolution for standard cascade keys
+        # If a key is not in the page's own metadata, look it up from
+        # the section hierarchy. This ensures cascade works for PageProxy
+        # without storing cascade values in the cache.
+        cascade_keys = ("type", "layout", "variant")
+        for key in cascade_keys:
+            if key not in cached_metadata or cached_metadata.get(key) is None:
+                cascade_value = self._resolve_cascade(key)
+                if cascade_value is not None:
+                    cached_metadata[key] = cascade_value
 
         return cached_metadata
+
+    def _resolve_cascade(self, key: str) -> Any:
+        """
+        Resolve a cascade value by traversing the section hierarchy.
+        
+        Walks up from this page's section to the root, checking each
+        section's cascade metadata for the requested key. Returns the
+        first value found, or None if not found.
+        
+        This enables lazy cascade resolution without storing cascade
+        values in the page cache. Sections are always freshly parsed
+        each build, so cascade values are always current.
+        
+        Args:
+            key: The cascade key to look up (e.g., "type", "layout")
+            
+        Returns:
+            The cascade value from the nearest ancestor section, or None
+        """
+        section = self._section  # O(1) lookup via site registry
+        while section is not None:
+            cascade = getattr(section, "metadata", {}).get("cascade", {})
+            if key in cascade:
+                return cascade[key]
+            section = getattr(section, "parent", None)
+        return None
 
     rendered_html = _lazy_property_with_setter(
         "rendered_html", default="", getter_doc="Rendered HTML (lazy-loaded)."

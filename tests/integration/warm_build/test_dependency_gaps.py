@@ -367,6 +367,150 @@ This page will be deleted.
         )
 
 
+class TestCascadeFrontmatterGap:
+    """
+    Gap 4: Cascade changes should trigger child page rebuilds.
+    
+    When an _index.md changes its cascade frontmatter, all child pages that
+    inherit those cascade values should be rebuilt with the new values.
+    
+    This tests the fix in ProvenanceFilter._get_cascade_sources() that tracks
+    parent _index.md files as provenance inputs.
+    """
+
+    def test_cascade_change_triggers_child_page_rebuild(
+        self, site_with_cascade_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Cascade change triggers incremental rebuild of child pages.
+        
+        Scenario:
+        1. Full build with _index.md cascade: type: doc
+        2. Modify _index.md to change cascade type to 'reference'
+        3. Run incremental build
+        4. Assert: Child pages rebuilt with new cascade type in HTML output
+        
+        This is the core gap: when a parent section's cascade changes,
+        child pages should be rebuilt with the updated cascade values.
+        """
+        # Build 1: Full build
+        stats1 = site_with_cascade_tracking.full_build()
+        assert stats1.pages_built >= 2, "Should have section index + child page"
+        
+        # Verify initial cascade type appears in child page output
+        # Bengal's default theme outputs type in body tag as data-type
+        site_with_cascade_tracking.assert_output_contains(
+            "docs/guide/index.html", 'data-type="doc"'
+        )
+        
+        # Modify _index.md to change cascade type
+        site_with_cascade_tracking.modify_file(
+            "content/docs/_index.md",
+            """---
+title: Documentation
+cascade:
+  type: reference
+  layout: docs-layout
+---
+
+# Documentation
+""",
+        )
+        
+        site_with_cascade_tracking.wait_for_fs()
+        
+        # Build 2: Incremental build should detect cascade change
+        stats2 = site_with_cascade_tracking.incremental_build()
+        
+        # Assert: Child page was rebuilt with new cascade type
+        site_with_cascade_tracking.assert_output_contains(
+            "docs/guide/index.html", 'data-type="reference"'
+        )
+        site_with_cascade_tracking.assert_output_not_contains(
+            "docs/guide/index.html", 'data-type="doc"'
+        )
+        
+        # Assert: At least the child page was rebuilt
+        assert stats2.cache_misses >= 1, (
+            "Cascade change should trigger rebuild of child pages"
+        )
+
+    def test_nested_cascade_change_propagates_to_deep_children(
+        self, site_with_cascade_tracking: WarmBuildTestSite
+    ) -> None:
+        """
+        Nested cascade changes propagate through deeply nested sections.
+        
+        Scenario:
+        1. Full build with docs/_index.md cascade
+        2. Add a nested subsection: docs/advanced/_index.md
+        3. Add a page in the subsection: docs/advanced/tips.md
+        4. Build again
+        5. Modify root docs/_index.md cascade
+        6. Incremental build
+        7. Assert: Both guide.md AND advanced/tips.md are rebuilt
+        """
+        # Build 1: Full build
+        stats1 = site_with_cascade_tracking.full_build()
+        
+        # Create nested structure
+        site_with_cascade_tracking.create_file(
+            "content/docs/advanced/_index.md",
+            """---
+title: Advanced
+---
+
+# Advanced Topics
+""",
+        )
+        site_with_cascade_tracking.create_file(
+            "content/docs/advanced/tips.md",
+            """---
+title: Tips and Tricks
+---
+
+# Tips and Tricks
+""",
+        )
+        
+        site_with_cascade_tracking.wait_for_fs()
+        
+        # Build 2: Build with new pages
+        stats2 = site_with_cascade_tracking.full_build()
+        
+        # Verify initial cascade in nested page
+        site_with_cascade_tracking.assert_output_contains(
+            "docs/advanced/tips/index.html", 'data-type="doc"'
+        )
+        
+        # Modify root cascade
+        site_with_cascade_tracking.modify_file(
+            "content/docs/_index.md",
+            """---
+title: Documentation
+cascade:
+  type: api-doc
+  layout: docs-layout
+---
+
+# Documentation
+""",
+        )
+        
+        site_with_cascade_tracking.wait_for_fs()
+        
+        # Build 3: Incremental build
+        stats3 = site_with_cascade_tracking.incremental_build()
+        
+        # Assert: Both levels rebuilt with new cascade
+        site_with_cascade_tracking.assert_output_contains(
+            "docs/guide/index.html", 'data-type="api-doc"'
+        )
+        site_with_cascade_tracking.assert_output_contains(
+            "docs/advanced/tips/index.html", 'data-type="api-doc"'
+        )
+
+
 # =============================================================================
 # FIXTURES
 # =============================================================================
@@ -608,4 +752,94 @@ def site_with_sitemap(tmp_path) -> WarmBuildTestSite:
     site_dir = tmp_path / "sitemap_site"
     site_dir.mkdir()
     create_sitemap_site_structure(site_dir)
+    return WarmBuildTestSite(site_dir=site_dir)
+
+
+def create_cascade_tracking_site_structure(site_dir) -> None:
+    """
+    Create a site structure for testing cascade incremental builds.
+    
+    Uses a custom template that outputs page.type as a data attribute,
+    so we can verify cascade values propagate to HTML output.
+    """
+    from pathlib import Path
+    
+    # Config
+    (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Cascade Tracking Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+incremental = true
+generate_sitemap = false
+generate_rss = false
+""")
+    
+    # Content directory
+    content_dir = site_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Home page
+    (content_dir / "_index.md").write_text("""---
+title: Home
+---
+
+# Welcome
+""")
+    
+    # Docs section with cascade
+    docs_dir = content_dir / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    
+    (docs_dir / "_index.md").write_text("""---
+title: Documentation
+cascade:
+  type: doc
+  layout: docs-layout
+---
+
+# Documentation
+""")
+    
+    # Child page that inherits cascade
+    (docs_dir / "guide.md").write_text("""---
+title: User Guide
+---
+
+# User Guide
+
+Guide content here.
+""")
+    
+    # Templates with type output - use page.type in data attribute
+    templates_dir = site_dir / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Default template that outputs page type
+    (templates_dir / "default.html").write_text("""<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }}</title></head>
+<body data-page-type="{{ page.type or 'none' }}">
+<main>
+<h1>{{ page.title }}</h1>
+{{ content }}
+</main>
+</body>
+</html>
+""")
+
+
+@pytest.fixture
+def site_with_cascade_tracking(tmp_path) -> WarmBuildTestSite:
+    """
+    Create a test site with cascade frontmatter for incremental tracking.
+    
+    Returns:
+        WarmBuildTestSite helper with cascade structure
+    """
+    site_dir = tmp_path / "cascade_tracking_site"
+    site_dir.mkdir()
+    create_cascade_tracking_site_structure(site_dir)
     return WarmBuildTestSite(site_dir=site_dir)

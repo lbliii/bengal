@@ -116,18 +116,22 @@ Use `image_srcset_gen` for common breakpoints:
      sizes="100vw">
 ```
 
-### Responsive Image Macro
+### Building Your Own Responsive Image Helper
 
-The default theme includes a responsive image macro:
+You can create a reusable responsive image pattern in your templates:
 
 ```kida
-{{ responsive_image(
-    'hero.jpg', 
-    alt='Hero image',
-    sizes='(max-width: 768px) 100vw, 50vw',
-    widths=[320, 640, 1024, 1280],
-    loading='lazy'
-) }}
+{# Define in a partial or macro #}
+{% macro responsive_img(src, alt, widths=[320, 640, 1024, 1280], sizes='100vw', loading='lazy') %}
+<img src="{{ image_url(src, width=widths[-1]) }}"
+     srcset="{{ src | image_srcset(widths) }}"
+     sizes="{{ sizes }}"
+     alt="{{ alt }}"
+     loading="{{ loading }}" />
+{% endmacro %}
+
+{# Usage #}
+{{ responsive_img('hero.jpg', alt='Hero image', sizes='(max-width: 768px) 100vw, 50vw') }}
 ```
 
 ## Format Conversion

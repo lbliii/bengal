@@ -161,13 +161,13 @@ bengal build --no-parallel
 
 ### Free-Threaded Python
 
-Bengal automatically detects Python 3.13t+ (free-threaded):
+Bengal automatically detects Python 3.14t+ (free-threaded):
 
 ```bash
 # 1.5-2x faster rendering
 # Install free-threaded Python:
-pyenv install 3.13t
-python3.13t -m pip install bengal
+pyenv install 3.14t
+python3.14t -m pip install bengal
 ```
 
 When running on free-threaded Python:

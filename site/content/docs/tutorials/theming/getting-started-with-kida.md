@@ -62,11 +62,11 @@ cd my-kida-site
 
 ### Configure Kida (Optional)
 
-Kida is the default engine. Optionally configure Kida options in `bengal.yaml`:
+Kida is the default engine. Optionally configure Kida options in `bengal.toml`:
 
-```yaml
-kida:
-  bytecode_cache: true       # Cache compiled templates (default)
+```toml
+[kida]
+bytecode_cache = true       # Cache compiled templates (default)
 ```
 
 **Note**: Strict mode (raising errors for undefined variables) is always enabled in Kida and cannot be disabled. This helps catch typos and missing variables early.
@@ -338,7 +338,7 @@ Cache expensive operations:
 ```
 
 :::{note}
-**Cache TTL**: Fragment cache uses a global TTL configured in `bengal.yaml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
+**Cache TTL**: Fragment cache uses a global TTL configured in `bengal.toml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
 :::
 
 ## Step 8: Create Content

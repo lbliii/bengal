@@ -70,6 +70,16 @@ class PageSnapshot:
         """Alias for metadata (template compatibility)."""
         return self.metadata
 
+    @property
+    def type(self) -> str | None:
+        """Get page type from metadata (template compatibility)."""
+        return self.metadata.get("type")
+
+    @property
+    def variant(self) -> str | None:
+        """Get page variant from metadata (template compatibility)."""
+        return self.metadata.get("variant") or self.metadata.get("layout")
+
     def __hash__(self) -> int:
         """Hash based on source_path and content_hash for set operations."""
         return hash((self.source_path, self.content_hash))

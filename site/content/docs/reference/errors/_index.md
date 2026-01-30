@@ -172,7 +172,7 @@ Incremental build detection or cache failed.
 
 **How to Fix**
 1. Clear cache and rebuild: `bengal clean --cache && bengal build`
-2. Run full build: `bengal build --no-cache`
+2. Run full build with clean output: `bengal build --clean-output`
 
 ---
 
@@ -1527,8 +1527,8 @@ External link check timed out.
 - Too many external links
 
 **How to Fix**
-1. Increase timeout: `bengal validate --linkcheck-timeout 60`
-2. Skip external checks: `bengal validate --ignore H202`
+1. Increase timeout: `bengal health linkcheck --timeout 60`
+2. Skip external checks: `bengal health linkcheck --internal-only`
 3. Check network connectivity
 
 ---
@@ -1672,4 +1672,4 @@ If you encounter an error:
 3. Review the troubleshooting steps above
 4. Check the [troubleshooting guide](/docs/building/troubleshooting/)
 
-For bugs or unclear errors, please [open an issue](https://github.com/bengal-ssg/bengal/issues).
+For bugs or unclear errors, please [open an issue](https://github.com/lbliii/bengal/issues).

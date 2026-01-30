@@ -254,6 +254,24 @@ Flatten nested lists into a single list.
 {% let all_tags = nested_tags |> flatten |> uniq %}
 ```
 
+## resolve_pages
+
+Convert page paths (from indexes) to Page objects. Uses cached lookups for O(1) performance.
+
+```kida
+{# Get paths from index, then resolve to pages #}
+{% let author_paths = site.indexes.author.get('Jane Smith') %}
+{% let author_posts = author_paths | resolve_pages %}
+
+{% for post in author_posts | sort_by('date', reverse=true) %}
+  <h2>{{ post.title }}</h2>
+{% end %}
+```
+
+**Use case:** Site indexes store page paths (strings) for efficiency. Use `resolve_pages` when you need full Page objects from index results.
+
+---
+
 ## Set Operations
 
 Perform set operations on lists of pages or items.
