@@ -101,6 +101,36 @@ def _get_top_bottleneck(total_render_ms: float) -> str | None:
     return f"{display_name} {pct:.0f}%"
 
 
+def _is_css_output_missing(orchestrator: BuildOrchestrator) -> bool:
+    """
+    Check if CSS entry points are missing from output.
+    
+    Used to detect when CSS needs to be re-processed during incremental builds,
+    even if no assets have explicitly changed. This handles the case where output
+    was cleaned or CSS bundling was interrupted.
+    
+    Args:
+        orchestrator: Build orchestrator instance with site configuration
+        
+    Returns:
+        True if CSS entry points are missing and need processing
+        
+    """
+    output_assets = orchestrator.site.output_dir / "assets"
+    if not output_assets.exists():
+        return True
+    
+    # Check for CSS entry points (style.css or fingerprinted style.*.css)
+    css_dir = output_assets / "css"
+    if not css_dir.exists():
+        return True
+    
+    # Look for style.css or style.{hash}.css
+    # Fingerprinted CSS files have pattern: style.{8-char-hash}.css
+    style_files = list(css_dir.glob("style*.css"))
+    return len(style_files) == 0
+
+
 def _optimize_css(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
@@ -274,17 +304,33 @@ def phase_assets(
 
             theme_dir = get_theme_assets_dir(orchestrator.site.root_path, orchestrator.site.theme)
             if theme_dir and theme_dir.exists():
-                # Check if output/assets directory was populated
-                output_assets = orchestrator.site.output_dir / "assets"
-                if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
-                    # Theme assets not in output - re-process all assets
-                    assets_to_process = orchestrator.site.assets
+                # Check if CSS entry points are missing from output
+                # This replaces the arbitrary file count threshold with specific CSS validation
+                if _is_css_output_missing(orchestrator):
+                    # CSS missing - re-process all assets
+                    assets_to_process = list(orchestrator.site.assets)
+                    orchestrator.logger.info(
+                        "css_output_missing_forcing_asset_reprocess",
+                        reason="css_entry_point_missing",
+                    )
 
         # CSS Optimization: Generate minimal style.css based on content types and features
         # See: plan/drafted/rfc-css-tree-shaking.md
         css_config = orchestrator.site.config.get("css", {})
         if isinstance(css_config, dict) and css_config.get("optimize", True):
             _optimize_css(orchestrator, cli, assets_to_process)
+
+        # Secondary validation: Even if no assets to process, verify CSS exists in output
+        # This handles the case where assets were skipped but CSS is missing/stale
+        if incremental and not assets_to_process and _is_css_output_missing(orchestrator):
+            # CSS missing - force CSS entry points to be processed
+            css_entries = [a for a in orchestrator.site.assets if a.is_css_entry_point()]
+            if css_entries:
+                assets_to_process = css_entries
+                orchestrator.logger.info(
+                    "css_output_missing_forcing_css_reprocess",
+                    css_entries_count=len(css_entries),
+                )
 
         orchestrator.assets.process(
             assets_to_process, parallel=parallel, progress_manager=None, collector=collector

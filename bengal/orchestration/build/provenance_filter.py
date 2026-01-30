@@ -239,10 +239,16 @@ def phase_incremental_filter_provenance(
         output_html_missing = (
             not output_dir.exists() or len(list(output_dir.iterdir())) == 0
         )
-        output_assets_missing = (
+        
+        # Check for CSS entry points instead of arbitrary file count
+        # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
+        css_dir = output_assets_dir / "css"
+        css_entry_missing = (
             not output_assets_dir.exists()
-            or len(list(output_assets_dir.iterdir())) < 3
+            or not css_dir.exists()
+            or not any(css_dir.glob("style*.css"))
         )
+        output_assets_missing = css_entry_missing
         
         if (output_html_missing or output_assets_missing) and site.pages:
             # Output was cleaned but cache is warm - force full rebuild
