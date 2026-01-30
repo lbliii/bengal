@@ -68,3 +68,12 @@ repos:
         language: system
         pass_filenames: false
         verbose: true
+
+      # Template CSS validation
+      # Ensures CSS classes used in templates have corresponding definitions
+      - id: check-template-css
+        name: Check template CSS classes have definitions
+        entry: uv run python scripts/check_template_css.py
+        language: system
+        files: ^bengal/themes/.*\.(html|css)$
+        pass_filenames: false

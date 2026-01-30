@@ -344,6 +344,7 @@
 /* Landing page / home page components */
 @layer pages {
   @import url('pages/landing.css');
+  @import url('pages/docs-home.css');
 }
 
 /* ============================================
