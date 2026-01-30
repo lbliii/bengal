@@ -77,7 +77,6 @@ via theme templates without intermediate markdown files. This provides:
   - `result.py`: `AutodocRunResult` and `PageContext` classes
   - `utils.py`: Shared utility functions
 - **Config** (`bengal/autodoc/config.py`): Load and merge configuration
-- **Fallback Templates** (`bengal/autodoc/fallback/`): Minimal templates when theme doesn't provide them
 
 ### Build Lifecycle (Deferred Rendering)
 
@@ -200,11 +199,13 @@ Your theme should provide these templates in `templates/autodoc/python/`:
 - `module.html` - Module documentation page
 - `section-index.html` - Section index page
 
-### Fallback Templates
+### Fallback Behavior
 
-If your theme doesn't provide API templates, Bengal uses minimal fallbacks
-from `bengal/autodoc/fallback/`. These are intentionally basic - customize
-for a better experience.
+The default theme (`bengal/themes/default/templates/autodoc/`) provides complete
+autodoc templates and is always included in the template search path as the final
+fallback. If a template is somehow not found (e.g., corrupted installation), Bengal
+generates minimal inline HTML (`<h1>title</h1><p>description</p>`) and tags the
+page with `_autodoc_fallback_template: true` for detection.
 
 ### Template Variables
 
@@ -261,7 +262,7 @@ autodoc:
 
 **Behavior**:
 - Extraction failures: Logged with warning, empty result returned
-- Template failures: Fallback template used, page tagged with `_autodoc_fallback_template: true`
+- Template failures: Minimal inline HTML generated, page tagged with `_autodoc_fallback_template: true`
 - Summary logged: Counts of successes, failures, and warnings
 
 ### Strict Mode
@@ -275,7 +276,7 @@ autodoc:
 
 **Behavior**:
 - Extraction failures: `RuntimeError` raised immediately
-- Template failures: `RuntimeError` raised when fallback is used
+- Template failures: `RuntimeError` raised when inline fallback is used
 - Partial results: Failures recorded before raising (for context)
 
 ### Run Summary
@@ -299,18 +300,18 @@ if result.has_failures():
     print(f"Fallback pages: {result.fallback_pages}")
 ```
 
-### Fallback Template Tagging
+### Fallback Detection
 
-Pages rendered via fallback template are tagged in metadata:
+Pages rendered via inline fallback (due to missing templates) are tagged in metadata:
 
 ```python
 if page.metadata.get("_autodoc_fallback_template"):
-    # This page used fallback template
+    # This page used inline fallback instead of a proper template
     reason = page.metadata.get("_autodoc_fallback_reason", "Unknown")
     print(f"Fallback used: {reason}")
 ```
 
-Use this to detect pages that need custom templates or to assert zero fallbacks in CI.
+Use this to detect template resolution issues or to assert zero fallbacks in CI.
 
 ## Programmatic Usage
 

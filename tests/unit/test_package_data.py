@@ -20,29 +20,30 @@ BENGAL_PKG = REPO_ROOT / "bengal"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 
 
+@pytest.fixture
+def package_data_patterns() -> list[str]:
+    """Extract package-data patterns from pyproject.toml."""
+    content = PYPROJECT.read_text()
+    # Find the bengal = [...] section under [tool.setuptools.package-data]
+    in_package_data = False
+    patterns = []
+    for line in content.splitlines():
+        if "[tool.setuptools.package-data]" in line:
+            in_package_data = True
+            continue
+        if in_package_data:
+            if line.startswith("[") and "package-data" not in line:
+                break
+            # Extract quoted patterns
+            if '"' in line:
+                start = line.index('"') + 1
+                end = line.index('"', start)
+                patterns.append(line[start:end])
+    return patterns
+
+
 class TestPackageDataCompleteness:
     """Verify all template directories are covered by package-data config."""
-
-    @pytest.fixture
-    def package_data_patterns(self) -> list[str]:
-        """Extract package-data patterns from pyproject.toml."""
-        content = PYPROJECT.read_text()
-        # Find the bengal = [...] section under [tool.setuptools.package-data]
-        in_package_data = False
-        patterns = []
-        for line in content.splitlines():
-            if "[tool.setuptools.package-data]" in line:
-                in_package_data = True
-                continue
-            if in_package_data:
-                if line.startswith("[") and "package-data" not in line:
-                    break
-                # Extract quoted patterns
-                if '"' in line:
-                    start = line.index('"') + 1
-                    end = line.index('"', start)
-                    patterns.append(line[start:end])
-        return patterns
 
     def test_themes_covered(self, package_data_patterns: list[str]) -> None:
         """themes/**/* should be in package-data."""
@@ -93,14 +94,19 @@ class TestTemplateDirectoriesExist:
         default_theme = themes_dir / "default" / "templates"
         assert default_theme.exists(), f"default theme templates not found: {default_theme}"
 
-    def test_autodoc_fallback_templates_exist(self) -> None:
-        """bengal/autodoc/fallback/ should exist with HTML templates."""
-        # Note: autodoc/templates/*.jinja2 is in pyproject.toml for future use,
-        # but currently autodoc uses fallback HTML templates
-        fallback_dir = BENGAL_PKG / "autodoc" / "fallback"
-        assert fallback_dir.exists(), f"autodoc fallback not found: {fallback_dir}"
-        html_files = list(fallback_dir.glob("*.html"))
-        assert len(html_files) > 0, "No .html files found in autodoc/fallback"
+    def test_autodoc_templates_in_theme_exist(self) -> None:
+        """bengal/themes/default/templates/autodoc/ should exist with templates.
+
+        Autodoc templates live in the default theme, not in a separate fallback
+        directory. The theme's templates are always available as the template
+        engine adds default theme as the final fallback in the search path.
+        """
+        autodoc_dir = BENGAL_PKG / "themes" / "default" / "templates" / "autodoc"
+        assert autodoc_dir.exists(), f"autodoc templates not found: {autodoc_dir}"
+        # Should have python, cli, and openapi subdirectories
+        assert (autodoc_dir / "python").exists(), "Missing autodoc/python templates"
+        assert (autodoc_dir / "cli").exists(), "Missing autodoc/cli templates"
+        assert (autodoc_dir / "openapi").exists(), "Missing autodoc/openapi templates"
 
     def test_scaffolds_directory_exists(self) -> None:
         """bengal/scaffolds/ should exist."""
@@ -126,25 +132,6 @@ class TestTemplateDirectoriesExist:
 
 class TestNoUnpackagedTemplates:
     """Detect template directories that might be missing from package-data."""
-
-    @pytest.fixture
-    def package_data_patterns(self) -> list[str]:
-        """Extract package-data patterns from pyproject.toml."""
-        content = PYPROJECT.read_text()
-        in_package_data = False
-        patterns = []
-        for line in content.splitlines():
-            if "[tool.setuptools.package-data]" in line:
-                in_package_data = True
-                continue
-            if in_package_data:
-                if line.startswith("[") and "package-data" not in line:
-                    break
-                if '"' in line:
-                    start = line.index('"') + 1
-                    end = line.index('"', start)
-                    patterns.append(line[start:end])
-        return patterns
 
     def test_all_template_dirs_are_packaged(
         self, package_data_patterns: list[str]
