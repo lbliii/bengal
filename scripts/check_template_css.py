@@ -221,23 +221,51 @@ def extract_classes_from_css(css_dir: Path) -> dict[str, list[ClassDefinition]]:
         except (OSError, UnicodeDecodeError):
             continue
 
-        # Track if we're inside a comment
+        # Track if we're inside a multi-line comment
         in_comment = False
 
         for line_num, line in enumerate(content.splitlines(), start=1):
-            # Handle multi-line comments
-            if "/*" in line:
-                in_comment = True
-            if "*/" in line:
-                in_comment = False
-                continue
-            if in_comment:
+            # Strip comments while preserving non-comment code on the same line
+            # This handles: /* comment */ .class, .class /* comment */, and multi-line
+            processed_chars: list[str] = []
+            i = 0
+            line_len = len(line)
+
+            while i < line_len:
+                if in_comment:
+                    # Look for comment end
+                    end_idx = line.find("*/", i)
+                    if end_idx == -1:
+                        # Rest of line is inside comment
+                        break
+                    # Exit comment and continue after closing marker
+                    in_comment = False
+                    i = end_idx + 2
+                else:
+                    # Look for comment start
+                    start_idx = line.find("/*", i)
+                    if start_idx == -1:
+                        # No more comments; take rest of line
+                        processed_chars.append(line[i:])
+                        break
+                    # Append code before comment start
+                    processed_chars.append(line[i:start_idx])
+                    # Check if comment ends on same line
+                    end_idx = line.find("*/", start_idx + 2)
+                    if end_idx == -1:
+                        # Multi-line comment starts
+                        in_comment = True
+                        break
+                    # Skip over complete single-line comment
+                    i = end_idx + 2
+
+            processed_line = "".join(processed_chars)
+
+            # Skip if line is empty after stripping comments
+            if not processed_line.strip():
                 continue
 
-            # Skip single-line comments
-            line_no_comments = re.sub(r"/\*.*?\*/", "", line)
-
-            for match in class_selector_pattern.finditer(line_no_comments):
+            for match in class_selector_pattern.finditer(processed_line):
                 class_name = match.group(1)
                 classes[class_name].append(
                     ClassDefinition(file=css_file, line=line_num)
