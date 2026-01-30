@@ -235,6 +235,139 @@ class TestNestedCascade:
         assert page.metadata["warranty"] == "2-year"  # from version (overrides category)
 
 
+class TestFlatSectionListCascade:
+    """Test cascade with flat section lists (as returned by content discovery).
+
+    Content discovery returns a FLAT list of all sections, not a tree.
+    The cascade engine must only process ROOT sections and let them
+    recursively handle their subsections to ensure proper cascade accumulation.
+    """
+
+    def test_flat_list_child_before_parent_ordering(self):
+        """Test cascade works when child sections appear before parents in flat list.
+
+        This tests the specific bug where iterating over all sections independently
+        (instead of only root sections) would cause nested sections to be processed
+        before their parents, missing the parent's cascade.
+        """
+        site = Site(root_path=Path("/site"), config={})
+
+        # Parent section with cascade
+        parent = Section(name="docs", path=Path("/content/docs"))
+        parent.metadata["cascade"] = {"type": "doc", "layout": "docs-layout"}
+
+        # Child section (no cascade, should inherit from parent)
+        child = Section(name="guides", path=Path("/content/docs/guides"))
+        # No cascade on child
+
+        # Page in child section
+        page = Page(
+            source_path=Path("/content/docs/guides/intro.md"),
+            metadata={"title": "Introduction"},
+        )
+
+        # Connect hierarchy
+        parent.add_subsection(child)
+        child.add_page(page)
+
+        # CRITICAL: Put child BEFORE parent in flat list to expose ordering bug
+        site.sections = [child, parent]
+        site.pages = [page]
+
+        site._apply_cascades()
+
+        # Page MUST have parent's cascade even though child was listed first
+        assert page.metadata["type"] == "doc"
+        assert page.metadata["layout"] == "docs-layout"
+
+    def test_deeply_nested_flat_list_random_order(self):
+        """Test cascade with deeply nested sections in random flat list order."""
+        site = Site(root_path=Path("/site"), config={})
+
+        # Create 4-level hierarchy: root -> level1 -> level2 -> level3
+        root = Section(name="root", path=Path("/content/root"))
+        root.metadata["cascade"] = {"from_root": True, "depth": 0}
+
+        level1 = Section(name="level1", path=Path("/content/root/level1"))
+        level1.metadata["cascade"] = {"from_level1": True, "depth": 1}
+
+        level2 = Section(name="level2", path=Path("/content/root/level1/level2"))
+        level2.metadata["cascade"] = {"from_level2": True, "depth": 2}
+
+        level3 = Section(name="level3", path=Path("/content/root/level1/level2/level3"))
+        # No cascade on level3, should inherit all parent cascades
+
+        page = Page(
+            source_path=Path("/content/root/level1/level2/level3/page.md"),
+            metadata={"title": "Deep Page"},
+        )
+
+        # Connect hierarchy
+        root.add_subsection(level1)
+        level1.add_subsection(level2)
+        level2.add_subsection(level3)
+        level3.add_page(page)
+
+        # CRITICAL: Put sections in REVERSE order (deepest first) to expose bug
+        site.sections = [level3, level2, level1, root]
+        site.pages = [page]
+
+        site._apply_cascades()
+
+        # Page must have cascade from ALL ancestors
+        assert page.metadata["from_root"] is True
+        assert page.metadata["from_level1"] is True
+        assert page.metadata["from_level2"] is True
+        # Depth should be from deepest ancestor with that key (level2)
+        assert page.metadata["depth"] == 2
+
+    def test_multiple_root_sections_flat_list(self):
+        """Test multiple root sections with their subsections in flat list."""
+        site = Site(root_path=Path("/site"), config={})
+
+        # Root 1: docs
+        docs = Section(name="docs", path=Path("/content/docs"))
+        docs.metadata["cascade"] = {"type": "doc"}
+
+        docs_guides = Section(name="guides", path=Path("/content/docs/guides"))
+        # No cascade
+
+        docs_page = Page(
+            source_path=Path("/content/docs/guides/intro.md"),
+            metadata={"title": "Docs Intro"},
+        )
+
+        docs.add_subsection(docs_guides)
+        docs_guides.add_page(docs_page)
+
+        # Root 2: blog
+        blog = Section(name="blog", path=Path("/content/blog"))
+        blog.metadata["cascade"] = {"type": "post"}
+
+        blog_2024 = Section(name="2024", path=Path("/content/blog/2024"))
+        # No cascade
+
+        blog_page = Page(
+            source_path=Path("/content/blog/2024/hello.md"),
+            metadata={"title": "Hello World"},
+        )
+
+        blog.add_subsection(blog_2024)
+        blog_2024.add_page(blog_page)
+
+        # Flat list with mixed ordering
+        site.sections = [docs_guides, blog_2024, docs, blog]
+        site.pages = [docs_page, blog_page]
+
+        site._apply_cascades()
+
+        # Docs page should have docs cascade
+        assert docs_page.metadata["type"] == "doc"
+
+        # Blog page should have blog cascade (not docs!)
+        assert blog_page.metadata["type"] == "post"
+
+
 class TestCascadeEdgeCases:
     """Test edge cases and error conditions."""
 

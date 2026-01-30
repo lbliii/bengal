@@ -192,3 +192,199 @@ cascade:
         # Should have cascade metadata
         assert "cascade" in empty_section.metadata
         assert empty_section.metadata["cascade"]["type"] == "test"
+
+    def test_deeply_nested_cascade_type_propagation(self, temp_site):
+        """Test that type: doc cascades through deeply nested section hierarchy.
+
+        This tests the specific bug where site.sections is a flat list and
+        nested sections weren't inheriting cascade from their ancestors.
+        Regression test for the cascade engine root-section filtering fix.
+        """
+        content_dir = temp_site / "content"
+
+        # Create a 3-level deep docs hierarchy: docs -> building -> configuration
+        docs_dir = content_dir / "docs"
+        building_dir = docs_dir / "building"
+        config_dir = building_dir / "configuration"
+
+        config_dir.mkdir(parents=True)
+
+        # Root docs section with cascade type: doc
+        (docs_dir / "_index.md").write_text("""---
+title: "Documentation"
+cascade:
+  type: doc
+  layout: docs-layout
+---
+""")
+
+        # Middle section (building) - also has cascade
+        (building_dir / "_index.md").write_text("""---
+title: "Building"
+cascade:
+  type: doc
+  category: building
+---
+""")
+
+        # Deepest section (configuration) - no cascade, should inherit
+        (config_dir / "_index.md").write_text("""---
+title: "Configuration"
+description: "How to configure Bengal"
+---
+""")
+
+        # A page in the deepest section
+        (config_dir / "profiles.md").write_text("""---
+title: "Build Profiles"
+---
+""")
+
+        # Create and discover
+        site = Site(root_path=temp_site, config={})
+        site.discover_content(content_dir)
+
+        # Find the configuration index and the profiles page
+        config_index = next(
+            (p for p in site.pages if "configuration/_index" in str(p.source_path)),
+            None,
+        )
+        profiles_page = next(
+            (p for p in site.pages if "profiles" in str(p.source_path)),
+            None,
+        )
+
+        # Both pages must have inherited type: doc from ancestors
+        assert config_index is not None, "Configuration index page not found"
+        assert profiles_page is not None, "Profiles page not found"
+
+        # Configuration index should have cascade from building (which has type: doc)
+        assert config_index.metadata.get("type") == "doc", (
+            f"Configuration index missing cascaded type. "
+            f"Got: {config_index.metadata.get('type')}"
+        )
+        assert config_index.metadata.get("category") == "building"
+
+        # Profiles page should also have cascaded type: doc
+        assert profiles_page.metadata.get("type") == "doc", (
+            f"Profiles page missing cascaded type. "
+            f"Got: {profiles_page.metadata.get('type')}"
+        )
+        assert profiles_page.metadata.get("category") == "building"
+
+
+class TestCascadeWarmBuild:
+    """Test cascade persistence across warm/incremental builds."""
+
+    @pytest.fixture
+    def temp_site(self):
+        """Create a temporary site directory."""
+        temp_dir = Path(tempfile.mkdtemp())
+        yield temp_dir
+        shutil.rmtree(temp_dir)
+
+    def test_cascade_persists_after_unrelated_file_change(self, temp_site):
+        """Test that cascade values persist when unrelated files change.
+
+        Simulates a warm build where only some files are modified.
+        The cascade values should still be correctly applied.
+        """
+        content_dir = temp_site / "content"
+        docs_dir = content_dir / "docs"
+        docs_dir.mkdir(parents=True)
+
+        # Initial content with cascade
+        (docs_dir / "_index.md").write_text("""---
+title: "Docs"
+cascade:
+  type: doc
+  version: "1.0"
+---
+""")
+
+        (docs_dir / "page1.md").write_text("""---
+title: "Page 1"
+---
+Content for page 1.
+""")
+
+        (docs_dir / "page2.md").write_text("""---
+title: "Page 2"
+---
+Content for page 2.
+""")
+
+        # First discovery
+        site1 = Site(root_path=temp_site, config={})
+        site1.discover_content(content_dir)
+
+        page1_v1 = next(p for p in site1.pages if "page1" in str(p.source_path))
+        page2_v1 = next(p for p in site1.pages if "page2" in str(p.source_path))
+
+        # Both pages should have cascade
+        assert page1_v1.metadata["type"] == "doc"
+        assert page2_v1.metadata["type"] == "doc"
+
+        # Simulate warm build: modify only page2
+        (docs_dir / "page2.md").write_text("""---
+title: "Page 2 - Updated"
+---
+Updated content for page 2.
+""")
+
+        # Second discovery (simulates warm build re-discovery)
+        site2 = Site(root_path=temp_site, config={})
+        site2.discover_content(content_dir)
+
+        page1_v2 = next(p for p in site2.pages if "page1" in str(p.source_path))
+        page2_v2 = next(p for p in site2.pages if "page2" in str(p.source_path))
+
+        # CRITICAL: Both pages must still have cascade after warm build
+        assert page1_v2.metadata["type"] == "doc", "Page 1 lost cascade after warm build"
+        assert page2_v2.metadata["type"] == "doc", "Page 2 lost cascade after warm build"
+        assert page2_v2.metadata["title"] == "Page 2 - Updated"
+
+    def test_cascade_updates_when_parent_cascade_changes(self, temp_site):
+        """Test that child pages get updated cascade when parent cascade changes."""
+        content_dir = temp_site / "content"
+        docs_dir = content_dir / "docs"
+        docs_dir.mkdir(parents=True)
+
+        # Initial cascade
+        (docs_dir / "_index.md").write_text("""---
+title: "Docs"
+cascade:
+  type: doc
+  version: "1.0"
+---
+""")
+
+        (docs_dir / "guide.md").write_text("""---
+title: "Guide"
+---
+""")
+
+        # First discovery
+        site1 = Site(root_path=temp_site, config={})
+        site1.discover_content(content_dir)
+
+        guide_v1 = next(p for p in site1.pages if "guide" in str(p.source_path))
+        assert guide_v1.metadata["version"] == "1.0"
+
+        # Update parent cascade
+        (docs_dir / "_index.md").write_text("""---
+title: "Docs"
+cascade:
+  type: doc
+  version: "2.0"
+---
+""")
+
+        # Second discovery
+        site2 = Site(root_path=temp_site, config={})
+        site2.discover_content(content_dir)
+
+        guide_v2 = next(p for p in site2.pages if "guide" in str(p.source_path))
+
+        # Guide should have updated cascade version
+        assert guide_v2.metadata["version"] == "2.0"
