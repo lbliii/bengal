@@ -89,6 +89,7 @@ include = ["bengal*"]
 bengal = [
     "themes/**/*",
     "autodoc/templates/**/*.jinja2",
+    "analysis/graph/templates/**/*",
     "scaffolds/**/*",
     "py.typed",
 ]
