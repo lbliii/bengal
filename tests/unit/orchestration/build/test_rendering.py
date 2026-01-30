@@ -179,8 +179,8 @@ class TestPhaseAssets:
         mock_theme_dir = tmp_path / "themes" / "my-theme" / "assets"
         mock_theme_dir.mkdir(parents=True)
 
-        # Mock theme service function
-        with patch("bengal.orchestration.build.rendering.get_theme_assets_dir") as mock_get_theme:
+        # Mock theme service function (patch at the source module, not import location)
+        with patch("bengal.services.theme.get_theme_assets_dir") as mock_get_theme:
             mock_get_theme.return_value = mock_theme_dir
 
             result = phase_assets(
@@ -212,7 +212,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=True,
+                force_sequential=False,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -241,7 +241,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=True,
+                force_sequential=False,
                 quiet=False,
                 verbose=False,
                 memory_optimized=True,
@@ -265,7 +265,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -295,7 +295,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -323,7 +323,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
