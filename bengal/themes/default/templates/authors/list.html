@@ -108,7 +108,7 @@ MAIN TEMPLATE
 
   {# Add authors from data/authors.yaml #}
   {% for author_key, author_data in authors_data | items %}
-  {% let author_posts = author_index[author_key] ?? [] %}
+  {% let author_posts = author_index.get(author_key) ?? [] %}
   {% let post_count = author_posts | length %}
   {% let _name = author_data?.name ?? author_key %}
   {% set _ = authors_list.append({
@@ -130,7 +130,7 @@ MAIN TEMPLATE
   {% let author_key = child?.params?.author_name ?? child_title %}
   {% let existing = authors_list |> selectattr('key', 'eq', author_key) |> list %}
   {% if existing | length == 0 %}
-  {% let author_posts = author_index[author_key] ?? [] %}
+  {% let author_posts = author_index.get(author_key) ?? [] %}
   {% let post_count = author_posts | length %}
   {% let child_params = child?.params ?? {} %}
   {% let child_social = child_params?.social ?? {} %}

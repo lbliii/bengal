@@ -139,13 +139,18 @@ class CascadeEngine:
                     root_cascade = {}
                 root_cascade.update(page.metadata["cascade"])
 
-        # Process only root-level sections with root cascade
-        # (they will recurse to subsections)
-        # IMPORTANT: self.sections is a flat list of ALL sections, so we must
-        # filter to only root sections (those with no parent) to avoid processing
-        # nested sections independently without their parent's accumulated cascade.
-        root_sections = [s for s in self.sections if getattr(s, "parent", None) is None]
-        for section in root_sections:
+        # Process only entry point sections - those whose parent is not in self.sections
+        # This handles:
+        # 1. Root sections (parent is None) - always entry points
+        # 2. Versioned sections (parent exists but not in self.sections) - entry points
+        # 3. Subsections whose parent IS in self.sections - NOT entry points, will be
+        #    reached via recursion from their parent with correct accumulated cascade
+        sections_set = set(self.sections)
+        entry_sections = [
+            s for s in self.sections
+            if getattr(s, "parent", None) is None or s.parent not in sections_set
+        ]
+        for section in entry_sections:
             self._apply_section_cascade(section, parent_cascade=root_cascade, stats=stats)
 
         # Also apply root cascade to other top-level pages

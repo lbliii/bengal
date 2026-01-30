@@ -80,7 +80,7 @@ MAIN TEMPLATE
 {% let author_index = site?.indexes?.author ?? {} %}
 
 {# Get author posts with O(1) lookup #}
-{% let author_posts_refs = author_index[author.key] ?? [] %}
+{% let author_posts_refs = author_index.get(author.key) ?? [] %}
 {% let author_posts = author_posts_refs | resolve_pages %}
 
 {# Filter by section if specified #}
@@ -103,7 +103,7 @@ MAIN TEMPLATE
     <img src="{{ author.avatar }}" alt="{{ author.name }}" class="author-avatar-large">
     {% else %}
     <div class="author-avatar-placeholder">
-      {{ author.name[0] | upper }}
+      {{ (author.name[0] | upper) if author.name else '?' }}
     </div>
     {% end %}
 
