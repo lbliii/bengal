@@ -11,8 +11,6 @@ cascade:
 icon: info
 ---
 
-hello world
-
 # About
 
 Bengal is a high-performance static site generator for Python 3.14+. It transforms Markdown into fast, beautiful websites with minimal configuration.

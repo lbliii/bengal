@@ -37,6 +37,8 @@ class RebuildReasonCode(Enum):
 
     CONTENT_CHANGED = "content_changed"
     TEMPLATE_CHANGED = "template_changed"
+    DATA_FILE_CHANGED = "data_file_changed"  # RFC: rfc-incremental-build-dependency-gaps
+    TAXONOMY_CASCADE = "taxonomy_cascade"  # RFC: rfc-incremental-build-dependency-gaps
     ASSET_FINGERPRINT_CHANGED = "asset_fingerprint_changed"
     CASCADE_DEPENDENCY = "cascade_dependency"
     NAV_CHANGED = "nav_changed"

@@ -65,9 +65,11 @@ title: Home - Updated
         
         # Assert: Should rebuild only 1 page (the modified home page)
         # NOT all pages due to data file fingerprint miss
-        assert stats2.pages_built < initial_page_count, (
+        # Use cache_misses which accurately reflects pages actually rebuilt
+        # (pages_built returns total_pages which is misleading for incremental builds)
+        assert stats2.cache_misses == 1, (
             f"Content-only change should trigger minimal rebuild. "
-            f"Expected 1 page, got {stats2.pages_built}. "
+            f"Expected 1 cache miss, got {stats2.cache_misses}. "
             f"This indicates data file fingerprints may not be cached properly."
         )
 
@@ -128,7 +130,8 @@ members:
         )
         
         # Assert: At least the about page was rebuilt (not skipped)
-        assert stats2.pages_built >= 1, (
+        # Use cache_misses to check actual rebuild count
+        assert stats2.cache_misses >= 1, (
             "Data file change should trigger rebuild of dependent pages"
         )
         
@@ -136,9 +139,9 @@ members:
         # This catches the bug where data files always appear "changed"
         # due to missing fingerprints, triggering conservative full rebuild.
         # With proper data file fingerprinting, only dependent pages rebuild.
-        assert stats2.pages_built < initial_page_count, (
+        assert stats2.cache_misses < initial_page_count, (
             f"Data file change should trigger targeted rebuild, not full. "
-            f"Expected < {initial_page_count} pages, got {stats2.pages_built}. "
+            f"Expected < {initial_page_count} cache misses, got {stats2.cache_misses}. "
             f"This may indicate data file fingerprints aren't being cached."
         )
 

@@ -1,9 +1,9 @@
 # RFC: Incremental Build Dependency Gaps
 
-## Status: Implemented ✅
+## Status: Infrastructure Complete, Integration Pending 🟡
 ## Created: 2026-01-13
-## Updated: 2026-01-14
-## Implemented: 2026-01-14
+## Updated: 2026-01-30
+## Implemented: Partial (see Implementation Status below)
 
 ---
 
@@ -19,6 +19,48 @@
 **Solution**: Extend existing `DependencyTracker` infrastructure to capture implicit dependencies from data files and taxonomy relationships. Use "always regenerate" for sitemap (fast, correct).
 
 **Estimated Effort**: 4 days (revised from 6 days by leveraging existing infrastructure)
+
+---
+
+## Implementation Status (2026-01-30)
+
+### ✅ Infrastructure Complete
+
+The following tracking and invalidation methods were implemented:
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| `track_data_file()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
+| `get_pages_using_data_file()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
+| `_record_reverse_taxonomy()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
+| `get_term_pages_for_member()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
+| `invalidate_for_data_file()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
+| `invalidate_for_template()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
+| `invalidate_taxonomy_cascade()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
+
+### ❌ Integration Pending
+
+**Critical Gap**: The invalidation methods are **never called** during incremental builds.
+
+The `ProvenanceFilter.filter()` in `phase_incremental_filter_provenance` does NOT:
+- Check data file changes → should call `invalidate_for_data_file()`
+- Check template file changes → should call `invalidate_for_template()`
+- Propagate taxonomy member metadata changes → should call `invalidate_taxonomy_cascade()`
+
+### Test Evidence
+
+| Gap | Test | Status |
+|-----|------|--------|
+| Gap 1: Data files | `test_data_file_change_triggers_incremental_rebuild` | ❌ FAILED |
+| Gap 2: Taxonomy | `test_taxonomy_term_page_updates_on_member_title_change` | ❌ FAILED |
+| Gap 2: Taxonomy | `test_taxonomy_term_page_updates_on_member_date_change` | ❌ FAILED |
+| Gap 3: Sitemap | `test_sitemap_includes_new_pages_on_incremental_build` | ✅ PASSED |
+
+### Remaining Work (~1-2 days)
+
+1. Integrate data file change detection into `phase_incremental_filter_provenance`
+2. Integrate taxonomy cascade into `phase_incremental_filter_provenance`
+3. Consider adding template change detection (related gap discovered during testing)
 
 ---
 
@@ -521,6 +563,7 @@ def phase_post_processing(
 | TBD | Phase 1 approved | Data file dependencies most impactful |
 | TBD | Phase 2 approved | Taxonomy propagation common workflow |
 | TBD | Phase 3 approved | Sitemap correctness important for SEO |
+| 2026-01-30 | Status changed to "Infrastructure Complete, Integration Pending" | Re-evaluation found infrastructure exists but invalidation methods are never called during incremental builds. Tests still failing for Gaps 1 & 2. Gap 3 (sitemap) works. |
 
 ---
 
