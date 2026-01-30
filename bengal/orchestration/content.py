@@ -672,8 +672,20 @@ class ContentOrchestrator:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
 
-        Delegates to CascadeEngine for the actual implementation and collects statistics.
+        Implementation:
+            1. Builds immutable CascadeSnapshot for thread-safe resolution
+            2. Runs CascadeEngine for backward compatibility (sets page.metadata)
         """
+        # Build immutable cascade snapshot for thread-safe resolution
+        # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
+        self.site.build_cascade_snapshot()
+        logger.debug(
+            "cascade_snapshot_built",
+            sections_with_cascade=len(self.site.cascade),
+        )
+
+        # Also apply via CascadeEngine for backward compatibility
+        # (sets page.metadata values that some templates may depend on)
         from bengal.core.cascade_engine import CascadeEngine
 
         engine = CascadeEngine(self.site.pages, self.site.sections)

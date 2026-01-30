@@ -566,6 +566,23 @@ def phase_incremental_filter_provenance(
                     taxonomy_pages_added=len(taxonomy_pages_to_add),
                 )
         
+        # RFC: Reimagined Cascade Infrastructure
+        # If any _index.md files changed, refresh the cascade snapshot.
+        # This ensures pages get updated cascade values after provenance filtering.
+        index_files_changed = any(
+            p.source_path.name in ("_index.md", "_index.markdown", "index.md")
+            for p in result.pages_to_build
+        )
+        
+        if index_files_changed:
+            # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
+            site.build_cascade_snapshot()
+            logger.debug(
+                "cascade_snapshot_refreshed",
+                reason="index_files_changed",
+                sections_with_cascade=len(site.cascade),
+            )
+        
         # Initialize decision tracker for observability
         decision = IncrementalDecision(
             pages_to_build=result.pages_to_build,

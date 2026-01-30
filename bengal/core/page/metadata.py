@@ -460,25 +460,41 @@ class PageMetadataMixin:
     @property
     def type(self) -> str | None:
         """
-        Get page type from cascade, core metadata, or frontmatter.
+        Get page type from frontmatter, core, cascade engine, or cascade snapshot.
 
         Component Model: Identity.
         
         Priority:
-        1. Cascade-set value (metadata["type"] if in _cascade_keys)
-        2. Core metadata (cached value)
-        3. Frontmatter fallback
+        1. Explicit frontmatter value (page defines its own type)
+        2. Cascade-set value via CascadeEngine (metadata["type"] if in _cascade_keys)
+        3. Core metadata (cached value from previous build)
+        4. Cascade snapshot lookup (immutable, thread-safe fallback)
 
         Returns:
             Page type or None
         """
-        # Check if type was set by cascade (takes priority over cached core)
+        # 1. Check explicit frontmatter (non-cascaded)
         cascade_keys = self.metadata.get("_cascade_keys", [])
+        if "type" in self.metadata and "type" not in cascade_keys:
+            return self.metadata.get("type")
+        
+        # 2. Check cascade-set value (via CascadeEngine for backward compat)
         if "type" in cascade_keys and "type" in self.metadata:
             return self.metadata.get("type")
-        # Fall back to core (cached) value
+        
+        # 3. Fall back to core (cached) value
         if self.core is not None and self.core.type:
             return self.core.type
+        
+        # 4. Cascade snapshot lookup (thread-safe, always current)
+        if self._site and self._section:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section.path.relative_to(content_dir))
+                return self._site.cascade.resolve(section_path, "type")
+            except (ValueError, AttributeError):
+                pass
+        
         return self.metadata.get("type")
 
     @property
@@ -496,29 +512,51 @@ class PageMetadataMixin:
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from cascade, core, or layout/hero_style fields.
+        Get visual variant from frontmatter, core, cascade engine, or cascade snapshot.
 
         Normalizes 'layout' and 'hero_style' into the Component Model 'variant'.
 
         Component Model: Mode.
         
         Priority:
-        1. Cascade-set value (metadata["variant"] if in _cascade_keys)
-        2. Core metadata (cached value)
-        3. Frontmatter fallback (layout/hero_style)
+        1. Explicit frontmatter value (page defines its own variant)
+        2. Cascade-set value via CascadeEngine (metadata["variant"] if in _cascade_keys)
+        3. Core metadata (cached value from previous build)
+        4. Cascade snapshot lookup for 'variant' or 'layout' keys
+        5. Frontmatter fallback (layout/hero_style)
 
         Returns:
             Variant string or None
         """
-        # Check if variant was set by cascade (takes priority over cached core)
+        # 1. Check explicit frontmatter (non-cascaded)
         cascade_keys = self.metadata.get("_cascade_keys", [])
+        if "variant" in self.metadata and "variant" not in cascade_keys:
+            return self.metadata.get("variant")
+        
+        # 2. Check cascade-set value (via CascadeEngine for backward compat)
         if "variant" in cascade_keys and "variant" in self.metadata:
             return self.metadata.get("variant")
-        # Fall back to core (cached) value
+        
+        # 3. Fall back to core (cached) value
         if self.core is not None and self.core.variant:
             return self.core.variant
+        
+        # 4. Cascade snapshot lookup (thread-safe, always current)
+        if self._site and self._section:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section.path.relative_to(content_dir))
+                # Check both 'variant' and 'layout' keys
+                value = self._site.cascade.resolve(section_path, "variant")
+                if value:
+                    return value
+                value = self._site.cascade.resolve(section_path, "layout")
+                if value:
+                    return value
+            except (ValueError, AttributeError):
+                pass
 
-        # Fallbacks
+        # 5. Fallbacks from frontmatter
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
     @property

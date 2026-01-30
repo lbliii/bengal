@@ -27,22 +27,47 @@ Generated at the site root:
 
 ## Configuration
 
-Enable output formats in `bengal.toml`:
+Enable output formats in your config file.
+
+:::{tab-set}
+:::{tab-item} YAML (directory config)
+
+```yaml
+# config/_default/outputs.yaml
+output_formats:
+  enabled: true
+  per_page: ["json"]
+  site_wide: ["index_json"]
+  options:
+    excerpt_length: 200                    # Excerpt length for site index
+    json_indent: null                      # null for compact JSON, 2 for pretty-print
+    llm_separator_width: 80                # Width of LLM text separators
+    include_full_content_in_index: false   # Include full content in site index
+    exclude_sections: []                   # Sections to exclude from output formats
+    exclude_patterns: ["404.html", "search.html"]  # Files to exclude
+```
+
+:::
+:::{tab-item} TOML (single file)
 
 ```toml
+# bengal.toml
 [output_formats]
 enabled = true
 per_page = ["json"]
 site_wide = ["index_json"]
 
 [output_formats.options]
-excerpt_length = 200                  # Excerpt length for site index
-json_indent = null                    # null for compact JSON, 2 for pretty-print
-llm_separator_width = 80              # Width of LLM text separators
-include_full_content_in_index = false # Include full content in site index
-exclude_sections = []                 # Sections to exclude from output formats
-exclude_patterns = ["404.html", "search.html"]  # Files to exclude
+excerpt_length = 200
+json_indent = null
+llm_separator_width = 80
+include_full_content_in_index = false
+exclude_sections = []
+exclude_patterns = ["404.html", "search.html"]
 ```
+
+:::
+:::{/tab-set}
 
 :::{tip}
 **Effective Defaults**: The `[features]` section controls which formats are enabled. With default features (`json = true`, `llm_txt = true`), Bengal generates:

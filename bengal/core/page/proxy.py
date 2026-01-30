@@ -343,11 +343,9 @@ class PageProxy:
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
         
-        For fields that can be cascaded (type, layout, variant), performs
-        lazy resolution by traversing the section hierarchy if the value
-        is not set in the page's own frontmatter. This ensures PageProxy
-        objects correctly inherit cascade values without requiring them
-        to be stored in the cache.
+        Cascade resolution uses the immutable CascadeSnapshot for thread-safe
+        access. The snapshot is computed once per build and can be safely
+        accessed from multiple render threads in free-threaded Python.
         """
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
@@ -372,30 +370,44 @@ class PageProxy:
         if self.core.cascade:
             cached_metadata["cascade"] = self.core.cascade
 
-        # Lazy cascade resolution for standard cascade keys
-        # If a key is not in the page's own metadata, look it up from
-        # the section hierarchy. This ensures cascade works for PageProxy
-        # without storing cascade values in the cache.
+        # Cascade resolution via immutable snapshot (thread-safe, always current)
+        # Uses the section path stored in core to avoid needing section object
         cascade_keys = ("type", "layout", "variant")
         for key in cascade_keys:
             if key not in cached_metadata or cached_metadata.get(key) is None:
-                cascade_value = self._resolve_cascade(key)
+                cascade_value = self._resolve_cascade_from_snapshot(key)
                 if cascade_value is not None:
                     cached_metadata[key] = cascade_value
 
         return cached_metadata
 
-    def _resolve_cascade(self, key: str) -> Any:
+    def _resolve_cascade_from_snapshot(self, key: str) -> Any:
         """
-        Resolve a cascade value by traversing the section hierarchy.
+        Resolve a cascade value using the immutable CascadeSnapshot.
         
-        Walks up from this page's section to the root, checking each
-        section's cascade metadata for the requested key. Returns the
-        first value found, or None if not found.
+        Uses the Site's cascade snapshot for O(depth) lookup without
+        needing to traverse section objects. This is thread-safe and
+        works correctly in free-threaded Python.
         
-        This enables lazy cascade resolution without storing cascade
-        values in the page cache. Sections are always freshly parsed
-        each build, so cascade values are always current.
+        Args:
+            key: The cascade key to look up (e.g., "type", "layout")
+            
+        Returns:
+            The cascade value from the nearest ancestor section, or None
+        """
+        # Use snapshot if site is available
+        if self._site:
+            section_path = self.core.section or ""
+            return self._site.cascade.resolve(section_path, key)
+        
+        # Fallback to section traversal if no site
+        return self._resolve_cascade_from_sections(key)
+
+    def _resolve_cascade_from_sections(self, key: str) -> Any:
+        """
+        Fallback: Resolve cascade by traversing section hierarchy.
+        
+        Used when CascadeSnapshot is not available (e.g., during testing).
         
         Args:
             key: The cascade key to look up (e.g., "type", "layout")

@@ -227,6 +227,11 @@ class Site:
     # Used by CSSOptimizer to include only CSS for features actually in use.
     features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
+    # --- Cascade Snapshot ---
+    # Immutable cascade data computed once per build for thread-safe access.
+    # See: bengal/core/cascade_snapshot.py
+    _cascade_snapshot: Any = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         if isinstance(self.root_path, str):
@@ -2413,9 +2418,91 @@ class Site:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
 
-        Delegates to CascadeEngine for the actual implementation.
+        Implementation:
+            Uses CascadeSnapshot for immutable, thread-safe cascade resolution.
+            Also runs CascadeEngine for backward compatibility during transition.
         """
+        # Build immutable cascade snapshot for thread-safe resolution
+        self.build_cascade_snapshot()
+
+        # Also apply via CascadeEngine for backward compatibility
+        # (sets page.metadata values that some code may depend on)
         from bengal.core.cascade_engine import CascadeEngine
 
         engine = CascadeEngine(self.pages, self.sections)
         engine.apply()
+
+    # =========================================================================
+    # CASCADE SNAPSHOT (immutable cascade data for thread-safe access)
+    # =========================================================================
+
+    @property
+    def cascade(self) -> Any:
+        """
+        Get the immutable cascade snapshot for this build.
+
+        The cascade snapshot provides thread-safe access to cascade metadata
+        without locks. It is computed once at build start and can be safely
+        accessed from multiple render threads in free-threaded Python.
+
+        Returns:
+            CascadeSnapshot instance
+
+        Raises:
+            RuntimeError: If called before build_cascade_snapshot()
+
+        Example:
+            >>> page_type = site.cascade.resolve("docs/guide", "type")
+            >>> all_cascade = site.cascade.resolve_all("docs/guide")
+        """
+        if self._cascade_snapshot is None:
+            # Return empty snapshot instead of raising to allow graceful fallback
+            from bengal.core.cascade_snapshot import CascadeSnapshot
+
+            return CascadeSnapshot.empty()
+        return self._cascade_snapshot
+
+    def build_cascade_snapshot(self) -> None:
+        """
+        Build the immutable cascade snapshot from all sections.
+
+        This scans all sections and extracts cascade metadata from their
+        index pages (_index.md). The resulting snapshot is frozen and can
+        be safely shared across threads.
+
+        Called automatically by _apply_cascades() during discovery.
+        Can also be called manually to refresh the snapshot after
+        incremental changes to _index.md files.
+
+        Example:
+            >>> site.build_cascade_snapshot()
+            >>> print(f"Cascade data for {len(site.cascade)} sections")
+        """
+        from bengal.core.cascade_snapshot import CascadeSnapshot
+
+        # Gather all sections including subsections
+        all_sections = self._collect_all_sections()
+
+        # Compute content directory
+        content_dir = self.root_path / "content"
+
+        # Build and store immutable snapshot
+        self._cascade_snapshot = CascadeSnapshot.build(content_dir, all_sections)
+
+    def _collect_all_sections(self) -> list[Section]:
+        """
+        Collect all sections including nested subsections.
+
+        Returns:
+            Flat list of all Section objects in the site.
+        """
+        all_sections: list[Section] = []
+
+        def collect_recursive(sections: list[Section]) -> None:
+            for section in sections:
+                all_sections.append(section)
+                if section.subsections:
+                    collect_recursive(section.subsections)
+
+        collect_recursive(self.sections)
+        return all_sections
