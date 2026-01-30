@@ -137,7 +137,9 @@ jobs:
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m "slow and not stateful and not performance" --dist worksteal --max-worker-restart=3
+        # Use loadgroup to respect @pytest.mark.parallel_unsafe (via xdist_group)
+        # This prevents worker crashes from property tests running full builds
+        uv run pytest -n auto -q --tb=short -m "slow and not stateful and not performance" --dist loadgroup --max-worker-restart=3
 
   # Stateful workflows (weekly/manual)
   stateful:

@@ -142,6 +142,8 @@ def _build_site(site_dir: Path, *, incremental: bool = True):
 # =============================================================================
 
 
+@pytest.mark.slow  # Each example runs full build (~100s total)
+@pytest.mark.parallel_unsafe  # Full builds conflict with xdist workers in Python 3.14t
 class TestIncrementalProperties:
     """Property-based tests for incremental build behavior."""
 
@@ -277,6 +279,8 @@ class TestIncrementalProperties:
                 )
 
 
+@pytest.mark.slow  # Each example runs full build (~125s total)
+@pytest.mark.parallel_unsafe  # Full builds conflict with xdist workers in Python 3.14t
 class TestIncrementalEquivalence:
     """Tests that incremental and full builds produce equivalent output."""
 
