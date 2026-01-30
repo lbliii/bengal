@@ -200,7 +200,10 @@ class IncrementalOrchestrator:
         template_changes = self._detect_template_changes()
 
         # Convert paths to page/asset objects
-        pages_to_build_objs, assets_to_process = self._convert_paths_to_objects(pages_to_rebuild)
+        # Pass changed_paths for proper asset change detection via file watcher
+        pages_to_build_objs, assets_to_process = self._convert_paths_to_objects(
+            pages_to_rebuild, changed_paths=changed_paths
+        )
 
         extra_changes: dict[str, list[Any]] = {}
         if cascade_changes:
@@ -503,13 +506,17 @@ class IncrementalOrchestrator:
         return nav_rebuild
 
     def _convert_paths_to_objects(
-        self, pages_to_rebuild: set[Path]
+        self,
+        pages_to_rebuild: set[Path],
+        changed_paths: set[Path] | None = None,
     ) -> tuple[list[Page], list[Asset]]:
         """
         Convert source paths to Page/Asset objects.
 
         Args:
             pages_to_rebuild: Set of page source paths to rebuild
+            changed_paths: Optional set of explicitly changed paths from file watcher.
+                Used for fast-path asset change detection.
 
         Returns:
             Tuple of (pages_to_build, assets_to_process)
@@ -525,10 +532,13 @@ class IncrementalOrchestrator:
             if page is not None:
                 pages_to_build.append(page)
 
-        # Check for changed assets
+        # Check for changed assets - pass changed_paths for fast-path detection
+        # This ensures file watcher changes are properly communicated to asset detection
         assets_to_process: list[Asset] = [
             asset for asset in self.site.assets
-            if self.cache and self.cache.should_bypass(asset.source_path)
+            if self.cache and self.cache.should_bypass(
+                asset.source_path, changed_sources=changed_paths
+            )
         ]
 
         return pages_to_build, assets_to_process
