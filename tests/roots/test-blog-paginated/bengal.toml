@@ -23,6 +23,5 @@ per_page = 5
 tags = "tags"
 categories = "categories"
 
-[rss]
-enabled = true
-limit = 20
+[features]
+rss = true

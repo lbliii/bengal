@@ -123,8 +123,7 @@ templates/
 │   │   ├── helpers.html         # Utility functions
 │   │   ├── tags.html            # Tag list and tag cloud
 │   │   ├── tiles.html           # Content tiles component
-│   │   ├── widgets.html         # Discovery widgets
-│   │   └── wrappers.html        # Slot-based wrapper components
+│   │   └── widgets.html         # Discovery widgets
 │   ├── _macros/                 # Pure function files (safe to import)
 │   ├── navigation-components.html  # Pure functions
 │   └── page-hero-*.html            # Include-only (have body code)
