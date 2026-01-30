@@ -244,31 +244,77 @@ class TestPhaseAssets:
 
         assert orchestrator.stats.assets_time_ms >= 0
 
-    def test_processes_theme_assets_on_incremental_if_missing(self, tmp_path):
-        """Processes theme assets on incremental if output missing."""
+    def test_processes_all_assets_on_incremental_if_css_missing(self, tmp_path):
+        """Processes all assets on incremental build if CSS output is missing.
+        
+        This is a safety net that handles race conditions where output is
+        corrupted after provenance filtering. The check is unified for both
+        themed and non-themed sites - site.assets is the source of truth.
+        """
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        orchestrator.site.assets = [MagicMock(), MagicMock()]
+        cli = MockPhaseContext.create_cli()
+
+        # CSS output is missing (no public/assets/css/style*.css)
+        # Don't create the CSS directory - this triggers the safety net
+
+        result = phase_assets(
+            orchestrator,
+            cli,
+            incremental=True,
+            parallel=False,
+            assets_to_process=[],  # No changed assets
+        )
+
+        # Should process all assets since CSS output is missing
+        assert result == orchestrator.site.assets
+        
+    def test_processes_all_assets_for_themed_site_if_css_missing(self, tmp_path):
+        """Themed sites also get all assets processed when CSS missing.
+        
+        The safety net behavior is unified - no special handling for themes.
+        Theme assets are included in site.assets during content discovery.
+        """
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.theme = "my-theme"
+        orchestrator.site.assets = [MagicMock(), MagicMock(), MagicMock()]
+        cli = MockPhaseContext.create_cli()
+
+        # CSS output is missing
+        # Don't create the CSS directory - this triggers the safety net
+
+        result = phase_assets(
+            orchestrator,
+            cli,
+            incremental=True,
+            parallel=False,
+            assets_to_process=[],  # No changed assets
+        )
+
+        # Should process all assets (theme assets are already in site.assets)
+        assert result == orchestrator.site.assets
+        
+    def test_skips_safety_net_when_css_exists(self, tmp_path):
+        """Safety net doesn't trigger when CSS output exists."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.assets = [MagicMock()]
         cli = MockPhaseContext.create_cli()
 
-        # Create mock theme assets directory
-        mock_theme_dir = tmp_path / "themes" / "my-theme" / "assets"
-        mock_theme_dir.mkdir(parents=True)
+        # Create CSS output so safety net doesn't trigger
+        css_dir = tmp_path / "public" / "assets" / "css"
+        css_dir.mkdir(parents=True)
+        (css_dir / "style.css").write_text("/* styles */")
 
-        # Mock theme service function
-        with patch("bengal.orchestration.build.rendering.get_theme_assets_dir") as mock_get_theme:
-            mock_get_theme.return_value = mock_theme_dir
+        result = phase_assets(
+            orchestrator,
+            cli,
+            incremental=True,
+            parallel=False,
+            assets_to_process=[],  # No changed assets
+        )
 
-            result = phase_assets(
-                orchestrator,
-                cli,
-                incremental=True,
-                parallel=False,
-                assets_to_process=[],  # No changed assets
-            )
-
-        # Should process all assets since output missing
-        assert result == orchestrator.site.assets
+        # Should NOT process assets - CSS exists, no safety net needed
+        assert result == []
 
 
 class TestPhaseRender:

@@ -153,7 +153,7 @@ More information about what we do.
 
         # Build 2: Incremental build (content changed, CSS didn't)
         site2 = Site.from_config(site_root)
-        stats2 = site2.build(
+        site2.build(
             BuildOptions(
                 force_sequential=True,
                 incremental=True,
