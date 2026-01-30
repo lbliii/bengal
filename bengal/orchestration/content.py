@@ -32,7 +32,7 @@ rendering begins.
 Related Modules:
 bengal.content.discovery.content_discovery: Low-level content discovery
 bengal.content.discovery.asset_discovery: Low-level asset discovery
-bengal.core.cascade_engine: Cascade application logic
+bengal.core.cascade_snapshot: Immutable cascade data for thread-safe resolution
 
 See Also:
 bengal.orchestration.build: Build coordinator that calls this orchestrator
@@ -673,8 +673,9 @@ class ContentOrchestrator:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            1. Builds immutable CascadeSnapshot for thread-safe resolution
-            2. Runs CascadeEngine for backward compatibility (sets page.metadata)
+            Builds immutable CascadeSnapshot for thread-safe resolution.
+            Page.type, Page.variant, and PageProxy.metadata resolve cascades
+            at access time via Site.cascade.resolve().
         """
         # Build immutable cascade snapshot for thread-safe resolution
         # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
@@ -683,33 +684,6 @@ class ContentOrchestrator:
             "cascade_snapshot_built",
             sections_with_cascade=len(self.site.cascade),
         )
-
-        # Also apply via CascadeEngine for backward compatibility
-        # (sets page.metadata values that some templates may depend on)
-        from bengal.core.cascade_engine import CascadeEngine
-
-        engine = CascadeEngine(self.site.pages, self.site.sections)
-        stats = engine.apply()
-
-        # Log cascade statistics
-        if stats.get("cascade_keys_applied"):
-            keys_info = ", ".join(
-                f"{k}({v})" for k, v in sorted(stats["cascade_keys_applied"].items())
-            )
-            logger.info(
-                "cascades_applied",
-                pages_processed=stats["pages_processed"],
-                pages_affected=stats["pages_with_cascade"],
-                root_cascade_pages=stats["root_cascade_pages"],
-                cascade_keys=keys_info,
-            )
-        else:
-            logger.debug(
-                "cascades_applied",
-                pages_processed=stats["pages_processed"],
-                pages_affected=0,
-                reason="no_cascades_defined",
-            )
 
     def _check_weight_metadata(self) -> None:
         """

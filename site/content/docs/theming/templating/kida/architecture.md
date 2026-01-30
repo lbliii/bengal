@@ -72,7 +72,7 @@ Data("!")
 - Compiled regex patterns at class level (shared, immutable)
 - Dict-based operator lookup: `{{`, `}}`, `{%`, `%}` → O(1)
 
-Source: `bengal/rendering/kida/lexer.py`
+Source: `kida/lexer.py` (external [Kida](https://github.com/lbeezr/kida) package)
 
 ## Stage 2: Parser
 
@@ -106,7 +106,7 @@ Template(
 
 All nodes are frozen dataclasses with `lineno` and `col_offset` for error reporting.
 
-Source: `bengal/rendering/kida/parser/core.py`
+Source: `kida/parser/core.py` (external [Kida](https://github.com/lbeezr/kida) package)
 
 ## Stage 3: Compiler
 
@@ -143,7 +143,7 @@ def render(ctx, _blocks=None):
 - Single `''.join(buf)` at return (O(n) vs O(n²) concatenation)
 - Line markers injected only for error-prone nodes
 
-Source: `bengal/rendering/kida/compiler/core.py`
+Source: `kida/compiler/core.py` (external [Kida](https://github.com/lbeezr/kida) package)
 
 ## Stage 4: Bytecode Cache
 
@@ -173,7 +173,7 @@ def escape(s):
 
 Compare to Jinja2's O(5n) approach (5 chained `.replace()` calls).
 
-Source: `bengal/rendering/kida/utils/html.py`
+Source: `kida/utils/html.py` (external [Kida](https://github.com/lbeezr/kida) package)
 
 ## Thread Safety
 

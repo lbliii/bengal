@@ -366,10 +366,6 @@ class PageProxy:
             cached_metadata["slug"] = self.core.slug
         if self.core.lang:
             cached_metadata["lang"] = self.core.lang
-        # Include cascade so sections can access cascade metadata from index_page
-        if self.core.cascade:
-            cached_metadata["cascade"] = self.core.cascade
-
         # Cascade resolution via immutable snapshot (thread-safe, always current)
         # Uses the section path stored in core to avoid needing section object
         cascade_keys = ("type", "layout", "variant")
@@ -395,32 +391,9 @@ class PageProxy:
         Returns:
             The cascade value from the nearest ancestor section, or None
         """
-        # Use snapshot if site is available
         if self._site:
             section_path = self.core.section or ""
             return self._site.cascade.resolve(section_path, key)
-        
-        # Fallback to section traversal if no site
-        return self._resolve_cascade_from_sections(key)
-
-    def _resolve_cascade_from_sections(self, key: str) -> Any:
-        """
-        Fallback: Resolve cascade by traversing section hierarchy.
-        
-        Used when CascadeSnapshot is not available (e.g., during testing).
-        
-        Args:
-            key: The cascade key to look up (e.g., "type", "layout")
-            
-        Returns:
-            The cascade value from the nearest ancestor section, or None
-        """
-        section = self._section  # O(1) lookup via site registry
-        while section is not None:
-            cascade = getattr(section, "metadata", {}).get("cascade", {})
-            if key in cascade:
-                return cascade[key]
-            section = getattr(section, "parent", None)
         return None
 
     rendered_html = _lazy_property_with_setter(

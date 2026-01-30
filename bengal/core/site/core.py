@@ -2420,17 +2420,11 @@ class Site:
 
         Implementation:
             Uses CascadeSnapshot for immutable, thread-safe cascade resolution.
-            Also runs CascadeEngine for backward compatibility during transition.
+            Page.type, Page.variant, and PageProxy.metadata resolve cascades
+            at access time via Site.cascade.resolve().
         """
         # Build immutable cascade snapshot for thread-safe resolution
         self.build_cascade_snapshot()
-
-        # Also apply via CascadeEngine for backward compatibility
-        # (sets page.metadata values that some code may depend on)
-        from bengal.core.cascade_engine import CascadeEngine
-
-        engine = CascadeEngine(self.pages, self.sections)
-        engine.apply()
 
     # =========================================================================
     # CASCADE SNAPSHOT (immutable cascade data for thread-safe access)

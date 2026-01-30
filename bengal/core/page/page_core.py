@@ -218,10 +218,6 @@ class PageCore(Cacheable):
     type: str | None = None  # Page type (routing/strategy)
     variant: str | None = None  # Visual variant (CSS/layouts)
 
-    # Cascade metadata (for _index.md files that define cascade for child pages)
-    # Stored so PageProxy can provide cascade values for section lookups
-    cascade: dict[str, Any] = field(default_factory=dict)
-
     # Core Props (Promoted for performance)
     description: str | None = None  # SEO description (promoted from metadata)
     props: dict[str, Any] = field(default_factory=dict)  # Additional metadata/props
@@ -329,7 +325,6 @@ class PageCore(Cacheable):
             "nav_title": self.nav_title,
             "type": self.type,
             "variant": self.variant,
-            "cascade": self.cascade,
             "description": self.description,
             "props": self.props,
             "section": self.section,
@@ -362,7 +357,6 @@ class PageCore(Cacheable):
             nav_title=data.get("nav_title"),
             type=data.get("type"),
             variant=data.get("variant"),
-            cascade=data.get("cascade", {}),
             description=data.get("description"),
             props=data.get("props", {}),
             section=data.get("section"),

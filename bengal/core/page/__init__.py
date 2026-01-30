@@ -269,8 +269,6 @@ class Page(
             # Component Model Fields
             type=standard_fields.get("type"),
             variant=variant,
-            # Cascade metadata (for _index.md files that define cascade for children)
-            cascade=self.metadata.get("cascade", {}),
             description=standard_fields.get("description"),
             props=custom_props,  # Only custom fields go into props
             # Links
