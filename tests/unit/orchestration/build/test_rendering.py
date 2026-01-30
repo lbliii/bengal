@@ -258,13 +258,9 @@ class TestPhaseAssets:
         # CSS output is missing (no public/assets/css/style*.css)
         # Don't create the CSS directory - this triggers the safety net
 
-        result = phase_assets(
-            orchestrator,
-            cli,
-            incremental=True,
-            parallel=False,
-            assets_to_process=[],  # No changed assets
-        )
+        # Mock theme service function (patch at the source module, not import location)
+        with patch("bengal.services.theme.get_theme_assets_dir") as mock_get_theme:
+            mock_get_theme.return_value = mock_theme_dir
 
         # Should process all assets since CSS output is missing
         assert result == orchestrator.site.assets
@@ -334,7 +330,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=True,
+                force_sequential=False,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -363,7 +359,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=True,
+                force_sequential=False,
                 quiet=False,
                 verbose=False,
                 memory_optimized=True,
@@ -387,7 +383,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -417,7 +413,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
@@ -445,7 +441,7 @@ class TestPhaseRender:
                 orchestrator,
                 cli,
                 incremental=False,
-                parallel=False,
+                force_sequential=True,
                 quiet=False,
                 verbose=False,
                 memory_optimized=False,
