@@ -460,13 +460,23 @@ class PageMetadataMixin:
     @property
     def type(self) -> str | None:
         """
-        Get page type from core metadata (preferred) or frontmatter.
+        Get page type from cascade, core metadata, or frontmatter.
 
         Component Model: Identity.
+        
+        Priority:
+        1. Cascade-set value (metadata["type"] if in _cascade_keys)
+        2. Core metadata (cached value)
+        3. Frontmatter fallback
 
         Returns:
             Page type or None
         """
+        # Check if type was set by cascade (takes priority over cached core)
+        cascade_keys = self.metadata.get("_cascade_keys", [])
+        if "type" in cascade_keys and "type" in self.metadata:
+            return self.metadata.get("type")
+        # Fall back to core (cached) value
         if self.core is not None and self.core.type:
             return self.core.type
         return self.metadata.get("type")
@@ -486,15 +496,25 @@ class PageMetadataMixin:
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from core (preferred) or layout/hero_style fields.
+        Get visual variant from cascade, core, or layout/hero_style fields.
 
         Normalizes 'layout' and 'hero_style' into the Component Model 'variant'.
 
         Component Model: Mode.
+        
+        Priority:
+        1. Cascade-set value (metadata["variant"] if in _cascade_keys)
+        2. Core metadata (cached value)
+        3. Frontmatter fallback (layout/hero_style)
 
         Returns:
             Variant string or None
         """
+        # Check if variant was set by cascade (takes priority over cached core)
+        cascade_keys = self.metadata.get("_cascade_keys", [])
+        if "variant" in cascade_keys and "variant" in self.metadata:
+            return self.metadata.get("variant")
+        # Fall back to core (cached) value
         if self.core is not None and self.core.variant:
             return self.core.variant
 

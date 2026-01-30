@@ -116,20 +116,50 @@ class CascadeEngine:
         When pages are loaded from cache, they may have old cascade values
         that need to be cleared before new cascades are applied.
         
+        For PageProxy objects with previous cascades, forces loading to full
+        Page objects to enable cascade modification.
+        
         Only clears keys that were previously set by cascade (tracked in
-        page.metadata['_cascade_keys']), preserving page-level frontmatter values.
-        The _cascade_keys list is persisted with page metadata in the cache.
+        page.core.props['_cascade_keys']), preserving page-level frontmatter values.
+        The _cascade_keys list is persisted with page.core.props in the cache.
         """
+        from bengal.core.page.proxy import PageProxy
+        
+        # First pass: identify PageProxy objects with previous cascades and force-load them
+        for i, page in enumerate(self.pages):
+            if isinstance(page, PageProxy):
+                cascade_keys = None
+                if hasattr(page, "core") and page.core is not None:
+                    cascade_keys = page.core.props.get("_cascade_keys")
+                
+                if cascade_keys and isinstance(cascade_keys, list) and len(cascade_keys) > 0:
+                    # Force-load PageProxy to Page so cascades can be modified
+                    page._ensure_loaded()
+                    if page._full_page is not None:
+                        # Replace proxy with full page in the list
+                        self.pages[i] = page._full_page
+        
+        # Second pass: clear cascade values from all pages (now all are full Page objects
+        # if they had previous cascades)
         for page in self.pages:
-            # Get keys that were previously set by cascade (stored in metadata for persistence)
-            cascade_keys = page.metadata.get("_cascade_keys")
+            # Get keys that were previously set by cascade
+            cascade_keys = None
+            if hasattr(page, "core") and page.core is not None:
+                cascade_keys = page.core.props.get("_cascade_keys")
+            if not cascade_keys:
+                cascade_keys = page.metadata.get("_cascade_keys")
+            
             if cascade_keys and isinstance(cascade_keys, list):
                 # Clear those keys from metadata so new cascades can be applied
                 for key in cascade_keys:
-                    if key in page.metadata and key != "_cascade_keys":
+                    if key in page.metadata:
                         del page.metadata[key]
-            # Reset cascade tracking (will be populated during apply)
-            page.metadata["_cascade_keys"] = []
+                # Clear the _cascade_keys tracking since we're about to re-apply cascades
+                # Only remove if it exists (don't add empty list if not present)
+                if hasattr(page, "core") and page.core is not None:
+                    page.core.props.pop("_cascade_keys", None)
+                if hasattr(page, "metadata") and isinstance(page.metadata, dict):
+                    page.metadata.pop("_cascade_keys", None)
 
     def apply(self) -> dict[str, Any]:
         """
@@ -188,18 +218,28 @@ class CascadeEngine:
 
         # Also apply root cascade to other top-level pages
         if root_cascade:
-            for page in self.pages:
+            from bengal.core.page.proxy import PageProxy
+            
+            for i, page in enumerate(self.pages):
                 if self.is_top_level_page(page) and "cascade" not in page.metadata:
-                    # Initialize cascade tracking list if not present
-                    if "_cascade_keys" not in page.metadata:
-                        page.metadata["_cascade_keys"] = []
+                    # For PageProxy objects, force-load to enable cascade modification
+                    if isinstance(page, PageProxy):
+                        page._ensure_loaded()
+                        if page._full_page is not None:
+                            self.pages[i] = page._full_page
+                            page = page._full_page
                     
+                    cascade_keys_applied = []
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
-                            # Track that this key was set by cascade
-                            if key not in page.metadata["_cascade_keys"]:
-                                page.metadata["_cascade_keys"].append(key)
+                            cascade_keys_applied.append(key)
+                    
+                    # Only track cascade keys if any were actually applied
+                    if cascade_keys_applied:
+                        page.metadata["_cascade_keys"] = cascade_keys_applied
+                        if hasattr(page, "core") and page.core is not None:
+                            page.core.props["_cascade_keys"] = cascade_keys_applied
                             stats["root_cascade_pages"] += 1
                             stats["cascade_keys_applied"][key] = (
                                 stats["cascade_keys_applied"].get(key, 0) + 1
@@ -239,26 +279,35 @@ class CascadeEngine:
 
         # Apply accumulated cascade to all pages in this section
         # (but only for keys not already defined in page metadata)
-        for page in section.pages:
+        from bengal.core.page.proxy import PageProxy
+        
+        for i, page in enumerate(section.pages):
             if accumulated_cascade:
-                # Initialize cascade tracking list if not present
-                # (stored as list in metadata for JSON serialization in cache)
-                if "_cascade_keys" not in page.metadata:
-                    page.metadata["_cascade_keys"] = []
+                # For PageProxy objects, force-load to enable cascade modification
+                if isinstance(page, PageProxy):
+                    page._ensure_loaded()
+                    if page._full_page is not None:
+                        section.pages[i] = page._full_page
+                        page = page._full_page
                 
+                cascade_keys_applied = []
                 for key, value in accumulated_cascade.items():
                     # Page metadata takes precedence over cascade
                     if key not in page.metadata:
                         page.metadata[key] = value
-                        # Track that this key was set by cascade (for refresh on rebuild)
-                        if key not in page.metadata["_cascade_keys"]:
-                            page.metadata["_cascade_keys"].append(key)
+                        cascade_keys_applied.append(key)
                         stats["pages_with_cascade"] = stats.get("pages_with_cascade", 0) + 1
                         cascade_keys = stats.setdefault("cascade_keys_applied", {})
                         if not isinstance(cascade_keys, dict):
                             cascade_keys = {}
                             stats["cascade_keys_applied"] = cascade_keys
                         cascade_keys[key] = cascade_keys.get(key, 0) + 1
+                
+                # Only track cascade keys if any were actually applied
+                if cascade_keys_applied:
+                    page.metadata["_cascade_keys"] = cascade_keys_applied
+                    if hasattr(page, "core") and page.core is not None:
+                        page.core.props["_cascade_keys"] = cascade_keys_applied
 
         # Recursively apply to subsections with accumulated cascade
         for subsection in section.subsections:
