@@ -368,6 +368,184 @@ class TestFlatSectionListCascade:
         assert blog_page.metadata["type"] == "post"
 
 
+class TestOrphanedSectionCascade:
+    """Test cascade for sections whose parent exists but is NOT in self.sections.
+
+    This covers versioned content sections, autodoc sections, and any dynamically
+    added sections that have parent relationships but aren't discovered via
+    normal content discovery. These sections have their `parent` attribute set
+    but their parent section is not in the sections list.
+
+    This was a regression in commit 924d5029 where filtering by `parent is None`
+    incorrectly excluded these "orphaned" entry point sections.
+    """
+
+    def test_section_with_parent_not_in_sections_list(self):
+        """Sections with parent set but parent not in list should still cascade.
+
+        This is the versioned content scenario: _versions/v1/docs/ has parent=v1,
+        but v1 is not in site.sections. The docs section must still be processed.
+        """
+        site = Site(root_path=Path("/site"), config={})
+
+        # Simulate version folder (NOT added to site.sections)
+        version_folder = Section(name="v1", path=Path("/content/_versions/v1"))
+
+        # Versioned docs section (HAS parent, but parent not in sections list)
+        versioned_docs = Section(name="docs", path=Path("/content/_versions/v1/docs"))
+        versioned_docs.metadata["cascade"] = {"layout": "versioned-docs"}
+        version_folder.add_subsection(versioned_docs)  # Sets parent!
+
+        page = Page(
+            source_path=Path("/content/_versions/v1/docs/intro.md"),
+            metadata={"title": "V1 Intro"},
+        )
+        versioned_docs.add_page(page)
+
+        # CRITICAL: Only versioned_docs in sections, NOT version_folder
+        site.sections = [versioned_docs]
+        site.pages = [page]
+
+        site._apply_cascades()
+
+        # Page MUST receive cascade even though section has parent
+        assert page.metadata["layout"] == "versioned-docs"
+
+    def test_multiple_orphaned_sections_with_cascade(self):
+        """Multiple sections with parents not in list all receive cascade."""
+        site = Site(root_path=Path("/site"), config={})
+
+        # Two version folders (not in sections list)
+        v1 = Section(name="v1", path=Path("/content/_versions/v1"))
+        v2 = Section(name="v2", path=Path("/content/_versions/v2"))
+
+        # Two versioned sections (in sections list, with parents set)
+        docs_v1 = Section(name="docs", path=Path("/content/_versions/v1/docs"))
+        docs_v1.metadata["cascade"] = {"version": "1.0"}
+        v1.add_subsection(docs_v1)
+
+        docs_v2 = Section(name="docs", path=Path("/content/_versions/v2/docs"))
+        docs_v2.metadata["cascade"] = {"version": "2.0"}
+        v2.add_subsection(docs_v2)
+
+        page_v1 = Page(
+            source_path=Path("/content/_versions/v1/docs/intro.md"),
+            metadata={"title": "V1"},
+        )
+        page_v2 = Page(
+            source_path=Path("/content/_versions/v2/docs/intro.md"),
+            metadata={"title": "V2"},
+        )
+        docs_v1.add_page(page_v1)
+        docs_v2.add_page(page_v2)
+
+        site.sections = [docs_v1, docs_v2]
+        site.pages = [page_v1, page_v2]
+
+        site._apply_cascades()
+
+        assert page_v1.metadata["version"] == "1.0"
+        assert page_v2.metadata["version"] == "2.0"
+
+    def test_mixed_root_and_orphaned_sections(self):
+        """Mix of root sections and orphaned sections all cascade correctly."""
+        site = Site(root_path=Path("/site"), config={})
+
+        # Root section (parent is None)
+        blog = Section(name="blog", path=Path("/content/blog"))
+        blog.metadata["cascade"] = {"type": "post"}
+
+        # Orphaned section (parent exists but not in list)
+        version_folder = Section(name="v1", path=Path("/content/_versions/v1"))
+        versioned_docs = Section(name="docs", path=Path("/content/_versions/v1/docs"))
+        versioned_docs.metadata["cascade"] = {"type": "doc"}
+        version_folder.add_subsection(versioned_docs)
+
+        blog_page = Page(source_path=Path("/content/blog/hello.md"), metadata={})
+        docs_page = Page(
+            source_path=Path("/content/_versions/v1/docs/intro.md"), metadata={}
+        )
+
+        blog.add_page(blog_page)
+        versioned_docs.add_page(docs_page)
+
+        # Mix: one root, one orphaned
+        site.sections = [blog, versioned_docs]
+        site.pages = [blog_page, docs_page]
+
+        site._apply_cascades()
+
+        assert blog_page.metadata["type"] == "post"
+        assert docs_page.metadata["type"] == "doc"
+
+    def test_orphaned_section_with_subsections(self):
+        """Orphaned section's subsections also receive cascade via recursion."""
+        site = Site(root_path=Path("/site"), config={})
+
+        # Version folder (not in list)
+        v1 = Section(name="v1", path=Path("/content/_versions/v1"))
+
+        # Orphaned docs with cascade
+        docs = Section(name="docs", path=Path("/content/_versions/v1/docs"))
+        docs.metadata["cascade"] = {"layout": "docs"}
+        v1.add_subsection(docs)
+
+        # Subsection of orphaned section (NOT in list, reached via recursion)
+        guides = Section(name="guides", path=Path("/content/_versions/v1/docs/guides"))
+        docs.add_subsection(guides)
+
+        page = Page(
+            source_path=Path("/content/_versions/v1/docs/guides/intro.md"),
+            metadata={},
+        )
+        guides.add_page(page)
+
+        # Only docs in list (not guides, not v1)
+        site.sections = [docs]
+        site.pages = [page]
+
+        site._apply_cascades()
+
+        # Page in guides subsection must inherit docs' cascade
+        assert page.metadata["layout"] == "docs"
+
+    def test_orphaned_section_inherits_nothing_from_missing_parent(self):
+        """Orphaned section doesn't inherit cascade from parent not in list.
+
+        When a section's parent is not in site.sections, the section is an
+        entry point and receives root_cascade (if any), not its missing
+        parent's cascade.
+        """
+        site = Site(root_path=Path("/site"), config={})
+
+        # Parent with cascade (NOT in sections list)
+        parent = Section(name="v1", path=Path("/content/_versions/v1"))
+        parent.metadata["cascade"] = {"from_parent": True, "version": "1.0"}
+
+        # Child section (in sections list)
+        child = Section(name="docs", path=Path("/content/_versions/v1/docs"))
+        child.metadata["cascade"] = {"type": "doc"}
+        parent.add_subsection(child)
+
+        page = Page(
+            source_path=Path("/content/_versions/v1/docs/intro.md"),
+            metadata={},
+        )
+        child.add_page(page)
+
+        # Only child in list, parent is NOT
+        site.sections = [child]
+        site.pages = [page]
+
+        site._apply_cascades()
+
+        # Page gets child's cascade
+        assert page.metadata["type"] == "doc"
+        # Page does NOT get parent's cascade (parent not processed)
+        assert "from_parent" not in page.metadata
+        assert "version" not in page.metadata
+
+
 class TestCascadeEdgeCases:
     """Test edge cases and error conditions."""
 
