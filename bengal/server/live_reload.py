@@ -465,33 +465,19 @@ class LiveReloadMixin:
                 with open(path, "rb") as f:
                     content = f.read()
 
-                # Inject script before </body> or </html> (case-insensitive)
-                # Optimize: Search bytes directly instead of converting entire file to string
+                # Inject script before </body> or </html> using shared utility
+                from bengal.server.utils import find_html_injection_point
+
                 script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+                injection_idx = find_html_injection_point(content)
 
-                # Try to find </body> (case-insensitive search in bytes)
-                body_tag_lower = b"</body>"
-                body_tag_upper = b"</BODY>"
-                body_idx = content.rfind(body_tag_lower)
-                if body_idx == -1:
-                    body_idx = content.rfind(body_tag_upper)
-
-                if body_idx != -1:
-                    # Inject before </body>
-                    modified_content = content[:body_idx] + script_bytes + content[body_idx:]
+                if injection_idx != -1:
+                    modified_content = (
+                        content[:injection_idx] + script_bytes + content[injection_idx:]
+                    )
                 else:
-                    # Fallback: try </html>
-                    html_tag_lower = b"</html>"
-                    html_tag_upper = b"</HTML>"
-                    html_idx = content.rfind(html_tag_lower)
-                    if html_idx == -1:
-                        html_idx = content.rfind(html_tag_upper)
-
-                    if html_idx != -1:
-                        modified_content = content[:html_idx] + script_bytes + content[html_idx:]
-                    else:
-                        # Last resort: append at end
-                        modified_content = content + script_bytes
+                    # No closing tag found - append at end
+                    modified_content = content + script_bytes
 
                 # Store in cache under lock (with size control)
                 with cls._html_cache_lock:
@@ -565,12 +551,9 @@ class LiveReloadMixin:
 
     def _get_content_type(self, url_path: str) -> str:
         """Get content type for a file path."""
-        path_lower = url_path.lower()
-        if path_lower.endswith(".css"):
-            return "text/css; charset=utf-8"
-        if path_lower.endswith(".js"):
-            return "application/javascript; charset=utf-8"
-        return "application/octet-stream"
+        from bengal.server.utils import get_content_type
+
+        return get_content_type(url_path)
 
     def serve_asset_with_cache(self: HTTPHandlerProtocol, build_in_progress: bool) -> bool:
         """
@@ -879,32 +862,17 @@ def inject_live_reload_into_response(response: bytes) -> bytes:
         headers = response[:headers_end]
         body = response[headers_end + 4 :]
 
-        # Inject script before </body> or </html> (case-insensitive)
+        # Inject script before </body> or </html> using shared utility
+        from bengal.server.utils import find_html_injection_point
+
         script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+        injection_idx = find_html_injection_point(body)
 
-        # Try to find </body> (case-insensitive search in bytes)
-        body_tag_lower = b"</body>"
-        body_tag_upper = b"</BODY>"
-        body_idx = body.rfind(body_tag_lower)
-        if body_idx == -1:
-            body_idx = body.rfind(body_tag_upper)
-
-        if body_idx != -1:
-            # Inject before </body>
-            modified_body = body[:body_idx] + script_bytes + body[body_idx:]
+        if injection_idx != -1:
+            modified_body = body[:injection_idx] + script_bytes + body[injection_idx:]
         else:
-            # Fallback: try </html>
-            html_tag_lower = b"</html>"
-            html_tag_upper = b"</HTML>"
-            html_idx = body.rfind(html_tag_lower)
-            if html_idx == -1:
-                html_idx = body.rfind(html_tag_upper)
-
-            if html_idx != -1:
-                modified_body = body[:html_idx] + script_bytes + body[html_idx:]
-            else:
-                # Last resort: append at end
-                modified_body = body + script_bytes
+            # No closing tag found - append at end
+            modified_body = body + script_bytes
 
         # Update Content-Length header if present
         headers_str = headers.decode("latin-1")

@@ -22,8 +22,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from contextvars import ContextVar, Token
+from contextvars import Token
 from dataclasses import dataclass, field
+
+from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 __all__ = [
     "RenderMetadata",
@@ -131,8 +133,8 @@ class RenderMetadata:
         }
 
 
-# Module-level ContextVar - default to None for optional usage
-_metadata: ContextVar[RenderMetadata | None] = ContextVar("render_metadata", default=None)
+# Thread-local metadata using ContextVarManager (default None for optional usage)
+_manager: ContextVarManager[RenderMetadata] = ContextVarManager("render_metadata")
 
 
 def get_metadata() -> RenderMetadata | None:
@@ -141,7 +143,7 @@ def get_metadata() -> RenderMetadata | None:
     Returns:
         Current RenderMetadata or None if not within metadata_context()
     """
-    return _metadata.get()
+    return _manager.get()
 
 
 def set_metadata(meta: RenderMetadata) -> Token[RenderMetadata | None]:
@@ -155,7 +157,7 @@ def set_metadata(meta: RenderMetadata) -> Token[RenderMetadata | None]:
     Returns:
         Token for reset_metadata()
     """
-    return _metadata.set(meta)
+    return _manager.set(meta)
 
 
 def reset_metadata(token: Token[RenderMetadata | None] | None = None) -> None:
@@ -167,10 +169,7 @@ def reset_metadata(token: Token[RenderMetadata | None] | None = None) -> None:
     Args:
         token: Optional token from set_metadata()
     """
-    if token is not None:
-        _metadata.reset(token)
-    else:
-        _metadata.set(None)
+    _manager.reset(token)
 
 
 @contextmanager
@@ -190,8 +189,5 @@ def metadata_context() -> Iterator[RenderMetadata]:
                 include_mathjax()
     """
     meta = RenderMetadata()
-    token = set_metadata(meta)
-    try:
+    with _manager.context(meta):
         yield meta
-    finally:
-        reset_metadata(token)

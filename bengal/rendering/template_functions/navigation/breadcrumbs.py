@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.paths.url_normalization import split_url_path
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
 
@@ -179,7 +181,7 @@ def _derive_title(obj: Any, url: str) -> str:
         return str(slug).replace("-", " ").replace("_", " ").title()
 
     # Extract from URL path as last resort
-    url_parts = [p for p in url.strip("/").split("/") if p]
+    url_parts = split_url_path(url)
     if url_parts:
         return url_parts[-1].replace("-", " ").replace("_", " ").title()
 

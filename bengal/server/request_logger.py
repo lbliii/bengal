@@ -28,10 +28,10 @@ Related:
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from bengal.output import CLIOutput
+from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -133,7 +133,7 @@ class RequestLogger:
         )
 
         # Get timestamp
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = get_timestamp()
 
         # Use CLIOutput for consistent formatting
         cli = CLIOutput()

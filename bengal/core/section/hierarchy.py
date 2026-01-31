@@ -192,7 +192,7 @@ class SectionHierarchyMixin:
         The sort is computed once and reused across all template renders.
 
         Subsections without a weight field in their index page metadata
-        are treated as having weight=999999 (appear at end). Lower weights appear first.
+        are treated as having weight=infinity (appear at end). Lower weights appear first.
 
         Performance:
             - First access: O(m log m) where m = number of subsections
@@ -207,8 +207,10 @@ class SectionHierarchyMixin:
               <h3>{{ subsection.title }}</h3>
             {% endfor %}
         """
+        from bengal.core.utils.sorting import DEFAULT_WEIGHT
+
         return sorted(
-            self.subsections, key=lambda s: (s.metadata.get("weight", 999999), s.title.lower())
+            self.subsections, key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower())
         )
 
     # =========================================================================

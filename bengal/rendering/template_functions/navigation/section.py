@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.utils.paths.normalize import to_posix
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
@@ -39,7 +41,7 @@ def get_section(path: str, site: SiteLike) -> Section | None:
     """
     if not path:
         return None
-    normalized = path.strip("/").replace("\\", "/")
+    normalized = to_posix(path.strip("/"))
     return site.get_section_by_path(normalized)
 
 

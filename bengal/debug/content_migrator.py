@@ -57,6 +57,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.utils.primitives.text import slugify
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -539,7 +540,7 @@ class ContentMigrator(DebugTool):
 
         for i, match in enumerate(matches):
             heading = match.group(1)
-            heading_slug = self._slugify(heading)
+            heading_slug = slugify(heading)
 
             # Check if this heading should be split
             if heading not in sections and heading_slug not in sections:
@@ -805,13 +806,6 @@ class ContentMigrator(DebugTool):
             f"]({link_update.new_link})",
         )
         file_path.write_text(updated)
-
-    def _slugify(self, text: str) -> str:
-        """Convert text to URL slug."""
-        slug = text.lower()
-        slug = re.sub(r"[^\w\s-]", "", slug)
-        slug = re.sub(r"[\s_]+", "-", slug)
-        return slug.strip("-")
 
     def _generate_recommendations(self, report: DebugReport) -> list[str]:
         """Generate recommendations based on analysis."""

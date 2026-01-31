@@ -19,14 +19,17 @@ Performance Impact:
 
 from __future__ import annotations
 
-import json
 import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.cache.compression import load_auto, save_compressed
+from bengal.cache.utils import (
+    PersistentCacheMixin,
+    check_bidirectional_invariants,
+    compute_taxonomy_stats,
+)
 from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
@@ -69,18 +72,8 @@ class TagEntry(Cacheable):
             is_valid=data.get("is_valid", True),
         )
 
-    # Aliases for test compatibility
-    def to_dict(self) -> dict[str, Any]:
-        """Alias for to_cache_dict (test compatibility)."""
-        return self.to_cache_dict()
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> TagEntry:
-        """Alias for from_cache_dict (test compatibility)."""
-        return cls.from_cache_dict(data)
-
-
-class TaxonomyIndex:
+class TaxonomyIndex(PersistentCacheMixin):
     """
     Persistent index of tag-to-pages mappings for incremental taxonomy updates.
 
@@ -137,166 +130,89 @@ class TaxonomyIndex:
         self._page_to_tags: dict[str, set[str]] = {}
         # Thread safety lock for concurrent access
         self._lock = threading.RLock()
-        self._load_from_disk()
+        self._load_cache()
 
-    def _load_from_disk(self) -> None:
-        """Load taxonomy index from disk if file exists."""
-        # load_auto handles both .json.zst and .json formats
-        compressed_path = self.cache_path.with_suffix(".json.zst")
-        if not compressed_path.exists() and not self.cache_path.exists():
-            logger.debug("taxonomy_index_not_found", path=str(self.cache_path))
+    # =========================================================================
+    # PersistentCacheMixin implementation
+    # =========================================================================
+
+    def _deserialize(self, data: dict[str, Any]) -> None:
+        """Deserialize loaded data into cache state."""
+        # Load tag entries
+        for tag_slug, entry_data in data.get("tags", {}).items():
+            self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
+
+        # Load reverse index
+        for page, tags in data.get("page_to_tags", {}).items():
+            self._page_to_tags[page] = set(tags)
+
+        # Verify invariants after load (detect corruption early)
+        violations = self._check_invariants()
+        if violations:
+            logger.warning(
+                "taxonomy_index_corruption_detected",
+                violations=violations[:5],
+                total=len(violations),
+                action="rebuilding_index",
+            )
+            self._on_version_mismatch()
             return
 
-        try:
-            # load_auto tries .json.zst first, falls back to .json
-            data = load_auto(self.cache_path)
+        logger.info(
+            "taxonomy_index_loaded",
+            tags=len(self.tags),
+            pages_indexed=len(self._page_to_tags),
+        )
 
-            # Version check - clear on mismatch
-            from bengal.errors import ErrorCode
+    def _serialize(self) -> dict[str, Any]:
+        """Serialize cache state for saving."""
+        return {
+            "tags": {tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()},
+            "page_to_tags": {page: list(tags) for page, tags in self._page_to_tags.items()},
+        }
 
-            if data.get("version") != self.VERSION:
-                logger.warning(
-                    "taxonomy_index_version_mismatch",
-                    expected=self.VERSION,
-                    found=data.get("version"),
-                    action="clearing_cache",
-                    error_code=ErrorCode.A002.value,  # cache_version_mismatch
-                    suggestion="Cache version incompatible. Taxonomy index will be rebuilt.",
-                )
-                self.tags = {}
-                self._page_to_tags = {}
-                return
-
-            # Load tag entries
-            for tag_slug, entry_data in data.get("tags", {}).items():
-                self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
-
-            # Load reverse index
-            for page, tags in data.get("page_to_tags", {}).items():
-                self._page_to_tags[page] = set(tags)
-
-            # Verify invariants after load (detect corruption early)
-            # RFC: Cache Lifecycle Hardening - Phase 3
-            violations = self._check_invariants()
-            if violations:
-                logger.warning(
-                    "taxonomy_index_corruption_detected",
-                    violations=violations[:5],  # First 5
-                    total=len(violations),
-                    action="rebuilding_index",
-                )
-                # Clear and let it rebuild naturally
-                self.tags = {}
-                self._page_to_tags = {}
-                return
-
-            logger.info(
-                "taxonomy_index_loaded",
-                tags=len(self.tags),
-                pages_indexed=len(self._page_to_tags),
-                path=str(self.cache_path),
-            )
-        except Exception as e:
-            from bengal.errors import ErrorCode
-
-            logger.warning(
-                "taxonomy_index_load_failed",
-                error=str(e),
-                path=str(self.cache_path),
-                error_code=ErrorCode.A003.value,  # cache_read_error
-                suggestion="Taxonomy cache will be rebuilt automatically.",
-            )
-            self.tags = {}
-            self._page_to_tags = {}
+    def _on_version_mismatch(self) -> None:
+        """Clear state on version mismatch."""
+        self.tags = {}
+        self._page_to_tags = {}
 
     def save_to_disk(self) -> None:
         """Save taxonomy index to disk (including reverse index)."""
         with self._lock:
             # Verify consistency before save
-            # RFC: Cache Lifecycle Hardening - Phase 3
             violations = self._check_invariants()
             if violations:
                 logger.warning(
                     "taxonomy_index_invariant_violation",
-                    violations=violations[:5],  # First 5
+                    violations=violations[:5],
                     total=len(violations),
                     action="clearing_and_skipping_save",
                 )
-                # Don't save corrupted data - clear and let next build recreate
                 self.tags.clear()
                 self._page_to_tags.clear()
                 return
 
-            try:
-                self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self._save_cache()
 
-                data = {
-                    "version": self.VERSION,
-                    "tags": {
-                        tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()
-                    },
-                    # Persist reverse index (convert sets to lists for JSON)
-                    "page_to_tags": {page: list(tags) for page, tags in self._page_to_tags.items()},
-                }
-
-                # Save as compressed .json.zst format
-                compressed_path = self.cache_path.with_suffix(".json.zst")
-                save_compressed(data, compressed_path)
-
-                logger.info(
-                    "taxonomy_index_saved",
-                    tags=len(self.tags),
-                    pages_indexed=len(self._page_to_tags),
-                    path=str(self.cache_path),
-                )
-            except Exception as e:
-                from bengal.errors import ErrorCode
-
-                logger.error(
-                    "taxonomy_index_save_failed",
-                    error=str(e),
-                    path=str(self.cache_path),
-                    error_code=ErrorCode.A004.value,  # cache_write_error
-                    suggestion="Check disk space and permissions. Taxonomy index may be incomplete.",
-                )
+    # =========================================================================
+    # Invariant checking using shared utility
+    # =========================================================================
 
     def _check_invariants(self) -> list[str]:
         """
         Verify forward and reverse indexes are in sync.
 
-        RFC: Cache Lifecycle Hardening - Phase 3
-        Detects index desync early before it causes subtle bugs.
-
-        Returns:
-            List of violations (empty if consistent)
+        Uses shared check_bidirectional_invariants utility.
         """
-        violations: list[str] = []
+        return check_bidirectional_invariants(
+            forward=dict(self.tags.items()),
+            reverse=self._page_to_tags,
+            forward_getter=lambda entry: set(entry.page_paths),
+        )
 
-        # Check 1: Every page in _page_to_tags exists in tags[tag].page_paths
-        for page, tags in self._page_to_tags.items():
-            for tag in tags:
-                if tag not in self.tags:
-                    violations.append(
-                        f"Reverse index has tag '{tag}' for page '{page}' not in forward index"
-                    )
-                elif page not in self.tags[tag].page_paths:
-                    violations.append(
-                        f"Page '{page}' in reverse index for tag '{tag}' but not in forward"
-                    )
-
-        # Check 2: Every page in tags[tag].page_paths exists in _page_to_tags
-        for tag_slug, entry in self.tags.items():
-            for page in entry.page_paths:
-                if page not in self._page_to_tags:
-                    violations.append(
-                        f"Page '{page}' in forward index for tag '{tag_slug}' but not in reverse"
-                    )
-                elif tag_slug not in self._page_to_tags[page]:
-                    violations.append(
-                        f"Tag '{tag_slug}' for page '{page}' in forward but not in reverse"
-                    )
-
-        return violations
+    # =========================================================================
+    # Tag operations
+    # =========================================================================
 
     def update_tag(self, tag_slug: str, tag_name: str, page_paths: list[str]) -> None:
         """
@@ -419,6 +335,10 @@ class TaxonomyIndex:
         with self._lock:
             return {tag_slug: entry for tag_slug, entry in self.tags.items() if entry.is_valid}
 
+    # =========================================================================
+    # Invalidation
+    # =========================================================================
+
     def invalidate_tag(self, tag_slug: str) -> None:
         """
         Mark a tag as invalid.
@@ -478,6 +398,10 @@ class TaxonomyIndex:
 
             return affected_tags
 
+    # =========================================================================
+    # Query helpers
+    # =========================================================================
+
     def get_valid_entries(self) -> dict[str, TagEntry]:
         """
         Get all valid tag entries.
@@ -532,6 +456,10 @@ class TaxonomyIndex:
 
         return changed
 
+    # =========================================================================
+    # Statistics using shared utility
+    # =========================================================================
+
     def stats(self) -> dict[str, Any]:
         """
         Get taxonomy index statistics.
@@ -539,32 +467,9 @@ class TaxonomyIndex:
         Returns:
             Dictionary with index stats
         """
-        valid = sum(1 for e in self.tags.values() if e.is_valid)
-        invalid = len(self.tags) - valid
-
-        total_pages = 0
-        total_page_tag_pairs = 0
-        for entry in self.tags.values():
-            if entry.is_valid:
-                total_page_tag_pairs += len(entry.page_paths)
-                total_pages += len(entry.page_paths)
-
-        # Rough estimate of unique pages (overcount due to multiple tags)
-        unique_pages = set()
-        for entry in self.tags.values():
-            if entry.is_valid:
-                unique_pages.update(entry.page_paths)
-
-        avg_tags_per_page = 0.0
-        if unique_pages:
-            avg_tags_per_page = total_page_tag_pairs / len(unique_pages)
-
-        return {
-            "total_tags": len(self.tags),
-            "valid_tags": valid,
-            "invalid_tags": invalid,
-            "total_unique_pages": len(unique_pages),
-            "total_page_tag_pairs": total_page_tag_pairs,
-            "avg_tags_per_page": avg_tags_per_page,
-            "cache_size_bytes": len(json.dumps([e.to_cache_dict() for e in self.tags.values()])),
-        }
+        return compute_taxonomy_stats(
+            tags=self.tags,
+            is_valid=lambda e: e.is_valid,
+            get_page_paths=lambda e: e.page_paths,
+            serialize=lambda e: e.to_cache_dict(),
+        )

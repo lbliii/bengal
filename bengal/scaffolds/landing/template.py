@@ -4,35 +4,8 @@ Scaffolds a marketing/landing site with a home page and common legal pages.
 Performs simple ``{{date}}`` substitution for stamped content.
 """
 
-from __future__ import annotations
-
-from datetime import datetime
-from pathlib import Path
-
 from ..base import SiteTemplate, TemplateFile
-
-
-def _load_template_file(relative_path: str) -> str:
-    """Load and lightly render a page from the ``pages/`` directory.
-
-    Args:
-        relative_path: Path inside this template's ``pages/`` directory.
-
-    Returns:
-        File contents with ``{{date}}`` replaced by today's date.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "pages" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        content = f.read()
-
-    # Replace template variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    content = content.replace("{{date}}", current_date)
-
-    return content
+from ..utils import load_template_file
 
 
 def _create_landing_template() -> SiteTemplate:
@@ -42,21 +15,20 @@ def _create_landing_template() -> SiteTemplate:
         A :class:`SiteTemplate` for a basic product landing site.
 
     """
-
     files = [
         TemplateFile(
             relative_path="index.md",
-            content=_load_template_file("index.md"),
+            content=load_template_file(__file__, "index.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="privacy.md",
-            content=_load_template_file("privacy.md"),
+            content=load_template_file(__file__, "privacy.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="terms.md",
-            content=_load_template_file("terms.md"),
+            content=load_template_file(__file__, "terms.md", replace_date=True),
             target_dir="content",
         ),
     ]

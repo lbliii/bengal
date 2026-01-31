@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
 from bengal.utils.observability.logger import get_logger

@@ -7,8 +7,6 @@ An Effect represents the inputs and outputs of a build operation,
 replacing the bespoke detection logic in 13 detector classes.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any

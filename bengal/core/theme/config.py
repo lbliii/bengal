@@ -48,6 +48,7 @@ from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.errors import BengalConfigError, ErrorCode
+from bengal.themes.utils import THEMES_ROOT, validate_enum_field
 
 
 @dataclass
@@ -87,14 +88,12 @@ class Theme:
     def __post_init__(self) -> None:
         """Validate theme configuration."""
         # Validate appearance
-        valid_appearances = {"light", "dark", "system"}
-        if self.default_appearance not in valid_appearances:
-            raise BengalConfigError(
-                f"Invalid default_appearance '{self.default_appearance}'. "
-                f"Must be one of: {', '.join(valid_appearances)}",
-                code=ErrorCode.C003,
-                suggestion=f"Set default_appearance to one of: {', '.join(valid_appearances)}",
-            )
+        validate_enum_field(
+            "default_appearance",
+            self.default_appearance,
+            {"light", "dark", "system"},
+            do_record_error=False,
+        )
 
         # Ensure config is a dict
         if self.config is None:
@@ -195,7 +194,7 @@ class Theme:
 
                 # Try site themes first, then bundled themes
                 site_theme_path = root_path / "themes" / theme_name
-                bundled_theme_path = Path(__file__).parent.parent.parent / "themes" / theme_name
+                bundled_theme_path = THEMES_ROOT / theme_name
 
                 theme_path = None
                 if site_theme_path.exists():

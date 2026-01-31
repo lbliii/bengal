@@ -9,7 +9,7 @@ template rendering to collect asset references. This eliminates the need to
 parse HTML after rendering to extract asset dependencies.
 
 Thread Safety:
-Uses ContextVar for thread-local storage, making it safe for parallel rendering.
+Uses ContextVarManager for thread-local storage, making it safe for parallel rendering.
 Each thread/context has its own tracker instance.
 
 Usage:
@@ -25,21 +25,19 @@ Usage:
 
 from __future__ import annotations
 
-from contextvars import ContextVar, Token
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    pass
+from bengal.rendering.utils.contextvar import ContextVarManager
 
-# Context-local tracker for thread safety
-_current_tracker: ContextVar[AssetTracker | None] = ContextVar("asset_tracker", default=None)
+# Context-local tracker for thread safety using ContextVarManager
+_current_tracker: ContextVarManager[AssetTracker] = ContextVarManager("asset_tracker")
 
 
 class AssetTracker:
     """
     Track assets during template rendering (no HTML parsing).
 
-    Thread-safe via ContextVar - each thread/context has independent tracker.
+    Thread-safe via ContextVarManager - each thread/context has independent tracker.
 
     Supports nesting: inner trackers restore the outer tracker on exit.
 
@@ -64,7 +62,7 @@ class AssetTracker:
     def __init__(self) -> None:
         """Initialize empty asset tracker."""
         self._assets: set[str] = set()
-        self._token: Token[AssetTracker | None] | None = None
+        self._token: Any = None
 
     def track(self, path: str) -> None:
         """Track an asset reference.

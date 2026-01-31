@@ -36,6 +36,7 @@ from bengal.output.colors import (
     get_status_style,
 )
 from bengal.output.enums import MessageLevel
+from bengal.output.utils import ANSI
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -88,7 +89,7 @@ class DevServerOutputMixin:
             self.console.print(f"  [{style}]{line}[/{style}]")
         else:
             # ANSI dim for fallback
-            click.echo(f"  \033[90m{line}\033[0m")
+            click.echo(f"  {ANSI.DIM}{line}{ANSI.RESET}")
 
     def file_change_notice(self, file_name: str, timestamp: str | None = None) -> None:
         """
@@ -115,7 +116,7 @@ class DevServerOutputMixin:
         if self.use_rich:
             self.console.print(f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}")
         else:
-            click.echo(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
+            click.echo(f"  {timestamp} │ {ANSI.YELLOW}📝 File changed:{ANSI.RESET} {file_name}")
         self.separator()
         click.echo()  # Blank line after
 
@@ -138,7 +139,7 @@ class DevServerOutputMixin:
         if self.use_rich:
             self.console.print(f"\n  [cyan]➜[/cyan]  Local: [bold]{url}[/bold]\n")
         else:
-            click.echo(f"\n  \033[36m➜\033[0m  Local: \033[1m{url}\033[0m\n")
+            click.echo(f"\n  {ANSI.CYAN}➜{ANSI.RESET}  Local: {ANSI.BOLD}{url}{ANSI.RESET}\n")
 
     def request_log_header(self) -> None:
         """
@@ -155,8 +156,8 @@ class DevServerOutputMixin:
             self.console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
             self.console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
         else:
-            click.echo(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-            click.echo(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
+            click.echo(f"  {ANSI.DIM}{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH{ANSI.RESET}")
+            click.echo(f"  {ANSI.DIM}{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}{ANSI.RESET}")
 
     def http_request(
         self,
@@ -223,6 +224,6 @@ class DevServerOutputMixin:
         else:
             # Use ANSI codes for fallback
             print(
-                f"  {timestamp} │ {method_color_code}{method:6}\033[0m │ "
-                f"{status_color_code}{status_code:3}\033[0m │ {indicator}{display_path}"
+                f"  {timestamp} │ {method_color_code}{method:6}{ANSI.RESET} │ "
+                f"{status_color_code}{status_code:3}{ANSI.RESET} │ {indicator}{display_path}"
             )

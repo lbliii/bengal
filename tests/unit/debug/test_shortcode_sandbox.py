@@ -165,33 +165,39 @@ class TestShortcodeSandbox:
         assert len(result.suggestions) > 0
 
     def test_find_similar_directives_typo(self, sandbox):
-        """Test typo detection for directive names."""
+        """Test typo detection for directive names via utility function."""
+        from bengal.debug.utils import find_similar_strings
+
         known = frozenset(["note", "tip", "warning", "tabs"])
 
         # Close typo should find similar
-        similar = sandbox._find_similar_directives("nots", known)
+        similar = find_similar_strings("nots", known)
         assert "note" in similar
 
-        similar = sandbox._find_similar_directives("warningg", known)
+        similar = find_similar_strings("warningg", known)
         assert "warning" in similar
 
     def test_find_similar_directives_no_match(self, sandbox):
-        """Test typo detection with no close matches."""
+        """Test typo detection with no close matches via utility function."""
+        from bengal.debug.utils import find_similar_strings
+
         known = frozenset(["note", "tip", "warning"])
-        similar = sandbox._find_similar_directives("xyzabc", known)
+        similar = find_similar_strings("xyzabc", known)
         assert len(similar) == 0
 
     def test_levenshtein_distance(self):
-        """Test Levenshtein distance calculation."""
+        """Test Levenshtein distance calculation via utility function."""
+        from bengal.debug.utils import levenshtein_distance
+
         # Identical strings
-        assert ShortcodeSandbox._levenshtein_distance("abc", "abc") == 0
+        assert levenshtein_distance("abc", "abc") == 0
 
         # One character difference
-        assert ShortcodeSandbox._levenshtein_distance("abc", "abd") == 1
-        assert ShortcodeSandbox._levenshtein_distance("abc", "abcd") == 1
+        assert levenshtein_distance("abc", "abd") == 1
+        assert levenshtein_distance("abc", "abcd") == 1
 
         # Two character difference
-        assert ShortcodeSandbox._levenshtein_distance("abc", "xyz") == 3
+        assert levenshtein_distance("abc", "xyz") == 3
 
     def test_list_directives(self, sandbox):
         """Test listing available directives."""

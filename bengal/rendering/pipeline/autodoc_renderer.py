@@ -23,6 +23,7 @@ from kida.environment.exceptions import (
 
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from kida.template import Template
@@ -394,7 +395,7 @@ class AutodocRenderer:
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
 
                     method = get_openapi_method(elem).lower()
-                    path = get_openapi_path(elem).strip("/").replace("/", "-")
+                    path = path_to_slug(get_openapi_path(elem))
                     return f"/{prefix}/endpoints/{method}-{path}/"
                 elif element_type == "openapi_schema":
                     return f"/{prefix}/schemas/{elem.name}/"

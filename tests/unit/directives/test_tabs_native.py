@@ -134,30 +134,30 @@ class TestTabSetNativeMode:
 
 
 class TestTabSetSlugify:
-    """Tests for slug generation."""
+    """Tests for tab ID slug generation via slugify_id."""
 
     def test_slugify_basic(self):
         """Basic text should be lowercased and hyphenated."""
-        directive = TabSetDirective()
+        from bengal.utils.primitives.text import slugify_id
 
-        assert directive._slugify("Hello World") == "hello-world"
+        assert slugify_id("Hello World", default="tab") == "hello-world"
 
     def test_slugify_special_chars(self):
         """Special characters should be removed."""
-        directive = TabSetDirective()
+        from bengal.utils.primitives.text import slugify_id
 
-        assert directive._slugify("C++ Code") == "c-code"
-        assert directive._slugify("Python (3.x)") == "python-3x"
+        assert slugify_id("C++ Code", default="tab") == "c-code"
+        assert slugify_id("Python (3.x)", default="tab") == "python-3x"
 
     def test_slugify_multiple_spaces(self):
         """Multiple spaces should become single hyphen."""
-        directive = TabSetDirective()
+        from bengal.utils.primitives.text import slugify_id
 
-        assert directive._slugify("Tab   With   Spaces") == "tab-with-spaces"
+        assert slugify_id("Tab   With   Spaces", default="tab") == "tab-with-spaces"
 
     def test_slugify_empty(self):
-        """Empty string should return 'tab'."""
-        directive = TabSetDirective()
+        """Empty string should return 'tab' (the default)."""
+        from bengal.utils.primitives.text import slugify_id
 
-        assert directive._slugify("") == "tab"
-        assert directive._slugify("   ") == "tab"
+        assert slugify_id("", default="tab") == "tab"
+        assert slugify_id("   ", default="tab") == "tab"

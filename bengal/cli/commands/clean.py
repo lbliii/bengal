@@ -7,12 +7,8 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import (
-    command_metadata,
-    get_cli_output,
-    handle_cli_errors,
-    load_site_from_cli,
-)
+from bengal.cli.helpers import command_metadata, handle_cli_errors
+from bengal.cli.utils import get_cli_output, load_site_from_cli
 
 
 @click.command(cls=BengalCommand)

@@ -39,11 +39,11 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from bengal.analysis.utils.indexing import build_category_index, build_tag_index
+from bengal.analysis.utils.pages import get_content_pages
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -159,10 +159,8 @@ class LinkSuggestionEngine:
         Returns:
             LinkSuggestionResults with all suggestions
         """
-        # Use analysis pages from graph (excludes autodoc if configured)
-        pages = self.graph.get_analysis_pages()
-        # Also exclude generated pages
-        pages = [p for p in pages if not p.metadata.get("_generated")]
+        # Use content pages (excludes autodoc and generated pages)
+        pages = get_content_pages(self.graph)
 
         if len(pages) == 0:
             logger.warning("link_suggestions_no_pages")
@@ -170,14 +168,14 @@ class LinkSuggestionEngine:
 
         logger.info("link_suggestions_start", total_pages=len(pages))
 
-        # Build tag/category mappings
+        # Build tag/category mappings using centralized utilities
         page_tags = self._build_tag_map(pages)
         page_categories = self._build_category_map(pages)
 
         # Build inverted indices for O(overlap) candidate filtering
         # RFC: rfc-analysis-algorithm-optimization
-        tag_to_pages = self._build_inverted_tag_index(pages, page_tags)
-        category_to_pages = self._build_inverted_category_index(pages, page_categories)
+        tag_to_pages = build_tag_index(pages)
+        category_to_pages = build_category_index(pages)
 
         # Pre-compute underlinked pages (pages with < 3 incoming refs)
         # These are always included as candidates because they receive the underlinked bonus
@@ -408,39 +406,6 @@ class LinkSuggestionEngine:
             category_map[page] = categories
         return category_map
 
-    def _build_inverted_tag_index(
-        self, pages: list[PageLike], page_tags: dict[PageLike, set[str]]
-    ) -> dict[str, set[PageLike]]:
-        """
-        Build inverted tag index: tag -> set of pages with that tag.
-
-        RFC: rfc-analysis-algorithm-optimization
-        This enables O(overlap) candidate filtering instead of O(N) brute force.
-        """
-        tag_to_pages: dict[str, set[PageLike]] = {}
-        for page in pages:
-            for tag in page_tags.get(page, set()):
-                if tag not in tag_to_pages:
-                    tag_to_pages[tag] = set()
-                tag_to_pages[tag].add(page)
-        return tag_to_pages
-
-    def _build_inverted_category_index(
-        self, pages: list[PageLike], page_categories: dict[PageLike, set[str]]
-    ) -> dict[str, set[PageLike]]:
-        """
-        Build inverted category index: category -> set of pages in that category.
-
-        RFC: rfc-analysis-algorithm-optimization
-        This enables O(overlap) candidate filtering instead of O(N) brute force.
-        """
-        category_to_pages: dict[str, set[PageLike]] = {}
-        for page in pages:
-            for cat in page_categories.get(page, set()):
-                if cat not in category_to_pages:
-                    category_to_pages[cat] = set()
-                category_to_pages[cat].add(page)
-        return category_to_pages
 
 
 def suggest_links(

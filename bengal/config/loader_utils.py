@@ -24,9 +24,8 @@ from typing import Any
 
 import yaml
 
-from bengal.config.defaults import DEFAULTS
 from bengal.config.environment import get_environment_file_candidates
-from bengal.config.merge import deep_merge
+from bengal.config.utils import get_default_config
 from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
 
@@ -268,14 +267,12 @@ def load_profile_config(config_dir: Path, profile: str) -> dict[str, Any] | None
     return None
 
 
-def get_default_config() -> dict[str, Any]:
-    """
-    Get a deep copy of DEFAULTS for config initialization.
-
-    Returns a deep copy of DEFAULTS to avoid mutation. This ensures
-    consistency between single-file and directory-based config loading.
-
-    Returns:
-        Default configuration dictionary with all settings from DEFAULTS.
-    """
-    return deep_merge({}, DEFAULTS)
+__all__ = [
+    "extract_baseurl",
+    "flatten_config",
+    "get_default_config",
+    "load_environment_config",
+    "load_profile_config",
+    "load_yaml_file",
+    "warn_search_ui_without_index",
+]

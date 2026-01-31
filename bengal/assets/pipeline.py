@@ -60,6 +60,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.assets._discovery import discover_files, unique_paths
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -186,13 +187,7 @@ class NodePipeline:
             compiled_files += self._bundle_js()
 
         # Return unique paths
-        unique: list[Path] = []
-        seen = set()
-        for p in compiled_files:
-            if p not in seen:
-                unique.append(p)
-                seen.add(p)
-        return unique
+        return unique_paths(compiled_files)
 
     # -------------------------------------------------------------------------
     # Internal Compilation Methods
@@ -346,22 +341,22 @@ class NodePipeline:
         Returns:
             List of matching file paths.
         """
-        files: list[Path] = []
-        checked_dirs: list[Path] = []
+        directories: list[Path] = []
         for sub in subdirs:
             if not sub:
                 continue
             base = self.config.root_path / sub
-            if not base.exists():
-                continue
-            checked_dirs.append(base)
-            # Use targeted glob patterns instead of globbing all files and filtering
-            for ext in exts:
-                files.extend(p for p in base.rglob(f"*{ext}") if p.is_file())
+            if base.exists():
+                directories.append(base)
+
+        # Use shared discovery utility
+        files_dict = discover_files(directories, exts)
+        files = list(files_dict.values())
+
         logger.debug(
             "pipeline_sources_found",
             count=len(files),
-            dirs=[str(d) for d in checked_dirs],
+            dirs=[str(d) for d in directories],
             exts=exts,
         )
         return files
@@ -383,9 +378,10 @@ class NodePipeline:
             bases.append(theme_assets / "js")
         for base in bases:
             if base.exists():
-                for p in base.glob("*.*"):
-                    if p.is_file() and p.suffix.lower() in (".js", ".ts"):
-                        entries.append(p)
+                entries.extend(
+                    p for p in base.glob("*.*")
+                    if p.is_file() and p.suffix.lower() in (".js", ".ts")
+                )
         logger.debug("pipeline_js_entries", count=len(entries))
         return entries
 

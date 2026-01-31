@@ -37,19 +37,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from bengal.config.defaults import DEFAULTS
+from bengal.config.utils import coerce_bool, get_config_value
 from bengal.orchestration.build.options import BuildOptions
-
-# Build options that should be coerced from string booleans
-BOOLEAN_BUILD_OPTIONS = {
-    "incremental",
-    "quiet",
-    "verbose",
-    "strict_mode",
-    "fast_mode",
-    "memory_optimized",
-    "profile_templates",
-    "strict",
-}
 
 
 @dataclass
@@ -79,12 +68,13 @@ class CLIFlags:
     profile_templates: bool | None = None
 
 
-def _get_config_value(config: dict[str, Any] | Any, key: str) -> Any:
+def _get_build_config_value(config: dict[str, Any] | Any, key: str) -> Any:
     """
-    Get config value with defensive path handling.
+    Get build config value with defensive path handling.
 
-    Checks both flattened (parallel) and nested (build.parallel) paths.
-    Handles string boolean coercion for boolean options.
+    Uses the shared get_config_value utility to check both flattened
+    and nested paths. For boolean build options, coerces string values
+    to actual booleans.
 
     Args:
         config: Configuration dictionary or Config object (may be flattened or nested)
@@ -94,35 +84,31 @@ def _get_config_value(config: dict[str, Any] | Any, key: str) -> Any:
         Config value, or None if not found or invalid
 
     """
-    # Use .raw for dict operations (Config always has .raw)
-    config = config.raw if hasattr(config, "raw") else config
-
-    # Check flattened path first (most common after config loading)
-    if key in config:
-        value = config[key]
-    # Fall back to nested path (build.parallel, site.title, etc.)
-    elif "build" in config and isinstance(config["build"], dict) and key in config["build"]:
-        value = config["build"][key]
-    else:
-        return None
+    # Use shared utility for flat/nested access (checks "build" section)
+    value = get_config_value(config, key, sections=("build",), default=None)
 
     # Handle None values (treat as missing)
     if value is None:
         return None
 
-    # Coerce string booleans to actual booleans
-    # Only coerce recognized boolean strings; unrecognized strings return None (fall back to DEFAULTS)
-    if isinstance(value, str) and key in BOOLEAN_BUILD_OPTIONS:
-        lower_val = value.lower()
-        if lower_val in ("true", "1", "yes", "on"):
-            return True
-        elif lower_val in ("false", "0", "no", "off"):
-            return False
-        else:
-            # Unrecognized string - treat as missing (fall back to DEFAULTS)
-            return None
+    # Coerce string booleans to actual booleans for known boolean options
+    if isinstance(value, str) and key in _BOOLEAN_BUILD_OPTIONS:
+        return coerce_bool(value, default=None)
 
     return value
+
+
+# Build options that should be coerced from string booleans
+_BOOLEAN_BUILD_OPTIONS = frozenset({
+    "incremental",
+    "quiet",
+    "verbose",
+    "strict_mode",
+    "fast_mode",
+    "memory_optimized",
+    "profile_templates",
+    "strict",
+})
 
 
 def resolve_build_options(
@@ -188,7 +174,7 @@ def resolve_build_options(
             return cli_value
 
         # Check config (handles both flattened and nested paths)
-        config_value = _get_config_value(config, key)
+        config_value = _get_build_config_value(config, key)
         if config_value is not None:
             return config_value
 

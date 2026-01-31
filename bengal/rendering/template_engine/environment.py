@@ -35,6 +35,7 @@ from bengal.core.theme import get_theme_package
 from bengal.errors import ErrorCode
 from bengal.rendering.context import ParamsContext, get_engine_globals
 from bengal.rendering.template_functions import register_all
+from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -116,9 +117,7 @@ def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
         )
 
     # Bundled theme directory
-    bundled_theme_templates = (
-        Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
-    )
+    bundled_theme_templates = THEMES_ROOT / theme_name / "templates"
     if bundled_theme_templates.exists():
         return bundled_theme_templates
 
@@ -179,7 +178,7 @@ def read_theme_extends(theme_name: str, site: Any) -> str | None:
         )
 
     # Bundled theme manifest
-    bundled_manifest = Path(__file__).parent.parent.parent / "themes" / theme_name / "theme.toml"
+    bundled_manifest = THEMES_ROOT / theme_name / "theme.toml"
     if bundled_manifest.exists():
         try:
             with open(bundled_manifest, "rb") as f:
@@ -279,9 +278,7 @@ def create_jinja_environment(
                 )
 
             # Bundled theme directory
-            bundled_theme_templates = (
-                Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
-            )
+            bundled_theme_templates = THEMES_ROOT / theme_name / "templates"
             if bundled_theme_templates.exists():
                 template_dirs.append(str(bundled_theme_templates))
                 theme_found = True
@@ -307,7 +304,7 @@ def create_jinja_environment(
                 )
 
     # Ensure default exists as ultimate fallback
-    default_templates = Path(__file__).parent.parent.parent / "themes" / "default" / "templates"
+    default_templates = DEFAULT_THEME_PATH / "templates"
     if str(default_templates) not in template_dirs and default_templates.exists():
         template_dirs.append(str(default_templates))
 

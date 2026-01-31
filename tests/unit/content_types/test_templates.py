@@ -1,12 +1,154 @@
 """
 Unit tests for content type template utilities.
 
-Tests the template cascade resolution logic.
+Tests the template cascade resolution logic and page classification.
 """
 
+from pathlib import Path
 from unittest.mock import Mock
 
-from bengal.content_types.templates import resolve_template_cascade
+from bengal.content_types.templates import (
+    build_template_cascade,
+    classify_page,
+    resolve_template_cascade,
+)
+
+
+class TestClassifyPage:
+    """Test page classification for template resolution."""
+
+    def test_classifies_home_page_by_is_home(self):
+        """Page with is_home=True should be classified as 'home'."""
+        page = Mock()
+        page.is_home = True
+        page._path = "/something/"
+        page.source_path = Path("/content/something/_index.md")
+
+        assert classify_page(page) == "home"
+
+    def test_classifies_home_page_by_root_path(self):
+        """Page with _path='/' should be classified as 'home'."""
+        page = Mock()
+        page.is_home = False
+        page._path = "/"
+        page.source_path = Path("/content/_index.md")
+
+        assert classify_page(page) == "home"
+
+    def test_classifies_section_index_as_list(self):
+        """Section index (_index.md) should be classified as 'list'."""
+        page = Mock()
+        page.is_home = False
+        page._path = "/blog/"
+        page.source_path = Path("/content/blog/_index.md")
+
+        assert classify_page(page) == "list"
+
+    def test_classifies_regular_page_as_single(self):
+        """Regular content page should be classified as 'single'."""
+        page = Mock()
+        page.is_home = False
+        page._path = "/blog/my-post/"
+        page.source_path = Path("/content/blog/my-post.md")
+
+        assert classify_page(page) == "single"
+
+    def test_home_takes_priority_over_index_stem(self):
+        """is_home=True should take priority even if source is _index.md."""
+        page = Mock()
+        page.is_home = True
+        page._path = "/"
+        page.source_path = Path("/content/_index.md")
+
+        # Should be "home" not "list"
+        assert classify_page(page) == "home"
+
+
+class TestBuildTemplateCascade:
+    """Test template cascade building."""
+
+    def test_builds_cascade_for_home_page(self):
+        """Home page cascade should include home.html and index.html variants."""
+        result = build_template_cascade("blog", "home")
+
+        assert result == [
+            "blog/home.html",
+            "blog/index.html",
+            "home.html",
+            "index.html",
+        ]
+
+    def test_builds_cascade_for_list_page(self):
+        """List page cascade should include list.html and index.html variants."""
+        result = build_template_cascade("doc", "list")
+
+        assert result == [
+            "doc/list.html",
+            "doc/index.html",
+            "list.html",
+            "index.html",
+        ]
+
+    def test_builds_cascade_for_single_page(self):
+        """Single page cascade should include single.html and page.html variants."""
+        result = build_template_cascade("tutorial", "single")
+
+        assert result == [
+            "tutorial/single.html",
+            "tutorial/page.html",
+            "single.html",
+            "page.html",
+        ]
+
+    def test_includes_extra_prefixes(self):
+        """Extra prefixes should be included between type-specific and generic."""
+        result = build_template_cascade("autodoc/python", "list", ["autodoc"])
+
+        assert result == [
+            "autodoc/python/list.html",
+            "autodoc/python/index.html",
+            "autodoc/list.html",
+            "autodoc/index.html",
+            "list.html",
+            "index.html",
+        ]
+
+    def test_multiple_extra_prefixes(self):
+        """Multiple extra prefixes should all be included in order."""
+        result = build_template_cascade("a/b/c", "single", ["a/b", "a"])
+
+        assert result == [
+            "a/b/c/single.html",
+            "a/b/c/page.html",
+            "a/b/single.html",
+            "a/b/page.html",
+            "a/single.html",
+            "a/page.html",
+            "single.html",
+            "page.html",
+        ]
+
+    def test_no_extra_prefixes_when_none(self):
+        """None extra_prefixes should not add any extra entries."""
+        result = build_template_cascade("blog", "home", None)
+
+        assert result == [
+            "blog/home.html",
+            "blog/index.html",
+            "home.html",
+            "index.html",
+        ]
+
+    def test_empty_extra_prefixes_list(self):
+        """Empty extra_prefixes list should not add any extra entries."""
+        result = build_template_cascade("blog", "home", [])
+
+        assert result == [
+            "blog/home.html",
+            "blog/index.html",
+            "home.html",
+            "index.html",
+        ]
 
 
 class TestResolveTemplateCascade:

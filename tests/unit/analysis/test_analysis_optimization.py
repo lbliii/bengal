@@ -213,10 +213,9 @@ class TestLinkSuggestionsOptimization:
 
     def test_inverted_tag_index_built_correctly(self):
         """Test that inverted tag index is built correctly."""
-        from bengal.analysis.links.suggestions import LinkSuggestionEngine
+        from bengal.analysis.utils.indexing import build_tag_index
 
-        # Create mock graph with tagged pages
-        graph = Mock()
+        # Create mock pages with tags
         page_a = Mock()
         page_a.tags = ["python", "tutorial"]
         page_a.metadata = {}
@@ -227,18 +226,10 @@ class TestLinkSuggestionsOptimization:
         page_c.tags = ["javascript"]
         page_c.metadata = {}
 
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
-        graph.outgoing_refs = defaultdict(set)
-        graph.incoming_refs = defaultdict(float)
-        graph._pagerank_results = None
-        graph._path_results = None
-
-        engine = LinkSuggestionEngine(graph, min_score=0.1)
-
-        # Build tag map and inverted index
         pages = [page_a, page_b, page_c]
-        page_tags = engine._build_tag_map(pages)
-        tag_to_pages = engine._build_inverted_tag_index(pages, page_tags)
+
+        # Build inverted index using centralized utility
+        tag_to_pages = build_tag_index(pages)
 
         # Verify inverted index
         assert page_a in tag_to_pages["python"]
@@ -256,18 +247,24 @@ class TestLinkSuggestionsOptimization:
         # Page A shares tags with B, but not with C
         page_a = Mock()
         page_a.tags = ["python"]
+        page_a.category = None
+        page_a.categories = None
         page_a.metadata = {}
         page_a.source_path = Mock()
         page_a.title = "Page A"
 
         page_b = Mock()
         page_b.tags = ["python"]
+        page_b.category = None
+        page_b.categories = None
         page_b.metadata = {}
         page_b.source_path = Mock()
         page_b.title = "Page B"
 
         page_c = Mock()
         page_c.tags = ["unrelated-topic"]
+        page_c.category = None
+        page_c.categories = None
         page_c.metadata = {}
         page_c.source_path = Mock()
         page_c.title = "Page C"

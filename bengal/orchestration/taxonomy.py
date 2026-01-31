@@ -56,6 +56,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.orchestration.utils.errors import is_shutdown_error
+from bengal.orchestration.utils.i18n import (
+    filter_pages_by_language,
+    get_i18n_config,
+)
+from bengal.orchestration.utils.virtual_pages import (
+    VirtualPageSpec,
+    create_virtual_page,
+)
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
@@ -289,10 +298,8 @@ class TaxonomyOrchestrator:
         # Initialize taxonomy structure
         self.site.taxonomies = {"tags": {}, "categories": {}}
 
-        # Collect from all pages, optionally per-locale
-        i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy") or "none"
-        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        # Get i18n configuration using utility
+        i18n_config = get_i18n_config(self.site.config)
         current_lang = getattr(self.site, "current_language", None)
 
         pages_with_tags = 0
@@ -303,8 +310,8 @@ class TaxonomyOrchestrator:
 
             # Only filter by language if i18n is actually enabled
             if (
-                strategy != "none"
-                and not share_taxonomies
+                i18n_config.is_enabled
+                and not i18n_config.share_taxonomies
                 and current_lang
                 and getattr(page, "lang", current_lang) != current_lang
             ):
@@ -449,35 +456,21 @@ class TaxonomyOrchestrator:
         if not self.site.taxonomies.get("tags"):
             return
 
-        # Get i18n configuration
-        i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy") or "none"
-        share_taxonomies = bool(i18n.get("share_taxonomies", False))
-        default_lang = i18n.get("default_language", "en")
-
-        # Determine languages to generate for
-        languages = [default_lang]
-        if strategy != "none":
-            languages = []
-            langs_cfg = i18n.get("languages") or []
-            for entry in langs_cfg:
-                if isinstance(entry, dict) and "code" in entry:
-                    languages.append(entry["code"])
-                elif isinstance(entry, str):
-                    languages.append(entry)
-            if default_lang not in languages:
-                languages.append(default_lang)
+        # Get i18n configuration using utility
+        i18n_config = get_i18n_config(self.site.config)
 
         # Generate per-locale tag pages
-        for lang in sorted(set(languages)):
+        for lang in i18n_config.languages:
             # Build per-locale tag mapping
             locale_tags = {}
             for tag_slug, tag_data in self.site.taxonomies["tags"].items():
-                # Don't filter by language if i18n is disabled or taxonomies are shared
-                pages_for_lang = (
-                    tag_data["pages"]
-                    if (strategy == "none" or share_taxonomies)
-                    else [p for p in tag_data["pages"] if getattr(p, "lang", default_lang) == lang]
+                # Filter pages by language using utility
+                pages_for_lang = filter_pages_by_language(
+                    tag_data["pages"],
+                    lang,
+                    i18n_config.default_language,
+                    i18n_config.share_taxonomies,
+                    i18n_config.strategy,
                 )
                 if not pages_for_lang:
                     continue
@@ -538,7 +531,7 @@ class TaxonomyOrchestrator:
             tag_pages=generated_count,
             total=generated_count,
             affected_tags=len(affected_tags),
-            languages=len(languages),
+            languages=len(i18n_config.languages),
             skipped_tags=skipped_count if skipped_count > 0 else None,
         )
 
@@ -552,37 +545,22 @@ class TaxonomyOrchestrator:
             parallel: Whether to use parallel processing for tag pages (default: True)
         """
         generated_count = 0
-        i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy") or "none"
-        share_taxonomies = bool(i18n.get("share_taxonomies", False))
-        default_lang = i18n.get("default_language", "en")
-
-        # Determine languages to generate for
-        languages = [default_lang]
-        if strategy != "none":
-            languages = []
-            langs_cfg = i18n.get("languages") or []
-            for entry in langs_cfg:
-                if isinstance(entry, dict) and "code" in entry:
-                    languages.append(entry["code"])
-                elif isinstance(entry, str):
-                    languages.append(entry)
-            if default_lang not in languages:
-                languages.append(default_lang)
+        # Get i18n configuration using utility
+        i18n_config = get_i18n_config(self.site.config)
 
         # Generate per-locale tag pages
         if self.site.taxonomies.get("tags"):
-            for lang in sorted(set(languages)):
+            for lang in i18n_config.languages:
                 # Build per-locale tag mapping
                 locale_tags = {}
                 for tag_slug, tag_data in self.site.taxonomies["tags"].items():
-                    # Don't filter by language if i18n is disabled or taxonomies are shared
-                    pages_for_lang = (
-                        tag_data["pages"]
-                        if (strategy == "none" or share_taxonomies)
-                        else [
-                            p for p in tag_data["pages"] if getattr(p, "lang", default_lang) == lang
-                        ]
+                    # Filter pages by language using utility
+                    pages_for_lang = filter_pages_by_language(
+                        tag_data["pages"],
+                        lang,
+                        i18n_config.default_language,
+                        i18n_config.share_taxonomies,
+                        i18n_config.strategy,
                     )
                     if not pages_for_lang:
                         continue
@@ -726,6 +704,11 @@ class TaxonomyOrchestrator:
                         page.lang = lang
                     all_generated_pages.extend(tag_pages)
                 except Exception as e:
+                    # Handle shutdown errors gracefully
+                    if is_shutdown_error(e):
+                        logger.debug("taxonomy_shutdown", tag_slug=tag_slug)
+                        continue
+
                     # Use ErrorAggregator for structured error handling
                     context = {
                         "tag_slug": tag_slug,
@@ -753,79 +736,31 @@ class TaxonomyOrchestrator:
         """
         Create the main tags index page.
 
+        Delegates to _create_tag_index_page_for with site taxonomies.
+
         Returns:
             Generated tag index page
         """
-        from bengal.core.page import Page
-
-        # Create virtual path (delegate to utility)
-        virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
-
-        tag_index = Page(
-            source_path=virtual_path,
-            _raw_content="",
-            metadata={
-                "title": "All Tags",
-                "template": "tags.html",
-                "type": "tag-index",
-                "_generated": True,
-                "_virtual": True,
-                "_tags": self.site.taxonomies["tags"],
-            },
-        )
-
-        # Mark as virtual page (attribute, not just metadata)
-        tag_index._virtual = True
-
-        # Set site reference BEFORE output_path for correct URL computation
-        tag_index._site = self.site
-
-        # Compute output path using centralized logic (i18n-aware via site.current_language)
-        tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
-
-        return tag_index
+        return self._create_tag_index_page_for(self.site.taxonomies["tags"])
 
     def _create_tag_index_page_for(self, tags: dict[str, Any]) -> Page:
-        from bengal.core.page import Page
-
-        virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
-        tag_index = Page(
-            source_path=virtual_path,
-            _raw_content="",
-            metadata={
-                "title": "All Tags",
-                "template": "tags.html",
-                "type": "tag-index",
-                "_generated": True,
-                "_virtual": True,
-                "_tags": tags,
-            },
+        """Create tag index page using virtual page utility."""
+        spec = VirtualPageSpec(
+            title="All Tags",
+            template="tags.html",
+            page_type="tag-index",
+            metadata={"_tags": tags},
         )
 
-        # Mark as virtual page (attribute, not just metadata)
-        tag_index._virtual = True
-
-        # Set site reference BEFORE output_path for correct URL computation
-        tag_index._site = self.site
-        tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
-
-        # Claim URL in registry for ownership enforcement
-        # Priority 40 = taxonomy (auto-generated)
-        if hasattr(self.site, "url_registry") and self.site.url_registry:
-            try:
-                url = self.url_strategy.url_from_output_path(tag_index.output_path, self.site)
-                source = str(tag_index.source_path)
-                self.site.url_registry.claim(
-                    url=url,
-                    owner="taxonomy",
-                    source=source,
-                    priority=40,  # Taxonomy pages
-                )
-            except Exception:
-                # Don't fail taxonomy generation on registry errors (graceful degradation)
-                pass
-
-        return tag_index
+        return create_virtual_page(
+            site=self.site,
+            url_strategy=self.url_strategy,
+            spec=spec,
+            path_segments=("tags",),
+            output_path=self.url_strategy.compute_tag_index_output_path(self.site),
+            registry_owner="taxonomy",
+            registry_priority=40,
+        )
 
     def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
         """
@@ -838,10 +773,9 @@ class TaxonomyOrchestrator:
         Returns:
             List of generated tag pages
         """
-        from bengal.core.page import Page
         from bengal.utils.pagination import Paginator
 
-        pages_to_create = []
+        pages_to_create: list[Page] = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
         # Filter out any ineligible pages (defensive check)
@@ -852,56 +786,31 @@ class TaxonomyOrchestrator:
 
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
-            # Create virtual path (delegate to utility)
-            virtual_path = self.url_strategy.make_virtual_path(
-                self.site, "tags", tag_slug, f"page_{page_num}"
-            )
-
-            tag_page = Page(
-                source_path=virtual_path,
-                _raw_content="",
+            spec = VirtualPageSpec(
+                title=f"Posts tagged '{tag_data['name']}'",
+                template="tag.html",
+                page_type="tag",
                 metadata={
-                    "title": f"Posts tagged '{tag_data['name']}'",
-                    "template": "tag.html",
-                    "type": "tag",
-                    "_generated": True,
-                    "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
-                    "_taxonomy_term": tag_slug,  # For provenance tracking
-                    "_posts": eligible_pages,  # Use filtered pages
+                    "_taxonomy_term": tag_slug,
+                    "_posts": eligible_pages,
                     "_paginator": paginator,
                     "_page_num": page_num,
                 },
             )
 
-            # Mark as virtual page (attribute, not just metadata)
-            tag_page._virtual = True
-
-            # Set site reference BEFORE output_path for correct URL computation
-            tag_page._site = self.site
-
-            # Compute output path using centralized logic (i18n-aware via site.current_language)
-            tag_page.output_path = self.url_strategy.compute_tag_output_path(
-                tag_slug=tag_slug, page_num=page_num, site=self.site
+            tag_page = create_virtual_page(
+                site=self.site,
+                url_strategy=self.url_strategy,
+                spec=spec,
+                path_segments=("tags", tag_slug, f"page_{page_num}"),
+                output_path=self.url_strategy.compute_tag_output_path(
+                    tag_slug=tag_slug, page_num=page_num, site=self.site
+                ),
+                registry_owner="taxonomy",
+                registry_priority=40,
             )
-
-            # Claim URL in registry for ownership enforcement
-            # Priority 40 = taxonomy (auto-generated)
-            if hasattr(self.site, "url_registry") and self.site.url_registry:
-                try:
-                    url = self.url_strategy.url_from_output_path(tag_page.output_path, self.site)
-                    source = str(tag_page.source_path)
-                    self.site.url_registry.claim(
-                        url=url,
-                        owner="taxonomy",
-                        source=source,
-                        priority=40,  # Taxonomy pages
-                    )
-                except Exception:
-                    # Don't fail taxonomy generation on registry errors (graceful degradation)
-                    pass
-
             pages_to_create.append(tag_page)
 
         return pages_to_create
@@ -909,46 +818,44 @@ class TaxonomyOrchestrator:
     def _create_tag_pages_for_lang(
         self, tag_slug: str, tag_data: dict[str, Any], lang: str
     ) -> list[Page]:
-        from bengal.core.page import Page
+        """Create tag pages for a specific language."""
         from bengal.utils.pagination import Paginator
 
-        pages_to_create = []
+        pages_to_create: list[Page] = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
         # Filter out any ineligible pages (defensive check)
         eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
         paginator = Paginator(eligible_pages, per_page=per_page)
+
         for page_num in range(1, paginator.num_pages + 1):
-            virtual_path = self.url_strategy.make_virtual_path(
-                self.site, "tags", tag_slug, f"page_{page_num}"
-            )
-            tag_page = Page(
-                source_path=virtual_path,
-                _raw_content="",
+            spec = VirtualPageSpec(
+                title=f"Posts tagged '{tag_data['name']}'",
+                template="tag.html",
+                page_type="tag",
                 metadata={
-                    "title": f"Posts tagged '{tag_data['name']}'",
-                    "template": "tag.html",
-                    "type": "tag",
-                    "_generated": True,
-                    "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
-                    "_taxonomy_term": tag_slug,  # For provenance tracking
-                    "_posts": eligible_pages,  # Use filtered pages
-                    "_paginator": paginator,  # Reuse paginator instance
+                    "_taxonomy_term": tag_slug,
+                    "_posts": eligible_pages,
+                    "_paginator": paginator,
                     "_page_num": page_num,
                 },
+                lang=lang,
             )
 
-            # Mark as virtual page (attribute, not just metadata)
-            tag_page._virtual = True
-
-            # Set site reference BEFORE output_path for correct URL computation
-            tag_page._site = self.site
-            tag_page.output_path = self.url_strategy.compute_tag_output_path(
-                tag_slug=tag_slug, page_num=page_num, site=self.site
+            tag_page = create_virtual_page(
+                site=self.site,
+                url_strategy=self.url_strategy,
+                spec=spec,
+                path_segments=("tags", tag_slug, f"page_{page_num}"),
+                output_path=self.url_strategy.compute_tag_output_path(
+                    tag_slug=tag_slug, page_num=page_num, site=self.site
+                ),
+                registry_owner=None,  # Skip registry claim for lang-specific pages
             )
             pages_to_create.append(tag_page)
+
         return pages_to_create
 
     def generate_tag_pages(

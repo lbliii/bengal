@@ -25,13 +25,16 @@ See Also:
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
+from bengal.postprocess.utils import indent_xml
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
+    from bengal.protocols import SiteLike
 
 
 class SitemapGenerator:
@@ -67,7 +70,7 @@ class SitemapGenerator:
 
     """
 
-    def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:
+    def __init__(self, site: SiteLike, collector: OutputCollector | None = None) -> None:
         """
         Initialize sitemap generator.
 
@@ -132,7 +135,7 @@ class SitemapGenerator:
             if page.output_path:
                 try:
                     rel_path = page.output_path.relative_to(self.site.output_dir)
-                    loc = f"{baseurl}/{rel_path}".replace("\\", "/")
+                    loc = f"{baseurl}/{to_posix(rel_path)}"
                 except ValueError:
                     skipped_count += 1
                     continue
@@ -154,7 +157,7 @@ class SitemapGenerator:
                         if p.output_path:
                             try:
                                 rel = p.output_path.relative_to(self.site.output_dir)
-                                href = f"{baseurl}/{rel}".replace("\\", "/")
+                                href = f"{baseurl}/{to_posix(rel)}"
                                 href = href.replace("/index.html", "/")
                             except ValueError:
                                 # Skip pages not under output_dir
@@ -209,7 +212,7 @@ class SitemapGenerator:
         sitemap_path = self.site.output_dir / "sitemap.xml"
 
         # Format XML with indentation
-        self._indent(urlset)
+        indent_xml(urlset)
 
         # Write atomically using context manager
         try:
@@ -292,27 +295,3 @@ class SitemapGenerator:
         else:
             # Older versions get lower priority but still indexed
             return "0.3"
-
-    def _indent(self, elem: ET.Element, level: int = 0) -> None:
-        """
-        Add indentation to XML for readability.
-
-        Args:
-            elem: XML element to indent
-            level: Current indentation level
-        """
-        indent = "\n" + "  " * level
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = indent + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = indent
-            last_child: ET.Element | None = None
-            for child in elem:
-                self._indent(child, level + 1)
-                last_child = child
-            # Set tail on last child (last_child is guaranteed non-None when len(elem) > 0)
-            if last_child is not None and (not last_child.tail or not last_child.tail.strip()):
-                last_child.tail = indent
-        elif level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = indent

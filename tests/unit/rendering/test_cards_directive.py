@@ -514,7 +514,7 @@ class TestCardPullWithXrefIndex:
             url="/docs/get-started/quickstart-writer/",
             description="Learn to write content",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {"writer-qs": mock_page},
             "by_path": {},
             "by_slug": {},
@@ -530,7 +530,8 @@ Fallback content
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should have pulled the title
         assert "Writer Quickstart" in result
@@ -545,7 +546,7 @@ Fallback content
             url="/docs/theming/",
             description="Learn to customize themes and styles",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {"themer-qs": mock_page},
             "by_path": {},
             "by_slug": {},
@@ -560,7 +561,8 @@ Fallback content
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should use explicit title
         assert "Custom Title" in result
@@ -576,7 +578,7 @@ Fallback content
             url="/docs/code/",
             icon="code",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {"code-guide": mock_page},
             "by_path": {},
             "by_slug": {},
@@ -592,7 +594,8 @@ Content
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should have pulled the icon
         assert 'data-icon="code"' in result
@@ -606,7 +609,7 @@ Content
             description="Page description",
             icon="book",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {"my-page": mock_page},
             "by_path": {},
             "by_slug": {},
@@ -623,7 +626,8 @@ Content here
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Explicit title should be used, not pulled
         assert "Explicit Title" in result
@@ -639,7 +643,7 @@ Content here
             title="Installation Guide",
             url="/docs/installation/",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {},
             "by_path": {"docs/installation": mock_page},
             "by_slug": {},
@@ -653,7 +657,8 @@ Content here
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Link should be resolved via path
         assert 'href="/docs/installation/"' in result
@@ -665,7 +670,7 @@ Content here
             title="Quickstart",
             url="/docs/quickstart/",
         )
-        parser.md.renderer._xref_index = {
+        xref_index = {
             "by_id": {},
             "by_path": {},
             "by_slug": {"quickstart": [mock_page]},
@@ -679,7 +684,8 @@ Content here
 :::
 ::::
 """
-        result = parser.parse(content, {})
+        context = {"xref_index": xref_index}
+        result = parser.parse_with_context(content, {}, context)
 
         # Link should be resolved via slug
         assert 'href="/docs/quickstart/"' in result
@@ -753,9 +759,6 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page(title="Content", source_path="docs/content/_index.md")
         current_page._section = section
 
-        # Set current page on renderer
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :columns: 2
@@ -763,7 +766,8 @@ class TestChildCardsDirective:
 :fields: title, description
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should render card grid
         assert "card-grid" in result
@@ -785,14 +789,13 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Index", source_path="docs/_index.md")
         current_page._section = section
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :include: sections
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         assert "Subsection" in result
         # Regular page should NOT be included when include: sections
@@ -813,15 +816,14 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Index", source_path="docs/_index.md")
         current_page._section = section
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :include: pages
 :fields: title, description
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         assert "Regular Page" in result
         # Subsection should NOT be included when include: pages
@@ -830,14 +832,13 @@ class TestChildCardsDirective:
     def test_child_cards_no_current_page(self, parser):
         """Test child-cards gracefully handles missing current page."""
 
-        # Don't set _current_page
-        parser.md.renderer._current_page = None
-
         content = """
 :::{child-cards}
 :::
 """
-        result = parser.parse(content, {})
+        # Pass empty context (no page)
+        context = {}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should render empty grid with message
         assert "card-grid" in result
@@ -849,13 +850,12 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Orphan", source_path="orphan.md")
         current_page._section = None
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should render empty grid with message
         assert "card-grid" in result
@@ -868,13 +868,12 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Empty", source_path="empty/_index.md")
         current_page._section = section
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         assert "No child content found" in result
 
@@ -897,15 +896,14 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Index", source_path="docs/_index.md")
         current_page._section = section
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 :include: sections
 :fields: title, description, icon
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         # Should include icon (📁 is the emoji for "folder")
         assert 'data-icon="folder"' in result
@@ -926,8 +924,6 @@ class TestChildCardsDirective:
         current_page = self._create_mock_page("Index", source_path="docs/_index.md")
         current_page._section = section
 
-        parser.md.renderer._current_page = current_page
-
         content = """
 :::{child-cards}
 ::include: pages
@@ -938,7 +934,8 @@ class TestChildCardsDirective:
 ::gap: medium
 :::
 """
-        result = parser.parse(content, {})
+        context = {"page": current_page}
+        result = parser.parse_with_context(content, {}, context)
 
         # Markdown should be rendered, not escaped
         assert "<strong>bold</strong>" in result

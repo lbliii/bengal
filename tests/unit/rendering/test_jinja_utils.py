@@ -1,16 +1,20 @@
-"""Tests for Jinja2 utility functions."""
+"""Tests for Jinja2 utility functions.
+
+Note: These functions are now in bengal.rendering.utils.safe_access.
+This test file is preserved for the comprehensive test coverage.
+"""
 
 from __future__ import annotations
 
 import pytest
 from jinja2 import Undefined
 
-from bengal.rendering.jinja_utils import (
+from bengal.rendering.utils.safe_access import (
     ensure_defined,
     has_value,
     is_undefined,
     safe_get,
-    safe_get_attr,
+    safe_get_nested as safe_get_attr,
 )
 
 

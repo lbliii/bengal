@@ -71,6 +71,7 @@ from bengal.config.loader_utils import (
 )
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
+from bengal.config.utils import get_default_config
 from bengal.errors import BengalConfigError, ErrorCode, format_suggestion
 from bengal.utils.observability.logger import get_logger
 
@@ -220,7 +221,7 @@ class ConfigDirectoryLoader:
         # Layer 0: Start with Bengal DEFAULTS as base layer
         # This ensures all sites get sensible defaults (search, output_formats, etc.)
         # even if _default/ directory is missing or incomplete
-        config: dict[str, Any] = deep_merge({}, DEFAULTS)
+        config: dict[str, Any] = get_default_config()
         if self.origin_tracker:
             self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
 

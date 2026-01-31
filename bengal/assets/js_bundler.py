@@ -20,6 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 logger = get_logger(__name__)
 
@@ -207,7 +208,7 @@ def discover_js_files(
     for js_file in js_dir.rglob("*.js"):
         # Get relative path from js_dir (e.g., "core/theme.js" or "utils.js")
         rel_path = js_file.relative_to(js_dir)
-        rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
+        rel_path_str = to_posix(rel_path)
         all_files[rel_path_str] = js_file
         # Also index by filename for backward compatibility in bundle_order lookup
         files_by_name[js_file.name] = js_file
@@ -222,7 +223,7 @@ def discover_js_files(
         ordered_js_file: Path | None = all_files.get(name) or files_by_name.get(name)
         if ordered_js_file:
             # Canonicalize the path for exclusion check
-            rel_path_str = str(ordered_js_file.relative_to(js_dir)).replace("\\", "/")
+            rel_path_str = to_posix(ordered_js_file.relative_to(js_dir))
             if rel_path_str not in excluded and ordered_js_file not in seen_paths:
                 ordered.append(ordered_js_file)
                 seen_paths.add(ordered_js_file)

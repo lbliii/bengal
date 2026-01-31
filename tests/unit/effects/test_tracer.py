@@ -1,12 +1,13 @@
 """
-Unit tests for EffectTracer.
+Unit tests for EffectTracer and SnapshotEffectBuilder.
 
 RFC: Snapshot-Enabled v2 Opportunities (Opportunity 1)
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 
-from bengal.effects import Effect, EffectTracer
+from bengal.effects import Effect, EffectTracer, SnapshotEffectBuilder
 
 
 class TestEffectTracer:
@@ -221,3 +222,175 @@ class TestEffectTracerThreadSafety:
         reader_thread.join()
 
         assert len(errors) == 0
+
+
+# Mock snapshot types for SnapshotEffectBuilder tests
+@dataclass
+class MockPageSnapshot:
+    """Mock PageSnapshot for testing."""
+
+    source_path: Path
+    output_path: Path
+    template_name: str
+    href: str
+
+
+@dataclass
+class MockTemplateSnapshot:
+    """Mock TemplateSnapshot for testing."""
+
+    all_dependencies: frozenset[str]
+
+
+@dataclass
+class MockSiteSnapshot:
+    """Mock SiteSnapshot for testing."""
+
+    pages: list[MockPageSnapshot]
+    templates: dict[str, MockTemplateSnapshot]
+
+
+class TestSnapshotEffectBuilder:
+    """Tests for SnapshotEffectBuilder class."""
+
+    def test_build_effects_empty_snapshot(self) -> None:
+        """Builder handles empty snapshot."""
+        snapshot = MockSiteSnapshot(pages=[], templates={})
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        assert len(tracer.effects) == 0
+
+    def test_build_effects_single_page(self) -> None:
+        """Builder creates effect for single page."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/page.md"),
+                    output_path=Path("public/page/index.html"),
+                    template_name="page.html",
+                    href="/page/",
+                )
+            ],
+            templates={},
+        )
+
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        assert len(tracer.effects) == 1
+        effect = tracer.effects[0]
+        assert Path("public/page/index.html") in effect.outputs
+        assert Path("content/page.md") in effect.depends_on
+        assert "page.html" in effect.depends_on
+        assert "page:/page/" in effect.invalidates
+        assert effect.operation == "render_page"
+
+    def test_build_effects_multiple_pages(self) -> None:
+        """Builder creates effects for multiple pages."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/a.md"),
+                    output_path=Path("public/a/index.html"),
+                    template_name="page.html",
+                    href="/a/",
+                ),
+                MockPageSnapshot(
+                    source_path=Path("content/b.md"),
+                    output_path=Path("public/b/index.html"),
+                    template_name="page.html",
+                    href="/b/",
+                ),
+            ],
+            templates={},
+        )
+
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        assert len(tracer.effects) == 2
+        output_paths = {next(iter(e.outputs)) for e in tracer.effects}
+        assert Path("public/a/index.html") in output_paths
+        assert Path("public/b/index.html") in output_paths
+
+    def test_build_effects_includes_template_dependencies(self) -> None:
+        """Builder includes template dependencies in effects."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/page.md"),
+                    output_path=Path("public/page/index.html"),
+                    template_name="page.html",
+                    href="/page/",
+                )
+            ],
+            templates={
+                "page.html": MockTemplateSnapshot(
+                    all_dependencies=frozenset({"base.html", "partials/nav.html"})
+                )
+            },
+        )
+
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        effect = tracer.effects[0]
+        assert "base.html" in effect.depends_on
+        assert "partials/nav.html" in effect.depends_on
+
+    def test_build_effects_missing_template_in_registry(self) -> None:
+        """Builder handles page with template not in registry."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/page.md"),
+                    output_path=Path("public/page/index.html"),
+                    template_name="missing.html",
+                    href="/page/",
+                )
+            ],
+            templates={},  # Template not registered
+        )
+
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        # Should still create effect, just without template dependencies
+        assert len(tracer.effects) == 1
+        effect = tracer.effects[0]
+        assert "missing.html" in effect.depends_on
+
+    def test_from_snapshot_convenience_method(self) -> None:
+        """from_snapshot class method works correctly."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/page.md"),
+                    output_path=Path("public/page/index.html"),
+                    template_name="page.html",
+                    href="/page/",
+                )
+            ],
+            templates={},
+        )
+
+        tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
+
+        assert isinstance(tracer, EffectTracer)
+        assert len(tracer.effects) == 1
+
+    def test_builder_instance_method(self) -> None:
+        """Builder instance build_effects method works."""
+        snapshot = MockSiteSnapshot(
+            pages=[
+                MockPageSnapshot(
+                    source_path=Path("content/page.md"),
+                    output_path=Path("public/page/index.html"),
+                    template_name="page.html",
+                    href="/page/",
+                )
+            ],
+            templates={},
+        )
+
+        builder = SnapshotEffectBuilder(snapshot)  # type: ignore[arg-type]
+        tracer = builder.build_effects()
+
+        assert isinstance(tracer, EffectTracer)
+        assert len(tracer.effects) == 1

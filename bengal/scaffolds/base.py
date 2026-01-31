@@ -29,8 +29,6 @@ bengal.cli.skeleton: Alternative YAML-based skeleton definitions
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import Protocol
 

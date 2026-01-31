@@ -31,6 +31,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.utils import check_bidirectional_invariants, compute_index_stats
 from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
@@ -332,17 +333,15 @@ class QueryIndex(ABC):
         """Persist index to disk."""
         with self._lock:
             # Verify consistency before save
-            # RFC: Cache Lifecycle Hardening - Phase 3
             violations = self._check_invariants()
             if violations:
                 logger.warning(
                     "query_index_invariant_violation",
                     index=self.name,
-                    violations=violations[:5],  # First 5
+                    violations=violations[:5],
                     total=len(violations),
                     action="clearing_and_skipping_save",
                 )
-                # Don't save corrupted data - clear and let next build recreate
                 self.entries.clear()
                 self._page_to_keys.clear()
                 return
@@ -377,7 +376,7 @@ class QueryIndex(ABC):
                 index=self.name,
                 path=str(self.cache_path),
                 error=str(e),
-                error_code=ErrorCode.A004.value,  # cache_write_error
+                error_code=ErrorCode.A004.value,
                 suggestion="Cache write failed. Check disk space and permissions.",
             )
 
@@ -391,7 +390,7 @@ class QueryIndex(ABC):
             with open(self.cache_path, encoding="utf-8") as f:
                 data = json.load(f)
 
-            # Type validation to prevent 'str' object has no attribute 'get' errors
+            # Type validation
             if not isinstance(data, dict):
                 logger.warning(
                     "index_invalid_data_type",
@@ -412,7 +411,7 @@ class QueryIndex(ABC):
                     index=self.name,
                     expected=self.VERSION,
                     found=data.get("version"),
-                    error_code=ErrorCode.A002.value,  # cache_version_mismatch
+                    error_code=ErrorCode.A002.value,
                     suggestion="Cache version incompatible. Index will be rebuilt.",
                 )
                 self.entries = {}
@@ -429,18 +428,16 @@ class QueryIndex(ABC):
                         self._page_to_keys[page_path] = set()
                     self._page_to_keys[page_path].add(key)
 
-            # Verify invariants after load (detect corruption early)
-            # RFC: Cache Lifecycle Hardening - Phase 3
+            # Verify invariants after load
             violations = self._check_invariants()
             if violations:
                 logger.warning(
                     "query_index_corruption_detected",
                     index=self.name,
-                    violations=violations[:5],  # First 5
+                    violations=violations[:5],
                     total=len(violations),
                     action="rebuilding_index",
                 )
-                # Clear and let it rebuild naturally
                 self.entries = {}
                 self._page_to_keys = {}
                 return
@@ -459,7 +456,7 @@ class QueryIndex(ABC):
                 index=self.name,
                 path=str(self.cache_path),
                 error=str(e),
-                error_code=ErrorCode.A003.value,  # cache_read_error
+                error_code=ErrorCode.A003.value,
                 suggestion="Cache read failed. Index will be rebuilt automatically.",
             )
             self.entries = {}
@@ -490,9 +487,6 @@ class QueryIndex(ABC):
         """
         Remove page from index key (O(1) via set).
 
-        Performance: O(1) instead of O(p) list.remove().
-        (RFC: Cache Algorithm Optimization)
-
         Note: Caller must hold self._lock.
 
         Args:
@@ -518,35 +512,28 @@ class QueryIndex(ABC):
             self.entries.clear()
             self._page_to_keys.clear()
 
+    # =========================================================================
+    # Invariant checking using shared utility
+    # =========================================================================
+
     def _check_invariants(self) -> list[str]:
         """
         Verify forward and reverse indexes are in sync.
 
-        RFC: Cache Lifecycle Hardening - Phase 3
-        Detects index desync early before it causes subtle bugs.
+        Uses shared check_bidirectional_invariants utility.
 
         Returns:
             List of violations (empty if consistent)
         """
-        violations: list[str] = []
+        return check_bidirectional_invariants(
+            forward=dict(self.entries.items()),
+            reverse=self._page_to_keys,
+            forward_getter=lambda entry: entry.page_paths,
+        )
 
-        # Check 1: Every page in _page_to_keys has its keys in entries
-        for page, keys in self._page_to_keys.items():
-            for key in keys:
-                if key not in self.entries:
-                    violations.append(f"Reverse has key '{key}' for page '{page}' not in forward")
-                elif page not in self.entries[key].page_paths:
-                    violations.append(f"Page '{page}' in reverse for key '{key}' not in forward")
-
-        # Check 2: Every page in entries[key].page_paths exists in _page_to_keys
-        for key, entry in self.entries.items():
-            for page in entry.page_paths:
-                if page not in self._page_to_keys:
-                    violations.append(f"Page '{page}' in forward for key '{key}' not in reverse")
-                elif key not in self._page_to_keys[page]:
-                    violations.append(f"Key '{key}' for page '{page}' in forward not in reverse")
-
-        return violations
+    # =========================================================================
+    # Statistics using shared utility
+    # =========================================================================
 
     def stats(self) -> dict[str, Any]:
         """
@@ -556,16 +543,12 @@ class QueryIndex(ABC):
             Dictionary with index stats
         """
         with self._lock:
-            total_pages = sum(len(entry.page_paths) for entry in self.entries.values())
-            unique_pages = len(self._page_to_keys)
-
-            return {
-                "name": self.name,
-                "total_keys": len(self.entries),
-                "total_page_entries": total_pages,
-                "unique_pages": unique_pages,
-                "avg_pages_per_key": total_pages / len(self.entries) if self.entries else 0,
-            }
+            base_stats = compute_index_stats(
+                entries=self.entries,
+                get_page_count=lambda e: len(e.page_paths),
+                reverse_index=self._page_to_keys,
+            )
+            return {"name": self.name, **base_stats}
 
     def __repr__(self) -> str:
         """String representation."""

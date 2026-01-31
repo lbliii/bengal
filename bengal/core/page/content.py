@@ -26,10 +26,10 @@ See: plan/active/rfc-content-ast-architecture.md
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.utils.text import strip_html_and_normalize
 
 if TYPE_CHECKING:
     from bengal.parsing.ast.types import ASTNode
@@ -177,7 +177,7 @@ class PageContentMixin:
         # Fallback: Use HTML-based extraction (works correctly with directives)
         html_content = getattr(self, "parsed_ast", None) or ""
         if html_content:
-            text = self._strip_html_to_text(html_content)
+            text = strip_html_and_normalize(html_content)
         else:
             # Fallback to raw content if no HTML available
             text = self._raw_content if self._raw_content else ""
@@ -262,12 +262,9 @@ class PageContentMixin:
 
         Returns:
             Plain text with HTML tags removed
-        """
-        if not html:
-            return ""
 
-        # Remove HTML tags
-        text = re.sub(r"<[^>]+>", "", html)
-        # Normalize whitespace
-        text = re.sub(r"\s+", " ", text).strip()
-        return text
+        Note:
+            This method is kept for backward compatibility but now
+            delegates to the unified strip_html_and_normalize utility.
+        """
+        return strip_html_and_normalize(html)

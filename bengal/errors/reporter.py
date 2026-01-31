@@ -53,8 +53,9 @@ See Also
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+from bengal.errors.utils import get_error_message
 from bengal.output.icons import get_icon_set
 from bengal.utils.observability.rich_console import should_use_emoji
 
@@ -99,7 +100,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
 
         # Report errors
         for error in category.errors:
-            error_msg = _get_error_message(error)
+            error_msg = get_error_message(error)
             lines.append(f"  ❌ {error_msg}")
 
             if verbose:
@@ -119,7 +120,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
         if "rendering" not in stats.errors_by_category:
             lines.append("\nRENDERING:")
         for error in stats.template_errors:
-            error_msg = _get_error_message(error)
+            error_msg = get_error_message(error)
             lines.append(f"  ❌ {error_msg}")
             if verbose:
                 if hasattr(error, "template_context"):
@@ -142,59 +143,6 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
             lines.append(f"  ⚠️  {warning.file_path}: {warning.message}")
 
     return "\n".join(lines)
-
-
-def _get_error_message(error: Any) -> str:
-    """
-    Extract error message from an error object.
-
-    Handles both BengalError instances (which have a ``message`` attribute)
-    and standard exceptions (which use ``str()``).
-
-    Special handling for Kida TemplateRuntimeError which may have empty messages
-    but include location info in the formatted output.
-
-    Args:
-        error: Error object to extract message from.
-
-    Returns:
-        Human-readable error message string.
-
-    """
-    msg = ""
-    if hasattr(error, "message"):
-        msg = str(error.message)
-    else:
-        msg = str(error)
-
-    # Handle Kida's empty-message TemplateRuntimeError format
-    # Format: "Runtime Error: \n  Location: template.html:37\n  ..."
-    # When message is empty, we get "Runtime Error: " followed by location
-    if msg.startswith("Runtime Error:") and "\n" in msg:
-        lines = msg.split("\n")
-        first_line = lines[0].strip()
-        # If first line is just "Runtime Error:" with nothing after the colon
-        # extract location from subsequent lines for a better message
-        if first_line == "Runtime Error:":
-            # Try to get location and source line for context
-            location = ""
-            source_line = ""
-            for line in lines[1:]:
-                stripped = line.strip()
-                if stripped.startswith("Location:"):
-                    location = stripped[9:].strip()  # Remove "Location:" prefix
-                elif stripped.startswith("Expression:"):
-                    source_line = stripped[11:].strip()  # Remove "Expression:" prefix
-
-            # Construct a more informative message
-            if location:
-                msg = f"Runtime Error in {location}"
-                if source_line and source_line != "<see stack trace>":
-                    msg += f": {source_line}"
-            else:
-                msg = "Runtime Error (no details available)"
-
-    return msg
 
 
 def format_error_summary(stats: BuildStats) -> str:

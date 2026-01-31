@@ -42,6 +42,7 @@ from pathlib import Path
 
 from bengal.errors import BengalAssetError, ErrorCode
 from bengal.themes.tokens import BENGAL_PALETTE, PALETTE_VARIANTS
+from bengal.themes.utils import CLI_DASHBOARD_TCSS_PATH, DEFAULT_CSS_TOKENS_PATH
 
 
 def generate_web_css() -> str:
@@ -176,7 +177,7 @@ def write_generated_css(output_dir: Path | None = None) -> Path:
 
     """
     if output_dir is None:
-        output_dir = Path(__file__).parent / "default" / "assets" / "css" / "tokens"
+        output_dir = DEFAULT_CSS_TOKENS_PATH
 
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -223,7 +224,7 @@ def validate_tcss_tokens() -> list[str]:
         may be added as validation requirements expand.
 
     """
-    tcss_path = Path(__file__).parent.parent / "cli" / "dashboard" / "bengal.tcss"
+    tcss_path = CLI_DASHBOARD_TCSS_PATH
 
     if not tcss_path.exists():
         return [f"TCSS file not found: {tcss_path}"]

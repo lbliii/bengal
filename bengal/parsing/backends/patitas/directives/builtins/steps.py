@@ -57,6 +57,7 @@ from bengal.parsing.backends.patitas.directives.contracts import (
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
+from bengal.utils.primitives.text import slugify_id
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -164,7 +165,7 @@ class StepDirective:
         heading_level = opts.heading_level if opts.heading_level is not None else 2
 
         # Generate step ID from title or fallback to step number
-        step_id = self._slugify(title) if title else f"step-{step_number}"
+        step_id = self._make_step_id(title) if title else f"step-{step_number}"
 
         # Build class list
         classes = []
@@ -214,14 +215,9 @@ class StepDirective:
             sb.append("</li>\n")
 
     @staticmethod
-    def _slugify(text: str) -> str:
-        """Convert text to URL-safe slug for anchor IDs."""
-        slug = text.lower().strip()
-        slug = re.sub(r"[\s_]+", "-", slug)
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        slug = slug.strip("-")
-        return slug or "step"
+    def _make_step_id(text: str) -> str:
+        """Convert step title to URL-safe anchor ID."""
+        return slugify_id(text, default="step")
 
 
 class StepsDirective:

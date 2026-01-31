@@ -22,12 +22,12 @@ RFC: rfc-bengal-snapshot-engine (Snapshot Persistence section)
 
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.snapshots.utils import compute_content_hash
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -240,14 +240,6 @@ class CachedPageData:
         self.reading_time = reading_time
         self.word_count = word_count
         self.excerpt = excerpt
-
-
-def compute_content_hash(content: str) -> str:
-    """Compute hash of page content for change detection.
-
-    Uses full SHA256 hash to match snapshot builder format.
-    """
-    return hashlib.sha256(content.encode()).hexdigest()
 
 
 def apply_cached_parsing(

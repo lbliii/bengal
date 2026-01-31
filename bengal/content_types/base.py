@@ -41,14 +41,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
-
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.page import Page
     from bengal.core.section import Section
-
-logger = get_logger(__name__)
 
 
 class ContentTypeStrategy:
@@ -118,7 +114,9 @@ class ContentTypeStrategy:
             >>> def sort_pages(self, pages):
             ...     return sorted(pages, key=lambda p: p.date or datetime.min, reverse=True)
         """
-        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+        from bengal.content_types.utils import weight_title_key
+
+        return sorted(pages, key=weight_title_key)
 
     def filter_display_pages(self, pages: list[Page], index_page: Page | None = None) -> list[Page]:
         """
@@ -212,39 +210,21 @@ class ContentTypeStrategy:
             resolution logic, or override ``_get_type_name()`` to customize
             the type prefix used in template paths.
         """
-        from bengal.content_types.templates import resolve_template_cascade
+        from bengal.content_types.templates import (
+            build_template_cascade,
+            classify_page,
+            resolve_template_cascade,
+        )
 
         # Backward compatibility: if no page provided, return default template
         if page is None:
             return self.default_template
 
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        # Get type name (e.g., "blog", "doc")
+        page_type = classify_page(page)
         type_name = self._get_type_name()
+        extra_prefixes = self._get_extra_template_prefixes()
 
-        if is_home:
-            templates_to_try = [
-                f"{type_name}/home.html",
-                f"{type_name}/index.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                f"{type_name}/list.html",
-                f"{type_name}/index.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                f"{type_name}/single.html",
-                f"{type_name}/page.html",
-                "single.html",
-                "page.html",
-            ]
+        templates_to_try = build_template_cascade(type_name, page_type, extra_prefixes)
 
         return resolve_template_cascade(
             templates_to_try,
@@ -269,12 +249,31 @@ class ContentTypeStrategy:
             >>> BlogStrategy()._get_type_name()
             'blog'
         """
-        # Extract type name from default_template path (e.g., "blog/list.html" -> "blog")
+        # Extract full type path from default_template (e.g., "autodoc/python/list.html" -> "autodoc/python")
         if "/" in self.default_template:
-            return self.default_template.split("/")[0]
+            parts = self.default_template.rsplit("/", 1)
+            return parts[0]
         # Fallback: use class name minus "Strategy"
         class_name = self.__class__.__name__
         return class_name.replace("Strategy", "").lower()
+
+    def _get_extra_template_prefixes(self) -> list[str] | None:
+        """
+        Get additional template prefixes for cascade resolution.
+
+        Override in subclasses to add extra template directories to search.
+        Useful for nested content types like ``autodoc/python`` that should
+        also check ``autodoc/`` templates.
+
+        Returns:
+            List of additional prefixes, or None for no extras.
+
+        Example:
+            >>> class ApiReferenceStrategy(ContentTypeStrategy):
+            ...     def _get_extra_template_prefixes(self):
+            ...         return ["autodoc"]  # Also check autodoc/ templates
+        """
+        return None
 
     def detect_from_section(self, section: Section) -> bool:
         """

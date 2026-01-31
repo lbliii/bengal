@@ -44,6 +44,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.utils import PersistentCacheMixin
+from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
@@ -57,7 +59,7 @@ GENERATED_PAGE_CACHE_VERSION = 1
 
 
 @dataclass
-class GeneratedPageCacheEntry:
+class GeneratedPageCacheEntry(Cacheable):
     """
     Cache entry for a generated page.
 
@@ -99,8 +101,8 @@ class GeneratedPageCacheEntry:
     generation_time_ms: int = 0
     is_compressed: bool = False
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for serialization."""
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "page_type": self.page_type,
             "page_id": self.page_id,
@@ -114,8 +116,8 @@ class GeneratedPageCacheEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> GeneratedPageCacheEntry:
-        """Create from dictionary."""
+    def from_cache_dict(cls, data: dict[str, Any]) -> GeneratedPageCacheEntry:
+        """Deserialize from cache dictionary (Cacheable protocol)."""
         return cls(
             page_type=data.get("page_type", ""),
             page_id=data.get("page_id", ""),
@@ -129,7 +131,7 @@ class GeneratedPageCacheEntry:
         )
 
 
-class GeneratedPageCache:
+class GeneratedPageCache(PersistentCacheMixin):
     """
     Cache for generated page output.
 
@@ -162,6 +164,8 @@ class GeneratedPageCache:
 
     """
 
+    VERSION = GENERATED_PAGE_CACHE_VERSION
+
     def __init__(
         self,
         cache_path: Path,
@@ -180,85 +184,43 @@ class GeneratedPageCache:
         self.entries: dict[str, GeneratedPageCacheEntry] = {}
         self._lock = threading.Lock()
         self._dirty = False
-        self._load()
+        self._load_cache()
 
-    def _load(self) -> None:
-        """Load cache from disk using load_auto (supports zst)."""
-        if not self.cache_path.exists():
-            # Also check for .zst version
-            zst_path = self.cache_path.with_suffix(".json.zst")
-            if not zst_path.exists():
-                return
+    # =========================================================================
+    # PersistentCacheMixin implementation
+    # =========================================================================
 
-        try:
-            from bengal.cache.compression import load_auto
+    def _deserialize(self, data: dict[str, Any]) -> None:
+        """Deserialize loaded data into cache state."""
+        entries_data = data.get("entries", {})
+        for key, entry_data in entries_data.items():
+            self.entries[key] = GeneratedPageCacheEntry.from_cache_dict(entry_data)
 
-            data = load_auto(self.cache_path)
+        logger.debug(
+            "generated_page_cache_loaded",
+            entries=len(self.entries),
+        )
 
-            # Check version
-            version = data.get("version", 0)
-            if version < GENERATED_PAGE_CACHE_VERSION:
-                logger.info(
-                    "generated_page_cache_version_mismatch",
-                    file_version=version,
-                    current_version=GENERATED_PAGE_CACHE_VERSION,
-                    action="starting_fresh",
-                )
-                return
+    def _serialize(self) -> dict[str, Any]:
+        """Serialize cache state for saving."""
+        return {
+            "entries": {key: entry.to_cache_dict() for key, entry in self.entries.items()},
+        }
 
-            # Load entries
-            entries_data = data.get("entries", {})
-            for key, entry_data in entries_data.items():
-                self.entries[key] = GeneratedPageCacheEntry.from_dict(entry_data)
-
-            logger.debug(
-                "generated_page_cache_loaded",
-                entries=len(self.entries),
-                path=str(self.cache_path),
-            )
-
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            logger.warning(
-                "generated_page_cache_load_failed",
-                path=str(self.cache_path),
-                error=str(e),
-                error_type=type(e).__name__,
-                action="starting_fresh",
-            )
+    def _on_version_mismatch(self) -> None:
+        """Clear state on version mismatch."""
+        self.entries = {}
 
     def save(self) -> None:
         """Persist cache to disk using save_compressed."""
         if not self._dirty:
             return
+        self._save_cache()
+        self._dirty = False
 
-        try:
-            from bengal.cache.compression import save_compressed
-
-            data = {
-                "version": GENERATED_PAGE_CACHE_VERSION,
-                "entries": {key: entry.to_dict() for key, entry in self.entries.items()},
-            }
-
-            # Save to .json.zst
-            zst_path = self.cache_path.with_suffix(".json.zst")
-            save_compressed(data, zst_path)
-            self._dirty = False
-
-            logger.debug(
-                "generated_page_cache_saved",
-                entries=len(self.entries),
-                path=str(zst_path),
-            )
-
-        except Exception as e:
-            logger.warning(
-                "generated_page_cache_save_failed",
-                path=str(self.cache_path),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+    # =========================================================================
+    # Cache key generation
+    # =========================================================================
 
     def get_cache_key(self, page_type: str, page_id: str) -> str:
         """Generate cache key for generated page."""
@@ -294,6 +256,10 @@ class GeneratedPageCache:
         )
         combined = "|".join(member_hashes)
         return hash_str(combined, truncate=16)
+
+    # =========================================================================
+    # Cache operations
+    # =========================================================================
 
     def should_regenerate(
         self,
@@ -462,6 +428,10 @@ class GeneratedPageCache:
             self._dirty = True
 
         logger.info("generated_page_cache_cleared")
+
+    # =========================================================================
+    # Statistics
+    # =========================================================================
 
     def get_stats(self) -> dict[str, Any]:
         """

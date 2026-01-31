@@ -66,12 +66,25 @@ from bengal.themes.tokens import (
     PaletteVariant,
     get_palette,
 )
+from bengal.themes.utils import (
+    CLI_DASHBOARD_TCSS_PATH,
+    DEFAULT_CSS_TOKENS_PATH,
+    DEFAULT_THEME_PATH,
+    THEMES_ROOT,
+    extract_with_defaults,
+    validate_enum_field,
+)
 
 __all__ = [
     # Token instances
     "BENGAL_MASCOT",
     "BENGAL_PALETTE",
     "PALETTE_VARIANTS",
+    # Path constants
+    "CLI_DASHBOARD_TCSS_PATH",
+    "DEFAULT_CSS_TOKENS_PATH",
+    "DEFAULT_THEME_PATH",
+    "THEMES_ROOT",
     # Config models
     "AppearanceConfig",
     # Token dataclasses
@@ -85,6 +98,9 @@ __all__ = [
     "ModificationStatus",
     "PaletteVariant",
     "ThemeConfig",
+    # Validation utilities
+    "extract_with_defaults",
+    "validate_enum_field",
     # Generation utilities
     "generate_tcss_reference",
     "generate_web_css",

@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.debug.utils import classify_file, get_file_icon
 from bengal.utils.io.atomic_write import atomic_write_text
 
 if TYPE_CHECKING:
@@ -293,26 +294,13 @@ class DependencyGraph:
                 node_ids[path] = f"n{len(node_ids)}"
             return node_ids[path]
 
-        def classify_node(path: str) -> str:
-            if path.endswith((".md", ".markdown", ".rst")):
-                return "page"
-            if "template" in path.lower() or path.endswith((".html", ".jinja2")):
-                return "template"
-            if "partial" in path.lower() or "include" in path.lower():
-                return "partial"
-            if path.endswith((".yaml", ".yml", ".json")):
-                if "config" in path.lower():
-                    return "config"
-                return "data"
-            return "page"
-
         def add_node_and_deps(path: str, depth: int) -> None:
             if depth > max_depth or path in visited:
                 return
 
             visited.add(path)
             node_id = get_node_id(path)
-            node_type = classify_node(path)
+            node_type = classify_file(path)
             short_name = Path(path).name
 
             # Add node definition
@@ -365,19 +353,6 @@ class DependencyGraph:
 
         visited: set[str] = set()
 
-        def classify_node(path: str) -> str:
-            if path.endswith((".md", ".markdown", ".rst")):
-                return "page"
-            if "template" in path.lower() or path.endswith((".html", ".jinja2")):
-                return "template"
-            if "partial" in path.lower() or "include" in path.lower():
-                return "partial"
-            if path.endswith((".yaml", ".yml", ".json")):
-                if "config" in path.lower():
-                    return "config"
-                return "data"
-            return "unknown"
-
         def escape_label(s: str) -> str:
             return s.replace('"', '\\"').replace("\\", "\\\\")
 
@@ -386,7 +361,7 @@ class DependencyGraph:
                 return
 
             visited.add(path)
-            node_type = classify_node(path)
+            node_type = classify_file(path)
             color = colors.get(node_type, colors["unknown"])
             short_name = Path(path).name
 
@@ -437,36 +412,13 @@ class DependencyGraph:
                 new_prefix = prefix + ("   " if is_last else "│  ")
 
                 dep_name = Path(dep).name
-                icon = self._get_icon(dep)
+                icon = get_file_icon(dep)
                 lines.append(f"{prefix}{connector} {icon} {dep_name}")
 
                 add_deps(dep, depth + 1, new_prefix)
 
         add_deps(root, 0, "")
         return "\n".join(lines)
-
-    def _get_icon(self, path: str) -> str:
-        """
-        Get emoji icon for file type.
-
-        Args:
-            path: File path to classify.
-
-        Returns:
-            Emoji icon based on file extension.
-        """
-        if path.endswith((".md", ".markdown", ".rst")):
-            return "📄"
-        if path.endswith((".html", ".jinja2")):
-            return "🎨"
-        if path.endswith((".yaml", ".yml", ".json")):
-            return "📊"
-        if path.endswith((".css", ".scss", ".sass")):
-            return "🎭"
-        if path.endswith((".js", ".ts")):
-            return "⚡"
-        return "📁"
-
 
 @DebugRegistry.register
 class DependencyVisualizer(DebugTool):
@@ -565,7 +517,7 @@ class DependencyVisualizer(DebugTool):
 
         # Add all files as nodes
         for path in self.cache.file_fingerprints:
-            node_type = self._classify_file(path)
+            node_type = classify_file(path)
             graph.add_node(path, node_type)
 
         # Add dependency edges
@@ -649,20 +601,6 @@ class DependencyVisualizer(DebugTool):
             atomic_write_text(output_path, dot)
 
         return dot
-
-    def _classify_file(self, path: str) -> str:
-        """Classify file type for graph."""
-        if path.endswith((".md", ".markdown", ".rst")):
-            return "page"
-        if path.endswith((".html", ".jinja2")):
-            return "template"
-        if "partial" in path.lower() or "include" in path.lower():
-            return "partial"
-        if path.endswith((".yaml", ".yml", ".json")):
-            if "config" in path.lower():
-                return "config"
-            return "data"
-        return "unknown"
 
     def _generate_recommendations(self, graph: DependencyGraph, report: DebugReport) -> list[str]:
         """Generate recommendations based on analysis."""

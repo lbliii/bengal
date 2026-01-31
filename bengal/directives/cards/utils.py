@@ -11,9 +11,11 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from bengal.directives.utils import escape_html
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import clean_md_path
 
 logger = get_logger(__name__)
 
@@ -162,7 +164,7 @@ def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | 
 
     # Path lookup
     if "/" in link or link.endswith(".md"):
-        clean_path = link.replace(".md", "").strip("/")
+        clean_path = clean_md_path(link)
         return xref_index.get("by_path", {}).get(clean_path)
 
     # Slug lookup
@@ -180,9 +182,9 @@ def resolve_link_url(renderer: Any, link: str) -> str:
     if link.startswith("/"):
         site = getattr(renderer, "_site", None)
         if site:
-            from bengal.rendering.template_engine.url_helpers import with_baseurl
+            from bengal.rendering.utils.url import apply_baseurl
 
-            return with_baseurl(link, site)
+            return apply_baseurl(link, site)
         return link
 
     # Try to resolve as page reference
@@ -411,21 +413,20 @@ def _render_description_html(description: str) -> str:
         return f"<p>{escape_html(desc)}</p>"
 
 
-def escape_html(text: str) -> str:
-    """Escape HTML special characters for safe use in attributes.
-
-    This is a convenience re-export of the canonical implementation.
-
-    Args:
-        text: Raw text to escape.
-
-    Returns:
-        HTML-escaped string safe for use in attribute values.
-
-    See Also:
-        ``bengal.utils.text.escape_html``: Canonical implementation.
-
-    """
-    from bengal.utils.primitives.text import escape_html as _escape_html
-
-    return _escape_html(text)
+__all__ = [
+    "VALID_COLORS",
+    "VALID_GAPS",
+    "VALID_LAYOUTS",
+    "VALID_STYLES",
+    "collect_children",
+    "escape_html",
+    "extract_octicon",
+    "extract_page_fields",
+    "get_section_url",
+    "normalize_columns",
+    "pull_from_linked_page",
+    "render_child_card",
+    "render_icon",
+    "resolve_link_url",
+    "resolve_page",
+]

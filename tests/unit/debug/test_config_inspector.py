@@ -293,16 +293,18 @@ class TestConfigInspector:
         assert any("production" in s for s in sources)
 
     def test_get_nested_value(self, inspector):
-        """Test getting nested value from dict."""
+        """Test getting nested value from dict via utility function."""
+        from bengal.debug.utils import get_nested_value
+
         config = {
             "site": {"title": "Test", "nested": {"deep": "value"}},
             "build": {"parallel": True},
         }
 
-        assert inspector._get_nested_value(config, "site.title") == "Test"
-        assert inspector._get_nested_value(config, "site.nested.deep") == "value"
-        assert inspector._get_nested_value(config, "build.parallel") is True
-        assert inspector._get_nested_value(config, "nonexistent") is None
+        assert get_nested_value(config, "site.title") == "Test"
+        assert get_nested_value(config, "site.nested.deep") == "value"
+        assert get_nested_value(config, "build.parallel") is True
+        assert get_nested_value(config, "nonexistent") is None
 
     def test_get_impact_baseurl(self, inspector):
         """Test impact detection for baseurl."""
@@ -462,7 +464,7 @@ class TestConfigInspectorExplainKey:
 
     def test_explain_existing_key(self, inspector):
         """Test explaining an existing key."""
-        with patch.object(inspector, "_get_nested_value") as mock_get:
+        with patch("bengal.debug.utils.get_nested_value") as mock_get:
             mock_get.return_value = "My Site"
 
             with patch("bengal.config.directory_loader.ConfigDirectoryLoader") as mock_loader:
@@ -479,7 +481,7 @@ class TestConfigInspectorExplainKey:
 
     def test_explain_nonexistent_key(self, inspector):
         """Test explaining a non-existent key."""
-        with patch.object(inspector, "_get_nested_value") as mock_get:
+        with patch("bengal.debug.utils.get_nested_value") as mock_get:
             mock_get.return_value = None
 
             with patch("bengal.config.directory_loader.ConfigDirectoryLoader") as mock_loader:

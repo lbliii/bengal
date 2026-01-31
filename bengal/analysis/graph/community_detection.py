@@ -40,13 +40,12 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 import random
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from bengal.analysis.utils.pages import get_content_pages
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -172,10 +171,8 @@ class LouvainCommunityDetector:
         Returns:
             CommunityDetectionResults with discovered communities
         """
-        # Use analysis pages from graph (excludes autodoc if configured)
-        pages = self.graph.get_analysis_pages()
-        # Also exclude generated pages
-        pages = [p for p in pages if not p.metadata.get("_generated")]
+        # Use content pages (excludes autodoc and generated pages)
+        pages = get_content_pages(self.graph)
 
         if len(pages) == 0:
             logger.warning("community_detection_no_pages")

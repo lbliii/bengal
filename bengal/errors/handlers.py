@@ -56,9 +56,9 @@ See Also
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
 
+from bengal.errors.utils import extract_between, find_close_matches, safe_list_module_exports
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -144,11 +144,11 @@ def _handle_import_error(error: ImportError) -> ContextAwareHelp | None:
     msg = str(error)
 
     if "cannot import name" in msg and " from " in msg:
-        missing = _between(msg, "name '", "'") or _between(msg, 'name "', '"')
-        module = _between(msg, " from '", "'") or _between(msg, ' from "', '"')
+        missing = extract_between(msg, "name '", "'") or extract_between(msg, 'name "', '"')
+        module = extract_between(msg, " from '", "'") or extract_between(msg, ' from "', '"')
         if module:
-            exports = _safe_list_module_exports(module)
-            suggestions = _closest_matches(missing, exports) if missing else []
+            exports = safe_list_module_exports(module)
+            suggestions = find_close_matches(missing, exports) if missing else []
             lines: list[str] = []
             if suggestions:
                 lines.append("Did you mean:")
@@ -162,7 +162,7 @@ def _handle_import_error(error: ImportError) -> ContextAwareHelp | None:
 
     if "No module named" in msg:
         # Suggest installing or checking environment
-        missing_mod = _between(msg, "No module named '", "'") or _between(
+        missing_mod = extract_between(msg, "No module named '", "'") or extract_between(
             msg, 'No module named "', '"'
         )
         title = "ImportError: module not found"
@@ -183,10 +183,10 @@ def _handle_attribute_error(error: AttributeError) -> ContextAwareHelp | None:
 
     # Module attribute case
     if "module '" in msg and "' has no attribute '" in msg:
-        module = _between(msg, "module '", "'")
-        attr = _between(msg, "attribute '", "'")
-        exports = _safe_list_module_exports(module) if module else []
-        suggestions = _closest_matches(attr, exports) if attr else []
+        module = extract_between(msg, "module '", "'")
+        attr = extract_between(msg, "attribute '", "'")
+        exports = safe_list_module_exports(module) if module else []
+        suggestions = find_close_matches(attr, exports) if attr else []
         lines: list[str] = []
         if suggestions:
             lines.append("Did you mean:")
@@ -199,7 +199,7 @@ def _handle_attribute_error(error: AttributeError) -> ContextAwareHelp | None:
 
     # Dict object attribute case
     if "'dict' object has no attribute" in msg:
-        attr = _between(msg, "has no attribute '", "'")
+        attr = extract_between(msg, "has no attribute '", "'")
         title = "AttributeError: dict attribute access"
         if attr:
             lines = [
@@ -227,91 +227,3 @@ def _handle_type_error(error: TypeError) -> ContextAwareHelp | None:
     if "expected" in msg and "got" in msg:
         lines.append("Ensure provided value matches expected type")
     return ContextAwareHelp(title=title, lines=lines)
-
-
-# =============== helpers ===============
-
-
-def _between(text: str, start: str, end: str) -> str | None:
-    """
-    Extract substring between two delimiters.
-
-    Args:
-        text: String to search in.
-        start: Starting delimiter (not included in result).
-        end: Ending delimiter (not included in result).
-
-    Returns:
-        Substring between delimiters, or None if not found.
-
-    """
-    try:
-        s = text.index(start) + len(start)
-        e = text.index(end, s)
-        return text[s:e]
-    except ValueError:
-        return None
-
-
-def _safe_list_module_exports(module_path: str) -> list[str]:
-    """
-    Safely list public exports from a module.
-
-    Attempts to import the module and extract its ``__all__`` list,
-    or falls back to listing all non-private attributes.
-
-    Args:
-        module_path: Dotted module path (e.g., "bengal.core").
-
-    Returns:
-        Sorted list of export names, or empty list on any error.
-
-    """
-    exports: list[str] = []
-    try:
-        mod = __import__(module_path, fromlist=["*"])
-        if hasattr(mod, "__all__") and isinstance(mod.__all__, list | tuple):
-            exports = [str(x) for x in mod.__all__]
-        else:
-            exports = [n for n in dir(mod) if not n.startswith("_")]
-    except Exception as e:
-        logger.debug(
-            "error_handler_list_exports_failed",
-            module=module_path,
-            error=str(e),
-            error_type=type(e).__name__,
-            action="returning_empty_list",
-        )
-        return []
-    return sorted(set(exports))
-
-
-def _closest_matches(name: str | None, candidates: Iterable[str]) -> list[str]:
-    """
-    Find closest string matches using fuzzy matching.
-
-    Uses ``difflib.get_close_matches`` with a 60% similarity cutoff.
-
-    Args:
-        name: String to find matches for.
-        candidates: Iterable of candidate strings to match against.
-
-    Returns:
-        Up to 5 close matches, or empty list if none found or on error.
-
-    """
-    if not name:
-        return []
-    try:
-        from difflib import get_close_matches
-
-        return get_close_matches(name, list(candidates), n=5, cutoff=0.6)
-    except Exception as e:
-        logger.debug(
-            "error_handler_closest_matches_failed",
-            name=name,
-            error=str(e),
-            error_type=type(e).__name__,
-            action="returning_empty_list",
-        )
-        return []

@@ -27,10 +27,11 @@ RFC: rfc-contextvar-config-implementation.md
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar, Token
+from contextvars import Token
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
+from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -77,8 +78,10 @@ class ParseConfig:
 # Module-level default (singleton, never recreated)
 _DEFAULT_PARSE_CONFIG: ParseConfig = ParseConfig()
 
-# Thread-local configuration
-_parse_config: ContextVar[ParseConfig] = ContextVar("parse_config", default=_DEFAULT_PARSE_CONFIG)
+# Thread-local configuration using ContextVarManager
+_manager: ContextVarManager[ParseConfig] = ContextVarManager(
+    "parse_config", default=_DEFAULT_PARSE_CONFIG
+)
 
 
 def get_parse_config() -> ParseConfig:
@@ -87,10 +90,11 @@ def get_parse_config() -> ParseConfig:
     Returns:
         The ParseConfig for the current thread/context.
     """
-    return _parse_config.get()
+    # Manager returns Optional, but we have a default so it's always set
+    return _manager.get() or _DEFAULT_PARSE_CONFIG
 
 
-def set_parse_config(config: ParseConfig) -> Token[ParseConfig]:
+def set_parse_config(config: ParseConfig) -> Token[ParseConfig | None]:
     """Set parse configuration for current context.
 
     Returns a token that can be used to restore the previous value.
@@ -102,10 +106,10 @@ def set_parse_config(config: ParseConfig) -> Token[ParseConfig]:
     Returns:
         Token that can be passed to reset_parse_config() to restore previous value.
     """
-    return _parse_config.set(config)
+    return _manager.set(config)
 
 
-def reset_parse_config(token: Token[ParseConfig] | None = None) -> None:
+def reset_parse_config(token: Token[ParseConfig | None] | None = None) -> None:
     """Reset parse configuration.
 
     If token is provided, restores to the previous value (proper nesting).
@@ -114,13 +118,9 @@ def reset_parse_config(token: Token[ParseConfig] | None = None) -> None:
     Args:
         token: Optional token from set_parse_config() for proper nesting support.
     """
-    if token is not None:
-        _parse_config.reset(token)
-    else:
-        _parse_config.set(_DEFAULT_PARSE_CONFIG)
+    _manager.reset(token)
 
 
-@contextmanager
 def parse_config_context(config: ParseConfig) -> Iterator[ParseConfig]:
     """Context manager for scoped parse configuration.
 
@@ -137,8 +137,4 @@ def parse_config_context(config: ParseConfig) -> Iterator[ParseConfig]:
     Yields:
         The config that was set (same as input).
     """
-    token = set_parse_config(config)
-    try:
-        yield config
-    finally:
-        reset_parse_config(token)
+    return _manager.context(config)

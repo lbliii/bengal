@@ -48,6 +48,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from bengal.config.utils import unwrap_config
 from bengal.utils.primitives.hashing import hash_str
 
 # Keys to exclude from hashing (internal/runtime-computed, don't affect build output)
@@ -111,11 +112,8 @@ def _clean_config(d: dict[str, Any] | Any) -> dict[str, Any]:
         Cleaned dictionary without excluded keys
 
     """
-    # Convert ConfigSection to dict if needed
-    if hasattr(d, "_data"):
-        d = d._data
-    elif hasattr(d, "raw"):
-        d = d.raw
+    # Use shared utility to unwrap Config/ConfigSection to dict
+    d = unwrap_config(d)
 
     result = {}
     for k, v in d.items():
@@ -123,10 +121,7 @@ def _clean_config(d: dict[str, Any] | Any) -> dict[str, Any]:
         if k in EXCLUDED_KEYS or k.startswith("_"):
             continue
         # Recursively clean nested dicts (unwrap ConfigSection if needed)
-        if hasattr(v, "_data"):
-            v = v._data
-        elif hasattr(v, "raw"):
-            v = v.raw
+        v = unwrap_config(v) if hasattr(v, "_data") or hasattr(v, "raw") else v
         if isinstance(v, dict):
             result[k] = _clean_config(v)
         else:
@@ -177,8 +172,7 @@ def compute_config_hash(config: dict[str, Any] | Any) -> str:
 
     """
     # Convert Config object to raw dict if needed
-    if hasattr(config, "raw"):
-        config = config.raw
+    config = unwrap_config(config)
 
     # Clean config by removing internal/excluded keys
     stable_config = _clean_config(config)

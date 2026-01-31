@@ -1,17 +1,16 @@
 """
 Tests for canonical protocol imports.
 
-Ensures that backwards-compatible re-exports point to the same objects
-as the canonical bengal.protocols definitions. This prevents subtle bugs
-where isinstance() checks fail because two different class objects exist.
+Ensures that protocols are importable from the canonical bengal.protocols
+location and that isinstance() checks work correctly.
 
 Background:
-    Before consolidation, protocols were defined in multiple places:
-    - bengal.cache.cacheable.Cacheable (duplicate)
-    - bengal.core.output.collector.OutputCollector (duplicate)
-    - bengal.utils.observability.progress.ProgressReporter (duplicate)
+    Protocols are defined canonically in bengal.protocols:
+    - bengal.protocols.Cacheable
+    - bengal.protocols.OutputCollector
+    - bengal.protocols.ProgressReporter
 
-    These now re-export from bengal.protocols to ensure identity.
+    Some modules re-export from bengal.protocols for convenience.
 """
 
 from __future__ import annotations
@@ -22,20 +21,10 @@ from bengal.protocols import Cacheable, OutputCollector, ProgressReporter
 
 
 class TestCacheableCanonical:
-    """Verify Cacheable re-exports are identical to canonical."""
+    """Verify Cacheable protocol works correctly."""
 
-    def test_cacheable_reexport_is_canonical(self) -> None:
-        """bengal.cache.cacheable.Cacheable should be identical to bengal.protocols.Cacheable."""
-        from bengal.cache.cacheable import Cacheable as CacheableLegacy
-
-        assert Cacheable is CacheableLegacy, (
-            "Cacheable re-export has diverged from canonical definition!\n"
-            "bengal.cache.cacheable.Cacheable must re-export from bengal.protocols."
-        )
-
-    def test_cacheable_isinstance_works_across_imports(self) -> None:
-        """isinstance() should work regardless of import path."""
-        from bengal.cache.cacheable import Cacheable as CacheableLegacy
+    def test_cacheable_isinstance_works(self) -> None:
+        """isinstance() should work for Cacheable protocol."""
         from bengal.core.page.page_core import PageCore
 
         # PageCore implements Cacheable
@@ -45,9 +34,15 @@ class TestCacheableCanonical:
             slug="test",
         )
 
-        # Both import paths should recognize it
         assert isinstance(core, Cacheable)
-        assert isinstance(core, CacheableLegacy)
+
+    def test_cacheable_from_bengal_cache_module(self) -> None:
+        """bengal.cache.Cacheable should be identical to bengal.protocols.Cacheable."""
+        from bengal.cache import Cacheable as CacheFromModule
+
+        assert Cacheable is CacheFromModule, (
+            "bengal.cache.Cacheable should re-export from bengal.protocols"
+        )
 
 
 class TestOutputCollectorCanonical:
@@ -111,14 +106,7 @@ class TestProgressReporterCanonical:
 
 
 class TestNoCircularImports:
-    """Verify re-export modules don't cause circular imports."""
-
-    def test_cache_cacheable_import_succeeds(self) -> None:
-        """Importing from bengal.cache.cacheable should not raise ImportError."""
-        # This would fail if there's a circular import
-        from bengal.cache.cacheable import Cacheable
-
-        assert Cacheable is not None
+    """Verify protocol imports don't cause circular imports."""
 
     def test_output_collector_import_succeeds(self) -> None:
         """Importing from bengal.core.output.collector should not raise ImportError."""

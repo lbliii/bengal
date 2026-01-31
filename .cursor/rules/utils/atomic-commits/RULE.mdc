@@ -1,7 +1,9 @@
 ---
-description: Bengal commit message format and atomic commit guidelines
+description: Required commit message format and atomic commit guidelines
 alwaysApply: true
 ---
+
+You must make an atomic commit when you finish a unit of work.
 
 # Atomic Commits
 

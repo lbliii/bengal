@@ -37,8 +37,9 @@ from bengal.config.loader_utils import (
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.config.snapshot import ConfigSnapshot
-from bengal.config.validation import validate_config
-from bengal.errors import ErrorCode, format_suggestion
+from bengal.config.utils import get_default_config
+from bengal.config.validators import validate_config
+from bengal.errors import ErrorCode, format_suggestion, record_error
 from bengal.utils.io.file_io import load_toml, load_yaml
 from bengal.utils.observability.logger import get_logger
 
@@ -142,8 +143,8 @@ class UnifiedConfigLoader:
             return config_obj
 
         # Single-file or defaults mode
-        # Layer 0: DEFAULTS
-        config: dict[str, Any] = deep_merge({}, DEFAULTS)
+        # Layer 0: DEFAULTS (use shared utility for consistent copy)
+        config: dict[str, Any] = get_default_config()
         if self.origin_tracker:
             self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
 
@@ -217,9 +218,7 @@ class UnifiedConfigLoader:
         """
         Return a deep copy of DEFAULTS for single-file parity with directory loader.
         """
-        from bengal.config.merge import deep_merge
-
-        return deep_merge({}, DEFAULTS)
+        return get_default_config()
 
     def _find_config_file(self, site_root: Path) -> Path | None:
         """Find single config file (bengal.toml, bengal.yaml, bengal.yml)."""

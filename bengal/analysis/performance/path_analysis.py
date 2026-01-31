@@ -48,15 +48,16 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 import random
 import time
-from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from bengal.analysis.utils.pages import get_content_pages
+from bengal.analysis.utils.scoring import top_n_by_score
+from bengal.analysis.utils.traversal import bfs_distances as _bfs_distances_util
+from bengal.analysis.utils.traversal import bfs_path, bfs_predecessors
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -105,8 +106,7 @@ class PathAnalysisResults:
         Returns:
             List of (page, centrality) tuples sorted by centrality descending
         """
-        sorted_pages = sorted(self.betweenness_centrality.items(), key=lambda x: x[1], reverse=True)
-        return sorted_pages[:limit]
+        return top_n_by_score(self.betweenness_centrality, limit)
 
     def get_most_accessible(self, limit: int = 20) -> list[tuple[PageLike, float]]:
         """
@@ -118,8 +118,7 @@ class PathAnalysisResults:
         Returns:
             List of (page, centrality) tuples sorted by centrality descending
         """
-        sorted_pages = sorted(self.closeness_centrality.items(), key=lambda x: x[1], reverse=True)
-        return sorted_pages[:limit]
+        return top_n_by_score(self.closeness_centrality, limit)
 
     def get_betweenness(self, page: PageLike) -> float:
         """Get betweenness centrality for specific page."""
@@ -211,35 +210,7 @@ class PathAnalyzer:
             >>> if path:
             ...     print(f"Path length: {len(path) - 1}")
         """
-        if source == target:
-            return [source]
-
-        # BFS
-        queue: deque[PageLike] = deque([source])
-        visited: set[PageLike] = {source}
-        parent: dict[PageLike, PageLike] = {}
-
-        while queue:
-            current = queue.popleft()
-
-            # Check neighbors
-            neighbors = self.graph.outgoing_refs.get(current, set())
-            for neighbor in neighbors:
-                if neighbor not in visited:
-                    visited.add(neighbor)
-                    parent[neighbor] = current
-                    queue.append(neighbor)
-
-                    if neighbor == target:
-                        # Reconstruct path
-                        path = [target]
-                        node = target
-                        while node != source:
-                            node = parent[node]
-                            path.append(node)
-                        return list(reversed(path))
-
-        return None  # No path found
+        return bfs_path(self.graph.outgoing_refs, source, target)
 
     def analyze(
         self,
@@ -265,10 +236,8 @@ class PathAnalyzer:
         Returns:
             PathAnalysisResults with all metrics
         """
-        # Use analysis pages from graph (excludes autodoc if configured)
-        pages = self.graph.get_analysis_pages()
-        # Also exclude generated pages
-        pages = [p for p in pages if not p.metadata.get("_generated")]
+        # Use content pages (excludes autodoc and generated pages)
+        pages = get_content_pages(self.graph)
 
         if len(pages) == 0:
             logger.warning("path_analysis_no_pages")
@@ -355,38 +324,15 @@ class PathAnalyzer:
         total_sources = len(sources)
 
         # For each selected source
+        pages_set = set(pages)
         for i, source in enumerate(sources):
             if progress_callback:
                 progress_callback(i + 1, total_sources, "betweenness")
 
-            # BFS to find shortest paths
-            stack: list[PageLike] = []
-            predecessors: dict[PageLike, list[PageLike]] = {p: [] for p in pages}
-            sigma: dict[PageLike, int] = dict.fromkeys(pages, 0)
-            sigma[source] = 1
-            distance: dict[PageLike, int] = dict.fromkeys(pages, -1)
-            distance[source] = 0
-
-            queue: deque[PageLike] = deque([source])
-
-            while queue:
-                current = queue.popleft()
-                stack.append(current)
-
-                neighbors = self.graph.outgoing_refs.get(current, set())
-                for neighbor in neighbors:
-                    if neighbor not in pages:
-                        continue
-
-                    # First time we see this neighbor
-                    if distance[neighbor] < 0:
-                        queue.append(neighbor)
-                        distance[neighbor] = distance[current] + 1
-
-                    # Shortest path to neighbor via current
-                    if distance[neighbor] == distance[current] + 1:
-                        sigma[neighbor] += sigma[current]
-                        predecessors[neighbor].append(current)
+            # Use centralized BFS traversal utility
+            predecessors, sigma, distance, stack = bfs_predecessors(
+                self.graph.outgoing_refs, source, pages_set
+            )
 
             # Accumulation (back-propagation)
             delta: dict[PageLike, float] = dict.fromkeys(pages, 0.0)
@@ -508,22 +454,7 @@ class PathAnalyzer:
 
     def _bfs_distances(self, source: PageLike, pages: list[PageLike]) -> dict[PageLike, int]:
         """Compute shortest path distances from source to all other pages."""
-        distances: dict[PageLike, int] = dict.fromkeys(pages, -1)
-        distances[source] = 0
-
-        queue: deque[PageLike] = deque([source])
-
-        while queue:
-            current = queue.popleft()
-            current_dist = distances[current]
-
-            neighbors = self.graph.outgoing_refs.get(current, set())
-            for neighbor in neighbors:
-                if neighbor in distances and distances[neighbor] < 0:
-                    distances[neighbor] = current_dist + 1
-                    queue.append(neighbor)
-
-        return distances
+        return _bfs_distances_util(self.graph.outgoing_refs, source, pages)
 
     def find_all_paths(
         self,

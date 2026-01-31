@@ -24,8 +24,6 @@ Example:
 
 """
 
-from __future__ import annotations
-
 import builtins
 import importlib
 import threading
@@ -35,6 +33,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 from .base import SiteTemplate, TemplateFile
+from .utils import replace_date_placeholder
 
 if TYPE_CHECKING:
     from bengal.cli.skeleton.schema import Component, Skeleton
@@ -113,15 +112,12 @@ class TemplateRegistry:
         Returns:
             SiteTemplate instance or None if loading fails
         """
-        from datetime import datetime
-
         from bengal.cli.skeleton.schema import Skeleton
 
         skeleton_yaml = skeleton_path.read_text(encoding="utf-8")
 
         # Replace {{date}} placeholders with current date
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        skeleton_yaml = skeleton_yaml.replace("{{date}}", current_date)
+        skeleton_yaml = replace_date_placeholder(skeleton_yaml)
 
         skeleton = Skeleton.from_yaml(skeleton_yaml)
 
@@ -168,7 +164,7 @@ class TemplateRegistry:
 
             # Determine target_dir (content for markdown files)
             target_dir: str = "content"
-            if full_path.endswith(".yaml") or full_path.endswith(".yml"):
+            if full_path.endswith((".yaml", ".yml")):
                 target_dir = "data"
 
             files.append(

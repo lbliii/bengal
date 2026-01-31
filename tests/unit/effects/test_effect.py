@@ -6,6 +6,8 @@ RFC: Snapshot-Enabled v2 Opportunities (Opportunity 1)
 
 from pathlib import Path
 
+import pytest
+
 from bengal.effects import Effect
 
 
@@ -39,11 +41,8 @@ class TestEffect:
     def test_effect_is_frozen(self) -> None:
         """Effect is immutable (frozen dataclass)."""
         effect = Effect()
-        try:
+        with pytest.raises(AttributeError):
             effect.operation = "new_value"  # type: ignore[misc]
-            assert False, "Should have raised FrozenInstanceError"
-        except AttributeError:
-            pass  # Expected
 
     def test_effect_merge(self) -> None:
         """Effects can be merged."""

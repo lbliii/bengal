@@ -34,41 +34,14 @@ from bengal.parsing.backends.patitas.renderers.utils import (
     escape_attr,
     escape_html,
 )
+from bengal.utils.primitives.code import HL_LINES_PATTERN, parse_hl_lines
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 
-import re
-
-# Pattern to parse code fence info with optional line highlights
-# Matches: python, python {1,3}, python {1-3,5}
-_HL_LINES_PATTERN = re.compile(r"^(\S+)\s*(?:\{([^}]+)\})?$")
-
-
-def _parse_hl_lines(hl_spec: str) -> list[int]:
-    """Parse line highlight specification into list of line numbers.
-
-    Supports:
-    - Single line: "5" -> [5]
-    - Multiple lines: "1,3,5" -> [1, 3, 5]
-    - Ranges: "1-3" -> [1, 2, 3]
-    - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
-    """
-    lines: set[int] = set()
-    for part in hl_spec.split(","):
-        part = part.strip()
-        if "-" in part:
-            try:
-                start, end = part.split("-", 1)
-                lines.update(range(int(start), int(end) + 1))
-            except ValueError:
-                continue
-        else:
-            try:
-                lines.add(int(part))
-            except ValueError:
-                continue
-    return sorted(lines)
+# Alias for internal use (maintains backward compatibility)
+_HL_LINES_PATTERN = HL_LINES_PATTERN
+_parse_hl_lines = parse_hl_lines
 
 
 def _parse_code_info(info: str) -> tuple[str, list[int]]:
@@ -105,7 +78,7 @@ class BlockRendererMixin:
     - _highlight_style: str
     - _rosettes_available: bool
     - _delegate: Optional[LexerDelegate]
-    - _slugify: Callable[[str], str]
+    - _heading_slugify: Callable[[str], str]
     - _render_inline_children(children, sb): method
     - _render_directive(node, sb): method
     - _extract_plain_text(children): method

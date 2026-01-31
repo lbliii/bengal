@@ -29,8 +29,10 @@ except ImportError as e:
     ) from e
 
 from bengal.content.sources.entry import ContentEntry
-from bengal.content.sources.local import _parse_frontmatter
 from bengal.content.sources.source import ContentSource
+from bengal.content.utils.frontmatter import parse_frontmatter
+from bengal.content.utils.http_errors import raise_http_error
+from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -124,36 +126,17 @@ class GitHubSource(ContentSource):
             tree_url = f"{self.api_base}/repos/{self.repo}/git/trees/{self.branch}?recursive=1"
 
             async with session.get(tree_url) as resp:
-                if resp.status == 404:
-                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                    not_found_error = BengalDiscoveryError(
-                        f"GitHub repository not found: {self.repo}",
-                        code=ErrorCode.D011,
-                        suggestion=f"Verify repository exists and is accessible: https://github.com/{self.repo}",
+                if resp.status in (401, 403, 404):
+                    raise_http_error(
+                        resp.status,
+                        "GitHub repository",
+                        self.repo,
+                        suggestion={
+                            401: "Check GITHUB_TOKEN is valid and not expired",
+                            403: "Check GITHUB_TOKEN is set and has read access to the repository",
+                            404: f"Verify repository exists: https://github.com/{self.repo}",
+                        }.get(resp.status),
                     )
-                    record_error(not_found_error)
-                    raise not_found_error
-                if resp.status == 403:
-                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                    access_error = BengalDiscoveryError(
-                        f"Access denied to GitHub repository: {self.repo}",
-                        code=ErrorCode.D010,
-                        suggestion="Check GITHUB_TOKEN is set and has read access to the repository",
-                    )
-                    record_error(access_error)
-                    raise access_error
-                if resp.status == 401:
-                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                    auth_error = BengalDiscoveryError(
-                        f"Authentication failed for GitHub repository: {self.repo}",
-                        code=ErrorCode.D010,
-                        suggestion="Check GITHUB_TOKEN is valid and not expired",
-                    )
-                    record_error(auth_error)
-                    raise auth_error
                 resp.raise_for_status()
                 data = await resp.json()
 
@@ -260,15 +243,13 @@ class GitHubSource(ContentSource):
 
         # Decode content (GitHub returns base64)
         content = b64decode(data["content"]).decode("utf-8")
-        frontmatter, body = _parse_frontmatter(content)
+        frontmatter, body = parse_frontmatter(content)
 
         # Calculate relative path from configured path
         rel_path = path[len(self.path) :].lstrip("/") if self.path else path
 
-        # Generate slug
-        slug = rel_path.replace(".md", "").replace("\\", "/")
-        if slug.endswith("/index") or slug == "index":
-            slug = slug.rsplit("/index", 1)[0] or "index"
+        # Generate slug using shared utility
+        slug = path_to_slug(rel_path)
 
         return ContentEntry(
             id=rel_path,

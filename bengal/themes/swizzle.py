@@ -262,9 +262,19 @@ class SwizzleManager:
         """
         Alias for list() for backward compatibility.
 
+        .. deprecated:: 0.9.0
+            Use :meth:`list` instead. Will be removed in a future release.
+
         Returns:
             List of SwizzleRecord objects.
         """
+        import warnings
+
+        warnings.warn(
+            "list_swizzled() is deprecated, use list() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.list()
 
     def update(self) -> dict[str, int]:

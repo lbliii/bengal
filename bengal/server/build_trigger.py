@@ -64,7 +64,9 @@ from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
+from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
@@ -242,7 +244,7 @@ class BuildTrigger:
             )
 
             # Display building indicator
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = get_timestamp()
             cli = CLIOutput()
             cli.file_change_notice(file_name=file_name, timestamp=timestamp)
             show_building_indicator("Rebuilding")
@@ -403,7 +405,7 @@ class BuildTrigger:
 
         # Check for SVG icon changes (inlined in HTML)
         for path in changed_paths:
-            path_str = str(path).replace("\\", "/")
+            path_str = to_posix(path)
             if (
                 path.suffix.lower() == ".svg"
                 and "/themes/" in path_str
@@ -442,7 +444,7 @@ class BuildTrigger:
             return False
 
         for path in changed_paths:
-            path_str = str(path).replace("\\", "/")
+            path_str = to_posix(path)
             # Check for _shared/ anywhere in path
             if "/_shared/" in path_str or path_str.startswith("_shared/"):
                 return True
@@ -477,7 +479,7 @@ class BuildTrigger:
         affected: set[str] = set()
 
         for path in changed_paths:
-            path_str = str(path).replace("\\", "/")
+            path_str = to_posix(path)
 
             # Check if in _versions/<id>/
             if "/_versions/" in path_str or path_str.startswith("_versions/"):
@@ -519,7 +521,7 @@ class BuildTrigger:
             if path.name == "versioning.yaml":
                 return True
 
-            path_str = str(path).replace("\\", "/")
+            path_str = to_posix(path)
 
             # Check for version config in config directories
             if "/config/" in path_str and "version" in path.name.lower():

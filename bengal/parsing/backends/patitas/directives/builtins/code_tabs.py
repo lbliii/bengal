@@ -45,6 +45,7 @@ from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
+from bengal.utils.primitives.code import parse_hl_lines
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -159,23 +160,7 @@ def get_display_name(lang: str) -> str:
     return lang.capitalize() if lang else "Text"
 
 
-def parse_hl_lines(hl_spec: str) -> list[int]:
-    """Parse line highlight specification into list of line numbers."""
-    lines: set[int] = set()
-    for part in hl_spec.split(","):
-        part = part.strip()
-        if "-" in part:
-            try:
-                start, end = part.split("-", 1)
-                lines.update(range(int(start), int(end) + 1))
-            except ValueError:
-                continue
-        else:
-            try:
-                lines.add(int(part))
-            except ValueError:
-                continue
-    return sorted(lines)
+# parse_hl_lines imported from bengal.utils.primitives.code
 
 
 def parse_info_string(info_string: str) -> tuple[str | None, str | None, list[int]]:

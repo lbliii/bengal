@@ -36,8 +36,6 @@ Related:
 
 """
 
-from __future__ import annotations
-
 from bengal.fonts.downloader import FontVariant
 
 
@@ -110,7 +108,7 @@ class FontCSSGenerator:
         ]
 
         # Generate @font-face rules for each variant
-        for _font_name, variants in font_mapping.items():
+        for variants in font_mapping.values():
             if not variants:
                 continue
 

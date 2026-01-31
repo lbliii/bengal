@@ -47,13 +47,12 @@ See Also:
 
 from __future__ import annotations
 
-import difflib
 import os
 from pathlib import Path
 from typing import Any
 
-from bengal.config.defaults import DEFAULTS
 from bengal.config.loader_utils import extract_baseurl, flatten_config, load_yaml_file
+from bengal.config.utils import get_default_config
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -112,12 +111,10 @@ class ConfigLoader:
     Load site configuration from ``bengal.toml`` or ``bengal.yaml``.
 
     This is the primary configuration loader for single-file Bengal configurations.
-    It auto-discovers configuration files, validates contents, normalizes section
-    names, and applies environment-based overrides.
+    It auto-discovers configuration files, validates contents, and applies
+    environment-based overrides.
 
     Attributes:
-        SECTION_ALIASES: Mapping of accepted section name variations to canonical names.
-        KNOWN_SECTIONS: Set of recognized configuration section names.
         root_path: Root directory to search for configuration files.
         warnings: List of configuration warnings accumulated during loading.
 
@@ -132,45 +129,6 @@ class ConfigLoader:
             ...     print(warning)
 
     """
-
-    # Section aliases for ergonomic config (accept common variations)
-    SECTION_ALIASES = {
-        "menus": "menu",  # Plural → singular
-        "plugin": "plugins",  # Singular → plural (if we add plugins)
-    }
-
-    # Known valid section names
-    KNOWN_SECTIONS = {
-        # Core
-        "site",
-        "build",
-        "build_badge",
-        "theme",
-        "params",
-        # Content
-        "content",
-        "markdown",
-        "taxonomies",
-        # Features
-        "features",
-        "search",
-        "graph",
-        # Navigation
-        "menu",
-        "pagination",
-        # Output
-        "output_formats",
-        "assets",
-        # Development
-        "dev",
-        "health_check",
-        # Integrations
-        "fonts",
-        "autodoc",
-        "i18n",
-        # Versioning
-        "versioning",
-    }
 
     def __init__(self, root_path: Path) -> None:
         """
@@ -327,83 +285,6 @@ class ConfigLoader:
 
         return flatten_config(config)
 
-    def _normalize_sections(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Normalize configuration section names using canonical aliases.
-
-        Accepts common section name variations (e.g., ``[menus]`` → ``[menu]``)
-        and warns about unknown sections that might be typos.
-
-        Args:
-            config: Raw configuration dictionary.
-
-        Returns:
-            Configuration with canonical section names. Unknown sections
-            are preserved but generate warnings if they look like typos.
-        """
-        normalized: dict[str, Any] = {}
-
-        for key, value in config.items():
-            # Check if this is an alias
-            canonical = self.SECTION_ALIASES.get(key)
-
-            if canonical:
-                # Using an alias - normalize it
-                if canonical in normalized:
-                    # Both forms present - merge if possible
-                    if isinstance(value, dict) and isinstance(normalized[canonical], dict):
-                        normalized[canonical].update(value)
-                        warning_msg = f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
-                        self.warnings.append(warning_msg)
-                        logger.warning(
-                            "config_section_duplicate",
-                            alias=key,
-                            canonical=canonical,
-                            action="merging",
-                        )
-                    else:
-                        warning_msg = (
-                            f"⚠️  Both [{key}] and [{canonical}] defined. Using [{canonical}]."
-                        )
-                        self.warnings.append(warning_msg)
-                        logger.warning(
-                            "config_section_duplicate",
-                            alias=key,
-                            canonical=canonical,
-                            action="using_canonical",
-                        )
-                else:
-                    normalized[canonical] = value
-                    warning_msg = f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
-                    self.warnings.append(warning_msg)
-                    logger.debug(
-                        "config_section_alias_used",
-                        alias=key,
-                        canonical=canonical,
-                        suggestion=f"use [{canonical}] instead",
-                    )
-            elif key not in self.KNOWN_SECTIONS:
-                # Unknown section - check for typos
-                suggestions = difflib.get_close_matches(key, self.KNOWN_SECTIONS, n=1, cutoff=0.6)
-                if suggestions:
-                    warning_msg = f"⚠️  Unknown section [{key}]. Did you mean [{suggestions[0]}]?"
-                    self.warnings.append(warning_msg)
-                    logger.warning(
-                        "config_section_unknown",
-                        section=key,
-                        suggestion=suggestions[0],
-                        action="including_anyway",
-                    )
-                else:
-                    logger.debug("config_section_custom", section=key, note="not in known sections")
-                # Still include it (might be user-defined)
-                normalized[key] = value
-            else:
-                # Known canonical section
-                normalized[key] = value
-
-        return normalized
-
     def get_warnings(self) -> list[str]:
         """
         Get configuration warnings accumulated during loading.
@@ -440,11 +321,8 @@ class ConfigLoader:
         Returns:
             Default configuration dictionary with all settings from DEFAULTS.
         """
-        from bengal.config.merge import deep_merge
-
-        # Return a deep copy of DEFAULTS to avoid mutation
-        # This matches ConfigDirectoryLoader behavior for consistency
-        return deep_merge({}, DEFAULTS)
+        # Use shared utility for consistent default config retrieval
+        return get_default_config()
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
         """

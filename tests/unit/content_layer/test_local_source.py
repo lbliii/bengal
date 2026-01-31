@@ -6,12 +6,18 @@ from pathlib import Path
 
 import pytest
 
-from bengal.content.sources.local import LocalSource, _parse_frontmatter
+from bengal.content.sources.local import LocalSource
+from bengal.content.utils import parse_frontmatter, path_to_slug
 from bengal.errors import BengalConfigError
 
 
 class TestParseFrontmatter:
-    """Tests for frontmatter parsing utility."""
+    """Tests for frontmatter parsing utility.
+
+    Note: These tests exercise the parse_frontmatter utility from
+    bengal.content.utils.frontmatter. More comprehensive tests are in
+    tests/unit/content/test_content_utils.py.
+    """
 
     def test_with_frontmatter(self) -> None:
         """Test parsing content with YAML frontmatter."""
@@ -24,7 +30,7 @@ tags:
 
 # Content Here
 """
-        frontmatter, body = _parse_frontmatter(content)
+        frontmatter, body = parse_frontmatter(content)
 
         assert frontmatter == {"title": "Hello World", "tags": ["python", "testing"]}
         assert body == "# Content Here"
@@ -33,7 +39,7 @@ tags:
         """Test parsing content without frontmatter."""
         content = "# Just Content\n\nNo frontmatter here."
 
-        frontmatter, body = _parse_frontmatter(content)
+        frontmatter, body = parse_frontmatter(content)
 
         assert frontmatter == {}
         assert body == content
@@ -45,7 +51,7 @@ tags:
 
 Body content."""
 
-        frontmatter, body = _parse_frontmatter(content)
+        frontmatter, body = parse_frontmatter(content)
 
         assert frontmatter == {}
         assert body == "Body content."
@@ -87,18 +93,20 @@ class TestLocalSource:
         assert source.source_type == "local"
 
     def test_path_to_slug(self) -> None:
-        """Test path to slug conversion."""
-        source = LocalSource("test", {"directory": "content"})
+        """Test path to slug conversion uses shared utility.
 
+        Note: More comprehensive tests for path_to_slug are in
+        tests/unit/content/test_content_utils.py.
+        """
         # Basic file
-        assert source._path_to_slug(Path("getting-started.md")) == "getting-started"
+        assert path_to_slug(Path("getting-started.md")) == "getting-started"
 
         # Nested path
-        assert source._path_to_slug(Path("guides/advanced.md")) == "guides/advanced"
+        assert path_to_slug(Path("guides/advanced.md")) == "guides/advanced"
 
         # Index file
-        assert source._path_to_slug(Path("index.md")) == "index"
-        assert source._path_to_slug(Path("guides/index.md")) == "guides"
+        assert path_to_slug(Path("index.md")) == "index"
+        assert path_to_slug(Path("guides/index.md")) == "guides"
 
     def test_should_exclude(self) -> None:
         """Test exclusion pattern matching."""

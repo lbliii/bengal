@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.utils import get_section_pages
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -210,9 +211,7 @@ class NavigationValidator(BaseValidator):
                 for p in site.pages
             )
 
-            # Some tests construct lightweight Section mocks that expose `children` but
-            # not `pages`; support either for robustness in validation
-            section_pages = getattr(section, "pages", getattr(section, "children", []))
+            section_pages = get_section_pages(section)
 
             if not has_index and not has_archive and section_pages:
                 issues.append(
@@ -220,9 +219,11 @@ class NavigationValidator(BaseValidator):
                 )
 
             # Check if section pages have proper parent reference
-            for page in section_pages:
-                if hasattr(page, "_section") and page._section != section:
-                    issues.append(f"Page {page.source_path.name} has wrong section reference")
+            issues.extend(
+                f"Page {page.source_path.name} has wrong section reference"
+                for page in section_pages
+                if hasattr(page, "_section") and page._section != section
+            )
 
         if issues:
             results.append(
@@ -290,7 +291,7 @@ class NavigationValidator(BaseValidator):
 
         # Check each section with doc-type content
         for section in site.sections:
-            section_pages = getattr(section, "pages", getattr(section, "children", []))
+            section_pages = get_section_pages(section)
             if not section_pages:
                 continue
 
@@ -351,10 +352,7 @@ class NavigationValidator(BaseValidator):
             doc_sections = sum(
                 1
                 for s in site.sections
-                if any(
-                    p.metadata.get("type") in doc_types
-                    for p in getattr(s, "pages", getattr(s, "children", []))
-                )
+                if any(p.metadata.get("type") in doc_types for p in get_section_pages(s))
             )
             if doc_sections > 0:
                 results.append(

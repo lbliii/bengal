@@ -25,13 +25,16 @@ from __future__ import annotations
 
 import heapq
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
+from bengal.postprocess.utils import indent_xml
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
+    from bengal.protocols import SiteLike
 
 
 class RSSGenerator:
@@ -69,7 +72,7 @@ class RSSGenerator:
 
     """
 
-    def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:
+    def __init__(self, site: SiteLike, collector: OutputCollector | None = None) -> None:
         """
         Initialize RSS generator.
 
@@ -176,9 +179,9 @@ class RSSGenerator:
                         rel_path = page.output_path.relative_to(self.site.output_dir)
                         # Ensure proper URL construction: baseurl + / + rel_path
                         if baseurl:
-                            link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                            link = f"{baseurl}/{to_posix(rel_path)}"
                         else:
-                            link = f"/{rel_path}".replace("\\", "/")
+                            link = f"/{to_posix(rel_path)}"
                         link = link.replace("/index.html", "/")
                     except ValueError:
                         link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"
@@ -216,7 +219,7 @@ class RSSGenerator:
 
             # Ensure directory exists
             rss_path.parent.mkdir(parents=True, exist_ok=True)
-            self._indent(rss)
+            indent_xml(rss)
             try:
                 with AtomicFile(rss_path, "wb") as f:
                     tree.write(f, encoding="utf-8", xml_declaration=True)
@@ -255,27 +258,3 @@ class RSSGenerator:
                     suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
                 )
                 raise error from e
-
-    def _indent(self, elem: ET.Element, level: int = 0) -> None:
-        """
-        Add indentation to XML for readability.
-
-        Args:
-            elem: XML element to indent
-            level: Current indentation level
-        """
-        indent = "\n" + "  " * level
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = indent + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = indent
-            last_child: ET.Element | None = None
-            for child in elem:
-                self._indent(child, level + 1)
-                last_child = child
-            # Set tail on last child (last_child is guaranteed non-None when len(elem) > 0)
-            if last_child is not None and (not last_child.tail or not last_child.tail.strip()):
-                last_child.tail = indent
-        elif level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = indent

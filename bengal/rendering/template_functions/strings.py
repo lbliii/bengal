@@ -73,22 +73,14 @@ def split_string(text: str, separator: str = " ") -> list[str]:
 
 
 def dict_get(obj: Any, key: str, default: Any = None) -> Any:
-    """Safe get supporting dict-like objects for component preview contexts."""
-    try:
-        if isinstance(obj, dict):
-            return obj.get(key, default)
-        # Allow attribute access as fallback
-        if hasattr(obj, key):
-            return getattr(obj, key)
-    except Exception as e:
-        logger.debug(
-            "safe_get_failed",
-            key=key,
-            error=str(e),
-            error_type=type(e).__name__,
-            action="returning_default",
-        )
-    return default
+    """Safe get supporting dict-like objects for component preview contexts.
+
+    This is a thin wrapper around bengal.rendering.utils.safe_access.safe_get
+    for template filter use.
+    """
+    from bengal.rendering.utils.safe_access import safe_get
+
+    return safe_get(obj, key, default)
 
 
 def truncatewords(text: str, count: int, suffix: str = "...") -> str:

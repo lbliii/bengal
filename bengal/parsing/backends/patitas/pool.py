@@ -21,12 +21,11 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
-import os
-from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
-from threading import local
 from typing import TYPE_CHECKING, Any
+
+from bengal.parsing.backends.patitas.utils.pool import ThreadLocalPool
 
 if TYPE_CHECKING:
     from patitas.parser import Parser
@@ -42,14 +41,7 @@ __all__ = [
 ]
 
 
-# Pool size rationale:
-# - 8 covers typical concurrent renders per thread (parallel template includes)
-# - Memory overhead: ~1KB per Parser, ~0.5KB per Renderer = ~12KB per thread
-# - Configurable via environment for tuning
-_DEFAULT_POOL_SIZE = 8
-
-
-class ParserPool:
+class ParserPool(ThreadLocalPool["Parser"]):
     """Thread-local parser instance pool.
 
     Reuses Parser instances to avoid allocation overhead.
@@ -69,15 +61,19 @@ class ParserPool:
         Each thread has its own pool. No locks needed.
     """
 
-    _local = local()
-    _max_pool_size: int = int(os.environ.get("BENGAL_PARSER_POOL_SIZE", _DEFAULT_POOL_SIZE))
+    _env_var_name = "BENGAL_PARSER_POOL_SIZE"
 
     @classmethod
-    def _get_pool(cls) -> deque[Parser]:
-        """Get or create thread-local pool."""
-        if not hasattr(cls._local, "pool"):
-            cls._local.pool: deque[Parser] = deque(maxlen=cls._max_pool_size)
-        return cls._local.pool
+    def _create(cls, source: str, source_file: str | None = None) -> Parser:
+        """Create a new Parser instance."""
+        from patitas.parser import Parser
+
+        return Parser(source, source_file)
+
+    @classmethod
+    def _reinit(cls, instance: Parser, source: str, source_file: str | None = None) -> None:
+        """Reinitialize an existing Parser for reuse."""
+        instance._reinit(source, source_file)
 
     @classmethod
     @contextmanager
@@ -102,43 +98,22 @@ class ParserPool:
         Requires:
             patitas>=0.1.1 (provides Parser._reinit() method)
         """
-        from patitas.parser import Parser
-
         pool = cls._get_pool()
 
         if pool:
-            # Reuse existing parser from pool
             parser = pool.pop()
-            parser._reinit(source, source_file)
+            cls._reinit(parser, source, source_file)
         else:
-            # Create new parser if pool is empty
-            parser = Parser(source, source_file)
+            parser = cls._create(source, source_file)
 
         try:
             yield parser
         finally:
-            # Return to pool if not full
             if len(pool) < cls._max_pool_size:
                 pool.append(parser)
 
-    @classmethod
-    def clear(cls) -> None:
-        """Clear the pool for current thread.
 
-        Useful for testing or memory cleanup.
-        """
-        if hasattr(cls._local, "pool"):
-            cls._local.pool.clear()
-
-    @classmethod
-    def size(cls) -> int:
-        """Get current pool size for this thread."""
-        if hasattr(cls._local, "pool"):
-            return len(cls._local.pool)
-        return 0
-
-
-class RendererPool:
+class RendererPool(ThreadLocalPool["HtmlRenderer"]):
     """Thread-local renderer instance pool.
 
     Reuses HtmlRenderer instances to avoid allocation overhead.
@@ -158,15 +133,44 @@ class RendererPool:
         Each thread has its own pool. No locks needed.
     """
 
-    _local = local()
-    _max_pool_size: int = int(os.environ.get("BENGAL_RENDERER_POOL_SIZE", _DEFAULT_POOL_SIZE))
+    _env_var_name = "BENGAL_RENDERER_POOL_SIZE"
 
     @classmethod
-    def _get_pool(cls) -> deque[HtmlRenderer]:
-        """Get or create thread-local pool."""
-        if not hasattr(cls._local, "pool"):
-            cls._local.pool: deque[HtmlRenderer] = deque(maxlen=cls._max_pool_size)
-        return cls._local.pool
+    def _create(
+        cls,
+        source: str = "",
+        *,
+        delegate: LexerDelegate | None = None,
+        directive_cache: DirectiveCache | None = None,
+        page_context: Any | None = None,
+    ) -> HtmlRenderer:
+        """Create a new HtmlRenderer instance."""
+        from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
+
+        return HtmlRenderer(
+            source,
+            delegate=delegate,
+            directive_cache=directive_cache,
+            page_context=page_context,
+        )
+
+    @classmethod
+    def _reinit(
+        cls,
+        instance: HtmlRenderer,
+        source: str = "",
+        *,
+        delegate: LexerDelegate | None = None,
+        directive_cache: DirectiveCache | None = None,
+        page_context: Any | None = None,
+    ) -> None:
+        """Reinitialize an existing HtmlRenderer for reuse."""
+        instance._reset(
+            source,
+            delegate=delegate,
+            directive_cache=directive_cache,
+            page_context=page_context,
+        )
 
     @classmethod
     @contextmanager
@@ -193,20 +197,19 @@ class RendererPool:
             with RendererPool.acquire(source) as renderer:
                 html = renderer.render(ast)
         """
-        from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
-
         pool = cls._get_pool()
 
         if pool:
             renderer = pool.pop()
-            renderer._reset(
+            cls._reinit(
+                renderer,
                 source,
                 delegate=delegate,
                 directive_cache=directive_cache,
                 page_context=page_context,
             )
         else:
-            renderer = HtmlRenderer(
+            renderer = cls._create(
                 source,
                 delegate=delegate,
                 directive_cache=directive_cache,
@@ -216,22 +219,5 @@ class RendererPool:
         try:
             yield renderer
         finally:
-            # Return to pool if not full
             if len(pool) < cls._max_pool_size:
                 pool.append(renderer)
-
-    @classmethod
-    def clear(cls) -> None:
-        """Clear the pool for current thread.
-
-        Useful for testing or memory cleanup.
-        """
-        if hasattr(cls._local, "pool"):
-            cls._local.pool.clear()
-
-    @classmethod
-    def size(cls) -> int:
-        """Get current pool size for this thread."""
-        if hasattr(cls._local, "pool"):
-            return len(cls._local.pool)
-        return 0

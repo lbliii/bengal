@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, ClassVar
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
+from bengal.directives.utils import ensure_badge_base_class
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
@@ -108,29 +109,8 @@ class BadgeDirective:
             children=(),  # Badges don't have children
         )
 
-    @staticmethod
-    def _ensure_base_class(css_class: str) -> str:
-        """Ensure the badge has a base class."""
-        if not css_class:
-            return "badge badge-secondary"
-
-        classes = css_class.split()
-
-        # Check if base class is already present
-        has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
-
-        if not has_base_badge:
-            # Determine which base class to use
-            if any(cls.startswith("api-badge") for cls in classes):
-                classes.insert(0, "api-badge")
-            elif any(cls.startswith("badge-") for cls in classes):
-                classes.insert(0, "badge")
-            else:
-                classes.insert(0, "badge")
-
-            return " ".join(classes)
-
-        return css_class
+    # Use canonical implementation from bengal.directives.utils
+    _ensure_base_class = staticmethod(ensure_badge_base_class)
 
     def render(
         self,
@@ -158,6 +138,11 @@ class BadgeDirective:
 @dataclass(frozen=True, slots=True)
 class IconOptions(DirectiveOptions):
     """Options for icon directive."""
+
+    _aliases: ClassVar[dict[str, str]] = {
+        "class": "css_class",
+        "aria-label": "aria_label",
+    }
 
     size: int = 24
     css_class: str = ""

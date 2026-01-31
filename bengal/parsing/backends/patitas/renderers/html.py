@@ -106,8 +106,10 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         "_headings",
         "_page_context",
         "_seen_slugs",
-        # Per-render state only (7 slots)
+        "_site",
+        # Per-render state only (9 slots)
         "_source",
+        "_xref_index",
     )
 
     def __init__(
@@ -117,6 +119,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         delegate: LexerDelegate | None = None,
         directive_cache: DirectiveCache | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> None:
         """Initialize renderer with source and per-render state only.
 
@@ -128,6 +132,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
             delegate: Optional sub-lexer delegate for ZCLH handoff
             directive_cache: Optional cache for rendered directive output (per-site, not config)
             page_context: Optional page context for directives that need page/section info
+            xref_index: Optional cross-reference index for link resolution
+            site: Optional site object for site-wide context
         """
         self._source = source
         self._delegate = delegate
@@ -137,6 +143,10 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         self._page_context = page_context
         # Alias for _page_context (used by directives that look for _current_page)
         self._current_page = page_context
+        # Cross-reference index for link resolution (cards, xref roles, etc.)
+        self._xref_index = xref_index
+        # Site object for site-wide context
+        self._site = site
         # Directive cache is per-site, passed in (not config)
         self._directive_cache = directive_cache
 
@@ -147,6 +157,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         delegate: LexerDelegate | None = None,
         directive_cache: DirectiveCache | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> None:
         """Reset renderer state for reuse.
 
@@ -158,6 +170,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
             delegate: Optional sub-lexer delegate for ZCLH handoff
             directive_cache: Optional cache for rendered directive output
             page_context: Optional page context for directives
+            xref_index: Optional cross-reference index for link resolution
+            site: Optional site object for site-wide context
         """
         self._source = source
         self._delegate = delegate
@@ -165,6 +179,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         self._seen_slugs = {}
         self._page_context = page_context
         self._current_page = page_context
+        self._xref_index = xref_index
+        self._site = site
         self._directive_cache = directive_cache
 
     # =========================================================================
@@ -202,7 +218,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         return self._config.text_transformer
 
     @property
-    def _slugify(self) -> Callable[[str], str]:
+    def _heading_slugify(self) -> Callable[[str], str]:
         """Get slugify function for heading IDs."""
         return self._config.slugify or default_slugify
 
@@ -343,7 +359,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         Returns:
             Unique slug string
         """
-        base_slug = self._slugify(text)
+        base_slug = self._heading_slugify(text)
         if not base_slug:
             base_slug = "heading"
 

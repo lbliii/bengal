@@ -31,21 +31,8 @@ from .tracking import (
     increment_build_generation,
 )
 
-# Re-export deprecated names for backward compatibility
-_get_current_generation = get_current_generation
-_increment_active_renders = increment_active_renders
-_decrement_active_renders = decrement_active_renders
-_is_free_threaded = is_free_threaded
-_thread_local = thread_local
-
 __all__ = [
     "RenderOrchestrator",
-    "_decrement_active_renders",
-    # Deprecated names (for backward compatibility)
-    "_get_current_generation",
-    "_increment_active_renders",
-    "_is_free_threaded",
-    "_thread_local",
     # Tracking utilities
     "clear_thread_local_pipelines",
     "decrement_active_renders",

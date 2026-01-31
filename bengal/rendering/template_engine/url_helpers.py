@@ -27,10 +27,11 @@ The .href property automatically includes baseurl when configured.
 
 HELPER FUNCTIONS:
 -----------------
-- href_for(obj, site): Get public URL for any page-like object (preferred)
-- with_baseurl(path, site): Apply baseurl to a site-relative path
+- href_for(obj): Get public URL for any page-like object (preferred)
+- apply_baseurl(path, site): Use bengal.rendering.utils.url.apply_baseurl
 
 Related Modules:
+- bengal.rendering.utils.url: Canonical location for apply_baseurl
 - bengal.core.nav_tree: NavNodeProxy provides .href (with baseurl) and ._path (without)
 - bengal.core.page: Page.href includes baseurl, Page._path does not
 - bengal.core.section: Same pattern as Page
@@ -39,19 +40,19 @@ Related Modules:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
-
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import PageLike
 
-logger = get_logger(__name__)
+__all__ = [
+    "filter_dateformat",
+    "href_for",
+]
 
 
-def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
+def href_for(obj: PageLike | Any, site: Any = None) -> str:
     """
     Get href for any object. Prefer obj.href directly.
 
@@ -60,13 +61,14 @@ def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
 
     Args:
         obj: Page, Section, Asset, NavNodeProxy, or dict-like object with href/_path
+        site: Unused, kept for backward compatibility
 
     Returns:
         Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
 
     Example:
         # In template function
-        return href_for(related_page, site)  # Returns "/bengal/docs/related/"
+        return href_for(related_page)  # Returns "/bengal/docs/related/"
 
     Note:
         For Page/Section/Asset objects, prefer obj.href directly, which already
@@ -76,66 +78,6 @@ def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
     """
     # Use href property
     return obj.href
-
-
-def with_baseurl(path: str, site: SiteLike) -> str:
-    """
-    Apply baseurl prefix to a site-relative path.
-
-    Converts a site_path (without baseurl) to a public URL (with baseurl).
-
-    Args:
-        path: Site-relative path starting with '/' (e.g., "/docs/page/")
-        site: Site instance for baseurl config lookup
-
-    Returns:
-        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
-
-    Example:
-        # Convert site_path to public URL
-        public_url = with_baseurl("/docs/getting-started/", site)
-        # Returns "/bengal/docs/getting-started/" when baseurl="/bengal"
-
-    Note:
-        Handles all baseurl formats:
-        - Path-only: "/bengal" → "/bengal/docs/page/"
-        - Absolute: "https://example.com" → "https://example.com/docs/page/"
-        - Empty: "" → "/docs/page/" (no change)
-
-    """
-    # Ensure path starts with '/'
-    if not path.startswith("/"):
-        path = "/" + path
-
-    # Get baseurl from config - use site.baseurl property for proper nested config access
-    try:
-        raw_baseurl = getattr(site, "baseurl", "") if site is not None else ""
-        # Guard against mocks/non-strings
-        if raw_baseurl is None or not isinstance(raw_baseurl, str):
-            raw_baseurl = ""
-        baseurl_value = raw_baseurl.rstrip("/")
-        # Treat "/" as empty (root-relative)
-        if baseurl_value == "/":
-            baseurl_value = ""
-    except Exception as e:
-        logger.debug(
-            "with_baseurl_config_access_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_empty_baseurl",
-        )
-        baseurl_value = ""
-
-    if not baseurl_value:
-        return path
-
-    # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
-    if baseurl_value.startswith(("http://", "https://", "file://")):
-        return f"{baseurl_value}{path}"
-
-    # Path-only baseurl (e.g., /bengal)
-    base_path = "/" + baseurl_value.lstrip("/")
-    return f"{base_path}{path}"
 
 
 def filter_dateformat(date: datetime | str | None, format: str = "%Y-%m-%d") -> str:

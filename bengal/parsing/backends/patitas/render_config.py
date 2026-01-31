@@ -27,10 +27,11 @@ RFC: rfc-contextvar-config-implementation.md
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar, Token
+from contextvars import Token
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
+
+from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -91,8 +92,8 @@ class RenderConfig:
 # Module-level default (singleton)
 _DEFAULT_RENDER_CONFIG: RenderConfig = RenderConfig()
 
-# Thread-local configuration
-_render_config: ContextVar[RenderConfig] = ContextVar(
+# Thread-local configuration using ContextVarManager
+_manager: ContextVarManager[RenderConfig] = ContextVarManager(
     "render_config", default=_DEFAULT_RENDER_CONFIG
 )
 
@@ -103,10 +104,11 @@ def get_render_config() -> RenderConfig:
     Returns:
         The RenderConfig for the current thread/context.
     """
-    return _render_config.get()
+    # Manager returns Optional, but we have a default so it's always set
+    return _manager.get() or _DEFAULT_RENDER_CONFIG
 
 
-def set_render_config(config: RenderConfig) -> Token[RenderConfig]:
+def set_render_config(config: RenderConfig) -> Token[RenderConfig | None]:
     """Set render configuration for current context.
 
     Returns a token that can be used to restore the previous value.
@@ -118,10 +120,10 @@ def set_render_config(config: RenderConfig) -> Token[RenderConfig]:
     Returns:
         Token that can be passed to reset_render_config() to restore previous value.
     """
-    return _render_config.set(config)
+    return _manager.set(config)
 
 
-def reset_render_config(token: Token[RenderConfig] | None = None) -> None:
+def reset_render_config(token: Token[RenderConfig | None] | None = None) -> None:
     """Reset render configuration.
 
     If token is provided, restores to the previous value (proper nesting).
@@ -130,13 +132,9 @@ def reset_render_config(token: Token[RenderConfig] | None = None) -> None:
     Args:
         token: Optional token from set_render_config() for proper nesting support.
     """
-    if token is not None:
-        _render_config.reset(token)
-    else:
-        _render_config.set(_DEFAULT_RENDER_CONFIG)
+    _manager.reset(token)
 
 
-@contextmanager
 def render_config_context(config: RenderConfig) -> Iterator[RenderConfig]:
     """Context manager for scoped render configuration.
 
@@ -153,8 +151,4 @@ def render_config_context(config: RenderConfig) -> Iterator[RenderConfig]:
     Yields:
         The config that was set (same as input).
     """
-    token = set_render_config(config)
-    try:
-        yield config
-    finally:
-        reset_render_config(token)
+    return _manager.context(config)

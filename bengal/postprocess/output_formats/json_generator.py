@@ -61,7 +61,9 @@ from bengal.postprocess.output_formats.utils import (
     get_page_json_path,
     get_page_url,
     normalize_url,
+    parallel_write_files,
 )
+from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
@@ -146,8 +148,6 @@ class PageJSONGenerator:
         Returns:
             Number of JSON files generated
         """
-        import concurrent.futures
-
         # OPTIMIZATION: Use accumulated JSON data if available (Phase 2 of post-processing optimization)
         # This eliminates double iteration of pages, saving ~500-700ms on large sites
         # See: plan/active/rfc-postprocess-optimization.md
@@ -181,39 +181,15 @@ class PageJSONGenerator:
         if not page_items:
             return 0
 
-        # Write files in parallel
-        def write_json(item: tuple[Any, dict[str, Any]]) -> bool:
-            json_path, page_data = item
-            try:
-                json_path.parent.mkdir(parents=True, exist_ok=True)
-                # Use compact JSON (no indent) for speed - 3x faster
-                with AtomicFile(json_path, "w", encoding="utf-8") as f:
-                    json.dump(page_data, f, ensure_ascii=False, separators=(",", ":"))
-                return True
-            except Exception as e:
-                logger.warning(
-                    "page_json_write_failed",
-                    path=str(json_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    suggestion="Check output directory permissions or page content for serialization errors.",
-                )
-                return False
+        # Write function for parallel execution
+        def write_json(path: Any, data: dict[str, Any]) -> None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Use compact JSON (no indent) for speed - 3x faster
+            with AtomicFile(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 
-        # Use thread pool for I/O-bound writes
-        count = 0
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                # Consume iterator fully before exiting context manager
-                # This ensures all tasks complete and exceptions are raised properly
-                results = list(executor.map(write_json, page_items))
-                count = sum(1 for r in results if r)
-        except RuntimeError as e:
-            # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
-            if "interpreter shutdown" in str(e):
-                logger.debug("page_json_shutdown", reason="interpreter_shutting_down")
-                return count
-            raise
+        # Use parallel write utility
+        count = parallel_write_files(page_items, write_json, operation_name="page_json_write")
 
         logger.info("page_json_generated", count=count)
         return count
@@ -298,20 +274,14 @@ class PageJSONGenerator:
             )
 
         # Section
-        if hasattr(page, "_section") and page._section:
-            data["section"] = getattr(page._section, "name", "")
+        section_name = get_section_name(page)
+        if section_name:
+            data["section"] = section_name
 
         # Tags - ensure it's a list
-        if page.tags:
-            tags = page.tags
-            if isinstance(tags, list | tuple):
-                data["tags"] = list(tags)
-            else:
-                # Convert to list if it's iterable but not a list/tuple
-                try:
-                    data["tags"] = list(tags) if tags else []
-                except (TypeError, ValueError):
-                    data["tags"] = []
+        tags_list = tags_to_list(page.tags)
+        if tags_list:
+            data["tags"] = tags_list
 
         # Stats
         word_count = len(content_text.split())

@@ -20,6 +20,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from bengal.services.utils import freeze_dict
+
 if TYPE_CHECKING:
     from bengal.snapshots.types import SiteSnapshot
 
@@ -181,7 +183,7 @@ def load_data_directory(root_path: Path) -> DataSnapshot:
             pass
 
     return DataSnapshot(
-        data=_freeze_dict(data),
+        data=freeze_dict(data),
         source_files=frozenset(source_files),
     )
 
@@ -234,58 +236,6 @@ def get_data_file(file_path: Path) -> Any:
 
 def _load_data_file_content(file_path: Path) -> Any:
     """Load content from a data file."""
-    try:
-        from bengal.utils.io.file_io import load_data_file
+    from bengal.utils.io.file_io import load_data_file
 
-        return load_data_file(file_path, on_error="return_empty", caller="data_service")
-    except ImportError:
-        # Fallback for standalone usage
-        suffix = file_path.suffix.lower()
-
-        if suffix == ".json":
-            import json
-
-            return json.loads(file_path.read_text())
-        elif suffix in (".yaml", ".yml"):
-            try:
-                import yaml
-
-                return yaml.safe_load(file_path.read_text())
-            except ImportError:
-                return None
-        elif suffix == ".toml":
-            try:
-                import tomllib
-
-                return tomllib.loads(file_path.read_text())
-            except ImportError:
-                try:
-                    import tomli
-
-                    return tomli.loads(file_path.read_text())
-                except ImportError:
-                    return None
-
-        return None
-
-
-def _freeze_dict(d: dict[str, Any]) -> MappingProxyType[str, Any]:
-    """Recursively freeze a dictionary."""
-    result: dict[str, Any] = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            result[k] = _freeze_dict(v)
-        elif isinstance(v, list):
-            result[k] = tuple(_freeze_item(item) for item in v)
-        else:
-            result[k] = v
-    return MappingProxyType(result)
-
-
-def _freeze_item(item: Any) -> Any:
-    """Freeze a single item (dict → MappingProxyType, list → tuple)."""
-    if isinstance(item, dict):
-        return _freeze_dict(item)
-    elif isinstance(item, list):
-        return tuple(_freeze_item(i) for i in item)
-    return item
+    return load_data_file(file_path, on_error="return_empty", caller="data_service")

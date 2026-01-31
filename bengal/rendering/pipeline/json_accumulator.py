@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -143,7 +144,7 @@ class JsonAccumulator:
             # Directory structure for SiteIndexGenerator
             dir_path = "/"
             if uri and isinstance(uri, str):
-                path_parts = uri.strip("/").split("/")
+                path_parts = split_url_path(uri)
                 if len(path_parts) > 1:
                     dir_path = "/" + "/".join(path_parts[:-1]) + "/"
 

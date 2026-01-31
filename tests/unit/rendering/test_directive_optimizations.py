@@ -156,7 +156,13 @@ class TestPrecompiledCoercers:
     """Test that option coercers are pre-compiled."""
 
     def test_coercers_populated(self):
-        """Pre-compiled coercers should be populated for DirectiveOptions subclasses."""
+        """Pre-compiled coercers should be populated after first from_raw() call.
+
+        Coercers are lazily initialized on first use for performance.
+        """
+        # Trigger lazy initialization
+        StyledOptions.from_raw({"class": "test"})
+
         assert hasattr(StyledOptions, "_coercers")
         assert isinstance(StyledOptions._coercers, dict)
         assert "css_class" in StyledOptions._coercers
@@ -178,6 +184,9 @@ class TestPrecompiledCoercers:
 
     def test_coercers_faster_than_runtime(self):
         """Pre-compiled coercers should be faster than runtime coercion."""
+        # Trigger lazy initialization first
+        StyledOptions.from_raw({"class": "test"})
+
         # This is tested indirectly - if pre-compilation works, from_raw() will be faster
         # We can't easily test this without mocking, but we can verify coercers exist
         assert len(StyledOptions._coercers) > 0

@@ -39,16 +39,16 @@ where data files are accessible via site.data.*.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from re import Match
 from typing import Any
 
 from mistune.directives import DirectivePlugin
 
+from bengal.directives.utils import escape_html, parse_inline_markdown
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.primitives.text import escape_html
+from bengal.utils.paths.normalize import to_posix
 
 __all__ = ["GlossaryDirective", "render_glossary"]
 
@@ -308,7 +308,7 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
         else:
             # Custom path: try to resolve from site.data hierarchy
             # e.g., "data/team/glossary.yaml" -> site.data.team.glossary
-            parts = source_path.replace("\\", "/").split("/")
+            parts = to_posix(source_path).split("/")
             if parts and parts[0] == "data":
                 parts = parts[1:]  # Remove "data" prefix
             if parts:
@@ -414,8 +414,8 @@ def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> s
     # Term (dt) - escape HTML but don't parse markdown
     parts.append(f"  <dt>{escape_html(term)}</dt>")
 
-    # Definition (dd) - parse inline markdown
-    dd_content = _parse_inline_markdown(renderer, definition)
+    # Definition (dd) - parse inline markdown with escape_first for untrusted input
+    dd_content = parse_inline_markdown(renderer, definition, escape_first=True)
 
     # Optionally show tags
     if show_tags and term_tags:
@@ -427,47 +427,3 @@ def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> s
     parts.append(f"  <dd>{dd_content}</dd>")
 
     return "\n".join(parts)
-
-
-def _parse_inline_markdown(renderer: Any, text: str) -> str:
-    """
-    Parse inline markdown in glossary definitions.
-
-    Tries to use mistune's inline parser first (proper way),
-    falls back to simple regex for basic markdown if not available.
-
-    Args:
-        renderer: Mistune renderer instance
-        text: Text to parse
-
-    Returns:
-        HTML string with inline markdown converted
-
-    """
-    from bengal.directives.utils import get_markdown_instance
-    from bengal.utils.primitives.text import escape_html
-
-    # Try to use mistune's inline parser (proper way)
-    md_instance = get_markdown_instance(renderer)
-    if md_instance and hasattr(md_instance, "inline"):
-        try:
-            result: str = md_instance.inline(text)
-            return result
-        except Exception as e:
-            logger.debug(
-                "glossary_inline_parse_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="using_regex_fallback",
-            )
-
-    # Fallback to simple regex for basic markdown
-    # First escape HTML to prevent XSS
-    text = escape_html(text)
-    # **bold** -> <strong>bold</strong>
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    # *italic* -> <em>italic</em> (but not if it's part of **bold**)
-    text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
-    # `code` -> <code>code</code>
-    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
-    return text

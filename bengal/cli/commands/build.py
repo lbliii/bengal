@@ -7,12 +7,13 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import (
-    command_metadata,
+from bengal.cli.helpers import command_metadata, handle_cli_errors
+from bengal.cli.utils import (
+    configure_cli_logging,
     configure_traceback,
     get_cli_output,
-    handle_cli_errors,
     load_site_from_cli,
+    truncate_path,
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
@@ -22,12 +23,7 @@ from bengal.orchestration.stats import (
     display_build_stats,
     show_building_indicator,
 )
-from bengal.utils.observability.logger import (
-    LogLevel,
-    close_all_loggers,
-    configure_logging,
-    print_all_summaries,
-)
+from bengal.utils.observability.logger import close_all_loggers, print_all_summaries
 
 
 @click.command(cls=BengalCommand)
@@ -251,26 +247,14 @@ def build(
     # Get profile configuration
     profile_config = build_profile.get_config()
 
-    # Configure logging based on profile
-    if build_profile == BuildProfile.DEVELOPER:
-        log_level = LogLevel.DEBUG
-    elif build_profile == BuildProfile.THEME_DEV:
-        log_level = LogLevel.INFO
-    else:  # WRITER
-        log_level = LogLevel.WARNING
-
-    # Determine log file path using canonical BengalPaths
-    from bengal.cache.paths import BengalPaths
-
-    paths = BengalPaths(Path(source))
-    paths.logs_dir.mkdir(parents=True, exist_ok=True)
-    log_path = Path(log_file) if log_file else paths.build_log
-
-    configure_logging(
-        level=log_level,
-        log_file=log_path,
-        verbose=profile_config["verbose_build_stats"],
-        track_memory=profile_config["track_memory"],
+    # Configure logging using consolidated helper
+    configure_cli_logging(
+        source=source,
+        profile=build_profile,
+        log_file=log_file,
+        debug=debug,
+        verbose=verbose,
+        track_memory=profile_config.get("track_memory", False),
     )
 
     # Configure traceback behavior BEFORE site loading so errors show properly
@@ -538,8 +522,11 @@ def build(
             # Determine profile output path (use organized directory structure)
             if perf_profile is True:
                 # Flag set without path - use default organized location
-                paths.profiles_dir.mkdir(parents=True, exist_ok=True)
-                perf_profile_path = paths.profiles_dir / "profile.stats"
+                from bengal.cache.paths import BengalPaths
+
+                perf_paths = BengalPaths(Path(source))
+                perf_paths.profiles_dir.mkdir(parents=True, exist_ok=True)
+                perf_profile_path = perf_paths.profiles_dir / "profile.stats"
             else:
                 # User specified custom path
                 perf_profile_path = Path(perf_profile)
@@ -689,7 +676,6 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         cli.header("📊 Incremental Build Decision")
         verb = "Rebuilt"
 
-    total_pages = len(decision.pages_to_build) + decision.pages_skipped_count
     cli.info(
         f"  {verb} {len(decision.pages_to_build)} pages ({decision.pages_skipped_count} skipped)"
     )
@@ -719,9 +705,9 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         for reason_code, pages in sorted(reason_groups.items(), key=lambda x: -len(x[1])):
             # Format pages list (show first 2, truncate if more)
             if len(pages) <= 2:
-                pages_str = ", ".join(_truncate_path(p) for p in pages)
+                pages_str = ", ".join(truncate_path(p) for p in pages)
             else:
-                pages_str = f"{_truncate_path(pages[0])}, ... +{len(pages) - 1} more"
+                pages_str = f"{truncate_path(pages[0])}, ... +{len(pages) - 1} more"
 
             # Truncate to fit column
             if len(pages_str) > 31:
@@ -758,9 +744,9 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     # Detailed skip reasons (only shown in verbose mode / when data available)
     if decision.skip_reasons:
         cli.blank()
-        cli.detail(f"  Skipped pages (first 10):", indent=0)
-        for i, (page_path, skip_reason) in enumerate(list(decision.skip_reasons.items())[:10]):
-            cli.detail(f"    • {_truncate_path(page_path)}: {skip_reason.value}", indent=0)
+        cli.detail("  Skipped pages (first 10):", indent=0)
+        for page_path, skip_reason in list(decision.skip_reasons.items())[:10]:
+            cli.detail(f"    • {truncate_path(page_path)}: {skip_reason.value}", indent=0)
         if len(decision.skip_reasons) > 10:
             cli.detail(f"    ... and {len(decision.skip_reasons) - 10} more", indent=0)
 
@@ -781,24 +767,6 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
                 for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]
             ]
             cli.detail(f"  Reason summary: {', '.join(summary_parts)}", indent=0)
-
-
-def _truncate_path(path: str, max_len: int = 25) -> str:
-    """Truncate path for display, keeping the filename visible."""
-    if len(path) <= max_len:
-        return path
-    # Keep the last part (filename) and truncate from the start
-    parts = path.split("/")
-    if len(parts) == 1:
-        return path[: max_len - 3] + "..."
-    # Try to keep at least the filename
-    filename = parts[-1]
-    if len(filename) >= max_len - 3:
-        return "..." + filename[-(max_len - 3) :]
-    remaining = max_len - len(filename) - 4  # 4 for ".../"
-    if remaining > 0:
-        return ".../" + filename
-    return "..." + filename[-(max_len - 3) :]
 
 
 def _print_explain_json(stats, *, dry_run: bool = False) -> None:

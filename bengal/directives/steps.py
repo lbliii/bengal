@@ -46,7 +46,6 @@ Step Options:
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -56,9 +55,11 @@ from bengal.directives.contracts import (
     STEPS_CONTRACT,
     DirectiveContract,
 )
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.directives.utils import parse_inline_markdown
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import slugify_id
 
 __all__ = [
     "StepDirective",
@@ -76,12 +77,12 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class StepOptions(DirectiveOptions):
+class StepOptions(StyledOptions):
     """
     Options for step directive.
 
     Attributes:
-        css_class: Custom CSS class for the step
+        css_class: Custom CSS class for the step (inherited from StyledOptions)
         description: Lead-in text with special typography (rendered before main content)
         optional: Mark step as optional/skippable (adds visual indicator)
         duration: Estimated time for the step (e.g., "5 min", "1 hour")
@@ -97,12 +98,9 @@ class StepOptions(DirectiveOptions):
 
     """
 
-    css_class: str = ""
     description: str = ""
     optional: bool = False
     duration: str = ""
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
 class StepDirective(BengalDirective):
@@ -123,7 +121,7 @@ class StepDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["step"]
     TOKEN_TYPE: ClassVar[str] = "step"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = StepOptions
+    OPTIONS_CLASS: ClassVar[type[StepOptions]] = StepOptions
 
     # Contract: step MUST be inside steps
     CONTRACT: ClassVar[DirectiveContract] = STEP_CONTRACT
@@ -183,7 +181,7 @@ class StepDirective(BengalDirective):
         step_number = attrs.get("step_number", 1)
 
         # Generate step ID from title or fallback to step number
-        step_id = self._slugify(title) if title else f"step-{step_number}"
+        step_id = slugify_id(title, default="step") if title else f"step-{step_number}"
 
         # Build class list
         classes = []
@@ -206,7 +204,7 @@ class StepDirective(BengalDirective):
         if optional:
             metadata_parts.append('<span class="step-badge step-badge-optional">Optional</span>')
         if duration:
-            duration_text = self._parse_inline_markdown(renderer, duration)
+            duration_text = parse_inline_markdown(renderer, duration)
             metadata_parts.append(f'<span class="step-duration">{duration_text}</span>')
         if metadata_parts:
             metadata_html = f'<div class="step-metadata">{" ".join(metadata_parts)}</div>\n'
@@ -214,11 +212,11 @@ class StepDirective(BengalDirective):
         # Build description HTML if provided
         description_html = ""
         if description:
-            desc_text = self._parse_inline_markdown(renderer, description)
+            desc_text = parse_inline_markdown(renderer, description)
             description_html = f'<p class="step-description">{desc_text}</p>\n'
 
         if title:
-            title_html = self._parse_inline_markdown(renderer, title)
+            title_html = parse_inline_markdown(renderer, title)
             heading_tag = f"h{heading_level}"
             return (
                 f'<li{class_attr} id="{step_id}">'
@@ -235,51 +233,6 @@ class StepDirective(BengalDirective):
             f"{metadata_html}{description_html}{text}</li>\n"
         )
 
-    @staticmethod
-    def _parse_inline_markdown(renderer: Any, text: str) -> str:
-        """
-        Parse inline markdown in step titles.
-
-        Tries mistune's inline parser first, falls back to regex.
-        """
-        # Try mistune's inline parser
-        md_instance = getattr(renderer, "_md", None) or getattr(renderer, "md", None)
-        if md_instance and hasattr(md_instance, "inline"):
-            try:
-                return str(md_instance.inline(text))
-            except Exception as e:
-                logger.debug(
-                    "steps_inline_parse_failed",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-
-        # Fallback to simple regex
-        text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-        text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
-        text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
-        return text
-
-    @staticmethod
-    def _slugify(text: str) -> str:
-        """
-        Convert text to URL-safe slug for anchor IDs.
-
-        Converts to lowercase, replaces spaces with hyphens,
-        removes non-alphanumeric characters except hyphens.
-        """
-        # Convert to lowercase and strip
-        slug = text.lower().strip()
-        # Replace spaces and underscores with hyphens
-        slug = re.sub(r"[\s_]+", "-", slug)
-        # Remove anything that isn't alphanumeric or hyphen
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        # Collapse multiple hyphens
-        slug = re.sub(r"-+", "-", slug)
-        # Strip leading/trailing hyphens
-        slug = slug.strip("-")
-        return slug or "step"
-
 
 # =============================================================================
 # Steps Container Directive
@@ -287,12 +240,12 @@ class StepDirective(BengalDirective):
 
 
 @dataclass
-class StepsOptions(DirectiveOptions):
+class StepsOptions(StyledOptions):
     """
     Options for steps container directive.
 
     Attributes:
-        css_class: Custom CSS class for the steps container
+        css_class: Custom CSS class for the steps container (inherited from StyledOptions)
         style: Step style (compact, default)
         start: Start numbering from this value (default: 1)
 
@@ -306,11 +259,9 @@ class StepsOptions(DirectiveOptions):
 
     """
 
-    css_class: str = ""
     style: str = "default"
     start: int = 1
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "style": ["default", "compact"],
     }
@@ -344,7 +295,7 @@ class StepsDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["steps"]
     TOKEN_TYPE: ClassVar[str] = "steps"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = StepsOptions
+    OPTIONS_CLASS: ClassVar[type[StepsOptions]] = StepsOptions
 
     # Contract: steps REQUIRES step children
     CONTRACT: ClassVar[DirectiveContract] = STEPS_CONTRACT

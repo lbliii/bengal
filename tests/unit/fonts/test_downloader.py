@@ -105,7 +105,7 @@ class TestCheckCachedFonts:
 
 
 class TestCheckCachedTTFFonts:
-    """Tests for _check_cached_ttf_fonts method (TTF-only cache check)."""
+    """Tests for _check_cached_fonts method with font_format='ttf' (TTF-only cache check)."""
 
     @pytest.fixture
     def downloader(self) -> GoogleFontsDownloader:
@@ -116,7 +116,9 @@ class TestCheckCachedTTFFonts:
         self, downloader: GoogleFontsDownloader, tmp_path: Path
     ) -> None:
         """Returns None when no TTF font files are cached."""
-        result = downloader._check_cached_ttf_fonts("Outfit", [400, 700], ["normal"], tmp_path)
+        result = downloader._check_cached_fonts(
+            "Outfit", [400, 700], ["normal"], tmp_path, font_format="ttf"
+        )
         assert result is None
 
     def test_ignores_woff2_files(self, downloader: GoogleFontsDownloader, tmp_path: Path) -> None:
@@ -125,7 +127,9 @@ class TestCheckCachedTTFFonts:
         (tmp_path / "outfit-400.woff2").write_bytes(b"fake font")
         (tmp_path / "outfit-700.woff2").write_bytes(b"fake font")
 
-        result = downloader._check_cached_ttf_fonts("Outfit", [400, 700], ["normal"], tmp_path)
+        result = downloader._check_cached_fonts(
+            "Outfit", [400, 700], ["normal"], tmp_path, font_format="ttf"
+        )
         assert result is None  # No TTF files, should return None
 
     def test_returns_variants_when_all_ttf_cached(
@@ -135,7 +139,9 @@ class TestCheckCachedTTFFonts:
         (tmp_path / "outfit-400.ttf").write_bytes(b"fake font")
         (tmp_path / "outfit-700.ttf").write_bytes(b"fake font")
 
-        result = downloader._check_cached_ttf_fonts("Outfit", [400, 700], ["normal"], tmp_path)
+        result = downloader._check_cached_fonts(
+            "Outfit", [400, 700], ["normal"], tmp_path, font_format="ttf"
+        )
 
         assert result is not None
         assert len(result) == 2
@@ -148,7 +154,9 @@ class TestCheckCachedTTFFonts:
         (tmp_path / "outfit-400.ttf").write_bytes(b"fake font")
         # Missing outfit-700.ttf
 
-        result = downloader._check_cached_ttf_fonts("Outfit", [400, 700], ["normal"], tmp_path)
+        result = downloader._check_cached_fonts(
+            "Outfit", [400, 700], ["normal"], tmp_path, font_format="ttf"
+        )
         assert result is None
 
 

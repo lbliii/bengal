@@ -570,6 +570,21 @@ def phase_incremental_filter_provenance(
         if index_files_changed:
             # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
             site.build_cascade_snapshot()
+            # Refresh cascade values for in-memory pages.
+            # Proxies are invalidated and will re-apply on first metadata access.
+            from bengal.core.page.proxy import PageProxy
+
+            content_dir = site.root_path / "content"
+            for page in site.pages:
+                if isinstance(page, PageProxy):
+                    page._cascade_invalidated = True  # type: ignore[attr-defined]
+                    continue
+
+                cascade_keys = page.metadata.get("_cascade_keys", [])
+                for key in cascade_keys:
+                    page.metadata.pop(key, None)
+                page.metadata.pop("_cascade_keys", None)
+                site.cascade.apply_to_page(page, content_dir)
             logger.debug(
                 "cascade_snapshot_refreshed",
                 reason="index_files_changed",

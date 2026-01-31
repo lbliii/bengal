@@ -49,10 +49,11 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 logger = get_logger(__name__)
 
@@ -75,24 +76,6 @@ def _isoformat(timestamp: float | None) -> str | None:
     if timestamp is None:
         return None
     return datetime.fromtimestamp(timestamp, tz=UTC).isoformat().replace("+00:00", "Z")
-
-
-def _posix(path_like: str) -> str:
-    """
-    Normalize a path to POSIX-style forward slashes for cross-platform portability.
-
-    Args:
-        path_like: Path string, potentially with backslashes on Windows.
-
-    Returns:
-        Path string with forward slashes only.
-
-    Example:
-            >>> _posix("css\\style.css")
-            'css/style.css'
-
-    """
-    return PurePosixPath(path_like).as_posix()
 
 
 @dataclass(slots=True)
@@ -165,8 +148,8 @@ class AssetManifestEntry:
         """
         size_bytes_val = data.get("size_bytes")
         return cls(
-            logical_path=_posix(logical_path),
-            output_path=_posix(str(data.get("output_path", ""))),
+            logical_path=to_posix(logical_path),
+            output_path=to_posix(str(data.get("output_path", ""))),
             fingerprint=(str(data["fingerprint"]) if data.get("fingerprint") else None),
             size_bytes=int(size_bytes_val)
             if size_bytes_val is not None and isinstance(size_bytes_val, (int, str))
@@ -232,10 +215,10 @@ class AssetManifest:
             size_bytes: File size in bytes, or None if unknown.
             updated_at: Unix timestamp of last modification, or None.
         """
-        normalized_logical = _posix(logical_path)
+        normalized_logical = to_posix(logical_path)
         self._entries[normalized_logical] = AssetManifestEntry(
             logical_path=normalized_logical,
-            output_path=_posix(output_path),
+            output_path=to_posix(output_path),
             fingerprint=fingerprint,
             size_bytes=size_bytes,
             updated_at=_isoformat(updated_at),
@@ -251,7 +234,7 @@ class AssetManifest:
         Returns:
             AssetManifestEntry if found, None otherwise.
         """
-        return self._entries.get(_posix(logical_path))
+        return self._entries.get(to_posix(logical_path))
 
     @property
     def entries(self) -> Mapping[str, AssetManifestEntry]:
@@ -318,7 +301,7 @@ class AssetManifest:
 
         assets_section = data.get("assets") or {}
         for logical_path, entry_data in assets_section.items():
-            manifest._entries[_posix(logical_path)] = AssetManifestEntry.from_dict(
+            manifest._entries[to_posix(logical_path)] = AssetManifestEntry.from_dict(
                 logical_path, entry_data
             )
 

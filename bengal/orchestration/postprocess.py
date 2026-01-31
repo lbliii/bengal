@@ -30,6 +30,7 @@ from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
 
+from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.protocols import ProgressReporter
 
 if TYPE_CHECKING:
@@ -313,12 +314,13 @@ class PostprocessOrchestrator:
                                     "postprocess", current=completed_count, current_item=task_name
                                 )
                     except Exception as e:
-                        # Error handling outside lock
-                        error_msg = str(e)
                         # Suppress interpreter shutdown errors - these are expected on Ctrl+C
-                        if "interpreter shutdown" in error_msg:
+                        if is_shutdown_error(e):
                             logger.debug("postprocess_shutdown", task=task_name)
                             continue
+
+                        # Error handling outside lock
+                        error_msg = str(e)
                         errors.append((task_name, error_msg))
 
                         # Import error handling utilities
@@ -352,7 +354,7 @@ class PostprocessOrchestrator:
                         record_error(enriched, file_path=f"postprocess:{task_name}")
         except RuntimeError as e:
             # Handle graceful shutdown at executor level
-            if "interpreter shutdown" in str(e):
+            if is_shutdown_error(e):
                 logger.debug("postprocess_executor_shutdown")
                 return
             raise

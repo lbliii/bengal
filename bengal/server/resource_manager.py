@@ -57,9 +57,8 @@ from pathlib import Path
 from types import FrameType
 from typing import Any
 
-from bengal.output.icons import get_icon_set
+from bengal.server.utils import get_icons
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.observability.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -169,7 +168,7 @@ class ResourceManager:
         """
 
         def cleanup(s: Any) -> None:
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             try:
                 # Shutdown in a thread with timeout to avoid hanging
                 shutdown_thread = threading.Thread(target=s.shutdown)
@@ -200,7 +199,7 @@ class ResourceManager:
         """
 
         def cleanup(w: Any) -> None:
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             try:
                 w.stop()
             except Exception as e:
@@ -307,7 +306,7 @@ class ResourceManager:
         # Clean up in reverse order (LIFO - like context managers)
         start_time = time.time()
 
-        icons = get_icon_set(should_use_emoji())
+        icons = get_icons()
         for name, resource, cleanup_fn in reversed(self._resources):
             try:
                 cleanup_fn(resource)
@@ -333,7 +332,7 @@ class ResourceManager:
                 sys.exit(0)
         else:
             # Second interrupt - force exit
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             print(f"\n  {icons.warning} Force shutdown")
             sys.exit(1)
 

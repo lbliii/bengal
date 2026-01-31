@@ -22,9 +22,9 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 
     def href_filter(path: str) -> str:
         """Apply baseurl to path. For manual paths in templates."""
-        from bengal.rendering.template_engine.url_helpers import with_baseurl
+        from bengal.rendering.utils.url import apply_baseurl
 
-        return with_baseurl(path, site)
+        return apply_baseurl(path, site)
 
     def build_artifact_url_with_site(filename: str = "build.json", dir_name: str = "") -> str:
         return build_artifact_url(site, filename, dir_name)

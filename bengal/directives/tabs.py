@@ -56,6 +56,7 @@ from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.primitives.text import slugify_id
 
 __all__ = [
     "TabItemDirective",
@@ -374,7 +375,7 @@ class TabSetDirective(BengalDirective):
             is_disabled = tab_data.disabled == "true"
 
             # Generate slug from title for readable URLs
-            tab_slug = self._slugify(tab_data.title)
+            tab_slug = slugify_id(tab_data.title, default="tab")
             pane_id = f"{tab_id}-{tab_slug}"
 
             # Build tab label with optional icon and badge
@@ -402,7 +403,7 @@ class TabSetDirective(BengalDirective):
         # Build content panes with proper roles
         content_html = '  <div class="tab-content">\n'
         for _i, tab_data in enumerate(matches):
-            tab_slug = self._slugify(tab_data.title)
+            tab_slug = slugify_id(tab_data.title, default="tab")
             pane_id = f"{tab_id}-{tab_slug}"
 
             content_html += (
@@ -414,16 +415,6 @@ class TabSetDirective(BengalDirective):
 
         return nav_html + content_html
 
-    def _slugify(self, text: str) -> str:
-        """Convert text to URL-safe slug."""
-        import re
-
-        # Lowercase, replace spaces with hyphens, remove non-alphanumeric
-        slug = text.lower().strip()
-        slug = re.sub(r"\s+", "-", slug)
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        return slug.strip("-") or "tab"
 
 
 # =============================================================================

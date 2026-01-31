@@ -40,6 +40,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from bengal.core.utils.config import get_site_value
 from bengal.core.version import VersionConfig
 
 
@@ -150,76 +151,58 @@ class SiteData:
     @property
     def baseurl(self) -> str:
         """Get baseurl from config."""
-        # Config is MappingProxyType wrapping dict, access nested structure
-        site_section = self.config.get("site", {})
-        if isinstance(site_section, dict):
-            return str(site_section.get("baseurl", ""))
-        # Fallback to flat access for backward compatibility
-        return str(self.config.get("baseurl", ""))
+        value = get_site_value(self.config, "baseurl", "")
+        return str(value) if value else ""
 
     @property
     def title(self) -> str:
         """Get site title from config."""
-        # Config is MappingProxyType wrapping dict, access nested structure
-        site_section = self.config.get("site", {})
-        if isinstance(site_section, dict):
-            return str(site_section.get("title", ""))
-        # Fallback to flat access for backward compatibility
-        return str(self.config.get("title", ""))
+        value = get_site_value(self.config, "title", "")
+        return str(value) if value else ""
 
     @property
     def author(self) -> str | None:
         """Get site author from config."""
-        # Config is MappingProxyType wrapping dict, access nested structure
-        site_section = self.config.get("site", {})
-        if isinstance(site_section, dict):
-            author = site_section.get("author")
-        else:
-            # Fallback to flat access for backward compatibility
-            author = self.config.get("author")
+        author = get_site_value(self.config, "author")
         return str(author) if author else None
 
     @property
     def description(self) -> str | None:
         """Get site description from config."""
-        # Config is MappingProxyType wrapping dict, access nested structure
-        site_section = self.config.get("site", {})
-        if isinstance(site_section, dict):
-            desc = site_section.get("description")
-        else:
-            # Fallback to flat access for backward compatibility
-            desc = self.config.get("description")
+        desc = get_site_value(self.config, "description")
         return str(desc) if desc else None
 
     @property
     def language(self) -> str:
         """Get default language from config."""
-        # Config is MappingProxyType wrapping dict, access nested structure
-        site_section = self.config.get("site", {})
-        if isinstance(site_section, dict):
-            return str(site_section.get("language", "en"))
-        # Fallback to flat access for backward compatibility
-        return str(self.config.get("language", "en"))
+        value = get_site_value(self.config, "language", "en")
+        return str(value) if value else "en"
 
     def get_config_section(self, section: str) -> Mapping[str, Any]:
         """
-        Get a config section with type safety.
+        Get a config section as a read-only mapping.
 
         Args:
             section: Config section name (e.g., "build", "assets", "i18n")
 
         Returns:
-            Config section as read-only mapping (empty dict if missing)
+            Config section as read-only MappingProxyType (empty dict if missing)
 
         Example:
             build_cfg = data.get_config_section("build")
             if build_cfg.get("strict_mode"):
                 # strict mode handling
+
+        Note:
+            This method delegates to the shared utility function but wraps
+            the result in MappingProxyType for immutability guarantees.
         """
-        value = self.config.get(section)
-        if isinstance(value, dict):
-            return MappingProxyType(value)
-        return MappingProxyType({})
+        # Use the utility function (imported as get_config_section from utils)
+        # and wrap result in MappingProxyType
+        from bengal.core.utils.config import get_config_section as _get_config_section
+
+        section_dict = _get_config_section(self.config, section)
+        return MappingProxyType(section_dict)
 
     def __repr__(self) -> str:
         return f"SiteData(root={self.root_path.name!r}, theme={self.theme_name!r})"

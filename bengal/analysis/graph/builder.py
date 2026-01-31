@@ -17,8 +17,6 @@ GraphBuilder: Builds the knowledge graph from site data.
 
 """
 
-from __future__ import annotations
-
 import concurrent.futures
 import os
 import threading
@@ -29,6 +27,7 @@ from bengal.analysis.links.types import LinkMetrics, LinkType
 from bengal.errors import BengalGraphError, ErrorCode, record_error
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import clean_md_path
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -420,7 +419,7 @@ class GraphBuilder:
 
         # Try by path
         if "/" in link or link.endswith(".md"):
-            clean_link = link.replace(".md", "").strip("/")
+            clean_link = clean_md_path(link)
             by_path = xref_dict.get("by_path", {})
             if isinstance(by_path, dict):
                 page = by_path.get(clean_link)

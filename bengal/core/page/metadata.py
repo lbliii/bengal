@@ -42,6 +42,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.utils.url import apply_baseurl, get_baseurl
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -237,34 +238,14 @@ class PageMetadataMixin:
         rel = self._path or "/"
 
         # Best-effort baseurl lookup; remain robust if site/config is missing
-        baseurl = ""
         try:
-            if getattr(self, "_site", None):
-                config = self._site.config
-                # Support both Config and dict access
-                if hasattr(config, "site"):
-                    baseurl = config.site.baseurl or ""
-                else:
-                    # Try nested structure first, then fall back to flat
-                    site_section = config.get("site", {})
-                    if isinstance(site_section, dict):
-                        baseurl = site_section.get("baseurl", "") or config.get("baseurl", "")
-                    else:
-                        baseurl = config.get("baseurl", "")
+            site = getattr(self, "_site", None)
+            baseurl = get_baseurl(site) if site else ""
         except Exception as e:
             emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
 
-        # Normalize baseurl: treat "/" and "" as empty
-        baseurl = (baseurl or "").rstrip("/")
-        if baseurl == "/":
-            baseurl = ""
-
-        if not baseurl:
-            result = rel
-        else:
-            rel = "/" + rel.lstrip("/")
-            result = f"{baseurl}{rel}"
+        result = apply_baseurl(rel, baseurl)
 
         # Only cache if _path was properly computed (has its own cache)
         if "_path_cache" in self.__dict__:

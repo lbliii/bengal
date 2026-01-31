@@ -746,17 +746,26 @@ class CLIOutput(DevServerOutputMixin):
 
     # === Internal helpers ===
 
-    def _show_timing(self) -> bool:
-        """Check if timing info should be shown based on profile."""
-        if not self.profile:
-            return False
+    def _get_profile_name(self) -> str | None:
+        """
+        Get normalized profile name for feature checks.
 
-        profile_name = (
+        Returns:
+            Profile class name as string, or None if no profile is set.
+        """
+        if not self.profile:
+            return None
+        return (
             self.profile.__class__.__name__
             if hasattr(self.profile, "__class__")
             else str(self.profile)
         )
 
+    def _show_timing(self) -> bool:
+        """Check if timing info should be shown based on profile."""
+        profile_name = self._get_profile_name()
+        if not profile_name:
+            return False
         return "WRITER" not in profile_name
 
     def _show_details(self) -> bool:
@@ -822,14 +831,9 @@ class CLIOutput(DevServerOutputMixin):
 
         Writer: filename only, Theme-Dev: abbreviated, Developer: full path.
         """
-        if not self.profile:
+        profile_name = self._get_profile_name()
+        if not profile_name:
             return path
-
-        profile_name = (
-            self.profile.__class__.__name__
-            if hasattr(self.profile, "__class__")
-            else str(self.profile)
-        )
 
         if "WRITER" in profile_name:
             from pathlib import Path

@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
-from bengal.autodoc.orchestration.utils import slugify
+from bengal.autodoc.utils import slugify
 
 # Note: VirtualAutodocOrchestrator creates template_env lazily during generate(),
 # so no mocking is needed for tests that don't call generate().

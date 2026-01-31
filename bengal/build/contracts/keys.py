@@ -11,8 +11,32 @@ from __future__ import annotations
 from pathlib import Path
 from typing import NewType
 
+from bengal.utils.paths.normalize import to_posix
+
 # Type-safe cache key - prevents accidental str mixing
 CacheKey = NewType("CacheKey", str)
+
+
+def _relative_key(path: Path, base_dir: Path) -> CacheKey:
+    """
+    Generic key generation relative to a base directory.
+
+    Resolves both paths and computes relative path. Falls back to
+    absolute path if path is outside base_dir.
+
+    Args:
+        path: Path to generate key for
+        base_dir: Base directory to compute relative path from
+
+    Returns:
+        CacheKey with POSIX-style path (forward slashes)
+    """
+    try:
+        rel = path.resolve().relative_to(base_dir.resolve())
+        return CacheKey(to_posix(rel))
+    except ValueError:
+        # External path - use resolved absolute
+        return CacheKey(to_posix(path.resolve()))
 
 
 def content_key(path: Path, site_root: Path) -> CacheKey:
@@ -25,12 +49,7 @@ def content_key(path: Path, site_root: Path) -> CacheKey:
         content_key(Path("/site/content/about.md"), Path("/site"))
         → "content/about.md"
     """
-    try:
-        rel = path.resolve().relative_to(site_root.resolve())
-        return CacheKey(str(rel).replace("\\", "/"))
-    except ValueError:
-        # External path - use resolved absolute
-        return CacheKey(str(path.resolve()).replace("\\", "/"))
+    return _relative_key(path, site_root)
 
 
 def data_key(path: Path, site_root: Path) -> CacheKey:
@@ -49,20 +68,12 @@ def data_key(path: Path, site_root: Path) -> CacheKey:
 
 def template_key(path: Path, templates_dir: Path) -> CacheKey:
     """Canonical key for template files."""
-    try:
-        rel = path.resolve().relative_to(templates_dir.resolve())
-        return CacheKey(str(rel).replace("\\", "/"))
-    except ValueError:
-        return CacheKey(str(path.resolve()).replace("\\", "/"))
+    return _relative_key(path, templates_dir)
 
 
 def asset_key(path: Path, assets_dir: Path) -> CacheKey:
     """Canonical key for asset files."""
-    try:
-        rel = path.resolve().relative_to(assets_dir.resolve())
-        return CacheKey(str(rel).replace("\\", "/"))
-    except ValueError:
-        return CacheKey(str(path.resolve()).replace("\\", "/"))
+    return _relative_key(path, assets_dir)
 
 
 def parse_key(key: CacheKey) -> tuple[str, str]:

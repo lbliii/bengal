@@ -734,9 +734,9 @@ class Asset:
 
         # Fallback: simple baseurl application
         logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
-        from bengal.rendering.template_engine.url_helpers import with_baseurl
+        from bengal.rendering.utils.url import apply_baseurl
 
-        return with_baseurl(f"/assets/{logical_str}", self._site)
+        return apply_baseurl(f"/assets/{logical_str}", self._site)
 
     @property
     def _path(self) -> str:

@@ -31,11 +31,9 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
-from bengal.errors import BengalGraphError, ErrorCode
+from bengal.analysis.utils.validation import require_built
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -75,15 +73,7 @@ class GraphReporter:
         """
         self._graph = graph
 
-    def _ensure_built(self) -> None:
-        """Verify the graph has been built before reporting."""
-        if not self._graph._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before generating reports",
-            )
-
+    @require_built
     def format_stats(self) -> str:
         """
         Format graph statistics as a human-readable string.
@@ -94,10 +84,8 @@ class GraphReporter:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        self._ensure_built()
-
         m = self._graph.metrics
-        assert m is not None, "metrics should not be None after _ensure_built()"
+        assert m is not None, "metrics should not be None after @require_built"
         hubs = self._graph.get_hubs()
         orphans = self._graph.get_orphans()
 
@@ -185,6 +173,7 @@ class GraphReporter:
 
         return "\n".join(output)
 
+    @require_built
     def get_actionable_recommendations(self) -> list[str]:
         """
         Generate actionable recommendations for improving site structure.
@@ -192,11 +181,9 @@ class GraphReporter:
         Returns:
             List of recommendation strings with emoji prefixes
         """
-        self._ensure_built()
-
         recommendations = []
         m = self._graph.metrics
-        assert m is not None, "metrics should not be None after _ensure_built()"
+        assert m is not None, "metrics should not be None after @require_built"
         orphans = self._graph.get_orphans()
 
         # Orphaned pages recommendation
@@ -299,6 +286,7 @@ class GraphReporter:
 
         return recommendations
 
+    @require_built
     def get_seo_insights(self) -> list[str]:
         """
         Generate SEO-focused insights about site structure.
@@ -306,11 +294,9 @@ class GraphReporter:
         Returns:
             List of SEO insight strings with emoji prefixes
         """
-        self._ensure_built()
-
         insights = []
         m = self._graph.metrics
-        assert m is not None, "metrics should not be None after _ensure_built()"
+        assert m is not None, "metrics should not be None after @require_built"
         analysis_pages = getattr(
             self._graph, "_analysis_pages_cache", self._graph.get_analysis_pages()
         )
@@ -408,7 +394,8 @@ class GraphReporter:
 
         return insights
 
-    def _find_homepage(self, analysis_pages: list[PageLike]) -> PageLike | None:
+    @staticmethod
+    def _find_homepage(analysis_pages: list[PageLike]) -> PageLike | None:
         """Find the homepage from a list of pages."""
         for page in analysis_pages:
             # Type narrowing: slug may not be on PageLike protocol
@@ -422,6 +409,7 @@ class GraphReporter:
                 return page
         return None
 
+    @require_built
     def get_content_gaps(self) -> list[str]:
         """
         Identify content gaps based on link structure and taxonomies.
@@ -429,8 +417,6 @@ class GraphReporter:
         Returns:
             List of content gap descriptions
         """
-        self._ensure_built()
-
         gaps = []
         analysis_pages = getattr(
             self._graph, "_analysis_pages_cache", self._graph.get_analysis_pages()

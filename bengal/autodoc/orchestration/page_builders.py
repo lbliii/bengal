@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.hashing import compute_doc_content_hash
 from bengal.autodoc.orchestration.result import AutodocRunResult
-from bengal.autodoc.orchestration.utils import format_source_file_for_display
 from bengal.autodoc.utils import (
+    format_source_file_for_display,
     get_openapi_method,
     get_openapi_path,
     get_openapi_tags,
@@ -21,8 +21,9 @@ from bengal.autodoc.utils import (
 )
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.rendering.template_engine.url_helpers import with_baseurl
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -60,7 +61,7 @@ def compute_element_urls(
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = get_openapi_path(element).strip("/").replace("/", "-")
+            path = path_to_slug(get_openapi_path(element))
             url_path = f"{prefix}/endpoints/{method}-{path}"
         elif element.element_type == "openapi_schema":
             url_path = f"{prefix}/schemas/{element.name}"
@@ -73,7 +74,7 @@ def compute_element_urls(
     element._path = f"/{url_path}/"
 
     # Set href (public URL with baseurl)
-    element.href = with_baseurl(element._path, site)
+    element.href = apply_baseurl(element._path, site)
 
     # Recursively process children
     for child in element.children:
@@ -351,7 +352,7 @@ def get_element_metadata(
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = get_openapi_path(element).strip("/").replace("/", "-")
+            path = path_to_slug(get_openapi_path(element))
             return (
                 "autodoc/openapi/endpoint",
                 f"{prefix}/endpoints/{method}-{path}",

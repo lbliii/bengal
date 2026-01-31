@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.debug.base import DebugReport, DebugTool, Severity
+from bengal.debug.utils import find_similar_strings
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -473,7 +474,7 @@ class ShortcodeSandbox(DebugTool):
                 result.errors.append(f"Unknown directive: {directive_name}")
 
                 # Suggest similar directives
-                suggestions = self._find_similar_directives(directive_name, known)
+                suggestions = find_similar_strings(directive_name, known)
                 if suggestions:
                     result.suggestions.append(f"Did you mean: {', '.join(suggestions)}?")
 
@@ -494,7 +495,7 @@ class ShortcodeSandbox(DebugTool):
             if directive_name not in known:
                 result.valid = False
                 result.errors.append(f"Unknown directive: {directive_name}")
-                suggestions = self._find_similar_directives(directive_name, known)
+                suggestions = find_similar_strings(directive_name, known)
                 if suggestions:
                     result.suggestions.append(f"Did you mean: {', '.join(suggestions)}?")
 
@@ -507,67 +508,6 @@ class ShortcodeSandbox(DebugTool):
         )
 
         return result
-
-    def _find_similar_directives(
-        self,
-        name: str,
-        known: frozenset[str],
-        max_distance: int = 2,
-    ) -> list[str]:
-        """
-        Find directives with similar names for typo detection.
-
-        Uses Levenshtein distance to find directives within a certain
-        edit distance of the given name.
-
-        Args:
-            name: Unknown directive name to find matches for.
-            known: Set of known valid directive names.
-            max_distance: Maximum Levenshtein distance (default 2).
-
-        Returns:
-            List of up to 3 similar directive names, sorted.
-        """
-        similar = []
-        for known_name in known:
-            distance = self._levenshtein_distance(name.lower(), known_name.lower())
-            if distance <= max_distance:
-                similar.append(known_name)
-        return sorted(similar)[:3]  # Return top 3
-
-    @staticmethod
-    def _levenshtein_distance(s1: str, s2: str) -> int:
-        """
-        Calculate Levenshtein distance between two strings.
-
-        The Levenshtein distance is the minimum number of single-character
-        edits (insertions, deletions, substitutions) needed to transform
-        one string into another.
-
-        Args:
-            s1: First string.
-            s2: Second string.
-
-        Returns:
-            Integer edit distance (0 = identical strings).
-        """
-        if len(s1) < len(s2):
-            return ShortcodeSandbox._levenshtein_distance(s2, s1)
-
-        if len(s2) == 0:
-            return len(s1)
-
-        previous_row = list(range(len(s2) + 1))
-        for i, c1 in enumerate(s1):
-            current_row = [i + 1]
-            for j, c2 in enumerate(s2):
-                insertions = previous_row[j + 1] + 1
-                deletions = current_row[j] + 1
-                substitutions = previous_row[j] + (c1 != c2)
-                current_row.append(min(insertions, deletions, substitutions))
-            previous_row = current_row
-
-        return previous_row[-1]
 
     def render(self, content: str) -> RenderResult:
         """

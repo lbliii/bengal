@@ -108,19 +108,19 @@ class TestPageDiscoveryCacheEntry:
         assert entry.metadata == metadata
         assert entry.is_valid is True
 
-    def test_entry_to_dict(self):
+    def test_entry_to_cache_dict(self):
         """Test converting entry to dictionary."""
         metadata = PageMetadata(source_path="content/index.md", title="Home")
         entry = PageDiscoveryCacheEntry(
             metadata=metadata,
             cached_at="2025-10-16T12:00:00",
         )
-        data = entry.to_dict()
+        data = entry.to_cache_dict()
         assert data["metadata"]["source_path"] == "content/index.md"
         assert data["cached_at"] == "2025-10-16T12:00:00"
         assert data["is_valid"] is True
 
-    def test_entry_from_dict(self):
+    def test_entry_from_cache_dict(self):
         """Test creating entry from dictionary."""
         data = {
             "metadata": {
@@ -137,7 +137,7 @@ class TestPageDiscoveryCacheEntry:
             "cached_at": "2025-10-16T12:00:00",
             "is_valid": True,
         }
-        entry = PageDiscoveryCacheEntry.from_dict(data)
+        entry = PageDiscoveryCacheEntry.from_cache_dict(data)
         assert entry.metadata.source_path == "content/index.md"
         assert entry.is_valid is True
 
@@ -400,9 +400,10 @@ class TestPageDiscoveryCache:
 
     def test_migration_from_uncompressed(self, cache_dir):
         """Test backward compatibility: load old .json format, save new .json.zst format."""
-        # Create old uncompressed JSON format
+        # Create old uncompressed JSON format with version field
         json_path = cache_dir / "page_metadata.json"
         old_data = {
+            "version": 1,  # Version field required by PersistentCacheMixin
             "pages": {
                 "content/index.md": {
                     "metadata": {

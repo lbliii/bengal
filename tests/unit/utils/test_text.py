@@ -11,6 +11,7 @@ from bengal.utils.primitives.text import (
     normalize_whitespace,
     pluralize,
     slugify,
+    slugify_id,
     strip_html,
     truncate_chars,
     truncate_middle,
@@ -400,3 +401,68 @@ class TestHumanizeSlug:
         assert humanize_slug("-") == " "  # Single hyphen becomes space
         assert humanize_slug("_") == " "  # Single underscore becomes space
         assert humanize_slug("--") == "  "  # Multiple become multiple spaces
+
+
+class TestSlugifyId:
+    """Tests for slugify_id function (ASCII-only slugification for HTML IDs)."""
+
+    def test_basic_slugification(self):
+        """Test basic ASCII slugification."""
+        assert slugify_id("Hello World!") == "hello-world"
+        assert slugify_id("Tab: Configuration") == "tab-configuration"
+        assert slugify_id("Step 1") == "step-1"
+
+    def test_spaces_and_underscores(self):
+        """Test space and underscore handling."""
+        assert slugify_id("hello world") == "hello-world"
+        assert slugify_id("hello_world") == "hello-world"
+        assert slugify_id("hello_world test") == "hello-world-test"
+
+    def test_special_characters_removed(self):
+        """Test that special characters are removed."""
+        assert slugify_id("C++ Programming") == "c-programming"
+        assert slugify_id("What's New?") == "whats-new"
+        assert slugify_id("Test & Code") == "test-code"
+
+    def test_default_value(self):
+        """Test default value for empty results."""
+        assert slugify_id("", default="tab") == "tab"
+        assert slugify_id("   ", default="step") == "step"
+        assert slugify_id("!!!", default="item") == "item"
+
+    def test_unicode_removed(self):
+        """Test that non-ASCII characters are transliterated or removed."""
+        # slugify_id uses NFD normalization to transliterate accented chars
+        # é becomes e + combining accent, then the combining char is dropped
+        assert slugify_id("Café") == "cafe"
+        # Pure CJK characters have no ASCII equivalent
+        assert slugify_id("日本語") == ""
+        assert slugify_id("日本語", default="tab") == "tab"
+
+    def test_multiple_hyphens_collapsed(self):
+        """Test that multiple hyphens are collapsed."""
+        assert slugify_id("a   b   c") == "a-b-c"
+        assert slugify_id("a--b--c") == "a-b-c"
+        assert slugify_id("a - b - c") == "a-b-c"
+
+    def test_leading_trailing_hyphens_removed(self):
+        """Test that leading/trailing hyphens are removed."""
+        assert slugify_id("-hello-") == "hello"
+        assert slugify_id("---test---") == "test"
+        assert slugify_id(" - hello - ") == "hello"
+
+    def test_numbers_preserved(self):
+        """Test that numbers are preserved."""
+        assert slugify_id("v1.0.0") == "v100"  # Dots removed
+        assert slugify_id("step-1") == "step-1"
+        assert slugify_id("python3") == "python3"
+
+    def test_empty_string_no_default(self):
+        """Test empty string without default."""
+        assert slugify_id("") == ""
+        assert slugify_id("   ") == ""
+
+    def test_already_valid_slug(self):
+        """Test strings that are already valid slugs."""
+        assert slugify_id("hello-world") == "hello-world"
+        assert slugify_id("step-1-config") == "step-1-config"

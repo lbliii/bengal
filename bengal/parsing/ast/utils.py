@@ -29,11 +29,20 @@ See Also:
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections.abc import Iterator
 from typing import Any
 
 from bengal.parsing.ast.types import ASTNode, is_heading, is_link, is_text
+from bengal.utils.primitives.text import slugify_id
+
+__all__ = [
+    "extract_links_from_ast",
+    "extract_plain_text",
+    "extract_text_from_node",
+    "extract_toc_from_ast",
+    "generate_heading_id",
+    "walk_ast",
+]
 
 
 def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
@@ -68,13 +77,15 @@ def generate_heading_id(node: ASTNode) -> str:
     """
     Generate a URL-friendly ID from a heading node.
 
-    Extracts text content and converts to a slug suitable for anchor links.
+    Extracts text content and converts to an ASCII-only slug suitable for
+    HTML element IDs. Uses slugify_id which strips non-ASCII characters
+    for maximum compatibility with anchor links.
 
     Args:
         node: A heading node
 
     Returns:
-        URL-friendly slug (e.g., "getting-started")
+        ASCII-only slug (e.g., "getting-started", "cafe-resume")
 
     Example:
             >>> node = {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Getting Started!"}]}
@@ -82,8 +93,12 @@ def generate_heading_id(node: ASTNode) -> str:
             'getting-started'
 
     """
+    import html as html_module
+
     text = extract_text_from_node(node)
-    return _slugify(text)
+    # Unescape HTML entities first (like &amp; -> &)
+    text = html_module.unescape(text)
+    return slugify_id(text)
 
 
 def extract_text_from_node(node: ASTNode) -> str:
@@ -108,29 +123,6 @@ def extract_text_from_node(node: ASTNode) -> str:
             parts.append(extract_text_from_node(child))
 
     return "".join(parts)
-
-
-def _slugify(text: str) -> str:
-    """
-    Convert text to a URL-friendly slug.
-
-    Args:
-        text: Text to slugify
-
-    Returns:
-        Lowercase, hyphenated slug
-
-    """
-    # Normalize unicode
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("ascii")
-    # Lowercase
-    text = text.lower()
-    # Replace non-alphanumeric with hyphens
-    text = re.sub(r"[^a-z0-9]+", "-", text)
-    # Remove leading/trailing hyphens
-    text = text.strip("-")
-    return text
 
 
 def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:

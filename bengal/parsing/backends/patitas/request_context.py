@@ -21,10 +21,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from contextvars import ContextVar, Token
+from contextvars import Token
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -120,11 +122,8 @@ class RequestContext:
             raise error
 
 
-# Module-level ContextVar - default to None for fail-fast behavior
-_request_context: ContextVar[RequestContext | None] = ContextVar(
-    "request_context",
-    default=None,
-)
+# Thread-local request context using ContextVarManager (default None for fail-fast)
+_manager: ContextVarManager[RequestContext] = ContextVarManager("request_context")
 
 
 def get_request_context() -> RequestContext:
@@ -138,13 +137,11 @@ def get_request_context() -> RequestContext:
     Raises:
         RequestContextError: If no context is set (fail-fast)
     """
-    ctx = _request_context.get()
-    if ctx is None:
-        raise RequestContextError(
-            "No request context set. Use request_context() context manager "
-            "or set_request_context() before parsing/rendering."
-        )
-    return ctx
+    return _manager.get_or_raise(
+        RequestContextError,
+        "No request context set. Use request_context() context manager "
+        "or set_request_context() before parsing/rendering.",
+    )
 
 
 def try_get_request_context() -> RequestContext | None:
@@ -155,7 +152,7 @@ def try_get_request_context() -> RequestContext | None:
     Returns:
         The current RequestContext or None if not within a context
     """
-    return _request_context.get()
+    return _manager.get()
 
 
 def set_request_context(ctx: RequestContext) -> Token[RequestContext | None]:
@@ -170,7 +167,7 @@ def set_request_context(ctx: RequestContext) -> Token[RequestContext | None]:
     Returns:
         Token that can be passed to reset_request_context()
     """
-    return _request_context.set(ctx)
+    return _manager.set(ctx)
 
 
 def reset_request_context(token: Token[RequestContext | None] | None = None) -> None:
@@ -182,10 +179,7 @@ def reset_request_context(token: Token[RequestContext | None] | None = None) -> 
     Args:
         token: Optional token from set_request_context()
     """
-    if token is not None:
-        _request_context.reset(token)
-    else:
-        _request_context.set(None)
+    _manager.reset(token)
 
 
 @contextmanager
@@ -236,8 +230,5 @@ def request_context(
         link_resolver=link_resolver,
         trace_enabled=trace_enabled,
     )
-    token = set_request_context(ctx)
-    try:
+    with _manager.context(ctx):
         yield ctx
-    finally:
-        reset_request_context(token)

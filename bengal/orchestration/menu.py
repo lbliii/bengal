@@ -27,6 +27,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.orchestration.utils.i18n import get_i18n_config
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
@@ -821,19 +822,11 @@ class MenuOrchestrator:
             # Auto mode: build menu from sections with dev bundling
             menu_config["main"] = self._build_auto_menu_with_dev_bundling()
 
-        i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        # Get i18n configuration using utility
+        i18n_config = get_i18n_config(self.site.config)
+        strategy = i18n_config.strategy
         # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]
-        languages: set[str] = set()
-        if strategy != "none":
-            langs_cfg = i18n.get("languages") or []
-            for entry in langs_cfg:
-                if isinstance(entry, dict) and "code" in entry:
-                    languages.add(entry["code"])
-                elif isinstance(entry, str):
-                    languages.add(entry)
-            default_lang = i18n.get("default_language", "en")
-            languages.add(default_lang)
+        languages: set[str] = set(i18n_config.languages) if i18n_config.is_enabled else set()
 
         if not menu_config:
             # No menus defined, skip

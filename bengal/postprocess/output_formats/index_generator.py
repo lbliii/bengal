@@ -72,7 +72,6 @@ Related:
 
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -81,11 +80,14 @@ from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
+    get_i18n_output_path,
     get_page_relative_url,
+    write_if_content_changed,
 )
+from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.autodoc import is_autodoc_page
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -504,54 +506,18 @@ class SiteIndexGenerator:
 
     def _get_index_path(self) -> Path:
         """Get the output path for index.json, handling i18n prefixes."""
-        i18n = self.site.config.get("i18n", {}) or {}
-        if i18n.get("strategy") == "prefix":
-            current_lang = getattr(self.site, "current_language", None) or i18n.get(
-                "default_language", "en"
-            )
-            default_in_subdir = bool(i18n.get("default_in_subdir", False))
-            if default_in_subdir or current_lang != i18n.get("default_language", "en"):
-                return self.site.output_dir / current_lang / "index.json"
-        return self.site.output_dir / "index.json"
+        return get_i18n_output_path(self.site, "index.json")
 
     def _write_if_changed(self, path: Path, content: str) -> None:
         """
         Write content only if content hash differs from stored hash.
 
-        Uses SHA-256 hash comparison instead of full string comparison:
+        Uses write_if_content_changed utility for SHA-256 hash comparison:
         - O(1) hash comparison vs O(n) string comparison
         - Avoids reading entire existing file into memory
         - Hash stored in .hash sidecar file
         """
-        hash_path = path.with_suffix(".json.hash")
-        new_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-
-        # Check hash instead of full content comparison
-        try:
-            if hash_path.exists():
-                existing_hash = hash_path.read_text(encoding="utf-8").strip()
-                if existing_hash == new_hash:
-                    logger.debug(
-                        "index_generator_skipped",
-                        reason="content_unchanged",
-                        path=str(path),
-                    )
-                    return
-        except Exception as e:
-            logger.debug(
-                "index_generator_hash_check_failed",
-                path=str(hash_path),
-                error=str(e),
-                error_type=type(e).__name__,
-                action="proceeding_to_write",
-            )
-
-        # Write content and hash atomically
-        # Both files use atomic writes to prevent inconsistent state on crash
-        with AtomicFile(path, "w", encoding="utf-8") as f:
-            f.write(content)
-        with AtomicFile(hash_path, "w", encoding="utf-8") as f:
-            f.write(new_hash)
+        write_if_content_changed(path, content, hash_suffix=".hash")
 
     def page_to_summary(self, page: Page) -> dict[str, Any]:
         """
@@ -591,19 +557,14 @@ class SiteIndexGenerator:
         if page.date:
             summary["date"] = page.date.strftime("%Y-%m-%d")
 
-        if hasattr(page, "_section") and page._section:
-            summary["section"] = getattr(page._section, "name", "")
+        section_name = get_section_name(page)
+        if section_name:
+            summary["section"] = section_name
 
         # Tags
-        if page.tags:
-            tags = page.tags
-            if isinstance(tags, list | tuple):
-                summary["tags"] = list(tags)
-            else:
-                try:
-                    summary["tags"] = list(tags) if tags else []
-                except (TypeError, ValueError):
-                    summary["tags"] = []
+        tags_list = tags_to_list(page.tags)
+        if tags_list:
+            summary["tags"] = tags_list
 
         # Stats
         word_count = len(content_text.split())
@@ -623,7 +584,7 @@ class SiteIndexGenerator:
 
         # Directory structure
         if page_uri and isinstance(page_uri, str):
-            path_parts = page_uri.strip("/").split("/")
+            path_parts = split_url_path(page_uri)
             if len(path_parts) > 1:
                 summary["dir"] = "/" + "/".join(path_parts[:-1]) + "/"
             else:

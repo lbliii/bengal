@@ -64,26 +64,26 @@ class TestAssetDependencyEntry:
         assert entry.assets == assets
         assert entry.is_valid is True
 
-    def test_entry_to_dict(self):
+    def test_entry_to_cache_dict(self):
         """Test converting entry to dictionary."""
         assets = {"/images/logo.png", "/css/style.css"}
         entry = AssetDependencyEntry(
             assets=assets,
             tracked_at="2025-10-16T12:00:00",
         )
-        data = entry.to_dict()
+        data = entry.to_cache_dict()
         assert set(data["assets"]) == assets
         assert data["tracked_at"] == "2025-10-16T12:00:00"
         assert data["is_valid"] is True
 
-    def test_entry_from_dict(self):
+    def test_entry_from_cache_dict(self):
         """Test creating entry from dictionary."""
         data = {
             "assets": ["/images/logo.png", "/css/style.css"],
             "tracked_at": "2025-10-16T12:00:00",
             "is_valid": True,
         }
-        entry = AssetDependencyEntry.from_dict(data)
+        entry = AssetDependencyEntry.from_cache_dict(data)
         assert entry.assets == {"/images/logo.png", "/css/style.css"}
         assert entry.is_valid is True
 
@@ -386,7 +386,7 @@ class TestAssetDependencyMapErrorCodes:
             raise PermissionError("Mocked permission denied")
 
         monkeypatch.setattr(
-            "bengal.cache.asset_dependency_map.save_compressed", mock_save_compressed
+            "bengal.cache.compression.save_compressed", mock_save_compressed
         )
 
         _map.save_to_disk()

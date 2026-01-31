@@ -26,13 +26,12 @@ Asset Types Tracked:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.cache.compression import load_auto, save_compressed
+from bengal.cache.utils import PersistentCacheMixin, compute_validity_stats
 from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
@@ -64,7 +63,7 @@ class AssetDependencyEntry(Cacheable):
     def to_cache_dict(self) -> dict[str, Any]:
         """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
-            "assets": sorted(list(self.assets)),  # Sort for consistency
+            "assets": sorted(self.assets),  # Sort for consistency
             "tracked_at": self.tracked_at,
             "is_valid": self.is_valid,
         }
@@ -78,18 +77,8 @@ class AssetDependencyEntry(Cacheable):
             is_valid=data.get("is_valid", True),
         )
 
-    # Aliases for test compatibility
-    def to_dict(self) -> dict[str, Any]:
-        """Alias for to_cache_dict (test compatibility)."""
-        return self.to_cache_dict()
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> AssetDependencyEntry:
-        """Alias for from_cache_dict (test compatibility)."""
-        return cls.from_cache_dict(data)
-
-
-class AssetDependencyMap:
+class AssetDependencyMap(PersistentCacheMixin):
     """
     Persistent map of page-to-asset dependencies for incremental discovery.
 
@@ -131,80 +120,39 @@ class AssetDependencyMap:
             cache_path = Path(self.CACHE_FILE)
         self.cache_path = Path(cache_path)
         self.pages: dict[str, AssetDependencyEntry] = {}
-        self._load_from_disk()
+        self._load_cache()
 
-    def _load_from_disk(self) -> None:
-        """Load asset dependencies from disk if file exists."""
-        # load_auto handles both .json.zst and .json formats
-        compressed_path = self.cache_path.with_suffix(".json.zst")
-        if not compressed_path.exists() and not self.cache_path.exists():
-            logger.debug("asset_dependency_map_not_found", path=str(self.cache_path))
-            return
+    # =========================================================================
+    # PersistentCacheMixin implementation
+    # =========================================================================
 
-        try:
-            # load_auto tries .json.zst first, falls back to .json
-            data = load_auto(self.cache_path)
+    def _deserialize(self, data: dict[str, Any]) -> None:
+        """Deserialize loaded data into cache state."""
+        for path_str, entry_data in data.get("pages", {}).items():
+            self.pages[path_str] = AssetDependencyEntry.from_cache_dict(entry_data)
 
-            # Validate version
-            if data.get("version") != self.VERSION:
-                logger.warning(
-                    "asset_dependency_map_version_mismatch",
-                    expected=self.VERSION,
-                    found=data.get("version"),
-                )
-                self.pages = {}
-                return
+        logger.info(
+            "asset_dependency_map_loaded",
+            entries=len(self.pages),
+        )
 
-            # Load dependency entries
-            for path_str, entry_data in data.get("pages", {}).items():
-                self.pages[path_str] = AssetDependencyEntry.from_cache_dict(entry_data)
+    def _serialize(self) -> dict[str, Any]:
+        """Serialize cache state for saving."""
+        return {
+            "pages": {path: entry.to_cache_dict() for path, entry in self.pages.items()},
+        }
 
-            logger.info(
-                "asset_dependency_map_loaded",
-                entries=len(self.pages),
-                path=str(self.cache_path),
-            )
-        except Exception as e:
-            from bengal.errors import ErrorCode
-
-            logger.warning(
-                "asset_dependency_map_load_failed",
-                error=str(e),
-                path=str(self.cache_path),
-                error_code=ErrorCode.A003.value,  # cache_read_error
-                suggestion="Cache will be rebuilt automatically on next build.",
-            )
-            self.pages = {}
+    def _on_version_mismatch(self) -> None:
+        """Clear state on version mismatch."""
+        self.pages = {}
 
     def save_to_disk(self) -> None:
         """Save asset dependencies to disk."""
-        try:
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        self._save_cache()
 
-            data = {
-                "version": self.VERSION,
-                "pages": {path: entry.to_cache_dict() for path, entry in self.pages.items()},
-            }
-
-            # Save as compressed .json.zst format (save_compressed handles atomic writes)
-            compressed_path = self.cache_path.with_suffix(".json.zst")
-            save_compressed(data, compressed_path)
-
-            logger.info(
-                "asset_dependency_map_saved",
-                entries=len(self.pages),
-                path=str(self.cache_path),
-            )
-        except Exception as e:
-            from bengal.errors import ErrorCode
-
-            logger.error(
-                "asset_dependency_map_save_failed",
-                error=str(e),
-                path=str(self.cache_path),
-                error_code=ErrorCode.A004.value,  # cache_write_error
-                suggestion="Check disk space and permissions. Asset tracking may be incomplete.",
-            )
+    # =========================================================================
+    # Asset tracking
+    # =========================================================================
 
     def track_page_assets(self, source_path: Path, assets: set[str]) -> None:
         """
@@ -288,6 +236,10 @@ class AssetDependencyMap:
                 needed_assets.update(assets)
         return needed_assets
 
+    # =========================================================================
+    # Invalidation
+    # =========================================================================
+
     def invalidate(self, source_path: Path) -> None:
         """
         Mark a page's asset tracking as invalid.
@@ -307,6 +259,10 @@ class AssetDependencyMap:
     def clear(self) -> None:
         """Clear all asset tracking."""
         self.pages.clear()
+
+    # =========================================================================
+    # Query helpers
+    # =========================================================================
 
     def get_valid_entries(self) -> dict[str, set[str]]:
         """
@@ -328,34 +284,6 @@ class AssetDependencyMap:
             path: entry.assets.copy() for path, entry in self.pages.items() if not entry.is_valid
         }
 
-    def stats(self) -> dict[str, Any]:
-        """
-        Get asset dependency map statistics.
-
-        Returns:
-            Dictionary with cache stats
-        """
-        valid = sum(1 for e in self.pages.values() if e.is_valid)
-        invalid = len(self.pages) - valid
-
-        # Count total unique assets
-        all_assets = self.get_all_assets()
-
-        # Average assets per page
-        avg_assets = 0.0
-        if valid > 0:
-            total_assets = sum(len(e.assets) for e in self.pages.values() if e.is_valid)
-            avg_assets = total_assets / valid
-
-        return {
-            "total_pages": len(self.pages),
-            "valid_pages": valid,
-            "invalid_pages": invalid,
-            "unique_assets": len(all_assets),
-            "avg_assets_per_page": avg_assets,
-            "cache_size_bytes": len(json.dumps([e.to_cache_dict() for e in self.pages.values()])),
-        }
-
     def get_asset_pages(self, asset_url: str) -> set[str]:
         """
         Get all pages that reference a specific asset.
@@ -371,3 +299,38 @@ class AssetDependencyMap:
             if entry.is_valid and asset_url in entry.assets:
                 referencing_pages.add(path)
         return referencing_pages
+
+    # =========================================================================
+    # Statistics
+    # =========================================================================
+
+    def stats(self) -> dict[str, Any]:
+        """
+        Get asset dependency map statistics.
+
+        Returns:
+            Dictionary with cache stats
+        """
+        base_stats = compute_validity_stats(
+            entries=self.pages,
+            is_valid=lambda e: e.is_valid,
+            serialize=lambda e: e.to_cache_dict(),
+        )
+
+        # Add asset-specific stats
+        all_assets = self.get_all_assets()
+        valid_count = base_stats["valid_entries"]
+
+        avg_assets = 0.0
+        if valid_count > 0:
+            total_assets = sum(len(e.assets) for e in self.pages.values() if e.is_valid)
+            avg_assets = total_assets / valid_count
+
+        return {
+            "total_pages": base_stats["total_entries"],
+            "valid_pages": base_stats["valid_entries"],
+            "invalid_pages": base_stats["invalid_entries"],
+            "unique_assets": len(all_assets),
+            "avg_assets_per_page": round(avg_assets, 2),
+            "cache_size_bytes": base_stats.get("cache_size_bytes", 0),
+        }

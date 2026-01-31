@@ -40,10 +40,84 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from bengal.config.utils import coerce_bool
 from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+# =============================================================================
+# Required Keys Validation (consolidated from validation.py)
+# =============================================================================
+
+# Required keys by section
+REQUIRED_KEYS: dict[str, list[str]] = {
+    "site": ["title"],
+    "build": ["output_dir", "content_dir"],
+}
+
+
+def validate_required_keys(config: dict[str, Any]) -> list[str]:
+    """
+    Check that required configuration keys exist.
+
+    Args:
+        config: Configuration dictionary to validate.
+
+    Returns:
+        List of missing key paths (e.g., ["site.title", "build.output_dir"]).
+        Empty list if all required keys are present.
+
+    Example:
+        >>> validate_required_keys({"site": {"title": "My Site"}, "build": {}})
+        ['build.output_dir', 'build.content_dir']
+
+    """
+    missing: list[str] = []
+    for section, keys in REQUIRED_KEYS.items():
+        section_data = config.get(section, {})
+        if not isinstance(section_data, dict):
+            missing.append(f"{section} (not a dict)")
+            continue
+        for key in keys:
+            if key not in section_data:
+                missing.append(f"{section}.{key}")
+    return missing
+
+
+def validate_config(config: dict[str, Any]) -> None:
+    """
+    Validate required keys exist. Raises BengalConfigError if missing.
+
+    This is a convenience function that wraps validate_required_keys()
+    and raises an exception if any required keys are missing.
+
+    Args:
+        config: Configuration dictionary to validate.
+
+    Raises:
+        BengalConfigError: If any required keys are missing.
+
+    Example:
+        >>> validate_config({"site": {"title": "My Site"}, "build": {"output_dir": "public", "content_dir": "content"}})
+        >>> validate_config({"site": {}})  # Missing title
+        BengalConfigError: Missing required config keys: site.title
+
+    """
+    missing = validate_required_keys(config)
+    if missing:
+        raise BengalConfigError(
+            f"Missing required config keys: {', '.join(missing)}. "
+            f"Add them to your bengal.yaml or config/_default/*.yaml",
+            code=ErrorCode.C003,  # config_invalid_value
+            suggestion="Add the missing keys to your configuration file",
+        )
+
+
+# =============================================================================
+# Validation Error
+# =============================================================================
 
 
 class ConfigValidationError(BengalConfigError, ValueError):
@@ -227,26 +301,21 @@ class ConfigValidator:
                 if key in BOOL_OR_DICT_KEYS and isinstance(value, dict):
                     continue
 
-                match value:
-                    case bool():
-                        continue  # Already correct
-                    case str() as s:
-                        # Coerce string to boolean
-                        match s.lower():
-                            case "true" | "yes" | "1" | "on":
-                                section_dict[key] = True
-                            case "false" | "no" | "0" | "off":
-                                section_dict[key] = False
-                            case _:
-                                path = f"{prefix}.{key}" if prefix else key
-                                errors.append(
-                                    f"'{path}': expected boolean or 'true'/'false', got '{value}'"
-                                )
-                    case int():
-                        # Coerce int to boolean (0=False, non-zero=True)
-                        section_dict[key] = bool(value)
-                    case _:
-                        path = f"{prefix}.{key}" if prefix else key
+                # Use shared coerce_bool utility
+                if isinstance(value, bool):
+                    continue  # Already correct
+
+                coerced = coerce_bool(value, default=None)
+                if coerced is not None:
+                    section_dict[key] = coerced
+                else:
+                    # Coercion failed - report error
+                    path = f"{prefix}.{key}" if prefix else key
+                    if isinstance(value, str):
+                        errors.append(
+                            f"'{path}': expected boolean or 'true'/'false', got '{value}'"
+                        )
+                    else:
                         errors.append(f"'{path}': expected boolean, got {type(value).__name__}")
 
             elif field_name in self.INTEGER_FIELDS:

@@ -5,19 +5,103 @@ Provides centralized template cascade logic that was previously
 duplicated across content type strategies.
 
 Functions:
+    classify_page: Classify page as home, list, or single
+    build_template_cascade: Build ordered template candidates for a content type
     resolve_template_cascade: Find first existing template from candidates
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
+
+#: Page type literals for template resolution
+PageType = Literal["home", "list", "single"]
+
+
+def classify_page(page: Page) -> PageType:
+    """
+    Classify a page for template resolution.
+
+    Determines whether a page is a home page, section index (list), or
+    regular single page based on its attributes.
+
+    Args:
+        page: Page to classify.
+
+    Returns:
+        PageType literal: "home", "list", or "single".
+
+    Example:
+        >>> page_type = classify_page(page)
+        >>> if page_type == "home":
+        ...     # Use home template
+    """
+    if page.is_home or page._path == "/":
+        return "home"
+    if page.source_path.stem == "_index":
+        return "list"
+    return "single"
+
+
+def build_template_cascade(
+    type_prefix: str,
+    page_type: PageType,
+    extra_prefixes: list[str] | None = None,
+) -> list[str]:
+    """
+    Build ordered template cascade for a content type.
+
+    Generates a list of template candidates to try in order, based on
+    the content type prefix and page classification.
+
+    Args:
+        type_prefix: Content type prefix (e.g., "blog", "doc", "autodoc/python").
+        page_type: Page classification from classify_page().
+        extra_prefixes: Additional prefixes to try before generic fallbacks.
+            Useful for nested types like autodoc that have shared parent templates.
+
+    Returns:
+        Ordered list of template paths to try.
+
+    Example:
+        >>> candidates = build_template_cascade("blog", "single")
+        >>> # Returns: ["blog/single.html", "blog/page.html", "single.html", "page.html"]
+
+        >>> candidates = build_template_cascade("autodoc/python", "list", ["autodoc"])
+        >>> # Returns: ["autodoc/python/list.html", "autodoc/python/index.html",
+        >>> #          "autodoc/list.html", "list.html", "index.html"]
+    """
+    # Template suffixes for each page type
+    suffixes = {
+        "home": ["home.html", "index.html"],
+        "list": ["list.html", "index.html"],
+        "single": ["single.html", "page.html"],
+    }
+
+    candidates: list[str] = []
+
+    # Add type-prefixed templates first
+    for suffix in suffixes[page_type]:
+        candidates.append(f"{type_prefix}/{suffix}")
+
+    # Add extra prefix templates (e.g., autodoc/ for autodoc/python)
+    if extra_prefixes:
+        for prefix in extra_prefixes:
+            for suffix in suffixes[page_type]:
+                candidates.append(f"{prefix}/{suffix}")
+
+    # Add generic fallbacks
+    candidates.extend(suffixes[page_type])
+
+    return candidates
 
 
 def resolve_template_cascade(

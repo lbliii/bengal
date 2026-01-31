@@ -103,6 +103,72 @@ def slugify(
     return text
 
 
+def slugify_id(text: str, default: str = "") -> str:
+    """
+    Convert text to ASCII-only slug suitable for HTML IDs.
+
+    Unlike ``slugify()``, this function is ASCII-only (no Unicode support)
+    which is appropriate for HTML element IDs that need maximum compatibility.
+    Accented characters are transliterated to ASCII equivalents (é→e, ü→u).
+
+    Consolidates implementations from:
+    - bengal/directives/tabs.py (_slugify)
+    - bengal/directives/steps.py (_slugify)
+    - bengal/parsing/backends/patitas/directives/builtins/tabs.py (_slugify)
+    - bengal/parsing/backends/patitas/directives/builtins/steps.py (_slugify)
+
+    Args:
+        text: Text to convert to slug
+        default: Default value if slug would be empty (default: "")
+
+    Returns:
+        ASCII-only slug suitable for HTML IDs
+
+    Examples:
+        >>> slugify_id("Hello World!")
+        'hello-world'
+        >>> slugify_id("Tab: Configuration")
+        'tab-configuration'
+        >>> slugify_id("Step 1")
+        'step-1'
+        >>> slugify_id("", default="tab")
+        'tab'
+        >>> slugify_id("你好世界")  # Non-ASCII chars removed
+        ''
+        >>> slugify_id("Café")  # Accent transliterated
+        'cafe'
+        >>> slugify_id("Café résumé")  # Accents transliterated
+        'cafe-resume'
+
+    Note:
+        For Unicode-aware slugification (international URLs), use ``slugify()`` instead.
+
+    """
+    import unicodedata
+
+    if not text:
+        return default
+
+    # Normalize Unicode to decomposed form (NFD) - separates base chars from combining marks
+    # Then encode to ASCII, ignoring non-ASCII characters (removes combining marks)
+    # This converts é→e, ü→u, etc.
+    slug = unicodedata.normalize("NFD", text)
+    slug = slug.encode("ascii", "ignore").decode("ascii")
+
+    # Lowercase and strip
+    slug = slug.lower().strip()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r"[\s_]+", "-", slug)
+    # Remove anything that isn't ASCII alphanumeric or hyphen
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    # Collapse multiple hyphens
+    slug = re.sub(r"-+", "-", slug)
+    # Strip leading/trailing hyphens
+    slug = slug.strip("-")
+
+    return slug or default
+
+
 def strip_html(text: str, decode_entities: bool = True) -> str:
     """
     Remove all HTML tags from text.

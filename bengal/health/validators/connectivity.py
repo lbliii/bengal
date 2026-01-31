@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.utils import get_health_config
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -219,15 +220,10 @@ class ConnectivityValidator(BaseValidator):
                 connectivity_report = None
 
             # Get config thresholds
-            health_config = site.config.get("health_check", {})
-            if isinstance(health_config, dict):
-                isolated_threshold = health_config.get(
-                    "isolated_threshold", health_config.get("orphan_threshold", 5)
-                )
-                lightly_linked_threshold = health_config.get("lightly_linked_threshold", 20)
-            else:
-                isolated_threshold = 5
-                lightly_linked_threshold = 20
+            isolated_threshold = get_health_config(
+                site, "isolated_threshold", get_health_config(site, "orphan_threshold", 5)
+            )
+            lightly_linked_threshold = get_health_config(site, "lightly_linked_threshold", 20)
 
             # Check 1a: Isolated pages (score < 0.25)
             if isolated_pages:
@@ -293,12 +289,7 @@ class ConnectivityValidator(BaseValidator):
             # Check 2: Over-connected hubs (robust to mocked shapes)
             hubs = []
             try:
-                health_cfg = site.config.get("health_check", {})
-                super_hub_threshold = (
-                    health_cfg.get("super_hub_threshold", 50)
-                    if isinstance(health_cfg, dict)
-                    else 50
-                )
+                super_hub_threshold = get_health_config(site, "super_hub_threshold", 50)
                 hubs = _normalize_hubs(graph.get_hubs(threshold=super_hub_threshold))
                 if hubs:
                     results.append(

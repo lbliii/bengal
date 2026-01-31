@@ -128,7 +128,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "BuildCache": ("bengal.cache.build_cache", "BuildCache"),
     # Cache store
     "CacheStore": ("bengal.cache.cache_store", "CacheStore"),
-    "Cacheable": ("bengal.cache.cacheable", "Cacheable"),
+    # Cacheable protocol (canonical location: bengal.protocols)
+    "Cacheable": ("bengal.protocols", "Cacheable"),
     # Compression
     "COMPRESSION_LEVEL": ("bengal.cache.compression", "COMPRESSION_LEVEL"),
     "load_compressed": ("bengal.cache.compression", "load_compressed"),

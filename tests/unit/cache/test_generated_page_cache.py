@@ -30,7 +30,7 @@ def make_mock_page(source_path: str) -> MagicMock:
 class TestGeneratedPageCacheEntry:
     """Tests for GeneratedPageCacheEntry dataclass."""
 
-    def test_to_dict_roundtrip(self) -> None:
+    def test_to_cache_dict_roundtrip(self) -> None:
         """Entry can be serialized and deserialized."""
         entry = GeneratedPageCacheEntry(
             page_type="tag",
@@ -43,8 +43,8 @@ class TestGeneratedPageCacheEntry:
             generation_time_ms=100,
         )
 
-        data = entry.to_dict()
-        restored = GeneratedPageCacheEntry.from_dict(data)
+        data = entry.to_cache_dict()
+        restored = GeneratedPageCacheEntry.from_cache_dict(data)
 
         assert restored.page_type == entry.page_type
         assert restored.page_id == entry.page_id
@@ -53,14 +53,14 @@ class TestGeneratedPageCacheEntry:
         assert restored.member_hashes == entry.member_hashes
         assert restored.cached_html == entry.cached_html
 
-    def test_from_dict_handles_missing_fields(self) -> None:
+    def test_from_cache_dict_handles_missing_fields(self) -> None:
         """Handles missing optional fields gracefully."""
         data = {
             "page_type": "tag",
             "page_id": "python",
         }
 
-        entry = GeneratedPageCacheEntry.from_dict(data)
+        entry = GeneratedPageCacheEntry.from_cache_dict(data)
 
         assert entry.page_type == "tag"
         assert entry.page_id == "python"

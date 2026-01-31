@@ -38,16 +38,16 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.analysis.utils.pages import get_content_pages
 from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
@@ -165,18 +165,10 @@ class GraphVisualizer:
         Returns:
             Dictionary with 'nodes' and 'edges' arrays
         """
-        # Use analysis pages (excludes autodoc if configured)
+        # Use content pages (excludes autodoc and generated pages like taxonomy pages)
+        # This is consistent with other analysis modules (PageRank, path analysis, link suggestions)
         analysis_pages = self.graph.get_analysis_pages()
-
-        # Filter out generated taxonomy pages (tag pages, category pages, etc.)
-        # These are system-generated and shouldn't appear in the content graph
-        # Other analysis modules (PageRank, path analysis, link suggestions) also exclude them
-        content_pages = [
-            p
-            for p in analysis_pages
-            if not p.metadata.get("_generated")
-            or p.metadata.get("type") not in ("tag", "tag-index", "category", "category-index")
-        ]
+        content_pages = get_content_pages(self.graph)
 
         logger.info(
             "graph_viz_generate_start",
@@ -261,7 +253,7 @@ class GraphVisualizer:
                             ):
                                 # Compute relative URL from output_dir
                                 rel_path = output_path.relative_to(self.site.output_dir)
-                                page_url = f"/{rel_path}".replace("\\", "/").replace(
+                                page_url = f"/{to_posix(rel_path)}".replace(
                                     "/index.html", "/"
                                 )
                             else:

@@ -287,11 +287,11 @@ class ConfigSnapshot:
         Returns:
             Frozen ConfigSnapshot with typed sections
         """
-        from bengal.config.defaults import DEFAULTS
         from bengal.config.merge import deep_merge
+        from bengal.config.utils import get_default_config
 
-        # Merge with defaults
-        merged = deep_merge({}, DEFAULTS)
+        # Merge with defaults (use shared utility for consistent copy)
+        merged = get_default_config()
         merged = deep_merge(merged, data)
 
         # Extract site section

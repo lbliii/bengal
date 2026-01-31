@@ -81,12 +81,13 @@ See Also
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from bengal.errors.utils import extract_error_attributes, serialize_value
 
 if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
@@ -225,7 +226,7 @@ class ErrorDebugPayload:
             "files_to_check": self.files_to_check,
             "grep_patterns": self.grep_patterns,
             "test_files": self.test_files,
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": serialize_value(self.timestamp),
             "build_duration_so_far": self.build_duration_so_far,
         }
 
@@ -331,15 +332,15 @@ class ErrorContext:
             Dictionary representation of the error context.
         """
         result: dict[str, Any] = {
-            "file_path": str(self.file_path) if self.file_path else None,
+            "file_path": serialize_value(self.file_path),
             "line_number": self.line_number,
             "column": self.column,
             "operation": self.operation,
             "suggestion": self.suggestion,
-            "build_phase": self.build_phase.value if self.build_phase else None,
+            "build_phase": serialize_value(self.build_phase),
             "subsystem": self.subsystem,
             "error_code": str(self.error_code) if self.error_code else None,
-            "severity": self.severity.value,
+            "severity": serialize_value(self.severity),
             "recoverable": self.recoverable,
             "skip_allowed": self.skip_allowed,
             "related_files": [str(rf) for rf in self.related_files],
@@ -444,39 +445,21 @@ def get_context_from_exception(error: Exception) -> ErrorContext:
         ErrorContext with any available information
 
     """
-    context = ErrorContext()
+    # Use the centralized attribute extraction utility
+    attrs = extract_error_attributes(error)
 
-    # Try to extract from BengalError
-    if hasattr(error, "file_path"):
-        context.file_path = getattr(error, "file_path", None)
-    if hasattr(error, "line_number"):
-        context.line_number = getattr(error, "line_number", None)
-    if hasattr(error, "suggestion"):
-        context.suggestion = getattr(error, "suggestion", None)
-    if hasattr(error, "original_error"):
-        context.original_error = getattr(error, "original_error", None)
-    if hasattr(error, "code"):
-        context.error_code = getattr(error, "code", None)
-    if hasattr(error, "build_phase"):
-        context.build_phase = getattr(error, "build_phase", None)
-    if hasattr(error, "severity"):
-        context.severity = getattr(error, "severity", ErrorSeverity.ERROR)
-    if hasattr(error, "related_files"):
-        context.related_files = getattr(error, "related_files", [])
-    if hasattr(error, "debug_payload"):
-        context.debug_payload = getattr(error, "debug_payload", None)
-
-    # Try to extract from common exception types
-    if hasattr(error, "filename"):
-        # FileNotFoundError, OSError, etc.
-        filename = getattr(error, "filename", None)
-        if filename:
-            with contextlib.suppress(TypeError, ValueError):
-                context.file_path = Path(filename)
-
-    if hasattr(error, "lineno"):
-        # SyntaxError, TemplateSyntaxError, etc.
-        context.line_number = getattr(error, "lineno", None)
+    context = ErrorContext(
+        file_path=attrs["file_path"],
+        line_number=attrs["line_number"],
+        column=attrs["column"],
+        suggestion=attrs["suggestion"],
+        original_error=attrs["original_error"],
+        error_code=attrs["code"],
+        build_phase=attrs["build_phase"],
+        severity=attrs["severity"] or ErrorSeverity.ERROR,
+        related_files=attrs["related_files"],
+        debug_payload=attrs["debug_payload"],
+    )
 
     return context
 

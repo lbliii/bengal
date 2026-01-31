@@ -504,34 +504,51 @@ class Markdown:
         source: str,
         text_transformer: Callable[[str], str] | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> str:
         """Parse and render Markdown source to HTML."""
         ast = self._parse_to_ast(source, text_transformer=text_transformer)
         return self._render_ast(
-            ast, source, text_transformer=text_transformer, page_context=page_context
+            ast,
+            source,
+            text_transformer=text_transformer,
+            page_context=page_context,
+            xref_index=xref_index,
+            site=site,
         )
+
+    def _get_config_with_transformer[T](
+        self, base_config: T, text_transformer: Callable[[str], str] | None
+    ) -> T:
+        """Get config, optionally with text_transformer override.
+
+        Generic helper to avoid duplication between parse and render configs.
+
+        Args:
+            base_config: The base configuration (ParseConfig or RenderConfig)
+            text_transformer: Optional text transformer to apply
+
+        Returns:
+            The config (unchanged if no transformer, or new copy with transformer)
+        """
+        if text_transformer is None:
+            return base_config
+        from dataclasses import replace
+
+        return replace(base_config, text_transformer=text_transformer)
 
     def _get_parse_config(
         self, text_transformer: Callable[[str], str] | None = None
     ) -> ParseConfig:
         """Get parse config, optionally with text_transformer override."""
-        if text_transformer is None:
-            return self._parse_config
-        # Create new config with text_transformer (frozen dataclass, so we rebuild)
-        from dataclasses import replace
-
-        return replace(self._parse_config, text_transformer=text_transformer)
+        return self._get_config_with_transformer(self._parse_config, text_transformer)
 
     def _get_render_config(
         self, text_transformer: Callable[[str], str] | None = None
     ) -> RenderConfig:
         """Get render config, optionally with text_transformer override."""
-        if text_transformer is None:
-            return self._render_config
-        # Create new config with text_transformer (frozen dataclass, so we rebuild)
-        from dataclasses import replace
-
-        return replace(self._render_config, text_transformer=text_transformer)
+        return self._get_config_with_transformer(self._render_config, text_transformer)
 
     def _parse_to_ast(
         self, source: str, text_transformer: Callable[[str], str] | None = None
@@ -584,6 +601,8 @@ class Markdown:
         source: str,
         text_transformer: Callable[[str], str] | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> str:
         """Render AST with configured options.
 
@@ -594,6 +613,8 @@ class Markdown:
             source: Original source buffer
             text_transformer: Optional callback to transform plain text
             page_context: Optional page object for directives that need page/section info
+            xref_index: Optional cross-reference index for link resolution
+            site: Optional site object for site-wide context
         """
         from bengal.directives.cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
@@ -610,6 +631,8 @@ class Markdown:
                 delegate=self._delegate,
                 directive_cache=directive_cache if cache_enabled else None,
                 page_context=page_context,
+                xref_index=xref_index,
+                site=site,
             )
             return renderer.render(ast)
         finally:
@@ -627,10 +650,17 @@ class Markdown:
         source: str,
         text_transformer: Callable[[str], str] | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> str:
         """Render AST to HTML."""
         return self._render_ast(
-            ast, source, text_transformer=text_transformer, page_context=page_context
+            ast,
+            source,
+            text_transformer=text_transformer,
+            page_context=page_context,
+            xref_index=xref_index,
+            site=site,
         )
 
     def render_ast_with_toc(
@@ -639,6 +669,8 @@ class Markdown:
         source: str,
         text_transformer: Callable[[str], str] | None = None,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        site: Any | None = None,
     ) -> tuple[str, str, list[dict[str, Any]]]:
         """Render AST to HTML with single-pass TOC extraction.
 
@@ -652,6 +684,8 @@ class Markdown:
             source: Original source buffer
             text_transformer: Optional callback to transform plain text
             page_context: Optional page object for directives that need page/section info
+            xref_index: Optional cross-reference index for link resolution
+            site: Optional site object for site-wide context
 
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
@@ -671,6 +705,8 @@ class Markdown:
                 delegate=self._delegate,
                 directive_cache=directive_cache if cache_enabled else None,
                 page_context=page_context,
+                xref_index=xref_index,
+                site=site,
             )
 
             # Render HTML - headings collected during this walk

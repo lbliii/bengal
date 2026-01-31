@@ -29,11 +29,12 @@ See Also:
 
 from __future__ import annotations
 
-import re
 from datetime import UTC, datetime
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+
+from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
@@ -172,31 +173,13 @@ class PageComputedMixin:
         if not text:
             return ""
 
-        # Strip HTML tags
-        text = re.sub(r"<[^>]+>", "", text)
+        # Strip HTML tags and normalize whitespace
+        from bengal.core.utils.text import normalize_whitespace
 
-        # Remove extra whitespace
-        text = re.sub(r"\s+", " ", text).strip()
+        text = normalize_whitespace(strip_html(text))
 
-        length = 160
-        if len(text) <= length:
-            return text
-
-        # Truncate to length
-        truncated = text[:length]
-
-        # Try to end at sentence boundary
-        sentence_end = max(truncated.rfind(". "), truncated.rfind("! "), truncated.rfind("? "))
-
-        if sentence_end > length * 0.6:  # At least 60% of desired length
-            return truncated[: sentence_end + 1].strip()
-
-        # Try to end at word boundary
-        last_space = truncated.rfind(" ")
-        if last_space > 0:
-            return truncated[:last_space].strip() + "…"
-
-        return truncated + "…"
+        # Truncate at sentence boundary for readability
+        return truncate_at_sentence(text, length=160)
 
     @cached_property
     def reading_time(self: HasMetadata) -> int:
@@ -243,16 +226,9 @@ class PageComputedMixin:
         if not self._raw_content:
             return ""
 
-        # Strip HTML first
-        clean_text = re.sub(r"<[^>]+>", "", self._raw_content)
-
-        length = 200
-        if len(clean_text) <= length:
-            return clean_text
-
-        # Find the last space before the limit (respect word boundaries)
-        excerpt_text = clean_text[:length].rsplit(" ", 1)[0]
-        return excerpt_text + "..."
+        # Strip HTML and truncate at word boundary
+        clean_text = strip_html(self._raw_content)
+        return truncate_at_word(clean_text, length=200)
 
     @cached_property
     def age_days(self: HasDate) -> int:

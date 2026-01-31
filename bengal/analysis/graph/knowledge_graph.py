@@ -44,11 +44,11 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from bengal.analysis.graph.builder import GraphBuilder
+from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_THRESHOLD
+from bengal.analysis.utils.validation import require_built
 from bengal.analysis.graph.metrics import GraphMetrics, MetricsCalculator, PageConnectivity
 from bengal.analysis.links.types import (
     DEFAULT_THRESHOLDS,
@@ -105,8 +105,8 @@ class KnowledgeGraph:
     def __init__(
         self,
         site: SiteLike,
-        hub_threshold: int = 10,
-        leaf_threshold: int = 2,
+        hub_threshold: int = DEFAULT_HUB_THRESHOLD,
+        leaf_threshold: int = DEFAULT_LEAF_THRESHOLD,
         exclude_autodoc: bool = True,
     ):
         """
@@ -237,6 +237,7 @@ class KnowledgeGraph:
             return list(self.site.pages)
         return [p for p in self.site.pages if not is_autodoc_page(p)]
 
+    @require_built
     def get_connectivity(self, page: PageLike) -> PageConnectivity:
         """
         Get connectivity information for a specific page.
@@ -250,14 +251,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before accessing connectivity data",
-            )
-        return self._analyzer.get_connectivity(page)
+        return self._analyzer.get_connectivity(page)  # type: ignore[union-attr]
 
+    @require_built
     def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get hub pages (highly connected pages).
@@ -276,14 +272,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting hub pages",
-            )
-        return self._analyzer.get_hubs(threshold)
+        return self._analyzer.get_hubs(threshold)  # type: ignore[union-attr]
 
+    @require_built
     def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get leaf pages (low connectivity pages).
@@ -302,14 +293,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting leaf pages",
-            )
-        return self._analyzer.get_leaves(threshold)
+        return self._analyzer.get_leaves(threshold)  # type: ignore[union-attr]
 
+    @require_built
     def get_orphans(self) -> list[PageLike]:
         """
         Get orphaned pages (no connections at all).
@@ -325,14 +311,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting orphan pages",
-            )
-        return self._analyzer.get_orphans()
+        return self._analyzer.get_orphans()  # type: ignore[union-attr]
 
+    @require_built
     def get_connectivity_report(
         self,
         thresholds: dict[str, float] | None = None,
@@ -362,13 +343,6 @@ class KnowledgeGraph:
             >>> print(f"Isolated: {len(report.isolated)}")
             >>> print(f"Distribution: {report.get_distribution()}")
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting connectivity report",
-            )
-
         t = thresholds or DEFAULT_THRESHOLDS
         w = weights or DEFAULT_WEIGHTS
 
@@ -406,6 +380,7 @@ class KnowledgeGraph:
 
         return report
 
+    @require_built
     def get_page_link_metrics(self, page: PageLike) -> LinkMetrics:
         """
         Get detailed link metrics for a specific page.
@@ -419,14 +394,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting link metrics",
-            )
         return self.link_metrics.get(page, LinkMetrics())
 
+    @require_built
     def get_connectivity_score(self, page: PageLike) -> int:
         """
         Get total connectivity score for a page.
@@ -442,14 +412,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting connectivity score",
-            )
-        return self._analyzer.get_connectivity_score(page)
+        return self._analyzer.get_connectivity_score(page)  # type: ignore[union-attr]
 
+    @require_built
     def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
@@ -466,14 +431,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._analyzer is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting page layers",
-            )
-        return self._analyzer.get_layers()
+        return self._analyzer.get_layers()  # type: ignore[union-attr]
 
+    @require_built
     def get_metrics(self) -> GraphMetrics:
         """
         Get overall graph metrics.
@@ -484,17 +444,11 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting metrics",
-            )
-
         # After build(), metrics is guaranteed to be set
-        assert self.metrics is not None, "metrics should be computed after build()"
+        assert self.metrics is not None, "metrics should be set after @require_built"
         return self.metrics
 
+    @require_built
     def format_stats(self) -> str:
         """
         Format graph statistics as a human-readable string.
@@ -505,14 +459,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._reporter is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before formatting stats",
-            )
-        return self._reporter.format_stats()
+        return self._reporter.format_stats()  # type: ignore[union-attr]
 
+    @require_built
     def get_actionable_recommendations(self) -> list[str]:
         """
         Generate actionable recommendations for improving site structure.
@@ -523,14 +472,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._reporter is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting recommendations",
-            )
-        return self._reporter.get_actionable_recommendations()
+        return self._reporter.get_actionable_recommendations()  # type: ignore[union-attr]
 
+    @require_built
     def get_seo_insights(self) -> list[str]:
         """
         Generate SEO-focused insights about site structure.
@@ -541,14 +485,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._reporter is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting SEO insights",
-            )
-        return self._reporter.get_seo_insights()
+        return self._reporter.get_seo_insights()  # type: ignore[union-attr]
 
+    @require_built
     def get_content_gaps(self) -> list[str]:
         """
         Identify content gaps based on link structure and taxonomies.
@@ -559,14 +498,9 @@ class KnowledgeGraph:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        if not self._built or self._reporter is None:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before getting content gaps",
-            )
-        return self._reporter.get_content_gaps()
+        return self._reporter.get_content_gaps()  # type: ignore[union-attr]
 
+    @require_built
     def compute_pagerank(
         self, damping: float = 0.85, max_iterations: int = 100, force_recompute: bool = False
     ) -> PageRankResults:
@@ -593,13 +527,6 @@ class KnowledgeGraph:
             >>> results = graph.compute_pagerank()
             >>> top_pages = results.get_top_pages(10)
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before computing PageRank",
-            )
-
         # Return cached results unless forced
         if self._pagerank_results and not force_recompute:
             logger.debug("pagerank_cached", action="returning cached results")
@@ -613,6 +540,7 @@ class KnowledgeGraph:
         self._pagerank_results = calculator.compute()
         return self._pagerank_results
 
+    @require_built
     def compute_personalized_pagerank(
         self, seed_pages: set[PageLike], damping: float = 0.85, max_iterations: int = 100
     ) -> PageRankResults:
@@ -641,13 +569,6 @@ class KnowledgeGraph:
             >>> results = graph.compute_personalized_pagerank(python_posts)
             >>> related = results.get_top_pages(10)
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before computing PageRank",
-            )
-
         if not seed_pages:
             raise BengalGraphError(
                 "Personalized PageRank requires at least one seed page",
@@ -712,6 +633,7 @@ class KnowledgeGraph:
             return 0.0
         return self._pagerank_results.get_score(page)
 
+    @require_built
     def detect_communities(
         self, resolution: float = 1.0, random_seed: int | None = None, force_recompute: bool = False
     ) -> CommunityDetectionResults:
@@ -736,13 +658,6 @@ class KnowledgeGraph:
             >>> for community in results.get_largest_communities(5):
             ...     print(f"Community {community.id}: {community.size} pages")
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before detecting communities",
-            )
-
         # Return cached results unless forced
         if self._community_results and not force_recompute:
             logger.debug("community_detection_cached", action="returning cached results")
@@ -784,6 +699,7 @@ class KnowledgeGraph:
         community = self._community_results.get_community_for_page(page)
         return community.id if community else None
 
+    @require_built
     def analyze_paths(
         self,
         force_recompute: bool = False,
@@ -818,13 +734,6 @@ class KnowledgeGraph:
             >>> bridges = results.get_top_bridges(10)
             >>> print(f"Approximate: {results.is_approximate}")
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before analyzing paths",
-            )
-
         # Return cached results unless forced
         if self._path_results and not force_recompute:
             logger.debug("path_analysis_cached", action="returning cached results")
@@ -880,6 +789,7 @@ class KnowledgeGraph:
             return 0.0
         return self._path_results.get_closeness(page)
 
+    @require_built
     def suggest_links(
         self,
         min_score: float = 0.3,
@@ -910,13 +820,6 @@ class KnowledgeGraph:
             >>> for suggestion in results.get_top_suggestions(20):
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
         """
-        if not self._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before generating link suggestions",
-            )
-
         # Return cached results unless forced
         if self._link_suggestions and not force_recompute:
             logger.debug("link_suggestions_cached", action="returning cached results")

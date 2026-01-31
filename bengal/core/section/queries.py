@@ -32,6 +32,8 @@ from functools import cached_property
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.utils.sorting import DEFAULT_WEIGHT
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -146,7 +148,7 @@ class SectionQueryMixin:
             return p.source_path.stem in ("_index", "index")
 
         weighted = [
-            WeightedPage(p, p.metadata.get("weight", float("inf")), p.title.lower())
+            WeightedPage(p, p.metadata.get("weight", DEFAULT_WEIGHT), p.title.lower())
             for p in self.pages
             if not is_index_page(p)
         ]
@@ -246,13 +248,13 @@ class SectionQueryMixin:
         This is typically called after content discovery is complete.
         """
         # Sort pages by weight (ascending), then title (alphabetically)
-        # Unweighted pages use float('inf') to sort last
-        self.pages.sort(key=lambda p: (p.metadata.get("weight", float("inf")), p.title.lower()))
+        # Unweighted pages use DEFAULT_WEIGHT (infinity) to sort last
+        self.pages.sort(key=lambda p: (p.metadata.get("weight", DEFAULT_WEIGHT), p.title.lower()))
 
         # Sort subsections by weight (ascending), then title (alphabetically)
-        # Unweighted subsections use float('inf') to sort last
+        # Unweighted subsections use DEFAULT_WEIGHT (infinity) to sort last
         self.subsections.sort(
-            key=lambda s: (s.metadata.get("weight", float("inf")), s.title.lower())
+            key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower())
         )
 
     # =========================================================================
