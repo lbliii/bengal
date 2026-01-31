@@ -389,6 +389,9 @@ class SectionOrchestrator:
         # Create archive page
         archive_page = Page(source_path=virtual_path, _raw_content="", metadata=metadata)
 
+        # Mark as virtual page (attribute, not just metadata)
+        archive_page._virtual = True
+
         # Compute output path using centralized logic
         archive_page.output_path = self.url_strategy.compute_archive_output_path(
             section=section, page_num=1, site=self.site

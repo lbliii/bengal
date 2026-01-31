@@ -17,7 +17,7 @@ import re
 
 import pytest
 
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 
 class TestCodeBlockBasics:
@@ -26,7 +26,7 @@ class TestCodeBlockBasics:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_code_block_with_language(self, parser):
         """Test code block with language specified."""
@@ -65,7 +65,7 @@ some code
 
         # Should fall back gracefully
         assert "<pre>" in html
-        assert "<code>" in html
+        assert "<code" in html  # May have class attribute
 
     def test_short_code_block_no_line_numbers(self, parser):
         """Test that short code blocks (<3 lines) don't have line numbers."""
@@ -104,7 +104,7 @@ class TestLineHighlighting:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_single_line_highlight(self, parser):
         """Test highlighting a single line with {N} syntax."""
@@ -185,7 +185,7 @@ class TestHllNewlinePlacement:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_hll_span_present_single_highlight(self, parser):
         """Test .hll span is present for single highlighted line."""
@@ -286,7 +286,7 @@ class TestCodeBlockEdgeCases:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_empty_code_block(self, parser):
         """Test empty code block."""
@@ -388,7 +388,7 @@ class TestHighlightingWithLineNumbers:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_highlight_with_line_highlighting(self, parser):
         """Test that line highlighting works."""
@@ -453,7 +453,7 @@ class TestHighlightSyntaxParsing:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser with highlighting enabled."""
-        return MistuneParser(enable_highlighting=True)
+        return PatitasParser(enable_highlighting=True)
 
     def test_single_line_syntax(self, parser):
         """Test single line number {5}."""

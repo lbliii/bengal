@@ -9,7 +9,7 @@ Related: bengal/rendering/plugins/directives/target.py
 
 import pytest
 
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 
 class TestTargetDirective:
@@ -18,7 +18,7 @@ class TestTargetDirective:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser instance."""
-        return MistuneParser()
+        return PatitasParser()
 
     def test_basic_target_creates_anchor(self, parser):
         """Test that :::{target} creates an anchor element."""
@@ -176,7 +176,7 @@ class TestTargetDirectiveValidation:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser instance."""
-        return MistuneParser()
+        return PatitasParser()
 
     def test_valid_id_starts_with_letter(self, parser):
         """Test that ID starting with letter is valid."""
@@ -230,7 +230,7 @@ class TestTargetDirectiveIntegration:
     @pytest.fixture
     def parser(self):
         """Create a Mistune parser instance."""
-        return MistuneParser()
+        return PatitasParser()
 
     def test_target_doesnt_affect_toc(self, parser):
         """Test that targets don't appear in TOC."""

@@ -244,6 +244,324 @@ class TestInjectLiveReloadIntoResponse:
         assert result == malformed
 
 
+class TestAssetCaching:
+    """Tests for CSS/JS asset caching during builds.
+
+    These tests verify the asset cache serves stable content during builds,
+    preventing CSS from disappearing when files are being rewritten.
+    """
+
+    @pytest.fixture
+    def mixin_instance(self):
+        """Create a minimal LiveReloadMixin instance for testing."""
+        # Create a concrete class that inherits from the mixin
+        class TestHandler(LiveReloadMixin):
+            pass
+
+        return TestHandler()
+
+    def test_is_cacheable_asset_css(self, mixin_instance):
+        """Test that CSS files in assets directory are cacheable."""
+        assert mixin_instance._is_cacheable_asset("/assets/css/main.css")
+        assert mixin_instance._is_cacheable_asset("/assets/css/components/nav.css")
+
+    def test_is_cacheable_asset_js(self, mixin_instance):
+        """Test that JS files in assets directory are cacheable."""
+        assert mixin_instance._is_cacheable_asset("/assets/js/app.js")
+        assert mixin_instance._is_cacheable_asset("/assets/js/modules/utils.js")
+
+    def test_is_cacheable_asset_excludes_non_assets(self, mixin_instance):
+        """Test that non-asset paths are not cacheable."""
+        # HTML pages
+        assert not mixin_instance._is_cacheable_asset("/index.html")
+        assert not mixin_instance._is_cacheable_asset("/docs/intro.html")
+
+        # CSS/JS outside assets directory
+        assert not mixin_instance._is_cacheable_asset("/styles/main.css")
+        assert not mixin_instance._is_cacheable_asset("/scripts/app.js")
+
+        # Other asset types
+        assert not mixin_instance._is_cacheable_asset("/assets/images/logo.png")
+        assert not mixin_instance._is_cacheable_asset("/assets/fonts/roboto.woff2")
+
+    def test_get_content_type_css(self, mixin_instance):
+        """Test content type detection for CSS."""
+        assert mixin_instance._get_content_type("/assets/css/main.css") == "text/css; charset=utf-8"
+        assert mixin_instance._get_content_type("/assets/css/a.CSS") == "text/css; charset=utf-8"
+
+    def test_get_content_type_js(self, mixin_instance):
+        """Test content type detection for JavaScript."""
+        content_type = mixin_instance._get_content_type("/assets/js/app.js")
+        assert content_type == "application/javascript; charset=utf-8"
+        content_type_upper = mixin_instance._get_content_type("/assets/js/app.JS")
+        assert content_type_upper == "application/javascript; charset=utf-8"
+
+    def test_get_content_type_unknown(self, mixin_instance):
+        """Test content type for unknown extensions."""
+        assert mixin_instance._get_content_type("/assets/other.txt") == "application/octet-stream"
+
+    def test_asset_cache_storage(self):
+        """Test that asset cache can store and retrieve content."""
+        # Clear any existing cache
+        LiveReloadMixin._asset_cache.clear()
+
+        # Simulate caching
+        test_content = b"body { color: red; }"
+        test_content_type = "text/css"
+        LiveReloadMixin._asset_cache["/assets/css/test.css"] = (test_content, test_content_type)
+
+        # Verify retrieval
+        cached = LiveReloadMixin._asset_cache.get("/assets/css/test.css")
+        assert cached is not None
+        assert cached[0] == test_content
+        assert cached[1] == test_content_type
+
+        # Clean up
+        LiveReloadMixin._asset_cache.clear()
+
+    def test_clear_asset_cache(self):
+        """Test that clear_asset_cache removes all cached assets."""
+        # Add some cache entries
+        LiveReloadMixin._asset_cache["/assets/css/a.css"] = (b"a", "text/css")
+        LiveReloadMixin._asset_cache["/assets/js/b.js"] = (b"b", "application/javascript")
+
+        assert len(LiveReloadMixin._asset_cache) >= 2
+
+        # Clear cache
+        LiveReloadMixin.clear_asset_cache()
+
+        assert len(LiveReloadMixin._asset_cache) == 0
+
+    def test_asset_cache_max_size_constant(self):
+        """Test that asset cache has a reasonable max size."""
+        # Should keep enough assets for typical sites
+        assert LiveReloadMixin._asset_cache_max_size >= 10
+        assert LiveReloadMixin._asset_cache_max_size <= 100
+
+
+class TestAssetCacheBuildAwareServing:
+    """Tests for build-aware CSS/JS serving.
+
+    Verifies that assets are served from cache during builds when
+    the file is temporarily unavailable due to atomic rewrites.
+    """
+
+    @pytest.fixture
+    def mock_handler(self, tmp_path):
+        """Create a mock handler with LiveReloadMixin methods."""
+        from io import BytesIO
+        from unittest.mock import MagicMock
+
+        # Create a concrete class that inherits from LiveReloadMixin
+        class TestHandler(LiveReloadMixin):
+            def __init__(self, path: str, directory: str):
+                self.path = path
+                self.directory = directory
+                self.wfile = BytesIO()
+                self._headers_sent = []
+                self._response_code = None
+
+            def translate_path(self, path: str) -> str:
+                """Convert URL path to file system path."""
+                from pathlib import Path as PathLib
+
+                # Strip leading slash and join with directory
+                clean_path = path.lstrip("/").split("?")[0]
+                return str(PathLib(self.directory) / clean_path)
+
+            def send_response(self, code: int) -> None:
+                self._response_code = code
+
+            def send_header(self, name: str, value: str) -> None:
+                self._headers_sent.append((name, value))
+
+            def end_headers(self) -> None:
+                pass
+
+        return TestHandler
+
+    def test_serve_asset_from_file_and_cache(self, tmp_path, mock_handler):
+        """Test that assets are read from file and cached."""
+        # Create a CSS file
+        css_dir = tmp_path / "assets" / "css"
+        css_dir.mkdir(parents=True)
+        css_file = css_dir / "main.css"
+        css_content = b"body { color: blue; }"
+        css_file.write_bytes(css_content)
+
+        # Create handler
+        handler = mock_handler("/assets/css/main.css", str(tmp_path))
+
+        # Clear cache first
+        LiveReloadMixin._asset_cache.clear()
+
+        # Serve asset (build not in progress)
+        result = handler.serve_asset_with_cache(build_in_progress=False)
+
+        assert result is True
+        assert handler._response_code == 200
+        assert handler.wfile.getvalue() == css_content
+
+        # Verify cache was updated
+        assert "assets/css/main.css" in LiveReloadMixin._asset_cache
+
+        # Clean up
+        LiveReloadMixin._asset_cache.clear()
+
+    def test_serve_asset_from_cache_during_build(self, tmp_path, mock_handler):
+        """Test that missing assets are served from cache during builds."""
+        # Pre-populate cache with CSS content
+        cached_content = b".cached { display: block; }"
+        LiveReloadMixin._asset_cache["assets/css/cached.css"] = (
+            cached_content,
+            "text/css; charset=utf-8",
+        )
+
+        # Create handler for non-existent file (simulating mid-build state)
+        handler = mock_handler("/assets/css/cached.css", str(tmp_path))
+
+        # Serve asset with build in progress (file doesn't exist)
+        result = handler.serve_asset_with_cache(build_in_progress=True)
+
+        assert result is True
+        assert handler._response_code == 200
+        assert handler.wfile.getvalue() == cached_content
+
+        # Clean up
+        LiveReloadMixin._asset_cache.clear()
+
+    def test_serve_asset_returns_false_when_no_cache_and_file_missing(
+        self, tmp_path, mock_handler
+    ):
+        """Test that False is returned when file missing and no cache."""
+        # Clear cache
+        LiveReloadMixin._asset_cache.clear()
+
+        # Create handler for non-existent file
+        handler = mock_handler("/assets/css/missing.css", str(tmp_path))
+
+        # Without build in progress - should return False
+        result = handler.serve_asset_with_cache(build_in_progress=False)
+        assert result is False
+
+        # With build in progress but no cache - should also return False
+        result = handler.serve_asset_with_cache(build_in_progress=True)
+        assert result is False
+
+    def test_non_asset_paths_return_false(self, tmp_path, mock_handler):
+        """Test that non-cacheable paths return False immediately."""
+        handler = mock_handler("/index.html", str(tmp_path))
+
+        result = handler.serve_asset_with_cache(build_in_progress=False)
+        assert result is False
+
+        handler2 = mock_handler("/docs/guide.html", str(tmp_path))
+        result2 = handler2.serve_asset_with_cache(build_in_progress=False)
+        assert result2 is False
+
+
+class TestAssetCacheConcurrency:
+    """Tests for thread-safety of the asset cache."""
+
+    def test_concurrent_cache_access(self):
+        """Test that multiple threads can safely access the cache."""
+        import threading
+
+        # Clear cache
+        LiveReloadMixin._asset_cache.clear()
+
+        errors = []
+        write_count = [0]
+        read_count = [0]
+
+        def writer_thread(thread_id: int):
+            """Write assets to cache."""
+            try:
+                for i in range(50):
+                    key = f"assets/css/thread{thread_id}_{i}.css"
+                    content = f"/* thread {thread_id} file {i} */".encode()
+                    with LiveReloadMixin._asset_cache_lock:
+                        LiveReloadMixin._asset_cache[key] = (content, "text/css")
+                        write_count[0] += 1
+            except Exception as e:
+                errors.append(f"Writer {thread_id}: {e}")
+
+        def reader_thread(thread_id: int):
+            """Read assets from cache."""
+            try:
+                for _ in range(100):
+                    with LiveReloadMixin._asset_cache_lock:
+                        # Just iterate over cache (may be empty or populated)
+                        for key in list(LiveReloadMixin._asset_cache.keys()):
+                            _ = LiveReloadMixin._asset_cache.get(key)
+                            read_count[0] += 1
+            except Exception as e:
+                errors.append(f"Reader {thread_id}: {e}")
+
+        # Start multiple writer and reader threads
+        threads = []
+        for i in range(5):
+            threads.append(threading.Thread(target=writer_thread, args=(i,)))
+            threads.append(threading.Thread(target=reader_thread, args=(i,)))
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10.0)
+
+        # Verify no errors occurred
+        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+
+        # Verify writes actually happened
+        assert write_count[0] == 250, f"Expected 250 writes, got {write_count[0]}"
+
+        # Clean up
+        LiveReloadMixin._asset_cache.clear()
+
+    def test_cache_eviction_under_load(self):
+        """Test that LRU eviction works correctly under concurrent load."""
+        import threading
+
+        # Clear and set a small max size for testing
+        LiveReloadMixin._asset_cache.clear()
+        original_max = LiveReloadMixin._asset_cache_max_size
+
+        try:
+            # Temporarily set small max size
+            LiveReloadMixin._asset_cache_max_size = 10
+
+            errors = []
+
+            def add_items(thread_id: int):
+                try:
+                    for i in range(20):
+                        key = f"assets/js/evict_{thread_id}_{i}.js"
+                        content = f"// {thread_id}-{i}".encode()
+                        with LiveReloadMixin._asset_cache_lock:
+                            LiveReloadMixin._asset_cache[key] = (content, "application/javascript")
+                            # LRU eviction
+                            if len(LiveReloadMixin._asset_cache) > LiveReloadMixin._asset_cache_max_size:
+                                first_key = next(iter(LiveReloadMixin._asset_cache))
+                                del LiveReloadMixin._asset_cache[first_key]
+                except Exception as e:
+                    errors.append(str(e))
+
+            threads = [threading.Thread(target=add_items, args=(i,)) for i in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=10.0)
+
+            assert len(errors) == 0
+            # Cache should not exceed max size
+            assert len(LiveReloadMixin._asset_cache) <= 10
+
+        finally:
+            # Restore original max size and clean up
+            LiveReloadMixin._asset_cache_max_size = original_max
+            LiveReloadMixin._asset_cache.clear()
+
+
 # Integration test example (requires more setup)
 @pytest.mark.skip(reason="Requires full server setup - placeholder for future implementation")
 class TestLiveReloadIntegration:

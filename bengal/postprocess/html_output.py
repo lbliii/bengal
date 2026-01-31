@@ -131,6 +131,8 @@ def _pretty_indent_html(html: str) -> str:
     Indent non-protected HTML lines with two spaces per nesting level.
 
     Depth carries across protected segments, but protected content is left untouched.
+    Inline content (segments without newlines) is preserved as-is to avoid stripping
+    significant whitespace between inline elements.
 
     """
     segments = _split_protected_regions(html)
@@ -142,6 +144,12 @@ def _pretty_indent_html(html: str) -> str:
 
     for seg, is_protected in segments:
         if is_protected:
+            result_parts.append(seg)
+            continue
+
+        # For inline content (no newlines), preserve as-is to avoid stripping
+        # significant whitespace between elements (e.g., "</strong> <code>")
+        if "\n" not in seg:
             result_parts.append(seg)
             continue
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 # python-markdown is optional (patitas is default)
 try:
@@ -26,7 +26,7 @@ class TestMistuneHighlightingAndMermaid:
     """Test Mistune parser with Rosettes highlighting backend."""
 
     def setup_method(self):
-        self.parser = MistuneParser(enable_highlighting=True)
+        self.parser = PatitasParser(enable_highlighting=True)
 
     def test_python_highlighted(self):
         """Test Python syntax highlighting (supported by Rosettes)."""

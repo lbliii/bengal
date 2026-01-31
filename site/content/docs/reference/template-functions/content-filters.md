@@ -62,7 +62,9 @@ Convert emoji shortcodes to Unicode emoji.
 {# "I :heart: Python" becomes "I ❤️ Python" #}
 ```
 
-**Supported shortcodes:** `:smile:`, `:grin:`, `:joy:`, `:heart:`, `:star:`, `:fire:`, `:rocket:`, `:check:`, `:x:`, `:warning:`, `:tada:`, `:thumbsup:`, `:thumbsdown:`, `:eyes:`, `:bulb:`, `:sparkles:`, `:zap:`, `:wave:`, `:clap:`, `:raised_hands:`, `:100:`
+**Supported shortcodes:**
+
+`:smile:` · `:grin:` · `:joy:` · `:heart:` · `:star:` · `:fire:` · `:rocket:` · `:check:` · `:x:` · `:warning:` · `:tada:` · `:thumbsup:` · `:thumbsdown:` · `:eyes:` · `:bulb:` · `:sparkles:` · `:zap:` · `:wave:` · `:clap:` · `:raised_hands:` · `:100:`
 
 ## extract_content
 

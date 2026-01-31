@@ -404,7 +404,7 @@ class RenderingPipeline:
         Uses deferred (parallel) syntax highlighting on Python 3.14t for
         pages with multiple code blocks. This provides 1.5-2x speedup.
         """
-        from bengal.parsing.backends.mistune.highlighting import (
+        from bengal.rendering.highlighting import (
             disable_deferred_highlighting,
             enable_deferred_highlighting,
             flush_deferred_highlighting,

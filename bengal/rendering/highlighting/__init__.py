@@ -34,17 +34,21 @@ from typing import TYPE_CHECKING
 
 # Import from canonical location
 from bengal.protocols import HighlightService
-
-# Backwards compatibility alias
-HighlightBackend = HighlightService
 from bengal.rendering.highlighting.theme_resolver import (
     PALETTE_INHERITANCE,
     resolve_css_class_style,
     resolve_syntax_theme,
 )
 
+# Backwards compatibility alias
+HighlightBackend = HighlightService
+
 if TYPE_CHECKING:
-    pass
+    from bengal.rendering.highlighting.deferred import (
+        disable_deferred_highlighting,
+        enable_deferred_highlighting,
+        flush_deferred_highlighting,
+    )
 
 __all__ = [
     "PALETTE_INHERITANCE",
@@ -52,6 +56,10 @@ __all__ = [
     "HighlightBackend",
     # Protocol (new canonical name)
     "HighlightService",
+    # Deferred highlighting for parallel batch processing
+    "disable_deferred_highlighting",
+    "enable_deferred_highlighting",
+    "flush_deferred_highlighting",
     "get_default_backend",
     "get_highlighter",
     # Public API
@@ -63,6 +71,27 @@ __all__ = [
     # Theme resolution (RFC-0003)
     "resolve_syntax_theme",
 ]
+
+
+def __getattr__(name: str) -> object:
+    """Lazy import for deferred highlighting functions."""
+    if name in (
+        "disable_deferred_highlighting",
+        "enable_deferred_highlighting",
+        "flush_deferred_highlighting",
+    ):
+        from bengal.rendering.highlighting.deferred import (
+            disable_deferred_highlighting,
+            enable_deferred_highlighting,
+            flush_deferred_highlighting,
+        )
+
+        return {
+            "disable_deferred_highlighting": disable_deferred_highlighting,
+            "enable_deferred_highlighting": enable_deferred_highlighting,
+            "flush_deferred_highlighting": flush_deferred_highlighting,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # Registry pattern matching other Bengal systems

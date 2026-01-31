@@ -79,39 +79,43 @@ per-call overhead of {% include %} (context copy, template lookup).
   </div>
 </div>
 
-{# ===== EXPANDABLE NODE (depth > 0) - Native <details>/<summary> ===== #}
+{# ===== EXPANDABLE NODE (depth > 0) - CSS-only accessible toggle ===== #}
+    {# Uses <details>/<summary> for native toggle + CSS :has() to control sibling visibility.
+       The <a> link is OUTSIDE <summary> (as a sibling), avoiding nested interactive elements.
+       CSS Grid arranges: [toggle] [icon] [link] on first row, [items] spanning full width below. #}
     {% case true, _ %}
-    <details class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'open' | safe
-      if is_in_trail else '' }}>
-      <summary class="docs-nav-group-summary">
-        <span class="docs-nav-caret">
-          {{ icon('caret-right', size=14) }}
-        </span>
+    <div class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
+      <details class="docs-nav-details" {{ 'open' | safe if is_in_trail else '' }}>
+        <summary class="docs-nav-toggle" aria-label="Toggle {{ item_title }} section">
+          <span class="docs-nav-caret">
+            {{ icon('caret-right', size=14) }}
+          </span>
+        </summary>
+      </details>
 
-        {% if show_nav_icons %}
-        {% spaceless %}
-        <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
-          {{ icon(item_icon ?? 'folder', size=16) }}
-        </span>
-        {% end %}
-        {% end %}
+      {% if show_nav_icons %}
+      {% spaceless %}
+      <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+        {{ icon(item_icon ?? 'folder', size=16) }}
+      </span>
+      {% end %}
+      {% end %}
 
-        {% if item_href %}
-        <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
-          {{ 'aria-current="page"' | safe if is_current else '' }}>
-          {{ item_title }}
-        </a>
-        {% else %}
-        <span class="docs-nav-group-link">{{ item_title }}</span>
-        {% end %}
-      </summary>
+      {% if item_href %}
+      <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
+        {{ 'aria-current="page"' | safe if is_current else '' }}>
+        {{ item_title }}
+      </a>
+      {% else %}
+      <span class="docs-nav-group-link">{{ item_title }}</span>
+      {% end %}
 
       <div class="docs-nav-group-items">
         {% for child in item_children %}
         {{ nav_node(child, depth + 1) }}
         {% end %}
       </div>
-    </details>
+    </div>
 
     {# ===== LEAF NODE (no children) ===== #}
     {% case false, _ %}

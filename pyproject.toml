@@ -197,4 +197,78 @@ dev = [
     "pytest-benchmark>=5.2.3",
     "radon>=6.0.1",
     "prek>=0.3.0",
+    "poethepoet>=0.35.0",
+    "pytest-randomly>=3.15.0",
 ]
+
+# =============================================================================
+# Task Runner (poethepoet) - use: poe <task>
+# =============================================================================
+# Replaces Makefile with Python-native task definitions
+# Run `poe --help` to see all available tasks
+
+[tool.poe.tasks]
+# Development Server
+serve = { cmd = "bengal site serve site", help = "Start development server for site/" }
+dev = { cmd = "bengal serve", help = "Start dev server (auto-detects site)" }
+
+# Building
+build = { cmd = "bengal site build site", help = "Build the documentation site" }
+build-prod = { cmd = "bengal build -e production", help = "Build with production config", cwd = "site" }
+
+# Testing
+test = { cmd = "pytest", help = "Run full test suite" }
+test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }
+test-integration = { cmd = "pytest tests/integration/ -x -q --timeout=30", help = "Run integration tests" }
+test-fast = { cmd = "pytest tests/ -x -q --ignore=tests/e2e --ignore=tests/integration", help = "Fast feedback loop (unit only)" }
+test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help = "Run tests with coverage" }
+test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }
+test-random = { cmd = "pytest tests/ -p randomly --randomly-seed=random -x -q", help = "Run tests in random order" }
+test-verbose = { cmd = "pytest tests/ -v --tb=long", help = "Run tests with verbose output" }
+
+# Type Checking
+ty = { cmd = "ty check bengal/", help = "Run ty type checker (fast, Rust-based)" }
+ty-strict = { cmd = "ty check bengal/ --error-on-warning", help = "Strict type checking (warnings as errors)" }
+
+# Linting & Formatting
+lint = { cmd = "ruff check .", help = "Run ruff linter" }
+lint-fix = { cmd = "ruff check . --fix", help = "Run ruff linter with auto-fix" }
+format = { cmd = "ruff format .", help = "Format code with ruff" }
+format-check = { cmd = "ruff format . --check", help = "Check formatting without changing files" }
+
+# Pre-commit
+hooks = { cmd = "prek run --all-files", help = "Run all pre-commit hooks" }
+hooks-install = { cmd = "prek install", help = "Install pre-commit hooks" }
+
+# CI Pipeline (what CI runs)
+ci = { sequence = ["lint", "ty", "test"], help = "Run full CI check (lint → type → test)" }
+check = { sequence = ["lint", "format-check", "ty"], help = "Quick check (lint + format + types)" }
+
+# Build & Release
+dist = { shell = "rm -rf dist/ && uv build && ls -la dist/", help = "Build distribution packages" }
+publish = { cmd = "uv publish", help = "Publish to PyPI" }
+release = { sequence = ["dist", "publish"], help = "Build and publish in one step" }
+
+# Code Quality Analysis
+deadcode = { cmd = "ruff check . --select F401,F841 --statistics", help = "Find unused imports/variables" }
+complexity = { cmd = "radon cc bengal/ -a -s", help = "Analyze code complexity" }
+
+# Deploy Test (simulates GitHub Pages)
+deploy-test.shell = """
+cd site && bengal build -e production
+echo ""
+echo "Verifying CSS exists..."
+ls -la public/assets/css/style.css || (echo "ERROR: CSS not found!" && exit 1)
+echo ""
+echo "Starting server at http://localhost:8000/bengal/"
+echo "Press Ctrl+C to stop"
+cd public && python3 -m http.server 8000
+"""
+deploy-test.help = "Build production & serve (simulates GitHub Pages)"
+
+# Cleanup
+clean.shell = """
+rm -rf dist build .pytest_cache .coverage htmlcov .ruff_cache .bengal public .ty_cache
+find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+"""
+clean.help = "Remove build artifacts and caches"

@@ -17,7 +17,7 @@ class TestASTPipelineIntegration:
 
     def test_ast_pipeline_produces_html(self, tmp_path: Path) -> None:
         """Verify AST pipeline produces valid HTML."""
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Hello World
 
@@ -33,7 +33,7 @@ def hello():
     print("world")
 ```
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
 
         # Parse to AST
         ast = parser.parse_to_ast(content, {})
@@ -58,7 +58,7 @@ def hello():
 
     def test_ast_pipeline_matches_direct_parse(self, tmp_path: Path) -> None:
         """Verify AST-based rendering matches direct markdown parsing."""
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Test Document
 
@@ -71,7 +71,7 @@ Regular paragraph with *emphasis* and **strong** text.
 1. Numbered item
 2. Another item
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
 
         # Direct parse (legacy path)
         direct_html = parser.parse(content, {})
@@ -92,7 +92,7 @@ Regular paragraph with *emphasis* and **strong** text.
     def test_ast_toc_extraction_matches_html_toc(self, tmp_path: Path) -> None:
         """Verify AST-based TOC extraction produces same structure as HTML-based."""
         from bengal.parsing.ast.utils import extract_toc_from_ast
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Main Title
 
@@ -106,7 +106,7 @@ Regular paragraph with *emphasis* and **strong** text.
 
 ### Another Subsection
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         toc = extract_toc_from_ast(ast)
@@ -124,7 +124,7 @@ Regular paragraph with *emphasis* and **strong** text.
     def test_ast_link_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based link extraction finds all links."""
         from bengal.parsing.ast.utils import extract_links_from_ast
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Links Test
 
@@ -134,7 +134,7 @@ And [an external link](https://example.com).
 
 [Another link](./relative.md)
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         links = extract_links_from_ast(ast)
@@ -147,7 +147,7 @@ And [an external link](https://example.com).
     def test_ast_plain_text_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction."""
         from bengal.parsing.ast.utils import extract_plain_text
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Hello World
 
@@ -160,7 +160,7 @@ def test():
     pass
 ```
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         text = extract_plain_text(ast)
@@ -177,7 +177,7 @@ def test():
             add_baseurl_to_ast,
             normalize_md_links_in_ast,
         )
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = """# Test
 
@@ -185,7 +185,7 @@ def test():
 
 [MD link](./other.md)
 """
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         # Apply transforms
@@ -201,12 +201,12 @@ def test():
     def test_page_content_uses_ast_when_available(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction works correctly."""
         from bengal.parsing.ast.utils import extract_plain_text
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = "# Hello\n\nWorld paragraph."
 
         # Parse to AST
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         # Extract plain text from AST
@@ -255,12 +255,12 @@ class TestASTCacheThreadSafety:
         import threading
 
         from bengal.parsing.ast.utils import extract_plain_text
-        from bengal.parsing.backends.mistune import MistuneParser
+        from bengal.parsing import PatitasParser
 
         content = "# Test\n\nContent paragraph."
 
         # Parse to AST once
-        parser = MistuneParser()
+        parser = PatitasParser()
         ast = parser.parse_to_ast(content, {})
 
         results: list[str] = []

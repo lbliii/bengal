@@ -13,7 +13,7 @@ from unittest.mock import Mock
 
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.core.site.core import Site
+from bengal.core.site import Site
 
 
 class TestSiteGetSectionByName:

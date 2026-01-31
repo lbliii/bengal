@@ -1,5 +1,6 @@
 /* Documentation Sidebar Navigation */
 .docs-nav {
+  --nav-header-height: 1.75rem; /* Height of expandable group header row */
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -132,115 +133,162 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* ============================================================================
-   NATIVE <details>/<summary> DISCLOSURE WIDGET
-   Uses native HTML disclosure for expand/collapse (no JS required)
+   EXPANDABLE NAVIGATION GROUPS - CSS-Only Accessible Toggle
+   
+   Uses <details>/<summary> for native toggle + CSS :has() to control visibility.
+   The <a> link is a SIBLING to details (not inside summary), avoiding nested
+   interactive elements. CSS Grid arranges the layout:
+   
+   [icon] [link] [toggle]  <- Caret on the right for modern look
+   [items spanning full width]
+   
+   Browser support: Chrome 105+, Firefox 121+, Safari 15.4+ (all support :has())
    ============================================================================ */
 
-/* Reset details default styling */
-details.docs-nav-group {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Summary acts as the toggle trigger */
-summary.docs-nav-group-summary {
-  display: flex;
+/* Expandable group container - CSS Grid for layout */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "icon link toggle"
+    "items items items";
   align-items: center;
-  gap: 0.25rem;
-  min-width: 0; /* Allow shrinking to enable text ellipsis on child links */
+  column-gap: 0.25rem;
+  row-gap: 0;
   border-radius: var(--border-radius-medium);
-  transition: all var(--transition-fast), box-shadow 0.2s ease;
-  padding: 0.125rem;
   position: relative;
-  cursor: pointer;
-  list-style: none; /* Remove default disclosure marker */
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
-/* Remove default marker in all browsers */
-summary.docs-nav-group-summary::-webkit-details-marker {
-  display: none;
-}
-
-summary.docs-nav-group-summary::marker {
-  display: none;
-}
-
-/* Gradient border pseudo-element */
-summary.docs-nav-group-summary::before {
+/* Hover background - positioned to only cover header row */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf)::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: var(--gradient-border-subtle);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-/* Left accent bar for parent items with active children */
-summary.docs-nav-group-summary::after {
-  content: '';
-  position: absolute;
-  inset-inline-start: 0;
   top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--gradient-border-subtle);
-  border-radius: 2px 0 0 2px;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  left: 0;
+  right: 0;
+  height: var(--nav-header-height, 1.75rem);
+  border-radius: var(--border-radius-medium);
+  background: transparent;
+  transition: background var(--transition-fast), box-shadow 0.2s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Header row content - above the ::before background */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-details,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-icon,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-group-link,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > span.docs-nav-group-link {
+  position: relative;
   z-index: 1;
 }
 
-summary.docs-nav-group-summary:hover {
+/* Grid area: Toggle (caret) on the RIGHT */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-details {
+  grid-area: toggle;
+  justify-self: end;
+  padding: 0.25rem;
+  padding-right: 0.125rem;
+}
+
+/* Grid area: Icon */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-icon {
+  grid-area: icon;
+  padding: 0.25rem;
+  padding-left: 0.125rem;
+}
+
+/* Grid area: Link text */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-group-link,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > span.docs-nav-group-link {
+  grid-area: link;
+  min-width: 0;
+  padding: 0.25rem 0;
+}
+
+/* Grid area: Items (children) */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-group-items {
+  grid-area: items;
+}
+
+/* Hover: Show background only on header row */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover::before {
   background: var(--color-bg-hover);
-  /* Light mode: Neumorphic hover */
+  /* Light mode: Neumorphic hover with subtle gradient border */
   box-shadow:
     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.4),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
     1px 1px 2px rgba(0, 0, 0, 0.05),
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.3);
+  /* Faded gradient border on hover */
+  outline: 1px solid color-mix(in srgb, var(--color-primary) 15%, transparent);
+  outline-offset: -1px;
 }
 
-summary.docs-nav-group-summary:hover::before {
+/* Hover: Highlight text color */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover > .docs-nav-group-link,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover > span.docs-nav-group-link {
+  color: var(--color-primary);
+}
+
+/* Left accent bar for active states - matches .docs-nav-link::before */
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -2px; /* Outside the element, same as .docs-nav-link */
+  top: 0;
+  height: var(--nav-header-height, 1.75rem);
+  width: 2px; /* Match standard accent bar width */
+  background: var(--gradient-border-subtle);
+  border-radius: 2px 0 0 2px;
   opacity: 0;
-  /* Hidden in light mode, shown in dark mode */
+  transition: opacity var(--transition-fast);
+  z-index: 2;
 }
 
-summary.docs-nav-group-summary:active {
-  /* Light mode: Neumorphic pressed */
-  box-shadow:
-    inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.1),
-    inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.2),
-    0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
-  background: var(--color-bg-tertiary);
+/* Details element - just a container for the toggle */
+.docs-nav-details {
+  display: contents; /* Let summary participate in parent grid */
 }
 
-summary.docs-nav-group-summary:active::before {
-  opacity: 0;
+/* Summary as toggle - contains just the caret icon */
+.docs-nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  list-style: none; /* Remove default disclosure marker */
+  user-select: none;
 }
 
-/* Focus visible for keyboard users */
-summary.docs-nav-group-summary:focus-visible {
+/* Remove default marker in all browsers */
+.docs-nav-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.docs-nav-toggle::marker {
+  display: none;
+}
+
+/* Focus visible for keyboard users on toggle */
+.docs-nav-toggle:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+  border-radius: var(--border-radius-small);
 }
 
-/* Caret icon container - positioned at far right for modern look */
+/* Caret icon container */
 .docs-nav-caret {
   display: flex;
   align-items: center;
   justify-content: center;
-  order: 1; /* Push to end of flex row */
-  margin-left: auto; /* Push to far right edge */
   width: 1.25rem;
   min-width: 1.25rem;
   height: 1.25rem;
@@ -255,22 +303,23 @@ summary.docs-nav-group-summary:focus-visible {
   width: 12px;
   height: 12px;
   color: var(--color-text-tertiary);
-  transition: transform var(--transition-smooth), color var(--transition-fast);
+  transform: rotate(0deg); /* Explicit initial state for smooth transition */
+  transition: transform 200ms ease-out, color var(--transition-fast);
   flex-shrink: 0;
   will-change: transform;
 }
 
 /* Show caret more prominently on hover */
-summary.docs-nav-group-summary:hover .docs-nav-caret {
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover .docs-nav-caret {
   opacity: 1;
 }
 
-summary.docs-nav-group-summary:hover .docs-nav-caret svg {
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover .docs-nav-caret svg {
   color: var(--color-text-primary);
 }
 
-/* Rotate caret when open (native [open] attribute) */
-details.docs-nav-group[open] > summary .docs-nav-caret svg {
+/* Rotate caret when its own details is open (no :has needed) */
+.docs-nav-details[open] .docs-nav-caret svg {
   transform: rotate(90deg);
 }
 
@@ -305,22 +354,17 @@ details.docs-nav-group[open] > summary .docs-nav-caret svg {
 }
 
 /* Subtle indicator for parent groups containing active child - accent bar only */
-/* Only show subtle accent bar, don't highlight the entire summary */
-details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
-details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
+/* Only show subtle accent bar, don't highlight the entire group */
+.docs-nav-group:has(.docs-nav-link.active)::after,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"])::after {
   opacity: 0.7;
   /* Subtle accent bar to indicate parent contains active child */
   background: var(--gradient-border);
 }
 
 /* Also handle when the group link itself is active - accent bar only */
-summary.docs-nav-group-summary:has(.docs-nav-group-link.active),
-summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) {
-  /* No background highlight - accent bar provides indication */
-}
-
-summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
-summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
+.docs-nav-group:has(> .docs-nav-group-link.active)::after,
+.docs-nav-group:has(> .docs-nav-group-link[aria-current="page"])::after {
   opacity: 1;
   background: var(--gradient-border);
 }
@@ -330,7 +374,14 @@ summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::a
   /* No background highlight - accent bar provides indication */
 }
 
-/* Children container - hidden by default, shown when [open] */
+/* ============================================================================
+   ITEMS VISIBILITY - CSS :has() powered toggle
+   
+   Items are hidden by default, shown when details[open] is present.
+   This is the core of the CSS-only accessible toggle pattern.
+   ============================================================================ */
+
+/* Children container - hidden by default */
 .docs-nav-group-items {
   display: none;
   flex-direction: column;
@@ -340,15 +391,13 @@ summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::a
   opacity: 0;
   transform: translate3d(0, -8px, 0);
   transition: opacity var(--transition-smooth), transform var(--transition-smooth);
-  will-change: transform, opacity;
 }
 
-/* Show items when details is open (native HTML disclosure) */
-details.docs-nav-group[open] > .docs-nav-group-items {
+/* Show items when details is open - CSS :has() powered */
+.docs-nav-group:has(.docs-nav-details[open]) > .docs-nav-group-items {
   display: flex;
   opacity: 1;
   transform: translate3d(0, 0, 0);
-  will-change: auto;
 }
 
 /* Navigation Links */
@@ -384,12 +433,15 @@ details.docs-nav-group[open] > .docs-nav-group-items {
 .docs-nav-link:hover {
   color: var(--color-text-primary);
   background: var(--color-bg-hover);
-  /* Light mode: Neumorphic hover */
+  /* Light mode: Neumorphic hover with subtle gradient border */
   box-shadow:
     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.4),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
     1px 1px 2px rgba(0, 0, 0, 0.05),
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.3);
+  /* Faded gradient border on hover */
+  outline: 1px solid color-mix(in srgb, var(--color-primary) 15%, transparent);
+  outline-offset: -1px;
 }
 
 .docs-nav-link:hover::before {
@@ -510,55 +562,44 @@ details.docs-nav-group[open] > .docs-nav-group-items {
 }
 
 /* ============================================================================
-   Dark Mode: Use gradient borders instead of neumorphic shadows
+   Dark Mode: Expandable groups hover styling
    ============================================================================ */
 
-[data-theme="dark"] summary.docs-nav-group-summary {
-  /* Remove neumorphic shadow in dark mode */
-  box-shadow: none;
+[data-theme="dark"] .docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf)::before {
+  /* Hover background starts transparent */
+  background: transparent;
 }
 
-[data-theme="dark"] summary.docs-nav-group-summary::before {
+[data-theme="dark"] .docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover::before {
+  /* Dark mode: subtle background with gradient border effect */
+  background: var(--color-bg-hover);
+  box-shadow: none;
+  /* Faded gradient border on hover */
+  outline: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  outline-offset: -1px;
+}
+
+[data-theme="dark"] .docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf)::after {
   opacity: 0;
-  /* Start hidden */
-}
-
-[data-theme="dark"] summary.docs-nav-group-summary:hover {
-  /* Remove neumorphic hover in dark mode */
-  box-shadow: none;
-}
-
-[data-theme="dark"] summary.docs-nav-group-summary:hover::before {
-  opacity: 0.4;
-  /* Show gradient border in dark mode */
-}
-
-[data-theme="dark"] summary.docs-nav-group-summary:active {
-  /* Remove neumorphic pressed in dark mode */
-  box-shadow: none;
-}
-
-[data-theme="dark"] summary.docs-nav-group-summary::after {
-  opacity: 0;
-  /* Start hidden */
+  /* Accent bar starts hidden */
 }
 
 /* Dark mode: Subtle indicator for parent groups containing active child */
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active)::after,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"])::after {
   opacity: 0.7;
   /* Subtle accent bar in dark mode */
   background: var(--gradient-border);
 }
 
 /* Also handle when the group link itself is active */
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active),
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) {
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link.active),
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link[aria-current="page"]) {
   /* No background highlight - accent bar provides indication */
 }
 
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link.active)::after,
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link[aria-current="page"])::after {
   opacity: 0.9;
   background: var(--gradient-border);
 }
@@ -574,8 +615,10 @@ details.docs-nav-group[open] > .docs-nav-group-items {
 }
 
 [data-theme="dark"] .docs-nav-link:hover {
-  /* Remove neumorphic hover in dark mode */
+  /* Remove neumorphic hover in dark mode, keep gradient border */
   box-shadow: none;
+  outline: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  outline-offset: -1px;
 }
 
 [data-theme="dark"] .docs-nav-link:hover::before {
@@ -668,14 +711,14 @@ details.docs-nav-group[open] > .docs-nav-group-items {
 }
 
 /* Apply glow to active directory accent bars */
-summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
-summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
+.docs-nav-group:has(> .docs-nav-group-link.active)::after,
+.docs-nav-group:has(> .docs-nav-group-link[aria-current="page"])::after {
   animation: nav-accent-glow 8s ease-in-out infinite;
 }
 
 /* Apply glow to parent directory accent bars (containing active child) */
-details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
-details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
+.docs-nav-group:has(.docs-nav-link.active)::after,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"])::after {
   animation: nav-accent-glow 8s ease-in-out infinite;
 }
 
@@ -685,13 +728,13 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link.active)::after,
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link[aria-current="page"])::after {
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active)::after,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"])::after {
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
@@ -700,10 +743,10 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
 
   .docs-nav-link.active::before,
   .docs-nav-link[aria-current="page"]::before,
-  summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
-  summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after,
-  details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
-  details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
+  .docs-nav-group:has(> .docs-nav-group-link.active)::after,
+  .docs-nav-group:has(> .docs-nav-group-link[aria-current="page"])::after,
+  .docs-nav-group:has(.docs-nav-link.active)::after,
+  .docs-nav-group:has(.docs-nav-link[aria-current="page"])::after {
     animation: none;
     box-shadow: 2px 0 6px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
   }
@@ -751,7 +794,8 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
 }
 
 /* Icon color on hover - all contexts */
-summary.docs-nav-group-summary:hover .docs-nav-icon,
+.docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover > .docs-nav-icon,
+.docs-nav-group-header:hover .docs-nav-icon,
 .docs-nav-link:hover .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
@@ -761,9 +805,9 @@ summary.docs-nav-group-summary:hover .docs-nav-icon,
    ACTIVE ICON STYLING - Premium Glow Effect
    ============================================================================ */
 
-/* Active section icons (in group summaries) */
-summary.docs-nav-group-summary:has(.docs-nav-group-link.active) .docs-nav-icon,
-summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon {
+/* Active section icons (in expandable groups) */
+.docs-nav-group:has(> .docs-nav-group-link.active) > .docs-nav-icon,
+.docs-nav-group:has(> .docs-nav-group-link[aria-current="page"]) > .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
@@ -778,8 +822,8 @@ summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) .d
 }
 
 /* Parent section icons when containing active child - subtle glow */
-details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary .docs-nav-icon,
-details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary .docs-nav-icon {
+.docs-nav-group:has(.docs-nav-link.active) > .docs-nav-icon,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-icon {
   color: var(--color-primary);
   opacity: 0.8;
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent));
@@ -837,22 +881,23 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
   display: none;
 }
 
-[data-theme="dark"] summary.docs-nav-group-summary:hover .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf):hover > .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group-header:hover .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link:hover .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
 }
 
 /* Brighter glow in dark mode */
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active) .docs-nav-icon,
-[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link.active) > .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group:has(> .docs-nav-group-link[aria-current="page"]) > .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link--section.active .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link--section[aria-current="page"] .docs-nav-icon {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
 }
 
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary .docs-nav-icon,
-[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary .docs-nav-icon {
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) > .docs-nav-icon,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-icon {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 35%, transparent));
 }
 

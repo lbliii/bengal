@@ -348,9 +348,6 @@ class BengalLogger:
 
         return "\n".join(enhanced)
 
-        # Return original error message if no enhancement applies
-        return error_msg
-
     def _emit(self, level: LogLevel, message: str, **context: Any) -> None:
         """
         Emit a log event.

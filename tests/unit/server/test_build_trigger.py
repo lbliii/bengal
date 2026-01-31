@@ -926,3 +926,174 @@ class TestBuildTriggerQueuing:
         # Second build should contain all three queued files
         second_build_paths = set(build_requests[1].changed_paths)
         assert len(second_build_paths) == 3
+
+    @patch("bengal.server.build_trigger.time.sleep")
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_stabilization_delay_before_queued_build(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_sleep: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that a stabilization delay is applied before executing queued builds.
+
+        This delay allows browsers to fetch updated assets from the just-completed
+        build before the next build potentially replaces them again.
+        """
+        import threading
+
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+        mock_controller.decide_from_changed_paths.return_value = MagicMock(
+            action="reload", reason="test", changed_paths=[]
+        )
+
+        # Track build order and sleep calls
+        build_requests = []
+        sleep_calls = []
+        build_started = threading.Event()
+        build_can_finish = threading.Event()
+        first_build_done = False
+
+        def tracking_submit(request, **kwargs):
+            nonlocal first_build_done
+            build_requests.append(request)
+            if not first_build_done:
+                build_started.set()
+                build_can_finish.wait(timeout=5.0)
+                first_build_done = True
+            result = MagicMock()
+            result.success = True
+            result.pages_built = 5
+            result.build_time_ms = 100.0
+            result.error_message = None
+            result.changed_outputs = ()
+            return result
+
+        def tracking_sleep(seconds):
+            sleep_calls.append(seconds)
+
+        mock_executor.submit.side_effect = tracking_submit
+        mock_sleep.side_effect = tracking_sleep
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Start first build
+        first_build = threading.Thread(
+            target=trigger.trigger_build,
+            args=({Path("first.md")}, {"modified"}),
+        )
+        first_build.start()
+        build_started.wait(timeout=5.0)
+
+        # Queue a second change
+        trigger.trigger_build({Path("second.md")}, {"created"})
+
+        # Let first build finish (which should trigger queued build with delay)
+        build_can_finish.set()
+        first_build.join(timeout=5.0)
+
+        # Should have two builds
+        assert len(build_requests) == 2
+
+        # Stabilization delay should have been called (0.1 seconds)
+        assert len(sleep_calls) >= 1
+        assert 0.1 in sleep_calls, f"Expected 0.1s delay, got calls: {sleep_calls}"
+
+
+class TestBuildStabilizationTiming:
+    """Tests for build stabilization timing behavior."""
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.content_dir = Path("/test/site/content")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor for testing."""
+        executor = MagicMock()
+        result = MagicMock()
+        result.success = True
+        result.pages_built = 5
+        result.build_time_ms = 100.0
+        result.error_message = None
+        result.changed_outputs = ()
+        executor.submit.return_value = result
+        return executor
+
+    @patch("bengal.server.build_trigger.time.sleep")
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_no_delay_for_first_build(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_sleep: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that no stabilization delay is applied for the first build.
+
+        The delay only applies when triggering a queued build after
+        another build completes.
+        """
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+        mock_controller.decide_from_changed_paths.return_value = MagicMock(
+            action="reload", reason="test", changed_paths=[]
+        )
+
+        sleep_calls = []
+
+        def instant_submit(request, **kwargs):
+            result = MagicMock()
+            result.success = True
+            result.pages_built = 5
+            result.build_time_ms = 100.0
+            result.error_message = None
+            result.changed_outputs = ()
+            return result
+
+        def tracking_sleep(seconds):
+            sleep_calls.append(seconds)
+
+        mock_executor.submit.side_effect = instant_submit
+        mock_sleep.side_effect = tracking_sleep
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Single build (no queued changes)
+        trigger.trigger_build({Path("only.md")}, {"modified"})
+
+        # No stabilization delay should have been called
+        # (we only delay when processing queued changes)
+        assert 0.1 not in sleep_calls, f"Unexpected delay for first build: {sleep_calls}"
