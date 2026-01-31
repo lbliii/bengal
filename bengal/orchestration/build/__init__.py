@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -634,9 +635,9 @@ class BuildOrchestrator:
         finalization_start = time.time()
 
         # Phase 17: Post-processing
-        # Post-processing doesn't use parallel processing, so pass False
+        # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
         finalization.phase_postprocess(
-            self, cli, False, ctx, incremental, collector=output_collector
+            self, cli, not force_sequential, ctx, incremental, collector=output_collector
         )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
@@ -683,12 +684,33 @@ class BuildOrchestrator:
                 content_hash_count=len(content_hash_lookup),
             )
 
-        # Phase 18: Save Cache
-        finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
+        # Phase 18: Save Caches (parallel for independent caches)
+        # Run cache saves concurrently since they're independent I/O operations.
+        # This reduces total cache save time from sum to max of all saves.
+        cache_start = time.perf_counter()
 
-        # RFC: Output Cache Architecture - Save GeneratedPageCache
-        if generated_page_cache:
-            generated_page_cache.save()
+        def _save_main_cache() -> None:
+            self.incremental.save_cache(pages_to_build, assets_to_process)
+
+        def _save_generated_cache() -> None:
+            if generated_page_cache:
+                generated_page_cache.save()
+
+        # Run cache saves in parallel
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="CacheSave") as executor:
+            futures = [
+                executor.submit(_save_main_cache),
+                executor.submit(_save_generated_cache),
+            ]
+            # Wait for all saves to complete
+            for future in as_completed(futures):
+                # Re-raise any exceptions from save threads
+                future.result()
+
+        cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+        if cli is not None:
+            cli.phase("Cache save", duration_ms=cache_duration_ms)
+        self.logger.info("cache_saved")
 
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)
@@ -942,8 +964,8 @@ class BuildOrchestrator:
         incremental: bool,
     ) -> None:
         """Phase 17: Post-processing."""
-        # Post-processing doesn't use parallel processing, so pass False
-        finalization.phase_postprocess(self, cli, False, ctx, incremental)
+        # Enable parallel post-processing for independent tasks
+        finalization.phase_postprocess(self, cli, not force_sequential, ctx, incremental)
 
     def _phase_cache_save(self, pages_to_build: list[Page], assets_to_process: list[Any]) -> None:
         """Phase 18: Save Cache."""
