@@ -33,7 +33,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from bengal.parsing.ast.types import ASTNode, is_heading, is_link, is_text
-from bengal.utils.primitives.text import slugify
+from bengal.utils.primitives.text import slugify_id
 
 __all__ = [
     "extract_links_from_ast",
@@ -77,14 +77,15 @@ def generate_heading_id(node: ASTNode) -> str:
     """
     Generate a URL-friendly ID from a heading node.
 
-    Extracts text content and converts to a slug suitable for anchor links.
-    Uses the shared slugify utility from bengal.utils.primitives.text.
+    Extracts text content and converts to an ASCII-only slug suitable for
+    HTML element IDs. Uses slugify_id which strips non-ASCII characters
+    for maximum compatibility with anchor links.
 
     Args:
         node: A heading node
 
     Returns:
-        URL-friendly slug (e.g., "getting-started")
+        ASCII-only slug (e.g., "getting-started", "cafe-resume")
 
     Example:
             >>> node = {"type": "heading", "level": 1, "children": [{"type": "text", "raw": "Getting Started!"}]}
@@ -92,8 +93,12 @@ def generate_heading_id(node: ASTNode) -> str:
             'getting-started'
 
     """
+    import html as html_module
+
     text = extract_text_from_node(node)
-    return slugify(text, unescape_html=True, max_length=100)
+    # Unescape HTML entities first (like &amp; -> &)
+    text = html_module.unescape(text)
+    return slugify_id(text)
 
 
 def extract_text_from_node(node: ASTNode) -> str:

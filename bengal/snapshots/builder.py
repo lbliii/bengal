@@ -58,8 +58,6 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     Returns:
         Frozen SiteSnapshot for all render operations
     """
-    start = time.perf_counter()
-
     # Caches for circular reference resolution
     page_cache: dict[int, PageSnapshot] = {}
     section_cache: dict[int, SectionSnapshot] = {}
@@ -74,7 +72,6 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
 
     # If no root sections, find top-level sections (not children of others)
     if not root_sections:
-        all_section_ids = {id(s) for s in site.sections}
         child_section_ids = {id(sub) for s in site.sections for sub in s.subsections}
         root_sections = [s for s in site.sections if id(s) not in child_section_ids]
 
@@ -100,9 +97,6 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
             )
 
     # Phase 2.5: Set root references on all sections (post-processing)
-    # Find root sections (sections with parent=None)
-    root_section_snapshots = [s for s in section_cache.values() if s.parent is None]
-
     # Helper to find root section snapshot by walking up parent chain
     def find_root_snapshot(snapshot: SectionSnapshot) -> SectionSnapshot:
         """Find root section by walking up parent chain."""
@@ -181,8 +175,6 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     # Phase 7: Snapshot templates with dependency graph (RFC: Snapshot-Enabled v2)
     templates, template_dep_graph, template_dependents = _snapshot_templates(site, page_cache)
 
-    elapsed_ms = (time.perf_counter() - start) * 1000
-
     # Get config dict (handle both Config objects and plain dicts)
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
     # Type narrowing: ensure config_dict is a dict
@@ -251,8 +243,6 @@ def update_snapshot(
         # No changes - return same snapshot
         return old
 
-    start = time.perf_counter()
-
     # Build mapping from source_path to old page snapshot
     old_pages_by_path: dict[Path, PageSnapshot] = {p.source_path: p for p in old.pages}
 
@@ -314,7 +304,6 @@ def update_snapshot(
 
     root_sections = [s for s in site.sections if s.parent is None]
     if not root_sections:
-        all_section_ids = {id(s) for s in site.sections}
         child_section_ids = {id(sub) for s in site.sections for sub in s.subsections}
         root_sections = [s for s in site.sections if id(s) not in child_section_ids]
 
@@ -392,8 +381,6 @@ def update_snapshot(
     else:
         config_dict = {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
-
-    elapsed_ms = (time.perf_counter() - start) * 1000
 
     return SiteSnapshot(
         pages=all_pages,
@@ -928,9 +915,6 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
 
         if hasattr(engine, "_track_referenced_templates"):
             # Jinja2/Kida engines have this method
-            # Create a temporary cache to collect referenced templates
-            referenced_cache: dict[str, set[str]] = {}
-
             # Try to extract referenced templates
             if hasattr(engine, "_env"):
                 env = engine._env
@@ -1049,7 +1033,7 @@ def _snapshot_templates(
     # A page is affected if its template or any ancestor template changes
     template_dependents: dict[str, list[PageSnapshot]] = {}
 
-    for template_name, template_snapshot in templates.items():
+    for template_name in templates:
         # Direct pages using this template
         direct_pages = template_to_pages.get(template_name, [])
 

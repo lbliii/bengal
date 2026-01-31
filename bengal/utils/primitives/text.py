@@ -109,6 +109,7 @@ def slugify_id(text: str, default: str = "") -> str:
 
     Unlike ``slugify()``, this function is ASCII-only (no Unicode support)
     which is appropriate for HTML element IDs that need maximum compatibility.
+    Accented characters are transliterated to ASCII equivalents (é→e, ü→u).
 
     Consolidates implementations from:
     - bengal/directives/tabs.py (_slugify)
@@ -134,18 +135,28 @@ def slugify_id(text: str, default: str = "") -> str:
         'tab'
         >>> slugify_id("你好世界")  # Non-ASCII chars removed
         ''
-        >>> slugify_id("Café")  # Accent removed
-        'caf'
+        >>> slugify_id("Café")  # Accent transliterated
+        'cafe'
+        >>> slugify_id("Café résumé")  # Accents transliterated
+        'cafe-resume'
 
     Note:
         For Unicode-aware slugification (international URLs), use ``slugify()`` instead.
 
     """
+    import unicodedata
+
     if not text:
         return default
 
+    # Normalize Unicode to decomposed form (NFD) - separates base chars from combining marks
+    # Then encode to ASCII, ignoring non-ASCII characters (removes combining marks)
+    # This converts é→e, ü→u, etc.
+    slug = unicodedata.normalize("NFD", text)
+    slug = slug.encode("ascii", "ignore").decode("ascii")
+
     # Lowercase and strip
-    slug = text.lower().strip()
+    slug = slug.lower().strip()
     # Replace spaces and underscores with hyphens
     slug = re.sub(r"[\s_]+", "-", slug)
     # Remove anything that isn't ASCII alphanumeric or hyphen

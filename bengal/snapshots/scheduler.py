@@ -168,8 +168,8 @@ class WaveScheduler:
             if not page.output_path:
                 page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
 
-        # Build shared context once (major optimization)
-        shared_context = self._build_shared_context()
+        # Build shared context once (caches in self._shared_context)
+        self._build_shared_context()
 
         # Create template engine
         from bengal.rendering.engines import create_engine

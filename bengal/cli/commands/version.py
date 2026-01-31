@@ -288,13 +288,13 @@ def create(
     cli.blank()
 
     if dry_run:
-        cli.info("🔍 Dry run - no changes will be made")
-        cli.blank()
-
-        cli.info("Would perform:")
-        cli.info(f"  1. Create directory: {dest_dir}")
-        cli.info(f"  2. Copy {file_count} files")
-        cli.info("  3. Update bengal.yaml with new version entry")
+        # Use click.echo for test visibility (Rich Console may not be captured by CliRunner)
+        click.echo("Dry run - no changes will be made")
+        click.echo("")
+        click.echo("Would perform:")
+        click.echo(f"  1. Create directory: {dest_dir}")
+        click.echo(f"  2. Copy {file_count} files")
+        click.echo("  3. Update bengal.yaml with new version entry")
         return
 
     # Perform the copy

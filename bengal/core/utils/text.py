@@ -131,23 +131,25 @@ def truncate_at_sentence(text: str, length: int = 160, min_ratio: float = 0.6) -
     return truncate_at_word(text, length)
 
 
-def truncate_at_word(text: str, length: int = 200) -> str:
+def truncate_at_word(text: str, length: int = 200, suffix: str = "...") -> str:
     """
     Truncate text at a word boundary.
 
     Finds the last space before the length limit to avoid cutting
-    words in half. Adds ellipsis if truncated.
+    words in half. Adds ellipsis if truncated. The final result
+    (including suffix) will not exceed the specified length.
 
     Args:
         text: Text to truncate
-        length: Maximum length (default 200 for excerpts)
+        length: Maximum total length including suffix (default 200 for excerpts)
+        suffix: Suffix to append if truncated (default "...")
 
     Returns:
-        Truncated text with ellipsis if truncated
+        Truncated text with ellipsis if truncated, never exceeding length
 
     Example:
         >>> truncate_at_word("Hello world test", 12)
-        'Hello world...'
+        'Hello...'
     """
     if not text:
         return ""
@@ -155,12 +157,19 @@ def truncate_at_word(text: str, length: int = 200) -> str:
     if len(text) <= length:
         return text
 
-    truncated = text[:length]
+    # Account for suffix length so total stays within length
+    suffix_len = len(suffix)
+    max_content_len = length - suffix_len
+
+    if max_content_len <= 0:
+        return suffix[:length]
+
+    truncated = text[:max_content_len]
 
     # Find last space
     last_space = truncated.rfind(" ")
     if last_space > 0:
-        return truncated[:last_space].strip() + "..."
+        return truncated[:last_space].strip() + suffix
 
     # No space found, just truncate
-    return truncated + "..."
+    return truncated.strip() + suffix
