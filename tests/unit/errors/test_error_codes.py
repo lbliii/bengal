@@ -53,8 +53,7 @@ class TestErrorCodeUniqueness:
 
         if aliases:
             pytest.fail(
-                f"Found enum aliases (duplicate values):\n"
-                + "\n".join(f"  • {a}" for a in aliases)
+                f"Found enum aliases (duplicate values):\n" + "\n".join(f"  • {a}" for a in aliases)
             )
 
 

@@ -56,22 +56,22 @@ def run_cli(
 ) -> CLIResult:
     """
     Run bengal CLI as subprocess with output sanitization.
-    
+
     Args:
         args: CLI arguments (e.g., ["site", "build"])
         cwd: Working directory (defaults to current)
         env: Environment variables (merged with os.environ)
         capture_ansi: If False (default), strip ANSI codes for easier assertions
         timeout: Command timeout in seconds
-    
+
     Returns:
         CLIResult with returncode, stdout, stderr
-    
+
     Example:
         result = run_cli(["site", "build"], cwd="/path/to/site")
         result.assert_ok()
         result.assert_stdout_contains("Build complete")
-        
+
     """
     result = subprocess.run(
         [sys.executable, "-m", "bengal.cli", *args],

@@ -24,7 +24,6 @@ class BuildEvent(Message):
     """Base class for all build-related events."""
 
 
-
 @dataclass
 class PhaseStarted(BuildEvent):
     """

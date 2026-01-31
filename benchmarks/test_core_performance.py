@@ -340,10 +340,7 @@ def test_content_registry_page_lookup(benchmark, site_1000_pages):
         result = benchmark(lookup_page)
         # Result may be None if path normalization differs
         if result is None:
-            pytest.skip(
-                "Registry path lookup returned None. "
-                "Path normalization may have changed."
-            )
+            pytest.skip("Registry path lookup returned None. Path normalization may have changed.")
 
 
 @pytest.mark.benchmark

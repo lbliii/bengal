@@ -407,6 +407,10 @@ class NavigationValidator(BaseValidator):
             )
 
         if not missing_attr and not missing_file:
-            results.append(CheckResult.success(f"All {len(site.pages)} pages have output_path set and exist on disk"))
+            results.append(
+                CheckResult.success(
+                    f"All {len(site.pages)} pages have output_path set and exist on disk"
+                )
+            )
 
         return results

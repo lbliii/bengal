@@ -727,6 +727,7 @@ class SocialCardGenerator:
         config = self.config
         if isinstance(social_card_meta, dict):
             from dataclasses import replace
+
             overrides = {}
             if "background_color" in social_card_meta:
                 overrides["background_color"] = social_card_meta["background_color"]

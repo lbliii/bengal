@@ -50,13 +50,13 @@ def pytest_configure(config):
 def site(request, site_factory):
     """
     Provide 'site' fixture for tests marked with @pytest.mark.bengal.
-    
+
     This fixture reads the marker parameters and uses site_factory
     to create the appropriate Site instance.
-    
+
     Note: This is automatically available for all tests, but only
     does something when the test has @pytest.mark.bengal.
-        
+
     """
     # Check if test has bengal marker data
     bengal_marker = request.node.get_closest_marker("bengal")

@@ -1,37 +1,55 @@
 # Pre-commit hooks for Bengal
-# Install: pip install pre-commit && pre-commit install
-# Run manually: pre-commit run --all-files
+# Install: pip install prek && prek install (or: pip install pre-commit && pre-commit install)
+# Run manually: prek run --all-files (or: pre-commit run --all-files)
+# prek is faster (Rust-based) but pre-commit also works with this config
+
+minimum_prek_version: "0.3.0"
 
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
+  # prek builtin hooks - no network/env needed, instant execution
+  # (These also work with pre-commit via https://github.com/pre-commit/pre-commit-hooks)
+  - repo: builtin
     hooks:
-      # Run the linter (auto-fix what we can, ignore line-length for now)
-      - id: ruff-check
-        args: [--fix, --extend-ignore=E501]
-        types_or: [python, pyi]
-
-      # Run the formatter
-      - id: ruff-format
-        types_or: [python, pyi]
-
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: check-added-large-files
-        args: [--maxkb=1000]
-      - id: check-case-conflict
-      - id: check-merge-conflict
-      - id: debug-statements
-      - id: check-toml
-      - id: check-yaml
-        args: [--unsafe]
-      - id: end-of-file-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        priority: 0
+      - id: end-of-file-fixer
+        priority: 0
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+        priority: 0
+      - id: check-toml
+        priority: 0
+      - id: check-json
+        priority: 0
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        priority: 0
+      - id: check-merge-conflict
+        priority: 0
+      - id: check-case-conflict
+        priority: 0
+      - id: check-symlinks
+        priority: 0
       - id: check-executables-have-shebangs
+        priority: 0
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        priority: 0
       - id: detect-private-key
+        priority: 0
 
+  # Ruff for Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.14
+    hooks:
+      - id: ruff
+        args: [--fix, --extend-ignore=E501]
+        priority: 1
+      - id: ruff-format
+        priority: 1
+
+  # Local hooks for Bengal-specific checks
   - repo: local
     hooks:
       - id: ty
@@ -40,17 +58,21 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        priority: 2
 
       - id: block-string-based-click-cls
         name: Block string-based Click cls usage
         entry: bash -c "! rg -n 'cls=\"bengal\\.cli\\.(Bengal(Group|Command))\"' bengal/cli || (echo 'Use direct class references from bengal.cli.base for Click cls' && exit 1)"
         language: system
         files: ^bengal/cli/.*\.py$
+        priority: 2
+
       - id: block-legacy-cli-imports
         name: Block legacy bengal.cli.bengal_* imports
         entry: bash -c "! rg -n 'from\\s+bengal\\.cli\\.(bengal_command|bengal_group)\\s+import' || (echo 'Import BengalCommand/BengalGroup from bengal.cli.base' && exit 1)"
         language: system
         files: ^bengal/.*\.py$
+        priority: 2
 
       # Module coupling checks (RFC: rfc-remaining-coupling-fixes)
       # Run as warnings - these report issues but don't block commits
@@ -61,6 +83,7 @@ repos:
         language: system
         pass_filenames: false
         verbose: true
+        priority: 3
 
       - id: check-deps
         name: Check dependency layers (warning)
@@ -68,6 +91,7 @@ repos:
         language: system
         pass_filenames: false
         verbose: true
+        priority: 3
 
       # Template CSS validation
       # Ensures CSS classes used in templates have corresponding definitions
@@ -77,3 +101,22 @@ repos:
         language: system
         files: ^bengal/themes/.*\.(html|css)$
         pass_filenames: false
+        priority: 2
+
+      # Test anti-pattern checks
+      - id: check-threadpool-without-marker
+        name: Check ThreadPoolExecutor tests have parallel_unsafe marker
+        entry: uv run python scripts/check_threadpool_marker.py
+        language: system
+        files: ^tests/.*\.py$
+        exclude: ^tests/performance/.*\.py$
+        pass_filenames: true
+        priority: 2
+
+      - id: check-outdated-build-options
+        name: Check for outdated BuildOptions API usage
+        entry: uv run python scripts/check_build_options.py
+        language: system
+        files: ^tests/.*\.py$
+        pass_filenames: true
+        priority: 2

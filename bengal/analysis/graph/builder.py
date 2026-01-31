@@ -614,7 +614,9 @@ class GraphBuilder:
 
         # Build inverted index: target -> {link_type: count}
         # O(L) single pass instead of O(P × L) nested loop
-        incoming_by_type: dict[PageLike, dict[LinkType, int]] = defaultdict(lambda: defaultdict(int))
+        incoming_by_type: dict[PageLike, dict[LinkType, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
         for (_source, target), link_type in self.link_types.items():
             incoming_by_type[target][link_type] += 1
 

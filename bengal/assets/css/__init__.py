@@ -52,6 +52,7 @@ def get_directive_base_css() -> str:
             >>> print(len(css))  # ~2000 characters
 
     """
+
     def _load_css() -> str:
         directives_dir = Path(__file__).parent / "directives"
         index_file = directives_dir / "_index.css"

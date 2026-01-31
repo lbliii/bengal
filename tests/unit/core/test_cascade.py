@@ -462,9 +462,7 @@ class TestOrphanedSectionCascade:
         version_folder.add_subsection(versioned_docs)
 
         blog_page = Page(source_path=Path("/content/blog/hello.md"), metadata={})
-        docs_page = Page(
-            source_path=Path("/content/_versions/v1/docs/intro.md"), metadata={}
-        )
+        docs_page = Page(source_path=Path("/content/_versions/v1/docs/intro.md"), metadata={})
 
         blog.add_page(blog_page)
         versioned_docs.add_page(docs_page)

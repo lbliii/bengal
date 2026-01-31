@@ -160,9 +160,7 @@ class ContentHashRegistry:
 
         """
         with self._lock:
-            self.generated_dependencies[str(generated_path)] = [
-                str(p) for p in member_sources
-            ]
+            self.generated_dependencies[str(generated_path)] = [str(p) for p in member_sources]
             self._dirty = True
 
     def get_source_hash(self, source_path: Path) -> str | None:
@@ -188,10 +186,7 @@ class ContentHashRegistry:
         """
         with self._lock:
             deps = self.generated_dependencies.get(str(generated_path), [])
-            return {
-                dep: self.source_hashes.get(dep, "")
-                for dep in deps
-            }
+            return {dep: self.source_hashes.get(dep, "") for dep in deps}
 
     def compute_generated_hash(self, generated_path: Path) -> str:
         """

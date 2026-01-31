@@ -385,7 +385,9 @@ class ImageProcessor:
             return self._smart_crop(img, target)
         else:
             centering = self._anchor_to_centering(params.anchor)
-            return ImageOps.fit(img, target, method=PILImage.Resampling.LANCZOS, centering=centering)
+            return ImageOps.fit(
+                img, target, method=PILImage.Resampling.LANCZOS, centering=centering
+            )
 
     def _fit(self, img: Image.Image, params: Any) -> Image.Image:
         """Resize to fit within dimensions.

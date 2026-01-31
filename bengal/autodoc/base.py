@@ -75,6 +75,7 @@ def _cached_param_info(
     def _create_param_info() -> Any:
         # Import here to avoid circular imports
         from bengal.autodoc.models.python import ParameterInfo
+
         return ParameterInfo(
             name=name,
             type_hint=type_hint,

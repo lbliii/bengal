@@ -16,9 +16,7 @@ from typing import Any
 try:
     import aiohttp
 except ImportError as e:
-    raise ImportError(
-        "RESTSource requires aiohttp. Install with: pip install bengal[rest]"
-    ) from e
+    raise ImportError("RESTSource requires aiohttp. Install with: pip install bengal[rest]") from e
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource

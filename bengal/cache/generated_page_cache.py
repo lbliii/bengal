@@ -78,8 +78,8 @@ class GeneratedPageCacheEntry:
     """
 
     # Identity
-    page_type: str              # "tag", "section-archive", "api-doc"
-    page_id: str                # "python", "docs/reference", "Site.build"
+    page_type: str  # "tag", "section-archive", "api-doc"
+    page_id: str  # "python", "docs/reference", "Site.build"
 
     # Content hash (computed from combined member hashes)
     content_hash: str = ""
@@ -238,10 +238,7 @@ class GeneratedPageCache:
 
             data = {
                 "version": GENERATED_PAGE_CACHE_VERSION,
-                "entries": {
-                    key: entry.to_dict()
-                    for key, entry in self.entries.items()
-                },
+                "entries": {key: entry.to_dict() for key, entry in self.entries.items()},
             }
 
             # Save to .json.zst
@@ -475,9 +472,7 @@ class GeneratedPageCache:
 
         """
         with self._lock:
-            entries_with_html = sum(
-                1 for e in self.entries.values() if e.cached_html is not None
-            )
+            entries_with_html = sum(1 for e in self.entries.values() if e.cached_html is not None)
             total_html_size = sum(
                 len(e.cached_html) for e in self.entries.values() if e.cached_html
             )
@@ -486,8 +481,7 @@ class GeneratedPageCache:
                 "total_entries": len(self.entries),
                 "entries_with_html": entries_with_html,
                 "html_cache_rate": (
-                    entries_with_html / len(self.entries) * 100
-                    if self.entries else 0
+                    entries_with_html / len(self.entries) * 100 if self.entries else 0
                 ),
                 "total_html_size_bytes": total_html_size,
                 "by_type": self._count_by_type(),

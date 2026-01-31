@@ -31,26 +31,21 @@ class TestPythonSignaturesComprehensive:
             # Basic
             ("def f(a, b): pass", "def f(a, b)"),
             ("def f(a: int, b: str = 'hi') -> bool: pass", "def f(a: int, b: str = 'hi') -> bool"),
-            
             # Positional-only
             ("def f(a, b, /): pass", "def f(a, b, /)"),
             ("def f(a, b=1, /): pass", "def f(a, b = 1, /)"),
             ("def f(a, b=1, /, c=2): pass", "def f(a, b = 1, /, c = 2)"),
-            
             # Keyword-only
             ("def f(*, a, b=1): pass", "def f(*, a, b = 1)"),
             ("def f(a, *args, b, c=2): pass", "def f(a, *args, b, c = 2)"),
-            
             # Varargs and Kwargs
             ("def f(*args, **kwargs): pass", "def f(*args, **kwargs)"),
             ("def f(a, *args: int, **kwargs: str): pass", "def f(a, *args: int, **kwargs: str)"),
-            
             # Kitchen Sink (The ultimate test)
             (
                 "async def complex_func(a, b=1, /, c=2, *args, d, e=3, **kwargs) -> list[str]: pass",
-                "async def complex_func(a, b = 1, /, c = 2, *args, d, e = 3, **kwargs) -> list[str]"
+                "async def complex_func(a, b = 1, /, c = 2, *args, d, e = 3, **kwargs) -> list[str]",
             ),
-            
             # Bare * with kwonly
             ("def f(a, /, *, b): pass", "def f(a, /, *, b)"),
         ],
@@ -65,7 +60,7 @@ class TestPythonSignaturesComprehensive:
         code = "def f(pos_only, /, reg, *vargs, kw_only=True, **kwargs): pass"
         node = _get_func_node(code)
         args = extract_arguments(node)
-        
+
         # 1. pos_only
         assert args[0] == {
             "name": "pos_only",
@@ -73,7 +68,7 @@ class TestPythonSignaturesComprehensive:
             "default": None,
             "kind": "positional_only",
         }
-        
+
         # 2. reg
         assert args[1] == {
             "name": "reg",
@@ -81,7 +76,7 @@ class TestPythonSignaturesComprehensive:
             "default": None,
             "kind": "positional_or_keyword",
         }
-        
+
         # 3. *vargs
         assert args[2] == {
             "name": "*vargs",
@@ -89,7 +84,7 @@ class TestPythonSignaturesComprehensive:
             "default": None,
             "kind": "var_positional",
         }
-        
+
         # 4. kw_only
         assert args[3] == {
             "name": "kw_only",
@@ -97,7 +92,7 @@ class TestPythonSignaturesComprehensive:
             "default": "True",
             "kind": "keyword_only",
         }
-        
+
         # 5. **kwargs
         assert args[4] == {
             "name": "**kwargs",

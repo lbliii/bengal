@@ -83,6 +83,7 @@ def lineage(page_path: str, source: str) -> None:
 
     # Group by type
     from bengal.build.provenance.types import InputRecord
+
     by_type: dict[str, list[InputRecord]] = {}
     for inp in record.provenance.inputs:
         if inp.input_type not in by_type:
@@ -281,6 +282,7 @@ def build(limit: int | None, source: str) -> None:
 
     # Discover content
     from bengal.orchestration.content import ContentOrchestrator
+
     content = ContentOrchestrator(site)
     content.discover()
 
@@ -293,10 +295,12 @@ def build(limit: int | None, source: str) -> None:
 
     # Use the provenance filter to check cache status
     from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
+
     cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
     filter = ProvenanceFilter(site, cache)
 
     import time
+
     start = time.time()
     result = filter.filter(pages, list(site.assets), incremental=True)
     elapsed_ms = (time.time() - start) * 1000

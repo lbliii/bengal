@@ -688,9 +688,7 @@ class TestSitemapGeneratorHreflangEdgeCases:
         assert mock_atomic.called
 
     @patch("bengal.utils.io.atomic_write.AtomicFile")
-    def test_lang_fallback_to_default(
-        self, mock_atomic: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_lang_fallback_to_default(self, mock_atomic: MagicMock, tmp_path: Path) -> None:
         """Test that missing lang falls back to default_language."""
         from bengal.postprocess.sitemap import SitemapGenerator
 

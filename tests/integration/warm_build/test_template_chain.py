@@ -19,7 +19,7 @@ from tests.integration.warm_build.conftest import WarmBuildTestSite
 
 class TestWarmBuildTemplateChain:
     """Test template inheritance chain changes during warm builds.
-    
+
     Note: Bengal uses theme templates by default. These tests verify template
     change detection behavior. The custom templates may or may not override
     theme templates depending on Bengal's template resolution.
@@ -35,7 +35,7 @@ class TestWarmBuildTemplateChain:
         1. Build with templates
         2. Modify a template file
         3. Incremental build should detect change
-        
+
         Note: Bengal uses default theme templates. This test verifies that
         template file changes are detected, even if the custom template
         isn't used (theme templates take precedence).
@@ -77,7 +77,7 @@ class TestWarmBuildTemplateChain:
         # Build 2: Template change detection varies based on implementation
         # The key is that the build completes without error
         stats2 = site_with_templates.incremental_build()
-        
+
         # Build should complete (may be skipped if theme templates are used)
         assert stats2 is not None
 
@@ -91,7 +91,7 @@ class TestWarmBuildTemplateChain:
         1. Build with partials/sidebar.html
         2. Modify sidebar.html
         3. Incremental build should complete
-        
+
         Note: Default theme templates may be used instead of custom templates.
         This test verifies template file change detection.
         """
@@ -124,9 +124,7 @@ class TestWarmBuildTemplateChain:
         # Build should complete without errors
         assert stats2 is not None
 
-    def test_theme_override_precedence(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_theme_override_precedence(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         Theme override takes precedence on warm build.
 
@@ -181,9 +179,7 @@ class TestWarmBuildTemplateChain:
         override_html = site_with_templates.read_output("index.html")
         assert "LOCAL OVERRIDE ACTIVE" in override_html or "local-override-active" in override_html
 
-    def test_deep_template_inheritance_change(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_deep_template_inheritance_change(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         Template in inheritance chain change is detected.
 
@@ -193,7 +189,7 @@ class TestWarmBuildTemplateChain:
         1. Build with templates
         2. Modify layouts/default.html (middle of chain)
         3. Incremental build should complete
-        
+
         Note: Theme templates may override custom templates. This tests
         that template file changes are tracked.
         """
@@ -245,7 +241,7 @@ class TestWarmBuildTemplateChain:
         1. Build with shortcodes/note.html
         2. Modify note.html template
         3. Incremental build should complete
-        
+
         Note: Shortcode template resolution depends on Bengal's implementation.
         This tests that shortcode file changes are tracked.
         """
@@ -279,9 +275,7 @@ class TestWarmBuildTemplateChain:
 class TestWarmBuildTemplateEdgeCases:
     """Edge cases for template chain warm builds."""
 
-    def test_new_template_file_discovered(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_new_template_file_discovered(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         New template file is discovered on warm build.
 
@@ -337,9 +331,7 @@ This post uses the new blog layout.
         # New page should be generated
         site_with_templates.assert_output_exists("blog/new-post/index.html")
 
-    def test_template_deletion_handled(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_template_deletion_handled(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         Template deletion is handled (falls back to default).
 
@@ -379,9 +371,7 @@ Uses docs layout.
         # Build should succeed with fallback
         assert stats2.total_pages >= 1
 
-    def test_circular_include_prevented(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_circular_include_prevented(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         Circular template includes are handled gracefully.
 
@@ -438,9 +428,7 @@ Uses docs layout.
             error_msg = str(e).lower()
             assert "recursion" in error_msg or "include" in error_msg or "circular" in error_msg
 
-    def test_template_syntax_error_handled(
-        self, site_with_templates: WarmBuildTestSite
-    ) -> None:
+    def test_template_syntax_error_handled(self, site_with_templates: WarmBuildTestSite) -> None:
         """
         Template syntax errors are reported clearly.
 

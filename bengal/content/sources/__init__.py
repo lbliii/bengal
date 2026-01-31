@@ -129,6 +129,7 @@ def is_source_available(source_type: str) -> bool:
     """Check if a source type is available."""
     return source_type in SOURCE_REGISTRY
 
+
 __all__ = [
     "SOURCE_REGISTRY",
     # Core types

@@ -31,14 +31,14 @@ from dataclasses import dataclass, field
 class TestProgressReporter:
     """
     Progress reporter for long-running tests.
-    
+
     Provides visual feedback during test execution without interfering
     with pytest's output capture. Respects verbosity settings.
-    
+
     Attributes:
         verbose: Whether to print progress (default from pytest -v flag)
         prefix: Optional prefix for all messages (e.g., test name)
-        
+
     """
 
     verbose: bool = True
@@ -194,14 +194,14 @@ class TestProgressReporter:
 def create_test_progress(verbose: bool | None = None, prefix: str = "") -> TestProgressReporter:
     """
     Create a test progress reporter.
-    
+
     Args:
         verbose: Override verbosity (None = auto-detect from pytest -v)
         prefix: Optional prefix for messages
-    
+
     Returns:
         TestProgressReporter instance
-        
+
     """
     if verbose is None:
         # Auto-detect from pytest verbose flag
@@ -219,9 +219,9 @@ def create_test_progress(verbose: bool | None = None, prefix: str = "") -> TestP
 def progress_status(message: str, done: bool = False) -> None:
     """
     Quick status message during tests (always prints to stderr).
-    
+
     For long-running tests that need to show they're making progress.
-        
+
     """
     indicator = "✓" if done else "→"
     print(f"  {indicator} {message}", file=sys.stderr, flush=True)

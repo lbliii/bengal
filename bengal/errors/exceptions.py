@@ -866,4 +866,3 @@ class BengalTemplateFunctionError(BengalRenderingError):
             ... )
 
     """
-

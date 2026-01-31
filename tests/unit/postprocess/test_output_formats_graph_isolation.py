@@ -25,7 +25,7 @@ class TestGraphDataIsolation:
 
     def test_graph_data_not_mutated_across_pages(self, tmp_path: Path) -> None:
         """CRITICAL: Verify shared graph_data is not mutated when processing multiple pages.
-        
+
         This is a regression test for a bug where adding isCurrent=True to nodes
         would persist in the shared graph_data, causing incorrect visualization
         for subsequent pages.

@@ -262,6 +262,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
         Mapping of slug -> ThemePackage
 
     """
+
     def _discover_themes() -> dict[str, ThemePackage]:
         themes: dict[str, ThemePackage] = {}
         try:
@@ -313,7 +314,13 @@ def get_installed_themes() -> dict[str, ThemePackage]:
                 slug=slug, package=package, distribution=dist_name, version=version
             )
 
-        emit(None, "debug", "installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
+        emit(
+            None,
+            "debug",
+            "installed_themes_discovered",
+            count=len(themes),
+            slugs=list(themes.keys()),
+        )
         return themes
 
     return _installed_themes_cache.get_or_set("themes", _discover_themes)

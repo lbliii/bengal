@@ -340,9 +340,9 @@ class TestHumanizeBytesProperties:
 class TestSlugifyProperties:
     """
     Property tests for slugify in text utils.
-    
+
     Note: This is different from CLI slugify, but should have similar properties.
-        
+
     """
 
     @pytest.mark.hypothesis

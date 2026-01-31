@@ -289,9 +289,7 @@ def _expand_forced_changed(
         for page_path in affected_pages:
             if page_path not in expanded:
                 expanded.add(page_path)
-                reasons.setdefault(str(page_path), []).append(
-                    f"data_file:{data_file.name}"
-                )
+                reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
 
     # Gap 3: Detect template changes
     changed_templates = _detect_changed_templates(cache, site)
@@ -300,9 +298,7 @@ def _expand_forced_changed(
         for page_path in affected_pages:
             if page_path not in expanded:
                 expanded.add(page_path)
-                reasons.setdefault(str(page_path), []).append(
-                    f"template:{template_path.name}"
-                )
+                reasons.setdefault(str(page_path), []).append(f"template:{template_path.name}")
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Build a mapping of source paths to pages for efficient lookup
@@ -315,9 +311,7 @@ def _expand_forced_changed(
         for term_path in term_pages:
             if term_path not in expanded:
                 expanded.add(term_path)
-                reasons.setdefault(str(term_path), []).append(
-                    f"member_changed:{content_path.name}"
-                )
+                reasons.setdefault(str(term_path), []).append(f"member_changed:{content_path.name}")
 
     if len(expanded) > len(forced_changed):
         logger.info(
@@ -407,6 +401,7 @@ def phase_incremental_filter_provenance(
             # Force full discovery (incremental=False) to bypass any cache issues
             # This ensures we find pages even if the page discovery cache is broken
             from bengal.orchestration.build import initialization
+
             initialization.phase_discovery(
                 orchestrator,
                 cli,
@@ -446,7 +441,7 @@ def phase_incremental_filter_provenance(
             cache_matches = True
             if provenance_cache._index:
                 # Sample check: verify a few pages have matching cache entries
-                sample_pages = pages_list[:min(10, len(pages_list))]
+                sample_pages = pages_list[: min(10, len(pages_list))]
                 for page in sample_pages:
                     page_key = provenance_filter._get_page_key(page)
                     if page_key not in provenance_cache._index:
@@ -544,8 +539,7 @@ def phase_incremental_filter_provenance(
                 # Create new result with taxonomy pages added
                 new_pages_to_build = list(result.pages_to_build) + taxonomy_pages_to_add
                 new_pages_skipped = [
-                    p for p in result.pages_skipped
-                    if p not in taxonomy_pages_to_add
+                    p for p in result.pages_skipped if p not in taxonomy_pages_to_add
                 ]
                 result = ProvenanceFilterResult(
                     pages_to_build=new_pages_to_build,
@@ -648,9 +642,7 @@ def phase_incremental_filter_provenance(
         output_dir = site.output_dir
         output_assets_dir = output_dir / "assets"
 
-        output_html_missing = (
-            not output_dir.exists() or len(list(output_dir.iterdir())) == 0
-        )
+        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
 
         # Check for CSS entry points instead of arbitrary file count
         # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
@@ -775,12 +767,16 @@ def phase_incremental_filter_provenance(
         orchestrator.stats.incremental_decision = decision
 
         # CLI output
-        pages_msg = f"{len(result.pages_to_build)} page{'s' if len(result.pages_to_build) != 1 else ''}"
+        pages_msg = (
+            f"{len(result.pages_to_build)} page{'s' if len(result.pages_to_build) != 1 else ''}"
+        )
         assets_msg = f"{len(result.assets_to_process)} asset{'s' if len(result.assets_to_process) != 1 else ''}"
         skipped_msg = f"{result.cache_hits} cached"
 
         cli.info(f"  Provenance build: {pages_msg}, {assets_msg} (skipped {skipped_msg})")
-        cli.detail(f"Filter time: {filter_time_ms:.1f}ms ({result.hit_rate:.1f}% hit rate)", indent=1)
+        cli.detail(
+            f"Filter time: {filter_time_ms:.1f}ms ({result.hit_rate:.1f}% hit rate)", indent=1
+        )
 
         # Store provenance filter for later use (recording builds)
         orchestrator._provenance_filter = provenance_filter

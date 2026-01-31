@@ -297,13 +297,13 @@ console.log("test")
 class TestComplexDirectiveCombinations:
     """
     Test complex directive nesting and edge cases.
-    
+
     These tests cover scenarios commonly found in documentation:
     - Showing directive syntax examples in code blocks
     - Deep nesting of directives
     - Multiple code blocks within directives
     - Edge cases with fence lengths and matching
-        
+
     """
 
     def test_three_level_nesting(self, parser):
@@ -675,10 +675,10 @@ Both work differently!
 class TestDirectiveEdgeCases:
     """
     Test edge cases that could cause parsing issues.
-    
+
     These tests help ensure the health check warnings are accurate
     and that edge cases don't break the build.
-        
+
     """
 
     def test_directive_at_end_of_file_no_trailing_newline(self, parser):

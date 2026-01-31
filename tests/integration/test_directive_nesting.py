@@ -279,4 +279,3 @@ Orphaned step
         # Both valid and orphaned should render
         assert "Valid step" in result
         assert "Orphaned step" in result
-

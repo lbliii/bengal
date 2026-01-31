@@ -121,42 +121,42 @@ class TestBlockCacheThreadSafety:
 
     def test_clear_is_safe_when_no_readers(self) -> None:
         """Verify clear() is safe when called between build phases.
-        
+
         Note: BlockCache is designed for the pattern:
         1. Populate cache (warm_site_blocks)
         2. Read during parallel rendering
         3. Clear between builds
-        
+
         clear() is NOT designed to be called while readers are active.
         This test verifies the safe pattern works correctly.
         """
         cache = BlockCache()
-        
+
         # Phase 1: Populate
         for i in range(10):
             cache.set("base.html", f"block_{i}", f"<div>{i}</div>")
-        
+
         # Phase 2: Concurrent reads (no clear)
         errors: list[Exception] = []
-        
+
         def reader() -> None:
             try:
                 for _ in range(100):
                     cache.get("base.html", "block_0")
             except Exception as e:
                 errors.append(e)
-        
+
         threads = [threading.Thread(target=reader) for _ in range(10)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
+
         assert not errors, f"Thread safety errors during reads: {errors}"
-        
+
         # Phase 3: Clear between builds (no readers)
         cache.clear()
-        
+
         assert cache.get("base.html", "block_0") is None
         assert cache.get_stats()["site_blocks_cached"] == 0
 

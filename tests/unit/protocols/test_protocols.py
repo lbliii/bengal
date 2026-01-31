@@ -30,26 +30,23 @@ class TestCoreProtocols:
         # Instead, verify the required attributes exist (as properties or in annotations)
         # Note: Some are properties defined on the class, not annotations
         def has_attr(cls, name: str) -> bool:
-            return (
-                hasattr(cls, name) 
-                or name in getattr(cls, '__annotations__', {})
-            )
-        
-        assert has_attr(Section, 'name')
-        assert has_attr(Section, 'title')
-        assert has_attr(Section, 'path')
-        assert has_attr(Section, 'href')
-        assert has_attr(Section, 'pages')
-        assert has_attr(Section, 'subsections')
-        assert has_attr(Section, 'parent')
-        assert has_attr(Section, 'index_page')
+            return hasattr(cls, name) or name in getattr(cls, "__annotations__", {})
+
+        assert has_attr(Section, "name")
+        assert has_attr(Section, "title")
+        assert has_attr(Section, "path")
+        assert has_attr(Section, "href")
+        assert has_attr(Section, "pages")
+        assert has_attr(Section, "subsections")
+        assert has_attr(Section, "parent")
+        assert has_attr(Section, "index_page")
 
     def test_page_like_has_required_properties(self) -> None:
         """PageLike protocol defines all required properties."""
         from bengal.protocols import PageLike
 
         # Check protocol definition
-        assert hasattr(PageLike, '__protocol_attrs__') or True  # Protocol attrs exist
+        assert hasattr(PageLike, "__protocol_attrs__") or True  # Protocol attrs exist
         # Verify key attributes are in the protocol
         # Note: runtime_checkable protocols only check for attribute existence
 
@@ -62,9 +59,9 @@ class TestRenderingProtocols:
         from bengal.protocols import HighlightService
 
         # Verify protocol shape
-        assert hasattr(HighlightService, 'name')
-        assert hasattr(HighlightService, 'highlight')
-        assert hasattr(HighlightService, 'supports_language')
+        assert hasattr(HighlightService, "name")
+        assert hasattr(HighlightService, "highlight")
+        assert hasattr(HighlightService, "supports_language")
 
     def test_rosettes_backend_satisfies_highlight_service(self) -> None:
         """RosettesBackend satisfies HighlightService protocol."""
@@ -72,10 +69,10 @@ class TestRenderingProtocols:
         from bengal.rendering.highlighting.rosettes import RosettesBackend
 
         backend = RosettesBackend()
-        
+
         # Verify it's runtime-checkable
         assert isinstance(backend, HighlightService)
-        
+
         # Verify required properties/methods work
         assert backend.name == "rosettes"
         assert callable(backend.highlight)
@@ -87,16 +84,16 @@ class TestRenderingProtocols:
 
         # TemplateEngine should have all TemplateRenderer methods plus more
         # This is structural, so we check method names
-        renderer_methods = {'render_template', 'render_string'}
-        
+        renderer_methods = {"render_template", "render_string"}
+
         # All TemplateRenderer methods should be in TemplateEngine
         # (This is guaranteed by inheritance in the protocol definition)
-        assert hasattr(TemplateEngine, 'render_template')
-        assert hasattr(TemplateEngine, 'render_string')
-        
+        assert hasattr(TemplateEngine, "render_template")
+        assert hasattr(TemplateEngine, "render_string")
+
         # TemplateEngine has additional methods
-        assert hasattr(TemplateEngine, 'template_exists')
-        assert hasattr(TemplateEngine, 'validate')
+        assert hasattr(TemplateEngine, "template_exists")
+        assert hasattr(TemplateEngine, "validate")
 
 
 class TestDeprecationWarnings:
@@ -106,10 +103,10 @@ class TestDeprecationWarnings:
         """Old import path for SectionLike emits deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             # Import from old path
             from bengal.core.section.protocols import SectionLike
-            
+
             # Should emit exactly one deprecation warning
             assert len(w) == 1
             assert issubclass(w[0].category, DeprecationWarning)
@@ -120,10 +117,10 @@ class TestDeprecationWarnings:
         """Old import path for HighlightBackend emits deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             # Import from old path
             from bengal.rendering.highlighting.protocol import HighlightBackend
-            
+
             # Should emit exactly one deprecation warning
             assert len(w) == 1
             assert issubclass(w[0].category, DeprecationWarning)
@@ -133,10 +130,10 @@ class TestDeprecationWarnings:
         """Old import path for TemplateEngineProtocol emits deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             # Import from old path
             from bengal.rendering.engines.protocol import TemplateEngineProtocol
-            
+
             # Should emit exactly one deprecation warning
             assert len(w) == 1
             assert issubclass(w[0].category, DeprecationWarning)
@@ -162,14 +159,13 @@ class TestBackwardsCompatibility:
         """New import path does not emit deprecation warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             # Import from new canonical path
             from bengal.protocols import SectionLike, HighlightService
-            
+
             # Should NOT emit any deprecation warnings
             deprecation_warnings = [
-                warning for warning in w 
-                if issubclass(warning.category, DeprecationWarning)
+                warning for warning in w if issubclass(warning.category, DeprecationWarning)
             ]
             assert len(deprecation_warnings) == 0
 
@@ -182,40 +178,40 @@ class TestProtocolExports:
         from bengal import protocols
 
         # Core protocols
-        assert hasattr(protocols, 'PageLike')
-        assert hasattr(protocols, 'SectionLike')
-        assert hasattr(protocols, 'SiteLike')
-        assert hasattr(protocols, 'NavigableSection')
-        assert hasattr(protocols, 'QueryableSection')
+        assert hasattr(protocols, "PageLike")
+        assert hasattr(protocols, "SectionLike")
+        assert hasattr(protocols, "SiteLike")
+        assert hasattr(protocols, "NavigableSection")
+        assert hasattr(protocols, "QueryableSection")
 
     def test_all_rendering_protocols_exported(self) -> None:
         """All rendering protocols are exported from bengal.protocols."""
         from bengal import protocols
 
         # Template protocols
-        assert hasattr(protocols, 'TemplateEnvironment')
-        assert hasattr(protocols, 'TemplateRenderer')
-        assert hasattr(protocols, 'TemplateIntrospector')
-        assert hasattr(protocols, 'TemplateValidator')
-        assert hasattr(protocols, 'TemplateEngine')
-        assert hasattr(protocols, 'EngineCapability')
-        
+        assert hasattr(protocols, "TemplateEnvironment")
+        assert hasattr(protocols, "TemplateRenderer")
+        assert hasattr(protocols, "TemplateIntrospector")
+        assert hasattr(protocols, "TemplateValidator")
+        assert hasattr(protocols, "TemplateEngine")
+        assert hasattr(protocols, "EngineCapability")
+
         # Highlighting
-        assert hasattr(protocols, 'HighlightService')
-        
+        assert hasattr(protocols, "HighlightService")
+
         # Roles and directives
-        assert hasattr(protocols, 'RoleHandler')
-        assert hasattr(protocols, 'DirectiveHandler')
+        assert hasattr(protocols, "RoleHandler")
+        assert hasattr(protocols, "DirectiveHandler")
 
     def test_all_infrastructure_protocols_exported(self) -> None:
         """All infrastructure protocols are exported from bengal.protocols."""
         from bengal import protocols
 
-        assert hasattr(protocols, 'ProgressReporter')
-        assert hasattr(protocols, 'Cacheable')
-        assert hasattr(protocols, 'OutputCollector')
-        assert hasattr(protocols, 'ContentSourceProtocol')
-        assert hasattr(protocols, 'OutputTarget')
+        assert hasattr(protocols, "ProgressReporter")
+        assert hasattr(protocols, "Cacheable")
+        assert hasattr(protocols, "OutputCollector")
+        assert hasattr(protocols, "ContentSourceProtocol")
+        assert hasattr(protocols, "OutputTarget")
 
 
 class TestProtocolComposition:
@@ -226,9 +222,9 @@ class TestProtocolComposition:
         from bengal.protocols import TemplateRenderer
 
         # Verify the protocol exists and has the right methods
-        assert hasattr(TemplateRenderer, 'render_template')
-        assert hasattr(TemplateRenderer, 'render_string')
-        
+        assert hasattr(TemplateRenderer, "render_template")
+        assert hasattr(TemplateRenderer, "render_string")
+
         # The protocol can be used as a type hint
         # (We skip get_type_hints as it has issues with local function definitions)
 
@@ -238,7 +234,7 @@ class TestProtocolComposition:
 
         # Test flag composition
         combined = EngineCapability.BLOCK_CACHING | EngineCapability.INTROSPECTION
-        
+
         assert EngineCapability.BLOCK_CACHING in combined
         assert EngineCapability.INTROSPECTION in combined
         assert EngineCapability.PATTERN_MATCHING not in combined
@@ -252,17 +248,17 @@ class TestInfrastructureProtocols:
         from bengal.protocols import Cacheable
 
         # Verify protocol shape
-        assert hasattr(Cacheable, 'to_cache_dict')
-        assert hasattr(Cacheable, 'from_cache_dict')
+        assert hasattr(Cacheable, "to_cache_dict")
+        assert hasattr(Cacheable, "from_cache_dict")
 
     def test_output_target_protocol_shape(self) -> None:
         """OutputTarget protocol has required methods."""
         from bengal.protocols import OutputTarget
 
         # Verify protocol shape
-        assert hasattr(OutputTarget, 'name')
-        assert hasattr(OutputTarget, 'write')
-        assert hasattr(OutputTarget, 'write_bytes')
-        assert hasattr(OutputTarget, 'copy')
-        assert hasattr(OutputTarget, 'mkdir')
-        assert hasattr(OutputTarget, 'exists')
+        assert hasattr(OutputTarget, "name")
+        assert hasattr(OutputTarget, "write")
+        assert hasattr(OutputTarget, "write_bytes")
+        assert hasattr(OutputTarget, "copy")
+        assert hasattr(OutputTarget, "mkdir")
+        assert hasattr(OutputTarget, "exists")

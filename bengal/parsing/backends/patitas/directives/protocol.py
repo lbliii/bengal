@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
 
-
 @runtime_checkable
 class DirectiveHandler(Protocol):
     """Protocol for directive implementations.

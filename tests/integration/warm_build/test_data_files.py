@@ -67,9 +67,7 @@ members:
         # Build should process the change
         assert stats2.total_pages >= 1
 
-    def test_new_data_file_available_on_warm_build(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_new_data_file_available_on_warm_build(self, site_with_data: WarmBuildTestSite) -> None:
         """
         New data file available to templates on warm build.
 
@@ -126,9 +124,7 @@ Check out our pricing plans!
         # New page should be generated
         site_with_data.assert_output_exists("pricing/index.html")
 
-    def test_deleted_data_file_handled_gracefully(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_deleted_data_file_handled_gracefully(self, site_with_data: WarmBuildTestSite) -> None:
         """
         Deleted data file doesn't crash build.
 
@@ -154,9 +150,7 @@ Check out our pricing plans!
         # Build should succeed without the data file
         assert stats2.total_pages >= 1
 
-    def test_nested_data_structure_change(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_nested_data_structure_change(self, site_with_data: WarmBuildTestSite) -> None:
         """
         Deep changes in nested data structures are picked up on rebuild.
 
@@ -235,9 +229,7 @@ main_menu:
 class TestWarmBuildDataFilesEdgeCases:
     """Edge cases for data file warm builds."""
 
-    def test_empty_data_file(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_empty_data_file(self, site_with_data: WarmBuildTestSite) -> None:
         """
         Empty data file is handled gracefully.
 
@@ -261,9 +253,7 @@ class TestWarmBuildDataFilesEdgeCases:
         # Should handle empty file gracefully
         assert stats2.total_pages >= 1
 
-    def test_invalid_yaml_handled_gracefully(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_invalid_yaml_handled_gracefully(self, site_with_data: WarmBuildTestSite) -> None:
         """
         Invalid YAML in data file is handled gracefully.
 
@@ -302,9 +292,7 @@ members:
             # If it fails, it should be a handled error, not a crash
             assert "yaml" in str(e).lower() or "parse" in str(e).lower()
 
-    def test_multiple_data_files_change(
-        self, site_with_data: WarmBuildTestSite
-    ) -> None:
+    def test_multiple_data_files_change(self, site_with_data: WarmBuildTestSite) -> None:
         """
         Multiple data files changing at once is handled correctly.
 

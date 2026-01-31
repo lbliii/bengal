@@ -317,6 +317,7 @@ class ProvenanceFilter:
     def _load_asset_hashes(self) -> None:
         """Load asset hashes from disk."""
         import json
+
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
         if asset_cache_path.exists():
             try:
@@ -328,6 +329,7 @@ class ProvenanceFilter:
     def _save_asset_hashes(self) -> None:
         """Save asset hashes to disk."""
         import json
+
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
         asset_cache_path.parent.mkdir(parents=True, exist_ok=True)
         asset_cache_path.write_text(json.dumps(dict(self._asset_hashes), indent=2))
@@ -428,7 +430,9 @@ class ProvenanceFilter:
                 page_path=str(page_path),
                 has_section=initial_section is not None,
                 section_name=getattr(initial_section, "name", None) if initial_section else None,
-                section_has_index=getattr(initial_section, "index_page", None) is not None if initial_section else False,
+                section_has_index=getattr(initial_section, "index_page", None) is not None
+                if initial_section
+                else False,
             )
 
         return sources
@@ -536,7 +540,9 @@ class ProvenanceFilter:
             # Uses "source_file" metadata set during autodoc extraction
             autodoc_source = page.metadata.get("source_file")
             if autodoc_source and page.metadata.get("is_autodoc"):
-                source_path = Path(autodoc_source) if isinstance(autodoc_source, str) else autodoc_source
+                source_path = (
+                    Path(autodoc_source) if isinstance(autodoc_source, str) else autodoc_source
+                )
                 # Resolve relative paths from site root
                 if not source_path.is_absolute():
                     # Try site root first
@@ -594,7 +600,11 @@ class ProvenanceFilter:
 
             # Fallback for other virtual pages: use template + title hash
             if provenance.input_count == 0:
-                template = page.metadata.get("template") or page.metadata.get("_autodoc_template") or "default"
+                template = (
+                    page.metadata.get("template")
+                    or page.metadata.get("_autodoc_template")
+                    or "default"
+                )
                 title = page.metadata.get("title") or rel_path
                 fallback_hash = hash_content(f"{template}:{title}")
                 provenance = provenance.with_input("virtual", rel_path, fallback_hash)

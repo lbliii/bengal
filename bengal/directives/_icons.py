@@ -61,9 +61,7 @@ _RE_CLASS = re.compile(r'\s+class="[^"]*"')
 _RE_SVG_TAG = re.compile(r"<svg\s")
 
 # Thread-safe LRU cache for SVG icon rendering (replaces @lru_cache for free-threading)
-_svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(
-    maxsize=512, name="svg_icon"
-)
+_svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(maxsize=512, name="svg_icon")
 
 
 def get_icon_svg(name: str) -> str | None:

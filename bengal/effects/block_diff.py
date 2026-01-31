@@ -63,15 +63,17 @@ class BlockDiffService:
     """
 
     # Blocks that are site-scoped (don't require page rebuilds)
-    SITE_SCOPED_BLOCKS = frozenset({
-        "nav",
-        "navigation",
-        "header",
-        "footer",
-        "sidebar",
-        "menu",
-        "breadcrumbs",
-    })
+    SITE_SCOPED_BLOCKS = frozenset(
+        {
+            "nav",
+            "navigation",
+            "header",
+            "footer",
+            "sidebar",
+            "menu",
+            "breadcrumbs",
+        }
+    )
 
     def __init__(
         self,
@@ -93,9 +95,7 @@ class BlockDiffService:
         if old_snapshot:
             self._old_pages = {p.source_path: p for p in old_snapshot.pages}
 
-        self._new_pages: dict[Path, PageSnapshot] = {
-            p.source_path: p for p in new_snapshot.pages
-        }
+        self._new_pages: dict[Path, PageSnapshot] = {p.source_path: p for p in new_snapshot.pages}
 
     def diff_page(self, source_path: Path) -> DiffResult:
         """

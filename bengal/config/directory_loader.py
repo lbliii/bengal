@@ -91,7 +91,6 @@ class ConfigLoadError(BengalConfigError):
     """
 
 
-
 class ConfigDirectoryLoader:
     """
     Load configuration from a directory structure with layered overrides.

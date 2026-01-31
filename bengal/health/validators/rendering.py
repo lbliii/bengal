@@ -100,7 +100,9 @@ class RenderingValidator(BaseValidator):
                     issues.append(f"{output_path.name}: Missing <body> tag")
 
             except Exception as e:
-                issues.append(f"{output_path.name if output_path else 'unknown'}: Error reading file - {e}")
+                issues.append(
+                    f"{output_path.name if output_path else 'unknown'}: Error reading file - {e}"
+                )
 
         if issues:
             results.append(
@@ -219,7 +221,12 @@ class RenderingValidator(BaseValidator):
         pages_to_check = []
         for p in site.pages:
             output_path = getattr(p, "output_path", None)
-            if output_path and hasattr(output_path, "exists") and output_path.exists() and not p.metadata.get("_generated"):
+            if (
+                output_path
+                and hasattr(output_path, "exists")
+                and output_path.exists()
+                and not p.metadata.get("_generated")
+            ):
                 pages_to_check.append(p)
                 if len(pages_to_check) >= 10:
                     break

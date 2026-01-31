@@ -129,11 +129,11 @@ class TestAssetUrlWithBaseurl:
 
 class TestManifestCaching:
     """Test manifest caching behavior.
-    
+
     Note: As of Phase 2 (RFC: rfc-global-build-state-dependencies.md),
     manifest caching uses ContextVar pattern instead of Site attribute.
-    
-    When ContextVar is set (via asset_manifest_context()), manifest is 
+
+    When ContextVar is set (via asset_manifest_context()), manifest is
     accessed from thread-local storage. When not set, fallback loads
     from disk but doesn't cache on Site (stateless fallback).
     """
@@ -145,7 +145,7 @@ class TestManifestCaching:
             asset_manifest_context,
             get_asset_manifest,
         )
-        
+
         # Create context with manifest entries
         ctx = AssetManifestContext(
             entries={
@@ -154,16 +154,16 @@ class TestManifestCaching:
             },
             mtime=1234567890.0,
         )
-        
+
         # Without context set, get_asset_manifest returns None
         assert get_asset_manifest() is None
-        
+
         # With context set, manifest is accessible
         with asset_manifest_context(ctx):
             manifest = get_asset_manifest()
             assert manifest is not None
             assert manifest.entries["css/style.css"] == "assets/css/style.abc123.css"
-        
+
         # After context exits, manifest is None again
         assert get_asset_manifest() is None
 
@@ -172,11 +172,11 @@ class TestManifestCaching:
     ) -> None:
         """Without ContextVar set, fallback loads manifest from disk."""
         from bengal.rendering.assets import get_asset_manifest, reset_asset_manifest
-        
+
         # Ensure no ContextVar is set
         reset_asset_manifest()
         assert get_asset_manifest() is None
-        
+
         # resolve_asset_url should still work via disk fallback
         result = resolve_asset_url("css/style.css", site_with_manifest)
         assert result == "/assets/css/style.abc123.css"
@@ -184,9 +184,9 @@ class TestManifestCaching:
     def test_missing_manifest_returns_fallback_path(self, tmp_path: Path) -> None:
         """Sites without manifest should return non-fingerprinted fallback path."""
         from bengal.rendering.assets import reset_asset_manifest
-        
+
         reset_asset_manifest()  # Ensure no ContextVar is set
-        
+
         site = MockSite(output_dir=tmp_path)  # No manifest file
         result = resolve_asset_url("css/style.css", site)
         assert result == "/assets/css/style.css"  # Fallback

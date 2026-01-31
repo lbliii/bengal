@@ -155,9 +155,7 @@ class WaveScheduler:
         stats = RenderStats()
 
         # Filter to pages we can render
-        pages_to_render = [
-            p for p in pages_to_build if p.source_path in self._page_map
-        ]
+        pages_to_render = [p for p in pages_to_build if p.source_path in self._page_map]
 
         if not pages_to_render:
             if pages_to_build:
@@ -184,10 +182,9 @@ class WaveScheduler:
 
         # Create template engine
         from bengal.rendering.engines import create_engine
+
         profile_templates = (
-            getattr(self.build_context, "profile_templates", False)
-            if self.build_context
-            else False
+            getattr(self.build_context, "profile_templates", False) if self.build_context else False
         )
         template_engine = create_engine(self.site, profile=profile_templates)
 
@@ -216,6 +213,7 @@ class WaveScheduler:
         # Start scout thread
         scout: ScoutThread | None = None
         from bengal.snapshots.scout import ScoutThread
+
         scout = ScoutThread(self.snapshot, template_engine)
         scout.start()
 
@@ -249,8 +247,7 @@ class WaveScheduler:
 
             # Sort templates by page count (most-used first for better cache warming)
             sorted_templates = sorted(
-                template_to_pages.keys(),
-                key=lambda t: -len(template_to_pages[t])
+                template_to_pages.keys(), key=lambda t: -len(template_to_pages[t])
             )
 
             logger.debug(
@@ -292,10 +289,7 @@ class WaveScheduler:
                         return page
 
                     # Submit all pages in this template batch
-                    futures = {
-                        executor.submit(process_page, page): page
-                        for page in batch_pages
-                    }
+                    futures = {executor.submit(process_page, page): page for page in batch_pages}
 
                     # Collect results and update progress
                     for future in as_completed(futures):
@@ -370,9 +364,7 @@ class WaveScheduler:
 
         stats = RenderStats()
 
-        pages_to_render = [
-            p for p in pages_to_build if p.source_path in self._page_map
-        ]
+        pages_to_render = [p for p in pages_to_build if p.source_path in self._page_map]
 
         if not pages_to_render and pages_to_build:
             logger.warning(
@@ -394,9 +386,7 @@ class WaveScheduler:
         from bengal.rendering.engines import create_engine
 
         profile_templates = (
-            getattr(self.build_context, "profile_templates", False)
-            if self.build_context
-            else False
+            getattr(self.build_context, "profile_templates", False) if self.build_context else False
         )
         template_engine = create_engine(self.site, profile=profile_templates)
 

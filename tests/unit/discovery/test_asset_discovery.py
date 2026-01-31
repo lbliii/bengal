@@ -182,9 +182,9 @@ class TestAssetDiscovery:
 @pytest.mark.parallel_unsafe
 class TestAssetDiscoveryPathsWithDots:
     """Test asset discovery in paths containing dots (e.g., .venv).
-    
+
     Regression tests for: Theme assets skipped when Bengal installed in .venv
-        
+
     """
 
     def test_discovers_assets_in_dotted_parent_path(self):
@@ -267,10 +267,10 @@ class TestAssetDiscoveryPathsWithDots:
 @pytest.mark.parallel_unsafe
 class TestAssetDiscoveryWithRaceConditions:
     """Test asset discovery behavior during parallel operations.
-    
+
     Marked parallel_unsafe: Uses ThreadPoolExecutor internally, which conflicts
     with pytest-xdist's parallel test execution (nested parallelism causes worker crashes).
-        
+
     """
 
     def test_ignores_temp_files_during_parallel_processing(self):

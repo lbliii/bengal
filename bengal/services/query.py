@@ -235,10 +235,7 @@ def get_pages_by_section(snapshot: SiteSnapshot, section_url: str) -> list[PageS
     Returns:
         List of PageSnapshots in the section
     """
-    return [
-        page for page in snapshot.pages
-        if page.section and page.section.href == section_url
-    ]
+    return [page for page in snapshot.pages if page.section and page.section.href == section_url]
 
 
 def get_children_pages(
@@ -260,7 +257,8 @@ def get_children_pages(
     if recursive:
         # Include pages whose section URL starts with parent URL
         return [
-            page for page in snapshot.pages
+            page
+            for page in snapshot.pages
             if page.section and page.section.href.startswith(section_url)
         ]
     else:

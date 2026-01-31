@@ -263,22 +263,22 @@ def test_decide_from_outputs_xml_sitemap():
 def test_capture_content_hash_baseline_includes_css_files(tmp_path: Path):
     """
     BUG FIX: CSS files must be captured in baseline for accurate CSS-only detection.
-    
+
     Previously, capture_content_hash_baseline() only captured .html files,
     but _check_css_changes_hashed() compared CSS files against the baseline.
     This caused ALL CSS files to be reported as changed every time.
     """
     pub = tmp_path
     ctl = ReloadController(min_notify_interval_ms=0, use_content_hashes=True)
-    
+
     # Create initial files
     (pub / "assets").mkdir()
     (pub / "assets" / "style.css").write_text("body{color:red}")
     (pub / "index.html").write_text("<html></html>")
-    
+
     # Capture baseline
     ctl.capture_content_hash_baseline(pub)
-    
+
     # Verify CSS file is in baseline
     assert "assets/style.css" in ctl._baseline_content_hashes
     assert "index.html" in ctl._baseline_content_hashes
@@ -290,18 +290,18 @@ def test_css_only_detection_with_content_hashes_no_spurious_reload(tmp_path: Pat
     """
     pub = tmp_path
     ctl = ReloadController(min_notify_interval_ms=0, use_content_hashes=True)
-    
+
     # Create initial files
     (pub / "assets").mkdir()
     (pub / "assets" / "style.css").write_text("body{color:red}")
     (pub / "index.html").write_text("<html></html>")
-    
+
     # Capture baseline (simulates pre-build state)
     ctl.capture_content_hash_baseline(pub)
-    
+
     # No changes made - should detect no changes
     decision = ctl.decide_with_content_hashes(pub)
-    
+
     assert decision.action == "none"
     assert decision.reason == "no-changes"
 
@@ -312,21 +312,21 @@ def test_css_only_change_detected_with_content_hashes(tmp_path: Path):
     """
     pub = tmp_path
     ctl = ReloadController(min_notify_interval_ms=0, use_content_hashes=True)
-    
+
     # Create initial files
     (pub / "assets").mkdir()
     (pub / "assets" / "style.css").write_text("body{color:red}")
     (pub / "index.html").write_text("<html></html>")
-    
+
     # Capture baseline
     ctl.capture_content_hash_baseline(pub)
-    
+
     # Change only CSS
     (pub / "assets" / "style.css").write_text("body{color:blue}")
-    
+
     # Should detect CSS-only change
     decision = ctl.decide_with_content_hashes(pub)
-    
+
     assert decision.action == "reload-css"
     assert "assets/style.css" in decision.asset_changes
 
@@ -334,13 +334,13 @@ def test_css_only_change_detected_with_content_hashes(tmp_path: Path):
 def test_content_hash_baseline_empty_on_missing_directory(tmp_path: Path):
     """Baseline capture handles missing directory gracefully."""
     ctl = ReloadController(min_notify_interval_ms=0, use_content_hashes=True)
-    
+
     # Non-existent directory
     missing_dir = tmp_path / "does_not_exist"
-    
+
     # Should not raise, just result in empty baseline
     ctl.capture_content_hash_baseline(missing_dir)
-    
+
     assert ctl._baseline_content_hashes == {}
 
 
@@ -348,16 +348,16 @@ def test_multiple_css_files_in_baseline(tmp_path: Path):
     """All CSS files should be captured in baseline."""
     pub = tmp_path
     ctl = ReloadController(min_notify_interval_ms=0, use_content_hashes=True)
-    
+
     # Create multiple CSS files in different directories
     (pub / "assets").mkdir()
     (pub / "assets" / "style.css").write_text("body{}")
     (pub / "assets" / "theme.css").write_text("h1{}")
     (pub / "assets" / "nested").mkdir()
     (pub / "assets" / "nested" / "components.css").write_text("div{}")
-    
+
     ctl.capture_content_hash_baseline(pub)
-    
+
     assert "assets/style.css" in ctl._baseline_content_hashes
     assert "assets/theme.css" in ctl._baseline_content_hashes
     assert "assets/nested/components.css" in ctl._baseline_content_hashes

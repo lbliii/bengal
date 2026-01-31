@@ -938,13 +938,7 @@ ERROR_DOCS: dict[str, dict[str, Any]] = {
             "Remove whitespace before first delimiter",
         ],
         "example": (
-            "✅ **Correct**:\n"
-            "```markdown\n"
-            "---\n"
-            "title: My Page\n"
-            "---\n\n"
-            "Content starts here.\n"
-            "```"
+            "✅ **Correct**:\n```markdown\n---\ntitle: My Page\n---\n\nContent starts here.\n```"
         ),
     },
     "P006": {
@@ -1341,4 +1335,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-"""

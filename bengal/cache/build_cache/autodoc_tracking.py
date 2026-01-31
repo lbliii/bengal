@@ -56,7 +56,9 @@ class AutodocTrackingMixin:
     # source_file → (content_hash, mtime, {page_path: doc_content_hash})
     # Using tuple allows mtime-first optimization.
     # The third element is a mapping of autodoc pages to their fine-grained content hashes.
-    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(default_factory=dict)
+    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(
+        default_factory=dict
+    )
 
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
@@ -341,9 +343,7 @@ class AutodocTrackingMixin:
         if not metadata:
             return True  # No metadata, assume changed
         if len(metadata) != 3:
-            raise ValueError(
-                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
-            )
+            raise ValueError("Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes).")
 
         # metadata is (file_hash, mtime, {page_path: doc_hash})
         doc_hashes = metadata[2]

@@ -254,11 +254,16 @@ class GraphVisualizer:
                         try:
                             # Type narrowing: output_path should be a Path
                             from pathlib import Path
+
                             output_path = page.output_path
-                            if isinstance(output_path, Path) and isinstance(self.site.output_dir, Path):
+                            if isinstance(output_path, Path) and isinstance(
+                                self.site.output_dir, Path
+                            ):
                                 # Compute relative URL from output_dir
                                 rel_path = output_path.relative_to(self.site.output_dir)
-                                page_url = f"/{rel_path}".replace("\\", "/").replace("/index.html", "/")
+                                page_url = f"/{rel_path}".replace("\\", "/").replace(
+                                    "/index.html", "/"
+                                )
                             else:
                                 raise ValueError("output_path or output_dir is not a Path")
                             if not page_url.endswith("/"):

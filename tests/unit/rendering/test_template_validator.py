@@ -27,7 +27,9 @@ class MockTemplateError:
 class MockTemplateEngine:
     """Mock template engine for testing."""
 
-    def __init__(self, template_dirs: list[Path] | None = None, errors: list[MockTemplateError] | None = None):
+    def __init__(
+        self, template_dirs: list[Path] | None = None, errors: list[MockTemplateError] | None = None
+    ):
         self.template_dirs = template_dirs or []
         self._errors = errors or []
 

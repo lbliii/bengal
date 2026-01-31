@@ -155,9 +155,7 @@ class TestHashFileConsistency:
 
         second_content = index_path.read_text()
 
-        assert first_content != second_content, (
-            "index.json should be updated when content changes"
-        )
+        assert first_content != second_content, "index.json should be updated when content changes"
 
     def test_hash_file_updated_with_content(self, tmp_path: Path) -> None:
         """Verify hash file is updated when content changes."""
@@ -197,9 +195,7 @@ class TestHashFileConsistency:
 
         second_hash = hash_path.read_text().strip()
 
-        assert first_hash != second_hash, (
-            "Hash file should be updated when content changes"
-        )
+        assert first_hash != second_hash, "Hash file should be updated when content changes"
 
     def test_corrupted_hash_file_triggers_regeneration(self, tmp_path: Path) -> None:
         """Verify corrupted hash file causes regeneration."""
@@ -313,9 +309,7 @@ class TestHashFileConsistency:
 
         second_hash = hash_path.read_text().strip()
 
-        assert first_hash == second_hash, (
-            "Hash should remain same for identical content"
-        )
+        assert first_hash == second_hash, "Hash should remain same for identical content"
 
     # Helper methods
 

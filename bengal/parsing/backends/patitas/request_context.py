@@ -49,7 +49,6 @@ class RequestContextError(RuntimeError):
     """
 
 
-
 @dataclass(frozen=True, slots=True)
 class RequestContext:
     """Per-request context for parsing and rendering.

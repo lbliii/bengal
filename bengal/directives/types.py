@@ -404,6 +404,7 @@ class ContractViolationDict(TypedDict):
 # Exports
 # =============================================================================
 
+
 @runtime_checkable
 class MistuneDirectiveRegistry(Protocol):
     """Protocol matching mistune's BaseDirective registry interface."""

@@ -708,7 +708,7 @@ class TestIncludeSymlinkRejection:
 
 class TestIncludeStateIsolation:
     """Test that include directive state doesn't leak between parses.
-    
+
     These tests verify the state.env storage pattern works correctly,
     particularly around empty dict handling (regression test for falsy {} bug).
     """
@@ -744,7 +744,7 @@ class TestIncludeStateIsolation:
 
     def test_state_env_empty_dict_not_replaced(self, temp_site_dir, mock_state_with_root):
         """Test that empty state.env dict is properly handled (not treated as falsy).
-        
+
         Regression test: Empty dict {} is falsy in Python, so `env or {}` would
         create a new dict instead of using the existing one. This test ensures
         we use `is None` check instead.

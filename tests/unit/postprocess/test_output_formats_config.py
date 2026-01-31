@@ -26,7 +26,7 @@ class TestConfigNormalizationEdgeCases:
 
     def test_explicitly_disable_all_per_page_formats(self, tmp_path: Path) -> None:
         """User can explicitly disable all per-page formats via simple config.
-        
+
         Regression test: Previously, {"json": False, "llm_txt": False} would
         result in defaults being used because empty list is falsy.
         """

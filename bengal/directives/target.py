@@ -60,7 +60,6 @@ class TargetOptions(DirectiveOptions):
     """
 
 
-
 class TargetDirective(BengalDirective):
     """
     Create an explicit anchor target at any location.

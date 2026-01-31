@@ -285,9 +285,7 @@ class BlockRendererMixin:
             meta.add_code_block(lang)
 
         if lang == "mermaid":
-            sb.append(
-                f'<div class="mermaid">{escape_html(node.get_code(self._source))}</div>\n'
-            )
+            sb.append(f'<div class="mermaid">{escape_html(node.get_code(self._source))}</div>\n')
             return
 
         # Attempt syntax highlighting via delegate (ZCLH protocol)

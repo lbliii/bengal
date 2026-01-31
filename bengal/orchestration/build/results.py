@@ -109,9 +109,7 @@ class IncrementalDecision:
     ) -> None:
         """Add a rebuild reason for a page (will not overwrite existing)."""
         if page_path not in self.rebuild_reasons:
-            self.rebuild_reasons[page_path] = RebuildReason(
-                code=code, details=details or {}
-            )
+            self.rebuild_reasons[page_path] = RebuildReason(code=code, details=details or {})
 
     def log_summary(self, logger: BengalLogger) -> None:
         """Emit INFO-level summary log."""

@@ -15,16 +15,13 @@ from bengal.orchestration.build.results import (
 )
 
 if TYPE_CHECKING:
-
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
     from bengal.output import CLIOutput
 
 
-def _check_autodoc_output_missing(
-    orchestrator: BuildOrchestrator, cache: BuildCache
-) -> bool:
+def _check_autodoc_output_missing(orchestrator: BuildOrchestrator, cache: BuildCache) -> bool:
     """
     Check if autodoc output directories are missing.
 
@@ -167,8 +164,7 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
         # Check if any changed source is NOT a content file
         content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
         non_content_changes = [
-            s for s in options.changed_sources
-            if s.suffix.lower() not in content_extensions
+            s for s in options.changed_sources if s.suffix.lower() not in content_extensions
         ]
 
         fonts_css = orchestrator.site.root_path / "assets" / "fonts.css"
@@ -540,5 +536,3 @@ def phase_config_check(
             orchestrator.incremental.check_config_changed()
 
     return ConfigCheckResult(incremental=incremental, config_changed=config_changed)
-
-

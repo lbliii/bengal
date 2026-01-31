@@ -35,6 +35,8 @@ from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.core.nav_tree import NavNode, NavTree
     from bengal.core.page import Page
     from bengal.core.section import Section

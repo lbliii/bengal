@@ -258,10 +258,7 @@ class EffectTracer:
         with self._lock:
             graph: dict[str, list[str]] = {}
             for output, effect in self._output_index.items():
-                deps = [
-                    str(d) if isinstance(d, Path) else d
-                    for d in effect.depends_on
-                ]
+                deps = [str(d) if isinstance(d, Path) else d for d in effect.depends_on]
                 graph[str(output)] = deps
             return graph
 

@@ -21,9 +21,9 @@ from bengal.utils.paths.url_strategy import URLStrategy
 class TestUrlFromOutputPathProperties:
     """
     Property tests for url_from_output_path method.
-    
+
     This is the most critical method - converts file paths to URLs.
-        
+
     """
 
     @pytest.mark.hypothesis

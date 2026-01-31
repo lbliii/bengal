@@ -62,7 +62,6 @@ class ConfigValidationError(BengalConfigError, ValueError):
     """
 
 
-
 class ConfigValidator:
     """
     Validate configuration with helpful error messages.
@@ -106,20 +105,17 @@ class ConfigValidator:
         "fast_writes",
         "fast_mode",
         "stable_section_references",
-
         # Assets (after flattening from assets.*)
         "minify_assets",
         "optimize_assets",
         "fingerprint_assets",
         "pipeline_assets",
-
         # Features (after flattening from features.*)
         "rss",
         "sitemap",
         "search",
         "json",
         "llm_txt",
-
         # Other
         "expose_metadata_json",
     }
@@ -211,10 +207,7 @@ class ConfigValidator:
         return config
 
     def _validate_section(
-        self,
-        section_dict: dict[str, Any],
-        prefix: str = "",
-        is_assets: bool = False
+        self, section_dict: dict[str, Any], prefix: str = "", is_assets: bool = False
     ) -> list[str]:
         """Validate a single configuration section."""
         errors = []

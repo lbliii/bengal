@@ -60,7 +60,9 @@ def dumps(
     """
     from bengal.utils.serialization import to_jsonable
 
-    return json.dumps(obj, indent=indent, ensure_ascii=False, default=to_jsonable, sort_keys=sort_keys)
+    return json.dumps(
+        obj, indent=indent, ensure_ascii=False, default=to_jsonable, sort_keys=sort_keys
+    )
 
 
 def loads(data: str | bytes) -> Any:

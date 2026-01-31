@@ -117,11 +117,11 @@ class TestPageDependentDirectiveSet:
 
 class TestChildCardsNotCachedAcrossPages:
     """Test that child-cards are NOT cached and reused across different pages.
-    
+
     This is the critical bug fix test: if page A has child-cards showing
     [Section1, Section2] and page B has child-cards showing [Section3, Section4],
     they must render their own children, not share cached output.
-        
+
     """
 
     @pytest.fixture

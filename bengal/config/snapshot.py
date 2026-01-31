@@ -245,9 +245,7 @@ class ConfigSnapshot:
     assets: AssetsSection = field(default_factory=AssetsSection)
 
     # Raw access for custom/dynamic keys
-    _raw: MappingProxyType[str, Any] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    _raw: MappingProxyType[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __getitem__(self, key: str) -> Any:
         """Dict-style access for custom sections."""
@@ -332,9 +330,7 @@ class ConfigSnapshot:
                 transform_links=bool(build_data.get("transform_links", True)),
                 fast_writes=bool(build_data.get("fast_writes", False)),
                 fast_mode=bool(build_data.get("fast_mode", False)),
-                stable_section_references=bool(
-                    build_data.get("stable_section_references", True)
-                ),
+                stable_section_references=bool(build_data.get("stable_section_references", True)),
                 min_page_size=int(build_data.get("min_page_size", 1000)),
             )
         else:

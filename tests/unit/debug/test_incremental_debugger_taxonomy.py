@@ -43,7 +43,7 @@ class TestSimulateChangeTaxonomy:
         mock_cache_with_taxonomy: MagicMock,
     ) -> None:
         """Changing a page should only affect pages sharing its taxonomy terms.
-        
+
         This test would have failed with the buggy implementation that added
         ALL pages from ALL taxonomy terms unconditionally.
         """
@@ -118,7 +118,7 @@ class TestSimulateChangeNonContentFiles:
         mock_cache_with_template_deps: MagicMock,
     ) -> None:
         """Changing a template should NOT trigger taxonomy-based rebuilds.
-        
+
         Only content files should trigger taxonomy-related rebuilds.
         Templates affect pages through direct dependencies.
         """

@@ -157,8 +157,7 @@ class TestBuildTriggerContentHashIntegration:
         # Create HTML with hash
         html = tmp_path / "test.html"
         html.write_text(
-            '<html><head><meta name="bengal:content-hash" content="test123">'
-            "</head></html>"
+            '<html><head><meta name="bengal:content-hash" content="test123"></head></html>'
         )
 
         # Capture baseline (simulating what build_trigger does)

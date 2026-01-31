@@ -118,10 +118,10 @@ components:
 def test_openapi_spec_file_is_resolved_relative_to_site_root(tmp_path: Path, monkeypatch) -> None:
     """
     Ensure spec_file is resolved relative to site.root_path, not the current working directory.
-    
+
     This matches how the example site config is written (e.g. spec_file: "api/openapi.yaml")
     and prevents missing OpenAPI autodocs in public/CI builds that run from the repo root.
-        
+
     """
     site_root = tmp_path / "site"
     api_dir = site_root / "api"

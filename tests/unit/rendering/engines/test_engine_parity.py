@@ -58,10 +58,9 @@ class TestEngineCommonInterface:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -86,10 +85,9 @@ class TestEngineCommonInterface:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -114,10 +112,9 @@ class TestEngineCommonInterface:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -142,10 +139,9 @@ class TestEngineCommonInterface:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -170,10 +166,9 @@ class TestEngineCommonInterface:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -202,10 +197,9 @@ class TestEngineDependencyTracking:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -232,10 +226,9 @@ class TestEngineDependencyTracking:
         mock_tracker = MagicMock()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -264,10 +257,9 @@ class TestEngineMenuCache:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -292,10 +284,9 @@ class TestEngineMenuCache:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -322,10 +313,9 @@ class TestEngineCapabilities:
         """Verify Kida reports advanced capabilities."""
         mock_site = make_mock_site()
 
-        with patch(
-            "bengal.rendering.engines.kida.FileSystemLoader"
-        ), patch(
-            "bengal.rendering.engines.kida.Environment"
+        with (
+            patch("bengal.rendering.engines.kida.FileSystemLoader"),
+            patch("bengal.rendering.engines.kida.Environment"),
         ):
             from bengal.rendering.engines.kida import KidaTemplateEngine
             from bengal.protocols import EngineCapability
@@ -340,9 +330,7 @@ class TestEngineCapabilities:
         """Verify Jinja2 reports no advanced capabilities."""
         mock_site = make_mock_site()
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 
@@ -361,10 +349,9 @@ class TestEngineCapabilities:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -388,10 +375,9 @@ class TestEngineCapabilities:
         mock_site = make_mock_site()
 
         if engine_type == "kida":
-            with patch(
-                "bengal.rendering.engines.kida.FileSystemLoader"
-            ), patch(
-                "bengal.rendering.engines.kida.Environment"
+            with (
+                patch("bengal.rendering.engines.kida.FileSystemLoader"),
+                patch("bengal.rendering.engines.kida.Environment"),
             ):
                 from bengal.rendering.engines.kida import KidaTemplateEngine
 

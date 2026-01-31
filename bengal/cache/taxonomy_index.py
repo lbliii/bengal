@@ -232,7 +232,9 @@ class TaxonomyIndex:
 
                 data = {
                     "version": self.VERSION,
-                    "tags": {tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()},
+                    "tags": {
+                        tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()
+                    },
                     # Persist reverse index (convert sets to lists for JSON)
                     "page_to_tags": {page: list(tags) for page, tags in self._page_to_tags.items()},
                 }

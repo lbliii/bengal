@@ -176,7 +176,7 @@ export default function UserList() {
 
 class TestRosettesHighlightingPerformance:
     """Benchmarks for Rosettes backend (default).
-    
+
     Rosettes is Bengal's default syntax highlighter:
     - 55 languages supported
     - Lock-free, thread-safe
@@ -272,7 +272,7 @@ class TestBulkHighlighting:
 
     def test_rosettes_100_blocks_parallel(self, benchmark) -> None:
         """Benchmark Rosettes parallel highlighting on 100 code blocks.
-        
+
         Uses rosettes.highlight_many() for parallel execution on Python 3.14t.
         """
         import rosettes

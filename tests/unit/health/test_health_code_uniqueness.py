@@ -26,7 +26,7 @@ def extract_health_codes_from_file(file_path: Path) -> list[tuple[str, int, str]
     content = file_path.read_text(encoding="utf-8")
 
     # Pattern matches code="H###" or code='H###'
-    pattern = re.compile(r'''code\s*=\s*["']([HV]\d{3})["']''')
+    pattern = re.compile(r"""code\s*=\s*["']([HV]\d{3})["']""")
 
     for i, line in enumerate(content.splitlines(), 1):
         for match in pattern.finditer(line):
@@ -59,7 +59,7 @@ def get_all_health_codes() -> dict[str, list[tuple[str, int]]]:
             if code in file_codes:
                 continue  # Skip duplicates within same file
             file_codes.add(code)
-            
+
             if code not in codes_map:
                 codes_map[code] = []
             codes_map[code].append((filename, line))

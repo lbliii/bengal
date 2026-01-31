@@ -144,13 +144,15 @@ class TestConfigSnapshotFromDict:
 
     def test_nested_site_section(self):
         """Test site section extraction."""
-        config = ConfigSnapshot.from_dict({
-            "site": {
-                "title": "Custom Title",
-                "baseurl": "/custom/",
-                "language": "fr",
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {
+                    "title": "Custom Title",
+                    "baseurl": "/custom/",
+                    "language": "fr",
+                }
             }
-        })
+        )
 
         assert config.site.title == "Custom Title"
         assert config.site.baseurl == "/custom/"
@@ -158,13 +160,15 @@ class TestConfigSnapshotFromDict:
 
     def test_nested_build_section(self):
         """Test build section extraction."""
-        config = ConfigSnapshot.from_dict({
-            "build": {
-                "output_dir": "dist",
-                "parallel": False,
-                "max_workers": 4,
+        config = ConfigSnapshot.from_dict(
+            {
+                "build": {
+                    "output_dir": "dist",
+                    "parallel": False,
+                    "max_workers": 4,
+                }
             }
-        })
+        )
 
         assert config.build.output_dir == "dist"
         assert config.build.parallel is False
@@ -172,21 +176,25 @@ class TestConfigSnapshotFromDict:
 
     def test_theme_features_conversion(self):
         """Test theme features list is converted to tuple."""
-        config = ConfigSnapshot.from_dict({
-            "theme": {
-                "features": ["search", "toc", "graph"],
+        config = ConfigSnapshot.from_dict(
+            {
+                "theme": {
+                    "features": ["search", "toc", "graph"],
+                }
             }
-        })
+        )
 
         assert config.theme.features == ("search", "toc", "graph")
 
     def test_invalid_appearance_uses_default(self):
         """Test invalid appearance value uses default."""
-        config = ConfigSnapshot.from_dict({
-            "theme": {
-                "default_appearance": "invalid",
+        config = ConfigSnapshot.from_dict(
+            {
+                "theme": {
+                    "default_appearance": "invalid",
+                }
             }
-        })
+        )
 
         assert config.theme.default_appearance == "system"
 
@@ -208,9 +216,11 @@ class TestConfigSnapshotAccess:
 
     def test_getitem_access(self):
         """Test config[key] access."""
-        config = ConfigSnapshot.from_dict({
-            "custom_key": {"nested": "value"},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "custom_key": {"nested": "value"},
+            }
+        )
 
         assert config["custom_key"]["nested"] == "value"
 
@@ -223,9 +233,11 @@ class TestConfigSnapshotAccess:
 
     def test_get_method(self):
         """Test config.get() method."""
-        config = ConfigSnapshot.from_dict({
-            "existing": "value",
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "existing": "value",
+            }
+        )
 
         assert config.get("existing") == "value"
         assert config.get("nonexistent") is None
@@ -233,21 +245,25 @@ class TestConfigSnapshotAccess:
 
     def test_contains_operator(self):
         """Test 'in' operator."""
-        config = ConfigSnapshot.from_dict({
-            "site": {"title": "Test"},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {"title": "Test"},
+            }
+        )
 
         assert "site" in config
         assert "nonexistent" not in config
 
     def test_params_property(self):
         """Test params property shortcut."""
-        config = ConfigSnapshot.from_dict({
-            "params": {
-                "author": "Test Author",
-                "custom_param": "value",
+        config = ConfigSnapshot.from_dict(
+            {
+                "params": {
+                    "author": "Test Author",
+                    "custom_param": "value",
+                }
             }
-        })
+        )
 
         assert config.params["author"] == "Test Author"
         assert isinstance(config.params, MappingProxyType)
@@ -260,9 +276,11 @@ class TestConfigSnapshotAccess:
 
     def test_raw_property(self):
         """Test raw property for serialization."""
-        config = ConfigSnapshot.from_dict({
-            "site": {"title": "Test"},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {"title": "Test"},
+            }
+        )
 
         assert isinstance(config.raw, MappingProxyType)
         assert "site" in config.raw
@@ -288,10 +306,12 @@ class TestConfigSnapshotImmutability:
 
     def test_thread_safe_by_construction(self):
         """Test that frozen dataclass is safe for concurrent access."""
-        config = ConfigSnapshot.from_dict({
-            "site": {"title": "Test"},
-            "build": {"parallel": True},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {"title": "Test"},
+                "build": {"parallel": True},
+            }
+        )
 
         # All fields are either frozen dataclasses or MappingProxyType
         assert hasattr(config.site, "__dataclass_fields__")
@@ -303,10 +323,12 @@ class TestConfigSnapshotEdgeCases:
 
     def test_non_dict_section_uses_defaults(self):
         """Test that non-dict section values use defaults."""
-        config = ConfigSnapshot.from_dict({
-            "site": "not a dict",  # Invalid
-            "build": None,  # Invalid
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": "not a dict",  # Invalid
+                "build": None,  # Invalid
+            }
+        )
 
         # Should use defaults
         assert config.site.title == "Bengal Site"
@@ -314,21 +336,25 @@ class TestConfigSnapshotEdgeCases:
 
     def test_partial_section_merges_defaults(self):
         """Test that partial sections merge with defaults."""
-        config = ConfigSnapshot.from_dict({
-            "site": {"title": "Custom"},  # Only title, rest defaults
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {"title": "Custom"},  # Only title, rest defaults
+            }
+        )
 
         assert config.site.title == "Custom"
         assert config.site.language == "en"  # Default
 
     def test_none_values_in_section(self):
         """Test handling of None values in sections."""
-        config = ConfigSnapshot.from_dict({
-            "build": {
-                "incremental": None,
-                "max_workers": None,
+        config = ConfigSnapshot.from_dict(
+            {
+                "build": {
+                    "incremental": None,
+                    "max_workers": None,
+                }
             }
-        })
+        )
 
         assert config.build.incremental is None
         assert config.build.max_workers is None

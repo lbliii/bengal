@@ -566,7 +566,9 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
 _loggers: dict[str, BengalLogger] = {}
 _lazy_loggers: dict[str, LazyLogger] = {}  # Cache of proxy objects
 _registry_version: int = 0  # Incremented on reset_loggers()
-_logger_lock = threading.RLock()  # Protects _loggers, _lazy_loggers, _registry_version (reentrant for nested calls)
+_logger_lock = (
+    threading.RLock()
+)  # Protects _loggers, _lazy_loggers, _registry_version (reentrant for nested calls)
 
 
 class _GlobalConfig(TypedDict):

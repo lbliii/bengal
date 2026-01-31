@@ -395,6 +395,7 @@ class BuildScreen(BengalScreen):
             self.app.call_from_thread(log.write_line, "Starting build...")
 
             from bengal.orchestration.build.options import BuildOptions
+
             orchestrator = BuildOrchestrator(self.site)
 
             # Run the actual build with streaming callbacks (RFC: rfc-dashboard-api-integration)

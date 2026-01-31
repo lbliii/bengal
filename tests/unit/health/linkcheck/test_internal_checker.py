@@ -138,9 +138,10 @@ class TestInternalLinkCheckerSourceFileFiltering:
         # Should NOT be filtered - it's a real page, not a source file
         result = checker._check_internal_link("/bengal/", ["test.html"])
         # Could be OK or BROKEN depending on index, but NOT IGNORED
-        assert result.status != LinkStatus.IGNORED or "source" not in (
-            result.ignore_reason or ""
-        ).lower()
+        assert (
+            result.status != LinkStatus.IGNORED
+            or "source" not in (result.ignore_reason or "").lower()
+        )
 
     def test_filters_relative_py_paths(self, mock_site):
         """Filters relative paths to .py files (../ prefix)."""

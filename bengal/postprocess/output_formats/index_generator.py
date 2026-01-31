@@ -310,7 +310,9 @@ class SiteIndexGenerator:
         index_path = self._get_index_path()
 
         # Write only if content changed (sort_keys for deterministic JSON)
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
+        new_json_str = json.dumps(
+            site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
+        )
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(
@@ -463,7 +465,9 @@ class SiteIndexGenerator:
             index_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write only if content changed (sort_keys for deterministic JSON)
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
+        new_json_str = json.dumps(
+            site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
+        )
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(

@@ -63,10 +63,10 @@ cache_templates = true
 def test_bytecode_cache_improves_performance():
     """
     Test that bytecode cache improves build performance.
-    
+
     Uses multiple runs and statistical analysis to avoid flakiness from timing noise.
     Allows 10% tolerance margin to account for system variability.
-        
+
     """
     temp_dir = Path(tempfile.mkdtemp())
 

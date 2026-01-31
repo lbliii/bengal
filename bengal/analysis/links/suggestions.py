@@ -401,7 +401,9 @@ class LinkSuggestionEngine:
             elif categories_value:
                 # Multiple categories - filter None and convert to strings
                 categories = {
-                    str(cat).lower().replace(" ", "-") for cat in categories_value if cat is not None
+                    str(cat).lower().replace(" ", "-")
+                    for cat in categories_value
+                    if cat is not None
                 }
             category_map[page] = categories
         return category_map

@@ -41,7 +41,7 @@ def generate_collections(num_collections: int) -> dict[str, CollectionConfig[Any
 
     Returns:
         Dictionary mapping collection names to CollectionConfig instances
-    
+
     Note:
         Directory paths are relative to content_root (typically "content/"),
         so we use "section_N" not "content/section_N".

@@ -261,11 +261,8 @@ class Site:
             theme_value = self.config.get("theme")
             if isinstance(theme_value, str):
                 self.theme = theme_value
-            elif (
-                (isinstance(theme_value, dict)
-                and theme_value.get("name"))
-                or (hasattr(theme_value, "get")
-                and theme_value.get("name"))
+            elif (isinstance(theme_value, dict) and theme_value.get("name")) or (
+                hasattr(theme_value, "get") and theme_value.get("name")
             ):
                 self.theme = str(theme_value.get("name"))
             elif hasattr(theme_value, "name") and theme_value.name:

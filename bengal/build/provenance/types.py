@@ -42,6 +42,7 @@ def hash_file(path: Path, truncate: int = 16) -> ContentHash:
 def hash_dict(data: dict[str, Any], truncate: int = 16) -> ContentHash:
     """Compute hash of dictionary (for config, metadata)."""
     import json
+
     serialized = json.dumps(data, sort_keys=True, default=str)
     return hash_content(serialized, truncate)
 
@@ -51,7 +52,7 @@ class InputRecord:
     """Single input that contributed to an output."""
 
     input_type: str  # "content", "template", "data", "config", "partial"
-    path: CacheKey   # Relative path or config key
+    path: CacheKey  # Relative path or config key
     hash: ContentHash
 
     def __str__(self) -> str:

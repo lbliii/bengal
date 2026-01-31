@@ -6,7 +6,7 @@ Tests instantiation speed with current vs reduced slot counts.
 
 Run:
     python benchmarks/test_contextvar_config.py
-    
+
 Or with pytest-benchmark:
     pytest benchmarks/test_contextvar_config.py -v
 """
@@ -366,16 +366,20 @@ def run_benchmarks():
     ops_per_sec = iterations / (lookup_ms / 1000)
 
     print(f"  {iterations:,} lookups:        {lookup_ms:>8.2f}ms")
-    print(f"  Throughput:             {ops_per_sec/1_000_000:>8.2f}M ops/sec")
+    print(f"  Throughput:             {ops_per_sec / 1_000_000:>8.2f}M ops/sec")
     print()
 
     # Summary
     print("=" * 70)
     print("SUMMARY")
     print("=" * 70)
-    print(f"  Parser:   {parser_speedup:.2f}x faster ({18} → {9} slots, {parser_reduction:.0f}% reduction)")
-    print(f"  Renderer: {renderer_speedup:.2f}x faster ({14} → {8} slots, {renderer_reduction:.0f}% reduction)")
-    print(f"  ContextVar lookup: {ops_per_sec/1_000_000:.1f}M ops/sec (negligible overhead)")
+    print(
+        f"  Parser:   {parser_speedup:.2f}x faster ({18} → {9} slots, {parser_reduction:.0f}% reduction)"
+    )
+    print(
+        f"  Renderer: {renderer_speedup:.2f}x faster ({14} → {8} slots, {renderer_reduction:.0f}% reduction)"
+    )
+    print(f"  ContextVar lookup: {ops_per_sec / 1_000_000:.1f}M ops/sec (negligible overhead)")
     print()
 
     if parser_speedup > 1.5 and renderer_speedup > 1.3:

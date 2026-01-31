@@ -146,9 +146,7 @@ output_dir = "public"
     content_dir.mkdir(exist_ok=True)
 
     # Write home page
-    (content_dir / "_index.md").write_text(
-        "---\ntitle: Home\n---\n\n# Home\n\nWelcome."
-    )
+    (content_dir / "_index.md").write_text("---\ntitle: Home\n---\n\n# Home\n\nWelcome.")
 
     # Write provided content
     for rel_path, page_content in content.items():
@@ -213,7 +211,7 @@ class TestBuildProperties:
 
         For any valid site content, running build() twice should produce
         exactly the same output files with identical content.
-        
+
         Note: Uses dev_mode=True to exclude build_time from index.json,
         since build_time is expected to change between builds (it records
         when the build happened, not a content-derived value).
@@ -222,7 +220,7 @@ class TestBuildProperties:
 
         tmp_path = tmp_path_factory.mktemp("idempotent")
         site = _create_site_with_content(tmp_path, content)
-        
+
         # Enable dev_mode to exclude build_time from index.json
         # build_time changes every build by design - it's not part of idempotency
         site.dev_mode = True
@@ -368,9 +366,7 @@ class TestURLProperties:
         # PROPERTY: Slug should be URL-safe when input has alphanumeric chars
         assert slug, f"Empty slug for title: {repr(title)}"
         # Allow lowercase, numbers, hyphens, and underscores (all URL-safe)
-        assert re.match(r"^[a-z0-9_-]+$", slug), (
-            f"Invalid slug '{slug}' for title: {repr(title)}"
-        )
+        assert re.match(r"^[a-z0-9_-]+$", slug), f"Invalid slug '{slug}' for title: {repr(title)}"
 
 
 @pytest.mark.slow  # Each example runs full build (~60s total)

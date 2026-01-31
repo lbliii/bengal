@@ -157,10 +157,10 @@ class TestPipelineRecreationOnNewBuild:
 class TestDevServerRebuildScenario:
     """
     Integration-style tests simulating dev server rebuild scenarios.
-    
+
     These tests verify the full flow of what happens when a user edits
     a template while the dev server is running.
-        
+
     """
 
     def test_template_change_between_builds_uses_fresh_engine(self, tmp_path):
@@ -189,7 +189,7 @@ class TestDevServerRebuildScenario:
 class TestRegressionStaleTemplates:
     """
     Regression tests to prevent reintroduction of stale template bugs.
-        
+
     """
 
     def test_thread_local_not_persisted_across_process_calls(self):

@@ -236,6 +236,7 @@ def _load_data_file_content(file_path: Path) -> Any:
     """Load content from a data file."""
     try:
         from bengal.utils.io.file_io import load_data_file
+
         return load_data_file(file_path, on_error="return_empty", caller="data_service")
     except ImportError:
         # Fallback for standalone usage
@@ -243,20 +244,24 @@ def _load_data_file_content(file_path: Path) -> Any:
 
         if suffix == ".json":
             import json
+
             return json.loads(file_path.read_text())
         elif suffix in (".yaml", ".yml"):
             try:
                 import yaml
+
                 return yaml.safe_load(file_path.read_text())
             except ImportError:
                 return None
         elif suffix == ".toml":
             try:
                 import tomllib
+
                 return tomllib.loads(file_path.read_text())
             except ImportError:
                 try:
                     import tomli
+
                     return tomli.loads(file_path.read_text())
                 except ImportError:
                     return None

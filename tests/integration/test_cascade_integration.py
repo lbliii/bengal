@@ -260,15 +260,13 @@ title: "Build Profiles"
 
         # Configuration index should have cascade from building (which has type: doc)
         assert config_index.metadata.get("type") == "doc", (
-            f"Configuration index missing cascaded type. "
-            f"Got: {config_index.metadata.get('type')}"
+            f"Configuration index missing cascaded type. Got: {config_index.metadata.get('type')}"
         )
         assert config_index.metadata.get("category") == "building"
 
         # Profiles page should also have cascaded type: doc
         assert profiles_page.metadata.get("type") == "doc", (
-            f"Profiles page missing cascaded type. "
-            f"Got: {profiles_page.metadata.get('type')}"
+            f"Profiles page missing cascaded type. Got: {profiles_page.metadata.get('type')}"
         )
         assert profiles_page.metadata.get("category") == "building"
 

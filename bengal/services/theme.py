@@ -236,6 +236,7 @@ def _get_bengal_dir() -> Path | None:
     """Get Bengal package directory (cached)."""
     try:
         import bengal
+
         if bengal.__file__:
             return Path(bengal.__file__).parent
     except Exception:

@@ -160,7 +160,9 @@ class ConnectivityValidator(BaseValidator):
                         return {
                             "total_pages": metrics_dict.get("nodes", 0),
                             "total_links": metrics_dict.get("edges", 0),
-                            "avg_connectivity": float(metrics_dict.get("average_degree", 0.0) or 0.0),
+                            "avg_connectivity": float(
+                                metrics_dict.get("average_degree", 0.0) or 0.0
+                            ),
                             "hub_count": 0,
                             "orphan_count": 0,
                         }
@@ -294,7 +296,8 @@ class ConnectivityValidator(BaseValidator):
                 health_cfg = site.config.get("health_check", {})
                 super_hub_threshold = (
                     health_cfg.get("super_hub_threshold", 50)
-                    if isinstance(health_cfg, dict) else 50
+                    if isinstance(health_cfg, dict)
+                    else 50
                 )
                 hubs = _normalize_hubs(graph.get_hubs(threshold=super_hub_threshold))
                 if hubs:

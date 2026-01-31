@@ -280,7 +280,9 @@ class PageExplainer:
             try:
                 return self._resolve_chain_from_engine(template_name)
             except Exception as e:
-                logger.debug("template_chain_resolution_failed", template=template_name, error=str(e))
+                logger.debug(
+                    "template_chain_resolution_failed", template=template_name, error=str(e)
+                )
 
         # Fallback: basic info without full chain
         chain.append(

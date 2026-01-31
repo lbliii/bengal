@@ -380,10 +380,15 @@ class ContentOrchestrator:
                                 cached_payload
                             )
                             # Register autodoc dependencies with build_cache so has_autodoc_tracking is True
-                            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
+                            if build_cache is not None and hasattr(
+                                build_cache, "add_autodoc_dependency"
+                            ):
                                 from bengal.utils.primitives.hashing import hash_file
 
-                                for source_file, page_hashes in run_result.autodoc_dependencies.items():
+                                for (
+                                    source_file,
+                                    page_hashes,
+                                ) in run_result.autodoc_dependencies.items():
                                     src_path = _resolve_autodoc_source(Path(source_file))
                                     if _is_external_autodoc_source(src_path):
                                         continue
@@ -579,22 +584,35 @@ class ContentOrchestrator:
         options = getattr(self.site, "_last_build_options", None)
         cache = getattr(self.site, "_cache", None)
 
-        if options and options.incremental and options.changed_sources and not options.structural_changed:
+        if (
+            options
+            and options.incremental
+            and options.changed_sources
+            and not options.structural_changed
+        ):
             content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
             non_content_changes = [
-                s for s in options.changed_sources
-                if s.suffix.lower() not in content_extensions
+                s for s in options.changed_sources if s.suffix.lower() not in content_extensions
             ]
 
-            if not non_content_changes and cache and hasattr(cache, "discovered_assets") and cache.discovered_assets:
+            if (
+                not non_content_changes
+                and cache
+                and hasattr(cache, "discovered_assets")
+                and cache.discovered_assets
+            ):
                 from bengal.core.asset import Asset
+
                 self.site.assets = []
                 for src_rel, out_rel in cache.discovered_assets.items():
-                    self.site.assets.append(Asset(
-                        source_path=self.site.root_path / src_rel,
-                        output_path=Path(out_rel)
-                    ))
-                logger.debug("asset_discovery_skipped", reason="only_content_changed", count=len(self.site.assets))
+                    self.site.assets.append(
+                        Asset(source_path=self.site.root_path / src_rel, output_path=Path(out_rel))
+                    )
+                logger.debug(
+                    "asset_discovery_skipped",
+                    reason="only_content_changed",
+                    count=len(self.site.assets),
+                )
                 return
 
         from bengal.content.discovery.asset_discovery import AssetDiscovery

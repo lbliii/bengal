@@ -28,9 +28,7 @@ from tests.integration.warm_build.conftest import (
 class TestWarmBuildEdgeCases:
     """Test edge cases and boundary conditions in warm builds."""
 
-    def test_empty_site_after_all_content_deleted(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_empty_site_after_all_content_deleted(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Warm build handles empty site gracefully.
 
@@ -75,9 +73,7 @@ title: Empty Site
         # Build should succeed with minimal content
         assert stats2.total_pages >= 1
 
-    def test_batch_changes_100_files(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_batch_changes_100_files(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Warm build handles 100+ simultaneous file changes.
 
@@ -123,9 +119,7 @@ Modified content for page {i} - BATCH UPDATE.
         # All pages should be processed
         assert stats2.total_pages >= 100
 
-    def test_deep_nesting_10_levels(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_deep_nesting_10_levels(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Deep directory nesting handled correctly.
 
@@ -136,7 +130,9 @@ Modified content for page {i} - BATCH UPDATE.
         4. Assert: Build completes successfully
         """
         # Create deeply nested structure
-        nested_path = "content/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10"
+        nested_path = (
+            "content/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10"
+        )
 
         # Create _index.md at each level
         for i in range(1, 11):
@@ -168,7 +164,9 @@ This page is 10 levels deep.
         assert stats1.total_pages >= 1
 
         # Verify deep page was created
-        warm_build_site.assert_output_exists("level1/level2/level3/level4/level5/level6/level7/level8/level9/level10/deep-page/index.html")
+        warm_build_site.assert_output_exists(
+            "level1/level2/level3/level4/level5/level6/level7/level8/level9/level10/deep-page/index.html"
+        )
 
         # Modify intermediate level
         warm_build_site.modify_file(
@@ -191,9 +189,7 @@ Level 5 section updated with new content.
         # The key test is that it doesn't crash with deep nesting
         assert stats2 is not None
 
-    def test_same_second_modifications(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_same_second_modifications(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Multiple modifications in same second detected.
 
@@ -248,9 +244,7 @@ FINAL modification content.
         html = warm_build_site.read_output("rapid/index.html")
         assert "FINAL" in html, "Final modification should be reflected"
 
-    def test_unicode_filenames(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_unicode_filenames(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Unicode filenames in warm builds.
 
@@ -305,10 +299,7 @@ UPDATED Japanese content.
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    @pytest.mark.skipif(
-        os.name == "nt",
-        reason="Symlinks require elevated privileges on Windows"
-    )
+    @pytest.mark.skipif(os.name == "nt", reason="Symlinks require elevated privileges on Windows")
     def test_symlinked_content(self, tmp_path: Path) -> None:
         """
         Symlinked content directories handled.
@@ -362,9 +353,7 @@ UPDATED shared content via symlink.
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    def test_case_sensitivity(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_case_sensitivity(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Case sensitivity handled correctly.
 
@@ -409,9 +398,7 @@ Content for my page - lowercase version.
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    def test_content_and_output_same_mtime(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_content_and_output_same_mtime(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Handles case where source and output have identical mtime.
 
@@ -473,9 +460,7 @@ MODIFIED content with hash detection.
 class TestWarmBuildBoundaryConditions:
     """Test boundary conditions for warm builds."""
 
-    def test_very_large_file(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_very_large_file(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Very large markdown file handled correctly.
 
@@ -511,9 +496,7 @@ title: Large File
         assert stats2.total_pages >= 1
         warm_build_site.assert_output_exists("large-file/index.html")
 
-    def test_empty_content_file(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_empty_content_file(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Empty content file handled gracefully.
 
@@ -543,9 +526,7 @@ title: Empty Content
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    def test_special_characters_in_title(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_special_characters_in_title(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Special characters in titles handled correctly.
 
@@ -599,9 +580,7 @@ Modified content.
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    def test_frontmatter_only_no_body(
-        self, warm_build_site: WarmBuildTestSite
-    ) -> None:
+    def test_frontmatter_only_no_body(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Files with frontmatter but no body content handled.
 

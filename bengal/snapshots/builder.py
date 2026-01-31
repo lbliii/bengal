@@ -96,9 +96,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
 
     # Phase 2.5: Set root references on all sections (post-processing)
     # Find root sections (sections with parent=None)
-    root_section_snapshots = [
-        s for s in section_cache.values() if s.parent is None
-    ]
+    root_section_snapshots = [s for s in section_cache.values() if s.parent is None]
 
     # Helper to find root section snapshot by walking up parent chain
     def find_root_snapshot(snapshot: SectionSnapshot) -> SectionSnapshot:
@@ -147,6 +145,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     # If still no root, create a minimal virtual root
     if root is None:
         from bengal.core.section import Section
+
         virtual_root = Section(name="root", path=site.root_path / "content")
         root = _snapshot_section_recursive(
             virtual_root,
@@ -184,7 +183,11 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     # Ensure all sections have root set (update any that don't)
     for orig_section_id, section_snapshot in list(section_cache.items()):
         if section_snapshot.root is None:
-            root_ref = find_root_snapshot(section_snapshot) if section_snapshot.parent is not None else root
+            root_ref = (
+                find_root_snapshot(section_snapshot)
+                if section_snapshot.parent is not None
+                else root
+            )
             updated = SectionSnapshot(
                 name=section_snapshot.name,
                 title=section_snapshot.title,
@@ -262,9 +265,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     taxonomies = _snapshot_taxonomies(site, page_cache)
 
     # Phase 7: Snapshot templates with dependency graph (RFC: Snapshot-Enabled v2)
-    templates, template_dep_graph, template_dependents = _snapshot_templates(
-        site, page_cache
-    )
+    templates, template_dep_graph, template_dependents = _snapshot_templates(site, page_cache)
 
     elapsed_ms = (time.perf_counter() - start) * 1000
 
@@ -281,9 +282,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
 
     return SiteSnapshot(
         pages=tuple(page_cache.values()),
-        regular_pages=tuple(
-            p for p in page_cache.values() if not p.metadata.get("_generated")
-        ),
+        regular_pages=tuple(p for p in page_cache.values() if not p.metadata.get("_generated")),
         sections=tuple(section_cache.values()),
         root_section=root or NO_SECTION,
         config=MappingProxyType(config_dict),
@@ -341,14 +340,10 @@ def update_snapshot(
     start = time.perf_counter()
 
     # Build mapping from source_path to old page snapshot
-    old_pages_by_path: dict[Path, PageSnapshot] = {
-        p.source_path: p for p in old.pages
-    }
+    old_pages_by_path: dict[Path, PageSnapshot] = {p.source_path: p for p in old.pages}
 
     # Build mapping from source_path to mutable page
-    site_pages_by_path: dict[Path, Page] = {
-        p.source_path: p for p in site.pages
-    }
+    site_pages_by_path: dict[Path, Page] = {p.source_path: p for p in site.pages}
 
     # Identify affected pages (directly changed)
     affected_paths: set[Path] = set()
@@ -423,10 +418,9 @@ def update_snapshot(
 
     if root is None:
         from bengal.core.section import Section
+
         virtual_root = Section(name="root", path=site.root_path / "content")
-        root = _snapshot_section_recursive(
-            virtual_root, new_page_cache, section_cache, depth=1
-        )
+        root = _snapshot_section_recursive(virtual_root, new_page_cache, section_cache, depth=1)
 
     # Resolve section references on pages
     for mutable_page in site.pages:
@@ -472,9 +466,7 @@ def update_snapshot(
     attention_order = _compute_attention_order(all_pages)
 
     # Reuse scout hints if templates didn't change
-    template_changed = any(
-        p.suffix in (".html", ".jinja", ".j2") for p in changed_paths
-    )
+    template_changed = any(p.suffix in (".html", ".jinja", ".j2") for p in changed_paths)
     scout_hints = (
         _compute_scout_hints(topological_order, template_groups, site)
         if template_changed
@@ -491,9 +483,7 @@ def update_snapshot(
         templates = old.templates
         template_dep_graph = old.template_dependency_graph
         # Rebuild dependents with new page refs
-        template_dependents = _rebuild_template_dependents(
-            templates, template_groups
-        )
+        template_dependents = _rebuild_template_dependents(templates, template_groups)
 
     # Reuse menus and taxonomies if structure didn't change
     # For now, rebuild them (cheap operation)
@@ -513,9 +503,7 @@ def update_snapshot(
 
     return SiteSnapshot(
         pages=all_pages,
-        regular_pages=tuple(
-            p for p in all_pages if not p.metadata.get("_generated")
-        ),
+        regular_pages=tuple(p for p in all_pages if not p.metadata.get("_generated")),
         sections=tuple(section_cache.values()),
         root_section=root or NO_SECTION,
         config=old.config,  # Reuse (structural sharing)
@@ -642,9 +630,7 @@ def _snapshot_section_recursive(
     metadata = dict(section.metadata) if section.metadata else {}
 
     # Snapshot pages in this section
-    pages = tuple(
-        page_cache[id(p)] for p in section.pages if id(p) in page_cache
-    )
+    pages = tuple(page_cache[id(p)] for p in section.pages if id(p) in page_cache)
 
     # Compute sorted variants
     sorted_pages = tuple(
@@ -657,11 +643,7 @@ def _snapshot_section_recursive(
         )
     )
 
-    regular_pages = tuple(
-        p
-        for p in sorted_pages
-        if p.source_path.stem not in ("index", "_index")
-    )
+    regular_pages = tuple(p for p in sorted_pages if p.source_path.stem not in ("index", "_index"))
 
     # Get href (_path property)
     href = getattr(section, "_path", None) or getattr(section, "href", "") or ""
@@ -684,9 +666,7 @@ def _snapshot_section_recursive(
         weight = float("inf")
 
     # Compute hierarchy
-    hierarchy = tuple(
-        [*parent.hierarchy, section.name] if parent else [section.name]
-    )
+    hierarchy = tuple([*parent.hierarchy, section.name] if parent else [section.name])
 
     # Get is_virtual
     is_virtual = getattr(section, "is_virtual", False) or section.path is None
@@ -726,9 +706,7 @@ def _snapshot_section_recursive(
         for sub in section.subsections
     )
 
-    sorted_subsections = tuple(
-        sorted(subsections, key=lambda s: (s.weight, s.title.lower()))
-    )
+    sorted_subsections = tuple(sorted(subsections, key=lambda s: (s.weight, s.title.lower())))
 
     # Find index page
     index_page = _find_index_page(pages)
@@ -765,9 +743,7 @@ def _snapshot_section_recursive(
     return snapshot
 
 
-def _resolve_navigation(
-    page_cache: dict[int, PageSnapshot], site: Site
-) -> None:
+def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: Site) -> None:
     """Resolve next/prev navigation links."""
     # Create mapping from source_path to page snapshot for lookup
     pages_by_path: dict[Path, PageSnapshot] = {
@@ -780,7 +756,9 @@ def _resolve_navigation(
     # Update pages with next/prev refs
     for idx, path in enumerate(sorted_paths):
         page = pages_by_path[path]
-        next_page = pages_by_path.get(sorted_paths[idx + 1]) if idx + 1 < len(sorted_paths) else None
+        next_page = (
+            pages_by_path.get(sorted_paths[idx + 1]) if idx + 1 < len(sorted_paths) else None
+        )
         prev_page = pages_by_path.get(sorted_paths[idx - 1]) if idx > 0 else None
 
         # Only update if navigation changed
@@ -854,9 +832,7 @@ def _compute_topological_waves(
         queue.extend(section.sorted_subsections)
 
     # Find orphan pages (pages not in any section)
-    orphan_pages = tuple(
-        p for p in all_pages if p.source_path not in pages_in_sections
-    )
+    orphan_pages = tuple(p for p in all_pages if p.source_path not in pages_in_sections)
 
     # Add orphan pages as final wave (ensures all pages get rendered)
     if orphan_pages:
@@ -916,9 +892,7 @@ def _compute_scout_hints(
                     template_path=Path(template),
                     partial_paths=tuple(partials),
                     pages_using=len(template_groups.get(template, ())),
-                    priority=len(
-                        template_groups.get(template, ())
-                    ),  # More pages = higher priority
+                    priority=len(template_groups.get(template, ())),  # More pages = higher priority
                 )
             )
 
@@ -936,8 +910,7 @@ def _snapshot_menus(
 
     for menu_name, menu_items in site.menu.items():
         menus[menu_name] = tuple(
-            _snapshot_menu_item(item, page_cache, section_cache)
-            for item in menu_items
+            _snapshot_menu_item(item, page_cache, section_cache) for item in menu_items
         )
 
     return MappingProxyType(menus)
@@ -961,8 +934,7 @@ def _snapshot_menu_item(
         section_snapshot = section_cache[id(item_section)]
 
     children = tuple(
-        _snapshot_menu_item(child, page_cache, section_cache)
-        for child in item.children
+        _snapshot_menu_item(child, page_cache, section_cache) for child in item.children
     )
 
     # Type narrowing: title and is_active may not be on MenuItem
@@ -996,14 +968,11 @@ def _snapshot_taxonomies(
             )
         taxonomies[taxonomy_name] = taxonomy_snapshot
 
-    return MappingProxyType(
-        {
-            k: MappingProxyType(v) for k, v in taxonomies.items()
-        }
-    )
+    return MappingProxyType({k: MappingProxyType(v) for k, v in taxonomies.items()})
 
 
 # Helper functions
+
 
 def _determine_template(page: Page, site: Site) -> str:
     """Determine template name for page."""
@@ -1135,10 +1104,16 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                 if hasattr(env, "parse"):
                     try:
                         from jinja2 import meta
+
                         # Type narrowing: loader may not be on Protocol
                         loader = getattr(env, "loader", None)
                         if loader and hasattr(loader, "get_source"):
-                            get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                            get_source = cast(
+                                Callable[
+                                    [Any, str], tuple[str, str | None, Callable[[], bool] | None]
+                                ],
+                                loader.get_source,
+                            )
                             source, _filename, _uptodate = get_source(env, template_name)
                         else:
                             raise AttributeError("Loader does not have get_source method")
@@ -1163,7 +1138,9 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                             ast = template._optimized_ast
                             if hasattr(engine, "_extract_referenced_templates"):
                                 # Type narrowing: check if method is callable
-                                extract_method = getattr(engine, "_extract_referenced_templates", None)
+                                extract_method = getattr(
+                                    engine, "_extract_referenced_templates", None
+                                )
                                 if callable(extract_method):
                                     referenced = extract_method(ast)
                                     partials.update(referenced)
@@ -1231,9 +1208,7 @@ def _snapshot_templates(
                 dependency_graph.setdefault(dep, set()).add(template_name)
 
     # Convert dependency_graph values to frozensets
-    dependency_graph_frozen = {
-        k: frozenset(v) for k, v in dependency_graph.items()
-    }
+    dependency_graph_frozen = {k: frozenset(v) for k, v in dependency_graph.items()}
 
     # Calculate transitive dependents (pages affected by template change)
     # A page is affected if its template or any ancestor template changes
@@ -1244,9 +1219,7 @@ def _snapshot_templates(
         direct_pages = template_to_pages.get(template_name, [])
 
         # Templates that extend/include this one (and their pages)
-        dependent_templates = _get_transitive_dependents(
-            template_name, dependency_graph_frozen
-        )
+        dependent_templates = _get_transitive_dependents(template_name, dependency_graph_frozen)
 
         all_affected_pages: list[PageSnapshot] = list(direct_pages)
         for dep_template in dependent_templates:
@@ -1257,9 +1230,7 @@ def _snapshot_templates(
     # Also add dependents for templates that are only included (not direct pages)
     for template_name in dependency_graph_frozen:
         if template_name not in template_dependents:
-            dependent_templates = _get_transitive_dependents(
-                template_name, dependency_graph_frozen
-            )
+            dependent_templates = _get_transitive_dependents(template_name, dependency_graph_frozen)
             all_affected_pages = []
             for dep_template in dependent_templates:
                 all_affected_pages.extend(template_to_pages.get(dep_template, []))
@@ -1335,7 +1306,10 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                         loader = env.loader
                         if not hasattr(loader, "get_source"):
                             raise AttributeError("Loader does not have get_source method")
-                        get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                        get_source = cast(
+                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
+                            loader.get_source,
+                        )
                         source, _filename, _uptodate = get_source(env, template_name)
 
                         # Type narrowing: Jinja2 Environment has parse method
@@ -1385,9 +1359,7 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                 pass
 
         # Get transitive dependencies
-        transitive_deps = _get_transitive_deps_for_template(
-            template_name, site, all_deps
-        )
+        transitive_deps = _get_transitive_deps_for_template(template_name, site, all_deps)
         all_deps.update(transitive_deps)
 
         return TemplateSnapshot(
@@ -1449,7 +1421,10 @@ def _get_transitive_deps_for_template(
                     # Type narrowing: loader and parse methods
                     loader = getattr(env, "loader", None)
                     if loader and hasattr(loader, "get_source"):
-                        get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
+                        get_source = cast(
+                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
+                            loader.get_source,
+                        )
                         source, _filename, _uptodate = get_source(env, dep_name)
                     else:
                         continue
@@ -1811,8 +1786,8 @@ class ShadowModeValidator:
 
         return {
             ft: (
-                sum(r["hit_count"] for r in results) /
-                max(1, sum(r["actual_count"] for r in results))
+                sum(r["hit_count"] for r in results)
+                / max(1, sum(r["actual_count"] for r in results))
             )
             for ft, results in by_type.items()
         }
@@ -1824,7 +1799,6 @@ class ShadowModeValidator:
             "overall_accuracy": self.overall_accuracy,
             "accuracy_by_file_type": self.accuracy_by_file_type,
             "recommendation": (
-                "Enable speculation" if self.overall_accuracy >= 0.85
-                else "Keep shadow mode"
+                "Enable speculation" if self.overall_accuracy >= 0.85 else "Keep shadow mode"
             ),
         }

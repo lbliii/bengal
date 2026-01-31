@@ -83,38 +83,36 @@ body {
 
         return site_root
 
-    def test_manifest_loaded_during_build(
-        self, site_with_css: Path, tmp_path: Path
-    ):
+    def test_manifest_loaded_during_build(self, site_with_css: Path, tmp_path: Path):
         """Verify that asset manifest is loaded and available during rendering.
-        
+
         This test verifies the Phase 2 ContextVar pattern:
         - Manifest is loaded once before rendering starts
         - Manifest entries are accessible via get_asset_manifest()
-        
+
         RFC: rfc-global-build-state-dependencies.md (Phase 2)
         """
         site = Site.from_config(site_with_css)
-        
+
         # Build the site
         options = BuildOptions(incremental=False, force_sequential=True)
         stats = site.build(options)
         assert stats.pages_built > 0, "Build should build pages"
-        
+
         output_dir = site.output_dir
         manifest_path = output_dir / "asset-manifest.json"
-        
+
         # Verify manifest exists
         assert manifest_path.exists(), "Asset manifest should exist after build"
-        
+
         # Verify manifest has assets
         manifest_data = json.loads(manifest_path.read_text())
         assets = manifest_data.get("assets", {})
         assert assets, "Manifest should contain assets"
-        
+
         # Verify home page was rendered with fingerprinted assets
         home_html = (output_dir / "index.html").read_text()
-        
+
         # The page should contain fingerprinted CSS references
         # The theme CSS is bundled and fingerprinted as style.{hash}.css
         css_pattern = re.search(r'href="[^"]*style\.[a-f0-9]+\.css"', home_html)
@@ -122,7 +120,7 @@ body {
 
     def test_contextvar_manifest_access_during_render(self, site_with_css: Path):
         """Verify that rendering uses ContextVar for manifest access.
-        
+
         This test verifies the Phase 2 implementation where asset manifest
         is loaded once and accessed via ContextVar during rendering.
         """
@@ -131,7 +129,7 @@ body {
             asset_manifest_context,
             get_asset_manifest,
         )
-        
+
         # Create a manifest context
         ctx = AssetManifestContext(
             entries={
@@ -140,16 +138,16 @@ body {
             },
             mtime=1234567890.0,
         )
-        
+
         # Verify context manager works
         assert get_asset_manifest() is None
-        
+
         with asset_manifest_context(ctx):
             manifest = get_asset_manifest()
             assert manifest is not None
             assert manifest.entries.get("css/style.css") == "assets/css/style.test123.css"
             assert manifest.mtime == 1234567890.0
-        
+
         assert get_asset_manifest() is None
 
     def test_manifest_not_found_graceful_fallback(self, tmp_path: Path):
@@ -158,21 +156,21 @@ body {
             get_asset_manifest,
             reset_asset_manifest,
         )
-        
+
         # Ensure no ContextVar is set
         reset_asset_manifest()
-        
+
         # Create minimal site without building (no manifest)
         site_root = tmp_path / "empty_site"
         site_root.mkdir()
         (site_root / "bengal.toml").write_text('[site]\ntitle = "Empty"')
         (site_root / "content").mkdir()
         (site_root / "content" / "_index.md").write_text("# Home")
-        
+
         site = Site.from_config(site_root)
-        
+
         # When no manifest and no ContextVar, should gracefully return None
         from bengal.rendering.assets import _resolve_fingerprinted
-        
+
         result = _resolve_fingerprinted("css/style.css", site)
         assert result is None

@@ -40,7 +40,9 @@ def extract_python(
     source_dirs = python_config.get("source_dirs", [])
     exclude_patterns = python_config.get("exclude", [])
 
-    extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config, cache=cache)
+    extractor = PythonExtractor(
+        exclude_patterns=exclude_patterns, config=python_config, cache=cache
+    )
     all_elements = []
 
     for source_dir in source_dirs:

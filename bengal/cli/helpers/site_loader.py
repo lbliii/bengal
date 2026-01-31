@@ -262,7 +262,9 @@ def load_site_from_cli(
         raise click.Abort()
 
     try:
-        site = Site.from_config(root_path, config_path, environment=environment, profile=profile_name)
+        site = Site.from_config(
+            root_path, config_path, environment=environment, profile=profile_name
+        )
         return site
     except Exception as e:
         cli.error(f"Failed to load site from {root_path}: {e}")

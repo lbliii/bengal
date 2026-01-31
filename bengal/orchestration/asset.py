@@ -639,7 +639,11 @@ class AssetOrchestrator:
                 if name in module_map:
                     target_file = module_map[name]
                     # Canonicalize for exclusion check
-                    rel_path_str = str(target_file.relative_to(js_dir)).replace("\\", "/") if js_dir else target_file.name
+                    rel_path_str = (
+                        str(target_file.relative_to(js_dir)).replace("\\", "/")
+                        if js_dir
+                        else target_file.name
+                    )
                     if rel_path_str not in excluded:
                         ordered_files.append(target_file)
 

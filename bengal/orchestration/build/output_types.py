@@ -57,19 +57,19 @@ class OutputType(Enum):
     """
 
     # Content pages - can be fully cached
-    CONTENT_PAGE = auto()      # HTML from .md source files
-    GENERATED_PAGE = auto()    # Tag pages, section archives, API docs
+    CONTENT_PAGE = auto()  # HTML from .md source files
+    GENERATED_PAGE = auto()  # Tag pages, section archives, API docs
 
     # Aggregate outputs - always regenerated, but content-hashable
-    AGGREGATE_INDEX = auto()   # index.json, search index
-    AGGREGATE_FEED = auto()    # rss.xml, atom.xml, sitemap.xml
-    AGGREGATE_TEXT = auto()    # llm-full.txt, index.txt
+    AGGREGATE_INDEX = auto()  # index.json, search index
+    AGGREGATE_FEED = auto()  # rss.xml, atom.xml, sitemap.xml
+    AGGREGATE_TEXT = auto()  # llm-full.txt, index.txt
 
     # Static assets - fingerprinted separately
-    ASSET = auto()             # CSS, JS, images
+    ASSET = auto()  # CSS, JS, images
 
     # Passthrough - copied verbatim
-    STATIC = auto()            # favicon, robots.txt
+    STATIC = auto()  # favicon, robots.txt
 
 
 # File patterns for classification (exact filename matches)
@@ -82,10 +82,8 @@ OUTPUT_PATTERNS: dict[str, OutputType] = {
     "index.json.hash": OutputType.AGGREGATE_INDEX,
     "llm-full.txt": OutputType.AGGREGATE_TEXT,
     "index.txt": OutputType.AGGREGATE_TEXT,
-
     # Static assets with known names
     "asset-manifest.json": OutputType.ASSET,
-
     # Static files (passthrough)
     "favicon.ico": OutputType.STATIC,
     "robots.txt": OutputType.STATIC,

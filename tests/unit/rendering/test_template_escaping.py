@@ -315,10 +315,10 @@ def mock_site():
 
 class TestVariableSubstitutionSecurity:
     """Security tests for variable substitution sandboxing.
-    
+
     These tests ensure that malicious template expressions cannot
     access private/dunder attributes to escape the sandbox.
-        
+
     """
 
     def test_blocks_dunder_class(self):

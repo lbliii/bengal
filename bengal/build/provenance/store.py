@@ -84,8 +84,7 @@ class ProvenanceCache:
             try:
                 data = json.loads(index_path.read_text())
                 self._index = {
-                    CacheKey(k): ContentHash(v)
-                    for k, v in data.get("pages", {}).items()
+                    CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()
                 }
             except (json.JSONDecodeError, KeyError):
                 self._index = {}
@@ -96,9 +95,7 @@ class ProvenanceCache:
         if subvenance_path.exists():
             try:
                 data = json.loads(subvenance_path.read_text())
-                self._subvenance = {
-                    ContentHash(k): set(v) for k, v in data.items()
-                }
+                self._subvenance = {ContentHash(k): set(v) for k, v in data.items()}
             except (json.JSONDecodeError, KeyError):
                 self._subvenance = {}
 
@@ -272,10 +269,15 @@ class ProvenanceCache:
 
         # Save page index
         index_path = self.cache_dir / "index.json"
-        index_path.write_text(json.dumps({
-            "version": 1,
-            "pages": index_copy,
-        }, indent=2))
+        index_path.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "pages": index_copy,
+                },
+                indent=2,
+            )
+        )
 
         # Save subvenance index
         subvenance_path = self.cache_dir / "subvenance.json"

@@ -315,6 +315,7 @@ class SpecialPagesGenerator:
             else:
                 # Cast SiteLike to Site for create_engine (which expects concrete Site)
                 from bengal.core.site import Site
+
                 site = cast(Site, self.site)
                 template_engine = create_engine(site)
 

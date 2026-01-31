@@ -308,10 +308,10 @@ class TestInlineEdgeCases:
 
 class TestAutolinks:
     """CommonMark autolink tests (section 6.7).
-    
+
     Autolinks are absolute URIs and email addresses wrapped in angle brackets.
     They are parsed as links, not as raw HTML.
-        
+
     """
 
     # --- URI Autolinks ---
@@ -425,15 +425,16 @@ class TestAutolinks:
 
     def test_autolink_in_paragraph(self):
         """Autolinks are parsed when in paragraph context.
-        
+
         Note: When a line starts with block-level HTML tags like <div>,
         CommonMark treats the entire line as an HTML block (type 6/7).
         Autolinks are only detected in inline contexts.
-        
+
         See: https://spec.commonmark.org/0.31.2/#autolinks
         See: https://spec.commonmark.org/0.31.2/#html-blocks
         """
         from bengal.parsing.backends.patitas import create_markdown
+
         md = create_markdown(plugins=["autolinks"])
         # Autolink in paragraph context
         html = md("text and <http://example.com>")
@@ -447,9 +448,9 @@ class TestAutolinks:
 
 class TestRawHTMLInline:
     """Raw HTML inline tests (CommonMark 6.8).
-    
+
     Tests for HTML tags that pass through unchanged.
-        
+
     """
 
     def test_simple_html_tag(self):
@@ -543,7 +544,7 @@ class TestAngleBracketURLs:
 
     def test_link_angle_bracket_with_spaces(self):
         """Angle bracket URL can contain spaces.
-        
+
         Note: External patitas percent-encodes spaces in URLs per RFC 3986.
         """
         html = parse("[foo](<url with spaces>)")

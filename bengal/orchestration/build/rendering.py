@@ -494,7 +494,9 @@ def phase_render(
                     ctx._page_contents = early_context._page_contents
                 # Transfer incremental state (changed pages) for validators.
                 if early_context is not None:
-                    ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+                    ctx.changed_page_paths = set(
+                        getattr(early_context, "changed_page_paths", set())
+                    )
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
                 from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
@@ -532,7 +534,9 @@ def phase_render(
                     ctx._page_contents = early_context._page_contents
                 # Transfer incremental state (changed pages) for validators.
                 if early_context is not None:
-                    ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+                    ctx.changed_page_paths = set(
+                        getattr(early_context, "changed_page_paths", set())
+                    )
                 # Transfer snapshot from early context (RFC: rfc-bengal-snapshot-engine)
                 if early_context and hasattr(early_context, "snapshot"):
                     ctx.snapshot = early_context.snapshot

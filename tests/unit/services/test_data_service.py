@@ -70,9 +70,9 @@ class TestLoadDataDirectory:
         data_dir = tmp_path / "data"
         data_dir.mkdir()
         (data_dir / "config.json").write_text('{"name": "test", "count": 42}')
-        
+
         snapshot = load_data_directory(tmp_path)
-        
+
         assert "config" in snapshot
         assert snapshot["config"]["name"] == "test"
         assert snapshot["config"]["count"] == 42
@@ -81,13 +81,13 @@ class TestLoadDataDirectory:
     def test_load_yaml_file(self, tmp_path: Path) -> None:
         """load_data_directory loads YAML files."""
         pytest.importorskip("yaml")
-        
+
         data_dir = tmp_path / "data"
         data_dir.mkdir()
         (data_dir / "settings.yaml").write_text("title: My Site\nenabled: true")
-        
+
         snapshot = load_data_directory(tmp_path)
-        
+
         assert "settings" in snapshot
         assert snapshot["settings"]["title"] == "My Site"
         assert snapshot["settings"]["enabled"] is True
@@ -97,9 +97,9 @@ class TestLoadDataDirectory:
         data_dir = tmp_path / "data"
         (data_dir / "team").mkdir(parents=True)
         (data_dir / "team" / "members.json").write_text('[{"name": "Alice"}]')
-        
+
         snapshot = load_data_directory(tmp_path)
-        
+
         assert "team" in snapshot
         assert "members" in snapshot["team"]
         # Note: lists become tuples when frozen
@@ -111,9 +111,9 @@ class TestLoadDataDirectory:
         data_dir.mkdir()
         (data_dir / "readme.txt").write_text("This is readme")
         (data_dir / "config.json").write_text('{"valid": true}')
-        
+
         snapshot = load_data_directory(tmp_path)
-        
+
         assert "readme" not in snapshot
         assert "config" in snapshot
 
@@ -133,12 +133,16 @@ class TestGetData:
     def test_dot_notation_key(self) -> None:
         """get_data retrieves nested key with dot notation."""
         snapshot = DataSnapshot(
-            data=MappingProxyType({
-                "site": MappingProxyType({
-                    "name": "My Site",
-                    "author": MappingProxyType({"name": "John"}),
-                })
-            }),
+            data=MappingProxyType(
+                {
+                    "site": MappingProxyType(
+                        {
+                            "name": "My Site",
+                            "author": MappingProxyType({"name": "John"}),
+                        }
+                    )
+                }
+            ),
             source_files=frozenset(),
         )
         assert get_data(snapshot, "site.name") == "My Site"
@@ -171,7 +175,7 @@ class TestDataService:
         data_dir = tmp_path / "data"
         data_dir.mkdir()
         (data_dir / "config.json").write_text('{"key": "value"}')
-        
+
         service = DataService.from_root(tmp_path)
         assert service.get("config.key") == "value"
 
@@ -180,7 +184,7 @@ class TestDataService:
         data_dir = tmp_path / "data"
         data_dir.mkdir()
         (data_dir / "settings.json").write_text('{"theme": "dark"}')
-        
+
         service = DataService.from_root(tmp_path)
         assert service.get("settings.theme") == "dark"
         assert service.get("missing", "default") == "default"

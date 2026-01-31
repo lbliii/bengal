@@ -88,9 +88,7 @@ __all__ = [
 # =============================================================================
 
 # Thread-safe stats via ContextVar (matches manifest pattern)
-_resolution_stats: ContextVar[ComponentStats | None] = ContextVar(
-    "resolution_stats", default=None
-)
+_resolution_stats: ContextVar[ComponentStats | None] = ContextVar("resolution_stats", default=None)
 
 
 def get_resolution_stats() -> ComponentStats | None:
@@ -294,6 +292,7 @@ def _get_asset_tracker() -> Any | None:
     """
     try:
         from bengal.rendering.asset_tracking import get_current_tracker
+
         return get_current_tracker()
     except ImportError:
         # Graceful degradation if module not available

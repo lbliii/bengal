@@ -348,9 +348,8 @@ def build_page_context(
     if snapshot and resolved_section:
         # Find section snapshot by matching path or name
         for sec_snap in snapshot.sections:
-            if (
-                sec_snap.path == getattr(resolved_section, "path", None)
-                or sec_snap.name == getattr(resolved_section, "name", "")
+            if sec_snap.path == getattr(resolved_section, "path", None) or sec_snap.name == getattr(
+                resolved_section, "name", ""
             ):
                 section_snapshot = sec_snap
                 break
@@ -409,9 +408,7 @@ def build_page_context(
     # Add section content lists
     if section_snapshot and section_snapshot != NO_SECTION:
         # Use snapshot data directly (SectionSnapshot has all needed properties)
-        context["posts"] = (
-            posts if posts is not None else list(section_snapshot.sorted_pages)
-        )
+        context["posts"] = posts if posts is not None else list(section_snapshot.sorted_pages)
         context["pages"] = context["posts"]  # Alias
         # subsections are already SectionSnapshot instances - use directly
         context["subsections"] = (

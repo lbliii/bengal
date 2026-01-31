@@ -250,7 +250,9 @@ class RenderingPipeline:
 
         # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
         try:
-            injected_enhancer = getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            injected_enhancer = (
+                getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            )
             if injected_enhancer:
                 self._api_doc_enhancer = injected_enhancer
             else:
@@ -629,6 +631,7 @@ class RenderingPipeline:
             # Fallback: parse HTML (slow, but catches assets not using filters)
             try:
                 from bengal.rendering.asset_extractor import extract_assets_from_html
+
                 assets = extract_assets_from_html(page.rendered_html)
             except Exception as e:
                 # Extraction failure should not break render
@@ -663,9 +666,8 @@ class RenderingPipeline:
         if snapshot and section:
             # Find section snapshot
             for sec_snap in snapshot.sections:
-                if (
-                    sec_snap.path == getattr(section, "path", None)
-                    or sec_snap.name == getattr(section, "name", "")
+                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                    section, "name", ""
                 ):
                     section_for_context = sec_snap
                     break

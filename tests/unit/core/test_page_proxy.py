@@ -414,10 +414,10 @@ class TestPageProxyEdgeCases:
 
 class TestPageProxyPlainText:
     """Tests for plain_text property (output formats contract).
-    
+
     These tests ensure PageProxy exposes plain_text for output format generators
     (index.json, llm-full.txt, etc.) that read it during postprocessing.
-        
+
     """
 
     def test_proxy_plain_text_exists_and_returns_string(self, cached_metadata, page_loader):

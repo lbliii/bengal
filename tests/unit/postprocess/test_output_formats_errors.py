@@ -60,9 +60,7 @@ class TestParallelWriteErrorHandling:
             count = generator.generate(pages)
 
             # Should have generated 4 out of 5 files (page2 failed)
-            assert count == 4, (
-                f"Expected 4 successful writes (1 should fail), got {count}"
-            )
+            assert count == 4, f"Expected 4 successful writes (1 should fail), got {count}"
 
             # Verify the successful files exist
             for i in [0, 1, 3, 4]:
@@ -148,9 +146,7 @@ class TestParallelWriteErrorHandling:
         count = generator.generate(pages)
 
         # Should succeed for pages 0, 2, 4 (3 successes)
-        assert count == 3, (
-            f"Expected 3 successful writes (3 should fail), got {count}"
-        )
+        assert count == 3, f"Expected 3 successful writes (3 should fail), got {count}"
 
     def test_txt_generator_handles_write_failure(self, tmp_path: Path) -> None:
         """Verify PageTxtGenerator handles write failures gracefully."""

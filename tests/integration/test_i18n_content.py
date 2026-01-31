@@ -21,7 +21,9 @@ class TestI18nContentDiscovery:
     def test_all_language_content_discovered(self, site) -> None:
         """Content from all language directories should be discovered."""
         # Should have pages from both en/ and fr/ directories
-        assert len(site.pages) >= 6, f"Expected at least 6 pages (3 per language), found {len(site.pages)}"
+        assert len(site.pages) >= 6, (
+            f"Expected at least 6 pages (3 per language), found {len(site.pages)}"
+        )
 
     def test_english_content_discovered(self, site) -> None:
         """English content should be discovered from en/ directory."""
@@ -45,7 +47,9 @@ class TestI18nLanguageDetection:
         for page in en_pages:
             page_lang = getattr(page, "lang", None)
             if page_lang is not None:
-                assert page_lang == "en", f"Page {page.source_path} should have lang='en', got '{page_lang}'"
+                assert page_lang == "en", (
+                    f"Page {page.source_path} should have lang='en', got '{page_lang}'"
+                )
 
     def test_french_pages_have_fr_lang(self, site) -> None:
         """Pages in fr/ directory should have lang='fr'."""
@@ -54,7 +58,9 @@ class TestI18nLanguageDetection:
         for page in fr_pages:
             page_lang = getattr(page, "lang", None)
             if page_lang is not None:
-                assert page_lang == "fr", f"Page {page.source_path} should have lang='fr', got '{page_lang}'"
+                assert page_lang == "fr", (
+                    f"Page {page.source_path} should have lang='fr', got '{page_lang}'"
+                )
 
 
 @pytest.mark.bengal(testroot="test-i18n-content")
@@ -81,10 +87,7 @@ class TestI18nTranslationKeys:
     def test_guide_pages_have_matching_translation_keys(self, site) -> None:
         """Guide pages should have matching translation keys across languages."""
         # Filter for specifically the guide.md files (not index or about)
-        guide_pages = [
-            p for p in site.pages
-            if "guide.md" in str(p.source_path).lower()
-        ]
+        guide_pages = [p for p in site.pages if "guide.md" in str(p.source_path).lower()]
 
         translation_keys = []
         for page in guide_pages:
@@ -140,10 +143,9 @@ class TestI18nBuild:
         )
 
         # Check for French pages
-        fr_about = (
-            (output / "fr" / "about" / "index.html").exists()
-            or (output / "fr" / "about.html").exists()
-        )
+        fr_about = (output / "fr" / "about" / "index.html").exists() or (
+            output / "fr" / "about.html"
+        ).exists()
 
         # We should have content from both languages rendered
         assert en_about or fr_about, "About pages should be rendered for at least one language"
@@ -178,4 +180,3 @@ class TestI18nConfiguration:
 
         assert "en" in codes, "English should be configured"
         assert "fr" in codes, "French should be configured"
-

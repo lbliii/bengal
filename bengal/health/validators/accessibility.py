@@ -61,7 +61,9 @@ class AccessibilityValidator(BaseValidator):
         r"^this$",
     ]
 
-    def validate(self, site: SiteLike, build_context: BuildContext | None = None) -> list[CheckResult]:
+    def validate(
+        self, site: SiteLike, build_context: BuildContext | None = None
+    ) -> list[CheckResult]:
         """
         Run accessibility validation.
 

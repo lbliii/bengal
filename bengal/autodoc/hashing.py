@@ -44,9 +44,7 @@ def compute_doc_content_hash(
     if element.description:
         # Normalize: strip each line and skip empty lines to ignore indentation/spacing changes
         normalized_lines = [
-            line.strip()
-            for line in element.description.strip().splitlines()
-            if line.strip()
+            line.strip() for line in element.description.strip().splitlines() if line.strip()
         ]
         if normalized_lines:
             parts.append("doc:" + "\n".join(normalized_lines))

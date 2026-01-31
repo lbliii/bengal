@@ -20,10 +20,10 @@ from bengal.core.site import Site
 @pytest.fixture
 def small_site(tmp_path):
     """Create a small test site (below parallel threshold).
-    
+
     Note: CPU_BOUND workloads have a parallel threshold of 5 tasks.
     We use 4 pages to stay below this threshold.
-        
+
     """
     site = Site(root_path=tmp_path, config={})
 

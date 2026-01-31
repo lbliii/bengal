@@ -16,7 +16,7 @@ from bengal.autodoc.extractors.python.skip_logic import should_skip_shadowed_mod
 def test_exclude_pattern_hidden_glob_does_not_skip_normal_files(tmp_path: Path) -> None:
     """
     Pattern "*/.*" should match hidden files/dirs, not all paths.
-        
+
     """
     extractor = PythonExtractor(exclude_patterns=["*/.*"], config={"exclude": ["*/.*"]})
 
@@ -65,10 +65,10 @@ def test_exclude_pattern_venv_glob_skips_venv_files(tmp_path: Path) -> None:
 def test_shadowed_module_skipped_when_package_exists(tmp_path: Path) -> None:
     """
     Module files should be skipped when a package directory with same name exists.
-    
+
     Example: template_functions.py should be skipped when template_functions/ exists
     with an __init__.py. This prevents URL collisions in autodoc output.
-        
+
     """
     # Create both: foo.py (module) and foo/ (package)
     module_file = tmp_path / "foo.py"
@@ -104,9 +104,9 @@ def test_shadowed_module_not_skipped_for_init_files(tmp_path: Path) -> None:
 def test_shadowed_module_not_skipped_when_dir_has_no_init(tmp_path: Path) -> None:
     """
     Module files should NOT be skipped if the directory has no __init__.py.
-    
+
     A directory without __init__.py is not a package, so no collision occurs.
-        
+
     """
     module_file = tmp_path / "baz.py"
     module_file.write_text("'''module doc'''")
@@ -121,10 +121,10 @@ def test_shadowed_module_not_skipped_when_dir_has_no_init(tmp_path: Path) -> Non
 def test_extractor_skips_shadowed_modules_during_extraction(tmp_path: Path) -> None:
     """
     Integration test: PythonExtractor should skip shadowed modules.
-    
+
     When both template_functions.py and template_functions/__init__.py exist,
     only the package should be extracted.
-        
+
     """
     # Create package structure
     pkg = tmp_path / "mypackage"

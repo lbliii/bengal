@@ -286,6 +286,7 @@ class BengalBuildDashboard(BengalDashboard):
             self.app.call_from_thread(log.write_line, "→ Discovery...")
 
             from bengal.orchestration.build.options import BuildOptions
+
             orchestrator = BuildOrchestrator(self.site)
 
             # Run the actual build

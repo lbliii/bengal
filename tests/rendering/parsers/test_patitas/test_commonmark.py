@@ -400,12 +400,12 @@ class TestSoftLineBreaks:
 
 class TestListTermination:
     """Tests for list termination rules (CommonMark 5.3).
-    
+
     A list ends when:
     - A blank line is followed by non-indented content
     - A thematic break appears
     - The document ends
-        
+
     """
 
     def test_list_terminated_by_blank_line_and_paragraph(self):
@@ -451,10 +451,10 @@ class TestListTermination:
 
 class TestLooseVsTightLists:
     """Tests for loose vs tight list detection (CommonMark 5.3).
-    
+
     Tight list: No blank lines between items → no <p> wrappers
     Loose list: Blank lines between items → <p> wrappers
-        
+
     """
 
     def test_tight_list_no_paragraph_wrappers(self):
@@ -491,9 +491,9 @@ class TestLooseVsTightLists:
 
 class TestNestedLists:
     """Tests for nested list indentation (CommonMark 5.2).
-    
+
     Nested lists require proper indentation relative to parent.
-        
+
     """
 
     def test_nested_unordered_list(self):
@@ -542,9 +542,9 @@ class TestNestedLists:
 
 class TestParagraphContinuation:
     """Tests for paragraph continuation in list items (CommonMark 5.2).
-    
+
     Indented content after blank line continues the list item.
-        
+
     """
 
     def test_indented_paragraph_continues_item(self):
@@ -587,9 +587,9 @@ Not in list
 
 class TestListInterruption:
     """Tests for what can interrupt a list (CommonMark 5.3).
-    
+
     Certain blocks can interrupt lists, others cannot.
-        
+
     """
 
     def test_blank_line_required_before_code_block(self):

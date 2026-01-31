@@ -266,9 +266,7 @@ class ContentDiscovery:
                 self._section_builder.pages.append(page)
             elif self._executor:
                 # Cache miss: submit to executor
-                future = self._executor.submit(
-                    self._create_page, item_path, current_lang, None
-                )
+                future = self._executor.submit(self._create_page, item_path, current_lang, None)
                 # Resolve immediately for top-level pages (no section)
                 self._resolve_page_futures([future])
             else:
@@ -314,13 +312,13 @@ class ContentDiscovery:
                 elif self._executor:
                     # Cache miss: None returned, submit to executor for parsing
                     file_futures.append(
-                        self._executor.submit(
-                            self._create_page, item, current_lang, parent_section
-                        )
+                        self._executor.submit(self._create_page, item, current_lang, parent_section)
                     )
                 else:
                     # No executor available, parse synchronously
-                    full_page = self._create_page(item, current_lang=current_lang, section=parent_section)
+                    full_page = self._create_page(
+                        item, current_lang=current_lang, section=parent_section
+                    )
                     parent_section.add_page(full_page)
                     self._section_builder.pages.append(full_page)
 
@@ -368,7 +366,9 @@ class ContentDiscovery:
                     # Normalize paths for comparison
                     try:
                         resolved_file = file_path.resolve()
-                        is_explicitly_changed = any(s.resolve() == resolved_file for s in changed_sources)
+                        is_explicitly_changed = any(
+                            s.resolve() == resolved_file for s in changed_sources
+                        )
                     except (OSError, ValueError):
                         is_explicitly_changed = file_path in changed_sources
 
@@ -382,12 +382,15 @@ class ContentDiscovery:
                             if section_path and self.site is not None:
                                 sec = self.site.get_section_by_path(section_path)
                             return self._create_page(source_path, current_lang=lang, section=sec)
+
                         return loader
 
                     proxy = PageProxy(
                         source_path=file_path,
                         metadata=cached_metadata,
-                        loader=make_loader(file_path, current_lang, section.path if section else None),
+                        loader=make_loader(
+                            file_path, current_lang, section.path if section else None
+                        ),
                     )
                     if section:
                         proxy._section = section

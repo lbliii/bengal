@@ -54,7 +54,7 @@ class MockSource(ContentSource):
 
 class TestManagerCriticalExceptions:
     """Test that critical exceptions are properly re-raised.
-    
+
     Note: We test the logic path rather than actually raising these exceptions,
     as pytest workers don't handle KeyboardInterrupt/SystemExit gracefully.
     """
@@ -181,11 +181,13 @@ class TestManagerCacheFallback:
         }
         (cache_dir / "test.json").write_text(json.dumps([cached_entry]))
         (cache_dir / "test.meta.json").write_text(
-            json.dumps({
-                "source_key": "mock:test:[]",
-                "cached_at": "2024-01-01T00:00:00",
-                "entry_count": 1,
-            })
+            json.dumps(
+                {
+                    "source_key": "mock:test:[]",
+                    "cached_at": "2024-01-01T00:00:00",
+                    "entry_count": 1,
+                }
+            )
         )
 
         manager = ContentLayerManager(cache_dir=cache_dir, offline=True)

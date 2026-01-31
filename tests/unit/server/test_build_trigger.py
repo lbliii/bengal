@@ -160,9 +160,9 @@ weight: 10
 class TestVersionScopedBuilds:
     """
     Tests for version-scoped build functionality.
-    
+
     RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-        
+
     """
 
     @pytest.fixture
@@ -363,9 +363,9 @@ class TestBuildTriggerIntegration:
 
 class TestBuildTriggerCaching:
     """Tests for BuildTrigger caching optimizations.
-    
+
     RFC: rfc-server-package-optimizations
-        
+
     """
 
     @pytest.fixture
@@ -546,7 +546,7 @@ weight: 5
 class TestBuildTriggerErrorHandling:
     """
     Tests for BuildTrigger error handling.
-    
+
     BUG FIX: Error handling should not mutate the changed_paths set.
     Previously, using set.pop() would modify the set unexpectedly.
     """
@@ -589,7 +589,7 @@ class TestBuildTriggerErrorHandling:
     ) -> None:
         """
         Test that changed_paths set is not mutated during error handling.
-        
+
         BUG FIX: Previously used set.pop() which would modify the set.
         Now uses next(iter(...)) which doesn't modify the set.
         """
@@ -666,10 +666,10 @@ class TestBuildTriggerErrorHandling:
 
 class TestBuildTriggerQueuing:
     """Tests for BuildTrigger change queuing during builds.
-    
+
     When a build is in progress, changes should be queued instead of discarded.
     This prevents lost changes during rapid editing (important for autodoc pages).
-        
+
     """
 
     @pytest.fixture

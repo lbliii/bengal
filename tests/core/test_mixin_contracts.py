@@ -56,9 +56,9 @@ class TestPageNavigationMixin:
 
         page1 = _create_minimal_page(source_path=Path("/test/page1.md"))
         page2 = _create_minimal_page(source_path=Path("/test/page2.md"))
-        
+
         pages = [page1, page2]
-        
+
         # This should NOT raise - it was a bug when mixin self-reference was wrong
         idx = pages.index(page1)
         assert idx == 0
@@ -73,7 +73,7 @@ class TestPageComputedMixin:
 
         page = _create_minimal_page()
         page._raw_content = ""
-        
+
         result = page.word_count
         assert isinstance(result, int)
         assert result == 0
@@ -84,7 +84,7 @@ class TestPageComputedMixin:
 
         page = _create_minimal_page()
         page._raw_content = "short"  # Very few words
-        
+
         result = page.reading_time
         assert result >= 1
 
@@ -95,7 +95,7 @@ class TestPageComputedMixin:
         page = _create_minimal_page()
         page._raw_content = "x" * 500  # Long content
         page.metadata = {}
-        
+
         result = page.meta_description
         assert len(result) <= 161  # 160 + potential ellipsis
 
@@ -108,20 +108,19 @@ class TestSectionErgonomicsMixin:
         from bengal.core.section import Section
 
         section = _create_minimal_section()
-        
+
         # Create pages with dates via metadata
         page_with_date = _create_minimal_page(
-            source_path=Path("/test/dated.md"),
-            metadata={"date": datetime.now()}
+            source_path=Path("/test/dated.md"), metadata={"date": datetime.now()}
         )
-        
+
         page_without_date = _create_minimal_page(
             source_path=Path("/test/undated.md"),
-            metadata={}  # No date
+            metadata={},  # No date
         )
-        
+
         section.pages = [page_with_date, page_without_date]
-        
+
         # This should NOT crash - uses sorted_pages which needs to be mocked
         # For now, just verify the method exists and can be called
         assert hasattr(section, "recent_pages")
@@ -134,7 +133,7 @@ class TestSectionErgonomicsMixin:
 
         # Verify the property exists on the Section class (inherited from mixin)
         assert hasattr(Section, "content_pages")
-        
+
         # Verify it's defined in the ergonomics mixin
         assert "content_pages" in SectionErgonomicsMixin.__dict__
 
@@ -148,7 +147,7 @@ class TestSectionNavigationMixin:
 
         section = _create_minimal_section()
         section._site = None
-        
+
         # Should not crash
         result = section.href
         assert isinstance(result, str)
@@ -159,7 +158,7 @@ class TestSectionNavigationMixin:
 
         section = _create_minimal_section()
         section.subsections = []
-        
+
         result = section.subsection_index_urls
         assert isinstance(result, set)
 
@@ -172,7 +171,7 @@ class TestSectionHierarchyMixin:
         from bengal.core.section import Section
 
         section = _create_minimal_section()
-        
+
         result = section.hierarchy
         assert isinstance(result, list)
         assert all(isinstance(s, str) for s in result)
@@ -182,7 +181,7 @@ class TestSectionHierarchyMixin:
         from bengal.core.section import Section
 
         section = _create_minimal_section()
-        
+
         result = section.depth
         assert isinstance(result, int)
         assert result >= 1
@@ -193,7 +192,7 @@ class TestSectionHierarchyMixin:
 
         section = _create_minimal_section()
         section.subsections = []
-        
+
         result = section.walk()
         assert section in result
 
@@ -206,13 +205,13 @@ class TestDiagnosticsEmission:
         from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsCollector, emit
 
         collector = DiagnosticsCollector()
-        
+
         # Create object with diagnostics sink
         obj = Mock()
         obj._diagnostics = collector
-        
+
         emit(obj, "warning", "test_code", key="value")
-        
+
         events = collector.drain()
         assert len(events) == 1
         assert events[0].level == "warning"

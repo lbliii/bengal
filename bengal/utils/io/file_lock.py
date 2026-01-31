@@ -42,7 +42,6 @@ class LockAcquisitionError(BengalCacheError):
     """
 
 
-
 @contextmanager
 def file_lock(
     path: Path,

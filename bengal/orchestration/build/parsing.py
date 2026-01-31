@@ -78,7 +78,9 @@ def phase_parse_content(
 
             if cache_hits > 0:
                 # Show cache effectiveness in verbose mode
-                cli.info(f"  Parsing cache: {cache_hits}/{len(pages_to_build)} pages from cache ({cache_hits / len(pages_to_build) * 100:.1f}%)")
+                cli.info(
+                    f"  Parsing cache: {cache_hits}/{len(pages_to_build)} pages from cache ({cache_hits / len(pages_to_build) * 100:.1f}%)"
+                )
 
     # Parse pages that need parsing
     def parse_page(page: Page) -> None:

@@ -161,15 +161,17 @@ class AppearanceConfig:
     default_palette: str = ""
 
     # Valid palette names - imported lazily to avoid circular imports
-    _VALID_PALETTES: frozenset[str] = frozenset({
-        "",  # Empty string is valid (no palette override)
-        "default",
-        "blue-bengal",
-        "brown-bengal",
-        "charcoal-bengal",
-        "silver-bengal",
-        "snow-lynx",
-    })
+    _VALID_PALETTES: frozenset[str] = frozenset(
+        {
+            "",  # Empty string is valid (no palette override)
+            "default",
+            "blue-bengal",
+            "brown-bengal",
+            "charcoal-bengal",
+            "silver-bengal",
+            "snow-lynx",
+        }
+    )
 
     def __post_init__(self) -> None:
         """Validate appearance configuration."""

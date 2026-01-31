@@ -269,9 +269,7 @@ class IncrementalOrchestrator:
 
         return affected_pages
 
-    def find_work(
-        self, verbose: bool = False
-    ) -> tuple[list[Page], list[Asset], ChangeSummary]:
+    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (full phase - after taxonomy).
 
@@ -492,7 +490,9 @@ class IncrementalOrchestrator:
             if cached_hash is not None and cached_hash != current_hash:
                 # Find section for this _index.md and mark all its pages
                 for section in self.site.sections:
-                    if (hasattr(section, "index_page") and section.index_page is page) or (hasattr(section, "path") and section.path == path.parent):
+                    if (hasattr(section, "index_page") and section.index_page is page) or (
+                        hasattr(section, "path") and section.path == path.parent
+                    ):
                         if hasattr(section, "pages"):
                             for section_page in section.pages:
                                 nav_rebuild.add(section_page.source_path)
@@ -530,10 +530,10 @@ class IncrementalOrchestrator:
         # Check for changed assets - pass changed_paths for fast-path detection
         # This ensures file watcher changes are properly communicated to asset detection
         assets_to_process: list[Asset] = [
-            asset for asset in self.site.assets
-            if self.cache and self.cache.should_bypass(
-                asset.source_path, changed_sources=changed_paths
-            )
+            asset
+            for asset in self.site.assets
+            if self.cache
+            and self.cache.should_bypass(asset.source_path, changed_sources=changed_paths)
         ]
 
         return pages_to_build, assets_to_process

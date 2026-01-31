@@ -235,7 +235,7 @@ class TestIncrementalInvariants:
         if decision is not None:
             rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
             assert any("page1" in p for p in rebuilt_paths), (
-                f"Changed file page1.md was not rebuilt. " f"Rebuilt: {rebuilt_paths}"
+                f"Changed file page1.md was not rebuilt. Rebuilt: {rebuilt_paths}"
             )
         else:
             # If no decision object, check that at least one page was built
@@ -258,8 +258,7 @@ class TestIncrementalInvariants:
         assert str(home) in rebuilt_paths, "Home page should be in rebuild set"
 
         assert len(rebuilt_paths) == 1, (
-            "Home body change should rebuild only the home page. "
-            f"Rebuilt: {sorted(rebuilt_paths)}"
+            f"Home body change should rebuild only the home page. Rebuilt: {sorted(rebuilt_paths)}"
         )
 
     def test_subsection_change_marks_parent_section(
@@ -283,7 +282,7 @@ class TestIncrementalInvariants:
         if decision is not None:
             rebuilt_paths = {str(p.source_path) for p in decision.pages_to_build}
             assert any("glossary" in p for p in rebuilt_paths), (
-                f"Changed file glossary.md was not rebuilt. " f"Rebuilt: {rebuilt_paths}"
+                f"Changed file glossary.md was not rebuilt. Rebuilt: {rebuilt_paths}"
             )
         else:
             # If no decision object, check that at least one page was built
@@ -331,9 +330,7 @@ print(f"saved:{{len(cache.file_fingerprints)}}")
             f"Expected 1, got {len(loaded.file_fingerprints)}"
         )
 
-    def test_second_build_without_changes_is_skip(
-        self, warm_site: WarmBuildTestSite
-    ) -> None:
+    def test_second_build_without_changes_is_skip(self, warm_site: WarmBuildTestSite) -> None:
         """INVARIANT: Consecutive builds without changes should skip or rebuild 0.
 
         When no files have changed between builds, the incremental system
@@ -358,9 +355,7 @@ print(f"saved:{{len(cache.file_fingerprints)}}")
 class TestIncrementalEdgeCases:
     """Additional edge case tests for incremental builds."""
 
-    def test_multiple_files_changed_all_rebuilt(
-        self, warm_site: WarmBuildTestSite
-    ) -> None:
+    def test_multiple_files_changed_all_rebuilt(self, warm_site: WarmBuildTestSite) -> None:
         """When multiple files change, all changed files should be rebuilt."""
         # Modify multiple files
         time.sleep(0.01)
@@ -379,9 +374,7 @@ class TestIncrementalEdgeCases:
             assert any("page1" in p for p in rebuilt_paths), "page1.md should be rebuilt"
             assert any("page2" in p for p in rebuilt_paths), "page2.md should be rebuilt"
 
-    def test_unchanged_sibling_rebuild_reason(
-        self, warm_site: WarmBuildTestSite
-    ) -> None:
+    def test_unchanged_sibling_rebuild_reason(self, warm_site: WarmBuildTestSite) -> None:
         """When one file changes, any rebuilt siblings should have appropriate reasons.
 
         Note: Section-level optimization may cause siblings to rebuild together.
@@ -399,9 +392,7 @@ class TestIncrementalEdgeCases:
         decision = getattr(stats, "incremental_decision", None)
         if decision is not None:
             # page1 must have been rebuilt with content_changed reason
-            page1_rebuilt = any(
-                "page1" in p for p in decision.rebuild_reasons.keys()
-            )
+            page1_rebuilt = any("page1" in p for p in decision.rebuild_reasons.keys())
             assert page1_rebuilt, "Modified file page1.md should be in rebuild_reasons"
 
             # If page2 was rebuilt, log the reason (acceptable if section-related)
@@ -411,15 +402,11 @@ class TestIncrementalEdgeCases:
                     # behavior for small sections. Just verify it's tracked.
                     assert reason.code is not None, "Rebuild reason should be tracked"
 
-    def test_new_file_detected_on_incremental(
-        self, warm_site: WarmBuildTestSite
-    ) -> None:
+    def test_new_file_detected_on_incremental(self, warm_site: WarmBuildTestSite) -> None:
         """A new file added after warm build should be detected and built."""
         # Add a new file
         time.sleep(0.01)
-        (warm_site.content / "page3.md").write_text(
-            "---\ntitle: Page 3\n---\n# Page 3 - New!"
-        )
+        (warm_site.content / "page3.md").write_text("---\ntitle: Page 3\n---\n# Page 3 - New!")
 
         # Force reload to pick up new file
         warm_site.reload()

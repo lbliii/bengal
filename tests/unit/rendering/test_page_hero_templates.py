@@ -33,10 +33,10 @@ from bengal.rendering.template_functions.autodoc import get_element_stats
 class MockDocElement:
     """
     Mock DocElement for template testing.
-    
+
     Simulates the bengal.autodoc.base.DocElement dataclass with the attributes
     accessed by page-hero/element.html template.
-    
+
     Attributes:
         name: Element name
         qualified_name: Full qualified name (e.g., 'bengal.core.Site')
@@ -45,7 +45,7 @@ class MockDocElement:
         source_file: Path to source file
         line_number: Line number in source
         children: Child elements (classes, functions, options, etc.)
-        
+
     """
 
     name: str = "test_element"
@@ -162,10 +162,10 @@ class AttrDict(dict):
 class MockSection:
     """
     Mock section object for template testing.
-    
+
     Simulates bengal.core.section.Section with attributes accessed
     by page-hero/section.html template for section-index pages.
-        
+
     """
 
     name: str = "test_section"
@@ -322,11 +322,11 @@ def render_page_hero(
 ) -> str:
     """
     Render page-hero element or section template with given context.
-    
+
     Uses the new separated templates:
     - partials/page-hero/element.html for element pages
     - partials/page-hero/section.html for section-index pages
-    
+
     Args:
         engine: Template engine instance
         element: DocElement for element pages (may be None for section-index)
@@ -334,10 +334,10 @@ def render_page_hero(
         page: Page object (required)
         config: Autodoc config
         site: Site object
-    
+
     Returns:
         Rendered HTML string
-        
+
     """
     if page is None:
         page = MockPage()
@@ -382,9 +382,9 @@ def _render_section_hero(
 ) -> str:
     """
     Render section hero template for section-index pages.
-    
+
     Uses the new partials/page-hero/section.html template.
-    
+
     Args:
         engine: Template engine instance
         section: Section for section-index pages (required)
@@ -392,10 +392,10 @@ def _render_section_hero(
         config: Autodoc config
         site: Site object
         hero_context: Optional dict with explicit flags (e.g., is_cli)
-    
+
     Returns:
         Rendered HTML string
-        
+
     """
     if page is None:
         page = MockPage()
@@ -425,10 +425,10 @@ def _render_section_hero(
 def normalize_html(html: str) -> str:
     """
     Normalize HTML for comparison.
-    
+
     Removes extra whitespace and normalizes line endings to make
     HTML comparison more robust.
-        
+
     """
     # Normalize whitespace
     html = re.sub(r"\s+", " ", html)
@@ -582,15 +582,15 @@ class TestAPIModulePageHero:
 class TestAPISectionIndexPageHero:
     """
     Test page-hero/section.html for API section-index pages.
-    
+
     Uses the dedicated section.html template for section-index pages.
-    
+
     This is the exact behavior documented in the RFC as "Jinja Gotchas".
     For section-index pages in production, element is NOT passed at all,
     making `element is defined` return False.
-    
+
     In tests, we must NOT pass element at all to trigger the section-index branch.
-        
+
     """
 
     def test_renders_section_title(self, template_engine) -> None:
@@ -750,9 +750,9 @@ class TestCLICommandPageHero:
 class TestCLISectionIndexPageHero:
     """
     Test page-hero/section.html for CLI section-index pages with CLI labels.
-    
+
     Uses the _render_section_hero helper to render section-index pages.
-        
+
     """
 
     def test_renders_groups_not_packages_label(self, template_engine) -> None:
@@ -957,9 +957,9 @@ def _render_new_element_hero(
 ) -> str:
     """
     Render the NEW page-hero/element.html template.
-    
+
     This uses the new separated template for element pages.
-        
+
     """
     if page is None:
         page = MockPage()
@@ -997,9 +997,9 @@ def _render_new_section_hero(
 ) -> str:
     """
     Render the NEW page-hero/section.html template.
-    
+
     This uses the new separated template for section-index pages.
-        
+
     """
     if page is None:
         page = MockPage()

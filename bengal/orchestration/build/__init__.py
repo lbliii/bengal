@@ -322,7 +322,10 @@ class BuildOrchestrator:
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
         from bengal.cache.generated_page_cache import GeneratedPageCache
-        generated_page_cache = GeneratedPageCache(self.site.paths.state_dir / "generated_page_cache.json")
+
+        generated_page_cache = GeneratedPageCache(
+            self.site.paths.state_dir / "generated_page_cache.json"
+        )
         # Note: GeneratedPageCache loads automatically in __init__
 
         # Resolve incremental mode (auto when None)
@@ -410,6 +413,7 @@ class BuildOrchestrator:
         from bengal.orchestration.build.provenance_filter import (
             phase_incremental_filter_provenance,
         )
+
         filter_result = phase_incremental_filter_provenance(
             self,
             cli,
@@ -464,7 +468,11 @@ class BuildOrchestrator:
         # Phase 12: Update Pages List (add generated taxonomy pages)
         # RFC: Output Cache Architecture - Pass GeneratedPageCache to skip unchanged tag pages
         pages_to_build = content.phase_update_pages_list(
-            self, cache, incremental, pages_to_build, affected_tags,
+            self,
+            cache,
+            incremental,
+            pages_to_build,
+            affected_tags,
             generated_page_cache=generated_page_cache,
         )
 
@@ -499,7 +507,9 @@ class BuildOrchestrator:
         if hasattr(self.stats, "parsing_time_ms"):
             self.stats.parsing_time_ms = parsing_duration_ms
 
-        cli.phase("Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages")
+        cli.phase(
+            "Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages"
+        )
 
         # === SNAPSHOT CREATION (after parsing, before rendering) ===
         # Create immutable snapshot for lock-free parallel rendering
@@ -609,6 +619,7 @@ class BuildOrchestrator:
         # Record provenance for all built pages (if using provenance-based filtering)
         if hasattr(self, "_provenance_filter") and pages_to_build:
             from bengal.orchestration.build.provenance_filter import record_all_page_builds
+
             record_all_page_builds(self, pages_to_build)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
@@ -634,7 +645,7 @@ class BuildOrchestrator:
         if generated_page_cache:
             # Build content hash lookup from parsed_content cache
             content_hash_lookup: dict[str, str] = {}
-            if cache and hasattr(cache, 'parsed_content'):
+            if cache and hasattr(cache, "parsed_content"):
                 for path_str, entry in cache.parsed_content.items():
                     if isinstance(entry, dict):
                         content_hash = entry.get("metadata_hash", "")
@@ -718,6 +729,7 @@ class BuildOrchestrator:
         # Save provenance cache if using provenance-based filtering
         if hasattr(self, "_provenance_filter"):
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
+
             save_provenance_cache(self)
 
         # Clear build state (build complete)
@@ -847,10 +859,16 @@ class BuildOrchestrator:
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
 
     def _phase_update_pages_list(
-        self, cache: BuildCache, incremental: bool, pages_to_build: list[Page], affected_tags: set[str]
+        self,
+        cache: BuildCache,
+        incremental: bool,
+        pages_to_build: list[Page],
+        affected_tags: set[str],
     ) -> list[Page]:
         """Phase 12: Update Pages List."""
-        return content.phase_update_pages_list(self, cache, incremental, pages_to_build, affected_tags)
+        return content.phase_update_pages_list(
+            self, cache, incremental, pages_to_build, affected_tags
+        )
 
     def _phase_assets(
         self,

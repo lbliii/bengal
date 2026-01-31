@@ -125,7 +125,9 @@ class AutodocRenderer:
         ):
             self._render_autodoc_page(page)
             write_output(
-                page, self.site, self.dependency_tracker,
+                page,
+                self.site,
+                self.dependency_tracker,
                 collector=self.output_collector,
                 write_behind=self.write_behind,
             )
@@ -160,7 +162,9 @@ class AutodocRenderer:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
         write_output(
-            page, self.site, self.dependency_tracker,
+            page,
+            self.site,
+            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
         )

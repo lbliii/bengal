@@ -141,7 +141,11 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             # See: plan/rfc-external-references.md
             external_ref_resolver = None
             external_refs_config = site.config.get("external_refs", {})
-            if external_refs_config and isinstance(external_refs_config, dict) and external_refs_config.get("enabled", True):
+            if (
+                external_refs_config
+                and isinstance(external_refs_config, dict)
+                and external_refs_config.get("enabled", True)
+            ):
                 from bengal.rendering.external_refs import ExternalRefResolver
 
                 # Cast SiteConfig to dict[str, Any] for compatibility
@@ -274,6 +278,7 @@ def _build_lookup_maps(site: SiteLike) -> None:
 
     # Use PageLike since site.pages returns PageLike
     from bengal.protocols import PageLike
+
     by_full_path: dict[str, PageLike] = {}
     by_content_relative: dict[str, PageLike] = {}
 

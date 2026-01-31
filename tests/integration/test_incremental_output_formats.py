@@ -284,16 +284,16 @@ def test_disabled_output_formats_skips_index_json(site, build_site):
 def test_output_formats_succeed_with_mixed_page_types(site, build_site):
     """
     Contract test: Output formats must succeed with mixed Page/PageProxy objects.
-    
+
     This test ensures:
     1. Incremental builds generate correct output formats
     2. If PageProxy is present, it has required attributes (like plain_text)
-    
+
     Note: PageProxy creation depends on cache path matching. The unit tests
     verify plain_text property works on PageProxy directly.
-    
+
     See: plan/ready/rfc-pageproxy-transparency-contract.md
-        
+
     """
     # Full build first
     build_site(incremental=False)
@@ -333,15 +333,15 @@ def test_output_formats_succeed_with_mixed_page_types(site, build_site):
 def test_incremental_build_creates_proxies(tmp_path):
     """
     Contract test: Incremental builds MUST create PageProxy objects.
-    
+
     This test catches silent failures where incremental builds appear to work
     but proxies aren't being created due to:
     - Cache key mismatches (absolute vs relative paths)
     - Cache validation failures (slug, section, etc.)
     - Missing cache entries
-    
+
     If this test fails, incremental builds are silently doing full rebuilds.
-        
+
     """
     # Setup: Create site with multiple pages
     content_dir = tmp_path / "content"
@@ -393,10 +393,10 @@ generate_rss = false
 def test_incremental_build_proxy_has_required_properties(tmp_path):
     """
     Contract test: PageProxy objects must have all properties needed by build.
-    
+
     This test verifies that PageProxy implements the transparency contract -
     all properties accessed during build must be available without lazy loading.
-        
+
     """
     # Setup
     content_dir = tmp_path / "content"
@@ -446,14 +446,14 @@ generate_rss = false
 def test_modified_page_becomes_full_page_not_proxy(tmp_path):
     """
     Contract test: Modified pages should be full Pages, not proxies.
-    
+
     Verifies that the incremental build correctly detects frontmatter changes
     and rebuilds modified pages while keeping unchanged pages as proxies.
-    
+
     Note: Cache validation checks frontmatter fields (title, tags, date, slug).
     Body-only changes don't invalidate the cache since proxies are used to
     avoid re-rendering, not re-parsing.
-        
+
     """
     # Setup
     content_dir = tmp_path / "content"

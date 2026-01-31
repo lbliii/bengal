@@ -178,7 +178,10 @@ def check_violation(importer: str, imported: str) -> tuple[bool, str]:
 
     # Violation: importing from a higher layer
     if imported_layer > importer_layer:
-        return True, f"{importer_name} (layer {importer_layer}) → {imported_name} (layer {imported_layer})"
+        return (
+            True,
+            f"{importer_name} (layer {importer_layer}) → {imported_name} (layer {imported_layer})",
+        )
 
     return False, ""
 

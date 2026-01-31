@@ -46,15 +46,10 @@ logger = get_logger(__name__)
 import re
 
 # Pattern for semantic version: 0.1.8, v1.2.3, 1.0.0-beta, etc.
-_SEMVER_PATTERN = re.compile(
-    r'^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[.-](.+))?$',
-    re.IGNORECASE
-)
+_SEMVER_PATTERN = re.compile(r"^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[.-](.+))?$", re.IGNORECASE)
 
 # Pattern for date-based version: 26.01, 2026.01, etc.
-_DATEVER_PATTERN = re.compile(
-    r'^(\d{2,4})[.-](\d{1,2})(?:[.-](\d{1,2}))?$'
-)
+_DATEVER_PATTERN = re.compile(r"^(\d{2,4})[.-](\d{1,2})(?:[.-](\d{1,2}))?$")
 
 
 def _extract_version(text: str) -> str | None:
@@ -73,11 +68,11 @@ def _extract_version(text: str) -> str | None:
 
     # Try direct match first
     if _SEMVER_PATTERN.match(text) or _DATEVER_PATTERN.match(text):
-        return text.lstrip('v').lstrip('V')
+        return text.lstrip("v").lstrip("V")
 
     # Look for version embedded in text (e.g., "Bengal 0.1.8")
     # Search for semver-like pattern anywhere in the text
-    match = re.search(r'v?(\d+\.\d+(?:\.\d+)?(?:[.-][a-zA-Z0-9]+)?)', text)
+    match = re.search(r"v?(\d+\.\d+(?:\.\d+)?(?:[.-][a-zA-Z0-9]+)?)", text)
     if match:
         return match.group(1)
 
@@ -328,7 +323,11 @@ class ReleaseView:
             source_path = getattr(page, "source_path", None)
             if source_path:
                 # Get filename without extension
-                filename = source_path.stem if hasattr(source_path, "stem") else str(source_path).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+                filename = (
+                    source_path.stem
+                    if hasattr(source_path, "stem")
+                    else str(source_path).rsplit("/", 1)[-1].rsplit(".", 1)[0]
+                )
                 # Check if filename IS a version (not _index, not a regular name)
                 if filename and filename not in ("_index", "index"):
                     extracted = _extract_version(filename)

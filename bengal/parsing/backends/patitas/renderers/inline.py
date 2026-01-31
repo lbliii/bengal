@@ -134,9 +134,7 @@ def render_role(node: Role, sb: StringBuilder, render_children: Callable) -> Non
     )
 
 
-def render_strikethrough(
-    node: Strikethrough, sb: StringBuilder, render_children: Callable
-) -> None:
+def render_strikethrough(node: Strikethrough, sb: StringBuilder, render_children: Callable) -> None:
     """Render strikethrough (<del>)."""
     sb.append("<del>")
     render_children(node.children, sb)
@@ -154,9 +152,7 @@ def render_math(node: Math, sb: StringBuilder, render_children: Callable) -> Non
     sb.append(f'<span class="math">{escape_html(node.content)}</span>')
 
 
-def render_footnote_ref(
-    node: FootnoteRef, sb: StringBuilder, render_children: Callable
-) -> None:
+def render_footnote_ref(node: FootnoteRef, sb: StringBuilder, render_children: Callable) -> None:
     """Render footnote reference (links to footnote definition, Mistune-compatible)."""
     identifier = escape_attr(node.identifier)
     sb.append(

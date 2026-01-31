@@ -116,9 +116,7 @@ class TestAssetTrackerContextManagerProperties:
         # Asset should still be tracked
         assert path in tracker.get_assets()
 
-    @given(
-        st.lists(st.text(min_size=1).filter(lambda x: x.strip()), min_size=1, max_size=10)
-    )
+    @given(st.lists(st.text(min_size=1).filter(lambda x: x.strip()), min_size=1, max_size=10))
     def test_nested_context_managers(self, paths: list[str]) -> None:
         """Nested context managers should properly stack and unstack."""
         trackers = [AssetTracker() for _ in paths]

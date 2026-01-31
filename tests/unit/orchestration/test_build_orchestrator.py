@@ -73,7 +73,10 @@ class TestBuildOrchestrator:
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
         mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (mock_cache, mock_tracker)
+        mock_orchestrators["incremental"].return_value.initialize.return_value = (
+            mock_cache,
+            mock_tracker,
+        )
         mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
         mock_orchestrators["section"].return_value.validate_sections.return_value = []
 
@@ -178,8 +181,12 @@ class TestBuildOrchestrator:
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
         mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (mock_cache, mock_tracker)
+        mock_orchestrators["incremental"].return_value.initialize.return_value = (
+            mock_cache,
+            mock_tracker,
+        )
         from bengal.orchestration.build.results import FilterResult
+
         filter_result = FilterResult(
             pages_to_build=[],
             assets_to_process=[],
@@ -204,9 +211,13 @@ class TestBuildOrchestrator:
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
         mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (mock_cache, mock_tracker)
+        mock_orchestrators["incremental"].return_value.initialize.return_value = (
+            mock_cache,
+            mock_tracker,
+        )
 
         from bengal.orchestration.build.results import FilterResult
+
         filter_result = FilterResult(
             pages_to_build=[],
             assets_to_process=[],

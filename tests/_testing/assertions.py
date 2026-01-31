@@ -79,20 +79,17 @@ def assert_page_rendered(
 
     if min_size > 0:
         assert len(content) >= min_size, (
-            f"Page '{page_path}' is too small: {len(content)} bytes "
-            f"(expected >= {min_size})"
+            f"Page '{page_path}' is too small: {len(content)} bytes (expected >= {min_size})"
         )
 
     for expected in contains or []:
         assert expected in content, (
-            f"Expected '{expected}' in {page_path}. "
-            f"Content preview: {content[:500]}..."
+            f"Expected '{expected}' in {page_path}. Content preview: {content[:500]}..."
         )
 
     for forbidden in not_contains or []:
         assert forbidden not in content, (
-            f"Unexpected '{forbidden}' found in {page_path}. "
-            f"Content preview: {content[:500]}..."
+            f"Unexpected '{forbidden}' found in {page_path}. Content preview: {content[:500]}..."
         )
 
     return content
@@ -135,8 +132,7 @@ def assert_page_contains(
     match = re.search(pattern, content, flags)
 
     assert match is not None, (
-        f"Pattern '{pattern}' not found in {page_path}. "
-        f"Content preview: {content[:500]}..."
+        f"Pattern '{pattern}' not found in {page_path}. Content preview: {content[:500]}..."
     )
 
     return match
@@ -258,9 +254,7 @@ def assert_build_idempotent(site: Site) -> None:
     added = set(second_hashes.keys()) - set(first_hashes.keys())
     removed = set(first_hashes.keys()) - set(second_hashes.keys())
     changed = {
-        k
-        for k in first_hashes.keys() & second_hashes.keys()
-        if first_hashes[k] != second_hashes[k]
+        k for k in first_hashes.keys() & second_hashes.keys() if first_hashes[k] != second_hashes[k]
     }
 
     assert not added and not removed and not changed, (
@@ -448,17 +442,12 @@ def assert_menu_structure(
     """
     menu = getattr(site, "menu", [])
 
-    assert len(menu) >= min_entries, (
-        f"Menu has {len(menu)} entries, expected >= {min_entries}"
-    )
+    assert len(menu) >= min_entries, f"Menu has {len(menu)} entries, expected >= {min_entries}"
 
     if contains_titles:
         menu_titles = {getattr(m, "title", None) for m in menu}
         missing = set(contains_titles) - menu_titles
-        assert not missing, (
-            f"Menu missing expected titles: {missing}. "
-            f"Found: {menu_titles}"
-        )
+        assert not missing, f"Menu missing expected titles: {missing}. Found: {menu_titles}"
 
     if all_hrefs_absolute:
         bad_hrefs = []
@@ -466,9 +455,7 @@ def assert_menu_structure(
             href = getattr(m, "href", "")
             if href and not href.startswith("/"):
                 bad_hrefs.append((getattr(m, "title", "?"), href))
-        assert not bad_hrefs, (
-            f"Menu has non-absolute hrefs: {bad_hrefs}"
-        )
+        assert not bad_hrefs, f"Menu has non-absolute hrefs: {bad_hrefs}"
 
 
 # =============================================================================
@@ -535,8 +522,7 @@ def assert_changed_file_rebuilt(
 
     rebuilt_paths = {str(p.source_path) for p in getattr(decision, "pages_to_build", [])}
     assert any(changed_file in p for p in rebuilt_paths), (
-        f"Changed file '{changed_file}' was not rebuilt. "
-        f"Rebuilt files: {rebuilt_paths}"
+        f"Changed file '{changed_file}' was not rebuilt. Rebuilt files: {rebuilt_paths}"
     )
 
 
@@ -593,9 +579,7 @@ def assert_no_broken_internal_links(
                 target_path = target_path / "index.html"
 
             if not target_path.exists():
-                broken_links.append(
-                    (str(html_file.relative_to(output_dir)), href)
-                )
+                broken_links.append((str(html_file.relative_to(output_dir)), href))
 
     assert not broken_links, (
         f"Found {len(broken_links)} broken internal links: "
@@ -639,10 +623,7 @@ def assert_pages_have_required_metadata(
 
         for field in required_fields:
             # Check both metadata dict and direct attributes
-            has_field = (
-                field in metadata
-                or hasattr(page, field) and getattr(page, field)
-            )
+            has_field = field in metadata or hasattr(page, field) and getattr(page, field)
             if not has_field:
                 page_missing.append(field)
 
@@ -650,6 +631,5 @@ def assert_pages_have_required_metadata(
             missing.append((str(page.source_path), page_missing))
 
     assert not missing, (
-        f"Pages missing required metadata: {missing[:10]}"
-        f"{'...' if len(missing) > 10 else ''}"
+        f"Pages missing required metadata: {missing[:10]}{'...' if len(missing) > 10 else ''}"
     )

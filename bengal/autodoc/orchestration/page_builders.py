@@ -131,19 +131,19 @@ def create_pages(
         # In consolidated mode (OpenAPI), endpoints don't get individual pages
         # openapi_overview never gets a separate page - root section index IS the overview
         if (
-            (doc_type == "python"
-            and element.element_type != "module")
-            or (doc_type == "cli"
-            and element.element_type not in ("command", "command-group"))
-            or (doc_type == "openapi"
-            and (
-                element.element_type == "openapi_overview"  # Root section handles overview
-                or (consolidate and element.element_type == "openapi_endpoint")
-                or (
-                    not consolidate
-                    and element.element_type not in ("openapi_endpoint", "openapi_schema")
+            (doc_type == "python" and element.element_type != "module")
+            or (doc_type == "cli" and element.element_type not in ("command", "command-group"))
+            or (
+                doc_type == "openapi"
+                and (
+                    element.element_type == "openapi_overview"  # Root section handles overview
+                    or (consolidate and element.element_type == "openapi_endpoint")
+                    or (
+                        not consolidate
+                        and element.element_type not in ("openapi_endpoint", "openapi_schema")
+                    )
                 )
-            ))
+            )
         ):
             continue
 

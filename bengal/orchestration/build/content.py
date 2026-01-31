@@ -455,7 +455,7 @@ def phase_update_pages_list(
 
     # RFC: Output Cache Architecture - Build content hash lookup from parsed_content cache
     content_hash_lookup: dict[str, str] = {}
-    if cache and hasattr(cache, 'parsed_content'):
+    if cache and hasattr(cache, "parsed_content"):
         for path_str, entry in cache.parsed_content.items():
             if isinstance(entry, dict):
                 # The content hash is stored as metadata_hash in parsed_content
@@ -537,15 +537,16 @@ def phase_update_pages_list(
                 # CRITICAL: Invalidate rendered output cache for taxonomy pages
                 # This ensures fresh rendering with updated member metadata
                 # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
-                coordinator = getattr(orchestrator.incremental, 'coordinator', None)
+                coordinator = getattr(orchestrator.incremental, "coordinator", None)
                 if coordinator:
                     from bengal.orchestration.build.coordinator import PageInvalidationReason
+
                     coordinator.invalidate_page(
                         page.source_path,
                         PageInvalidationReason.TAXONOMY_CASCADE,
                         trigger=f"tag:{tag_slug}" if tag_slug else "tag-index",
                     )
-                elif cache and hasattr(cache, 'invalidate_rendered_output'):
+                elif cache and hasattr(cache, "invalidate_rendered_output"):
                     cache.invalidate_rendered_output(page.source_path)
 
     # Log cache effectiveness

@@ -365,7 +365,7 @@ class TestSiteIndexJsonGeneration:
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:
         """Create a mock Site instance."""
         from datetime import datetime
-        
+
         site = Mock()
         site.site_dir = site_dir
         site.output_dir = output_dir

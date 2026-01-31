@@ -109,9 +109,7 @@ class HealthReport:
         Returns:
             Score from 0-100 (100 = perfect)
         """
-        return calculate_quality_score(
-            self.total_errors, self.total_warnings, self.total_checks
-        )
+        return calculate_quality_score(self.total_errors, self.total_warnings, self.total_checks)
 
     def quality_rating(self) -> str:
         """

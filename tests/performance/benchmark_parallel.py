@@ -61,14 +61,14 @@ fingerprint_assets = true
 def benchmark_asset_processing(num_assets: int, parallel: bool) -> float:
     """
     Benchmark asset processing with or without parallelism.
-    
+
     Args:
         num_assets: Number of assets to process
         parallel: Whether to use parallel processing
-    
+
     Returns:
         Time in seconds
-        
+
     """
     site_dir = create_test_site(num_assets)
 
@@ -101,13 +101,13 @@ def benchmark_asset_processing(num_assets: int, parallel: bool) -> float:
 def benchmark_post_processing(parallel: bool) -> float:
     """
     Benchmark post-processing with or without parallelism.
-    
+
     Args:
         parallel: Whether to use parallel processing
-    
+
     Returns:
         Time in seconds
-        
+
     """
     temp_dir = Path(tempfile.mkdtemp())
 

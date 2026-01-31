@@ -443,7 +443,9 @@ class DevServer:
             # Trigger hot reload
             send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
             icons = get_icon_set(should_use_emoji())
-            print(f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading...")
+            print(
+                f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading..."
+            )
         else:
             icons = get_icon_set(should_use_emoji())
             print(f"\n  {icons.success} Cache validated - content is fresh")
@@ -476,9 +478,7 @@ class DevServer:
             cfg = getattr(self.site, "config", {}) or {}
 
             try:
-                min_interval = get_dev_config(
-                    cfg, "reload", "min_notify_interval_ms", default=300
-                )
+                min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
                 controller.set_min_notify_interval_ms(int(min_interval))
             except Exception as e:
                 logger.warning("reload_config_min_interval_failed", error=str(e))

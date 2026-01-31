@@ -55,7 +55,9 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) 
     return property(getter)
 
 
-def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None) -> property:
+def _lazy_property_with_setter(
+    attr_name: str, default: Any = None, getter_doc: str | None = None
+) -> property:
     """Create a lazy property with getter and setter that delegates to _full_page.
 
     Args:
@@ -612,9 +614,7 @@ class PageProxy:
     in_search = _lazy_property(
         "in_search", default=True, doc="Check if page should appear in search index."
     )
-    in_rss = _lazy_property(
-        "in_rss", default=True, doc="Check if page should appear in RSS feeds."
-    )
+    in_rss = _lazy_property("in_rss", default=True, doc="Check if page should appear in RSS feeds.")
     robots_meta = _lazy_property(
         "robots_meta", default="index, follow", doc="Robots meta content for this page."
     )

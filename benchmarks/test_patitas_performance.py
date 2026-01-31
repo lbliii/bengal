@@ -353,6 +353,7 @@ class TestPerformanceComparison:
             )
         elif improvement_percent < 20:
             import warnings
+
             warnings.warn(
                 f"Patitas improvement ({improvement_percent:.1f}%) is below CI threshold (20%). "
                 f"RFC target is 30%.",

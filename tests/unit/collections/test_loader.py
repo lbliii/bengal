@@ -361,15 +361,22 @@ class TestCollectionPathEdgeCases:
         assert trie.find(Path("docs/api/v2/endpoint.md"))[0] == "v2"
 
         # Test linear scan (should have same behavior)
-        assert get_collection_for_path(
-            Path("docs/guide.md"), content_root, collections, trie=None
-        )[0] == "docs"
-        assert get_collection_for_path(
-            Path("docs/api/endpoint.md"), content_root, collections, trie=None
-        )[0] == "api"
-        assert get_collection_for_path(
-            Path("docs/api/v2/endpoint.md"), content_root, collections, trie=None
-        )[0] == "v2"
+        assert (
+            get_collection_for_path(Path("docs/guide.md"), content_root, collections, trie=None)[0]
+            == "docs"
+        )
+        assert (
+            get_collection_for_path(
+                Path("docs/api/endpoint.md"), content_root, collections, trie=None
+            )[0]
+            == "api"
+        )
+        assert (
+            get_collection_for_path(
+                Path("docs/api/v2/endpoint.md"), content_root, collections, trie=None
+            )[0]
+            == "v2"
+        )
 
     def test_sibling_directories(self) -> None:
         """Test collections in sibling directories don't interfere."""

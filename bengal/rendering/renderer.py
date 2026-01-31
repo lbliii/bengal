@@ -67,7 +67,11 @@ class Renderer:
     """
 
     def __init__(
-        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None, build_context: Any = None
+        self,
+        template_engine: Any,
+        build_stats: Any = None,
+        block_cache: Any = None,
+        build_context: Any = None,
     ) -> None:
         """
         Initialize the renderer.
@@ -146,9 +150,8 @@ class Renderer:
         # Look up in snapshot
         if snapshot:
             for sec_snap in snapshot.sections:
-                if (
-                    sec_snap.path == getattr(section, "path", None)
-                    or sec_snap.name == getattr(section, "name", "")
+                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                    section, "name", ""
                 ):
                     return sec_snap
 
@@ -407,9 +410,7 @@ class Renderer:
 
             # Convert subsections to SectionSnapshots (no wrapper needed)
             # SectionSnapshot has params property and __bool__ for template compatibility
-            subsections_for_context = self._to_section_snapshots(
-                top_level_subsections, snapshot
-            )
+            subsections_for_context = self._to_section_snapshots(top_level_subsections, snapshot)
 
             context.update(
                 {

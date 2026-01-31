@@ -330,7 +330,7 @@ _CONTENT_HASH_REMOVE_PATTERN = re.compile(
     r'<meta\s+name="bengal:content-hash"\s+content="[a-f0-9]+"[^>]*>\s*',
     re.IGNORECASE,
 )
-_HEAD_TAG_PATTERN = re.compile(r'<head[^>]*>', re.IGNORECASE)
+_HEAD_TAG_PATTERN = re.compile(r"<head[^>]*>", re.IGNORECASE)
 
 
 def embed_content_hash(html: str, content_hash: str | None = None) -> str:
@@ -362,7 +362,7 @@ def embed_content_hash(html: str, content_hash: str | None = None) -> str:
     meta_tag = f'<meta name="bengal:content-hash" content="{content_hash}">'
 
     # Remove existing hash if present (for rebuilds)
-    html = _CONTENT_HASH_REMOVE_PATTERN.sub('', html)
+    html = _CONTENT_HASH_REMOVE_PATTERN.sub("", html)
 
     # Find <head> tag (case-insensitive, handle attributes)
     head_match = _HEAD_TAG_PATTERN.search(html)

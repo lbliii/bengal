@@ -118,10 +118,13 @@ class CacheChecker:
         # Ensure output_path is set before writing (required by write_output)
         if not page.output_path:
             from bengal.rendering.pipeline.output import determine_output_path
+
             page.output_path = determine_output_path(page, self.site)
 
         write_output(
-            page, self.site, self.dependency_tracker,
+            page,
+            self.site,
+            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
         )
@@ -218,10 +221,13 @@ class CacheChecker:
         # Ensure output_path is set before writing (required by write_output)
         if not page.output_path:
             from bengal.rendering.pipeline.output import determine_output_path
+
             page.output_path = determine_output_path(page, self.site)
 
         write_output(
-            page, self.site, self.dependency_tracker,
+            page,
+            self.site,
+            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
         )

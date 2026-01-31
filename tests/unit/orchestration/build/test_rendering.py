@@ -132,7 +132,7 @@ class TestRewriteFontsCssUrls:
 
 class TestIsCssOutputMissing:
     """Tests for _is_css_output_missing helper function.
-    
+
     This helper validates CSS entry points exist in output before skipping
     asset processing during incremental builds. See Issue #130.
     """
@@ -141,7 +141,7 @@ class TestIsCssOutputMissing:
         """Returns True when output/assets/ directory doesn't exist."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         # Don't create output directory
-        
+
         assert _is_css_output_missing(orchestrator) is True
 
     def test_returns_true_when_css_dir_missing(self, tmp_path):
@@ -150,7 +150,7 @@ class TestIsCssOutputMissing:
         output_assets = tmp_path / "public" / "assets"
         output_assets.mkdir(parents=True)
         # Don't create css subdirectory
-        
+
         assert _is_css_output_missing(orchestrator) is True
 
     def test_returns_true_when_no_style_css(self, tmp_path):
@@ -161,7 +161,7 @@ class TestIsCssOutputMissing:
         # Create other CSS files but not style.css
         (css_dir / "fonts.css").write_text("/* fonts */")
         (css_dir / "print.css").write_text("/* print */")
-        
+
         assert _is_css_output_missing(orchestrator) is True
 
     def test_returns_false_when_style_css_exists(self, tmp_path):
@@ -170,7 +170,7 @@ class TestIsCssOutputMissing:
         css_dir = tmp_path / "public" / "assets" / "css"
         css_dir.mkdir(parents=True)
         (css_dir / "style.css").write_text("/* styles */")
-        
+
         assert _is_css_output_missing(orchestrator) is False
 
     def test_returns_false_when_fingerprinted_style_exists(self, tmp_path):
@@ -179,7 +179,7 @@ class TestIsCssOutputMissing:
         css_dir = tmp_path / "public" / "assets" / "css"
         css_dir.mkdir(parents=True)
         (css_dir / "style.abc12345.css").write_text("/* fingerprinted */")
-        
+
         assert _is_css_output_missing(orchestrator) is False
 
     def test_returns_false_with_multiple_style_files(self, tmp_path):
@@ -189,7 +189,7 @@ class TestIsCssOutputMissing:
         css_dir.mkdir(parents=True)
         (css_dir / "style.css").write_text("/* original */")
         (css_dir / "style.abc12345.css").write_text("/* fingerprinted */")
-        
+
         assert _is_css_output_missing(orchestrator) is False
 
     def test_ignores_non_style_css_files(self, tmp_path):
@@ -201,7 +201,7 @@ class TestIsCssOutputMissing:
         (css_dir / "mystyle.css").write_text("/* not a match */")
         (css_dir / "custom-style.css").write_text("/* not a match */")
         (css_dir / "main.css").write_text("/* not a match */")
-        
+
         assert _is_css_output_missing(orchestrator) is True
 
 
@@ -246,7 +246,7 @@ class TestPhaseAssets:
 
     def test_processes_all_assets_on_incremental_if_css_missing(self, tmp_path):
         """Processes all assets on incremental build if CSS output is missing.
-        
+
         This is a safety net that handles race conditions where output is
         corrupted after provenance filtering. The check is unified for both
         themed and non-themed sites - site.assets is the source of truth.
@@ -264,10 +264,10 @@ class TestPhaseAssets:
 
         # Should process all assets since CSS output is missing
         assert result == orchestrator.site.assets
-        
+
     def test_processes_all_assets_for_themed_site_if_css_missing(self, tmp_path):
         """Themed sites also get all assets processed when CSS missing.
-        
+
         The safety net behavior is unified - no special handling for themes.
         Theme assets are included in site.assets during content discovery.
         """
@@ -289,7 +289,7 @@ class TestPhaseAssets:
 
         # Should process all assets (theme assets are already in site.assets)
         assert result == orchestrator.site.assets
-        
+
     def test_skips_safety_net_when_css_exists(self, tmp_path):
         """Safety net doesn't trigger when CSS output exists."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
