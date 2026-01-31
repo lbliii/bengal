@@ -211,9 +211,7 @@ class NavigationValidator(BaseValidator):
                 for p in site.pages
             )
 
-            # Some tests construct lightweight Section mocks that expose `children` but
-            # not `pages`; support either for robustness in validation
-            section_pages = getattr(section, "pages", getattr(section, "children", []))
+            section_pages = get_section_pages(section)
 
             if not has_index and not has_archive and section_pages:
                 issues.append(
@@ -291,7 +289,7 @@ class NavigationValidator(BaseValidator):
 
         # Check each section with doc-type content
         for section in site.sections:
-            section_pages = getattr(section, "pages", getattr(section, "children", []))
+            section_pages = get_section_pages(section)
             if not section_pages:
                 continue
 
@@ -352,10 +350,7 @@ class NavigationValidator(BaseValidator):
             doc_sections = sum(
                 1
                 for s in site.sections
-                if any(
-                    p.metadata.get("type") in doc_types
-                    for p in getattr(s, "pages", getattr(s, "children", []))
-                )
+                if any(p.metadata.get("type") in doc_types for p in get_section_pages(s))
             )
             if doc_sections > 0:
                 results.append(

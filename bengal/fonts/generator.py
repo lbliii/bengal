@@ -110,7 +110,7 @@ class FontCSSGenerator:
         ]
 
         # Generate @font-face rules for each variant
-        for _font_name, variants in font_mapping.items():
+        for variants in font_mapping.values():
             if not variants:
                 continue
 

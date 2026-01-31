@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.utils import get_section_pages
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
@@ -141,8 +142,8 @@ class TaxonomyValidator(BaseValidator):
         issues = []
 
         for section in site.sections:
-            # Skip sections without pages (support tests using `children` instead of `pages`)
-            section_pages = getattr(section, "pages", getattr(section, "children", []))
+            # Skip sections without pages
+            section_pages = get_section_pages(section)
             if not section_pages:
                 continue
 
@@ -177,8 +178,7 @@ class TaxonomyValidator(BaseValidator):
             sections_with_content = sum(
                 1
                 for s in site.sections
-                if getattr(s, "pages", getattr(s, "children", []))
-                and getattr(s, "name", "") != "root"
+                if get_section_pages(s) and getattr(s, "name", "") != "root"
             )
             results.append(
                 CheckResult.success(f"Archive pages validated ({sections_with_content} sections)")

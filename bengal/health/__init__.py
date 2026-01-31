@@ -45,6 +45,14 @@ from __future__ import annotations
 from bengal.health.base import BaseValidator
 from bengal.health.health_check import HealthCheck
 from bengal.health.report import CheckResult, CheckStatus, HealthReport
+from bengal.health.utils import (
+    get_health_config,
+    get_section_pages,
+    iter_pages_with_output,
+    read_output_content,
+    relative_path,
+    sample_pages,
+)
 
 __all__ = [
     "BaseValidator",
@@ -52,4 +60,11 @@ __all__ = [
     "CheckStatus",
     "HealthCheck",
     "HealthReport",
+    # Utilities for custom validators
+    "get_health_config",
+    "get_section_pages",
+    "iter_pages_with_output",
+    "read_output_content",
+    "relative_path",
+    "sample_pages",
 ]
