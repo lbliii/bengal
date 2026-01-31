@@ -219,9 +219,11 @@ class NavigationValidator(BaseValidator):
                 )
 
             # Check if section pages have proper parent reference
-            for page in section_pages:
-                if hasattr(page, "_section") and page._section != section:
-                    issues.append(f"Page {page.source_path.name} has wrong section reference")
+            issues.extend(
+                f"Page {page.source_path.name} has wrong section reference"
+                for page in section_pages
+                if hasattr(page, "_section") and page._section != section
+            )
 
         if issues:
             results.append(
