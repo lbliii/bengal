@@ -9,6 +9,7 @@ Modules:
     hashing: Cryptographic hashing for cache keys and fingerprinting
     text: Text processing (slugify, truncate, HTML strip)
     dates: Date parsing, formatting, and time_ago
+    types: Type introspection (Optional detection, type names)
     sentinel: MISSING singleton for unambiguous missing states
     dotdict: Dictionary with dot notation access
     lru_cache: Thread-safe LRU cache with optional TTL
@@ -68,6 +69,13 @@ from bengal.utils.primitives.text import (
     truncate_words,
     unescape_html,
 )
+from bengal.utils.primitives.types import (
+    get_union_args,
+    is_optional_type,
+    is_union_type,
+    type_display_name,
+    unwrap_optional,
+)
 
 __all__ = [
     # sentinel
@@ -88,6 +96,8 @@ __all__ = [
     "format_path_for_display",
     "generate_excerpt",
     "get_current_year",
+    # types
+    "get_union_args",
     "hash_bytes",
     "hash_dict",
     "hash_file",
@@ -98,7 +108,11 @@ __all__ = [
     "humanize_number",
     "humanize_slug",
     "is_missing",
+    # types
+    "is_optional_type",
     "is_recent",
+    # types
+    "is_union_type",
     "iso_timestamp",
     "normalize_whitespace",
     "parse_code_info",
@@ -113,7 +127,11 @@ __all__ = [
     "truncate_chars",
     "truncate_middle",
     "truncate_words",
+    # types
+    "type_display_name",
     "unescape_html",
+    # types
+    "unwrap_optional",
     "utc_now",
     "wrap_data",
 ]
