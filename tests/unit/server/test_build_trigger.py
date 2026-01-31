@@ -1098,17 +1098,37 @@ class TestReloadDecisionFlow:
         mock_send_reload.assert_called_once_with("reload", "content-changed", ["index.html"])
 
     @patch("bengal.server.build_trigger.controller")
-    def test_no_outputs_suppresses_reload(
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_no_outputs_but_sources_changed_triggers_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test fallback reload when sources changed but no typed outputs recorded."""
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Sources changed but empty outputs (fallback case)
+        trigger._handle_reload(["content/draft.md"], ())
+
+        # Should trigger full reload via fallback
+        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", [])
+
+    @patch("bengal.server.build_trigger.controller")
+    def test_no_outputs_no_sources_suppresses_reload(
         self,
         mock_controller: MagicMock,
         mock_site: MagicMock,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that empty outputs suppress reload."""
+        """Test that empty outputs AND empty sources suppress reload."""
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
-        # Empty outputs
-        trigger._handle_reload(["content/draft.md"], ())
+        # No sources, no outputs
+        trigger._handle_reload([], ())
 
         # Should NOT call decide_from_outputs or send reload
         mock_controller.decide_from_outputs.assert_not_called()

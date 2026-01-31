@@ -869,14 +869,26 @@ class BuildTrigger:
                     output_count=len(changed_outputs),
                 )
 
-        # Default: suppress reload when no outputs changed
+        # Fallback: If sources changed but no typed outputs were recorded, trigger full reload
+        # This handles cases where the output collector didn't receive records (e.g., subprocess
+        # serialization issues, early exit paths, or collector not being passed through).
         if decision is None:
-            decision = ReloadDecision(action="none", reason="no-outputs", changed_paths=[])
-            decision_source = "no-outputs"
-            logger.debug(
-                "reload_suppressed_no_outputs",
-                changed_files_count=len(changed_files) if changed_files else 0,
-            )
+            if changed_files:
+                # Sources changed, but no typed outputs - fall back to full reload
+                decision = ReloadDecision(
+                    action="reload", reason="source-change-no-outputs", changed_paths=[]
+                )
+                decision_source = "fallback-source-change"
+                logger.warning(
+                    "reload_fallback_no_outputs",
+                    changed_files_count=len(changed_files),
+                    changed_files=changed_files[:5],
+                )
+            else:
+                # No sources changed and no outputs - suppress reload
+                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=[])
+                decision_source = "no-changes"
+                logger.debug("reload_suppressed_no_changes")
 
         # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
         # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
