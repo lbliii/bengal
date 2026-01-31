@@ -248,7 +248,7 @@ def build(
     profile_config = build_profile.get_config()
 
     # Configure logging using consolidated helper
-    log_path = configure_cli_logging(
+    configure_cli_logging(
         source=source,
         profile=build_profile,
         log_file=log_file,
@@ -522,8 +522,11 @@ def build(
             # Determine profile output path (use organized directory structure)
             if perf_profile is True:
                 # Flag set without path - use default organized location
-                paths.profiles_dir.mkdir(parents=True, exist_ok=True)
-                perf_profile_path = paths.profiles_dir / "profile.stats"
+                from bengal.cache.paths import BengalPaths
+
+                perf_paths = BengalPaths(Path(source))
+                perf_paths.profiles_dir.mkdir(parents=True, exist_ok=True)
+                perf_profile_path = perf_paths.profiles_dir / "profile.stats"
             else:
                 # User specified custom path
                 perf_profile_path = Path(perf_profile)
@@ -673,7 +676,6 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         cli.header("📊 Incremental Build Decision")
         verb = "Rebuilt"
 
-    total_pages = len(decision.pages_to_build) + decision.pages_skipped_count
     cli.info(
         f"  {verb} {len(decision.pages_to_build)} pages ({decision.pages_skipped_count} skipped)"
     )
@@ -742,8 +744,8 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     # Detailed skip reasons (only shown in verbose mode / when data available)
     if decision.skip_reasons:
         cli.blank()
-        cli.detail(f"  Skipped pages (first 10):", indent=0)
-        for i, (page_path, skip_reason) in enumerate(list(decision.skip_reasons.items())[:10]):
+        cli.detail("  Skipped pages (first 10):", indent=0)
+        for page_path, skip_reason in list(decision.skip_reasons.items())[:10]:
             cli.detail(f"    • {truncate_path(page_path)}: {skip_reason.value}", indent=0)
         if len(decision.skip_reasons) > 10:
             cli.detail(f"    ... and {len(decision.skip_reasons) - 10} more", indent=0)
@@ -765,24 +767,6 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
                 for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]
             ]
             cli.detail(f"  Reason summary: {', '.join(summary_parts)}", indent=0)
-
-
-def truncate_path(path: str, max_len: int = 25) -> str:
-    """Truncate path for display, keeping the filename visible."""
-    if len(path) <= max_len:
-        return path
-    # Keep the last part (filename) and truncate from the start
-    parts = path.split("/")
-    if len(parts) == 1:
-        return path[: max_len - 3] + "..."
-    # Try to keep at least the filename
-    filename = parts[-1]
-    if len(filename) >= max_len - 3:
-        return "..." + filename[-(max_len - 3) :]
-    remaining = max_len - len(filename) - 4  # 4 for ".../"
-    if remaining > 0:
-        return ".../" + filename
-    return "..." + filename[-(max_len - 3) :]
 
 
 def _print_explain_json(stats, *, dry_run: bool = False) -> None:

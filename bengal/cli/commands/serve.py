@@ -2,20 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import (
-    command_metadata,
-    configure_traceback,
-    handle_cli_errors,
-    load_site_from_cli,
-)
+from bengal.cli.helpers import command_metadata, handle_cli_errors
+from bengal.cli.utils import configure_cli_logging, configure_traceback, load_site_from_cli
 from bengal.errors.traceback import TracebackStyle
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
-from bengal.utils.observability.logger import LogLevel, configure_logging
 
 
 @click.command(cls=BengalCommand)
@@ -135,27 +128,12 @@ def serve(
     if version_scope and all_versions:
         raise click.UsageError("--version and --all-versions cannot be used together")
 
-    # Configure logging based on flags
-    if debug:
-        log_level = LogLevel.DEBUG
-    elif verbose:
-        log_level = LogLevel.INFO
-    else:
-        log_level = LogLevel.WARNING  # Default: only show warnings/errors
-
-    # Determine log file path using canonical BengalPaths
-    from bengal.cache.paths import BengalPaths
-
-    root_path = Path(source).resolve()
-    paths = BengalPaths(root_path)
-    paths.logs_dir.mkdir(parents=True, exist_ok=True)
-    log_path = paths.serve_log
-
-    configure_logging(
-        level=log_level,
-        log_file=log_path,
-        verbose=verbose or debug,
-        track_memory=False,  # Memory tracking not needed for dev server
+    # Configure logging using consolidated helper
+    configure_cli_logging(
+        source=source,
+        debug=debug,
+        verbose=verbose,
+        log_type="serve",
     )
 
     # Configure traceback behavior BEFORE site loading so errors show properly

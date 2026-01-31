@@ -15,12 +15,8 @@ from typing import TYPE_CHECKING, Any
 import click
 
 from bengal.cache.paths import STATE_DIR_NAME
-from bengal.cli.helpers import (
-    configure_traceback,
-    get_cli_output,
-    handle_cli_errors,
-    load_site_from_cli,
-)
+from bengal.cli.helpers import handle_cli_errors
+from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
 from bengal.errors.traceback import TracebackStyle
 from bengal.health import HealthCheck
 from bengal.utils.observability.profile import BuildProfile

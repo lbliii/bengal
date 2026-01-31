@@ -66,7 +66,7 @@ def main() -> None:
     site = None
     if args.site and not args.demo:
         try:
-            from bengal.cli.helpers.site_loader import load_site_from_cli
+            from bengal.cli.utils import load_site_from_cli
 
             site = load_site_from_cli(str(args.site))
         except ImportError:

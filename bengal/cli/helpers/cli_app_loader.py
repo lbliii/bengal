@@ -16,7 +16,7 @@ from typing import Any
 
 import click
 
-from bengal.cli.helpers.cli_output import get_cli_output
+from bengal.cli.utils import get_cli_output
 from bengal.output import CLIOutput
 
 

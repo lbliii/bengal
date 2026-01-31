@@ -115,12 +115,11 @@ def handle_exception(
 
 
 def _handle_bengal_error(
-    exception: BengalError,
+    exception: BaseException,
     cli: CLIOutput,
     show_traceback: bool | None,
 ) -> None:
     """Handle BengalError with beautiful formatted display."""
-    from bengal.errors import BengalError
     from bengal.errors.display import display_bengal_error
 
     display_bengal_error(exception, cli)

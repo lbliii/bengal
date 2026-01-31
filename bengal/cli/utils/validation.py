@@ -108,10 +108,7 @@ def validate_flag_conflicts(
                     user_flag = flag_name_map.get(flag, flag)
 
                     # Check which conflicting flags are actually active
-                    active_conflicts = []
-                    for cf in conflicting_flags:
-                        if kwargs.get(cf):
-                            active_conflicts.append(cf)
+                    active_conflicts = [cf for cf in conflicting_flags if kwargs.get(cf)]
 
                     if active_conflicts:
                         # Map all conflicting flags to user-facing names
