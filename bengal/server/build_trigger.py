@@ -822,74 +822,44 @@ class BuildTrigger:
     ) -> None:
         """Handle reload decision and notification.
 
-        Uses a three-tier decision flow for optimal performance:
-        1. Source-gated: Immediate CSS-only detection from source files (fastest)
-        2. Typed outputs: O(o) decision from OutputRecords (preferred)
-        3. Fallback: Path-based decision (should rarely occur)
+        Uses typed outputs from the build for accurate reload decisions:
+        1. Primary: Typed outputs from build (CSS-only vs full reload)
+        2. Fallback: Path-based decision (when typed outputs unavailable)
+
+        The typed output approach is more accurate than source-file inspection
+        because it knows exactly what was written, not just what changed.
 
         Args:
-            changed_files: List of source file paths that changed
+            changed_files: List of source file paths that changed (for logging)
             changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
         """
         decision = None
-        decision_source = "none"  # Track which tier made the decision
+        decision_source = "none"
 
-        # TIER 1: Source-gated reload decision (fastest path)
-        if changed_files:
-            try:
-                lower = [p.lower() for p in changed_files]
-                src_only = [p for p in lower if "/public/" not in p and "\\public\\" not in p]
-
-                has_svg_icons = any(
-                    "/themes/" in p and "/assets/icons/" in p and p.endswith(".svg")
-                    for p in src_only
-                )
-
-                css_only = (
-                    bool(src_only)
-                    and all(p.endswith(".css") for p in src_only)
-                    and not has_svg_icons
-                )
-
-                if css_only:
-                    # Use typed outputs to get CSS paths
-                    css_paths = (
-                        [path for path, type_val, _phase in changed_outputs if type_val == "css"]
-                        if changed_outputs
-                        else []
-                    )
-                    decision = ReloadDecision(
-                        action="reload-css", reason="css-only", changed_paths=css_paths
-                    )
-                    decision_source = "source-gated-css"
-                else:
-                    decision = ReloadDecision(
-                        action="reload", reason="source-change", changed_paths=[]
-                    )
-                    decision_source = "source-gated-full"
-            except Exception as e:
-                logger.debug("reload_decision_failed", error=str(e))
-
-        # TIER 2: Typed builder outputs - preferred path (O(o) not O(F))
-        if decision is None and changed_outputs:
+        # Primary path: Use typed outputs from build
+        if changed_outputs:
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
             for path_str, type_val, phase in changed_outputs:
                 try:
                     output_type = OutputType(type_val)
-                    # phase needs to be a valid literal
                     if phase in ("render", "asset", "postprocess"):
                         records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
                 except (ValueError, TypeError):
                     # Invalid type value, skip
-                    pass
+                    logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
                 decision = controller.decide_from_outputs(records)
                 decision_source = "typed-outputs"
+                logger.debug(
+                    "reload_from_typed_outputs",
+                    output_count=len(records),
+                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
+                )
             else:
-                # TIER 3: Fall back to path-based decision (should rarely occur)
+                # Fallback: Path-based decision (when type reconstruction fails)
                 paths = [path for path, _type, _phase in changed_outputs]
                 decision = controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
@@ -899,10 +869,14 @@ class BuildTrigger:
                     output_count=len(changed_outputs),
                 )
 
-        # Default: suppress reload
+        # Default: suppress reload when no outputs changed
         if decision is None:
-            decision = ReloadDecision(action="none", reason="no-source-change", changed_paths=[])
-            decision_source = "suppressed"
+            decision = ReloadDecision(action="none", reason="no-outputs", changed_paths=[])
+            decision_source = "no-outputs"
+            logger.debug(
+                "reload_suppressed_no_outputs",
+                changed_files_count=len(changed_files) if changed_files else 0,
+            )
 
         # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
         # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)

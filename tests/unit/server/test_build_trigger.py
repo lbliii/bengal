@@ -1014,6 +1014,136 @@ class TestBuildTriggerQueuing:
         assert 0.1 in sleep_calls, f"Expected 0.1s delay, got calls: {sleep_calls}"
 
 
+class TestReloadDecisionFlow:
+    """Tests for simplified reload decision flow.
+
+    The reload decision flow uses typed outputs from builds:
+    1. Primary: Typed outputs (CSS-only vs full reload)
+    2. Fallback: Path-based decision (when types unavailable)
+    """
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.root_path = Path("/test/site")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor for testing."""
+        executor = MagicMock()
+        return executor
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_typed_outputs_css_only_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that CSS-only outputs trigger CSS-only reload."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="reload-css", reason="css-only", changed_paths=["style.css"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # CSS-only outputs
+        changed_outputs = (
+            ("style.css", "css", "asset"),
+            ("theme.css", "css", "asset"),
+        )
+        trigger._handle_reload(["assets/style.css"], changed_outputs)
+
+        # Should use decide_from_outputs
+        mock_controller.decide_from_outputs.assert_called_once()
+        mock_send_reload.assert_called_once_with("reload-css", "css-only", ["style.css"])
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_typed_outputs_full_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that HTML outputs trigger full reload."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=["index.html"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # HTML outputs
+        changed_outputs = (
+            ("index.html", "html", "render"),
+            ("about.html", "html", "render"),
+        )
+        trigger._handle_reload(["content/index.md"], changed_outputs)
+
+        mock_controller.decide_from_outputs.assert_called_once()
+        mock_send_reload.assert_called_once_with("reload", "content-changed", ["index.html"])
+
+    @patch("bengal.server.build_trigger.controller")
+    def test_no_outputs_suppresses_reload(
+        self,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that empty outputs suppress reload."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Empty outputs
+        trigger._handle_reload(["content/draft.md"], ())
+
+        # Should NOT call decide_from_outputs or send reload
+        mock_controller.decide_from_outputs.assert_not_called()
+        mock_controller.decide_from_changed_paths.assert_not_called()
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_fallback_to_path_based_decision(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test fallback to path-based decision when type reconstruction fails."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_changed_paths.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=["index.html"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Invalid output type that can't be reconstructed
+        changed_outputs = (
+            ("index.html", "invalid_type", "render"),
+        )
+        trigger._handle_reload(["content/index.md"], changed_outputs)
+
+        # Should fall back to decide_from_changed_paths
+        mock_controller.decide_from_outputs.assert_not_called()
+        mock_controller.decide_from_changed_paths.assert_called_once()
+
+
 class TestBuildStabilizationTiming:
     """Tests for build stabilization timing behavior."""
 
