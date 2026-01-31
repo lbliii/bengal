@@ -73,12 +73,6 @@ if TYPE_CHECKING:
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
-# Re-export for backward compatibility (deprecated, use render.tracking module)
-def _is_free_threaded() -> bool:
-    """Deprecated: Use bengal.orchestration.render.parallel.is_free_threaded instead."""
-    return is_free_threaded()
-
-
 class RenderOrchestrator:
     """
     Orchestrates page rendering in sequential or parallel modes.
@@ -122,7 +116,7 @@ class RenderOrchestrator:
             site: Site instance containing pages and configuration
         """
         self.site = site
-        self._free_threaded = _is_free_threaded()
+        self._free_threaded = is_free_threaded()
         self._block_cache = None  # Lazy initialized for Kida only
 
         # Log free-threaded detection once

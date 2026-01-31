@@ -736,37 +736,12 @@ class TaxonomyOrchestrator:
         """
         Create the main tags index page.
 
+        Delegates to _create_tag_index_page_for with site taxonomies.
+
         Returns:
             Generated tag index page
         """
-        from bengal.core.page import Page
-
-        # Create virtual path (delegate to utility)
-        virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
-
-        tag_index = Page(
-            source_path=virtual_path,
-            _raw_content="",
-            metadata={
-                "title": "All Tags",
-                "template": "tags.html",
-                "type": "tag-index",
-                "_generated": True,
-                "_virtual": True,
-                "_tags": self.site.taxonomies["tags"],
-            },
-        )
-
-        # Mark as virtual page (attribute, not just metadata)
-        tag_index._virtual = True
-
-        # Set site reference BEFORE output_path for correct URL computation
-        tag_index._site = self.site
-
-        # Compute output path using centralized logic (i18n-aware via site.current_language)
-        tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
-
-        return tag_index
+        return self._create_tag_index_page_for(self.site.taxonomies["tags"])
 
     def _create_tag_index_page_for(self, tags: dict[str, Any]) -> Page:
         """Create tag index page using virtual page utility."""
