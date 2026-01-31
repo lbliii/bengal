@@ -311,7 +311,10 @@ class KidaTemplateEngine:
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
-            ctx.update(context)
+            # Use items() explicitly to trigger LazyPageContext evaluation.
+            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
+            # but items() always calls LazyPageContext.items() which evaluates lazy values.
+            ctx.update(context.items())
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):
@@ -395,7 +398,10 @@ class KidaTemplateEngine:
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
-            ctx.update(context)
+            # Use items() explicitly to trigger LazyPageContext evaluation.
+            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
+            # but items() always calls LazyPageContext.items() which evaluates lazy values.
+            ctx.update(context.items())
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):

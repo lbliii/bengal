@@ -269,32 +269,58 @@ class BuildTrigger:
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
 
-            # Create build request
+            # Create build options for warm build
             use_incremental = not needs_full_rebuild
 
-            # Dev server always uses auto-detection (force_sequential=False)
-            # Parallel will be computed dynamically based on page count
-            request = BuildRequest(
-                site_root=str(self.site.root_path),
-                changed_paths=tuple(changed_files),
+            # Warm build: reuse the existing site object instead of creating a new one
+            # This eliminates Site.from_config() overhead (~250ms per rebuild)
+            from bengal.orchestration.build.options import BuildOptions
+            from bengal.utils.observability.profile import BuildProfile
+
+            build_opts = BuildOptions(
+                force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
-                profile="WRITER",
-                nav_changed_paths=tuple(str(p) for p in nav_changed_files),
+                profile=BuildProfile.WRITER,
+                changed_sources={Path(p) for p in changed_files} if changed_files else None,
+                nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,
-                force_sequential=False,  # Always auto-detect in dev server
-                version_scope=self.version_scope,
             )
 
-            # Execute build in subprocess
-            result = self._executor.submit(request, timeout=300.0)
-            build_duration = result.build_time_ms / 1000
+            # Apply version scope if set
+            if self.version_scope:
+                self.site.config["_version_scope"] = self.version_scope
 
-            if not result.success:
-                show_error(f"Build failed: {result.error_message}", show_art=False)
+            # Execute warm build directly on the existing site
+            build_start = time.time()
+            try:
+                stats = self.site.build(options=build_opts)
+                build_duration = (time.time() - build_start)
+
+                # Build succeeded - convert stats to result-like object for display
+                class WarmBuildResult:
+                    def __init__(self, stats: Any, build_time: float) -> None:
+                        self.success = True
+                        self.pages_built = stats.total_pages
+                        self.build_time_ms = build_time * 1000
+                        self.error_message = None
+                        self.changed_outputs = tuple(
+                            (str(r.path), r.output_type.value, r.phase)
+                            for r in stats.changed_outputs
+                        ) if hasattr(stats, 'changed_outputs') else ()
+                        self._stats = stats
+
+                result = WarmBuildResult(stats, build_duration)
+
+            except Exception as e:
+                # Build crashed - log error and reinitialize site for next build
+                build_duration = (time.time() - build_start)
+                error_msg = str(e)
+
+                show_error(f"Build failed: {error_msg}", show_art=False)
                 cli.request_log_header()
 
                 # Record failure for pattern detection
-                error_sig = f"build_failed:{result.error_message[:50] if result.error_message else 'unknown'}"
+                error_sig = f"build_failed:{error_msg[:50] if error_msg else 'unknown'}"
                 is_new = get_dev_server_state().record_failure(error_sig)
                 if not is_new:
                     logger.warning(
@@ -307,10 +333,23 @@ class BuildTrigger:
                     "rebuild_failed",
                     error_code=ErrorCode.S003.name,
                     duration_seconds=round(build_duration, 2),
-                    error=result.error_message,
+                    error=error_msg,
                     changed_files=[str(p) for p in changed_paths][:5],
                     is_recurring=not is_new,
                 )
+
+                # Reinitialize site from scratch to recover from corrupted state
+                # This ensures the next build starts clean
+                try:
+                    from bengal.core.site import Site
+                    logger.info("warm_build_recovery", action="reinitializing_site")
+                    self.site = Site.from_config(self.site.root_path)
+                    self.site.dev_mode = True
+                except Exception as reinit_error:
+                    logger.error(
+                        "warm_build_recovery_failed",
+                        error=str(reinit_error),
+                    )
                 return
 
             # Display build stats
