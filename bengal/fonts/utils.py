@@ -13,8 +13,6 @@ Utilities:
 
 """
 
-from __future__ import annotations
-
 import ssl
 import urllib.error
 import urllib.request

@@ -31,6 +31,8 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
+from bengal.orchestration.utils.errors import is_shutdown_error
+from bengal.orchestration.utils.parallel import BatchProgressUpdater
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -42,9 +44,6 @@ if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
     from bengal.core.site import Site
     from bengal.utils.observability.cli_progress import LiveProgressManager
-
-# Thread-safe output lock for parallel processing
-_print_lock = Lock()
 
 
 class AssetOrchestrator:
@@ -385,16 +384,12 @@ class AssetOrchestrator:
             config_override=self.site.config.get("max_workers"),
         )
 
-        errors = []
-        completed_count = 0
-        lock = Lock()
-
-        last_update_time = time.time()
-        update_interval = 0.1
-        pending_updates = 0
+        errors: list[str] = []
+        # Use BatchProgressUpdater for throttled progress updates
+        progress_updater = BatchProgressUpdater(progress_manager, phase="assets")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = []
+            futures: list[tuple[concurrent.futures.Future[None], Asset, bool]] = []
 
             # Submit CSS entries
             for entry in css_entries:
@@ -415,33 +410,24 @@ class AssetOrchestrator:
                 try:
                     future.result()
 
-                    # Progress update logic
+                    # Progress update with batching
                     item_name = (
                         f"{asset.source_path.name} (bundled {css_modules_count} modules)"
                         if is_css_entry
                         else asset.source_path.name
                     )
-
-                    pending_updates += 1
-                    now = time.time()
-                    should_update = progress_manager and (
-                        pending_updates >= 10 or (now - last_update_time) >= update_interval
+                    progress_updater.increment(
+                        item_name,
+                        minified=minify if is_css_entry else None,
+                        bundled_modules=css_modules_count if is_css_entry else None,
                     )
 
-                    if should_update and progress_manager is not None:
-                        with lock:
-                            completed_count += pending_updates
-                            progress_manager.update_phase(
-                                "assets",
-                                current=completed_count,
-                                current_item=item_name,
-                                minified=minify if is_css_entry else None,
-                                bundled_modules=css_modules_count if is_css_entry else None,
-                            )
-                            pending_updates = 0
-                            last_update_time = now
-
                 except Exception as e:
+                    # Handle shutdown errors gracefully
+                    if is_shutdown_error(e):
+                        logger.debug("asset_shutdown", asset=asset.source_path.name)
+                        continue
+
                     from bengal.errors import BengalError, ErrorContext, enrich_error
 
                     # Enrich error with context
@@ -460,11 +446,8 @@ class AssetOrchestrator:
                         if stats:
                             stats.add_error(enriched, category="assets")
 
-        # Final progress update for any remaining pending updates
-        if progress_manager and pending_updates > 0:
-            with lock:
-                completed_count += pending_updates
-                progress_manager.update_phase("assets", current=completed_count)
+        # Final progress update
+        progress_updater.finalize(total_assets)
 
         if errors:
             logger.error(

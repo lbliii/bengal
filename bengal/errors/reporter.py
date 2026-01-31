@@ -53,7 +53,7 @@ See Also
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.errors.utils import get_error_message
 from bengal.output.icons import get_icon_set
@@ -143,9 +143,6 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
             lines.append(f"  ⚠️  {warning.file_path}: {warning.message}")
 
     return "\n".join(lines)
-
-
-# Note: _get_error_message has been moved to bengal.errors.utils.get_error_message
 
 
 def format_error_summary(stats: BuildStats) -> str:

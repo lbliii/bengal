@@ -35,6 +35,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
+from bengal.orchestration.utils.errors import is_shutdown_error
+from bengal.orchestration.utils.parallel import BatchProgressUpdater
 from bengal.protocols import ProgressReporter
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -726,7 +728,7 @@ class RenderOrchestrator:
                         future.result()
                     except Exception as e:
                         # Handle graceful shutdown
-                        if "interpreter shutdown" in str(e):
+                        if is_shutdown_error(e):
                             logger.debug("render_shutdown", page=page.source_path.name)
                             continue
                         context = extract_error_context(e, page)
@@ -743,7 +745,7 @@ class RenderOrchestrator:
                 aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
         except RuntimeError as e:
             # Handle graceful shutdown at executor level
-            if "interpreter shutdown" in str(e):
+            if is_shutdown_error(e):
                 logger.debug("render_executor_shutdown")
                 return
             raise
@@ -933,7 +935,7 @@ class RenderOrchestrator:
                         future.result()
                     except Exception as e:
                         # Handle graceful shutdown
-                        if "interpreter shutdown" in str(e):
+                        if is_shutdown_error(e):
                             logger.debug("render_shutdown", page=page.source_path.name)
                             continue
                         context = extract_error_context(e, page)
@@ -959,7 +961,7 @@ class RenderOrchestrator:
                     )
         except RuntimeError as e:
             # Handle graceful shutdown at executor level
-            if "interpreter shutdown" in str(e):
+            if is_shutdown_error(e):
                 logger.debug("render_executor_shutdown")
                 return
             raise
@@ -1061,7 +1063,7 @@ class RenderOrchestrator:
                             future.result()
                         except Exception as e:
                             # Handle graceful shutdown
-                            if "interpreter shutdown" in str(e):
+                            if is_shutdown_error(e):
                                 logger.debug("render_shutdown")
                                 continue
                             # Get page from future if possible (may not be available)
@@ -1081,7 +1083,7 @@ class RenderOrchestrator:
                     aggregator.log_summary(logger, threshold=5, error_type="rendering")
             except RuntimeError as e:
                 # Handle graceful shutdown at executor level
-                if "interpreter shutdown" in str(e):
+                if is_shutdown_error(e):
                     logger.debug("render_executor_shutdown")
                     return
                 raise

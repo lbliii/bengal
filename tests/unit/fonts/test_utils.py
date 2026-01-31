@@ -5,8 +5,6 @@ Tests the extracted utility functions for filename handling and other
 common font operations.
 """
 
-import pytest
-
 from bengal.fonts.utils import (
     make_font_filename,
     make_safe_name,

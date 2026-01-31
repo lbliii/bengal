@@ -36,8 +36,6 @@ Related:
 
 """
 
-from __future__ import annotations
-
 from bengal.fonts.downloader import FontVariant
 
 

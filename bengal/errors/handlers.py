@@ -227,8 +227,3 @@ def _handle_type_error(error: TypeError) -> ContextAwareHelp | None:
     if "expected" in msg and "got" in msg:
         lines.append("Ensure provided value matches expected type")
     return ContextAwareHelp(title=title, lines=lines)
-
-
-
-# Note: String utilities (extract_between, find_close_matches, safe_list_module_exports)
-# have been moved to bengal.errors.utils for reuse across the errors package.

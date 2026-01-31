@@ -35,8 +35,6 @@ Related:
 
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -149,9 +147,6 @@ class GoogleFontsDownloader:
     # Very old User-Agent → Google returns TTF (needed for Pillow image generation)
     # Modern browsers get WOFF2, old browsers get WOFF, ancient browsers get TTF
     USER_AGENT_TTF = "Mozilla/3.0 (compatible)"
-
-    # Default to WOFF2 for backwards compatibility
-    USER_AGENT = USER_AGENT_WOFF2
 
     def download_font(
         self,
@@ -450,7 +445,7 @@ class GoogleFontsDownloader:
             urllib.error.URLError: If the network request fails.
             ssl.SSLError: If SSL verification fails (handled with fallback).
         """
-        ua = user_agent or self.USER_AGENT
+        ua = user_agent or self.USER_AGENT_WOFF2
         css_content = urlopen_with_ssl_fallback(css_url, timeout=10, user_agent=ua, decode=True)
 
         # Parse CSS to extract URLs
@@ -502,7 +497,7 @@ class GoogleFontsDownloader:
             urllib.error.URLError: If the download fails after SSL fallback.
             OSError: If the file cannot be written.
         """
-        ua = user_agent or self.USER_AGENT
+        ua = user_agent or self.USER_AGENT_WOFF2
         data = urlopen_with_ssl_fallback(url, timeout=30, user_agent=ua, decode=False)
 
         # Atomic write for safety
