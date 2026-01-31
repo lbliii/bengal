@@ -40,6 +40,7 @@ from typing import Any
 import yaml
 
 from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.themes.utils import validate_enum_field
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -176,29 +177,10 @@ class AppearanceConfig:
     def __post_init__(self) -> None:
         """Validate appearance configuration."""
         # Validate mode
-        valid_modes = {"light", "dark", "system"}
-        if self.default_mode not in valid_modes:
-            error = BengalConfigError(
-                f"Invalid default_mode '{self.default_mode}'. "
-                f"Must be one of: {', '.join(sorted(valid_modes))}",
-                code=ErrorCode.C003,
-                suggestion=f"Set default_mode to one of: {', '.join(sorted(valid_modes))}",
-            )
-            record_error(error)
-            raise error
+        validate_enum_field("default_mode", self.default_mode, {"light", "dark", "system"})
 
         # Validate palette
-        if self.default_palette not in self._VALID_PALETTES:
-            valid_palettes = sorted(p for p in self._VALID_PALETTES if p)  # Exclude empty string
-            error = BengalConfigError(
-                f"Invalid default_palette '{self.default_palette}'. "
-                f"Must be one of: {', '.join(valid_palettes)}",
-                code=ErrorCode.C003,
-                suggestion=f"Set default_palette to one of: {', '.join(valid_palettes)} "
-                "(or remove to use the default palette)",
-            )
-            record_error(error)
-            raise error
+        validate_enum_field("default_palette", self.default_palette, self._VALID_PALETTES)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AppearanceConfig:
@@ -309,16 +291,7 @@ class HeaderConfig:
 
     def __post_init__(self) -> None:
         """Validate header configuration."""
-        valid_positions = {"left", "center"}
-        if self.nav_position not in valid_positions:
-            error = BengalConfigError(
-                f"Invalid nav_position '{self.nav_position}'. "
-                f"Must be one of: {', '.join(valid_positions)}",
-                code=ErrorCode.C003,
-                suggestion=f"Set nav_position to one of: {', '.join(valid_positions)}",
-            )
-            record_error(error)
-            raise error
+        validate_enum_field("nav_position", self.nav_position, {"left", "center"})
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HeaderConfig:

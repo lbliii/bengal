@@ -17,7 +17,7 @@ import threading
 import time
 from dataclasses import fields
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -51,11 +51,6 @@ class PageLike(Protocol):
     output_path: Path | None
 
 
-# =============================================================================
-# Type Variables
-# =============================================================================
-
-T = TypeVar("T")
 
 
 # =============================================================================
@@ -87,7 +82,7 @@ def compute_page_hash(page: Page) -> str:
 # =============================================================================
 
 
-def update_frozen(instance: T, **updates: Any) -> T:
+def update_frozen[T](instance: T, **updates: Any) -> T:
     """
     Create new instance of frozen dataclass with updated fields.
 
@@ -161,12 +156,12 @@ class RenderProgressTracker:
     """
 
     __slots__ = (
-        "_manager",
-        "_interval",
         "_batch_size",
         "_count",
-        "_lock",
+        "_interval",
         "_last_update",
+        "_lock",
+        "_manager",
         "_site",
     )
 
@@ -259,7 +254,7 @@ class RenderProgressTracker:
 # =============================================================================
 
 
-def build_path_index(items: list[T], path_attr: str = "source_path") -> dict[Path, T]:
+def build_path_index[T](items: list[T], path_attr: str = "source_path") -> dict[Path, T]:
     """
     Build mapping from path attribute to item.
 
@@ -279,7 +274,7 @@ def build_path_index(items: list[T], path_attr: str = "source_path") -> dict[Pat
     return {getattr(item, path_attr): item for item in items}
 
 
-def build_pages_by_template(
+def build_pages_by_template[T](
     pages: list[T],
     template_resolver: Any = None,
 ) -> dict[str, list[T]]:

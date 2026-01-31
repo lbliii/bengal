@@ -39,7 +39,6 @@ from bengal.snapshots.types import (
     TemplateSnapshot,
 )
 from bengal.snapshots.utils import (
-    compute_content_hash,
     compute_page_hash,
     resolve_template_name,
     update_frozen,

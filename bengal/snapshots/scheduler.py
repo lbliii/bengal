@@ -11,30 +11,24 @@ All data access is from frozen snapshot (lock-free).
 
 from __future__ import annotations
 
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.snapshots.scout import ScoutThread
     from bengal.snapshots.types import SiteSnapshot
 
+from bengal.snapshots.utils import (
+    ProgressManagerProtocol,
+    RenderProgressTracker,
+    resolve_template_name,
+)
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
-
-
-class ProgressManagerProtocol(Protocol):
-    """Protocol for progress manager compatibility."""
-
-    def update_phase(
-        self, phase: str, *, current: int | None = None, current_item: str | None = None
-    ) -> None:
-        """Update phase progress."""
-        ...
 
 
 class RenderStats:
@@ -94,9 +88,8 @@ class WaveScheduler:
         # Pre-build shared context (same for all pages) - major optimization
         self._shared_context: dict[str, Any] | None = None
 
-        # Progress tracking (thread-safe counter for parallel rendering)
-        self._pages_rendered = 0
-        self._progress_lock = threading.Lock()
+        # Progress tracking (created per-render to reset count)
+        self._progress_tracker: RenderProgressTracker | None = None
 
     def _build_shared_context(self) -> dict[str, Any]:
         """
@@ -166,11 +159,9 @@ class WaveScheduler:
                 )
             return stats
 
-        # Reset progress counter
+        # Initialize progress tracker
         total_pages = len(pages_to_render)
-        self._pages_rendered = 0
-        last_progress_update = time.time()
-        progress_update_interval = 0.1  # Update every 100ms (throttled for performance)
+        self._progress_tracker = RenderProgressTracker(self._progress_manager, self.site)
 
         # Pre-process: Set output paths
         for page in pages_to_render:
@@ -191,15 +182,7 @@ class WaveScheduler:
         # Precompile templates used by pages we're about to render
         # This warms Kida's bytecode cache before parallel rendering begins
         if hasattr(template_engine, "precompile_templates"):
-            templates_to_precompile = set()
-            for page in pages_to_render:
-                template_name = (
-                    page.metadata.get("template")
-                    or page.metadata.get("layout")
-                    or page.metadata.get("type")
-                    or "page.html"
-                )
-                templates_to_precompile.add(template_name)
+            templates_to_precompile = {resolve_template_name(p) for p in pages_to_render}
 
             # Type guard: hasattr check ensures precompile_templates exists
             precompile_method = template_engine.precompile_templates
@@ -227,13 +210,7 @@ class WaveScheduler:
                 attention_by_path[page_snap.source_path] = page_snap.attention_score
 
             for page in pages_to_render:
-                # Get template name from page or default
-                template_name = (
-                    page.metadata.get("template")
-                    or page.metadata.get("layout")
-                    or page.metadata.get("type")
-                    or "page.html"
-                )
+                template_name = resolve_template_name(page)
                 if template_name not in template_to_pages:
                     template_to_pages[template_name] = []
                 template_to_pages[template_name].append(page)
@@ -297,37 +274,7 @@ class WaveScheduler:
                         try:
                             rendered_page = future.result()
                             stats.pages_rendered += 1
-
-                            # Update progress (thread-safe)
-                            with self._progress_lock:
-                                self._pages_rendered += 1
-                                current_count = self._pages_rendered
-
-                            # Throttle progress updates
-                            if self._progress_manager:
-                                now = time.time()
-                                # Update every 10 pages or every 100ms
-                                if (
-                                    current_count % 10 == 0
-                                    or (now - last_progress_update) >= progress_update_interval
-                                ):
-                                    if rendered_page.output_path:
-                                        try:
-                                            current_item = str(
-                                                rendered_page.output_path.relative_to(
-                                                    self.site.output_dir
-                                                )
-                                            )
-                                        except ValueError:
-                                            current_item = rendered_page.source_path.name
-                                    else:
-                                        current_item = rendered_page.source_path.name
-                                    self._progress_manager.update_phase(
-                                        "rendering",
-                                        current=current_count,
-                                        current_item=current_item,
-                                    )
-                                    last_progress_update = now
+                            self._progress_tracker.increment(rendered_page)
                         except Exception as e:
                             stats.errors.append((page.source_path, e))
 
@@ -336,10 +283,7 @@ class WaveScheduler:
                     stats.batch_times_ms[template_name] = batch_time
 
             # Final progress update to ensure 100%
-            if self._progress_manager:
-                self._progress_manager.update_phase(
-                    "rendering", current=total_pages, current_item=""
-                )
+            self._progress_tracker.finalize(total_pages)
 
         finally:
             if scout:
@@ -373,11 +317,9 @@ class WaveScheduler:
                 pages_in_snapshot=len(self._page_map),
             )
 
-        # Reset progress counter
+        # Initialize progress tracker
         total_pages = len(pages_to_render)
-        self._pages_rendered = 0
-        last_progress_update = time.time()
-        progress_update_interval = 0.1  # Update every 100ms (throttled for performance)
+        self._progress_tracker = RenderProgressTracker(self._progress_manager, self.site)
 
         for page in pages_to_render:
             if not page.output_path:
@@ -457,45 +399,12 @@ class WaveScheduler:
                         try:
                             rendered_page = future.result()
                             stats.pages_rendered += 1
-
-                            # Update progress (thread-safe)
-                            with self._progress_lock:
-                                self._pages_rendered += 1
-                                current_count = self._pages_rendered
-
-                            # Throttle progress updates
-                            if self._progress_manager:
-                                now = time.time()
-                                # Update every 10 pages or every 100ms
-                                if (
-                                    current_count % 10 == 0
-                                    or (now - last_progress_update) >= progress_update_interval
-                                ):
-                                    if rendered_page.output_path:
-                                        try:
-                                            current_item = str(
-                                                rendered_page.output_path.relative_to(
-                                                    self.site.output_dir
-                                                )
-                                            )
-                                        except ValueError:
-                                            current_item = rendered_page.source_path.name
-                                    else:
-                                        current_item = rendered_page.source_path.name
-                                    self._progress_manager.update_phase(
-                                        "rendering",
-                                        current=current_count,
-                                        current_item=current_item,
-                                    )
-                                    last_progress_update = now
+                            self._progress_tracker.increment(rendered_page)
                         except Exception as e:
                             stats.errors.append((page.source_path, e))
 
             # Final progress update to ensure 100%
-            if self._progress_manager:
-                self._progress_manager.update_phase(
-                    "rendering", current=total_pages, current_item=""
-                )
+            self._progress_tracker.finalize(total_pages)
 
         finally:
             if scout:
