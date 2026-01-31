@@ -36,14 +36,21 @@ True
 
 from __future__ import annotations
 
-import types
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Union, get_args, get_origin, get_type_hints
+from typing import Any, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.dates import parse_date
+from bengal.utils.primitives.types import (
+    get_union_args,
+    is_optional_type,
+    is_union_type,
+    type_display_name,
+    unwrap_optional,
+)
 
 logger = get_logger(__name__)
 
@@ -378,7 +385,7 @@ class SchemaValidator:
                     ValidationError(
                         field=name,
                         message=f"Required field '{name}' is missing",
-                        expected_type=self._type_name(type_hint),
+                        expected_type=type_display_name(type_hint),
                     )
                 )
 
@@ -460,28 +467,27 @@ class SchemaValidator:
 
         # Handle None value
         if value is None:
-            if self._is_optional(expected):
+            if is_optional_type(expected):
                 return None, []
             return value, [
                 ValidationError(
                     field=name,
                     message="Value cannot be None",
                     value=value,
-                    expected_type=self._type_name(expected),
+                    expected_type=type_display_name(expected),
                 )
             ]
 
-        # Handle Optional[X] (Union[X, None])
-        # Handle both typing.Union and types.UnionType (A | B)
-        if origin is Union or origin is types.UnionType:
-            # Filter out NoneType
-            non_none_args = [a for a in args if a is not type(None)]
+        # Handle Union types (including Optional[X] and X | Y)
+        if is_union_type(expected):
+            # Filter out NoneType to get the actual types to validate against
+            non_none_args = [a for a in get_union_args(expected) if a is not type(None)]
 
             if len(non_none_args) == 1:
-                # Simple Optional[X]
+                # Simple Optional[X] - validate against X
                 return self._coerce_type(name, value, non_none_args[0], _depth=_depth)
             else:
-                # Union of multiple types - try each
+                # Union of multiple types - try each until one succeeds
                 for arg in non_none_args:
                     result, errors = self._coerce_type(name, value, arg, _depth=_depth)
                     if not errors:
@@ -490,9 +496,9 @@ class SchemaValidator:
                 return value, [
                     ValidationError(
                         field=name,
-                        message=f"Value does not match any type in {self._type_name(expected)}",
+                        message=f"Value does not match any type in {type_display_name(expected)}",
                         value=value,
-                        expected_type=self._type_name(expected),
+                        expected_type=type_display_name(expected),
                     )
                 ]
 
@@ -651,61 +657,26 @@ class SchemaValidator:
         value: Any,
     ) -> tuple[Any, list[ValidationError]]:
         """
-        Coerce a value to datetime.
+        Coerce a value to datetime using the centralized parse_date utility.
 
         Accepts:
         - ``datetime`` objects (returned as-is)
         - ``date`` objects (converted to datetime at midnight)
-        - Strings (parsed via dateutil.parser if available, then ISO format)
+        - Strings (parsed via multiple format attempts)
 
         Returns:
             Tuple of ``(coerced_value, errors)``. On success, returns
             ``(datetime_instance, [])``. On failure, returns ``(None, [error])``.
         """
+        # Already a datetime - pass through
         if isinstance(value, datetime):
             return value, []
 
-        if isinstance(value, date):
-            # Convert date to datetime at midnight
-            return datetime.combine(value, datetime.min.time()), []
+        # Use centralized date parsing
+        result = parse_date(value, on_error="return_none")
+        if result is not None:
+            return result, []
 
-        if isinstance(value, str):
-            # Try dateutil parser for flexible parsing
-            try:
-                from dateutil.parser import ParserError
-                from dateutil.parser import parse as dateutil_parse
-
-                return dateutil_parse(value), []
-            except ImportError:
-                pass
-            except ParserError as e:
-                # Known parsing error - try ISO fallback
-                logger.debug(
-                    "datetime_parse_failed",
-                    field=name,
-                    value=value,
-                    error=str(e),
-                    error_type="ParserError",
-                    action="trying_iso_fallback",
-                )
-            except (ValueError, TypeError) as e:
-                # Other expected errors during parsing
-                logger.debug(
-                    "datetime_parse_failed",
-                    field=name,
-                    value=value,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="trying_iso_fallback",
-                )
-
-            # Fallback: try ISO format
-            try:
-                return datetime.fromisoformat(value), []
-            except ValueError:
-                pass
-
-        # Return None on failure (not the original value) to match type contract
         return None, [
             ValidationError(
                 field=name,
@@ -721,60 +692,30 @@ class SchemaValidator:
         value: Any,
     ) -> tuple[Any, list[ValidationError]]:
         """
-        Coerce a value to date.
+        Coerce a value to date using the centralized parse_date utility.
 
         Accepts:
         - ``date`` objects (returned as-is, unless it's a datetime)
         - ``datetime`` objects (extracts the date portion)
-        - Strings (parsed via dateutil.parser if available, then ISO format)
+        - Strings (parsed via multiple format attempts)
 
         Returns:
             Tuple of ``(coerced_value, errors)``. On success, returns
             ``(date_instance, [])``. On failure, returns ``(None, [error])``.
         """
+        # Already a date (but not datetime) - pass through
         if isinstance(value, date) and not isinstance(value, datetime):
             return value, []
 
+        # datetime - extract date portion
         if isinstance(value, datetime):
             return value.date(), []
 
-        if isinstance(value, str):
-            # Try dateutil parser
-            try:
-                from dateutil.parser import ParserError
-                from dateutil.parser import parse as dateutil_parse
+        # Use centralized date parsing and extract date
+        result = parse_date(value, on_error="return_none")
+        if result is not None:
+            return result.date(), []
 
-                return dateutil_parse(value).date(), []
-            except ImportError:
-                pass
-            except ParserError as e:
-                # Known parsing error - try ISO fallback
-                logger.debug(
-                    "date_parse_failed",
-                    field=name,
-                    value=value,
-                    error=str(e),
-                    error_type="ParserError",
-                    action="trying_iso_fallback",
-                )
-            except (ValueError, TypeError) as e:
-                # Other expected errors during parsing
-                logger.debug(
-                    "date_parse_failed",
-                    field=name,
-                    value=value,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="trying_iso_fallback",
-                )
-
-            # Fallback: try ISO format
-            try:
-                return date.fromisoformat(value), []
-            except ValueError:
-                pass
-
-        # Return None on failure (not the original value) to match type contract
         return None, [
             ValidationError(
                 field=name,
@@ -783,51 +724,3 @@ class SchemaValidator:
                 expected_type="date",
             )
         ]
-
-    def _is_optional(self, type_hint: type) -> bool:
-        """
-        Check if a type hint is Optional (i.e., allows None).
-
-        Returns ``True`` for ``Optional[X]``, ``X | None``, or any Union
-        that includes ``NoneType``.
-        """
-        origin = get_origin(type_hint)
-        if origin is Union or origin is types.UnionType:
-            args = get_args(type_hint)
-            return type(None) in args
-        return False
-
-    def _type_name(self, t: type) -> str:
-        """
-        Get a human-readable name for a type.
-
-        Handles generics like ``list[str]``, ``Optional[int]``, and unions.
-        Used for error messages.
-        """
-        origin = get_origin(t)
-
-        if origin is Union or origin is types.UnionType:
-            args = get_args(t)
-            # Check for Optional[X]
-            if type(None) in args:
-                non_none = [a for a in args if a is not type(None)]
-                if len(non_none) == 1:
-                    return f"Optional[{self._type_name(non_none[0])}]"
-            return " | ".join(self._type_name(a) for a in args)
-
-        if origin is list:
-            args = get_args(t)
-            if args:
-                return f"list[{self._type_name(args[0])}]"
-            return "list"
-
-        if origin is dict:
-            args = get_args(t)
-            if args and len(args) >= 2:
-                return f"dict[{self._type_name(args[0])}, {self._type_name(args[1])}]"
-            return "dict"
-
-        if hasattr(t, "__name__"):
-            return t.__name__
-
-        return str(t)
