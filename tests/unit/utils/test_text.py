@@ -431,9 +431,11 @@ class TestSlugifyId:
         assert slugify_id("!!!", default="item") == "item"
 
     def test_unicode_removed(self):
-        """Test that non-ASCII characters are removed."""
-        # Unlike slugify(), slugify_id is ASCII-only
-        assert slugify_id("Café") == "caf"
+        """Test that non-ASCII characters are transliterated or removed."""
+        # slugify_id uses NFD normalization to transliterate accented chars
+        # é becomes e + combining accent, then the combining char is dropped
+        assert slugify_id("Café") == "cafe"
+        # Pure CJK characters have no ASCII equivalent
         assert slugify_id("日本語") == ""
         assert slugify_id("日本語", default="tab") == "tab"
 

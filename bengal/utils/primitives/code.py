@@ -20,8 +20,8 @@ from __future__ import annotations
 import re
 
 # Pattern to parse code fence info with optional line highlights
-# Matches: python, python {1,3}, python {1-3,5}
-HL_LINES_PATTERN = re.compile(r"^(\S+)\s*(?:\{([^}]+)\})?$")
+# Matches: python, python {1,3}, python {1-3,5}, python {}
+HL_LINES_PATTERN = re.compile(r"^(\S+)\s*(?:\{([^}]*)\})?$")
 
 
 def parse_hl_lines(hl_spec: str) -> list[int]:

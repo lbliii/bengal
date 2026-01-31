@@ -19,6 +19,11 @@ from dataclasses import fields
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
+from bengal.protocols import PageLike
+
+# Re-export PageLike for backwards compatibility
+__all__ = ["PageLike"]
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
 
@@ -42,13 +47,6 @@ class SiteProtocol(Protocol):
     """Minimal site protocol for utilities."""
 
     output_dir: Path
-
-
-class PageLike(Protocol):
-    """Protocol for page-like objects with source_path."""
-
-    source_path: Path
-    output_path: Path | None
 
 
 

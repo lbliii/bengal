@@ -168,22 +168,29 @@ class TestTruncateAtWord:
         assert truncate_at_word("") == ""
 
     def test_truncates_at_word_boundary(self) -> None:
-        """Text is truncated at word boundary."""
+        """Text is truncated at word boundary, total length including suffix stays within limit."""
         text = "Hello world test"
         result = truncate_at_word(text, length=12)
-        assert result == "Hello world..."
+        # length=12, suffix="..." (3 chars), so max content = 9
+        # "Hello wor"[:9] -> last space at 5 -> "Hello" + "..." = "Hello..."
+        assert result == "Hello..."
+        assert len(result) <= 12
 
     def test_adds_ellipsis(self) -> None:
         """Ellipsis is added when text is truncated."""
         text = "Hello world this is a test"
         result = truncate_at_word(text, length=15)
         assert result.endswith("...")
+        assert len(result) <= 15
 
     def test_no_space_found(self) -> None:
-        """Handles text with no spaces."""
+        """Handles text with no spaces - truncates to fit within length."""
         text = "Superlongwordwithoutspaces"
         result = truncate_at_word(text, length=10)
-        assert result == "Superlongw..."
+        # length=10, suffix="..." (3 chars), so max content = 7
+        # "Superlo" + "..." = "Superlo..." (10 chars)
+        assert result == "Superlo..."
+        assert len(result) <= 10
 
     def test_exact_length(self) -> None:
         """Text at exact length is unchanged."""

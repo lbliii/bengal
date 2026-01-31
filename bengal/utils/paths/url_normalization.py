@@ -75,9 +75,16 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     if url == "/":
         return "/"
 
-    # Ensure trailing slash if requested
-    if ensure_trailing_slash and not url.endswith("/"):
-        url += "/"
+    # Handle trailing slash based on option
+    if ensure_trailing_slash:
+        if not url.endswith("/"):
+            url += "/"
+    else:
+        # Strip trailing slash when not requested
+        url = url.rstrip("/")
+        # Ensure we don't return empty string for root-like paths
+        if not url:
+            url = "/"
 
     return url
 

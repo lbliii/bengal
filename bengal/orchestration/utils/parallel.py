@@ -109,9 +109,6 @@ class BatchProgressUpdater:
             current_item: Name/description of current item being processed
             **metadata: Additional metadata to pass to progress update
         """
-        if self._progress_manager is None:
-            return
-
         now = time.time()
         should_update = False
         current_count = 0
@@ -132,7 +129,8 @@ class BatchProgressUpdater:
                 self._last_update_time = now
 
         # Update outside lock to minimize hold time
-        if should_update:
+        # No-op if progress_manager is None, but we still track counts above
+        if should_update and self._progress_manager is not None:
             self._progress_manager.update_phase(
                 self._phase,
                 current=current_count,
