@@ -183,8 +183,8 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 
-    {# Favicon #}
-    {% with site.favicon as favicon_path %}
+    {# Favicon - use let for safer nil handling #}
+    {% let favicon_path = site.favicon ?? none %}
     {% if favicon_path %}
     <link rel="icon" type="image/png" href="{{ favicon_path }}">
     {% else %}
@@ -193,7 +193,6 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset_url('favicon-32x32.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset_url('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
-    {% end %}
     {% end %}
 
     {# Preconnect #}

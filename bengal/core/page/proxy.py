@@ -411,13 +411,30 @@ class PageProxy:
         Uses CascadeSnapshot.apply_to_page() to merge cascade values.
         Frontmatter values take precedence over cascade.
         """
-        if self._cascade_applied:
+        if getattr(self, "_cascade_applying", False):
             return
+        cascade_invalidated = getattr(self, "_cascade_invalidated", False)
+        if self._cascade_applied and not cascade_invalidated:
+            return
+
+        if cascade_invalidated and self._metadata_cache is not None:
+            # Remove previously cascaded keys so a refreshed snapshot can reapply.
+            cascade_keys = self._metadata_cache.get("_cascade_keys", [])
+            for key in cascade_keys:
+                self._metadata_cache.pop(key, None)
+            self._metadata_cache.pop("_cascade_keys", None)
+            self._cascade_applied = False
 
         if self._site and self._site.cascade and self._metadata_cache is not None:
             content_dir = self._site.root_path / "content"
-            self._site.cascade.apply_to_page(self, content_dir)
-            self._cascade_applied = True
+            self._cascade_applying = True
+            try:
+                self._site.cascade.apply_to_page(self, content_dir)
+                self._cascade_applied = True
+                if cascade_invalidated:
+                    self._cascade_invalidated = False
+            finally:
+                self._cascade_applying = False
 
     rendered_html = _lazy_property_with_setter(
         "rendered_html", default="", getter_doc="Rendered HTML (lazy-loaded)."
