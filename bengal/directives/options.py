@@ -42,9 +42,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, fields
-from typing import Any, ClassVar, get_args, get_origin, get_type_hints
+from typing import Any, ClassVar, get_origin, get_type_hints
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.types import is_optional_type, unwrap_optional
 
 logger = get_logger(__name__)
 
@@ -237,12 +238,11 @@ class DirectiveOptions:
         Returns:
             A function that takes a string and returns the coerced value.
         """
-        # Handle Optional[T] / T | None
+        # Handle Optional[T] / T | None - unwrap to inner type
+        if is_optional_type(target_type):
+            target_type = unwrap_optional(target_type)
+
         origin = get_origin(target_type)
-        if origin is type(None) or (origin and type(None) in get_args(target_type)):
-            args = get_args(target_type)
-            target_type = next((a for a in args if a is not type(None)), str)
-            origin = get_origin(target_type)
 
         if target_type is bool:
             _truthy = frozenset(("true", "1", "yes", ""))
@@ -290,13 +290,11 @@ class DirectiveOptions:
         Returns:
             Coerced value matching the target type.
         """
-        # Handle Optional types (e.g., str | None)
+        # Handle Optional types (e.g., str | None) - unwrap to inner type
+        if is_optional_type(target_type):
+            target_type = unwrap_optional(target_type)
+
         origin = get_origin(target_type)
-        if origin is type(None) or (origin and type(None) in get_args(target_type)):
-            # Optional type - extract inner type
-            args = get_args(target_type)
-            target_type = next((a for a in args if a is not type(None)), str)
-            origin = get_origin(target_type)
 
         if target_type is bool:
             return value.lower() in ("true", "1", "yes", "")
