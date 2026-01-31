@@ -14,8 +14,6 @@ EffectTracer replaces 13 detector classes with one unified model:
 Thread-safe because it only reads frozen SiteSnapshot.
 """
 
-from __future__ import annotations
-
 import threading
 from collections import defaultdict
 from pathlib import Path
@@ -72,6 +70,49 @@ class EffectTracer:
         with self._lock:
             return list(self._effects)
 
+    def _index_effect(self, effect: Effect) -> None:
+        """
+        Index a single effect into all lookup structures.
+
+        Must be called while holding self._lock.
+
+        Args:
+            effect: Effect to index
+        """
+        self._effects.append(effect)
+
+        # Update dependency index
+        for dep in effect.depends_on:
+            self._dep_index[dep].append(effect)
+
+        # Update output index
+        for output in effect.outputs:
+            self._output_index[output] = effect
+
+        # Update invalidation index
+        for key in effect.invalidates:
+            self._invalidation_index[key].append(effect)
+
+    def _effects_for_path(self, path: Path) -> list[Effect]:
+        """
+        Get effects depending on a path (checks both Path and name forms).
+
+        Templates are often referenced by name only, so we check both
+        the full path and just the filename.
+
+        Must be called while holding self._lock.
+
+        Args:
+            path: Path to look up
+
+        Returns:
+            List of effects that depend on this path (may have duplicates)
+        """
+        effects = list(self._dep_index.get(path, []))
+        # Also check template name form
+        effects.extend(self._dep_index.get(path.name, []))
+        return effects
+
     def record(self, effect: Effect) -> None:
         """
         Record an effect during rendering.
@@ -82,19 +123,7 @@ class EffectTracer:
             effect: Effect to record
         """
         with self._lock:
-            self._effects.append(effect)
-
-            # Update dependency index
-            for dep in effect.depends_on:
-                self._dep_index[dep].append(effect)
-
-            # Update output index
-            for output in effect.outputs:
-                self._output_index[output] = effect
-
-            # Update invalidation index
-            for key in effect.invalidates:
-                self._invalidation_index[key].append(effect)
+            self._index_effect(effect)
 
     def record_batch(self, effects: list[Effect]) -> None:
         """
@@ -107,16 +136,7 @@ class EffectTracer:
         """
         with self._lock:
             for effect in effects:
-                self._effects.append(effect)
-
-                for dep in effect.depends_on:
-                    self._dep_index[dep].append(effect)
-
-                for output in effect.outputs:
-                    self._output_index[output] = effect
-
-                for key in effect.invalidates:
-                    self._invalidation_index[key].append(effect)
+                self._index_effect(effect)
 
     def invalidated_by(self, changed: set[Path]) -> set[str]:
         """
@@ -135,17 +155,13 @@ class EffectTracer:
         with self._lock:
             # Direct invalidations
             for path in changed:
-                for effect in self._dep_index.get(path, []):
-                    invalidated.update(effect.invalidates)
-
-                # Also check string form for templates
-                for effect in self._dep_index.get(path.name, []):
+                for effect in self._effects_for_path(path):
                     invalidated.update(effect.invalidates)
 
             # Transitive invalidations (if an output changes, its dependents are invalidated)
             outputs_changed = self._outputs_for_deps(changed)
             for output in outputs_changed:
-                for effect in self._dep_index.get(output, []):
+                for effect in self._effects_for_path(output):
                     invalidated.update(effect.invalidates)
 
         return invalidated
@@ -171,15 +187,10 @@ class EffectTracer:
                     continue
                 seen.add(path)
 
-                # Find effects that depend on this path
-                for effect in self._dep_index.get(path, []):
+                # Find effects that depend on this path (both full path and name)
+                for effect in self._effects_for_path(path):
                     outputs.update(effect.outputs)
                     # Add outputs to queue for transitive deps
-                    queue.extend(effect.outputs)
-
-                # Also check string form for templates
-                for effect in self._dep_index.get(path.name, []):
-                    outputs.update(effect.outputs)
                     queue.extend(effect.outputs)
 
         return outputs

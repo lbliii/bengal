@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from bengal.directives.base import BengalDirective
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
 

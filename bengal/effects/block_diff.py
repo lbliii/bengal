@@ -13,15 +13,17 @@ Key optimizations:
 - Skip page rebuilds when only site-scoped blocks change
 """
 
-from __future__ import annotations
-
-import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.effects.utils import compute_content_hash, extract_body_after_frontmatter
+
 if TYPE_CHECKING:
     from bengal.snapshots.types import PageSnapshot, SiteSnapshot
+
+# Re-export for backward compatibility
+__all__ = ["BlockDiffService", "DiffResult", "compute_content_hash"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,23 +205,7 @@ class BlockDiffService:
 
     def _extract_body(self, content: str) -> str:
         """Extract body content (after frontmatter)."""
-        if not content.startswith("---"):
-            return content
-
-        # Find end of frontmatter
-        lines = content.split("\n")
-        in_frontmatter = False
-        body_start = 0
-
-        for i, line in enumerate(lines):
-            if line.strip() == "---":
-                if not in_frontmatter:
-                    in_frontmatter = True
-                else:
-                    body_start = i + 1
-                    break
-
-        return "\n".join(lines[body_start:])
+        return extract_body_after_frontmatter(content)
 
     def diff_template(
         self,
@@ -300,16 +286,3 @@ class BlockDiffService:
                                 affected.add(page_path)
 
         return affected
-
-
-def compute_content_hash(content: str) -> str:
-    """
-    Compute content hash for change detection.
-
-    Args:
-        content: Raw content string
-
-    Returns:
-        SHA-256 hash (first 16 chars)
-    """
-    return hashlib.sha256(content.encode()).hexdigest()[:16]

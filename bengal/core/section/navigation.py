@@ -37,6 +37,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.utils.url import apply_baseurl, get_baseurl
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
@@ -102,20 +103,13 @@ class SectionNavigationMixin:
         # Get site-relative path first
         rel = self._path or "/"
 
-        baseurl = ""
         try:
             site = getattr(self, "_site", None)
-            if site is not None:
-                baseurl = site.baseurl or ""
+            baseurl = get_baseurl(site) if site else ""
         except Exception:
             baseurl = ""
 
-        if not baseurl:
-            return rel
-
-        baseurl = baseurl.rstrip("/")
-        rel = "/" + rel.lstrip("/")
-        return f"{baseurl}{rel}"
+        return apply_baseurl(rel, baseurl)
 
     @cached_property
     def _path(self) -> str:

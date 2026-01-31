@@ -78,7 +78,7 @@ class BlockRendererMixin:
     - _highlight_style: str
     - _rosettes_available: bool
     - _delegate: Optional[LexerDelegate]
-    - _slugify: Callable[[str], str]
+    - _heading_slugify: Callable[[str], str]
     - _render_inline_children(children, sb): method
     - _render_directive(node, sb): method
     - _extract_plain_text(children): method

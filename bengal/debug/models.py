@@ -38,6 +38,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.debug.utils import format_bytes_human, get_severity_emoji, get_status_emoji
+
 
 @dataclass
 class SourceInfo:
@@ -80,12 +82,8 @@ class SourceInfo:
         Returns:
             Formatted size string with appropriate unit (B, KB, or MB).
         """
-        if self.size_bytes < 1024:
-            return f"{self.size_bytes} B"
-        elif self.size_bytes < 1024 * 1024:
-            return f"{self.size_bytes / 1024:.1f} KB"
-        else:
-            return f"{self.size_bytes / (1024 * 1024):.1f} MB"
+        result = format_bytes_human(self.size_bytes)
+        return result if result is not None else "0 B"
 
 
 @dataclass
@@ -232,12 +230,7 @@ class CacheInfo:
         Returns:
             ✅ for HIT, ⚠️ for STALE, ❌ for MISS or UNKNOWN.
         """
-        if self.status == "HIT":
-            return "✅"
-        elif self.status == "STALE":
-            return "⚠️"
-        else:
-            return "❌"
+        return get_status_emoji(self.status)
 
 
 @dataclass
@@ -279,14 +272,7 @@ class OutputInfo:
             Formatted size string with appropriate unit (B, KB, or MB),
             or None if size_bytes is not set.
         """
-        if self.size_bytes is None:
-            return None
-        if self.size_bytes < 1024:
-            return f"{self.size_bytes} B"
-        elif self.size_bytes < 1024 * 1024:
-            return f"{self.size_bytes / 1024:.1f} KB"
-        else:
-            return f"{self.size_bytes / (1024 * 1024):.1f} MB"
+        return format_bytes_human(self.size_bytes)
 
 
 @dataclass
@@ -335,12 +321,7 @@ class Issue:
         Returns:
             ❌ for error, ⚠️ for warning, ℹ️ for info.
         """
-        if self.severity == "error":
-            return "❌"
-        elif self.severity == "warning":
-            return "⚠️"
-        else:
-            return "ℹ️"
+        return get_severity_emoji(self.severity)
 
 
 @dataclass

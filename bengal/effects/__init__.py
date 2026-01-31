@@ -41,6 +41,11 @@ from bengal.effects.render_integration import (
     record_template_include,
 )
 from bengal.effects.tracer import EffectTracer, SnapshotEffectBuilder
+from bengal.effects.utils import (
+    compute_content_hash,
+    extract_body_after_frontmatter,
+    frozenset_or_none,
+)
 
 __all__ = [
     "BlockDiffService",
@@ -51,7 +56,11 @@ __all__ = [
     "EffectTracer",
     "RenderEffectRecorder",
     "SnapshotEffectBuilder",
+    # Utility functions
+    "compute_content_hash",
     "enable_effect_tracing_from_config",
+    "extract_body_after_frontmatter",
+    "frozenset_or_none",
     "get_current_effect_context",
     "record_cascade_source",
     "record_data_file_access",

@@ -11,6 +11,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from bengal.directives.utils import escape_html
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 from bengal.utils.observability.logger import get_logger
@@ -412,21 +413,20 @@ def _render_description_html(description: str) -> str:
         return f"<p>{escape_html(desc)}</p>"
 
 
-def escape_html(text: str) -> str:
-    """Escape HTML special characters for safe use in attributes.
-
-    This is a convenience re-export of the canonical implementation.
-
-    Args:
-        text: Raw text to escape.
-
-    Returns:
-        HTML-escaped string safe for use in attribute values.
-
-    See Also:
-        ``bengal.utils.text.escape_html``: Canonical implementation.
-
-    """
-    from bengal.utils.primitives.text import escape_html as _escape_html
-
-    return _escape_html(text)
+__all__ = [
+    "VALID_COLORS",
+    "VALID_GAPS",
+    "VALID_LAYOUTS",
+    "VALID_STYLES",
+    "collect_children",
+    "escape_html",
+    "extract_octicon",
+    "extract_page_fields",
+    "get_section_url",
+    "normalize_columns",
+    "pull_from_linked_page",
+    "render_child_card",
+    "render_icon",
+    "resolve_link_url",
+    "resolve_page",
+]

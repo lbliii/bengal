@@ -218,7 +218,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         return self._config.text_transformer
 
     @property
-    def _slugify(self) -> Callable[[str], str]:
+    def _heading_slugify(self) -> Callable[[str], str]:
         """Get slugify function for heading IDs."""
         return self._config.slugify or default_slugify
 
@@ -359,7 +359,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
         Returns:
             Unique slug string
         """
-        base_slug = self._slugify(text)
+        base_slug = self._heading_slugify(text)
         if not base_slug:
             base_slug = "heading"
 

@@ -53,6 +53,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from bengal.debug.base import DebugFinding, DebugReport, DebugTool, Severity
+from bengal.debug.utils import get_nested_value
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -653,7 +654,7 @@ class ConfigInspector(DebugTool):
         config: dict[str, Any] = config_obj.raw if hasattr(config_obj, "raw") else dict(config_obj)
 
         # Get value
-        value = self._get_nested_value(config, key_path)
+        value = get_nested_value(config, key_path)
         if value is None:
             return None
 
@@ -669,7 +670,7 @@ class ConfigInspector(DebugTool):
             if defaults_dir.exists():
                 # Load just defaults by not specifying environment
                 default_config = self._load_defaults_only(defaults_dir)
-                default_value = self._get_nested_value(default_config, key_path)
+                default_value = get_nested_value(default_config, key_path)
                 if default_value is not None:
                     layer_values.append(("_default", default_value))
         except Exception as e:
@@ -688,7 +689,7 @@ class ConfigInspector(DebugTool):
                 import yaml
 
                 env_config = yaml.safe_load(env_file.read_text()) or {}
-                env_value = self._get_nested_value(env_config, key_path)
+                env_value = get_nested_value(env_config, key_path)
                 if env_value is not None:
                     layer_values.append((f"environments/{current_env}", env_value))
         except Exception as e:
@@ -731,17 +732,6 @@ class ConfigInspector(DebugTool):
                     action="skipping_file",
                 )
         return config
-
-    def _get_nested_value(self, config: dict[str, Any], key_path: str) -> Any:
-        """Get a value from nested dict using dot-separated path."""
-        keys = key_path.split(".")
-        current = config
-        for key in keys:
-            if isinstance(current, dict) and key in current:
-                current = current[key]
-            else:
-                return None
-        return current
 
     def find_issues(self) -> list[DebugFinding]:
         """

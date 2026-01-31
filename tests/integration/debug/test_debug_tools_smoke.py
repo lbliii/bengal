@@ -218,13 +218,8 @@ class TestConfigInspectorOperations:
     """Test ConfigInspector specific operations."""
 
     def test_get_nested_value(self) -> None:
-        """ConfigInspector can extract nested config values."""
-        from unittest.mock import MagicMock
-
-        mock_site = MagicMock()
-        mock_site.root_path = Path("/fake")
-
-        inspector = ConfigInspector(site=mock_site)
+        """get_nested_value utility extracts nested config values."""
+        from bengal.debug.utils import get_nested_value
 
         config = {
             "site": {
@@ -233,9 +228,9 @@ class TestConfigInspectorOperations:
             },
         }
 
-        assert inspector._get_nested_value(config, "site.title") == "Test"
-        assert inspector._get_nested_value(config, "site.nested.deep") == "value"
-        assert inspector._get_nested_value(config, "nonexistent") is None
+        assert get_nested_value(config, "site.title") == "Test"
+        assert get_nested_value(config, "site.nested.deep") == "value"
+        assert get_nested_value(config, "nonexistent") is None
 
 
 class TestContentMigratorOperations:
@@ -256,17 +251,12 @@ class TestContentMigratorOperations:
         assert migrator._path_to_url("content/docs/index.md") == "/docs"
 
     def test_slugify(self) -> None:
-        """ContentMigrator slugifies headings correctly."""
-        from unittest.mock import MagicMock
+        """slugify utility converts headings to URL slugs correctly."""
+        from bengal.debug.utils import slugify
 
-        mock_site = MagicMock()
-        mock_site.pages = []
-
-        migrator = ContentMigrator(site=mock_site)
-
-        assert migrator._slugify("Hello World") == "hello-world"
-        assert migrator._slugify("Some (Complex) Title!") == "some-complex-title"
-        assert migrator._slugify("Multiple   Spaces") == "multiple-spaces"
+        assert slugify("Hello World") == "hello-world"
+        assert slugify("Some (Complex) Title!") == "some-complex-title"
+        assert slugify("Multiple   Spaces") == "multiple-spaces"
 
 
 class TestDependencyVisualizerOperations:

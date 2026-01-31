@@ -29,13 +29,18 @@ Related:
 from __future__ import annotations
 
 import re
+from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.directives.base import BengalDirective
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
-from bengal.directives.utils import clean_soundcloud_path
+from bengal.directives.utils import (
+    clean_soundcloud_path,
+    render_error_block,
+    render_noscript_fallback,
+)
 
 if TYPE_CHECKING:
     from bengal.directives.types import DirectiveRenderer, MistuneBlockState
@@ -45,8 +50,12 @@ __all__ = [
     "CodePenOptions",
     "CodeSandboxDirective",
     "CodeSandboxOptions",
+    "EmbedDirectiveBase",
+    "EmbedOptionsBase",
     "GistDirective",
     "GistOptions",
+    "SoundCloudDirective",
+    "SoundCloudOptions",
     "SpotifyDirective",
     "SpotifyOptions",
     "StackBlitzDirective",
@@ -55,18 +64,104 @@ __all__ = [
 
 
 # =============================================================================
+# Embed Directive Base Classes
+# =============================================================================
+
+
+@dataclass
+class EmbedOptionsBase(StyledOptions):
+    """
+    Base options for all embed directives.
+
+    Provides common options shared across embed types:
+    - title: Required for accessibility (WCAG 2.1 AA)
+    - height: Embed height in pixels (0 = auto-detect)
+
+    Subclasses add service-specific options.
+    """
+
+    title: str = ""
+    height: int = 0  # 0 means auto-detect based on content type
+
+
+class EmbedDirectiveBase(BengalDirective):
+    """
+    Abstract base class for external service embed directives.
+
+    Provides shared functionality:
+    - ID/URL validation via regex patterns
+    - Standardized error rendering
+    - Noscript fallback generation
+    - Title accessibility validation
+
+    Subclasses must define:
+    - NAMES, TOKEN_TYPE, OPTIONS_CLASS (inherited from BengalDirective)
+    - SERVICE_NAME: Human-readable service name for error messages
+    - ID_PATTERN: Regex pattern for validating embed source
+    - validate_source(): Service-specific validation logic
+    """
+
+    # Subclasses must define these
+    SERVICE_NAME: ClassVar[str] = ""
+    ID_PATTERN: ClassVar[re.Pattern[str]]
+
+    @abstractmethod
+    def validate_source(self, source: str) -> str | None:
+        """
+        Validate the embed source (ID or URL).
+
+        Args:
+            source: Source identifier from directive title
+
+        Returns:
+            Error message string if invalid, None if valid
+        """
+        ...
+
+    def _render_error(self, error: str, reference: str) -> str:
+        """Render standardized error block for this embed type."""
+        base_class = f"{self.TOKEN_TYPE.replace('_', '-')}"
+        return render_error_block(
+            error=error,
+            reference=reference,
+            base_class=f"{base_class} embed-error",
+            service=self.SERVICE_NAME,
+        )
+
+    def _render_noscript(self, url: str, title: str) -> str:
+        """Render noscript fallback for this embed type."""
+        return render_noscript_fallback(url, title, self.SERVICE_NAME)
+
+    def _validate_title(self, source: str, title: str) -> DirectiveToken | None:
+        """
+        Validate that title is provided (accessibility requirement).
+
+        Returns error token if title is missing, None if valid.
+        """
+        if not title:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={
+                    "error": f"Missing required :title: option for {self.SERVICE_NAME} embed",
+                    "reference": source,
+                },
+            )
+        return None
+
+
+# =============================================================================
 # GitHub Gist Directive
 # =============================================================================
 
 
 @dataclass
-class GistOptions(DirectiveOptions):
+class GistOptions(StyledOptions):
     """
     Options for GitHub Gist embed.
 
     Attributes:
         file: Specific file from gist to display
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited from StyledOptions)
 
     Example:
         :::{gist} username/abc123def456789012345678901234567890
@@ -76,12 +171,9 @@ class GistOptions(DirectiveOptions):
     """
 
     file: str = ""
-    css_class: str = ""
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
-class GistDirective(BengalDirective):
+class GistDirective(EmbedDirectiveBase):
     """
     GitHub Gist embed directive.
 
@@ -112,8 +204,9 @@ class GistDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["gist"]
     TOKEN_TYPE: ClassVar[str] = "gist_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = GistOptions
+    OPTIONS_CLASS: ClassVar[type[GistOptions]] = GistOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["gist"]
+    SERVICE_NAME: ClassVar[str] = "Gist"
 
     # Gist ID pattern: username/32-char hex ID
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9_-]+/[a-f0-9]{32}$")
@@ -159,13 +252,7 @@ class GistDirective(BengalDirective):
         """Render gist embed to HTML."""
         error = attrs.get("error")
         if error:
-            gist_ref = str(attrs.get("gist_ref", "unknown"))
-            return (
-                f'<div class="gist-embed gist-error">\n'
-                f'  <p class="error">Gist Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>Reference: <code>{self.escape_html(gist_ref)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("gist_ref", "unknown")))
 
         gist_ref = str(attrs.get("gist_ref", ""))
         file = str(attrs.get("file", ""))
@@ -183,9 +270,7 @@ class GistDirective(BengalDirective):
         return (
             f'<div class="{class_str}">\n'
             f'  <script src="{script_url}"></script>\n'
-            f"  <noscript>\n"
-            f'    <p>View gist: <a href="{gist_url}">{self.escape_html(gist_ref)}</a></p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(gist_url, gist_ref)}\n"
             f"</div>\n"
         )
 
@@ -196,18 +281,18 @@ class GistDirective(BengalDirective):
 
 
 @dataclass
-class CodePenOptions(DirectiveOptions):
+class CodePenOptions(EmbedOptionsBase):
     """
     Options for CodePen embed.
 
     Attributes:
-        title: Required - Accessible title for iframe
+        title: Required - Accessible title for iframe (inherited)
+        height: Height in pixels (default: 300, inherited)
         default_tab: Tab to show - html, css, js, result (default: result)
-        height: Height in pixels (default: 300)
-        theme: Color theme - light, dark, or theme ID (default: dark)
+        theme: Color theme - light, dark (default: dark)
         editable: Allow editing (default: false)
         preview: Show preview on load (default: true)
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited)
 
     Example:
         :::{codepen} chriscoyier/pen/abc123
@@ -218,13 +303,11 @@ class CodePenOptions(DirectiveOptions):
 
     """
 
-    title: str = ""
+    height: int = 300  # Override default
     default_tab: str = "result"
-    height: int = 300
     theme: str = "dark"
     editable: bool = False
     preview: bool = True
-    css_class: str = ""
 
     _field_aliases: ClassVar[dict[str, str]] = {
         "class": "css_class",
@@ -236,7 +319,7 @@ class CodePenOptions(DirectiveOptions):
     }
 
 
-class CodePenDirective(BengalDirective):
+class CodePenDirective(EmbedDirectiveBase):
     """
     CodePen embed directive.
 
@@ -266,8 +349,9 @@ class CodePenDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["codepen"]
     TOKEN_TYPE: ClassVar[str] = "codepen_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = CodePenOptions
+    OPTIONS_CLASS: ClassVar[type[CodePenOptions]] = CodePenOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["codepen"]
+    SERVICE_NAME: ClassVar[str] = "CodePen"
 
     # CodePen pattern: username/pen/pen_id or just username/pen_id
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9_-]+/(?:pen/)?[a-zA-Z0-9_-]+$")
@@ -306,18 +390,13 @@ class CodePenDirective(BengalDirective):
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "pen_ref": pen_ref},
+                attrs={"error": error, "reference": pen_ref},
             )
 
         # Validate title (accessibility requirement)
-        if not options.title:
-            return DirectiveToken(
-                type=self.TOKEN_TYPE,
-                attrs={
-                    "error": f"Missing required :title: option for CodePen embed. Pen: {pen_ref}",
-                    "pen_ref": pen_ref,
-                },
-            )
+        title_error = self._validate_title(pen_ref, options.title)
+        if title_error:
+            return title_error
 
         username, pen_id = self._parse_pen_ref(pen_ref)
 
@@ -340,13 +419,7 @@ class CodePenDirective(BengalDirective):
         """Render CodePen embed to HTML."""
         error = attrs.get("error")
         if error:
-            pen_ref = str(attrs.get("pen_ref", "unknown"))
-            return (
-                f'<div class="code-embed codepen code-error">\n'
-                f'  <p class="error">CodePen Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>Reference: <code>{self.escape_html(pen_ref)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("reference", "unknown")))
 
         username = str(attrs.get("username", ""))
         pen_id = str(attrs.get("pen_id", ""))
@@ -381,9 +454,7 @@ class CodePenDirective(BengalDirective):
             f'    loading="lazy"\n'
             f'    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"\n'
             f"  ></iframe>\n"
-            f"  <noscript>\n"
-            f'    <p>See the Pen <a href="{pen_url}">{safe_title}</a> by {self.escape_html(username)} on CodePen.</p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(pen_url, safe_title)}\n"
             f"</div>\n"
         )
 
@@ -394,19 +465,19 @@ class CodePenDirective(BengalDirective):
 
 
 @dataclass
-class CodeSandboxOptions(DirectiveOptions):
+class CodeSandboxOptions(EmbedOptionsBase):
     """
     Options for CodeSandbox embed.
 
     Attributes:
-        title: Required - Accessible title for iframe
+        title: Required - Accessible title for iframe (inherited)
+        height: Height in pixels (default: 500, inherited)
         module: File to show initially
         view: Display mode - editor, preview, split (default: split)
-        height: Height in pixels (default: 500)
         fontsize: Editor font size (default: 14)
         hidenavigation: Hide file navigation (default: false)
         theme: Color theme - light, dark (default: dark)
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited)
 
     Example:
         :::{codesandbox} new
@@ -417,23 +488,20 @@ class CodeSandboxOptions(DirectiveOptions):
 
     """
 
-    title: str = ""
+    height: int = 500  # Override default
     module: str = ""
     view: str = "split"
-    height: int = 500
     fontsize: int = 14
     hidenavigation: bool = False
     theme: str = "dark"
-    css_class: str = ""
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "view": ["editor", "preview", "split"],
         "theme": ["light", "dark"],
     }
 
 
-class CodeSandboxDirective(BengalDirective):
+class CodeSandboxDirective(EmbedDirectiveBase):
     """
     CodeSandbox embed directive.
 
@@ -463,8 +531,9 @@ class CodeSandboxDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["codesandbox"]
     TOKEN_TYPE: ClassVar[str] = "codesandbox_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = CodeSandboxOptions
+    OPTIONS_CLASS: ClassVar[type[CodeSandboxOptions]] = CodeSandboxOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["codesandbox"]
+    SERVICE_NAME: ClassVar[str] = "CodeSandbox"
 
     # CodeSandbox ID: 5+ alphanumeric characters or 'new' for template
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-z0-9]{5,}$|^new$", re.IGNORECASE)
@@ -494,18 +563,13 @@ class CodeSandboxDirective(BengalDirective):
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "sandbox_id": sandbox_id},
+                attrs={"error": error, "reference": sandbox_id},
             )
 
         # Validate title (accessibility requirement)
-        if not options.title:
-            return DirectiveToken(
-                type=self.TOKEN_TYPE,
-                attrs={
-                    "error": f"Missing required :title: option for CodeSandbox embed. ID: {sandbox_id}",
-                    "sandbox_id": sandbox_id,
-                },
-            )
+        title_error = self._validate_title(sandbox_id, options.title)
+        if title_error:
+            return title_error
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -526,13 +590,7 @@ class CodeSandboxDirective(BengalDirective):
         """Render CodeSandbox embed to HTML."""
         error = attrs.get("error")
         if error:
-            sandbox_id = str(attrs.get("sandbox_id", "unknown"))
-            return (
-                f'<div class="code-embed codesandbox code-error">\n'
-                f'  <p class="error">CodeSandbox Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>ID: <code>{self.escape_html(sandbox_id)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("reference", "unknown")))
 
         sandbox_id = str(attrs.get("sandbox_id", ""))
         title = str(attrs.get("title", "CodeSandbox Embed"))
@@ -567,9 +625,7 @@ class CodeSandboxDirective(BengalDirective):
             f'    sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"\n'
             f'    loading="lazy"\n'
             f"  ></iframe>\n"
-            f"  <noscript>\n"
-            f'    <p>View on CodeSandbox: <a href="{sandbox_url}">{safe_title}</a></p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(sandbox_url, safe_title)}\n"
             f"</div>\n"
         )
 
@@ -580,18 +636,18 @@ class CodeSandboxDirective(BengalDirective):
 
 
 @dataclass
-class StackBlitzOptions(DirectiveOptions):
+class StackBlitzOptions(EmbedOptionsBase):
     """
     Options for StackBlitz embed.
 
     Attributes:
-        title: Required - Accessible title for iframe
+        title: Required - Accessible title for iframe (inherited)
+        height: Height in pixels (default: 500, inherited)
         file: File to show initially
         view: Display mode - editor, preview, both (default: both)
-        height: Height in pixels (default: 500)
         hidenavigation: Hide file navigation (default: false)
         hidedevtools: Hide dev tools panel (default: false)
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited)
 
     Example:
         :::{stackblitz} angular-quickstart
@@ -602,21 +658,18 @@ class StackBlitzOptions(DirectiveOptions):
 
     """
 
-    title: str = ""
+    height: int = 500  # Override default
     file: str = ""
     view: str = "both"
-    height: int = 500
     hidenavigation: bool = False
     hidedevtools: bool = False
-    css_class: str = ""
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "view": ["editor", "preview", "both"],
     }
 
 
-class StackBlitzDirective(BengalDirective):
+class StackBlitzDirective(EmbedDirectiveBase):
     """
     StackBlitz embed directive.
 
@@ -645,8 +698,9 @@ class StackBlitzDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["stackblitz"]
     TOKEN_TYPE: ClassVar[str] = "stackblitz_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = StackBlitzOptions
+    OPTIONS_CLASS: ClassVar[type[StackBlitzOptions]] = StackBlitzOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["stackblitz"]
+    SERVICE_NAME: ClassVar[str] = "StackBlitz"
 
     # StackBlitz ID: alphanumeric, underscore, hyphen
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -676,18 +730,13 @@ class StackBlitzDirective(BengalDirective):
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "project_id": project_id},
+                attrs={"error": error, "reference": project_id},
             )
 
         # Validate title (accessibility requirement)
-        if not options.title:
-            return DirectiveToken(
-                type=self.TOKEN_TYPE,
-                attrs={
-                    "error": f"Missing required :title: option for StackBlitz embed. ID: {project_id}",
-                    "project_id": project_id,
-                },
-            )
+        title_error = self._validate_title(project_id, options.title)
+        if title_error:
+            return title_error
 
         return DirectiveToken(
             type=self.TOKEN_TYPE,
@@ -707,13 +756,7 @@ class StackBlitzDirective(BengalDirective):
         """Render StackBlitz embed to HTML."""
         error = attrs.get("error")
         if error:
-            project_id = str(attrs.get("project_id", "unknown"))
-            return (
-                f'<div class="code-embed stackblitz code-error">\n'
-                f'  <p class="error">StackBlitz Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>Project: <code>{self.escape_html(project_id)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("reference", "unknown")))
 
         project_id = str(attrs.get("project_id", ""))
         title = str(attrs.get("title", "StackBlitz Embed"))
@@ -748,9 +791,7 @@ class StackBlitzDirective(BengalDirective):
             f'    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"\n'
             f'    loading="lazy"\n'
             f"  ></iframe>\n"
-            f"  <noscript>\n"
-            f'    <p>View on StackBlitz: <a href="{project_url}">{safe_title}</a></p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(project_url, safe_title)}\n"
             f"</div>\n"
         )
 
@@ -761,16 +802,16 @@ class StackBlitzDirective(BengalDirective):
 
 
 @dataclass
-class SpotifyOptions(DirectiveOptions):
+class SpotifyOptions(EmbedOptionsBase):
     """
     Options for Spotify embed.
 
     Attributes:
-        title: Required - Accessible title for iframe
+        title: Required - Accessible title for iframe (inherited)
+        height: Embed height in pixels (0 = auto-detect, inherited)
         type: Content type - track, album, playlist, episode, show (default: track)
-        height: Embed height in pixels (default: 152 for track, 352 for others)
         theme: Color theme - 0 for dark, 1 for light (default: 0)
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited)
 
     Example:
         :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
@@ -780,20 +821,16 @@ class SpotifyOptions(DirectiveOptions):
 
     """
 
-    title: str = ""
     type: str = "track"
-    height: int = 0  # 0 means auto-detect based on type
     theme: int = 0  # 0 = dark, 1 = light
-    css_class: str = ""
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str | int]]] = {
         "type": ["track", "album", "playlist", "episode", "show", "artist"],
         "theme": [0, 1],
     }
 
 
-class SpotifyDirective(BengalDirective):
+class SpotifyDirective(EmbedDirectiveBase):
     """
     Spotify embed directive.
 
@@ -832,8 +869,9 @@ class SpotifyDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["spotify"]
     TOKEN_TYPE: ClassVar[str] = "spotify_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SpotifyOptions
+    OPTIONS_CLASS: ClassVar[type[SpotifyOptions]] = SpotifyOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["spotify"]
+    SERVICE_NAME: ClassVar[str] = "Spotify"
 
     # Spotify ID: 22 alphanumeric characters (base62)
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9]{22}$")
@@ -870,18 +908,13 @@ class SpotifyDirective(BengalDirective):
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "spotify_id": spotify_id},
+                attrs={"error": error, "reference": spotify_id},
             )
 
         # Validate title (accessibility requirement)
-        if not options.title:
-            return DirectiveToken(
-                type=self.TOKEN_TYPE,
-                attrs={
-                    "error": f"Missing required :title: option for Spotify embed. ID: {spotify_id}",
-                    "spotify_id": spotify_id,
-                },
-            )
+        title_error = self._validate_title(spotify_id, options.title)
+        if title_error:
+            return title_error
 
         # Auto-detect height based on content type if not specified
         height = (
@@ -904,13 +937,7 @@ class SpotifyDirective(BengalDirective):
         """Render Spotify embed to HTML."""
         error = attrs.get("error")
         if error:
-            spotify_id = str(attrs.get("spotify_id", "unknown"))
-            return (
-                f'<div class="audio-embed spotify audio-error">\n'
-                f'  <p class="error">Spotify Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>ID: <code>{self.escape_html(spotify_id)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("reference", "unknown")))
 
         spotify_id = str(attrs.get("spotify_id", ""))
         title = str(attrs.get("title", "Spotify Embed"))
@@ -935,9 +962,7 @@ class SpotifyDirective(BengalDirective):
             f'    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"\n'
             f'    loading="lazy"\n'
             f"  ></iframe>\n"
-            f"  <noscript>\n"
-            f'    <p>Listen on Spotify: <a href="{spotify_url}">{safe_title}</a></p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(spotify_url, safe_title)}\n"
             f"</div>\n"
         )
 
@@ -948,14 +973,14 @@ class SpotifyDirective(BengalDirective):
 
 
 @dataclass
-class SoundCloudOptions(DirectiveOptions):
+class SoundCloudOptions(EmbedOptionsBase):
     """
     Options for SoundCloud embed.
 
     Attributes:
-        title: Required - Accessible title for iframe
+        title: Required - Accessible title for iframe (inherited)
+        height: Embed height in pixels (0 = auto-detect, inherited)
         type: Content type - track or playlist (default: track)
-        height: Embed height in pixels (default: 166 for track, 450 for playlist)
         color: Accent color hex code without # (default: ff5500 - SoundCloud orange)
         autoplay: Auto-start playback (default: false)
         hide_related: Hide related tracks (default: false)
@@ -963,7 +988,7 @@ class SoundCloudOptions(DirectiveOptions):
         show_user: Show uploader info (default: true)
         show_reposts: Show reposts (default: false)
         visual: Use visual player (larger artwork) (default: false for tracks)
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited)
 
     Example:
         :::{soundcloud} artistname/track-title
@@ -977,9 +1002,7 @@ class SoundCloudOptions(DirectiveOptions):
 
     """
 
-    title: str = ""
     type: str = "track"
-    height: int = 0  # 0 means auto-detect based on type
     color: str = "ff5500"  # SoundCloud orange
     autoplay: bool = False
     hide_related: bool = False
@@ -987,15 +1010,13 @@ class SoundCloudOptions(DirectiveOptions):
     show_user: bool = True
     show_reposts: bool = False
     visual: bool = False
-    css_class: str = ""
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "type": ["track", "playlist"],
     }
 
 
-class SoundCloudDirective(BengalDirective):
+class SoundCloudDirective(EmbedDirectiveBase):
     """
     SoundCloud embed directive.
 
@@ -1039,14 +1060,17 @@ class SoundCloudDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["soundcloud"]
     TOKEN_TYPE: ClassVar[str] = "soundcloud_embed"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SoundCloudOptions
+    OPTIONS_CLASS: ClassVar[type[SoundCloudOptions]] = SoundCloudOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["soundcloud"]
+    SERVICE_NAME: ClassVar[str] = "SoundCloud"
 
     # SoundCloud URL path: username/track-name (alphanumeric, hyphens, underscores)
     # Matches: user-604227447/some-track-name or artistname/track-title
     URL_PATH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
         r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)?$"
     )
+    # Alias for EmbedDirectiveBase compatibility
+    ID_PATTERN: ClassVar[re.Pattern[str]] = URL_PATH_PATTERN
 
     # Default heights by content type
     DEFAULT_HEIGHTS: ClassVar[dict[str, int]] = {
@@ -1091,21 +1115,16 @@ class SoundCloudDirective(BengalDirective):
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "url_path": url_path},
+                attrs={"error": error, "reference": url_path},
             )
 
         # Clean the path
         cleaned_path = self._clean_path(url_path)
 
         # Validate title (accessibility requirement)
-        if not options.title:
-            return DirectiveToken(
-                type=self.TOKEN_TYPE,
-                attrs={
-                    "error": f"Missing required :title: option for SoundCloud embed. Path: {cleaned_path}",
-                    "url_path": cleaned_path,
-                },
-            )
+        title_error = self._validate_title(cleaned_path, options.title)
+        if title_error:
+            return title_error
 
         # Auto-detect height based on content type and visual mode
         if options.height > 0:
@@ -1137,13 +1156,7 @@ class SoundCloudDirective(BengalDirective):
         """Render SoundCloud embed to HTML."""
         error = attrs.get("error")
         if error:
-            url_path = str(attrs.get("url_path", "unknown"))
-            return (
-                f'<div class="audio-embed soundcloud audio-error">\n'
-                f'  <p class="error">SoundCloud Error: {self.escape_html(str(error))}</p>\n'
-                f"  <p>Path: <code>{self.escape_html(url_path)}</code></p>\n"
-                f"</div>\n"
-            )
+            return self._render_error(str(error), str(attrs.get("reference", "unknown")))
 
         url_path = str(attrs.get("url_path", ""))
         title = str(attrs.get("title", "SoundCloud Embed"))
@@ -1187,8 +1200,6 @@ class SoundCloudDirective(BengalDirective):
             f'    allow="autoplay"\n'
             f'    loading="lazy"\n'
             f"  ></iframe>\n"
-            f"  <noscript>\n"
-            f'    <p>Listen on SoundCloud: <a href="{soundcloud_url}">{safe_title}</a></p>\n'
-            f"  </noscript>\n"
+            f"  {self._render_noscript(soundcloud_url, safe_title)}\n"
             f"</div>\n"
         )

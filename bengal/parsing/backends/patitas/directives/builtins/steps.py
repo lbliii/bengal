@@ -165,7 +165,7 @@ class StepDirective:
         heading_level = opts.heading_level if opts.heading_level is not None else 2
 
         # Generate step ID from title or fallback to step number
-        step_id = self._slugify(title) if title else f"step-{step_number}"
+        step_id = self._make_step_id(title) if title else f"step-{step_number}"
 
         # Build class list
         classes = []
@@ -215,8 +215,8 @@ class StepDirective:
             sb.append("</li>\n")
 
     @staticmethod
-    def _slugify(text: str) -> str:
-        """Convert text to URL-safe slug for anchor IDs."""
+    def _make_step_id(text: str) -> str:
+        """Convert step title to URL-safe anchor ID."""
         return slugify_id(text, default="step")
 
 

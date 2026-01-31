@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.utils.config import get_config_section, get_site_value
 
 if TYPE_CHECKING:
     from bengal.cache.paths import BengalPaths
@@ -68,11 +69,7 @@ class SitePropertiesMixin:
         Examples:
             site.title  # Returns "My Blog" or None
         """
-        # Support both Config and dict access
-        site_attr = getattr(self.config, "site", None)
-        if site_attr is not None:
-            return getattr(site_attr, "title", None)
-        return self.config.get("site", {}).get("title") or self.config.get("title")
+        return get_site_value(self.config, "title")
 
     @property
     def description(self) -> str | None:
@@ -157,11 +154,7 @@ class SitePropertiesMixin:
         Examples:
             site.author  # Returns "Jane Doe" or None
         """
-        # Support both Config and dict access
-        site_attr = getattr(self.config, "site", None)
-        if site_attr is not None:
-            return getattr(site_attr, "author", None)
-        return self.config.get("site", {}).get("author") or self.config.get("author")
+        return get_site_value(self.config, "author")
 
     @property
     def favicon(self) -> str | None:
@@ -171,11 +164,7 @@ class SitePropertiesMixin:
         Returns:
             Favicon path string from config, or None if not configured
         """
-        # Support both Config and dict access
-        site_attr = getattr(self.config, "site", None)
-        if site_attr is not None:
-            return getattr(site_attr, "get", lambda k: None)("favicon")
-        return self.config.get("site", {}).get("favicon")
+        return get_site_value(self.config, "favicon")
 
     @property
     def logo_image(self) -> str | None:
@@ -375,8 +364,7 @@ class SitePropertiesMixin:
         Example:
             pipeline_enabled = site.assets_config.get("pipeline", False)
         """
-        value = self.config.get("assets")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "assets")
 
     @property
     def build_config(self) -> dict[str, Any]:
@@ -392,14 +380,7 @@ class SitePropertiesMixin:
         Example:
             parallel = site.build_config.get("parallel", True)
         """
-        # Support both Config and dict access
-        build_attr = getattr(self.config, "build", None)
-        if build_attr is not None:
-            # ConfigSection - access raw dict
-            data_attr = getattr(build_attr, "_data", None)
-            return dict(data_attr) if data_attr is not None else {}
-        value = self.config.get("build")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "build")
 
     @property
     def i18n_config(self) -> dict[str, Any]:
@@ -415,8 +396,7 @@ class SitePropertiesMixin:
         Example:
             default_lang = site.i18n_config.get("default_language", "en")
         """
-        value = self.config.get("i18n")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "i18n")
 
     @property
     def menu_config(self) -> dict[str, Any]:
@@ -432,8 +412,7 @@ class SitePropertiesMixin:
         Example:
             main_menu = site.menu_config.get("main", [])
         """
-        value = self.config.get("menu")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "menu")
 
     @property
     def content_config(self) -> dict[str, Any]:
@@ -449,8 +428,7 @@ class SitePropertiesMixin:
         Example:
             content_dir = site.content_config.get("dir", "content")
         """
-        value = self.config.get("content")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "content")
 
     @property
     def output_config(self) -> dict[str, Any]:
@@ -466,5 +444,4 @@ class SitePropertiesMixin:
         Example:
             output_dir = site.output_config.get("dir", "public")
         """
-        value = self.config.get("output")
-        return dict(value) if isinstance(value, dict) else {}
+        return get_config_section(self.config, "output")

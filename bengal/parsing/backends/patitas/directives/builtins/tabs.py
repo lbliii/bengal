@@ -332,7 +332,7 @@ class TabSetDirective:
             is_disabled = tab_data.disabled == "true"
 
             # Generate slug from title for readable URLs
-            tab_slug = self._slugify(tab_data.title)
+            tab_slug = self._make_tab_id(tab_data.title)
             pane_id = f"{tab_id}-{tab_slug}"
 
             # Build tab label with optional icon and badge
@@ -360,7 +360,7 @@ class TabSetDirective:
         # Build content panes with proper roles
         sb.append('  <div class="tab-content">\n')
         for tab_data in matches:
-            tab_slug = self._slugify(tab_data.title)
+            tab_slug = self._make_tab_id(tab_data.title)
             pane_id = f"{tab_id}-{tab_slug}"
 
             sb.append(
@@ -370,8 +370,8 @@ class TabSetDirective:
             )
         sb.append("  </div>\n</div>\n")
 
-    def _slugify(self, text: str) -> str:
-        """Convert text to URL-safe slug."""
+    def _make_tab_id(self, text: str) -> str:
+        """Convert tab title to URL-safe anchor ID."""
         return slugify_id(text, default="tab")
 
 

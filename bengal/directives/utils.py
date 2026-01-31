@@ -12,6 +12,8 @@ Functions:
 - ``attr_str``: Generate a single HTML attribute string.
 - ``class_attr``: Generate a ``class="..."`` attribute string.
 - ``get_markdown_instance``: Get the Markdown parser instance from a renderer.
+- ``parse_inline_markdown``: Parse inline markdown with mistune or regex fallback.
+- ``render_error_block``: Render standardized directive error blocks.
 
 Example:
 Building an HTML tag with utilities::
@@ -29,7 +31,17 @@ See Also:
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Pre-compiled regex patterns for inline markdown fallback
+_RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
+_RE_ITALIC = re.compile(r"(?<!\*)\*([^*]+?)\*(?!\*)")
+_RE_CODE = re.compile(r"`(.+?)`")
 
 
 def get_markdown_instance(renderer: Any) -> Any | None:
@@ -316,3 +328,134 @@ def clean_soundcloud_path(url_path: str) -> str:
     if "?" in cleaned:
         cleaned = cleaned.split("?")[0]
     return cleaned
+
+
+def _regex_inline_markdown(text: str) -> str:
+    """
+    Simple regex-based inline markdown for fallback.
+
+    Handles basic formatting:
+    - ``**bold**`` → ``<strong>bold</strong>``
+    - ``*italic*`` → ``<em>italic</em>``
+    - ```code``` → ``<code>code</code>``
+
+    Args:
+        text: Text with inline markdown
+
+    Returns:
+        HTML string with inline formatting applied
+
+    """
+    text = _RE_BOLD.sub(r"<strong>\1</strong>", text)
+    text = _RE_ITALIC.sub(r"<em>\1</em>", text)
+    text = _RE_CODE.sub(r"<code>\1</code>", text)
+    return text
+
+
+def parse_inline_markdown(renderer: Any, text: str, escape_first: bool = False) -> str:
+    """
+    Parse inline markdown using mistune or regex fallback.
+
+    Tries to use mistune's inline parser first (proper way), falls back
+    to simple regex for basic markdown if not available.
+
+    Consolidates implementations from:
+    - bengal/directives/steps.py (StepDirective._parse_inline_markdown)
+    - bengal/directives/glossary.py (_parse_inline_markdown)
+
+    Args:
+        renderer: Mistune renderer instance
+        text: Text to parse
+        escape_first: If True, escape HTML before regex fallback (for untrusted input)
+
+    Returns:
+        HTML string with inline markdown converted
+
+    Example:
+        >>> parse_inline_markdown(renderer, "**bold** and *italic*")
+        '<strong>bold</strong> and <em>italic</em>'
+
+    """
+    # Try to use mistune's inline parser (proper way)
+    md_instance = get_markdown_instance(renderer)
+    if md_instance and hasattr(md_instance, "inline"):
+        try:
+            return str(md_instance.inline(text))
+        except Exception as e:
+            logger.debug(
+                "inline_markdown_parse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_regex_fallback",
+            )
+
+    # Fallback to simple regex for basic markdown
+    if escape_first:
+        text = escape_html(text)
+    return _regex_inline_markdown(text)
+
+
+def render_error_block(
+    error: str,
+    reference: str = "",
+    base_class: str = "bengal-error",
+    service: str = "",
+    source: str = "",
+) -> str:
+    """
+    Render a standardized directive error block.
+
+    Provides consistent error presentation across all directives with
+    proper accessibility attributes.
+
+    Args:
+        error: Error message to display
+        reference: Reference identifier (e.g., gist ID, embed URL)
+        base_class: CSS class for the error container
+        service: Service name for prefix (e.g., "Gist", "CodePen")
+        source: Source file path for context
+
+    Returns:
+        HTML string for error block
+
+    Example:
+        >>> render_error_block("Invalid ID", "abc123", "gist-error", "Gist")
+        '<div class="gist-error" role="alert">...'
+
+    """
+    service_prefix = f"{service} Error: " if service else "Error: "
+    parts = [f'<div class="{base_class}" role="alert">']
+    parts.append(f'  <strong>{service_prefix}</strong>{escape_html(error)}')
+    if reference:
+        parts.append(f'  <br><small>Reference: <code>{escape_html(reference)}</code></small>')
+    if source:
+        parts.append(f'  <br><small>Source: {escape_html(source)}</small>')
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
+def render_noscript_fallback(url: str, title: str, service: str = "") -> str:
+    """
+    Render a noscript fallback link for embed directives.
+
+    Provides a consistent fallback for users with JavaScript disabled.
+
+    Args:
+        url: URL to link to
+        title: Display title for the link
+        service: Optional service name (e.g., "on CodePen", "on Spotify")
+
+    Returns:
+        HTML string for noscript fallback
+
+    Example:
+        >>> render_noscript_fallback("https://example.com", "My Example", "Example")
+        '<noscript><p>View on Example: <a href="...">My Example</a></p></noscript>'
+
+    """
+    service_text = f"View on {service}: " if service else "View: "
+    return (
+        f"<noscript>\n"
+        f'  <p>{service_text}<a href="{escape_html(url)}">{escape_html(title)}</a></p>\n'
+        f"</noscript>"
+    )
