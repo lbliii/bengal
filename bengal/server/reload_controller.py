@@ -216,6 +216,7 @@ class ReloadController:
         self._use_content_hashes: bool = use_content_hashes
         self._baseline_content_hashes: dict[str, str] = {}
         self._output_types: dict[str, str] = {}  # Store type name as string
+        self._baseline_output_dir_mtime: float | None = None
 
     # --- Runtime configuration setters ---
     def set_min_notify_interval_ms(self, value: int) -> None:
@@ -331,11 +332,22 @@ class ReloadController:
         from bengal.rendering.pipeline.output import extract_content_hash
         from bengal.utils.primitives.hashing import hash_str
 
+        if not output_dir.exists():
+            self._baseline_content_hashes.clear()
+            self._output_types.clear()
+            self._baseline_output_dir_mtime = None
+            return
+
+        with self._config_lock:
+            if self._baseline_content_hashes and self._baseline_output_dir_mtime is not None:
+                try:
+                    if output_dir.stat().st_mtime == self._baseline_output_dir_mtime:
+                        return
+                except OSError:
+                    pass
+
         self._baseline_content_hashes.clear()
         self._output_types.clear()
-
-        if not output_dir.exists():
-            return
 
         # Capture HTML file hashes
         for html_file in output_dir.rglob("*.html"):
@@ -364,6 +376,8 @@ class ReloadController:
             except OSError:
                 # File may have been deleted during scan - skip
                 continue
+        with suppress(OSError):
+            self._baseline_output_dir_mtime = output_dir.stat().st_mtime
 
     def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision:
         """
@@ -387,6 +401,8 @@ class ReloadController:
         content_changes: list[str] = []
         aggregate_changes: list[str] = []
         asset_changes: list[str] = []
+        current_hashes: dict[str, str] = {}
+        current_types: dict[str, str] = {}
 
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
@@ -398,6 +414,7 @@ class ReloadController:
             current_hash = extract_content_hash(content)
             if current_hash is None:
                 current_hash = hash_str(content, truncate=16)
+            current_hashes[rel_path] = current_hash
 
             baseline_hash = self._baseline_content_hashes.get(rel_path)
 
@@ -407,6 +424,7 @@ class ReloadController:
                 if output_type_name is None:
                     output_type = classify_output(html_file)
                     output_type_name = output_type.name
+                current_types[rel_path] = output_type_name
 
                 if output_type_name in ("CONTENT_PAGE", "GENERATED_PAGE"):
                     content_changes.append(rel_path)
@@ -414,11 +432,17 @@ class ReloadController:
                     aggregate_changes.append(rel_path)
                 elif output_type_name == "ASSET":
                     asset_changes.append(rel_path)
+            else:
+                current_types[rel_path] = self._output_types.get(
+                    rel_path, classify_output(html_file).name
+                )
 
-        # Apply throttling (reuse existing mechanism)
+        css_changes = self._check_css_changes_hashed(output_dir, current_hashes, current_types)
+
+        decision: EnhancedReloadDecision
         now = self._now_ms()
         if now - self._last_notify_time_ms < self._min_interval_ms:
-            return EnhancedReloadDecision(
+            decision = EnhancedReloadDecision(
                 action="none",
                 reason="throttled",
                 changed_paths=[],
@@ -426,12 +450,9 @@ class ReloadController:
                 aggregate_changes=[],
                 asset_changes=[],
             )
-
-        # CSS-only reload
-        css_changes = self._check_css_changes_hashed(output_dir)
-        if not content_changes and not aggregate_changes and css_changes:
+        elif not content_changes and not aggregate_changes and css_changes:
             self._last_notify_time_ms = now
-            return EnhancedReloadDecision(
+            decision = EnhancedReloadDecision(
                 action="reload-css",
                 reason="css-only",
                 changed_paths=css_changes[:MAX_CHANGED_PATHS_TO_SEND],
@@ -439,12 +460,10 @@ class ReloadController:
                 aggregate_changes=[],
                 asset_changes=css_changes,
             )
-
-        # Content changed - full reload
-        if content_changes:
+        elif content_changes:
             self._last_notify_time_ms = now
             all_changes = content_changes + aggregate_changes + asset_changes
-            return EnhancedReloadDecision(
+            decision = EnhancedReloadDecision(
                 action="reload",
                 reason="content-changed",
                 changed_paths=all_changes[:MAX_CHANGED_PATHS_TO_SEND],
@@ -452,10 +471,8 @@ class ReloadController:
                 aggregate_changes=aggregate_changes,
                 asset_changes=asset_changes,
             )
-
-        # Aggregate-only changes - no reload needed
-        if aggregate_changes and not content_changes:
-            return EnhancedReloadDecision(
+        elif aggregate_changes and not content_changes:
+            decision = EnhancedReloadDecision(
                 action="none",
                 reason="aggregate-only-changes",
                 changed_paths=[],
@@ -463,23 +480,38 @@ class ReloadController:
                 aggregate_changes=aggregate_changes,
                 asset_changes=[],
             )
+        else:
+            decision = EnhancedReloadDecision(
+                action="none",
+                reason="no-changes",
+                changed_paths=[],
+                content_changes=[],
+                aggregate_changes=[],
+                asset_changes=[],
+            )
 
-        return EnhancedReloadDecision(
-            action="none",
-            reason="no-changes",
-            changed_paths=[],
-            content_changes=[],
-            aggregate_changes=[],
-            asset_changes=[],
-        )
+        with self._config_lock:
+            self._baseline_content_hashes = current_hashes
+            self._output_types = current_types
+            with suppress(OSError):
+                self._baseline_output_dir_mtime = output_dir.stat().st_mtime
 
-    def _check_css_changes_hashed(self, output_dir: Path) -> list[str]:
+        return decision
+
+    def _check_css_changes_hashed(
+        self,
+        output_dir: Path,
+        current_hashes: dict[str, str],
+        current_types: dict[str, str],
+    ) -> list[str]:
         """Check CSS files for content changes using hashes."""
         changed: list[str] = []
         for css_file in output_dir.rglob("*.css"):
             rel_path = str(css_file.relative_to(output_dir))
             try:
                 current_hash = hash_file(css_file, truncate=16)
+                current_hashes[rel_path] = current_hash
+                current_types[rel_path] = "ASSET"
                 if self._baseline_content_hashes.get(rel_path) != current_hash:
                     changed.append(rel_path)
             except OSError:
