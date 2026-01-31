@@ -271,6 +271,175 @@ title: "Build Profiles"
         assert profiles_page.metadata.get("category") == "building"
 
 
+class TestEagerCascadeMergeDuality:
+    """Test that eager cascade merge eliminates the metadata/property duality.
+
+    After the eager cascade merge, page.metadata.get("type") and page.type
+    should always return the same value, eliminating a class of bugs where
+    code used the wrong access pattern.
+    """
+
+    @pytest.fixture
+    def temp_site(self):
+        """Create a temporary site directory."""
+        temp_dir = Path(tempfile.mkdtemp())
+        yield temp_dir
+        shutil.rmtree(temp_dir)
+
+    def test_metadata_get_equals_property_for_cascaded_type(self, temp_site):
+        """Test that page.metadata.get("type") == page.type for cascaded values."""
+        content_dir = temp_site / "content"
+        docs_dir = content_dir / "docs"
+        docs_dir.mkdir(parents=True)
+
+        # Section with cascade type
+        (docs_dir / "_index.md").write_text("""---
+title: "Documentation"
+cascade:
+  type: doc
+  variant: sidebar
+---
+""")
+
+        # Page that relies on cascade (no explicit type)
+        (docs_dir / "guide.md").write_text("""---
+title: "User Guide"
+---
+Content here.
+""")
+
+        site = Site(root_path=temp_site, config={})
+        site.discover_content(content_dir)
+
+        guide = next(p for p in site.pages if "guide" in str(p.source_path))
+
+        # CRITICAL: Both access patterns must return the same value
+        assert guide.metadata.get("type") == guide.type
+        assert guide.metadata.get("type") == "doc"
+
+        # Also verify variant
+        assert guide.metadata.get("variant") == guide.variant
+        assert guide.metadata.get("variant") == "sidebar"
+
+    def test_metadata_get_equals_property_for_frontmatter_type(self, temp_site):
+        """Test that page.metadata.get("type") == page.type for frontmatter values."""
+        content_dir = temp_site / "content"
+        docs_dir = content_dir / "docs"
+        docs_dir.mkdir(parents=True)
+
+        # Section with cascade type
+        (docs_dir / "_index.md").write_text("""---
+title: "Documentation"
+cascade:
+  type: doc
+---
+""")
+
+        # Page with explicit type (overrides cascade)
+        (docs_dir / "special.md").write_text("""---
+title: "Special Page"
+type: custom
+---
+Content here.
+""")
+
+        site = Site(root_path=temp_site, config={})
+        site.discover_content(content_dir)
+
+        special = next(p for p in site.pages if "special" in str(p.source_path))
+
+        # Frontmatter should take precedence over cascade
+        assert special.metadata.get("type") == special.type
+        assert special.metadata.get("type") == "custom"
+
+    def test_metadata_get_equals_property_nested_sections(self, temp_site):
+        """Test duality elimination works through nested section hierarchy."""
+        content_dir = temp_site / "content"
+
+        # Create nested structure: docs -> api -> v2
+        api_v2_dir = content_dir / "docs" / "api" / "v2"
+        api_v2_dir.mkdir(parents=True)
+
+        # Root docs cascade
+        (content_dir / "docs" / "_index.md").write_text("""---
+title: "Docs"
+cascade:
+  type: doc
+  layout: docs-layout
+---
+""")
+
+        # API section adds more cascade
+        (content_dir / "docs" / "api" / "_index.md").write_text("""---
+title: "API"
+cascade:
+  variant: api-sidebar
+---
+""")
+
+        # v2 section - no cascade
+        (api_v2_dir / "_index.md").write_text("""---
+title: "API v2"
+---
+""")
+
+        # Page in deepest section
+        (api_v2_dir / "endpoints.md").write_text("""---
+title: "Endpoints"
+---
+""")
+
+        site = Site(root_path=temp_site, config={})
+        site.discover_content(content_dir)
+
+        endpoints = next(p for p in site.pages if "endpoints" in str(p.source_path))
+
+        # Should inherit type from docs cascade
+        assert endpoints.metadata.get("type") == endpoints.type
+        assert endpoints.metadata.get("type") == "doc"
+
+        # Should inherit layout from docs cascade
+        assert endpoints.metadata.get("layout") == "docs-layout"
+
+        # Should inherit variant from api cascade
+        assert endpoints.metadata.get("variant") == endpoints.variant
+        assert endpoints.metadata.get("variant") == "api-sidebar"
+
+    def test_cascade_keys_tracking(self, temp_site):
+        """Test that _cascade_keys tracks which keys came from cascade."""
+        content_dir = temp_site / "content"
+        docs_dir = content_dir / "docs"
+        docs_dir.mkdir(parents=True)
+
+        (docs_dir / "_index.md").write_text("""---
+title: "Docs"
+cascade:
+  type: doc
+  custom_key: cascaded-value
+---
+""")
+
+        (docs_dir / "page.md").write_text("""---
+title: "Page"
+author: John
+---
+""")
+
+        site = Site(root_path=temp_site, config={})
+        site.discover_content(content_dir)
+
+        page = next(p for p in site.pages if "page.md" in str(p.source_path))
+
+        # _cascade_keys should track which keys came from cascade
+        cascade_keys = page.metadata.get("_cascade_keys", [])
+        assert "type" in cascade_keys
+        assert "custom_key" in cascade_keys
+
+        # Frontmatter keys should NOT be in _cascade_keys
+        assert "author" not in cascade_keys
+        assert "title" not in cascade_keys
+
+
 class TestCascadeWarmBuild:
     """Test cascade persistence across warm/incremental builds."""
 

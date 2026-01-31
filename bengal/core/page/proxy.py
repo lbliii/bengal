@@ -177,6 +177,10 @@ class PageProxy:
         # Stored in _pending_output_path to avoid forcing lazy load
         self._pending_output_path: Path | None = None
 
+        # Eager cascade merge: cached metadata with cascade values applied
+        self._metadata_cache: dict[str, Any] | None = None
+        self._cascade_applied: bool = False
+
     # ============================================================================
     # PageCore Property Delegates - Expose cached metadata without lazy load
     # ============================================================================
@@ -242,47 +246,24 @@ class PageProxy:
     @property
     def type(self) -> str | None:
         """
-        Get page type from cascade snapshot or cached metadata.
+        Get page type from metadata (frontmatter or cascade, already merged).
 
-        Priority:
-        1. Cascade snapshot lookup (always current, even after _index.md changes)
-        2. Cached core.type (fallback for non-cascade type)
+        With eager cascade merge, cascade values are merged into metadata
+        on first access. This eliminates the duality between
+        page.metadata.get("type") and page.type.
         """
-        # 1. Cascade snapshot lookup (thread-safe, always current)
-        # This MUST come first to ensure incremental builds pick up
-        # cascade changes from modified _index.md files
-        cascade_type = self._resolve_cascade_from_snapshot("type")
-        if cascade_type is not None:
-            return cascade_type
-
-        # 2. Fall back to cached value for non-cascade type
-        return self.core.type
+        return self.metadata.get("type")
 
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from cascade snapshot or cached metadata (Mode).
+        Get visual variant from metadata (frontmatter or cascade, already merged).
 
-        Priority:
-        1. Cascade snapshot lookup for 'variant' or 'layout' keys
-        2. Cached core.variant (fallback for non-cascade variant)
-        3. Frontmatter fallback (layout/hero_style)
+        With eager cascade merge, cascade values (including 'variant' and 'layout')
+        are merged into metadata on first access.
         """
-        # 1. Cascade snapshot lookup (thread-safe, always current)
-        cascade_variant = self._resolve_cascade_from_snapshot("variant")
-        if cascade_variant is not None:
-            return cascade_variant
-        cascade_layout = self._resolve_cascade_from_snapshot("layout")
-        if cascade_layout is not None:
-            return cascade_layout
-
-        # 2. Fall back to cached value for non-cascade variant
-        if self.core.variant:
-            return self.core.variant
-
-        # 3. Frontmatter fallback
-        props = self.metadata  # Triggers metadata build (but not full page)
-        return props.get("layout") or props.get("hero_style")
+        props = self.metadata
+        return props.get("variant") or props.get("layout") or props.get("hero_style")
 
     @property
     def props(self) -> dict[str, Any]:
@@ -366,44 +347,45 @@ class PageProxy:
     @property
     def metadata(self) -> dict[str, Any]:
         """
-        Get metadata dict from cache (no lazy load).
+        Get metadata dict with cascade values eagerly merged.
 
         Returns cached metadata including cascaded fields like 'type'.
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
 
-        Cascade resolution uses the immutable CascadeSnapshot for thread-safe
-        access. The snapshot is computed once per build and can be safely
-        accessed from multiple render threads in free-threaded Python.
+        After the eager cascade merge, page.metadata.get("type") and page.type
+        return the same value - eliminating the duality between access patterns.
 
-        Priority for cascade-eligible keys (type, layout, variant):
-        1. Cascade snapshot value (always current, even after _index.md changes)
-        2. Explicit frontmatter value from core (fallback)
-
-        This matches the priority order of the `type`, `layout`, and `variant`
-        properties to ensure consistent behavior.
+        The metadata is built once and cached. Cascade values are applied
+        on first access when _site is available.
         """
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
             return self._full_page.metadata
 
-        # Build metadata dict from cached PageCore fields
+        # Build and cache metadata if not already done
+        if self._metadata_cache is None:
+            self._metadata_cache = self._build_metadata_from_core()
+
+        # Apply cascade on first access when _site is available
+        self._ensure_cascade_applied()
+
+        return self._metadata_cache
+
+    def _build_metadata_from_core(self) -> dict[str, Any]:
+        """
+        Build metadata dict from cached PageCore fields.
+
+        This creates the initial metadata dict before cascade is applied.
+        Frontmatter values from core are included; cascade will be applied
+        on top (with frontmatter taking precedence).
+        """
         # Always include weight with sortable default (None → infinity for sort-last)
         cached_metadata: dict[str, Any] = {
             "weight": self.core.weight if self.core.weight is not None else float("inf"),
         }
 
-        # Cascade resolution FIRST for cascade-eligible keys (thread-safe, always current)
-        # This MUST come before adding core values to ensure incremental builds
-        # pick up cascade changes from modified _index.md files.
-        # Uses the section path stored in core to avoid needing section object.
-        cascade_keys = ("type", "layout", "variant")
-        for key in cascade_keys:
-            cascade_value = self._resolve_cascade_from_snapshot(key)
-            if cascade_value is not None:
-                cached_metadata[key] = cascade_value
-
-        # Add non-cascade fields from core (these don't have cascade inheritance)
+        # Add non-cascade fields from core
         if self.core.tags:
             cached_metadata["tags"] = self.core.tags
         if self.core.date:
@@ -413,34 +395,29 @@ class PageProxy:
         if self.core.lang:
             cached_metadata["lang"] = self.core.lang
 
-        # Fall back to core values for cascade keys ONLY if cascade didn't provide them
-        # This handles pages with explicit frontmatter type that aren't in cascade
-        # Note: PageCore only has 'type' and 'variant', not 'layout' (layout is cascade-only)
-        if "type" not in cached_metadata and self.core.type:
+        # Add frontmatter values for cascade-eligible keys
+        # These take precedence over cascade (frontmatter wins)
+        if self.core.type:
             cached_metadata["type"] = self.core.type
-        if "variant" not in cached_metadata and self.core.variant:
+        if self.core.variant:
             cached_metadata["variant"] = self.core.variant
 
         return cached_metadata
 
-    def _resolve_cascade_from_snapshot(self, key: str) -> Any:
+    def _ensure_cascade_applied(self) -> None:
         """
-        Resolve a cascade value using the immutable CascadeSnapshot.
+        Apply cascade values to proxy metadata on first access.
 
-        Uses the Site's cascade snapshot for O(depth) lookup without
-        needing to traverse section objects. This is thread-safe and
-        works correctly in free-threaded Python.
-
-        Args:
-            key: The cascade key to look up (e.g., "type", "layout")
-
-        Returns:
-            The cascade value from the nearest ancestor section, or None
+        Uses CascadeSnapshot.apply_to_page() to merge cascade values.
+        Frontmatter values take precedence over cascade.
         """
-        if self._site:
-            section_path = self.core.section or ""
-            return self._site.cascade.resolve(section_path, key)
-        return None
+        if self._cascade_applied:
+            return
+
+        if self._site and self._site.cascade and self._metadata_cache is not None:
+            content_dir = self._site.root_path / "content"
+            self._site.cascade.apply_to_page(self, content_dir)
+            self._cascade_applied = True
 
     rendered_html = _lazy_property_with_setter(
         "rendered_html", default="", getter_doc="Rendered HTML (lazy-loaded)."
