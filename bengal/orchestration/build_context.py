@@ -421,6 +421,71 @@ class BuildContext:
         self.clear_build_scoped_cache()
 
     # =========================================================================
+    # Section Snapshot Lookup (PERF: O(1) instead of O(S))
+    # =========================================================================
+    # Section lookup by path/name is called per page during rendering.
+    # Without caching, this is O(S) per page = O(S*P) total.
+    # With cached maps, it's O(1) per page = O(P) total.
+
+    def get_section_snapshot(self, section: Any) -> Any:
+        """
+        Get SectionSnapshot for a section using O(1) cached lookup.
+
+        PERF: Builds lookup maps once per build, then uses dict lookups.
+        Replaces O(S) iteration over snapshot.sections with O(1) dict access.
+
+        Args:
+            section: Section object with path or name attribute, or None
+
+        Returns:
+            SectionSnapshot if found, NO_SECTION sentinel otherwise
+        """
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
+
+        if section is None:
+            return NO_SECTION
+
+        # Already a SectionSnapshot - return as-is
+        if isinstance(section, SectionSnapshot):
+            return section
+
+        # No snapshot available - return sentinel
+        if self.snapshot is None:
+            return NO_SECTION
+
+        # Get or build cached lookup maps
+        section_maps = self.get_cached(
+            "section_snapshot_maps",
+            lambda: self._build_section_maps(),
+        )
+
+        # Try path lookup first (more specific)
+        section_path = getattr(section, "path", None)
+        if section_path and section_path in section_maps["by_path"]:
+            return section_maps["by_path"][section_path]
+
+        # Fall back to name lookup
+        section_name = getattr(section, "name", "")
+        if section_name and section_name in section_maps["by_name"]:
+            return section_maps["by_name"][section_name]
+
+        return NO_SECTION
+
+    def _build_section_maps(self) -> dict[str, dict[Any, Any]]:
+        """Build section lookup maps from snapshot (called once per build)."""
+        by_path: dict[Any, Any] = {}
+        by_name: dict[str, Any] = {}
+
+        if self.snapshot:
+            for sec_snap in self.snapshot.sections:
+                if sec_snap.path:
+                    by_path[sec_snap.path] = sec_snap
+                if sec_snap.name:
+                    by_name[sec_snap.name] = sec_snap
+
+        return {"by_path": by_path, "by_name": by_name}
+
+    # =========================================================================
     # Content Cache Methods (Build-Integrated Validation)
     # =========================================================================
     # These methods enable validators to use cached content instead of re-reading

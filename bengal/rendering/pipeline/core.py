@@ -669,15 +669,20 @@ class RenderingPipeline:
             snapshot = getattr(self.build_context, "snapshot", None)
 
         # Resolve section to SectionSnapshot (no wrapper needed)
+        # PERF: Use BuildContext cached lookup for O(1) instead of O(S) iteration
         section_for_context: SectionSnapshot = NO_SECTION
-        if snapshot and section:
-            # Find section snapshot
-            for sec_snap in snapshot.sections:
-                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
-                    section, "name", ""
-                ):
-                    section_for_context = sec_snap
-                    break
+        if section:
+            if self.build_context:
+                # O(1) cached lookup via BuildContext
+                section_for_context = self.build_context.get_section_snapshot(section)
+            elif snapshot:
+                # Fallback: O(S) iteration (when no build_context available)
+                for sec_snap in snapshot.sections:
+                    if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                        section, "name", ""
+                    ):
+                        section_for_context = sec_snap
+                        break
 
         # Get cached global contexts (site/config are stateless wrappers)
         global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]

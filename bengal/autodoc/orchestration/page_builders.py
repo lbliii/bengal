@@ -31,6 +31,87 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+# ============================================================================
+# PERF: Template-ready normalization at page creation time
+# ============================================================================
+# This avoids redundant normalization during rendering. Elements are normalized
+# once when pages are created, then reused across all renders.
+# See: bengal/rendering/pipeline/autodoc_renderer.py for the render-time check.
+
+
+class _MetadataView(dict[str, Any]):
+    """Dict that supports attribute-style access for templates."""
+
+    def __getattr__(self, item: str) -> Any:
+        return self.get(item)
+
+
+def normalize_element_for_templates(element: DocElement) -> None:
+    """
+    Pre-normalize an autodoc element and its children for template rendering.
+
+    This is called once during page creation to prepare elements for templates.
+    Sets the _normalized flag so render-time normalization is skipped.
+
+    PERF: Eliminates O(n*m) behavior where n=pages, m=children per element.
+    Instead of normalizing on every render, we normalize once at creation.
+
+    Args:
+        element: DocElement to normalize (modified in place)
+    """
+
+    def _normalize(obj: Any) -> None:
+        # Skip if already normalized
+        if getattr(obj, "_normalized", False):
+            return
+
+        # Ensure children attribute exists
+        if not hasattr(obj, "children") or obj.children is None:
+            obj.children = []
+
+        # Wrap metadata for dotted access in templates
+        if hasattr(obj, "metadata") and isinstance(obj.metadata, dict):
+            obj.metadata = _MetadataView(obj.metadata)
+            meta = obj.metadata
+
+            # Copy common fields to element for convenience
+            if not hasattr(obj, "description") and "description" in meta:
+                obj.description = meta.get("description", "")
+            if not hasattr(obj, "title") and "title" in meta:
+                obj.title = meta.get("title", "")
+
+            # Set template-safe defaults
+            meta.setdefault("is_dataclass", False)
+            meta.setdefault("signature", "")
+            meta.setdefault("parameters", [])
+            meta.setdefault("properties", {})
+            meta.setdefault("required", [])
+            meta.setdefault("example", None)
+
+            # Normalize properties dict values for dotted access
+            if isinstance(meta.get("properties"), dict):
+                normalized_props: dict[str, Any] = {}
+                for k, v in meta["properties"].items():
+                    if isinstance(v, dict):
+                        normalized_props[k] = _MetadataView(v)
+                    elif isinstance(v, str):
+                        normalized_props[k] = _MetadataView({"type": v})
+                    else:
+                        normalized_props[k] = _MetadataView({})
+                meta["properties"] = normalized_props
+
+        # Mark as normalized
+        obj._normalized = True
+
+        # Recursively normalize children
+        children = getattr(obj, "children", None)
+        if children and isinstance(children, (list, tuple)):
+            for child in children:
+                _normalize(child)
+
+    _normalize(element)
+
+
 def compute_element_urls(
     element: DocElement,
     site: Site,
@@ -127,6 +208,10 @@ def create_pages(
 
         # Compute _path and href for element and all children (for template use)
         compute_element_urls(element, site, doc_type, resolve_output_prefix)
+
+        # PERF: Pre-normalize element tree for templates at creation time.
+        # This eliminates redundant normalization during each page render.
+        normalize_element_for_templates(element)
 
         # Determine which elements get pages based on type
         # In consolidated mode (OpenAPI), endpoints don't get individual pages

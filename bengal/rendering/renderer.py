@@ -131,6 +131,9 @@ class Renderer:
         """
         Convert a mutable Section to its SectionSnapshot equivalent.
 
+        PERF: Uses BuildContext.get_section_snapshot() for O(1) cached lookup
+        instead of O(S) iteration over snapshot.sections.
+
         Args:
             section: Mutable Section object (or None)
             snapshot: SiteSnapshot containing section snapshots
@@ -147,7 +150,11 @@ class Renderer:
         if isinstance(section, SectionSnapshot):
             return section
 
-        # Look up in snapshot
+        # PERF: Use BuildContext cached lookup if available (O(1) vs O(S))
+        if self.build_context:
+            return self.build_context.get_section_snapshot(section)
+
+        # Fallback: O(S) iteration (when no build_context available)
         if snapshot:
             for sec_snap in snapshot.sections:
                 if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
@@ -355,6 +362,7 @@ class Renderer:
             site=self.site,
             content=content,
             snapshot=snapshot,
+            build_context=self.build_context,  # PERF: O(1) section lookup
         )
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)

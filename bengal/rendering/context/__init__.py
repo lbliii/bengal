@@ -309,6 +309,7 @@ def build_page_context(
     extra: dict[str, Any] | None = None,
     snapshot: Any = None,  # SiteSnapshot (optional)
     lazy: bool = True,  # Enable lazy evaluation for expensive fields
+    build_context: Any = None,  # BuildContext for O(1) section lookup
 ) -> dict[str, Any]:
     """
     Build complete template context for any page type.
@@ -355,19 +356,25 @@ def build_page_context(
 
     # Resolve section to SectionSnapshot (no wrapper needed)
     # SectionSnapshot has params property and __bool__ for template compatibility
+    # PERF: Use BuildContext cached lookup for O(1) instead of O(S) iteration
     section_snapshot: SectionSnapshot | None = None
 
-    if snapshot and resolved_section:
-        # Find section snapshot by matching path or name
+    if isinstance(resolved_section, SectionSnapshot):
+        # Already a snapshot
+        section_snapshot = resolved_section
+    elif resolved_section and build_context:
+        # O(1) cached lookup via BuildContext
+        result = build_context.get_section_snapshot(resolved_section)
+        if result != NO_SECTION:
+            section_snapshot = result
+    elif snapshot and resolved_section:
+        # Fallback: O(S) iteration (when no build_context available)
         for sec_snap in snapshot.sections:
             if sec_snap.path == getattr(resolved_section, "path", None) or sec_snap.name == getattr(
                 resolved_section, "name", ""
             ):
                 section_snapshot = sec_snap
                 break
-    elif isinstance(resolved_section, SectionSnapshot):
-        # Already a snapshot
-        section_snapshot = resolved_section
 
     # Build cascading params context
     # Cascade: page → section → site (most to least specific)

@@ -99,6 +99,22 @@ class AutodocRenderer:
         self.build_stats = build_stats
         self.write_behind = write_behind
 
+        # PERF: Cache autodoc config to avoid repeated lookups per page render.
+        # Autodoc config is immutable during a build, so we cache it once.
+        self._autodoc_config: dict[str, Any] = {}
+        self._doc_type: str | None = None
+        if site and hasattr(site, "config"):
+            config = site.config
+            if isinstance(config, dict):
+                self._autodoc_config = config.get("autodoc", {})
+                # Determine doc_type once
+                if "python" in self._autodoc_config:
+                    self._doc_type = "python"
+                elif "cli" in self._autodoc_config:
+                    self._doc_type = "cli"
+                elif "openapi" in self._autodoc_config:
+                    self._doc_type = "openapi"
+
     def process_virtual_page(self, page: Page) -> None:
         """
         Process a virtual page with pre-rendered HTML content.
@@ -346,6 +362,10 @@ class AutodocRenderer:
         Ensure autodoc element metadata supports both dotted and mapping access.
         Also adds href property to elements and their children for URL access.
 
+        PERF: Elements are pre-normalized during page creation (page_builders.py).
+        This method now acts as a fallback for elements that weren't pre-normalized.
+        The _normalized flag check in _coerce() provides early exit.
+
         Args:
             element: Autodoc element to normalize
 
@@ -355,19 +375,9 @@ class AutodocRenderer:
         if element is None:
             return None
 
-        # Determine doc_type from page metadata or template name
-        doc_type = None
-        autodoc_config: dict[str, Any] = {}
-        if hasattr(self, "site") and self.site and hasattr(self.site, "config"):
-            config = self.site.config
-            if isinstance(config, dict):
-                autodoc_config = config.get("autodoc", {})
-                if "python" in autodoc_config:
-                    doc_type = "python"
-                elif "cli" in autodoc_config:
-                    doc_type = "cli"
-                elif "openapi" in autodoc_config:
-                    doc_type = "openapi"
+        # PERF: Use cached config (set in __init__) to avoid repeated lookups
+        doc_type = self._doc_type
+        autodoc_config = self._autodoc_config
 
         def _compute_element_url(elem: Any, elem_type: str | None = None) -> str:
             """Compute URL for an element based on its qualified_name and type."""
@@ -425,6 +435,12 @@ class AutodocRenderer:
             return MetadataView({})
 
         def _coerce(obj: Any) -> None:
+            # PERF: Skip already-normalized elements to avoid redundant work.
+            # Elements are normalized once per build and reused across renders.
+            # This prevents O(n*m) behavior where n=pages, m=children per element.
+            if getattr(obj, "_normalized", False):
+                return
+
             # Ensure children attribute exists and is a list (templates rely on it)
             # Use try/except to handle objects that don't support attribute assignment
             try:
@@ -468,7 +484,9 @@ class AutodocRenderer:
                         meta["properties"] = normalized_props
 
             # Add href property for URL access in templates
-            if not hasattr(obj, "href"):
+            # PERF: Skip if href already set (page_builders.py sets this via compute_element_urls)
+            existing_href = getattr(obj, "href", None)
+            if not existing_href:
                 try:
                     href = _compute_element_url(obj, getattr(obj, "element_type", None))
                     obj.href = href
@@ -482,6 +500,14 @@ class AutodocRenderer:
             if children and isinstance(children, (list, tuple)):
                 for child in children:
                     _coerce(child)
+
+            # Mark as normalized to avoid redundant processing on subsequent renders
+            try:
+                obj._normalized = True
+            except (AttributeError, TypeError):
+                # Object doesn't support attribute assignment - best effort
+                with suppress(AttributeError, TypeError):
+                    obj.__dict__["_normalized"] = True
 
         _coerce(element)
         return element
