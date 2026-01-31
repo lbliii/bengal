@@ -281,6 +281,12 @@ class RenderOrchestrator:
 
         invalidate_for_reason(InvalidationReason.BUILD_START)
 
+        # Set build context for template function memoization (RFC: template-function-memoization)
+        # This enables site-scoped memoization for functions like get_auto_nav()
+        from bengal.rendering.template_functions.memo import set_build_context
+
+        set_build_context(build_context)
+
         # Warm block cache before parallel rendering (Kida only)
         self._warm_block_cache()
 
@@ -331,6 +337,9 @@ class RenderOrchestrator:
                     logger.debug("write_behind_flushed", files_written=written)
                 except Exception as e:
                     logger.error("write_behind_flush_error", error=str(e))
+
+            # Clear build context for memoization (cleanup)
+            set_build_context(None)
 
     def _render_sequential(
         self,

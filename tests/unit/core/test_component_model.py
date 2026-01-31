@@ -53,7 +53,7 @@ class TestPageMetadataComponentModel:
 
     def test_legacy_normalization_layout(self, tmp_path: Path) -> None:
         """Test that layout maps to variant."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"layout": "grid", "title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"layout": "grid", "title": "Test"})
         # Should be available via .variant property
         assert page.variant == "grid"
         # And populated in core
@@ -78,5 +78,5 @@ class TestPageMetadataComponentModel:
 
     def test_props_access(self, tmp_path: Path) -> None:
         """Test that metadata is accessible via props."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test", "custom": "value"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test", "custom": "value"})
         assert page.props["custom"] == "value"

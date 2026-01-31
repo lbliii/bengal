@@ -170,6 +170,12 @@ class PageProxy:
         self._related_posts_cache: list[Page] | None = None
         self._site = None  # Site reference - set externally
 
+        # Section index page caches (set during section finalization, avoid forcing load)
+        self._posts_cache: list[Page] | None = None
+        self._subsections_cache: list[Any] | None = None
+        self._paginator_cache: Any | None = None
+        self._page_num_cache: int | None = None
+
         # Path-based section reference (stable across rebuilds)
         # Initialized from core.section if available
         self._section_path: Path | None = Path(self.core.section) if self.core.section else None
@@ -539,6 +545,89 @@ class PageProxy:
         self._ensure_loaded()
         if self._full_page:
             self._full_page.related_posts = value
+
+    # ============================================================================
+    # Section Index Page Properties - Used by section finalization
+    # ============================================================================
+    # These properties store section context (_posts, _subsections, _paginator)
+    # for index pages. They allow setting on proxy without forcing a full load,
+    # which is critical for incremental builds where index pages may be PageProxy.
+
+    @property
+    def _posts(self) -> list[Page] | None:
+        """Get posts list for section index pages."""
+        if self._posts_cache is not None:
+            return self._posts_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._posts
+        return None
+
+    @_posts.setter
+    def _posts(self, value: list[Page] | None) -> None:
+        """Set posts list for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._posts_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._posts = value
+
+    @property
+    def _subsections(self) -> list[Any] | None:
+        """Get subsections list for section index pages."""
+        if self._subsections_cache is not None:
+            return self._subsections_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._subsections
+        return None
+
+    @_subsections.setter
+    def _subsections(self, value: list[Any] | None) -> None:
+        """Set subsections list for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._subsections_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._subsections = value
+
+    @property
+    def _paginator(self) -> Any | None:
+        """Get paginator for section index pages."""
+        if self._paginator_cache is not None:
+            return self._paginator_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._paginator
+        return None
+
+    @_paginator.setter
+    def _paginator(self, value: Any | None) -> None:
+        """Set paginator for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._paginator_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._paginator = value
+
+    @property
+    def _page_num(self) -> int | None:
+        """Get page number for paginated section index pages."""
+        if self._page_num_cache is not None:
+            return self._page_num_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._page_num
+        return None
+
+    @_page_num.setter
+    def _page_num(self, value: int | None) -> None:
+        """Set page number for paginated section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._page_num_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._page_num = value
 
     translation_key = _lazy_property("translation_key", default=None, doc="Translation key.")
     href = _lazy_property("href", default="/", doc="URL path with baseurl (lazy-loaded).")

@@ -294,7 +294,7 @@ class TestEdgeCases:
 
     def test_page_without_section(self):
         """Page not in a section should have no section navigation."""
-        page = Page(source_path=Path("/content/standalone.md"), metadata={"title": "Standalone"})
+        page = Page(source_path=Path("/content/standalone.md"), _raw_metadata={"title": "Standalone"})
         # No _section set
 
         assert page.next_in_section is None

@@ -22,7 +22,7 @@ def site():
     """Create a site with a home page."""
     s = Site(Path("."))
     s.config = {"pagination": {"per_page": 10}}
-    s.pages = [Page(Path("content/home.md"), "", metadata={"title": "Home Page"})]
+    s.pages = [Page(Path("content/home.md"), "", _raw_metadata={"title": "Home Page"})]
     return s
 
 
@@ -63,7 +63,7 @@ def test_tag_page_does_not_trigger_root_index_logic(renderer):
             "_tag": "mytag",
             "_tag_slug": "mytag",
             "_generated": True,
-            "_posts": [Page(Path("content/p1.md"), "", metadata={"title": "Correct Post"})],
+            "_posts": [Page(Path("content/p1.md"), "", _raw_metadata={"title": "Correct Post"})],
         },
     )
 

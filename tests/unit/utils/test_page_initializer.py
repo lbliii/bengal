@@ -53,7 +53,7 @@ class TestPageInitializer:
         page = Page(
             source_path=tmp_path / "content" / "test.md",
             _raw_content="# Test",
-            metadata={"title": "Test Page"},
+            _raw_metadata={"title": "Test Page"},
         )
         page.output_path = mock_site.output_dir / "test" / "index.html"
         return page
@@ -70,7 +70,7 @@ class TestPageInitializer:
 
     def test_ensure_initialized_sets_site_reference(self, initializer, mock_site, tmp_path):
         """Test that _site reference is set automatically."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Initially no _site
@@ -87,7 +87,7 @@ class TestPageInitializer:
         other_site.output_dir = tmp_path / "other_public"
         other_site.output_dir.mkdir(parents=True)
 
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page._site = other_site  # Already set
         page.output_path = other_site.output_dir / "test" / "index.html"
 
@@ -112,7 +112,7 @@ class TestPageInitializer:
 
     def test_ensure_initialized_missing_output_path(self, initializer, tmp_path):
         """Test error when output_path is missing."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         # No output_path set
 
         with pytest.raises(BengalContentError, match="has no output_path"):
@@ -120,7 +120,7 @@ class TestPageInitializer:
 
     def test_ensure_initialized_none_output_path(self, initializer, tmp_path):
         """Test error when output_path is explicitly None."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = None
 
         with pytest.raises(BengalContentError, match="has no output_path"):
@@ -128,7 +128,7 @@ class TestPageInitializer:
 
     def test_ensure_initialized_relative_output_path(self, initializer, tmp_path):
         """Test error when output_path is relative."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = Path("public/test/index.html")  # Relative!
 
         with pytest.raises(BengalContentError, match="relative output_path"):
@@ -136,7 +136,7 @@ class TestPageInitializer:
 
     def test_ensure_initialized_absolute_path_works(self, initializer, mock_site, tmp_path):
         """Test that absolute output_path is accepted."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Should not raise
@@ -160,7 +160,7 @@ class TestPageInitializer:
         self, initializer, mock_site, tmp_path, capsys
     ):
         """Test behavior when output_path is outside output directory."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         # Set output_path outside of output_dir
         page.output_path = tmp_path / "other" / "test.html"
 
@@ -176,7 +176,7 @@ class TestPageInitializer:
         self, initializer, mock_site, tmp_path, capsys
     ):
         """Test behavior with nonexistent output_path."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         # Set a valid-looking but nonexistent output_path
         page.output_path = Path("/nonexistent/public/test/index.html")
 
@@ -196,7 +196,7 @@ class TestPageInitializer:
         """Test that section initialization sets both _site and _section."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
 
-        page = Page(source_path=tmp_path / "docs" / "_index.md", metadata={"title": "Docs"})
+        page = Page(source_path=tmp_path / "docs" / "_index.md", _raw_metadata={"title": "Docs"})
         page.output_path = mock_site.output_dir / "docs" / "index.html"
 
         # Register section in site registry for path-based lookup
@@ -214,7 +214,7 @@ class TestPageInitializer:
         section1 = Section(name="docs", path=tmp_path / "content" / "docs")
         section2 = Section(name="blog", path=tmp_path / "content" / "blog")
 
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Register sections in site registry for path-based lookup
@@ -232,7 +232,7 @@ class TestPageInitializer:
         """Test that section initialization still validates output_path."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
 
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         # No output_path
 
         with pytest.raises(BengalContentError, match="has no output_path"):
@@ -244,7 +244,7 @@ class TestPageInitializer:
         """Test that section initialization handles path outside output_dir."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
 
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = tmp_path / "other" / "test.html"  # Outside output_dir
 
         # Register section in site registry for path-based lookup
@@ -262,7 +262,7 @@ class TestPageInitializer:
 
     def test_error_message_includes_page_title(self, initializer, tmp_path):
         """Test that error messages include helpful page info."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "My Important Page"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "My Important Page"})
         # No output_path
 
         with pytest.raises(BengalContentError) as exc_info:
@@ -274,7 +274,7 @@ class TestPageInitializer:
     def test_error_message_includes_source_path(self, initializer, tmp_path):
         """Test that error messages include source path."""
         page = Page(
-            source_path=tmp_path / "content" / "blog" / "post.md", metadata={"title": "Test"}
+            source_path=tmp_path / "content" / "blog" / "post.md", _raw_metadata={"title": "Test"}
         )
         # No output_path
 
@@ -286,7 +286,7 @@ class TestPageInitializer:
 
     def test_error_message_for_missing_output_path_is_clear(self, initializer, tmp_path):
         """Test that missing output_path error is actionable."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
 
         with pytest.raises(BengalContentError) as exc_info:
             initializer.ensure_initialized(page)
@@ -297,7 +297,7 @@ class TestPageInitializer:
 
     def test_error_message_for_relative_path_is_clear(self, initializer, tmp_path):
         """Test that relative path error is actionable."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = Path("relative/path.html")
 
         with pytest.raises(BengalContentError) as exc_info:
@@ -308,7 +308,7 @@ class TestPageInitializer:
 
     def test_url_generation_succeeds_for_valid_paths(self, initializer, mock_site, tmp_path):
         """Test that URL generation succeeds for valid paths."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Should not raise
@@ -408,7 +408,7 @@ class TestPageInitializer:
         index_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_content="# Documentation",
-            metadata={"title": "Documentation"},
+            _raw_metadata={"title": "Documentation"},
         )
         index_page.output_path = mock_site.output_dir / "docs" / "index.html"
 
@@ -433,7 +433,7 @@ class TestPageInitializer:
         page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
             _raw_content="# Introduction",
-            metadata={"title": "Introduction"},
+            _raw_metadata={"title": "Introduction"},
         )
         page.output_path = mock_site.output_dir / "docs" / "guides" / "intro" / "index.html"
 
@@ -447,7 +447,7 @@ class TestPageInitializer:
         """Test initializing multiple pages in sequence."""
         pages = []
         for i in range(5):
-            page = Page(source_path=tmp_path / f"page{i}.md", metadata={"title": f"Page {i}"})
+            page = Page(source_path=tmp_path / f"page{i}.md", _raw_metadata={"title": f"Page {i}"})
             page.output_path = mock_site.output_dir / f"page{i}" / "index.html"
             pages.append(page)
 
@@ -462,10 +462,10 @@ class TestPageInitializer:
 
     def test_initialize_pages_with_same_output_dir(self, initializer, mock_site, tmp_path):
         """Test multiple pages in same directory."""
-        page1 = Page(source_path=tmp_path / "blog" / "post1.md", metadata={"title": "Post 1"})
+        page1 = Page(source_path=tmp_path / "blog" / "post1.md", _raw_metadata={"title": "Post 1"})
         page1.output_path = mock_site.output_dir / "blog" / "post1" / "index.html"
 
-        page2 = Page(source_path=tmp_path / "blog" / "post2.md", metadata={"title": "Post 2"})
+        page2 = Page(source_path=tmp_path / "blog" / "post2.md", _raw_metadata={"title": "Post 2"})
         page2.output_path = mock_site.output_dir / "blog" / "post2" / "index.html"
 
         initializer.ensure_initialized(page1)
@@ -509,7 +509,7 @@ class TestPageInitializer:
 
     def test_fails_immediately_on_missing_output_path(self, initializer, tmp_path):
         """Test fail-fast: error raised immediately, not later."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
 
         # Should fail immediately
         with pytest.raises(BengalContentError, match="output_path"):
@@ -517,7 +517,7 @@ class TestPageInitializer:
 
     def test_fails_before_setting_site_on_relative_path(self, initializer, tmp_path):
         """Test that page is not modified if validation fails early."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         # Invalid output_path (relative)
         page.output_path = Path("relative/path.html")
 
@@ -533,7 +533,7 @@ class TestPageInitializer:
 
     def test_validation_runs_before_url_access(self, initializer, mock_site, tmp_path):
         """Test that validation catches issues before URL is accessed in production."""
-        page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
+        page = Page(source_path=tmp_path / "test.md", _raw_metadata={"title": "Test"})
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Initialize should run URL validation

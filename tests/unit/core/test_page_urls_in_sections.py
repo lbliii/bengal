@@ -24,7 +24,7 @@ class TestPageURLsInSections:
         """Test page URL falls back correctly when output_path not set."""
         page = Page(
             source_path=Path("/content/docs/getting-started.md"),
-            metadata={"title": "Getting Started"},
+            _raw_metadata={"title": "Getting Started"},
         )
 
         # Without output_path or site reference, should use slug
@@ -38,7 +38,7 @@ class TestPageURLsInSections:
 
         page = Page(
             source_path=Path("/content/docs/getting-started.md"),
-            metadata={"title": "Getting Started"},
+            _raw_metadata={"title": "Getting Started"},
             output_path=Path("/site/public/docs/getting-started/index.html"),
         )
         page._site = site
@@ -64,17 +64,17 @@ class TestPageURLsInSections:
         pages = [
             Page(
                 source_path=Path("/content/docs/intro.md"),
-                metadata={"title": "Introduction"},
+                _raw_metadata={"title": "Introduction"},
                 output_path=Path("/site/public/docs/intro/index.html"),
             ),
             Page(
                 source_path=Path("/content/docs/guide.md"),
-                metadata={"title": "Guide"},
+                _raw_metadata={"title": "Guide"},
                 output_path=Path("/site/public/docs/guide/index.html"),
             ),
             Page(
                 source_path=Path("/content/docs/api.md"),
-                metadata={"title": "API Reference"},
+                _raw_metadata={"title": "API Reference"},
                 output_path=Path("/site/public/docs/api/index.html"),
             ),
         ]
@@ -107,7 +107,7 @@ class TestPageURLsInSections:
 
         page = Page(
             source_path=Path("/content/api/v2/users.md"),
-            metadata={"title": "Users API"},
+            _raw_metadata={"title": "Users API"},
             output_path=Path("/site/public/api/v2/users/index.html"),
         )
         page._site = site
@@ -126,7 +126,7 @@ class TestPageURLsInSections:
 
         index_page = Page(
             source_path=Path("/content/docs/_index.md"),
-            metadata={"title": "Documentation"},
+            _raw_metadata={"title": "Documentation"},
             output_path=Path("/site/public/docs/index.html"),
         )
         index_page._site = site
@@ -149,7 +149,7 @@ class TestPageURLGenerationDuringRendering:
         # Test pretty URLs (default)
         page = Page(
             source_path=Path("/content/blog/post.md"),
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
             output_path=Path("/site/public/blog/post/index.html"),
         )
         page._site = site
@@ -159,7 +159,7 @@ class TestPageURLGenerationDuringRendering:
         # Test index pages
         index_page = Page(
             source_path=Path("/content/blog/_index.md"),
-            metadata={"title": "Blog"},
+            _raw_metadata={"title": "Blog"},
             output_path=Path("/site/public/blog/index.html"),
         )
         index_page._site = site
@@ -168,7 +168,7 @@ class TestPageURLGenerationDuringRendering:
 
     def test_url_without_output_path_falls_back(self):
         """Test URL generation falls back to slug when no output_path."""
-        page = Page(source_path=Path("/content/docs/guide.md"), metadata={"title": "Guide"})
+        page = Page(source_path=Path("/content/docs/guide.md"), _raw_metadata={"title": "Guide"})
 
         # Should fall back to slug-based URL
         fallback_url = page.href
@@ -201,7 +201,7 @@ class TestNavigationLinkGeneration:
         for _i, name in enumerate(["intro", "basics", "advanced"]):
             page = Page(
                 source_path=Path(f"/content/guides/{name}.md"),
-                metadata={"title": name.title()},
+                _raw_metadata={"title": name.title()},
                 output_path=Path(f"/site/public/guides/{name}/index.html"),
             )
             page._site = site
@@ -235,7 +235,7 @@ class TestEdgeCases:
 
         page = Page(
             source_path=Path("/content/about.md"),
-            metadata={"title": "About"},
+            _raw_metadata={"title": "About"},
             output_path=Path("/site/public/about/index.html"),
         )
         page._site = site
@@ -249,7 +249,7 @@ class TestEdgeCases:
 
         page = Page(
             source_path=Path("/content/index.md"),
-            metadata={"title": "Home"},
+            _raw_metadata={"title": "Home"},
             output_path=Path("/site/public/index.html"),
         )
         page._site = site
@@ -263,7 +263,7 @@ class TestEdgeCases:
 
         page = Page(
             source_path=Path("/content/docs/guides/advanced/optimization.md"),
-            metadata={"title": "Optimization"},
+            _raw_metadata={"title": "Optimization"},
             output_path=Path("/site/public/docs/guides/advanced/optimization/index.html"),
         )
         page._site = site

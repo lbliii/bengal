@@ -2,12 +2,18 @@
 Auto-navigation discovery functions.
 
 Provides get_auto_nav() for automatic navigation from site sections.
+
+Performance:
+    get_auto_nav() is memoized per-build since the result is identical
+    for all pages. This avoids re-computing navigation for every page
+    render (~225x speedup for a 225-page site).
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.template_functions.memo import site_scoped_memoize
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
 from bengal.utils.paths.normalize import to_posix
 
@@ -97,6 +103,7 @@ def _build_section_menu_item(
     }
 
 
+@site_scoped_memoize("auto_nav")
 def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     """
     Auto-discover hierarchical navigation from site sections.
@@ -111,6 +118,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     - Respects section weight for ordering
     - Respects 'menu: false' in section _index.md to hide from nav
     - Returns empty list if manual [[menu.main]] config exists (hybrid mode)
+    - **Memoized**: Result cached per-build (same for all pages)
 
     Args:
         site: Site instance
@@ -133,6 +141,10 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
         menu: false  # Won't appear in auto-nav
         weight: 10   # Controls ordering
         ---
+
+    Performance:
+        Memoized via @site_scoped_memoize - computed once per build,
+        not once per page. ~225x speedup for a 225-page site.
 
     """
     # Check if manual menu config exists - if so, don't auto-discover

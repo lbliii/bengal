@@ -57,8 +57,8 @@ def test_alternate_links(tmp_path: Path) -> None:
 
     from bengal.core.page import Page
 
-    en = Page(source_path=tmp_path / "content" / "en" / "a.md", _raw_content="x", metadata={})
-    fr = Page(source_path=tmp_path / "content" / "fr" / "a.md", _raw_content="x", metadata={})
+    en = Page(source_path=tmp_path / "content" / "en" / "a.md", _raw_content="x", _raw_metadata={})
+    fr = Page(source_path=tmp_path / "content" / "fr" / "a.md", _raw_content="x", _raw_metadata={})
     en.lang = "en"
     fr.lang = "fr"
     en.translation_key = "docs/a"
