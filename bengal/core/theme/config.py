@@ -48,7 +48,7 @@ from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.errors import BengalConfigError, ErrorCode
-from bengal.themes.utils import validate_enum_field
+from bengal.themes.utils import THEMES_ROOT, validate_enum_field
 
 
 @dataclass
@@ -194,7 +194,7 @@ class Theme:
 
                 # Try site themes first, then bundled themes
                 site_theme_path = root_path / "themes" / theme_name
-                bundled_theme_path = Path(__file__).parent.parent.parent / "themes" / theme_name
+                bundled_theme_path = THEMES_ROOT / theme_name
 
                 theme_path = None
                 if site_theme_path.exists():

@@ -40,6 +40,7 @@ from typing import Any
 import yaml
 
 from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.themes.tokens import PALETTE_VARIANTS
 from bengal.themes.utils import validate_enum_field
 from bengal.utils.observability.logger import get_logger
 
@@ -161,26 +162,15 @@ class AppearanceConfig:
     default_mode: str = "system"
     default_palette: str = ""
 
-    # Valid palette names - imported lazily to avoid circular imports
-    _VALID_PALETTES: frozenset[str] = frozenset(
-        {
-            "",  # Empty string is valid (no palette override)
-            "default",
-            "blue-bengal",
-            "brown-bengal",
-            "charcoal-bengal",
-            "silver-bengal",
-            "snow-lynx",
-        }
-    )
-
     def __post_init__(self) -> None:
         """Validate appearance configuration."""
         # Validate mode
         validate_enum_field("default_mode", self.default_mode, {"light", "dark", "system"})
 
-        # Validate palette
-        validate_enum_field("default_palette", self.default_palette, self._VALID_PALETTES)
+        # Validate palette - derive valid names from PALETTE_VARIANTS (single source of truth)
+        # Empty string is also valid (means no palette override)
+        valid_palettes = {"", *PALETTE_VARIANTS.keys()}
+        validate_enum_field("default_palette", self.default_palette, valid_palettes)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AppearanceConfig:

@@ -173,12 +173,12 @@ class TestSwizzle:
             assert template in targets
 
 
-class TestListSwizzled:
-    """Test list_swizzled() method."""
+class TestList:
+    """Test list() method."""
 
     def test_list_empty(self, swizzle_manager):
         """Test listing when no templates are swizzled."""
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert records == []
 
@@ -186,7 +186,7 @@ class TestListSwizzled:
         """Test listing single swizzled template."""
         swizzle_manager.swizzle("partials/test-component.html")
 
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert len(records) == 1
         assert records[0].target == "partials/test-component.html"
@@ -199,7 +199,7 @@ class TestListSwizzled:
         for template in templates:
             swizzle_manager.swizzle(template)
 
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert len(records) == 2
         targets = [r.target for r in records]
@@ -210,7 +210,7 @@ class TestListSwizzled:
         """Test that list returns SwizzleRecord objects."""
         swizzle_manager.swizzle("partials/test-component.html")
 
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert len(records) == 1
         assert isinstance(records[0], SwizzleRecord)
@@ -347,7 +347,7 @@ class TestSaveAndLoadRegistry:
 
     def test_load_empty_registry(self, swizzle_manager):
         """Test loading empty registry."""
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert records == []
 
@@ -357,7 +357,7 @@ class TestSaveAndLoadRegistry:
 
         # Create new manager instance
         manager2 = SwizzleManager(swizzle_manager.site)
-        records = manager2.list_swizzled()
+        records = manager2.list()
 
         assert len(records) == 1
         assert records[0].target == "partials/test-component.html"
@@ -434,7 +434,7 @@ class TestEdgeCases:
             theme_file.write_text(f"<div>{template}</div>")
             swizzle_manager.swizzle(template)
 
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
         assert len(records) == 5
 
     def test_swizzle_with_unicode_filename(self, swizzle_manager, temp_site):
@@ -495,7 +495,7 @@ class TestRealWorldScenarios:
             swizzle_manager.swizzle(template)
 
         # List all swizzled
-        records = swizzle_manager.list_swizzled()
+        records = swizzle_manager.list()
 
         assert len(records) == 3
 
