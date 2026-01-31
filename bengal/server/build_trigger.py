@@ -104,6 +104,11 @@ class BuildTrigger:
     _frontmatter_cache: dict[Path, tuple[float, bool]] = {}
     _frontmatter_cache_max = 500
 
+    # Content hash cache: path -> (mtime, frontmatter_hash, content_hash)
+    # Used for content-only change detection (RFC: content-only-hot-reload)
+    _content_hash_cache: dict[Path, tuple[float, str, str]] = {}
+    _content_hash_cache_max = 500
+
     # Template directories cache (per-instance, set to None to invalidate)
     _template_dirs: list[Path] | None = None
 
@@ -610,6 +615,73 @@ class BuildTrigger:
 
         except (FileNotFoundError, PermissionError, OSError) as e:
             logger.debug("frontmatter_check_failed", file=str(path), error=str(e))
+            return False
+
+    def _is_content_only_change(self, path: Path) -> bool:
+        """
+        Check if a markdown file change is content-only (frontmatter unchanged).
+
+        Content-only changes can potentially use faster rendering paths that
+        skip template processing and inject new content into cached page shells.
+
+        Args:
+            path: Path to the markdown file
+
+        Returns:
+            True if only the markdown body changed (not frontmatter)
+
+        RFC: content-only-hot-reload
+        """
+        import hashlib
+
+        if not path.suffix.lower() == ".md":
+            return False
+
+        try:
+            mtime = path.stat().st_mtime
+
+            # Read file and split frontmatter/content
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+
+            # Extract frontmatter
+            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
+            if not match:
+                return False  # No frontmatter = can't detect
+
+            fm_text = match.group(1)
+            content_text = match.group(2)
+
+            # Hash both parts
+            fm_hash = hashlib.sha256(fm_text.encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(content_text.encode()).hexdigest()[:16]
+
+            # Check against cache
+            cached = self._content_hash_cache.get(path)
+            if cached is not None:
+                _cached_mtime, cached_fm_hash, cached_content_hash = cached
+
+                # Content-only if frontmatter same but content different
+                if cached_fm_hash == fm_hash and cached_content_hash != content_hash:
+                    logger.debug(
+                        "content_only_change_detected",
+                        file=str(path),
+                        hint="frontmatter_unchanged",
+                    )
+                    # Update cache with new hashes
+                    self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+                    return True
+
+            # Update cache with LRU eviction
+            if len(self._content_hash_cache) >= self._content_hash_cache_max:
+                first_key = next(iter(self._content_hash_cache))
+                del self._content_hash_cache[first_key]
+            self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+
+            return False
+
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
             return False
 
     def _get_template_dirs(self) -> list[Path]:
