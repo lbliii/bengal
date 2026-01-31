@@ -312,8 +312,10 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
 
 
 # Convert to pytest test case
-# Marked slow and hypothesis for proper test selection
-TestPageLifecycleWorkflow = pytest.mark.slow(pytest.mark.hypothesis(PageLifecycleWorkflow.TestCase))
+# Marked slow, hypothesis, and stateful for proper test selection
+TestPageLifecycleWorkflow = pytest.mark.stateful(
+    pytest.mark.slow(pytest.mark.hypothesis(PageLifecycleWorkflow.TestCase))
+)
 
 
 class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
@@ -439,8 +441,8 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
             clean_site(self.site_dir)
 
 
-TestIncrementalConsistencyWorkflow = pytest.mark.slow(
-    pytest.mark.hypothesis(IncrementalConsistencyWorkflow.TestCase)
+TestIncrementalConsistencyWorkflow = pytest.mark.stateful(
+    pytest.mark.slow(pytest.mark.hypothesis(IncrementalConsistencyWorkflow.TestCase))
 )
 
 

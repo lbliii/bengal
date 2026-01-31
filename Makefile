@@ -1,4 +1,9 @@
-# Bengal Makefile
+# Bengal Makefile (Legacy)
+# =============================================================================
+# PREFERRED: Use `poe <task>` instead (poethepoet)
+# Run `poe --help` to see all available tasks
+# =============================================================================
+# This Makefile is kept for compatibility but poe is the preferred task runner.
 # Wraps uv commands to ensure Python 3.14t is used
 
 PYTHON_VERSION ?= 3.14t
