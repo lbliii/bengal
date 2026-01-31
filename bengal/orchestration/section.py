@@ -388,7 +388,7 @@ class SectionOrchestrator:
             )
 
         # Create archive page
-        archive_page = Page(source_path=virtual_path, _raw_content="", metadata=metadata)
+        archive_page = Page(source_path=virtual_path, _raw_content="", _raw_metadata=metadata)
 
         # Mark as virtual page (attribute, not just metadata)
         archive_page._virtual = True

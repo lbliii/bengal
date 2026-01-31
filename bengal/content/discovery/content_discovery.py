@@ -647,7 +647,7 @@ class ContentDiscovery:
             page = Page(
                 source_path=file_path,
                 _raw_content=content,
-                metadata=metadata,
+                _raw_metadata=metadata,
             )
 
             if self.site is not None:

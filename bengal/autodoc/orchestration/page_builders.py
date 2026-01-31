@@ -262,7 +262,7 @@ def create_pages(
         # Track source file → autodoc page dependency for incremental builds
         if source_file_for_tracking:
             doc_hash = compute_doc_content_hash(element)
-            page.metadata["doc_content_hash"] = doc_hash
+            page._raw_metadata["doc_content_hash"] = doc_hash
             result.add_dependency(str(source_file_for_tracking), source_id, content_hash=doc_hash)
 
     # Note: HTML rendering is now DEFERRED to the rendering phase

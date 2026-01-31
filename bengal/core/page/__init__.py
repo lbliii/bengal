@@ -488,7 +488,7 @@ class Page(
         page = cls(
             source_path=Path(source_id),
             _raw_content=content,
-            metadata=page_metadata,
+            _raw_metadata=page_metadata,
             rendered_html=rendered_html or "",
             output_path=output_path,
             _section_path=section_path,

@@ -125,7 +125,7 @@ def create_virtual_page(
     page = Page(
         source_path=virtual_path,
         _raw_content="",
-        metadata=metadata,
+        _raw_metadata=metadata,
     )
 
     # Mark as virtual page (attribute, not just metadata)

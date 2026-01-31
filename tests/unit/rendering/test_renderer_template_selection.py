@@ -41,7 +41,7 @@ class TestTemplateSelection:
         """Helper to set up a page with a mock section and site registry."""
         from bengal.core.site import Site
 
-        page = Page(source_path=source_path, metadata=metadata)
+        page = Page(source_path=source_path, _raw_metadata=metadata)
         section = MockSection(
             name=section_name, title=section_name, path=Path(f"/content/{section_name}")
         )

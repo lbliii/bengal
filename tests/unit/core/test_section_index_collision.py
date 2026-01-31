@@ -142,7 +142,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Regular index",
-            metadata={"title": "Index", "cascade": {"layout": "doc"}},
+            _raw_metadata={"title": "Index", "cascade": {"layout": "doc"}},
         )
         section.add_page(regular_index)
         assert "cascade" in section.metadata
@@ -151,7 +151,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Underscore index",
-            metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},
+            _raw_metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},
         )
 
         collector = DiagnosticsCollector()
