@@ -57,7 +57,7 @@ class DirectiveRendererMixin:
         """
         import inspect
 
-        # Determine if directive is cacheable (not page-dependent)
+        # Determine if directive is cacheable (not page-dependent or context-dependent)
         is_cacheable = node.name not in PAGE_DEPENDENT_DIRECTIVES
         handler = None
         sig = None
@@ -68,6 +68,12 @@ class DirectiveRendererMixin:
                 # Page-dependent directives are NOT cacheable
                 if is_cacheable and (
                     "page_context" in sig.parameters or "get_page_context" in sig.parameters
+                ):
+                    is_cacheable = False
+                # Context-dependent directives (xref_index, site) are NOT cacheable
+                # because their output varies based on cross-reference resolution
+                if is_cacheable and (
+                    "xref_index" in sig.parameters or "site" in sig.parameters
                 ):
                     is_cacheable = False
 

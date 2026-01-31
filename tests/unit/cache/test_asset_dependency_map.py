@@ -386,7 +386,7 @@ class TestAssetDependencyMapErrorCodes:
             raise PermissionError("Mocked permission denied")
 
         monkeypatch.setattr(
-            "bengal.cache.asset_dependency_map.save_compressed", mock_save_compressed
+            "bengal.cache.utils.persistence.save_compressed", mock_save_compressed
         )
 
         _map.save_to_disk()

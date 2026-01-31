@@ -400,9 +400,10 @@ class TestPageDiscoveryCache:
 
     def test_migration_from_uncompressed(self, cache_dir):
         """Test backward compatibility: load old .json format, save new .json.zst format."""
-        # Create old uncompressed JSON format
+        # Create old uncompressed JSON format with version field
         json_path = cache_dir / "page_metadata.json"
         old_data = {
+            "version": 1,  # Version field required by PersistentCacheMixin
             "pages": {
                 "content/index.md": {
                     "metadata": {

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -248,7 +249,7 @@ class SpeculationRulesGenerator:
                 continue
 
             # Extract section (first path component)
-            parts = path.strip("/").split("/")
+            parts = split_url_path(path)
             if len(parts) > 1:
                 section = f"/{parts[0]}/"
                 if section not in sections:

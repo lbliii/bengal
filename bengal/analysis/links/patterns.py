@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -180,8 +181,8 @@ class LinkPatternAnalyzer:
 
     def _get_section(self, path: str) -> str | None:
         """Extract section from a path."""
-        parts = path.strip("/").split("/")
-        if len(parts) > 0 and parts[0]:
+        parts = split_url_path(path)
+        if parts:
             return f"/{parts[0]}/"
         return None
 

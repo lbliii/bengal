@@ -57,10 +57,15 @@ def reset_parser_state(request: pytest.FixtureRequest):
     Reset parser state between tests to prevent pollution.
 
     PatitasParser is stateless by design - each parse() call creates
-    independent parser/renderer instances. This fixture is kept for
-    compatibility but doesn't need to do anything for PatitasParser.
+    independent parser/renderer instances. However, directive caching
+    may cause cross-test pollution, so we clear the cache between tests.
     """
-    return
+    # Clear directive cache to prevent cross-test pollution
+    from bengal.directives.cache import clear_cache
+
+    clear_cache()
+    yield
+    clear_cache()
 
 
 @pytest.fixture(scope="module")

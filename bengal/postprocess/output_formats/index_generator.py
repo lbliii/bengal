@@ -86,6 +86,7 @@ from bengal.postprocess.output_formats.utils import (
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -623,7 +624,7 @@ class SiteIndexGenerator:
 
         # Directory structure
         if page_uri and isinstance(page_uri, str):
-            path_parts = page_uri.strip("/").split("/")
+            path_parts = split_url_path(page_uri)
             if len(path_parts) > 1:
                 summary["dir"] = "/" + "/".join(path_parts[:-1]) + "/"
             else:

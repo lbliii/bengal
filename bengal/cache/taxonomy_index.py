@@ -72,6 +72,16 @@ class TagEntry(Cacheable):
             is_valid=data.get("is_valid", True),
         )
 
+    # Aliases for test compatibility
+    def to_dict(self) -> dict[str, Any]:
+        """Alias for to_cache_dict (test compatibility)."""
+        return self.to_cache_dict()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TagEntry:
+        """Alias for from_cache_dict (test compatibility)."""
+        return cls.from_cache_dict(data)
+
 
 class TaxonomyIndex(PersistentCacheMixin):
     """
@@ -205,7 +215,7 @@ class TaxonomyIndex(PersistentCacheMixin):
         Uses shared check_bidirectional_invariants utility.
         """
         return check_bidirectional_invariants(
-            forward={tag: entry for tag, entry in self.tags.items()},
+            forward=dict(self.tags.items()),
             reverse=self._page_to_tags,
             forward_getter=lambda entry: set(entry.page_paths),
         )

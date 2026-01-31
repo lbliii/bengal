@@ -75,7 +75,7 @@ from bengal import __version__
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import path_to_slug
+from bengal.utils.paths.url_normalization import path_to_slug, split_url_path
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -289,7 +289,7 @@ class XRefIndexGenerator:
         module_name = page.metadata.get("api_module", "")
         if not module_name:
             # Try to extract from URL: /api/python/mypackage/module/
-            parts = page_url.strip("/").split("/")
+            parts = split_url_path(page_url)
             if "python" in parts:
                 idx = parts.index("python")
                 module_name = ".".join(parts[idx + 1 :]) if idx + 1 < len(parts) else ""

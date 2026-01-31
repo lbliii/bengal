@@ -37,6 +37,8 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.paths.url_normalization import split_url_path
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -358,7 +360,7 @@ class SectionNavigationMixin:
             return url
 
         remainder = parts[1]  # e.g., "v1/docs/about/"
-        remainder_parts = remainder.strip("/").split("/")
+        remainder_parts = split_url_path(remainder)
 
         if len(remainder_parts) < 2:
             # Just /_versions/<id>/ with no section - shouldn't happen for real sections

@@ -27,7 +27,9 @@ from bengal.build.provenance.types import (
     hash_dict,
     hash_file,
 )
-from bengal.utils.io.json_compat import JSONDecodeError, dump as json_dump, load as json_load
+from bengal.utils.io.json_compat import JSONDecodeError
+from bengal.utils.io.json_compat import dump as json_dump
+from bengal.utils.io.json_compat import load as json_load
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)

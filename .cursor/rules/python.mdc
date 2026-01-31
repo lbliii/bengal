@@ -1,0 +1,336 @@
+---
+alwaysApply: true
+---
+
+# Python Compliance (ruff + ty, Python 3.14t)
+
+## Ruff Rules I Must Follow
+
+```yaml
+line-length: 100
+rules: E, W, F, UP, B, SIM, I, PIE, PERF, C4, RUF
+```
+
+### Import Order (I - isort)
+```python
+# 1. Standard library
+import threading
+from collections.abc import Callable, Mapping
+from contextvars import ContextVar
+from dataclasses import dataclass
+
+# 2. Third-party
+import click
+
+# 3. Local
+from bengal.core import Page
+```
+
+### Modern Syntax (UP - pyupgrade)
+```python
+# Use these (3.14 syntax)
+list[str]           # not List[str]
+dict[str, int]      # not Dict[str, int]  
+str | None          # not Optional[str]
+type[MyClass]       # not Type[MyClass]
+X | Y               # not Union[X, Y]
+
+# Generics
+class MyClass[T]:   # not class MyClass(Generic[T])
+    pass
+```
+
+### Bugbear (B) - Avoid
+```python
+# B006: No mutable default args
+def bad(items: list[str] = []):    # ❌
+def good(items: list[str] | None = None):  # ✅
+
+# B008: No function calls in defaults  
+def bad(now: datetime = datetime.now()):  # ❌
+def good(now: datetime | None = None):    # ✅
+
+# B905: zip() needs strict=True
+for a, b in zip(x, y):           # ❌
+for a, b in zip(x, y, strict=True):  # ✅
+```
+
+### Simplify (SIM)
+```python
+# SIM102: Collapse nested ifs
+if a:
+    if b:  # ❌
+if a and b:  # ✅
+
+# SIM108: Use ternary
+if x:
+    y = a
+else:
+    y = b  # ❌
+y = a if x else b  # ✅
+
+# SIM118: Use `in` for dict keys
+if key in dict.keys():  # ❌
+if key in dict:         # ✅
+```
+
+## Type Annotations (ty)
+
+```python
+# Always annotate public functions
+def process(items: list[str]) -> dict[str, int]: ...
+
+# Use frozen dataclasses for immutable data
+@dataclass(frozen=True, slots=True)
+class Config:
+    name: str
+    value: int
+
+# Protocols over ABCs when possible
+from typing import Protocol
+
+class Renderable(Protocol):
+    def render(self) -> str: ...
+```
+
+## Free-Threading (3.14t) Patterns
+
+### Immutable by Default
+```python
+@dataclass(frozen=True, slots=True)  # Always use both
+class ASTNode:
+    children: tuple[Node, ...]  # tuple not list
+```
+
+### Thread-Local via ContextVar
+```python
+from contextvars import ContextVar
+
+_config: ContextVar[Config] = ContextVar('config')
+
+def get_config() -> Config:
+    return _config.get()
+```
+
+### Locks for Shared Mutable State
+```python
+import threading
+
+class Cache:
+    def __init__(self) -> None:
+        self._data: dict[str, str] = {}
+        self._lock = threading.Lock()
+    
+    def get_or_set(self, key: str, compute: Callable[[], str]) -> str:
+        if key in self._data:  # Fast path
+            return self._data[key]
+        with self._lock:
+            if key in self._data:  # Double-check
+                return self._data[key]
+            self._data[key] = compute()
+            return self._data[key]
+```
+
+### Avoid
+```python
+# ❌ Global mutable state
+_cache: dict[str, str] = {}
+
+# ❌ Module-level initialization  
+_instance = HeavyObject()
+
+# ❌ Assuming atomicity
+counter += 1
+```
+
+## Common Mistakes to Avoid
+
+1. **Don't use `Optional`** → use `X | None`
+2. **Don't use `List`, `Dict`, `Type`** → use lowercase `list`, `dict`, `type`
+3. **Don't use `from __future__ import annotations`** → not needed in 3.14
+4. **Don't put mutable defaults** → use `None` and create in function body
+5. **Don't forget `slots=True`** on dataclasses for performance
+6. **Don't use bare `zip()`** → use `zip(..., strict=True)`
+
+
+## Imports
+- Standard library first, then third-party, then local (isort handles this)
+- Use `from __future__ import annotations` only if needed for forward refs
+- Prefer explicit imports over `from x import *`
+
+## Line Length
+- Max 100 characters
+- Break long function signatures after `(`, align params
+
+## Type Annotations
+- Always annotate public functions
+- Use `| None` over `Optional[X]` (Python 3.10+)
+- Use `list[X]` over `List[X]` (Python 3.9+)
+- Use `type[X]` over `Type[X]`
+
+## Free-Threading (3.14t) Patterns
+- Avoid module-level mutable state
+- Use `threading.Lock` for shared state, not global singletons
+- Prefer `contextvars` for thread-local-like behavior
+- No `@cache`/`@lru_cache` on methods without care (not thread-safe by default)
+
+## Common Ruff Fixes I Should Apply Automatically
+- UP: Use modern syntax (`match`, `|` unions, f-strings, etc.)
+- SIM: Simplify conditionals (`if x is not None` vs `if x != None`)
+- B: Avoid mutable default args, don't use `assert` for validation
+
+## Data Structure Selection
+
+### O(1) vs O(n) Lookups
+```python
+# ❌ O(n) - scanning list for membership
+if item in my_list:  # Scans entire list
+    ...
+
+# ✅ O(1) - hash lookup
+if item in my_set:  # Constant time
+    ...
+
+# ✅ Convert once if checking multiple times
+allowed = set(allowed_list)  # O(n) once
+for x in items:
+    if x in allowed:  # O(1) each time
+        ...
+```
+
+### dict over repeated list searches
+```python
+# ❌ O(n²) - nested loop searching
+for user in users:
+    for order in orders:
+        if order.user_id == user.id:  # O(n) each time
+            ...
+
+# ✅ O(n) - index once, lookup O(1)
+orders_by_user = {}
+for order in orders:
+    orders_by_user.setdefault(order.user_id, []).append(order)
+
+for user in users:
+    user_orders = orders_by_user.get(user.id, [])  # O(1)
+```
+
+## Avoid Hidden O(n) Operations
+
+```python
+# ❌ O(n) - list.index() scans
+idx = my_list.index(item)
+
+# ❌ O(n) - list.remove() scans then shifts
+my_list.remove(item)
+
+# ❌ O(n) - list.insert(0, x) shifts all elements
+my_list.insert(0, new_item)
+
+# ✅ Use deque for O(1) front operations
+from collections import deque
+d = deque()
+d.appendleft(item)  # O(1)
+```
+
+## Comprehensions Over Loops
+
+```python
+# ❌ Slower, more verbose
+result = []
+for x in items:
+    if x.valid:
+        result.append(x.value)
+
+# ✅ Faster (C-level loop), clearer intent
+result = [x.value for x in items if x.valid]
+```
+
+## Generator Expressions for Large Data
+
+```python
+# ❌ Creates entire list in memory
+sum([x * x for x in range(1_000_000)])
+
+# ✅ Generator - O(1) memory
+sum(x * x for x in range(1_000_000))
+
+# ✅ any()/all() short-circuit with generators
+if any(is_valid(x) for x in huge_list):  # Stops at first True
+    ...
+```
+
+## String Building
+
+```python
+# ❌ O(n²) - string concatenation in loop
+result = ""
+for s in strings:
+    result += s  # Creates new string each time
+
+# ✅ O(n) - join is optimized
+result = "".join(strings)
+```
+
+## dict.get() vs try/except vs `in` check
+
+```python
+# ❌ Two lookups
+if key in d:
+    value = d[key]
+
+# ❌ Exception overhead (fine if key usually exists)
+try:
+    value = d[key]
+except KeyError:
+    value = default
+
+# ✅ Single lookup
+value = d.get(key, default)
+```
+
+## Caching Expensive Computations
+
+```python
+# For pure functions (same input → same output)
+from functools import cache
+
+@cache  # ⚠️ Not thread-safe in 3.14t without care
+def expensive(n: int) -> int:
+    ...
+
+# ✅ Thread-safe caching pattern (from python-compliance.mdc)
+class Cache:
+    def __init__(self) -> None:
+        self._data: dict[str, Any] = {}
+        self._lock = threading.Lock()
+    
+    def get_or_compute(self, key: str, compute: Callable[[], Any]) -> Any:
+        if key in self._data:
+            return self._data[key]
+        with self._lock:
+            if key in self._data:
+                return self._data[key]
+            self._data[key] = compute()
+            return self._data[key]
+```
+
+## Dead Code Indicators
+
+Watch for:
+- Functions never called (grep for usages)
+- Imports not used (ruff F401 catches this)
+- Variables assigned but never read (ruff F841)
+- Unreachable code after return/raise (ruff catches this)
+- Parameters that are always the same value
+- Feature flags that are always True/False
+
+## Bloat Indicators
+
+Watch for:
+- Classes with only `__init__` and one method → use a function
+- Inheritance depth > 2 → prefer composition
+- Functions > 50 lines → break up
+- Files > 500 lines → split module
+- More than 5 parameters → use a dataclass/config object
+- Wrapper classes that just delegate → remove the wrapper

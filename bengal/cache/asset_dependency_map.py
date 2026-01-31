@@ -63,7 +63,7 @@ class AssetDependencyEntry(Cacheable):
     def to_cache_dict(self) -> dict[str, Any]:
         """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
-            "assets": sorted(list(self.assets)),  # Sort for consistency
+            "assets": sorted(self.assets),  # Sort for consistency
             "tracked_at": self.tracked_at,
             "is_valid": self.is_valid,
         }
@@ -76,6 +76,16 @@ class AssetDependencyEntry(Cacheable):
             tracked_at=data["tracked_at"],
             is_valid=data.get("is_valid", True),
         )
+
+    # Aliases for test compatibility
+    def to_dict(self) -> dict[str, Any]:
+        """Alias for to_cache_dict (test compatibility)."""
+        return self.to_cache_dict()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AssetDependencyEntry:
+        """Alias for from_cache_dict (test compatibility)."""
+        return cls.from_cache_dict(data)
 
 
 class AssetDependencyMap(PersistentCacheMixin):

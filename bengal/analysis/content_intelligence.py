@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -268,8 +269,8 @@ class ContentIntelligence:
         Track navigation patterns for speculation optimization.
         """
         # Get section from path
-        parts = path.strip("/").split("/")
-        if parts and parts[0]:
+        parts = split_url_path(path)
+        if parts:
             section = f"/{parts[0]}/"
             report.navigation_patterns[section] = report.navigation_patterns.get(section, 0) + 1
 

@@ -30,10 +30,7 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
-
-K = TypeVar("K")  # Key type
-V = TypeVar("V")  # Entry type
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -43,7 +40,7 @@ class HasValidity(Protocol):
     is_valid: bool
 
 
-class ValidityTrackingMixin(Generic[K, V]):
+class ValidityTrackingMixin[K, V]:
     """
     Mixin providing entry validity tracking operations.
 

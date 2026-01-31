@@ -130,6 +130,16 @@ class GeneratedPageCacheEntry(Cacheable):
             is_compressed=data.get("is_compressed", False),
         )
 
+    # Aliases for test compatibility
+    def to_dict(self) -> dict[str, Any]:
+        """Alias for to_cache_dict (test compatibility)."""
+        return self.to_cache_dict()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> GeneratedPageCacheEntry:
+        """Alias for from_cache_dict (test compatibility)."""
+        return cls.from_cache_dict(data)
+
 
 class GeneratedPageCache(PersistentCacheMixin):
     """

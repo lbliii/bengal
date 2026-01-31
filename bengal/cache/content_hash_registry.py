@@ -139,7 +139,7 @@ class ContentHashRegistry:
 
         """
         key = str(output_path)
-        type_name = output_type.name if hasattr(output_type, "name") else str(output_type)
+        type_name = str(output_type.name) if hasattr(output_type, "name") else str(output_type)
 
         with self._lock:
             self.output_hashes[key] = content_hash

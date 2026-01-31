@@ -24,7 +24,9 @@ from bengal.build.provenance.types import (
     Provenance,
     ProvenanceRecord,
 )
-from bengal.utils.io.json_compat import JSONDecodeError, dump as json_dump, load as json_load
+from bengal.utils.io.json_compat import JSONDecodeError
+from bengal.utils.io.json_compat import dump as json_dump
+from bengal.utils.io.json_compat import load as json_load
 
 
 @dataclass
