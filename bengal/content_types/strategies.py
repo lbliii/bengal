@@ -41,14 +41,16 @@ Related:
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Any
-
-from bengal.utils.observability.logger import get_logger
+from typing import TYPE_CHECKING
 
 from .base import ContentTypeStrategy
-
-logger = get_logger(__name__)
+from .utils import (
+    date_key,
+    has_dated_pages,
+    has_page_type_metadata,
+    section_name_matches,
+    weight_title_key,
+)
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -87,7 +89,7 @@ class BlogStrategy(ContentTypeStrategy):
 
         Pages without dates are sorted to the end (using ``datetime.min``).
         """
-        return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
+        return sorted(pages, key=date_key, reverse=True)
 
     def detect_from_section(self, section: Section) -> bool:
         """
@@ -96,57 +98,9 @@ class BlogStrategy(ContentTypeStrategy):
         Returns True if section name is a blog pattern or if >60% of pages
         (sampled from first 5) have date metadata.
         """
-        name = section.name.lower()
-
-        # Check section name patterns
-        if name in ("blog", "posts", "news", "articles"):
+        if section_name_matches(section, ("blog", "posts", "news", "articles")):
             return True
-
-        # Check if most pages have dates
-        if section.pages:
-            pages_with_dates = sum(1 for p in section.pages[:5] if p.metadata.get("date") or p.date)
-            return pages_with_dates >= len(section.pages[:5]) * 0.6
-
-        return False
-
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """Blog-specific template selection with proper fallback cascade."""
-        from bengal.content_types.templates import resolve_template_cascade
-
-        # Backward compatibility
-        if page is None:
-            return self.default_template
-
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        if is_home:
-            templates_to_try = [
-                "blog/home.html",
-                "blog/index.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                "blog/list.html",
-                "blog/index.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                "blog/single.html",
-                "blog/page.html",
-                "single.html",
-                "page.html",
-            ]
-
-        return resolve_template_cascade(
-            templates_to_try,
-            template_engine,
-            fallback=self.default_template,
-        )
+        return has_dated_pages(section, threshold=0.6, sample_size=5)
 
 
 class ArchiveStrategy(BlogStrategy):
@@ -212,51 +166,11 @@ class DocsStrategy(ContentTypeStrategy):
 
         Pages without explicit weight default to 999999 (sorted last).
         """
-        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+        return sorted(pages, key=weight_title_key)
 
     def detect_from_section(self, section: Section) -> bool:
         """Detect documentation sections by common naming patterns."""
-        name = section.name.lower()
-        return name in ("docs", "documentation", "guides", "reference")
-
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """Docs-specific template selection with proper fallback cascade."""
-        from bengal.content_types.templates import resolve_template_cascade
-
-        # Backward compatibility
-        if page is None:
-            return self.default_template
-
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        if is_home:
-            templates_to_try = [
-                "doc/home.html",
-                "doc/index.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                "doc/list.html",
-                "doc/index.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                "doc/single.html",
-                "doc/page.html",
-                "single.html",
-                "page.html",
-            ]
-
-        return resolve_template_cascade(
-            templates_to_try,
-            template_engine,
-            fallback=self.default_template,
-        )
+        return section_name_matches(section, ("docs", "documentation", "guides", "reference"))
 
 
 class ApiReferenceStrategy(ContentTypeStrategy):
@@ -308,64 +222,18 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         Checks section name for API patterns and samples page metadata for
         autodoc type indicators.
         """
-        name = section.name.lower()
-
-        if name in ("api", "reference", "autodoc-python", "api-docs"):
+        if section_name_matches(section, ("api", "reference", "autodoc-python", "api-docs")):
             return True
-
-        # Check page metadata
-        if section.pages:
-            for page in section.pages[:3]:
-                page_type = page.metadata.get("type", "")
-                if "python-module" in page_type or page_type in (
-                    "autodoc-python",
-                    "autodoc-rest",
-                ):
-                    return True
-
-        return False
-
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """API reference-specific template selection with proper fallback cascade."""
-        from bengal.content_types.templates import resolve_template_cascade
-
-        # Backward compatibility
-        if page is None:
-            return self.default_template
-
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        if is_home:
-            templates_to_try = [
-                "autodoc/python/home.html",
-                "autodoc/python/index.html",
-                "autodoc/home.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                "autodoc/python/list.html",
-                "autodoc/python/index.html",
-                "autodoc/list.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                "autodoc/python/single.html",
-                "autodoc/python/page.html",
-                "autodoc/single.html",
-                "single.html",
-                "page.html",
-            ]
-
-        return resolve_template_cascade(
-            templates_to_try,
-            template_engine,
-            fallback=self.default_template,
+        return has_page_type_metadata(
+            section,
+            ("python-module", "autodoc-python", "autodoc-rest"),
+            sample_size=3,
+            substring_match=True,
         )
+
+    def _get_extra_template_prefixes(self) -> list[str] | None:
+        """Include autodoc/ templates in cascade."""
+        return ["autodoc"]
 
 
 class CliReferenceStrategy(ContentTypeStrategy):
@@ -417,61 +285,18 @@ class CliReferenceStrategy(ContentTypeStrategy):
         Checks section name for CLI patterns and samples page metadata for
         command type indicators.
         """
-        name = section.name.lower()
-
-        if name in ("cli", "commands", "autodoc-cli", "command-line"):
+        if section_name_matches(section, ("cli", "commands", "autodoc-cli", "command-line")):
             return True
-
-        # Check page metadata
-        if section.pages:
-            for page in section.pages[:3]:
-                page_type = page.metadata.get("type", "")
-                if "cli-" in page_type or page_type == "command":
-                    return True
-
-        return False
-
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """CLI reference-specific template selection with proper fallback cascade."""
-        from bengal.content_types.templates import resolve_template_cascade
-
-        # Backward compatibility
-        if page is None:
-            return self.default_template
-
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        if is_home:
-            templates_to_try = [
-                "autodoc/cli/home.html",
-                "autodoc/cli/index.html",
-                "autodoc/home.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                "autodoc/cli/list.html",
-                "autodoc/cli/index.html",
-                "autodoc/list.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                "autodoc/cli/single.html",
-                "autodoc/cli/page.html",
-                "autodoc/single.html",
-                "single.html",
-                "page.html",
-            ]
-
-        return resolve_template_cascade(
-            templates_to_try,
-            template_engine,
-            fallback=self.default_template,
+        return has_page_type_metadata(
+            section,
+            ("cli-", "command"),
+            sample_size=3,
+            substring_match=True,
         )
+
+    def _get_extra_template_prefixes(self) -> list[str] | None:
+        """Include autodoc/ templates in cascade."""
+        return ["autodoc"]
 
 
 class TutorialStrategy(ContentTypeStrategy):
@@ -515,12 +340,11 @@ class TutorialStrategy(ContentTypeStrategy):
 
         Tutorial steps should have explicit weights to ensure correct order.
         """
-        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+        return sorted(pages, key=weight_title_key)
 
     def detect_from_section(self, section: Section) -> bool:
         """Detect tutorial sections by common naming patterns."""
-        name = section.name.lower()
-        return name in ("tutorials", "guides", "how-to")
+        return section_name_matches(section, ("tutorials", "guides", "how-to"))
 
 
 class ChangelogStrategy(ContentTypeStrategy):
@@ -559,14 +383,15 @@ class ChangelogStrategy(ContentTypeStrategy):
         """
         return sorted(
             pages,
-            key=lambda p: (p.date if p.date else datetime.min, p.title),
+            key=lambda p: (date_key(p), p.title),
             reverse=True,
         )
 
     def detect_from_section(self, section: Section) -> bool:
         """Detect changelog sections by common naming patterns."""
-        name = section.name.lower()
-        return name in ("changelog", "releases", "release-notes", "releasenotes", "changes")
+        return section_name_matches(
+            section, ("changelog", "releases", "release-notes", "releasenotes", "changes")
+        )
 
 
 class TrackStrategy(ContentTypeStrategy):
@@ -603,51 +428,11 @@ class TrackStrategy(ContentTypeStrategy):
         Learning modules should have explicit weights to ensure correct
         progression through the track.
         """
-        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+        return sorted(pages, key=weight_title_key)
 
     def detect_from_section(self, section: Section) -> bool:
         """Detect track sections by exact name match."""
-        name = section.name.lower()
-        return name == "tracks"
-
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
-        """Track-specific template selection with proper fallback cascade."""
-        from bengal.content_types.templates import resolve_template_cascade
-
-        # Backward compatibility
-        if page is None:
-            return self.default_template
-
-        is_home = page.is_home or page._path == "/"
-        is_section_index = page.source_path.stem == "_index"
-
-        if is_home:
-            templates_to_try = [
-                "tracks/home.html",
-                "tracks/index.html",
-                "home.html",
-                "index.html",
-            ]
-        elif is_section_index:
-            templates_to_try = [
-                "tracks/list.html",
-                "tracks/index.html",
-                "list.html",
-                "index.html",
-            ]
-        else:
-            templates_to_try = [
-                "tracks/single.html",
-                "tracks/page.html",
-                "single.html",
-                "page.html",
-            ]
-
-        return resolve_template_cascade(
-            templates_to_try,
-            template_engine,
-            fallback=self.default_template,
-        )
+        return section_name_matches(section, ("tracks",))
 
 
 class PageStrategy(ContentTypeStrategy):
@@ -682,4 +467,4 @@ class PageStrategy(ContentTypeStrategy):
 
         Default ordering for generic pages without specialized requirements.
         """
-        return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+        return sorted(pages, key=weight_title_key)
