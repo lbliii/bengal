@@ -15,10 +15,7 @@ Example:
 """
 
 from collections import deque
-from typing import TYPE_CHECKING, TypeVar
-
-if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+from typing import TypeVar
 
 T = TypeVar("T")
 

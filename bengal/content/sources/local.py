@@ -22,6 +22,7 @@ from typing import Any
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.hashing import hash_str
 
 logger = get_logger(__name__)
@@ -329,7 +330,7 @@ class LocalSource(ContentSource):
         slug = str(rel_path.with_suffix(""))
 
         # Normalize separators
-        slug = slug.replace("\\", "/")
+        slug = to_posix(slug)
 
         # Handle index files
         if slug.endswith("/index") or slug == "index":

@@ -50,7 +50,6 @@ See Also:
 
 import random
 import time
-from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING

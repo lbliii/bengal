@@ -32,6 +32,7 @@ from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.local import _parse_frontmatter
 from bengal.content.sources.source import ContentSource
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 logger = get_logger(__name__)
 
@@ -266,7 +267,7 @@ class GitHubSource(ContentSource):
         rel_path = path[len(self.path) :].lstrip("/") if self.path else path
 
         # Generate slug
-        slug = rel_path.replace(".md", "").replace("\\", "/")
+        slug = to_posix(rel_path.replace(".md", ""))
         if slug.endswith("/index") or slug == "index":
             slug = slug.rsplit("/index", 1)[0] or "index"
 

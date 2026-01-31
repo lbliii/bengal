@@ -34,6 +34,7 @@ from mistune.directives import DirectivePlugin
 
 from bengal.directives.base import BengalDirective
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from re import Match
@@ -263,7 +264,7 @@ class IncludeDirective(DirectivePlugin):
             return None
 
         # Check for path traversal attempts
-        normalized_path = path.replace("\\", "/")
+        normalized_path = to_posix(path)
         if "../" in normalized_path or normalized_path.startswith("../"):
             # Allow relative paths, but validate they stay within site root
             resolved = (base_dir / path).resolve()

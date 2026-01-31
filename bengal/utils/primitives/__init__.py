@@ -46,6 +46,11 @@ from bengal.utils.primitives.hashing import (
 )
 from bengal.utils.primitives.lru_cache import LRUCache
 from bengal.utils.primitives.sentinel import MISSING, is_missing
+from bengal.utils.primitives.code import (
+    HL_LINES_PATTERN,
+    parse_code_info,
+    parse_hl_lines,
+)
 from bengal.utils.primitives.text import (
     escape_html,
     format_path_for_display,
@@ -66,6 +71,8 @@ from bengal.utils.primitives.text import (
 __all__ = [
     # sentinel
     "MISSING",
+    # code
+    "HL_LINES_PATTERN",
     # dates
     "DateLike",
     # dotdict
@@ -93,7 +100,9 @@ __all__ = [
     "is_recent",
     "iso_timestamp",
     "normalize_whitespace",
+    "parse_code_info",
     "parse_date",
+    "parse_hl_lines",
     "pluralize",
     # text
     "slugify",

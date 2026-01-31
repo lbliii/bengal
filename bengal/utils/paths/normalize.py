@@ -38,7 +38,7 @@ def to_posix(path: str | Path) -> str:
         POSIX-style path string with forward slashes only.
 
     Examples:
-        >>> to_posix("css\\style.css")
+        >>> to_posix("css\\\\style.css")
         'css/style.css'
         >>> to_posix(Path("assets/js/main.js"))
         'assets/js/main.js'
@@ -47,9 +47,11 @@ def to_posix(path: str | Path) -> str:
 
     Note:
         For Path objects, uses the efficient `as_posix()` method.
-        For strings, uses PurePosixPath for proper parsing.
+        For strings, explicitly replaces backslashes since PurePosixPath
+        treats backslashes as literal characters, not path separators.
 
     """
     if isinstance(path, Path):
         return path.as_posix()
-    return PurePosixPath(path).as_posix()
+    # Explicit replace for strings - PurePosixPath doesn't convert backslashes
+    return str(path).replace("\\", "/")

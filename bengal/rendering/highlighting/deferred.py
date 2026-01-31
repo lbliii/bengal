@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 
 from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.code import parse_hl_lines
 
 # Pattern to extract line highlight syntax from code fence info string
 # Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}
@@ -274,37 +275,12 @@ def flush_deferred_highlighting(content: str) -> str:
     return content
 
 
-def parse_hl_lines(hl_spec: str) -> list[int]:
-    """
-    Parse line highlight specification into list of line numbers.
-
-    Supports:
-    - Single line: "5" -> [5]
-    - Multiple lines: "1,3,5" -> [1, 3, 5]
-    - Ranges: "1-3" -> [1, 2, 3]
-    - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
-
-    Args:
-        hl_spec: Line specification string (e.g., "1,3-5,7")
-
-    Returns:
-        Sorted list of unique line numbers
-
-    """
-    lines: set[int] = set()
-    for part in hl_spec.split(","):
-        part = part.strip()
-        if "-" in part:
-            # Range: "3-5" -> 3, 4, 5
-            try:
-                start, end = part.split("-", 1)
-                lines.update(range(int(start), int(end) + 1))
-            except ValueError:
-                continue
-        else:
-            # Single line
-            try:
-                lines.add(int(part))
-            except ValueError:
-                continue
-    return sorted(lines)
+# Re-export for backward compatibility (now imported from utils.primitives.code)
+__all__ = [
+    "CodeBlock",
+    "enable_deferred_highlighting",
+    "disable_deferred_highlighting",
+    "is_deferred_highlighting_enabled",
+    "flush_deferred_highlighting",
+    "parse_hl_lines",
+]

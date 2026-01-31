@@ -225,3 +225,94 @@ def class_attr(base_class: str, *extra_classes: str) -> str:
     if classes:
         return f' class="{classes}"'
     return ""
+
+
+def ensure_badge_base_class(css_class: str) -> str:
+    """
+    Ensure badge CSS has a base class (badge or api-badge).
+
+    Handles cases like "badge-secondary", "badge-danger", "api-badge", etc.
+    If no base class is present, prepends the appropriate one based on
+    existing modifier classes.
+
+    Consolidates implementations from:
+    - bengal/directives/badge.py (_ensure_base_class)
+    - bengal/parsing/backends/patitas/directives/builtins/inline.py (_ensure_base_class)
+
+    Args:
+        css_class: Input CSS class string (may be empty or contain modifiers only).
+
+    Returns:
+        CSS class string with appropriate base class prepended if needed.
+
+    Examples:
+        >>> ensure_badge_base_class("")
+        'badge badge-secondary'
+        >>> ensure_badge_base_class("badge-primary")
+        'badge badge-primary'
+        >>> ensure_badge_base_class("badge badge-primary")
+        'badge badge-primary'
+        >>> ensure_badge_base_class("api-badge-warning")
+        'api-badge api-badge-warning'
+        >>> ensure_badge_base_class("custom-class")
+        'badge custom-class'
+
+    """
+    if not css_class:
+        return "badge badge-secondary"
+
+    classes = css_class.split()
+
+    # Check if base class is already present
+    has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
+
+    if not has_base_badge:
+        # Determine which base class to use
+        if any(cls.startswith("api-badge") for cls in classes):
+            classes.insert(0, "api-badge")
+        elif any(cls.startswith("badge-") for cls in classes):
+            classes.insert(0, "badge")
+        else:
+            classes.insert(0, "badge")
+
+        return " ".join(classes)
+
+    return css_class
+
+
+def clean_soundcloud_path(url_path: str) -> str:
+    """
+    Clean and normalize a SoundCloud URL path.
+
+    Removes the domain prefix and query parameters to extract the
+    username/track-name path.
+
+    Consolidates implementations from:
+    - bengal/directives/embed.py (_clean_path in SoundCloudEmbed)
+    - bengal/parsing/backends/patitas/directives/builtins/embed.py (_clean_path)
+
+    Args:
+        url_path: SoundCloud URL or path (e.g., "https://soundcloud.com/user/track?si=xxx")
+
+    Returns:
+        Cleaned path (e.g., "user/track")
+
+    Examples:
+        >>> clean_soundcloud_path("https://soundcloud.com/artist/song")
+        'artist/song'
+        >>> clean_soundcloud_path("soundcloud.com/artist/song")
+        'artist/song'
+        >>> clean_soundcloud_path("artist/song?si=abc")
+        'artist/song'
+        >>> clean_soundcloud_path("artist/song")
+        'artist/song'
+
+    """
+    cleaned = url_path
+    if cleaned.startswith("https://soundcloud.com/"):
+        cleaned = cleaned[23:]
+    elif cleaned.startswith("soundcloud.com/"):
+        cleaned = cleaned[15:]
+    if "?" in cleaned:
+        cleaned = cleaned.split("?")[0]
+    return cleaned

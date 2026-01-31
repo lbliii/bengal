@@ -48,6 +48,7 @@ from mistune.directives import DirectivePlugin
 
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.text import escape_html
 
 __all__ = ["GlossaryDirective", "render_glossary"]
@@ -308,7 +309,7 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
         else:
             # Custom path: try to resolve from site.data hierarchy
             # e.g., "data/team/glossary.yaml" -> site.data.team.glossary
-            parts = source_path.replace("\\", "/").split("/")
+            parts = to_posix(source_path).split("/")
             if parts and parts[0] == "data":
                 parts = parts[1:]  # Remove "data" prefix
             if parts:
