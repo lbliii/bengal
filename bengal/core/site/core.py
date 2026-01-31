@@ -1557,11 +1557,13 @@ class Site:
                     "show_date": defaults["show_date"],
                     "show_tags": defaults["show_tags"],
                     "max_tags": defaults["max_tags"],
+                    "include_selectors": defaults["include_selectors"],
                     "exclude_selectors": defaults["exclude_selectors"],
                     # Cross-site preview defaults
                     "allowed_hosts": defaults["allowed_hosts"],
                     "allowed_schemes": defaults["allowed_schemes"],
                     "host_failure_threshold": defaults["host_failure_threshold"],
+                    "show_dead_links": defaults["show_dead_links"],
                 }
             # True or None: use defaults with enabled=True
             return dict(defaults)
@@ -1585,6 +1587,7 @@ class Site:
             "host_failure_threshold": value.get(
                 "host_failure_threshold", defaults["host_failure_threshold"]
             ),
+            "show_dead_links": value.get("show_dead_links", defaults["show_dead_links"]),
         }
 
     # =========================================================================

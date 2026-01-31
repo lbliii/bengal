@@ -14,7 +14,7 @@ from bengal.directives.include import (
     IncludeDirective,
     render_include,
 )
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 
 @pytest.fixture
@@ -334,12 +334,12 @@ class TestRenderInclude:
 
 
 class TestIncludeDirectiveIntegration:
-    """Integration tests with MistuneParser."""
+    """Integration tests with PatitasParser."""
 
     @pytest.fixture
     def parser(self):
-        """Create a MistuneParser instance."""
-        return MistuneParser()
+        """Create a PatitasParser instance."""
+        return PatitasParser()
 
     def test_include_directive_in_markdown(self, parser, temp_site_dir, sample_markdown_file):
         """Test include directive works in full markdown parsing."""

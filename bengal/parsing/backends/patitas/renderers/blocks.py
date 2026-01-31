@@ -38,6 +38,61 @@ from bengal.parsing.backends.patitas.renderers.utils import (
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 
+import re
+
+# Pattern to parse code fence info with optional line highlights
+# Matches: python, python {1,3}, python {1-3,5}
+_HL_LINES_PATTERN = re.compile(r"^(\S+)\s*(?:\{([^}]+)\})?$")
+
+
+def _parse_hl_lines(hl_spec: str) -> list[int]:
+    """Parse line highlight specification into list of line numbers.
+
+    Supports:
+    - Single line: "5" -> [5]
+    - Multiple lines: "1,3,5" -> [1, 3, 5]
+    - Ranges: "1-3" -> [1, 2, 3]
+    - Mixed: "1,3-5,7" -> [1, 3, 4, 5, 7]
+    """
+    lines: set[int] = set()
+    for part in hl_spec.split(","):
+        part = part.strip()
+        if "-" in part:
+            try:
+                start, end = part.split("-", 1)
+                lines.update(range(int(start), int(end) + 1))
+            except ValueError:
+                continue
+        else:
+            try:
+                lines.add(int(part))
+            except ValueError:
+                continue
+    return sorted(lines)
+
+
+def _parse_code_info(info: str) -> tuple[str, list[int]]:
+    """Parse code fence info string for language and line highlights.
+
+    Args:
+        info: Code fence info string (e.g., "python {1,3-5}")
+
+    Returns:
+        Tuple of (language, hl_lines list)
+    """
+    if not info:
+        return "", []
+
+    match = _HL_LINES_PATTERN.match(info.strip())
+    if match:
+        lang = match.group(1)
+        hl_spec = match.group(2)
+        hl_lines = _parse_hl_lines(hl_spec) if hl_spec else []
+        return lang, hl_lines
+
+    # Fallback: just take first word as language
+    return info.split()[0], []
+
 
 class BlockRendererMixin:
     """Mixin providing block-level rendering methods.
@@ -365,11 +420,13 @@ class BlockRendererMixin:
         """Try to highlight a source range using internal rosettes.
 
         Uses rosettes_available from RenderConfig (computed once at module import).
+
+        Supports line highlighting syntax: python {1,3-5}
         """
         if not self._rosettes_available:
             return None
 
-        lang = info.split()[0] if info else ""
+        lang, hl_lines = _parse_code_info(info)
         if not lang:
             return None
 
@@ -382,6 +439,7 @@ class BlockRendererMixin:
                 css_class_style=self._highlight_style,
                 start=start,
                 end=end,
+                hl_lines=frozenset(hl_lines) if hl_lines else None,
             )
         except (LookupError, ValueError):
             return None

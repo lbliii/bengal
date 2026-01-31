@@ -13,7 +13,7 @@ from bengal.directives.steps import (
     StepOptions,
     StepsOptions,
 )
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 print(f"DEBUG: bengal imported from {bengal.__file__}", file=sys.stderr)
 
@@ -97,7 +97,7 @@ class TestStepsOptions:
 class TestStepsDirective:
     @pytest.fixture
     def parser(self):
-        return MistuneParser()
+        return PatitasParser()
 
     def test_steps_directive_basic(self, parser):
         content = """

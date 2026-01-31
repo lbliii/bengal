@@ -79,14 +79,23 @@ per-call overhead of {% include %} (context copy, template lookup).
   </div>
 </div>
 
-{# ===== EXPANDABLE NODE (depth > 0) - Native <details>/<summary> ===== #}
+{# ===== EXPANDABLE NODE (depth > 0) - Accessible button toggle ===== #}
+    {# Note: Previously used <details>/<summary> but that required nesting <a> inside <summary>,
+       which violates HTML content model (no interactive content inside summary).
+       Now uses button + aria-expanded pattern for proper accessibility. #}
     {% case true, _ %}
-    <details class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'open' | safe
-      if is_in_trail else '' }}>
-      <summary class="docs-nav-group-summary">
-        <span class="docs-nav-caret">
-          {{ icon('caret-right', size=14) }}
-        </span>
+    {% let group_id = 'nav-' ~ (item_href | default(item_title, true) | slugify) ~ '-' ~ depth %}
+    <div class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'data-open' | safe if is_in_trail else '' }}>
+      <div class="docs-nav-group-header">
+        <button type="button"
+                class="docs-nav-toggle"
+                aria-expanded="{{ 'true' if is_in_trail else 'false' }}"
+                aria-controls="{{ group_id }}"
+                aria-label="Toggle {{ item_title }} section">
+          <span class="docs-nav-caret">
+            {{ icon('caret-right', size=14) }}
+          </span>
+        </button>
 
         {% if show_nav_icons %}
         {% spaceless %}
@@ -104,14 +113,14 @@ per-call overhead of {% include %} (context copy, template lookup).
         {% else %}
         <span class="docs-nav-group-link">{{ item_title }}</span>
         {% end %}
-      </summary>
+      </div>
 
-      <div class="docs-nav-group-items">
+      <div id="{{ group_id }}" class="docs-nav-group-items" {{ '' if is_in_trail else 'hidden' | safe }}>
         {% for child in item_children %}
         {{ nav_node(child, depth + 1) }}
         {% end %}
       </div>
-    </details>
+    </div>
 
     {# ===== LEAF NODE (no children) ===== #}
     {% case false, _ %}

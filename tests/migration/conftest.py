@@ -206,9 +206,9 @@ def render_with_mistune() -> Callable[[str], str]:
         Function that takes markdown source and returns HTML
 
     """
-    from bengal.parsing.backends.mistune import MistuneParser
+    from bengal.parsing import PatitasParser
 
-    parser = MistuneParser(enable_highlighting=False)
+    parser = PatitasParser(enable_highlighting=False)
 
     def _render(source: str) -> str:
         return parser.parse(source, {})

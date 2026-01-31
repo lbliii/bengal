@@ -10,7 +10,7 @@ from bengal.directives.literalinclude import (
     LiteralIncludeDirective,
     render_literalinclude,
 )
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 
 
 @pytest.fixture
@@ -460,12 +460,12 @@ class TestRenderLiteralInclude:
 
 
 class TestLiteralIncludeDirectiveIntegration:
-    """Integration tests with MistuneParser."""
+    """Integration tests with PatitasParser."""
 
     @pytest.fixture
     def parser(self):
-        """Create a MistuneParser instance."""
-        return MistuneParser()
+        """Create a PatitasParser instance."""
+        return PatitasParser()
 
     def test_literalinclude_directive_in_markdown(self, parser, temp_site_dir, sample_python_file):
         """Test literalinclude directive works in full markdown parsing."""

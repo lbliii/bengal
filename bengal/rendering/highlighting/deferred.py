@@ -1,26 +1,26 @@
 """
-Syntax highlighting plugin for Mistune parser.
+Deferred syntax highlighting for parallel batch processing.
 
 Provides syntax highlighting for code blocks with support for:
 - Language detection
 - Line highlighting ({1,3-5} syntax)
 - Code block titles (title="filename.py")
 - Line numbers (for blocks with 3+ lines)
-- Special handling for Mermaid diagrams
-- Example flag ({example}) to suppress unknown language warnings
-- Pluggable backends via bengal.rendering.highlighting
 - Parallel batch highlighting for 3.14t free-threading
 
 Backend Selection:
-By default, uses the Rosettes backend (Bengal's default, lock-free, 55 languages).
-Custom backends can be registered via register_backend().
+Uses the Rosettes backend (Bengal's default, lock-free, 55 languages).
 
 Parallel Processing (3.14t):
 For batch processing of pages, use the deferred highlighting mode:
 
-    >>> collector = CodeBlockCollector()
+    >>> from bengal.rendering.highlighting.deferred import (
+    ...     enable_deferred_highlighting,
+    ...     flush_deferred_highlighting,
+    ... )
+    >>> enable_deferred_highlighting()
     >>> # Parse pages, collecting code blocks...
-    >>> collector.flush()  # Batch highlight all collected blocks
+    >>> content = flush_deferred_highlighting(content)
 
 """
 
@@ -28,16 +28,23 @@ from __future__ import annotations
 
 import html as html_mod
 import re
-from collections.abc import Callable
+import threading
 from dataclasses import dataclass, field
-from typing import Any
 
-from bengal.parsing.backends.mistune.patterns import (
-    CODE_INFO_PATTERN,
-    HL_LINES_PATTERN,
-)
-from bengal.rendering.highlighting import highlight, highlight_many
+from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
+
+# Pattern to extract line highlight syntax from code fence info string
+# Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}
+HL_LINES_PATTERN = re.compile(r"^(\S+)\s*\{([^}]+)\}$")
+
+# Pattern to parse code fence info with optional title and line highlights
+# Matches: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
+CODE_INFO_PATTERN = re.compile(
+    r"^(?P<lang>\S+)"  # Language (required, no spaces)
+    r'(?:\s+title="(?P<title>[^"]*)")?'  # title="..." (optional)
+    r"(?:\s*\{(?P<hl>[^}]+)\})?$"  # {1,3-5} line highlights (optional)
+)
 
 logger = get_logger(__name__)
 
@@ -148,16 +155,19 @@ class CodeBlockCollector:
 
         # Batch process simple blocks in parallel
         if simple_blocks:
+            import rosettes
+
             items = [(code, lang) for code, lang, _ in simple_blocks]
-            highlighted = highlight_many(items)
+            highlighted = rosettes.highlight_many(items)
 
             for (_, _, block), html in zip(simple_blocks, highlighted, strict=True):
                 results[block.placeholder_id] = _wrap_with_title(html, block.title)
 
         # Process complex blocks sequentially (they have line highlighting)
+        backend = RosettesBackend()
         for block in complex_blocks:
             try:
-                html = highlight(
+                html = backend.highlight(
                     code=block.code,
                     language=block.language,
                     hl_lines=block.hl_lines,
@@ -209,8 +219,6 @@ def _fallback_code_block(code: str, language: str, title: str | None) -> str:
 # =============================================================================
 
 # Thread-local collector for parallel batch highlighting
-import threading
-
 _thread_local = threading.local()
 
 
@@ -266,11 +274,6 @@ def flush_deferred_highlighting(content: str) -> str:
     return content
 
 
-# Pattern to detect {example} flag in info string
-# Can appear anywhere: "python {example}", "jsx {example} {1,3}", etc.
-EXAMPLE_FLAG_PATTERN = re.compile(r"\{example\}", re.IGNORECASE)
-
-
 def parse_hl_lines(hl_spec: str) -> list[int]:
     """
     Parse line highlight specification into list of line numbers.
@@ -305,144 +308,3 @@ def parse_hl_lines(hl_spec: str) -> list[int]:
             except ValueError:
                 continue
     return sorted(lines)
-
-
-def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
-    """
-    Create a Mistune plugin that adds syntax highlighting to code blocks.
-
-    Uses the highlighting backend registry (bengal.rendering.highlighting)
-    which defaults to Rosettes. Custom backends can be registered.
-
-    Returns:
-        Plugin function that modifies the renderer to add syntax highlighting
-
-    """
-
-    def plugin_syntax_highlighting(md: Any) -> None:
-        """Plugin function to add syntax highlighting to Mistune renderer."""
-        # Get the original block_code renderer
-        original_block_code = md.renderer.block_code
-
-        def highlighted_block_code(code: str, info: str | None = None) -> str:
-            """Render code block with syntax highlighting."""
-            # If no language specified, use original renderer
-            if not info:
-                return original_block_code(code, info)
-
-            # Skip directive blocks (e.g., {info}, {rubric}, {note}, etc.)
-            # These should be handled by the FencedDirective plugin
-            info_stripped = info.strip()
-            if info_stripped.startswith("{") and "}" in info_stripped:
-                return original_block_code(code, info)
-
-            # Check for {example} flag - suppresses warnings for intentional foreign syntax
-            is_example = bool(EXAMPLE_FLAG_PATTERN.search(info_stripped))
-            if is_example:
-                # Remove the {example} flag from the info string for further parsing
-                info_stripped = EXAMPLE_FLAG_PATTERN.sub("", info_stripped).strip()
-
-            # Parse language, optional title, and line highlights
-            # Supports: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
-            language = info_stripped
-            title: str | None = None
-            hl_lines: list[int] = []
-
-            # Try new pattern first (supports title)
-            info_match = CODE_INFO_PATTERN.match(info_stripped)
-            if info_match:
-                language = info_match.group("lang")
-                title = info_match.group("title")  # None if not present
-                hl_spec = info_match.group("hl")
-                if hl_spec:
-                    hl_lines = parse_hl_lines(hl_spec)
-            else:
-                # Fall back to old pattern (line highlights only, no title)
-                hl_match = HL_LINES_PATTERN.match(info_stripped)
-                if hl_match:
-                    language = hl_match.group(1)
-                    hl_lines = parse_hl_lines(hl_match.group(2))
-
-            # Special handling: client-side rendered languages (e.g., Mermaid)
-            lang_lower = language.lower()
-            if lang_lower == "mermaid":
-                # Escape HTML so browsers don't interpret it; Mermaid will read textContent
-                escaped_code = (
-                    code.replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace('"', "&quot;")
-                )
-                return f'<div class="mermaid">{escaped_code}</div>\n'
-
-            # Count lines to decide on line numbers
-            line_count = code.count("\n") + 1
-            show_linenos = line_count >= 3
-
-            # Check if deferred (parallel) highlighting is enabled
-            collector = get_deferred_collector()
-            if collector is not None and is_deferred_highlighting_enabled():
-                # Deferred mode: collect code block, return placeholder
-                # Batch highlighting happens later via flush_deferred_highlighting()
-                placeholder = collector.add(
-                    code=code,
-                    language=language,
-                    hl_lines=hl_lines,
-                    show_linenos=show_linenos,
-                    title=title,
-                )
-                return placeholder
-
-            # Immediate highlighting mode (default)
-            try:
-                # Highlight using the configured backend (via registry)
-                # The highlight() function handles backend selection and fallback
-                highlighted = highlight(
-                    code=code,
-                    language=language,
-                    hl_lines=hl_lines if hl_lines else None,
-                    show_linenos=show_linenos,
-                )
-
-                # Wrap with title if present
-                if title:
-                    safe_title = html_mod.escape(title)
-                    return (
-                        f'<div class="code-block-titled">\n'
-                        f'<div class="code-block-title">{safe_title}</div>\n'
-                        f"{highlighted}"
-                        f"</div>\n"
-                    )
-
-                return highlighted
-
-            except Exception as e:
-                # If highlighting fails, return plain code block
-                logger.warning("highlight_failed", language=language, error=str(e))
-                # Escape HTML and return plain code block
-                escaped_code = (
-                    code.replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace('"', "&quot;")
-                )
-                plain_block = (
-                    f'<pre><code class="language-{language}">{escaped_code}</code></pre>\n'
-                )
-
-                # Wrap with title if present
-                if title:
-                    safe_title = html_mod.escape(title)
-                    return (
-                        f'<div class="code-block-titled">\n'
-                        f'<div class="code-block-title">{safe_title}</div>\n'
-                        f"{plain_block}"
-                        f"</div>\n"
-                    )
-
-                return plain_block
-
-        # Replace the block_code method
-        md.renderer.block_code = highlighted_block_code
-
-    return plugin_syntax_highlighting

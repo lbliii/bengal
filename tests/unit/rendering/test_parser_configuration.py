@@ -11,7 +11,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.parsing import MistuneParser
+from bengal.parsing import PatitasParser
 from bengal.rendering.pipeline import RenderingPipeline
 
 # python-markdown is optional (patitas is default)
@@ -46,8 +46,8 @@ class TestParserSelection:
 
         pipeline = RenderingPipeline(site, quiet=True)
 
-        # Should select MistuneParser
-        assert isinstance(pipeline.parser, MistuneParser), (
+        # Should select PatitasParser
+        assert isinstance(pipeline.parser, PatitasParser), (
             "Failed to select Mistune parser from nested [markdown] config"
         )
 
@@ -68,8 +68,8 @@ class TestParserSelection:
 
         pipeline = RenderingPipeline(site, quiet=True)
 
-        # Should select MistuneParser
-        assert isinstance(pipeline.parser, MistuneParser), (
+        # Should select PatitasParser
+        assert isinstance(pipeline.parser, PatitasParser), (
             "Failed to select Mistune parser from flat markdown_engine config"
         )
 
@@ -151,10 +151,10 @@ class TestMistuneDirectives:
     """Test that Mistune parser has directives enabled."""
 
     def test_mistune_parser_has_directives(self):
-        """Test that MistuneParser can handle custom directives."""
-        from bengal.parsing import MistuneParser
+        """Test that PatitasParser can handle custom directives."""
+        from bengal.parsing import PatitasParser
 
-        parser = MistuneParser()
+        parser = PatitasParser()
 
         # Test a simple directive
         # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
@@ -173,10 +173,10 @@ This is a note directive.
         assert ":::{note}" not in html
 
     def test_mistune_parser_has_tabs(self):
-        """Test that MistuneParser can handle tabs directive."""
-        from bengal.parsing import MistuneParser
+        """Test that PatitasParser can handle tabs directive."""
+        from bengal.parsing import PatitasParser
 
-        parser = MistuneParser()
+        parser = PatitasParser()
 
         # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         markdown = """
@@ -268,8 +268,8 @@ table_of_contents = true
         pipeline = RenderingPipeline(site, quiet=True)
 
         # CRITICAL: Should use Mistune, not python-markdown
-        assert isinstance(pipeline.parser, MistuneParser), (
-            "Site with [markdown] parser='mistune' should use MistuneParser"
+        assert isinstance(pipeline.parser, PatitasParser), (
+            "Site with [markdown] parser='mistune' should use PatitasParser"
         )
 
 
