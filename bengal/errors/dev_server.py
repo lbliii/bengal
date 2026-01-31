@@ -66,12 +66,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.errors.context import BuildPhase, ErrorContext
-
-if TYPE_CHECKING:
-    pass
+from bengal.errors.utils import (
+    ThreadSafeSingleton,
+    extract_error_attributes,
+    generate_error_signature,
+    serialize_value,
+)
 
 
 @dataclass
@@ -208,14 +211,10 @@ class DevServerErrorContext(ErrorContext):
         base.update(
             {
                 "changed_files": [str(f) for f in self.changed_files],
-                "trigger_file": str(self.trigger_file) if self.trigger_file else None,
+                "trigger_file": serialize_value(self.trigger_file),
                 "is_new_error": self.is_new_error,
-                "error_first_seen": self.error_first_seen.isoformat()
-                if self.error_first_seen
-                else None,
-                "last_successful_build": (
-                    self.last_successful_build.isoformat() if self.last_successful_build else None
-                ),
+                "error_first_seen": serialize_value(self.error_first_seen),
+                "last_successful_build": serialize_value(self.last_successful_build),
                 "builds_since_success": self.builds_since_success,
                 "is_hot_reload": self.is_hot_reload,
                 "reload_count": self.reload_count,
@@ -252,20 +251,16 @@ def create_dev_error(
         DevServerErrorContext with extracted and provided context
 
     """
-    # Extract basic context from error
-    file_path = getattr(error, "file_path", None)
-    line_number = getattr(error, "line_number", None)
-    suggestion = getattr(error, "suggestion", None)
-    error_code = getattr(error, "code", None)
-    build_phase = getattr(error, "build_phase", None)
+    # Extract basic context from error using utility
+    attrs = extract_error_attributes(error)
 
     # Create context
     context = DevServerErrorContext(
-        file_path=file_path,
-        line_number=line_number,
-        suggestion=suggestion,
-        error_code=error_code,
-        build_phase=build_phase or BuildPhase.SERVER,
+        file_path=attrs["file_path"],
+        line_number=attrs["line_number"],
+        suggestion=attrs["suggestion"],
+        error_code=attrs["code"],
+        build_phase=attrs["build_phase"] or BuildPhase.SERVER,
         original_error=error,
         trigger_file=Path(trigger_file) if isinstance(trigger_file, str) else trigger_file,
         last_successful_build=last_successful_build,
@@ -448,8 +443,14 @@ class DevServerState:
             - ``reload_count``: Total reload count
             - ``error_first_seen``: When error was first seen (if recurring)
         """
-        # Generate signature
-        signature = f"{type(error).__name__}:{str(error)[:50]}"
+        # Generate signature using centralized utility
+        signature = generate_error_signature(
+            error,
+            include_code=False,
+            normalize_paths=True,
+            normalize_lines=True,
+            max_message_length=50,
+        )
         is_new = signature not in self.error_history
 
         return {
@@ -461,20 +462,15 @@ class DevServerState:
         }
 
 
-# Global dev server state
-_dev_server_state: DevServerState | None = None
+# Global dev server state using ThreadSafeSingleton
+_dev_server_singleton: ThreadSafeSingleton[DevServerState] = ThreadSafeSingleton(DevServerState)
 
 
 def get_dev_server_state() -> DevServerState:
     """Get the current dev server state (singleton)."""
-    global _dev_server_state
-    if _dev_server_state is None:
-        _dev_server_state = DevServerState()
-    return _dev_server_state
+    return _dev_server_singleton.get()
 
 
 def reset_dev_server_state() -> DevServerState:
     """Reset the dev server state."""
-    global _dev_server_state
-    _dev_server_state = DevServerState()
-    return _dev_server_state
+    return _dev_server_singleton.reset()

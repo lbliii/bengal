@@ -28,7 +28,7 @@ DROPDOWN_COLORS = frozenset(["success", "warning", "danger", "info", "minimal"])
 
 
 @dataclass
-class DropdownOptions(DirectiveOptions):
+class DropdownOptions(StyledOptions):
     """
     Options for dropdown directive.
 
@@ -38,7 +38,7 @@ class DropdownOptions(DirectiveOptions):
         badge: Badge text (e.g., "New", "Advanced", "Beta")
         color: Color variant (success, warning, danger, info, minimal)
         description: Secondary text below the title to elaborate on the dropdown content
-        css_class: Additional CSS classes for the container
+        css_class: Additional CSS classes for the container (inherited from StyledOptions)
 
     Example:
         :::{dropdown} My Title
@@ -59,9 +59,6 @@ class DropdownOptions(DirectiveOptions):
     badge: str = ""
     color: str = ""
     description: str = ""
-    css_class: str = ""
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
 class DropdownDirective(BengalDirective):
@@ -110,7 +107,7 @@ class DropdownDirective(BengalDirective):
     TOKEN_TYPE: ClassVar[str] = "dropdown"
 
     # Typed options class
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = DropdownOptions
+    OPTIONS_CLASS: ClassVar[type[DropdownOptions]] = DropdownOptions
 
     # For backward compatibility with health check introspection
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["dropdown", "details"]
@@ -222,28 +219,10 @@ class DropdownDirective(BengalDirective):
 
 
 def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
-    """
-    Render dropdown icon using shared icon utilities.
+    """Render dropdown icon using shared icon utilities."""
+    from bengal.directives._icons import render_svg_icon, warn_missing_icon
 
-    Args:
-        icon_name: Name of the icon to render
-        dropdown_title: Title of the dropdown (for warning context)
-
-    Returns:
-        SVG HTML string, or empty string if icon not found
-
-    """
-    from bengal.directives._icons import (
-        ICON_MAP,
-        render_svg_icon,
-        warn_missing_icon,
-    )
-
-    # Map semantic name to actual icon name (e.g., "alert" -> "warning")
-    mapped_icon_name = ICON_MAP.get(icon_name, icon_name)
-    icon_html = render_svg_icon(mapped_icon_name, size=18, css_class="dropdown-summary-icon")
-
-    if not icon_html:
+    icon_html = render_svg_icon(icon_name, size=18, css_class="dropdown-summary-icon")
+    if not icon_html and icon_name:
         warn_missing_icon(icon_name, directive="dropdown", context=dropdown_title)
-
     return icon_html

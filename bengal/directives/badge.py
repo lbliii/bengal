@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from bengal.directives.base import BengalDirective
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.directives.utils import ensure_badge_base_class
 from bengal.utils.observability.logger import get_logger
@@ -22,12 +22,12 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class BadgeOptions(DirectiveOptions):
+class BadgeOptions(StyledOptions):
     """
     Options for badge directive.
 
     Attributes:
-        css_class: CSS classes for the badge
+        css_class: CSS classes for the badge (inherited from StyledOptions)
 
     Example:
         :::{badge} Command
@@ -36,9 +36,7 @@ class BadgeOptions(DirectiveOptions):
 
     """
 
-    css_class: str = "badge badge-secondary"
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+    css_class: str = "badge badge-secondary"  # Override default from StyledOptions
 
 
 class BadgeDirective(BengalDirective):
@@ -66,7 +64,7 @@ class BadgeDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["badge", "bdg"]
     TOKEN_TYPE: ClassVar[str] = "badge"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = BadgeOptions
+    OPTIONS_CLASS: ClassVar[type[BadgeOptions]] = BadgeOptions
 
     # For backward compatibility with health check introspection
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["badge", "bdg"]

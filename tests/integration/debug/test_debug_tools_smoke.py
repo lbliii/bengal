@@ -252,7 +252,7 @@ class TestContentMigratorOperations:
 
     def test_slugify(self) -> None:
         """slugify utility converts headings to URL slugs correctly."""
-        from bengal.debug.utils import slugify
+        from bengal.utils.primitives.text import slugify
 
         assert slugify("Hello World") == "hello-world"
         assert slugify("Some (Complex) Title!") == "some-complex-title"

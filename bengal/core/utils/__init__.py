@@ -22,12 +22,20 @@ from __future__ import annotations
 
 from bengal.core.utils.config import get_config_section, get_site_value
 from bengal.core.utils.sorting import DEFAULT_WEIGHT, sorted_by_weight, weight_sort_key
-from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
+from bengal.core.utils.text import (
+    normalize_whitespace,
+    strip_html,
+    strip_html_and_normalize,
+    truncate_at_sentence,
+    truncate_at_word,
+)
 from bengal.core.utils.url import apply_baseurl
 
 __all__ = [
     # Text utilities
     "strip_html",
+    "strip_html_and_normalize",
+    "normalize_whitespace",
     "truncate_at_sentence",
     "truncate_at_word",
     # Sorting utilities

@@ -48,12 +48,15 @@ aggregator.log_summary(logger, threshold=5, error_type="processing")
 **See Also:**
 - `bengal/orchestration/render.py` - Example usage in page rendering
 - `bengal/orchestration/asset.py` - Example usage in asset processing
+- `bengal/errors/utils.py` - Shared utilities for signature generation
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
+
+from bengal.errors.utils import extract_error_attributes, generate_error_signature
 
 if TYPE_CHECKING:
     from bengal.utils.observability.logger import BengalLogger
@@ -182,19 +185,14 @@ class ErrorAggregator:
         Returns:
             Error signature string for grouping
         """
-        # Start with error type and message
-        signature_parts = [type(error).__name__, str(error)]
-
-        # Add context keys that help identify error pattern
-        if context:
-            # Include template name if available (common in rendering errors)
-            if "template_name" in context:
-                signature_parts.insert(0, context["template_name"])
-            # Include operation if available
-            if "operation" in context:
-                signature_parts.insert(0, context["operation"])
-
-        return ":".join(signature_parts)
+        return generate_error_signature(
+            error,
+            context=context,
+            include_code=False,  # Aggregation groups by message pattern, not code
+            normalize_paths=False,  # Keep paths for context
+            normalize_lines=False,
+            separator=":",
+        )
 
     def log_summary(
         self,
@@ -318,10 +316,20 @@ def extract_error_context(error: Exception, item: Any | None = None) -> dict[str
             ...     logger.error("rendering_failed", **context)
 
     """
+    # Start with base attributes from the error
+    attrs = extract_error_attributes(error)
     context: dict[str, Any] = {
-        "error": str(error),
-        "error_type": type(error).__name__,
+        "error": attrs["message"],
+        "error_type": attrs["error_type"],
     }
+
+    # Add Bengal error attributes if present
+    if attrs["file_path"]:
+        context["file_path"] = str(attrs["file_path"])
+    if attrs["line_number"]:
+        context["line_number"] = attrs["line_number"]
+    if attrs["suggestion"]:
+        context["suggestion"] = attrs["suggestion"]
 
     # Add item context if available
     if item:
@@ -352,21 +360,6 @@ def extract_error_context(error: Exception, item: Any | None = None) -> dict[str
             context["error"] = error.message
     except ImportError:
         # Rendering module not available, skip TemplateRenderError handling
-        pass
-
-    # Extract context from BengalError if available
-    try:
-        from bengal.errors.exceptions import BengalError
-
-        if isinstance(error, BengalError):
-            if hasattr(error, "file_path") and error.file_path:
-                context["file_path"] = str(error.file_path)
-            if hasattr(error, "line_number") and error.line_number:
-                context["line_number"] = error.line_number
-            if hasattr(error, "suggestion") and error.suggestion:
-                context["suggestion"] = error.suggestion
-    except ImportError:
-        # Errors module not available, skip BengalError handling
         pass
 
     # Add actionable suggestions for common AttributeError patterns

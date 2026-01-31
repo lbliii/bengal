@@ -254,6 +254,19 @@ if TYPE_CHECKING:
         search_suggestions,
     )
 
+    # Utilities
+    from bengal.errors.utils import (
+        ThreadSafeSingleton,
+        dataclass_to_dict,
+        extract_between,
+        extract_error_attributes,
+        find_close_matches,
+        generate_error_signature,
+        get_error_message,
+        safe_list_module_exports,
+        serialize_value,
+    )
+
 
 __all__ = [
     # ============================================================
@@ -310,11 +323,16 @@ __all__ = [
     "ErrorSeverity",
     "FileChange",
     "RelatedFile",
+    # ============================================================
+    # Utils (lazy)
+    # ============================================================
+    "ThreadSafeSingleton",
     "beautify_common_exception",
     "create_config_context",
     "create_dev_error",
     "create_discovery_context",
     "create_rendering_context",
+    "dataclass_to_dict",
     # ============================================================
     # Display (lazy, moved from cli.helpers.error_display)
     # ============================================================
@@ -322,7 +340,10 @@ __all__ = [
     "enhance_error_context",
     "enrich_error",
     "error_recovery_context",
+    "extract_between",
+    "extract_error_attributes",
     "extract_error_context",
+    "find_close_matches",
     # ============================================================
     # Reporter (lazy)
     # ============================================================
@@ -330,6 +351,7 @@ __all__ = [
     "format_error_summary",
     "format_suggestion",
     "format_suggestion_full",
+    "generate_error_signature",
     "get_all_suggestions_for_category",
     "get_attribute_error_suggestion",
     "get_codes_by_category",
@@ -337,6 +359,7 @@ __all__ = [
     "get_context_from_exception",
     "get_dev_server_state",
     "get_error_code_by_name",
+    "get_error_message",
     "get_session",
     "get_suggestion",
     "get_suggestion_dict",
@@ -344,7 +367,9 @@ __all__ = [
     "recover_file_processing",
     "reset_dev_server_state",
     "reset_session",
+    "safe_list_module_exports",
     "search_suggestions",
+    "serialize_value",
     # ============================================================
     # Recovery (lazy)
     # ============================================================
@@ -415,6 +440,16 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Display (moved from cli.helpers.error_display)
     "display_bengal_error": ("bengal.errors.display", "display_bengal_error"),
     "beautify_common_exception": ("bengal.errors.display", "beautify_common_exception"),
+    # Utils
+    "generate_error_signature": ("bengal.errors.utils", "generate_error_signature"),
+    "extract_error_attributes": ("bengal.errors.utils", "extract_error_attributes"),
+    "get_error_message": ("bengal.errors.utils", "get_error_message"),
+    "serialize_value": ("bengal.errors.utils", "serialize_value"),
+    "dataclass_to_dict": ("bengal.errors.utils", "dataclass_to_dict"),
+    "extract_between": ("bengal.errors.utils", "extract_between"),
+    "find_close_matches": ("bengal.errors.utils", "find_close_matches"),
+    "safe_list_module_exports": ("bengal.errors.utils", "safe_list_module_exports"),
+    "ThreadSafeSingleton": ("bengal.errors.utils", "ThreadSafeSingleton"),
 }
 
 

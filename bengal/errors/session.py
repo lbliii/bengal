@@ -72,8 +72,11 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from threading import Lock
 from typing import TYPE_CHECKING, Any
+
+from threading import Lock
+
+from bengal.errors.utils import ThreadSafeSingleton, generate_error_signature
 
 if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
@@ -272,27 +275,14 @@ class ErrorSession:
         Returns:
             Signature string for pattern grouping
         """
-        parts = [type(error).__name__]
-
-        # Add error code if available
-        if hasattr(error, "code") and error.code:
-            parts.insert(0, str(error.code))
-
-        # Normalize error message (remove file-specific parts)
-        message = str(error)
-        # Remove file paths from message
-        import re
-
-        message = re.sub(r"[/\\][^\s]+\.(md|html|yaml|py)", "<file>", message)
-        # Remove line numbers
-        message = re.sub(r"line \d+", "line <N>", message)
-        # Truncate long messages
-        if len(message) > 100:
-            message = message[:100]
-
-        parts.append(message)
-
-        return "::".join(parts)
+        return generate_error_signature(
+            error,
+            include_code=True,
+            normalize_paths=True,
+            normalize_lines=True,
+            max_message_length=100,
+            separator="::",
+        )
 
     def get_pattern_for_error(self, error: Exception) -> ErrorPattern | None:
         """
@@ -453,9 +443,8 @@ class ErrorSession:
             self._start_time = datetime.now()
 
 
-# Global session instance
-_current_session: ErrorSession | None = None
-_session_lock = Lock()
+# Global session singleton using ThreadSafeSingleton
+_session_singleton: ThreadSafeSingleton[ErrorSession] = ThreadSafeSingleton(ErrorSession)
 
 
 def get_session() -> ErrorSession:
@@ -466,11 +455,7 @@ def get_session() -> ErrorSession:
         Current ErrorSession instance
 
     """
-    global _current_session
-    with _session_lock:
-        if _current_session is None:
-            _current_session = ErrorSession()
-        return _current_session
+    return _session_singleton.get()
 
 
 def reset_session() -> ErrorSession:
@@ -481,10 +466,7 @@ def reset_session() -> ErrorSession:
         New ErrorSession instance
 
     """
-    global _current_session
-    with _session_lock:
-        _current_session = ErrorSession()
-        return _current_session
+    return _session_singleton.reset()
 
 
 def record_error(

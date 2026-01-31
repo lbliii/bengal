@@ -58,6 +58,7 @@ from typing import Any
 
 from bengal.fonts.downloader import FontVariant, GoogleFontsDownloader
 from bengal.fonts.generator import FontCSSGenerator
+from bengal.fonts.utils import make_font_filename, make_safe_name
 
 
 def rewrite_font_urls_with_fingerprints(
@@ -329,5 +330,7 @@ __all__ = [
     "FontHelper",
     "FontVariant",
     "GoogleFontsDownloader",
+    "make_font_filename",
+    "make_safe_name",
     "rewrite_font_urls_with_fingerprints",
 ]

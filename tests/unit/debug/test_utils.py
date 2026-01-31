@@ -27,7 +27,6 @@ from bengal.debug.utils import (
     get_status_emoji,
     levenshtein_distance,
     set_nested_value,
-    slugify,
     truncate_list,
     truncate_string,
 )
@@ -162,33 +161,6 @@ class TestGetFileIcon:
     def test_data_icon(self):
         """Data files get chart icon."""
         assert get_file_icon("data/authors.yaml") == "📊"
-
-
-class TestSlugify:
-    """Tests for slugify function."""
-
-    def test_basic_text(self):
-        """Basic text converts to lowercase hyphenated."""
-        assert slugify("Hello World") == "hello-world"
-        assert slugify("API Reference Guide") == "api-reference-guide"
-
-    def test_special_characters(self):
-        """Special characters are removed."""
-        assert slugify("Hello, World!") == "hello-world"
-        assert slugify("C++ Code") == "c-code"
-
-    def test_multiple_spaces(self):
-        """Multiple spaces collapse to single hyphen."""
-        assert slugify("Multiple   Spaces") == "multiple-spaces"
-
-    def test_underscores(self):
-        """Underscores convert to hyphens."""
-        assert slugify("snake_case_text") == "snake-case-text"
-
-    def test_leading_trailing_hyphens(self):
-        """Leading/trailing hyphens are removed."""
-        assert slugify("  trimmed  ") == "trimmed"
-        assert slugify("---dashes---") == "dashes"
 
 
 class TestTruncateList:

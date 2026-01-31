@@ -17,13 +17,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.effects.utils import compute_content_hash, extract_body_after_frontmatter
+from bengal.effects.utils import extract_body_after_frontmatter
 
 if TYPE_CHECKING:
     from bengal.snapshots.types import PageSnapshot, SiteSnapshot
 
-# Re-export for backward compatibility
-__all__ = ["BlockDiffService", "DiffResult", "compute_content_hash"]
+
+__all__ = ["BlockDiffService", "DiffResult"]
 
 
 @dataclass(frozen=True, slots=True)

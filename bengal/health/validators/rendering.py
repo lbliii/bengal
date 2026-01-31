@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.utils import read_output_content, sample_pages
 from bengal.parsing.factory import ParserFactory
 from bengal.utils.observability.logger import get_logger
 
@@ -71,38 +72,26 @@ class RenderingValidator(BaseValidator):
         issues = []
 
         # Sample a few pages (check first 10 to avoid slowing down)
-        # Type narrowing: output_path may not be on PageLike protocol
-        pages_to_check = []
-        for p in site.pages:
-            output_path = getattr(p, "output_path", None)
-            if output_path and hasattr(output_path, "exists") and output_path.exists():
-                pages_to_check.append(p)
-                if len(pages_to_check) >= 10:
-                    break
+        pages_to_check = sample_pages(site, count=10)
 
         for page in pages_to_check:
-            output_path = getattr(page, "output_path", None)
-            if output_path is None:
+            content = read_output_content(page)
+            if content is None:
                 continue
-            try:
-                content = output_path.read_text(encoding="utf-8")
 
-                # Check for basic HTML5 structure
-                if not content.strip().startswith(("<!DOCTYPE html>", "<!doctype html>")):
-                    issues.append(f"{output_path.name}: Missing DOCTYPE")
+            output_path = page.output_path
 
-                # Check for essential tags
-                if "<html" not in content.lower():
-                    issues.append(f"{output_path.name}: Missing <html> tag")
-                elif "<head" not in content.lower():
-                    issues.append(f"{output_path.name}: Missing <head> tag")
-                elif "<body" not in content.lower():
-                    issues.append(f"{output_path.name}: Missing <body> tag")
+            # Check for basic HTML5 structure
+            if not content.strip().startswith(("<!DOCTYPE html>", "<!doctype html>")):
+                issues.append(f"{output_path.name}: Missing DOCTYPE")
 
-            except Exception as e:
-                issues.append(
-                    f"{output_path.name if output_path else 'unknown'}: Error reading file - {e}"
-                )
+            # Check for essential tags
+            if "<html" not in content.lower():
+                issues.append(f"{output_path.name}: Missing <html> tag")
+            elif "<head" not in content.lower():
+                issues.append(f"{output_path.name}: Missing <head> tag")
+            elif "<body" not in content.lower():
+                issues.append(f"{output_path.name}: Missing <body> tag")
 
         if issues:
             results.append(
@@ -128,34 +117,15 @@ class RenderingValidator(BaseValidator):
         issues = []
 
         # Sample pages (first 20 to be thorough but not too slow)
-        # Type narrowing: output_path may not be on PageLike protocol
-        pages_to_check = []
-        for p in site.pages:
-            output_path = getattr(p, "output_path", None)
-            if output_path and hasattr(output_path, "exists") and output_path.exists():
-                pages_to_check.append(p)
-                if len(pages_to_check) >= 20:
-                    break
+        pages_to_check = sample_pages(site, count=20)
 
         for page in pages_to_check:
-            output_path = getattr(page, "output_path", None)
-            if output_path is None:
+            content = read_output_content(page)
+            if content is None:
                 continue
-            try:
-                content = output_path.read_text(encoding="utf-8")
-                has_unrendered = self._detect_unrendered_jinja2(content)
 
-                if has_unrendered:
-                    issues.append(output_path.name)
-
-            except Exception as e:
-                # Skip pages we can't read
-                logger.debug(
-                    "rendering_validator_page_skip",
-                    page=str(output_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
+            if self._detect_unrendered_jinja2(content):
+                issues.append(page.output_path.name)
 
         if issues:
             results.append(
@@ -216,51 +186,28 @@ class RenderingValidator(BaseValidator):
         results = []
         issues = []
 
-        # Sample first 10 pages
-        # Type narrowing: output_path may not be on PageLike protocol
-        pages_to_check = []
-        for p in site.pages:
-            output_path = getattr(p, "output_path", None)
-            if (
-                output_path
-                and hasattr(output_path, "exists")
-                and output_path.exists()
-                and not p.metadata.get("_generated")
-            ):
-                pages_to_check.append(p)
-                if len(pages_to_check) >= 10:
-                    break
+        # Sample first 10 non-generated pages
+        pages_to_check = sample_pages(site, count=10, exclude_generated=True)
 
         for page in pages_to_check:
-            output_path = getattr(page, "output_path", None)
-            if output_path is None:
+            content = read_output_content(page)
+            if content is None:
                 continue
-            try:
-                content = output_path.read_text(encoding="utf-8")
 
-                # Check for basic SEO elements
-                missing_elements = []
+            # Check for basic SEO elements
+            missing_elements = []
 
-                if "<title>" not in content:
-                    missing_elements.append("title")
+            if "<title>" not in content:
+                missing_elements.append("title")
 
-                if (
-                    'meta name="description"' not in content
-                    and 'meta property="og:description"' not in content
-                ):
-                    missing_elements.append("description")
+            if (
+                'meta name="description"' not in content
+                and 'meta property="og:description"' not in content
+            ):
+                missing_elements.append("description")
 
-                if missing_elements:
-                    issues.append(f"{output_path.name}: missing {', '.join(missing_elements)}")
-
-            except Exception as e:
-                logger.debug(
-                    "health_seo_page_check_skipped",
-                    page=str(getattr(page, "output_path", "unknown")),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="skipping_page",
-                )
+            if missing_elements:
+                issues.append(f"{page.output_path.name}: missing {', '.join(missing_elements)}")
 
         if issues:
             results.append(

@@ -55,7 +55,7 @@ from bengal.directives.contracts import (
     STEPS_CONTRACT,
     DirectiveContract,
 )
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.directives.utils import parse_inline_markdown
 from bengal.utils.observability.logger import get_logger
@@ -77,12 +77,12 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class StepOptions(DirectiveOptions):
+class StepOptions(StyledOptions):
     """
     Options for step directive.
 
     Attributes:
-        css_class: Custom CSS class for the step
+        css_class: Custom CSS class for the step (inherited from StyledOptions)
         description: Lead-in text with special typography (rendered before main content)
         optional: Mark step as optional/skippable (adds visual indicator)
         duration: Estimated time for the step (e.g., "5 min", "1 hour")
@@ -98,12 +98,9 @@ class StepOptions(DirectiveOptions):
 
     """
 
-    css_class: str = ""
     description: str = ""
     optional: bool = False
     duration: str = ""
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
 class StepDirective(BengalDirective):
@@ -124,7 +121,7 @@ class StepDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["step"]
     TOKEN_TYPE: ClassVar[str] = "step"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = StepOptions
+    OPTIONS_CLASS: ClassVar[type[StepOptions]] = StepOptions
 
     # Contract: step MUST be inside steps
     CONTRACT: ClassVar[DirectiveContract] = STEP_CONTRACT
@@ -243,12 +240,12 @@ class StepDirective(BengalDirective):
 
 
 @dataclass
-class StepsOptions(DirectiveOptions):
+class StepsOptions(StyledOptions):
     """
     Options for steps container directive.
 
     Attributes:
-        css_class: Custom CSS class for the steps container
+        css_class: Custom CSS class for the steps container (inherited from StyledOptions)
         style: Step style (compact, default)
         start: Start numbering from this value (default: 1)
 
@@ -262,11 +259,9 @@ class StepsOptions(DirectiveOptions):
 
     """
 
-    css_class: str = ""
     style: str = "default"
     start: int = 1
 
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "style": ["default", "compact"],
     }
@@ -300,7 +295,7 @@ class StepsDirective(BengalDirective):
 
     NAMES: ClassVar[list[str]] = ["steps"]
     TOKEN_TYPE: ClassVar[str] = "steps"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = StepsOptions
+    OPTIONS_CLASS: ClassVar[type[StepsOptions]] = StepsOptions
 
     # Contract: steps REQUIRES step children
     CONTRACT: ClassVar[DirectiveContract] = STEPS_CONTRACT

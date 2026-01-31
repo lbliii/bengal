@@ -2,6 +2,8 @@
 Tests for directive utility functions.
 """
 
+from unittest.mock import MagicMock
+
 from bengal.directives.utils import (
     attr_str,
     bool_attr,
@@ -11,6 +13,10 @@ from bengal.directives.utils import (
     data_attrs,
     ensure_badge_base_class,
     escape_html,
+    get_markdown_instance,
+    parse_inline_markdown,
+    render_error_block,
+    render_noscript_fallback,
 )
 
 
@@ -170,3 +176,139 @@ class TestEscapeHtml:
         """Test basic HTML escaping."""
         assert escape_html("<script>") == "&lt;script&gt;"
         assert escape_html('"quotes"') == "&quot;quotes&quot;"
+
+
+class TestGetMarkdownInstance:
+    """Tests for get_markdown_instance function."""
+
+    def test_with_md_attribute(self):
+        """Test renderer with _md attribute."""
+        renderer = MagicMock()
+        renderer._md = "md_instance"
+        renderer.md = None
+        assert get_markdown_instance(renderer) == "md_instance"
+
+    def test_with_public_md_attribute(self):
+        """Test renderer with md attribute (no _md)."""
+        renderer = MagicMock()
+        del renderer._md  # Ensure _md doesn't exist
+        renderer.md = "public_md"
+        assert get_markdown_instance(renderer) == "public_md"
+
+    def test_no_md_attribute(self):
+        """Test renderer without md attributes."""
+        renderer = MagicMock(spec=[])  # Empty spec, no attributes
+        assert get_markdown_instance(renderer) is None
+
+
+class TestParseInlineMarkdown:
+    """Tests for parse_inline_markdown function."""
+
+    def test_regex_fallback_bold(self):
+        """Test bold markdown conversion."""
+        renderer = MagicMock(spec=[])  # No md instance
+        result = parse_inline_markdown(renderer, "**bold**")
+        assert result == "<strong>bold</strong>"
+
+    def test_regex_fallback_italic(self):
+        """Test italic markdown conversion."""
+        renderer = MagicMock(spec=[])
+        result = parse_inline_markdown(renderer, "*italic*")
+        assert result == "<em>italic</em>"
+
+    def test_regex_fallback_code(self):
+        """Test code markdown conversion."""
+        renderer = MagicMock(spec=[])
+        result = parse_inline_markdown(renderer, "`code`")
+        assert result == "<code>code</code>"
+
+    def test_regex_fallback_combined(self):
+        """Test combined markdown conversion."""
+        renderer = MagicMock(spec=[])
+        result = parse_inline_markdown(renderer, "**bold** and *italic* and `code`")
+        assert "<strong>bold</strong>" in result
+        assert "<em>italic</em>" in result
+        assert "<code>code</code>" in result
+
+    def test_escape_first_option(self):
+        """Test escape_first escapes HTML before regex processing."""
+        renderer = MagicMock(spec=[])
+        result = parse_inline_markdown(renderer, "<script>**bold**", escape_first=True)
+        assert "&lt;script&gt;" in result
+        assert "<strong>bold</strong>" in result
+
+    def test_uses_mistune_when_available(self):
+        """Test that mistune inline parser is used when available."""
+        renderer = MagicMock()
+        md_instance = MagicMock()
+        md_instance.inline.return_value = "<strong>from mistune</strong>"
+        renderer._md = md_instance
+
+        result = parse_inline_markdown(renderer, "**bold**")
+        assert result == "<strong>from mistune</strong>"
+        md_instance.inline.assert_called_once_with("**bold**")
+
+
+class TestRenderErrorBlock:
+    """Tests for render_error_block function."""
+
+    def test_basic_error(self):
+        """Test basic error rendering."""
+        result = render_error_block("Something went wrong")
+        assert "Something went wrong" in result
+        assert 'class="bengal-error"' in result
+        assert 'role="alert"' in result
+
+    def test_with_reference(self):
+        """Test error with reference."""
+        result = render_error_block("Invalid ID", reference="abc123")
+        assert "Invalid ID" in result
+        assert "abc123" in result
+        assert "<code>" in result
+
+    def test_with_service(self):
+        """Test error with service name."""
+        result = render_error_block("Bad request", service="Spotify")
+        assert "Spotify Error:" in result
+        assert "Bad request" in result
+
+    def test_with_source(self):
+        """Test error with source path."""
+        result = render_error_block("Parse error", source="content/test.md")
+        assert "Parse error" in result
+        assert "content/test.md" in result
+
+    def test_custom_base_class(self):
+        """Test custom base class."""
+        result = render_error_block("Error", base_class="gist-error")
+        assert 'class="gist-error"' in result
+
+    def test_html_escaping(self):
+        """Test HTML escaping in error messages."""
+        result = render_error_block("<script>alert('xss')</script>")
+        assert "&lt;script&gt;" in result
+        assert "<script>" not in result
+
+
+class TestRenderNoscriptFallback:
+    """Tests for render_noscript_fallback function."""
+
+    def test_basic_noscript(self):
+        """Test basic noscript rendering."""
+        result = render_noscript_fallback("https://example.com", "Example Title")
+        assert "<noscript>" in result
+        assert "</noscript>" in result
+        assert 'href="https://example.com"' in result
+        assert "Example Title" in result
+
+    def test_with_service(self):
+        """Test noscript with service name."""
+        result = render_noscript_fallback("https://codepen.io/abc", "My Pen", "CodePen")
+        assert "View on CodePen:" in result
+        assert "My Pen" in result
+
+    def test_html_escaping(self):
+        """Test HTML escaping in noscript."""
+        result = render_noscript_fallback("https://example.com?a=1&b=2", "Title <test>")
+        assert "&amp;" in result
+        assert "&lt;test&gt;" in result

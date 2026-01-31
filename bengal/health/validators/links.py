@@ -33,6 +33,7 @@ from urllib.parse import urljoin, urlparse
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
+from bengal.health.utils import relative_path
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -197,18 +198,14 @@ class LinkValidator:
         if self.broken_links:
             pages_affected = len({str(page_path) for page_path, _ in self.broken_links})
 
-            def _relative_path(path: Path | str) -> str:
-                """Convert to project-relative path for display."""
-                try:
-                    return str(Path(path).relative_to(site.root_path))
-                except ValueError:
-                    return str(path)
-
             logger.warning(
                 "found_broken_links",
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
-                sample_links=[(_relative_path(p), link) for p, link in self.broken_links[:10]],
+                sample_links=[
+                    (relative_path(p, site.root_path), link)
+                    for p, link in self.broken_links[:10]
+                ],
             )
         else:
             logger.debug(
@@ -532,16 +529,12 @@ class LinkValidatorWrapper(BaseValidator):
                 if link.startswith(("http://", "https://"))
             ]
 
-            def _relative_path(path: str) -> str:
-                """Convert absolute path to project-relative path for display."""
-                try:
-                    return str(Path(path).relative_to(site.root_path))
-                except ValueError:
-                    return path  # Fallback to original if not under root
-
             if internal_broken:
                 # Format as "page: link" for display (using relative paths)
-                details = [f"{_relative_path(page)}: {link}" for page, link in internal_broken[:5]]
+                details = [
+                    f"{relative_path(page, site.root_path)}: {link}"
+                    for page, link in internal_broken[:5]
+                ]
                 results.append(
                     CheckResult.error(
                         f"{len(internal_broken)} broken internal link(s)",
@@ -552,7 +545,10 @@ class LinkValidatorWrapper(BaseValidator):
                 )
 
             if external_broken:
-                details = [f"{_relative_path(page)}: {link}" for page, link in external_broken[:5]]
+                details = [
+                    f"{relative_path(page, site.root_path)}: {link}"
+                    for page, link in external_broken[:5]
+                ]
                 results.append(
                     CheckResult.warning(
                         f"{len(external_broken)} broken external link(s)",

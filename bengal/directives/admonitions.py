@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar
 
 from bengal.directives.base import BengalDirective
-from bengal.directives.options import DirectiveOptions
+from bengal.directives.options import StyledOptions
 from bengal.directives.tokens import DirectiveToken
 
 __all__ = ["AdmonitionDirective", "AdmonitionOptions"]
@@ -67,12 +67,12 @@ TYPE_TO_ICON = {
 
 
 @dataclass
-class AdmonitionOptions(DirectiveOptions):
+class AdmonitionOptions(StyledOptions):
     """
     Options for admonition directive.
 
     Attributes:
-        css_class: Additional CSS classes
+        css_class: Additional CSS classes (inherited from StyledOptions)
 
     Example:
         :::{note} Title
@@ -82,9 +82,7 @@ class AdmonitionOptions(DirectiveOptions):
 
     """
 
-    css_class: str = ""
-
-    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+    pass  # css_class inherited from StyledOptions
 
 
 class AdmonitionDirective(BengalDirective):
@@ -110,7 +108,7 @@ class AdmonitionDirective(BengalDirective):
     # All admonition types registered as names
     NAMES: ClassVar[list[str]] = list(ADMONITION_TYPES)
     TOKEN_TYPE: ClassVar[str] = "admonition"
-    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = AdmonitionOptions
+    OPTIONS_CLASS: ClassVar[type[AdmonitionOptions]] = AdmonitionOptions
 
     # For backward compatibility with health check introspection
     DIRECTIVE_NAMES: ClassVar[list[str]] = list(ADMONITION_TYPES)
@@ -193,7 +191,7 @@ class AdmonitionDirective(BengalDirective):
 
 
 def _render_admonition_icon(icon_name: str) -> str:
-    """Render admonition icon using Phosphor icons."""
+    """Render admonition icon using shared icon utilities."""
     from bengal.directives._icons import render_svg_icon
 
     return render_svg_icon(icon_name, size=20, css_class="admonition-icon")

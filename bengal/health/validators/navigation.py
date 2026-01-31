@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.utils import get_section_pages
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
