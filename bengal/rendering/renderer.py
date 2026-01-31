@@ -72,6 +72,7 @@ class Renderer:
         build_stats: Any = None,
         block_cache: Any = None,
         build_context: Any = None,
+        use_layered_context: bool = False,
     ) -> None:
         """
         Initialize the renderer.
@@ -81,6 +82,7 @@ class Renderer:
             build_stats: Optional BuildStats object for error collection
             block_cache: Optional BlockCache for KIDA template block caching
             build_context: Optional BuildContext for accessing snapshot (RFC: rfc-bengal-snapshot-engine)
+            use_layered_context: Enable zero-copy layered context (experimental)
         """
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
@@ -94,6 +96,11 @@ class Renderer:
         self._tag_pages_cache: dict[str, list[Page]] | None = None
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
+        
+        # RFC: Zero-copy layered context for faster rendering
+        self._use_layered_context = use_layered_context
+        self._global_layer: Any = None
+        self._section_layer_cache: dict[str, Any] = {}
 
     def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
         """
@@ -186,6 +193,60 @@ class Renderer:
             if snap != NO_SECTION:
                 result.append(snap)
         return result
+
+    def _get_global_layer(self) -> dict[str, Any]:
+        """
+        Get or create the global context layer (computed once).
+        
+        RFC: Zero-copy layered context for faster rendering.
+        The global layer contains site/config/theme/menus and is reused
+        for all pages, eliminating per-page copying overhead.
+        
+        Returns:
+            Global context dict (reused for all pages)
+        """
+        if self._global_layer is None:
+            from bengal.rendering.context.layered import build_global_layer
+            self._global_layer = build_global_layer(self.site, build_context=self.build_context)
+        return self._global_layer
+    
+    def _get_section_layer(self, section: Any) -> dict[str, Any]:
+        """
+        Get or create a section context layer (computed once per section).
+        
+        RFC: Zero-copy layered context for faster rendering.
+        Section layers are cached by section path and reused for all pages
+        in that section.
+        
+        Args:
+            section: Section or SectionSnapshot
+            
+        Returns:
+            Section context dict (reused for pages in section)
+        """
+        from bengal.rendering.context.layered import build_section_layer
+        
+        # Get section key for caching
+        if section is None:
+            cache_key = "__none__"
+        else:
+            cache_key = str(getattr(section, "path", id(section)))
+        
+        # Check cache
+        if cache_key in self._section_layer_cache:
+            return self._section_layer_cache[cache_key]
+        
+        # Create and cache
+        # Convert to SectionSnapshot if needed
+        if section and not hasattr(section, "sorted_pages"):
+            snapshot = None
+            if self.build_context:
+                snapshot = getattr(self.build_context, "snapshot", None)
+            section = self._to_section_snapshot(section, snapshot)
+        
+        layer = build_section_layer(section, self.site)
+        self._section_layer_cache[cache_key] = layer
+        return layer
 
     def _get_resolved_tag_pages(self, tag_slug: str) -> list[Page]:
         """
@@ -357,13 +418,44 @@ class Renderer:
         if hasattr(self, "build_context") and self.build_context:
             snapshot = getattr(self.build_context, "snapshot", None)
 
-        context = build_page_context(
-            page=page,
-            site=self.site,
-            content=content,
-            snapshot=snapshot,
-            build_context=self.build_context,  # PERF: O(1) section lookup
-        )
+        # RFC: Zero-copy layered context for faster rendering
+        # Uses ChainMap to layer page → section → global contexts without copying
+        if self._use_layered_context:
+            from bengal.rendering.context.layered import LayeredContext, build_page_layer
+            
+            global_layer = self._get_global_layer()
+            section = getattr(page, "_section", None)
+            section_layer = self._get_section_layer(section)
+            
+            # Get section params for cascade
+            from bengal.snapshots.types import SectionSnapshot
+            section_params = {}
+            if isinstance(section, SectionSnapshot):
+                section_params = dict(section.metadata) if section.metadata else {}
+            elif section and hasattr(section, "metadata"):
+                section_params = section.metadata or {}
+            
+            site_params = self.site.config.get("params", {})
+            
+            # Build thin page layer
+            page_layer = build_page_layer(
+                page,
+                content,
+                section_params=section_params,
+                site_params=site_params,
+            )
+            
+            # Stack layers (zero-copy)
+            context = LayeredContext(page_layer, section_layer, global_layer)
+        else:
+            # Traditional context building (copies all keys)
+            context = build_page_context(
+                page=page,
+                site=self.site,
+                content=content,
+                snapshot=snapshot,
+                build_context=self.build_context,  # PERF: O(1) section lookup
+            )
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
         # This enables site-wide block caching for nav, footer, etc.
