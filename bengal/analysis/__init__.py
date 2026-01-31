@@ -40,8 +40,6 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 # Re-export from graph subpackage for convenience
 from bengal.analysis.graph import (
     GraphAnalyzer,

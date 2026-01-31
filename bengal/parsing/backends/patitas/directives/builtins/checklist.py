@@ -65,6 +65,11 @@ class ChecklistOptions(DirectiveOptions):
 
     """
 
+    _aliases: ClassVar[dict[str, str]] = {
+        "class": "css_class",
+        "show-progress": "show_progress",
+    }
+
     style: str = "default"
     show_progress: bool = False
     compact: bool = False

@@ -34,7 +34,7 @@ from bengal.autodoc.orchestration.section_builders import (
     create_openapi_sections,
     create_python_sections,
 )
-from bengal.autodoc.orchestration.utils import normalize_autodoc_config, slugify
+from bengal.autodoc.utils import normalize_autodoc_config, slugify
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.errors import BengalCacheError, ErrorCode

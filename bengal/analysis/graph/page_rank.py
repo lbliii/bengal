@@ -45,11 +45,11 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from bengal.analysis.utils.pages import get_content_pages
+from bengal.analysis.utils.scoring import items_above_percentile, top_n_by_score
 from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
@@ -90,8 +90,7 @@ class PageRankResults:
         Returns:
             List of (page, score) tuples sorted by score descending
         """
-        sorted_pages = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
-        return sorted_pages[:limit]
+        return top_n_by_score(self.scores, limit)
 
     def get_pages_above_percentile(self, percentile: int) -> set[PageLike]:
         """
@@ -103,16 +102,7 @@ class PageRankResults:
         Returns:
             Set of pages above the threshold
         """
-        if not self.scores:
-            return set()
-
-        scores_list = sorted(self.scores.values(), reverse=True)
-        # Calculate how many pages to include based on percentile
-        # e.g., 80th percentile means top 20% of pages
-        n_pages = max(1, int(len(scores_list) * (100 - percentile) / 100))
-        threshold_score = scores_list[n_pages - 1] if n_pages <= len(scores_list) else 0
-
-        return {page for page, score in self.scores.items() if score >= threshold_score}
+        return items_above_percentile(self.scores, percentile)
 
     def get_score(self, page: PageLike) -> float:
         """Get PageRank score for a specific page."""
@@ -190,10 +180,8 @@ class PageRankCalculator:
         Returns:
             PageRankResults with scores and metadata
         """
-        # Use analysis pages from graph (excludes autodoc if configured)
-        pages = self.graph.get_analysis_pages()
-        # Also exclude generated pages
-        pages = [p for p in pages if not p.metadata.get("_generated")]
+        # Use content pages (excludes autodoc and generated pages)
+        pages = get_content_pages(self.graph)
         N = len(pages)
 
         if N == 0:

@@ -197,6 +197,11 @@ CODEPEN_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+/(?:pen/)?[a-zA-Z0-9_-]+$")
 class CodePenOptions(DirectiveOptions):
     """Options for CodePen embed."""
 
+    _aliases: ClassVar[dict[str, str]] = {
+        "class": "css_class",
+        "default-tab": "default_tab",
+    }
+
     title: str = ""
     default_tab: str = "result"
     height: int = 300

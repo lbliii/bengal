@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -303,7 +304,7 @@ def _alternate_links(site: SiteLike, page: Page | None) -> list[dict[str, str]]:
     for p in pages_with_key:
         try:
             rel = p.output_path.relative_to(site.output_dir)
-            href = "/" + str(rel).replace("index.html", "").replace("\\", "/").rstrip("/") + "/"
+            href = "/" + to_posix(rel).replace("index.html", "").rstrip("/") + "/"
             lang = getattr(p, "lang", None) or i18n.get("default_language", "en")
             alternates.append({"hreflang": lang, "href": href})
         except Exception as e:

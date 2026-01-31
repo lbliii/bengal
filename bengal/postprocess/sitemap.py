@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
@@ -132,7 +133,7 @@ class SitemapGenerator:
             if page.output_path:
                 try:
                     rel_path = page.output_path.relative_to(self.site.output_dir)
-                    loc = f"{baseurl}/{rel_path}".replace("\\", "/")
+                    loc = f"{baseurl}/{to_posix(rel_path)}"
                 except ValueError:
                     skipped_count += 1
                     continue
@@ -154,7 +155,7 @@ class SitemapGenerator:
                         if p.output_path:
                             try:
                                 rel = p.output_path.relative_to(self.site.output_dir)
-                                href = f"{baseurl}/{rel}".replace("\\", "/")
+                                href = f"{baseurl}/{to_posix(rel)}"
                                 href = href.replace("/index.html", "/")
                             except ValueError:
                                 # Skip pages not under output_dir

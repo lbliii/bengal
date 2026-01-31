@@ -75,7 +75,12 @@ via theme templates without intermediate markdown files. This provides:
   - `extractors.py`: Extraction facade functions
   - `index_pages.py`: Section index page generation
   - `result.py`: `AutodocRunResult` and `PageContext` classes
-  - `utils.py`: Shared utility functions
+- **Utils** (`bengal/autodoc/utils/`): Shared utility functions
+  - `text.py`: Text processing (sanitize, truncate, slugify)
+  - `paths.py`: Path/URL resolution helpers
+  - `grouping.py`: Module grouping logic
+  - `config.py`: Configuration normalization
+  - `metadata.py`: Typed metadata accessors
 - **Config** (`bengal/autodoc/config.py`): Load and merge configuration
 
 ### Build Lifecycle (Deferred Rendering)

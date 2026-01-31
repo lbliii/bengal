@@ -43,6 +43,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.paths.normalize import to_posix
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -96,7 +98,7 @@ class CascadeSnapshot:
             return ""
 
         # Normalize path separators for cross-platform consistency
-        normalized = section_path.replace("\\", "/")
+        normalized = to_posix(section_path)
 
         # If already relative (no leading /), use as-is
         if not normalized.startswith("/"):
@@ -108,7 +110,7 @@ class CascadeSnapshot:
                 content_dir_path = Path(content_dir)
                 section_path_obj = Path(section_path)
                 rel = section_path_obj.relative_to(content_dir_path)
-                result = str(rel).replace("\\", "/")
+                result = to_posix(rel)
                 # Normalize "." to empty string
                 return "" if result == "." else result
             except ValueError:

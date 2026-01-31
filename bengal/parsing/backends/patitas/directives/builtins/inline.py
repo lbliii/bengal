@@ -159,6 +159,11 @@ class BadgeDirective:
 class IconOptions(DirectiveOptions):
     """Options for icon directive."""
 
+    _aliases: ClassVar[dict[str, str]] = {
+        "class": "css_class",
+        "aria-label": "aria_label",
+    }
+
     size: int = 24
     css_class: str = ""
     aria_label: str = ""

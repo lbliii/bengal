@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.hashing import compute_doc_content_hash
 from bengal.autodoc.orchestration.result import AutodocRunResult
-from bengal.autodoc.orchestration.utils import format_source_file_for_display
 from bengal.autodoc.utils import (
+    format_source_file_for_display,
     get_openapi_method,
     get_openapi_path,
     get_openapi_tags,

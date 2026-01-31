@@ -15,10 +15,10 @@ PageConnectivity: Connectivity details for a single page.
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
+from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_THRESHOLD
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
@@ -105,8 +105,8 @@ class MetricsCalculator:
         incoming_refs: dict[PageLike, float],
         outgoing_refs: dict[PageLike, set[PageLike]],
         analysis_pages: list[PageLike],
-        hub_threshold: int = 10,
-        leaf_threshold: int = 2,
+        hub_threshold: int = DEFAULT_HUB_THRESHOLD,
+        leaf_threshold: int = DEFAULT_LEAF_THRESHOLD,
     ):
         """
         Initialize the metrics calculator.

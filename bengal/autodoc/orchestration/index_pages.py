@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.autodoc.orchestration.utils import get_template_dir_for_type
+from bengal.autodoc.utils import get_template_dir_for_type
 from bengal.core.page import Page
 from bengal.core.section import Section
 

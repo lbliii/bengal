@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -79,7 +80,7 @@ def _normalize_cache_key(path: str) -> str:
 
     """
     # Normalize path separators (Windows -> Unix)
-    normalized = path.replace("\\", "/")
+    normalized = to_posix(path)
 
     # Strip leading "./"
     if normalized.startswith("./"):
@@ -292,7 +293,7 @@ def _build_lookup_maps(site: SiteLike) -> None:
         try:
             rel = p.source_path.relative_to(content_root)
             # Normalize path separators to forward slashes for consistent lookup
-            rel_str = str(rel).replace("\\", "/")
+            rel_str = to_posix(rel)
             by_content_relative[rel_str] = p
         except ValueError:
             # Path not relative to content root (maybe outside?), skip
@@ -331,7 +332,7 @@ def page_exists(path: str, site: SiteLike) -> bool:
     # Type narrowing: _page_lookup_maps may not be on SiteLike protocol
     maps = getattr(site, "_page_lookup_maps", None)
     assert maps is not None, "_build_lookup_maps should have set maps"
-    normalized = path.replace("\\", "/")
+    normalized = to_posix(path)
 
     if normalized in maps["relative"]:
         return True
@@ -396,7 +397,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             return None
 
         # Reject path traversal attempts (security)
-        normalized_path = path.replace("\\", "/")
+        normalized_path = to_posix(path)
         if "../" in normalized_path or normalized_path.startswith("../"):
             logger.debug("get_page_path_traversal_rejected", path=path, caller="template")
             cache[cache_key] = None  # Cache the rejection

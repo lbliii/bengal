@@ -10,8 +10,6 @@ Features:
 - Suggests optimal eagerness levels based on link frequency
 """
 
-from __future__ import annotations
-
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any

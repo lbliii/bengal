@@ -55,6 +55,8 @@ IMAGE_PATH_PATTERN = re.compile(
 class FigureOptions(DirectiveOptions):
     """Options for figure directive."""
 
+    _aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
     alt: str = ""
     caption: str = ""
     width: str = ""

@@ -65,6 +65,8 @@ YOUTUBE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 class YouTubeOptions(DirectiveOptions):
     """Options for YouTube video embed."""
 
+    _aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
     title: str = ""
     width: str = ""  # Empty means 100% (CSS default)
     aspect: str = "16/9"

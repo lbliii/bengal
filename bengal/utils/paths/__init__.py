@@ -18,22 +18,20 @@ Example:
 
 """
 
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.paths.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths.paths import BengalPaths, LegacyBengalPaths
 from bengal.utils.paths.url_normalization import join_url_paths, normalize_url, validate_url
 from bengal.utils.paths.url_strategy import URLStrategy
 
 __all__ = [
-    # paths
     "BengalPaths",
     "LegacyBengalPaths",
-    # path_resolver
     "PathResolver",
-    # url_strategy
     "URLStrategy",
     "join_url_paths",
-    # url_normalization
     "normalize_url",
     "resolve_path",
+    "to_posix",
     "validate_url",
 ]

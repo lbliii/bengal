@@ -17,8 +17,6 @@ GraphBuilder: Builds the knowledge graph from site data.
 
 """
 
-from __future__ import annotations
-
 import concurrent.futures
 import os
 import threading

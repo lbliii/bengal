@@ -1,375 +1,29 @@
 """
-Utility functions for the autodoc documentation extraction system.
+Typed metadata access utilities for autodoc.
 
-This module provides shared utilities used across all extractors and
-the orchestration layer.
+Provides type-safe accessor functions for DocElement.typed_metadata with automatic
+fallback to the untyped metadata dict. Use these instead of direct `.metadata.get()`
+calls for better IDE support and type safety.
 
-Text Processing:
-- `sanitize_text()`: Cleans docstrings for markdown generation
-- `truncate_text()`: Safely truncates long descriptions
-- `_convert_sphinx_roles()`: Converts RST cross-references to markdown
-
-Grouping & Path Resolution:
-- `auto_detect_prefix_map()`: Scans packages for automatic grouping
-- `apply_grouping()`: Maps module paths to documentation groups
-- `resolve_cli_url_path()`: Converts CLI command names to URL paths
-
-Typed Metadata Access:
-Type-safe accessor functions for DocElement.typed_metadata with automatic
-fallback to the untyped metadata dict. Use these instead of direct
-`.metadata.get()` calls for better IDE support:
-
-- `get_python_class_bases()`, `get_python_class_decorators()`
-- `get_python_function_signature()`, `get_python_function_return_type()`
-- `get_cli_command_callback()`, `get_cli_group_command_count()`
-- `get_openapi_method()`, `get_openapi_path()`, `get_openapi_tags()`
-
-Normalized Parameter Access:
-- `get_function_parameters()`: Unified parameter format across extractors
-- `get_function_return_info()`: Unified return type information
-
-Example:
-    >>> from bengal.autodoc.utils import sanitize_text, get_function_parameters
-    >>> clean = sanitize_text("    Indented docstring text.\n\n    More here.")
-    >>> params = get_function_parameters(doc_element)
-
-Related:
-- bengal/autodoc/base.py: DocElement data model
-- bengal/autodoc/models/: Typed metadata dataclasses
+Functions:
+- Python: get_python_class_*, get_python_function_*
+- CLI: get_cli_command_*, get_cli_group_*
+- OpenAPI: get_openapi_*
+- Normalized: get_function_parameters, get_function_return_info
 
 """
 
 from __future__ import annotations
 
-import re
-import textwrap
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.autodoc.base import DocElement
 
 
-def _convert_sphinx_roles(text: str) -> str:
-    """
-    Convert reStructuredText-style cross-reference roles to inline code.
-
-    Handles common reStructuredText roles:
-    - :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
-    - :func:`function_name` → `function_name()`
-    - :meth:`method_name` → `method_name()`
-    - :mod:`module_name` → `module_name`
-    - :attr:`attribute_name` → `attribute_name`
-    - :exc:`ExceptionName` → `ExceptionName`
-
-    Args:
-        text: Text containing reStructuredText roles
-
-    Returns:
-        Text with roles converted to inline code
-
-    Example:
-            >>> _convert_sphinx_roles("Use :class:`~bengal.core.Site` class")
-            'Use `Site` class'
-
-    """
-    # Pattern: :role:`~module.path.ClassName` or :role:`ClassName`
-    # The ~ prefix means "show only the last component"
-
-    # Helper to convert a single role type
-    def convert_role(
-        pattern_role: str, text: str, suffix: str = "", keep_full_path: bool = False
-    ) -> str:
-        if keep_full_path:
-            # For :mod: - keep full module path
-            pattern = rf":({pattern_role}):`~?([a-zA-Z0-9_.]+)`"
-            replacement = rf"`\2`{suffix}"
-        else:
-            # Extract just the last component (class/function name)
-            pattern = rf":({pattern_role}):`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`"
-            replacement = rf"`\2`{suffix}"
-
-        return re.sub(pattern, replacement, text)
-
-    # Convert each role type
-    text = convert_role("class", text)
-    text = convert_role("func", text, suffix="()")
-    text = convert_role("meth", text, suffix="()")
-    text = convert_role("mod", text, keep_full_path=True)
-    text = convert_role("attr", text)
-    text = convert_role("exc", text)
-    text = convert_role("const", text)
-    text = convert_role("data", text)
-
-    return text
-
-
-def sanitize_text(text: str | None) -> str:
-    """
-    Clean user-provided text for markdown generation.
-
-    This function is the single source of truth for text cleaning across
-    all autodoc extractors. It prevents common markdown rendering issues by:
-
-    - Removing leading/trailing whitespace
-    - Dedenting indented blocks (prevents accidental code blocks)
-    - Normalizing line endings
-    - Collapsing excessive blank lines
-
-    Args:
-        text: Raw text from docstrings, help text, or API specs
-
-    Returns:
-        Cleaned text safe for markdown generation
-
-    Example:
-            >>> text = '''
-            ...     Indented docstring text.
-            ...
-            ...     More content here.
-            ... '''
-            >>> sanitize_text(text)
-            'Indented docstring text.\n\nMore content here.'
-
-    """
-    if not text:
-        return ""
-
-    # Dedent to remove common leading whitespace
-    # This prevents "    text" from becoming a code block in markdown
-    text = textwrap.dedent(text)
-
-    # Strip leading/trailing whitespace
-    text = text.strip()
-
-    # Normalize line endings (Windows → Unix)
-    text = text.replace("\r\n", "\n")
-
-    # Convert reStructuredText-style cross-references to inline code
-    # :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
-    # :func:`function_name` → `function_name()`
-    # :meth:`method_name` → `method_name()`
-    # :mod:`module_name` → `module_name`
-    text = _convert_sphinx_roles(text)
-
-    # Collapse multiple blank lines to maximum of 2
-    # (2 blank lines = paragraph break in markdown, more is excessive)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-
-    return text
-
-
-def truncate_text(text: str, max_length: int = 200, suffix: str = "...") -> str:
-    """
-    Truncate text to a maximum length, adding suffix if truncated.
-
-    Args:
-        text: Text to truncate
-        max_length: Maximum length (default: 200)
-        suffix: Suffix to add if truncated (default: '...')
-
-    Returns:
-        Truncated text
-
-    Example:
-            >>> truncate_text('A very long description here', max_length=20)
-            'A very long descr...'
-
-    """
-    if len(text) <= max_length:
-        return text
-
-    # Find last space before max_length to avoid breaking words
-    truncate_at = text.rfind(" ", 0, max_length - len(suffix))
-    if truncate_at == -1:
-        truncate_at = max_length - len(suffix)
-
-    return text[:truncate_at].rstrip() + suffix
-
-
-def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> dict[str, str]:
-    """
-    Auto-detect grouping from __init__.py hierarchy.
-
-    Scans source directories for packages (directories containing __init__.py)
-    and builds a prefix map for every package path. Each entry maps the full
-    dotted module path to its slash-separated path relative to the stripped
-    prefix (e.g., "scaffolds" → "scaffolds"). Using the full path
-    ensures nested packages stay under their parent directories (scaffolds
-    lives under scaffolds/).
-
-    Args:
-        source_dirs: Directories to scan for packages
-        strip_prefix: Optional dotted prefix to remove from detected modules
-
-    Returns:
-        Prefix map: {"package.path": "group_path"}
-
-    Example:
-            >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
-        {
-            "cli": "cli",
-            "scaffolds": "scaffolds",
-            "core": "core",
-            "cache": "cache",
-        }
-
-    """
-    prefix_map: dict[str, str] = {}
-    normalized_strip = strip_prefix.rstrip(".") if strip_prefix else ""
-    strip_with_dot = f"{normalized_strip}." if normalized_strip else ""
-
-    for source_dir in source_dirs:
-        # Ensure source_dir is a Path
-        if not isinstance(source_dir, Path):
-            source_dir = Path(source_dir)
-
-        # Skip if directory doesn't exist
-        if not source_dir.exists() or not source_dir.is_dir():
-            continue
-
-        # Find all __init__.py files
-        for init_file in source_dir.rglob("__init__.py"):
-            package_dir = init_file.parent
-
-            # Skip if outside source_dir (shouldn't happen with rglob)
-            try:
-                rel_path = package_dir.relative_to(source_dir)
-            except ValueError:
-                # Not relative to source_dir, skip
-                continue
-
-            # Build module name from path
-            module_parts = list(rel_path.parts)
-            if not module_parts:
-                # Root __init__.py, skip
-                continue
-
-            module_name = ".".join(module_parts)
-
-            # Strip prefix if configured, respecting dot boundaries
-            if normalized_strip:
-                if module_name == normalized_strip:
-                    continue
-                if strip_with_dot and module_name.startswith(strip_with_dot):
-                    module_name = module_name[len(strip_with_dot) :]
-                elif strip_prefix and module_name.startswith(strip_prefix):
-                    # Handles cases where strip_prefix includes additional segments
-                    module_name = module_name[len(strip_prefix) :].lstrip(".")
-
-            module_name = module_name.lstrip(".")
-
-            # Skip if empty after stripping
-            if not module_name:
-                continue
-
-            display_path = module_name.replace(".", "/")
-            prefix_map.setdefault(module_name, display_path)
-
-    return prefix_map
-
-
-def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | None, str]:
-    """
-    Apply grouping config to qualified module name.
-
-    Args:
-        qualified_name: Full module name (e.g., "bengal.scaffolds.blog")
-        config: Grouping config dict with mode and prefix_map
-
-    Returns:
-        Tuple of (group_name, remaining_path):
-        - group_name: Top-level group (or None if no grouping)
-        - remaining_path: Path after group prefix
-
-    Example:
-            >>> apply_grouping("bengal.scaffolds.blog", {
-            ...     "mode": "auto",
-            ...     "prefix_map": {"scaffolds": "scaffolds"}
-            ... })
-        ("scaffolds", "blog")
-
-    """
-    mode = config.get("mode", "off")
-
-    # Mode "off" - no grouping
-    if mode == "off":
-        return None, qualified_name
-
-    # Get prefix map (already built for auto mode, provided for explicit)
-    prefix_map = config.get("prefix_map", {})
-    if not prefix_map:
-        return None, qualified_name
-
-    # Find longest matching prefix
-    # Check for exact match first (package is the group itself)
-    if qualified_name in prefix_map:
-        return prefix_map[qualified_name], ""
-
-    # Find longest matching parent prefix
-    best_match = None
-    best_length = 0
-
-    for prefix in prefix_map:
-        # Check if qualified_name starts with this prefix (dot-separated)
-        # Only match parent packages (not exact matches, handled above)
-        if qualified_name.startswith(prefix + "."):
-            prefix_length = len(prefix)
-            if prefix_length > best_length:
-                best_match = prefix
-                best_length = prefix_length
-
-    if not best_match:
-        return None, qualified_name
-
-    # Extract group and remaining path
-    group_name = prefix_map[best_match]
-    remaining = qualified_name[len(best_match) :].lstrip(".")
-
-    return group_name, remaining
-
-
-def resolve_cli_url_path(qualified_name: str) -> str:
-    """
-    Resolve CLI qualified name to a URL path by dropping the root command.
-
-    This ensures that CLI documentation paths are concise and don't redundantly
-    include the tool name (e.g., /cli/build instead of /cli/bengal/build).
-
-    Args:
-        qualified_name: Dotted qualified name from Click/Typer (e.g. 'bengal.build')
-
-    Returns:
-        Slash-separated path relative to CLI prefix
-
-    Example:
-            >>> resolve_cli_url_path("bengal.build")
-            'build'
-            >>> resolve_cli_url_path("bengal.site.new")
-            'site/new'
-            >>> resolve_cli_url_path("bengal")
-            ''
-
-    """
-    if not qualified_name:
-        return ""
-
-    parts = qualified_name.split(".")
-    if len(parts) > 1:
-        # Drop the first part (the root CLI name, e.g. "bengal")
-        return "/".join(parts[1:])
-
-    # This is the root group itself
-    return ""
-
-
 # =============================================================================
-# Typed Metadata Access Helpers
+# Python Metadata Accessors
 # =============================================================================
-#
-# These functions provide type-safe access to DocElement.typed_metadata with
-# automatic fallback to the untyped metadata dict. Use these instead of
-# direct .metadata.get() calls for better IDE support and type safety.
 
 
 def get_python_class_bases(element: DocElement) -> tuple[str, ...]:
@@ -503,6 +157,11 @@ def get_python_function_return_type(element: DocElement) -> str | None:
     return element.metadata.get("returns")
 
 
+# =============================================================================
+# CLI Metadata Accessors
+# =============================================================================
+
+
 def get_cli_command_callback(element: DocElement) -> str | None:
     """
     Get CLI command callback name with type-safe access.
@@ -555,6 +214,11 @@ def get_cli_group_command_count(element: DocElement) -> int:
     if isinstance(element.typed_metadata, CLIGroupMetadata):
         return element.typed_metadata.command_count
     return element.metadata.get("command_count", 0)
+
+
+# =============================================================================
+# OpenAPI Metadata Accessors
+# =============================================================================
 
 
 def get_openapi_tags(element: DocElement) -> tuple[str, ...]:
@@ -703,16 +367,16 @@ def get_function_parameters(
 
     # OpenAPI endpoints
     if isinstance(element.typed_metadata, OpenAPIEndpointMetadata):
-        for p in element.typed_metadata.parameters:
-            params.append(
-                {
-                    "name": p.name,
-                    "type": p.schema_type,
-                    "default": None,
-                    "required": p.required,
-                    "description": p.description or "",
-                }
-            )
+        params.extend(
+            {
+                "name": p.name,
+                "type": p.schema_type,
+                "default": None,
+                "required": p.required,
+                "description": p.description or "",
+            }
+            for p in element.typed_metadata.parameters
+        )
         return params
 
     # CLI commands - get options from children

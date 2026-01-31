@@ -45,6 +45,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
@@ -769,7 +770,7 @@ class ContentOrchestrator:
             try:
                 rel_path = page.source_path.relative_to(content_dir)
                 # Remove extension and normalize path separators
-                path_key = str(rel_path.with_suffix("")).replace("\\", "/")
+                path_key = to_posix(rel_path.with_suffix(""))
                 # Also handle _index.md -> directory path
                 if path_key.endswith("/_index"):
                     path_key = path_key[:-7]  # Remove '/_index'

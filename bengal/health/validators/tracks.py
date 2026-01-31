@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
@@ -156,7 +157,7 @@ class TrackValidator(BaseValidator):
 
                 try:
                     rel = p.source_path.relative_to(content_root)
-                    rel_str = str(rel).replace("\\", "/")
+                    rel_str = to_posix(rel)
                     by_content_relative[rel_str] = p
                 except ValueError:
                     # Page is not under content root; skip adding to relative map.
@@ -165,7 +166,7 @@ class TrackValidator(BaseValidator):
             site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
 
         maps = site._page_lookup_maps
-        normalized_path = path.replace("\\", "/")
+        normalized_path = to_posix(path)
 
         # Strategy 1: Direct lookup
         if normalized_path in maps["relative"]:

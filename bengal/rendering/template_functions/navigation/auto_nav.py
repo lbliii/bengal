@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -160,7 +161,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
         section_path_str = str(section.path)
         if "_versions" in section_path_str or "_shared" in section_path_str:
             # Check if this is a direct _versions or _shared section
-            path_parts = section_path_str.replace("\\", "/").split("/")
+            path_parts = to_posix(section_path_str).split("/")
             if "_versions" in path_parts or "_shared" in path_parts:
                 continue
 
@@ -174,7 +175,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
         # Skip _versions and _shared directories (versioning internal directories)
         if hasattr(section, "path") and section.path:
             section_path_str = str(section.path)
-            path_parts = section_path_str.replace("\\", "/").split("/")
+            path_parts = to_posix(section_path_str).split("/")
             if "_versions" in path_parts or "_shared" in path_parts:
                 return
 

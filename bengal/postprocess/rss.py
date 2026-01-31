@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
@@ -176,9 +177,9 @@ class RSSGenerator:
                         rel_path = page.output_path.relative_to(self.site.output_dir)
                         # Ensure proper URL construction: baseurl + / + rel_path
                         if baseurl:
-                            link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                            link = f"{baseurl}/{to_posix(rel_path)}"
                         else:
-                            link = f"/{rel_path}".replace("\\", "/")
+                            link = f"/{to_posix(rel_path)}"
                         link = link.replace("/index.html", "/")
                     except ValueError:
                         link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"

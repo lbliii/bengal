@@ -31,11 +31,9 @@ See Also:
 
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
-from bengal.errors import BengalGraphError, ErrorCode
+from bengal.analysis.utils.validation import require_built
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
@@ -76,15 +74,7 @@ class GraphAnalyzer:
         """
         self._graph = graph
 
-    def _ensure_built(self) -> None:
-        """Verify the graph has been built before analysis."""
-        if not self._graph._built:
-            raise BengalGraphError(
-                "KnowledgeGraph is not built",
-                code=ErrorCode.G001,
-                suggestion="Call graph.build() before performing analysis",
-            )
-
+    @require_built
     def get_connectivity(self, page: PageLike) -> PageConnectivity:
         """
         Get connectivity information for a specific page.
@@ -100,8 +90,6 @@ class GraphAnalyzer:
         """
         from bengal.analysis.graph.metrics import PageConnectivity
 
-        self._ensure_built()
-
         incoming = self._graph.incoming_refs.get(page, 0)
         outgoing = len(self._graph.outgoing_refs.get(page, set()))
         connectivity = int(incoming + outgoing)
@@ -116,6 +104,7 @@ class GraphAnalyzer:
             is_orphan=(incoming == 0 and outgoing == 0),
         )
 
+    @require_built
     def get_connectivity_score(self, page: PageLike) -> int:
         """
         Get total connectivity score for a page.
@@ -131,11 +120,11 @@ class GraphAnalyzer:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        self._ensure_built()
         incoming = self._graph.incoming_refs.get(page, 0)
         outgoing = len(self._graph.outgoing_refs.get(page, set()))
         return int(incoming + outgoing)
 
+    @require_built
     def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get hub pages (highly connected pages).
@@ -154,8 +143,6 @@ class GraphAnalyzer:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        self._ensure_built()
-
         threshold = threshold if threshold is not None else self._graph.hub_threshold
 
         hubs = [
@@ -169,6 +156,7 @@ class GraphAnalyzer:
 
         return hubs
 
+    @require_built
     def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
         """
         Get leaf pages (low connectivity pages).
@@ -187,8 +175,6 @@ class GraphAnalyzer:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        self._ensure_built()
-
         threshold = threshold if threshold is not None else self._graph.leaf_threshold
 
         leaves = [
@@ -202,6 +188,7 @@ class GraphAnalyzer:
 
         return leaves
 
+    @require_built
     def get_orphans(self) -> list[PageLike]:
         """
         Get orphaned pages (no connections at all).
@@ -217,8 +204,6 @@ class GraphAnalyzer:
         Raises:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
-        self._ensure_built()
-
         # Get analysis pages (already excludes autodoc)
         analysis_pages = self._graph.get_analysis_pages()
         orphans = [
@@ -234,6 +219,7 @@ class GraphAnalyzer:
 
         return orphans
 
+    @require_built
     def get_layers(self) -> PageLayers:
         """
         Partition pages into three layers by connectivity.
@@ -251,8 +237,6 @@ class GraphAnalyzer:
             BengalGraphError: If graph hasn't been built yet (G001)
         """
         from bengal.analysis.results import PageLayers
-
-        self._ensure_built()
 
         # Sort all pages by connectivity (descending)
         sorted_pages = sorted(

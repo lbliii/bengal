@@ -174,7 +174,8 @@ class TestIconDirectiveIntegration:
         Use the terminal for commands.
         """)
         result = parser.parse(markdown, {})
-        assert "<h2>" in result
+        # PatitasParser adds id attributes to headings
+        assert "<h2" in result
         assert "<svg" in result
 
     def test_icon_in_paragraph(self, parser):

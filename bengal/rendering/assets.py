@@ -38,6 +38,7 @@ from typing import Any, Protocol
 from bengal.utils.concurrency.thread_local import ThreadSafeSet
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.observability import ComponentStats
+from bengal.utils.paths.normalize import to_posix
 
 
 class AssetSiteLike(Protocol):
@@ -254,7 +255,7 @@ def resolve_asset_url(
         url = with_baseurl("/assets/", site)
     else:
         # Normalize path
-        clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
+        clean_path = to_posix(asset_path).strip().lstrip("/")
 
         baseurl_value = (site.baseurl or "").rstrip("/")
 

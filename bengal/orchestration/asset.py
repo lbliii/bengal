@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.assets.manifest import AssetManifest
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 logger = get_logger(__name__)
 
@@ -624,7 +625,7 @@ class AssetOrchestrator:
                 if js_dir:
                     # Get relative path from js_dir (e.g., "core/theme.js" or "utils.js")
                     rel_path = a.source_path.relative_to(js_dir)
-                    rel_path_str = str(rel_path).replace("\\", "/")  # Normalize Windows paths
+                    rel_path_str = to_posix(rel_path)
                     module_map[rel_path_str] = a.source_path
                     # Also index by filename
                     if rel_path_str != a.source_path.name:
@@ -640,7 +641,7 @@ class AssetOrchestrator:
                     target_file = module_map[name]
                     # Canonicalize for exclusion check
                     rel_path_str = (
-                        str(target_file.relative_to(js_dir)).replace("\\", "/")
+                        to_posix(target_file.relative_to(js_dir))
                         if js_dir
                         else target_file.name
                     )

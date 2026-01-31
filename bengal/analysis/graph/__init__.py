@@ -22,8 +22,6 @@ Related:
 
 """
 
-from __future__ import annotations
-
 from bengal.analysis.graph.analyzer import GraphAnalyzer
 from bengal.analysis.graph.builder import GraphBuilder
 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph

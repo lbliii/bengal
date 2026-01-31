@@ -14,8 +14,6 @@ Related:
 
 """
 
-from __future__ import annotations
-
 from bengal.analysis.performance.advisor import PerformanceAdvisor, analyze_build
 from bengal.analysis.performance.path_analysis import PathAnalysisResults, PathAnalyzer
 

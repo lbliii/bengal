@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     pass
@@ -36,7 +37,7 @@ def normalize_and_validate_asset_path(raw_path: str) -> str:
 
     """
     # Convert Windows-style separators and trim whitespace
-    candidate = (raw_path or "").replace("\\", "/").strip()
+    candidate = to_posix(raw_path or "").strip()
     # Remove any leading slash to keep it relative inside /assets
     while candidate.startswith("/"):
         candidate = candidate[1:]
