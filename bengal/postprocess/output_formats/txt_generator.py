@@ -65,7 +65,9 @@ from typing import TYPE_CHECKING
 from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
     get_page_txt_path,
+    parallel_write_files,
 )
+from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
@@ -136,11 +138,10 @@ class PageTxtGenerator:
         Returns:
             Number of TXT files generated
         """
-        import concurrent.futures
-        from typing import Any
+        from pathlib import Path
 
         # Prepare all page data first
-        page_items: list[tuple[Any, str]] = []
+        page_items: list[tuple[Path, str]] = []
         for page in pages:
             txt_path = get_page_txt_path(page)
             if not txt_path:
@@ -151,38 +152,14 @@ class PageTxtGenerator:
         if not page_items:
             return 0
 
-        # Write files in parallel
-        def write_txt(item: tuple[Any, str]) -> bool:
-            txt_path, text = item
-            try:
-                txt_path.parent.mkdir(parents=True, exist_ok=True)
-                with AtomicFile(txt_path, "w", encoding="utf-8") as f:
-                    f.write(text)
-                return True
-            except Exception as e:
-                logger.warning(
-                    "page_txt_write_failed",
-                    path=str(txt_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    suggestion="Check output directory permissions and available disk space.",
-                )
-                return False
+        # Write function for parallel execution
+        def write_txt(path: Path, content: str) -> None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with AtomicFile(path, "w", encoding="utf-8") as f:
+                f.write(content)
 
-        # Use thread pool for I/O-bound writes
-        count = 0
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                # Consume iterator fully before exiting context manager
-                # This ensures all tasks complete and exceptions are raised properly
-                results = list(executor.map(write_txt, page_items))
-                count = sum(1 for r in results if r)
-        except RuntimeError as e:
-            # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
-            if "interpreter shutdown" in str(e):
-                logger.debug("page_txt_shutdown", reason="interpreter_shutting_down")
-                return count
-            raise
+        # Use parallel write utility
+        count = parallel_write_files(page_items, write_txt, operation_name="page_txt_write")
 
         logger.info("page_txt_generated", count=count)
         return count
@@ -206,26 +183,13 @@ class PageTxtGenerator:
         url = get_page_relative_url(page, self.site)
         lines.append(f"URL: {url}")
 
-        section_name = (
-            getattr(page._section, "name", "")
-            if hasattr(page, "_section") and page._section
-            else ""
-        )
+        section_name = get_section_name(page)
         if section_name:
             lines.append(f"Section: {section_name}")
 
-        if page.tags:
-            tags = page.tags
-            # Ensure tags is iterable
-            if isinstance(tags, list | tuple):
-                tags_list = list(tags)
-            else:
-                try:
-                    tags_list = list(tags) if tags else []
-                except (TypeError, ValueError):
-                    tags_list = []
-            if tags_list:
-                lines.append(f"Tags: {', '.join(str(tag) for tag in tags_list)}")
+        tags_list = tags_to_list(page.tags)
+        if tags_list:
+            lines.append(f"Tags: {', '.join(str(tag) for tag in tags_list)}")
 
         if page.date:
             lines.append(f"Date: {page.date.strftime('%Y-%m-%d')}")

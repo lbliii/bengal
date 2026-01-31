@@ -195,6 +195,11 @@ cli.path("/public", label="Output")  # "Output:\n   ↪ /public"
 
 ## Related Files
 
-- `bengal/output/icons.py` - Icon set definitions
 - `bengal/output/core.py` - CLIOutput implementation
+- `bengal/output/icons.py` - Icon set definitions
+- `bengal/output/enums.py` - MessageLevel and OutputStyle enums
+- `bengal/output/utils.py` - ANSI codes and HTTP color mappings
+- `bengal/output/colors.py` - Re-exports from utils.py (backward compat)
+- `bengal/output/dev_server.py` - Dev server output mixin
+- `bengal/output/globals.py` - Singleton access (get_cli_output)
 - `bengal/utils/rich_console.py` - Rich console and theme configuration

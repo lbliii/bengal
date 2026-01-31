@@ -28,13 +28,11 @@ RFC: rfc-asset-resolution-observability.md (Observability)
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
+from bengal.rendering.utils.contextvar import ContextVarManager
 from bengal.utils.concurrency.thread_local import ThreadSafeSet
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.observability import ComponentStats
@@ -84,12 +82,12 @@ __all__ = [
 ]
 
 # =============================================================================
-# Observability: Stats Tracking (ContextVar-based)
+# Observability: Stats Tracking (ContextVarManager-based)
 # RFC: rfc-asset-resolution-observability.md (Phase 2)
 # =============================================================================
 
-# Thread-safe stats via ContextVar (matches manifest pattern)
-_resolution_stats: ContextVar[ComponentStats | None] = ContextVar("resolution_stats", default=None)
+# Thread-safe stats via ContextVarManager
+_resolution_stats: ContextVarManager[ComponentStats] = ContextVarManager("resolution_stats")
 
 
 def get_resolution_stats() -> ComponentStats | None:
@@ -99,7 +97,7 @@ def get_resolution_stats() -> ComponentStats | None:
         ComponentStats instance if resolution has occurred, None otherwise.
 
     Thread Safety:
-        Uses ContextVar - each thread/context has independent stats.
+        Uses ContextVarManager - each thread/context has independent stats.
     """
     return _resolution_stats.get()
 
@@ -135,11 +133,8 @@ class AssetManifestContext:
     mtime: float | None = None  # For cache invalidation
 
 
-# Thread-local manifest via ContextVar (default None for graceful fallback)
-_asset_manifest: ContextVar[AssetManifestContext | None] = ContextVar(
-    "asset_manifest",
-    default=None,
-)
+# Thread-local manifest via ContextVarManager (default None for graceful fallback)
+_asset_manifest: ContextVarManager[AssetManifestContext] = ContextVarManager("asset_manifest")
 
 
 def get_asset_manifest() -> AssetManifestContext | None:
@@ -154,7 +149,7 @@ def get_asset_manifest() -> AssetManifestContext | None:
     return _asset_manifest.get()
 
 
-def set_asset_manifest(ctx: AssetManifestContext) -> Token[AssetManifestContext | None]:
+def set_asset_manifest(ctx: AssetManifestContext):
     """Set asset manifest for current context.
 
     Returns a token that can be used to restore the previous value.
@@ -169,7 +164,7 @@ def set_asset_manifest(ctx: AssetManifestContext) -> Token[AssetManifestContext 
     return _asset_manifest.set(ctx)
 
 
-def reset_asset_manifest(token: Token[AssetManifestContext | None] | None = None) -> None:
+def reset_asset_manifest(token=None) -> None:
     """Reset asset manifest context.
 
     If token is provided, restores to the previous value (proper nesting).
@@ -178,14 +173,10 @@ def reset_asset_manifest(token: Token[AssetManifestContext | None] | None = None
     Args:
         token: Optional token from set_asset_manifest() for proper nesting support.
     """
-    if token is not None:
-        _asset_manifest.reset(token)
-    else:
-        _asset_manifest.set(None)
+    _asset_manifest.reset(token)
 
 
-@contextmanager
-def asset_manifest_context(ctx: AssetManifestContext) -> Iterator[AssetManifestContext]:
+def asset_manifest_context(ctx: AssetManifestContext):
     """Context manager for scoped asset manifest usage.
 
     Properly restores previous context on exit (supports nesting).
@@ -208,11 +199,7 @@ def asset_manifest_context(ctx: AssetManifestContext) -> Iterator[AssetManifestC
     Yields:
         The context that was set (same as input).
     """
-    token = set_asset_manifest(ctx)
-    try:
-        yield ctx
-    finally:
-        reset_asset_manifest(token)
+    return _asset_manifest(ctx)
 
 
 # =============================================================================
@@ -249,10 +236,10 @@ def resolve_asset_url(
             '/bengal/assets/css/style.css'  # Non-fingerprinted
 
     """
-    from bengal.rendering.template_engine.url_helpers import with_baseurl
+    from bengal.rendering.utils.url import apply_baseurl
 
     if not asset_path:
-        url = with_baseurl("/assets/", site)
+        url = apply_baseurl("/assets/", site)
     else:
         # Normalize path
         clean_path = to_posix(asset_path).strip().lstrip("/")
@@ -264,15 +251,15 @@ def resolve_asset_url(
             url = _resolve_file_protocol(clean_path, site, page)
         # In dev server mode, prefer stable URLs without fingerprints
         elif getattr(site, "dev_mode", False):
-            url = with_baseurl(f"/assets/{clean_path}", site)
+            url = apply_baseurl(f"/assets/{clean_path}", site)
         else:
             # Look up fingerprinted path from manifest
             fingerprinted_path = _resolve_fingerprinted(clean_path, site)
             if fingerprinted_path:
-                url = with_baseurl(f"/{fingerprinted_path}", site)
+                url = apply_baseurl(f"/{fingerprinted_path}", site)
             else:
                 # Fallback: return direct asset path
-                url = with_baseurl(f"/assets/{clean_path}", site)
+                url = apply_baseurl(f"/assets/{clean_path}", site)
 
     # RFC: rfc-build-performance-optimizations Phase 2
     # Track asset reference if tracker is active (render-time tracking)
@@ -415,7 +402,7 @@ def clear_manifest_cache(site: AssetSiteLike | None = None) -> None:
     """
     Clear the asset manifest cache and reset observability state.
 
-    With ContextVar pattern, this resets the thread-local manifest to None.
+    With ContextVarManager pattern, this resets the thread-local manifest to None.
     Also resets resolution stats and fallback warning deduplication.
     The site parameter is kept for backward compatibility but is not used.
 
@@ -427,5 +414,5 @@ def clear_manifest_cache(site: AssetSiteLike | None = None) -> None:
         site: Unused (kept for backward compatibility)
     """
     reset_asset_manifest()
-    _resolution_stats.set(None)
+    _resolution_stats.reset()
     _fallback_warned.clear()

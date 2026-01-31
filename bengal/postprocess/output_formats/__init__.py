@@ -31,6 +31,7 @@ from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
+from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -373,11 +374,7 @@ class OutputFormatsGenerator:
                 continue
 
             # Check section exclusions
-            section_name = (
-                getattr(page._section, "name", "")
-                if hasattr(page, "_section") and page._section
-                else ""
-            )
+            section_name = get_section_name(page)
             if section_name in exclude_sections:
                 excluded_by_section += 1
                 continue

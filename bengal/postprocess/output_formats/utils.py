@@ -2,9 +2,9 @@
 Shared utilities for output format generation.
 
 Provides common functions used across all output format generators
-including text processing, URL handling, path resolution, and content
-normalization. These utilities ensure consistent behavior across JSON,
-TXT, index, and LLM text generators.
+including text processing, URL handling, path resolution, content
+normalization, and parallel I/O operations. These utilities ensure
+consistent behavior across JSON, TXT, index, and LLM text generators.
 
 Functions:
 Text Processing:
@@ -20,6 +20,11 @@ URL Handling:
 Path Resolution:
     - get_page_json_path: Get output path for page's JSON file
     - get_page_txt_path: Get output path for page's TXT file
+    - get_i18n_output_path: Get output path with i18n prefix handling
+
+I/O Operations:
+    - parallel_write_files: Write files in parallel with ThreadPoolExecutor
+    - write_if_content_changed: Hash-based change detection for writes
 
 Implementation Notes:
 Text utilities delegate to bengal.utils.text for DRY compliance.
@@ -31,11 +36,14 @@ Example:
     ...     generate_excerpt,
     ...     get_page_json_path,
     ...     get_page_url,
+    ...     get_i18n_output_path,
+    ...     parallel_write_files,
     ... )
     >>>
     >>> excerpt = generate_excerpt(page.plain_text, length=200)
     >>> json_path = get_page_json_path(page)
     >>> url = get_page_url(page, site)
+    >>> index_path = get_i18n_output_path(site, "index.json")
 
 Related:
 - bengal.utils.text: Canonical text processing utilities
@@ -45,15 +53,21 @@ Related:
 
 from __future__ import annotations
 
+import concurrent.futures
+import hashlib
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
+from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import normalize_url as _normalize_url_base
 from bengal.utils.primitives.text import normalize_whitespace
 from bengal.utils.primitives.text import strip_html as _strip_html_base
 
 logger = get_logger(__name__)
+
+T = TypeVar("T")
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -237,3 +251,182 @@ def normalize_url(url: str) -> str:
     # For consistency with original behavior, return empty for empty input
     # (canonical returns "/" for empty, but this is filtered in usage anyway)
     return normalized
+
+
+def get_i18n_output_path(site: SiteLike, filename: str) -> Path:
+    """
+    Get output path with i18n prefix handling.
+
+    When i18n strategy is "prefix" and the current language requires a
+    subdirectory, returns path under the language prefix. Otherwise
+    returns path directly under output_dir.
+
+    Args:
+        site: Site instance with config and output_dir
+        filename: Output filename (e.g., "index.json", "search-index.json")
+
+    Returns:
+        Path to the output file, with i18n prefix if applicable
+
+    Example:
+        >>> # Non-i18n or default language without subdir
+        >>> get_i18n_output_path(site, "index.json")
+        Path("/output/index.json")
+        >>>
+        >>> # i18n prefix strategy with non-default language
+        >>> get_i18n_output_path(site, "index.json")
+        Path("/output/es/index.json")
+
+    """
+    i18n = site.config.get("i18n", {}) or {}
+
+    if i18n.get("strategy") == "prefix":
+        default_lang = i18n.get("default_language", "en")
+        current_lang = getattr(site, "current_language", None) or default_lang
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+
+        # Put in language subdir if: non-default language OR default_in_subdir is True
+        if default_in_subdir or current_lang != default_lang:
+            return site.output_dir / current_lang / filename
+
+    return site.output_dir / filename
+
+
+def parallel_write_files(
+    items: list[tuple[Path, T]],
+    write_fn: Callable[[Path, T], None],
+    max_workers: int = 8,
+    operation_name: str = "file_write",
+) -> int:
+    """
+    Write files in parallel using ThreadPoolExecutor.
+
+    Handles graceful shutdown during interpreter exit and provides
+    consistent error handling across all generators.
+
+    Args:
+        items: List of (path, content) tuples to write
+        write_fn: Function that takes (path, content) and writes the file
+        max_workers: Maximum parallel workers (default: 8)
+        operation_name: Name for logging purposes
+
+    Returns:
+        Number of files successfully written
+
+    Example:
+        >>> def write_json(path: Path, data: dict) -> None:
+        ...     path.parent.mkdir(parents=True, exist_ok=True)
+        ...     with AtomicFile(path, "w") as f:
+        ...         json.dump(data, f)
+        >>>
+        >>> items = [(Path("a.json"), {"a": 1}), (Path("b.json"), {"b": 2})]
+        >>> count = parallel_write_files(items, write_json)
+
+    Note:
+        The write_fn should handle directory creation and use atomic writes.
+        Exceptions in write_fn are caught and logged, not propagated.
+
+    """
+    if not items:
+        return 0
+
+    def safe_write(item: tuple[Path, T]) -> bool:
+        path, content = item
+        try:
+            write_fn(path, content)
+            return True
+        except Exception as e:
+            logger.warning(
+                f"{operation_name}_failed",
+                path=str(path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return False
+
+    count = 0
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Consume iterator fully before exiting context manager
+            # This ensures all tasks complete and exceptions are raised properly
+            results = list(executor.map(safe_write, items))
+            count = sum(1 for r in results if r)
+    except RuntimeError as e:
+        # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
+        if "interpreter shutdown" in str(e):
+            logger.debug(f"{operation_name}_shutdown", reason="interpreter_shutting_down")
+            return count
+        raise
+
+    return count
+
+
+def write_if_content_changed(
+    path: Path,
+    content: str,
+    hash_suffix: str = ".hash",
+) -> bool:
+    """
+    Write file only if content hash has changed.
+
+    Uses SHA-256 hash comparison to avoid unnecessary writes:
+    - O(1) hash comparison vs O(n) string comparison
+    - Avoids reading entire existing file into memory
+    - Hash stored in sidecar file (e.g., file.json.hash)
+
+    Args:
+        path: Output file path
+        content: Content to write
+        hash_suffix: Suffix for hash sidecar file (default: ".hash")
+
+    Returns:
+        True if file was written (content changed), False if skipped
+
+    Example:
+        >>> changed = write_if_content_changed(
+        ...     Path("index.json"),
+        ...     json.dumps(data),
+        ... )
+        >>> if changed:
+        ...     logger.info("Index updated")
+
+    Note:
+        Both content file and hash file are written atomically to
+        prevent inconsistent state on crash.
+
+    """
+    # Compute hash of new content
+    new_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+    # Determine hash file path
+    hash_path = path.parent / f"{path.name}{hash_suffix}"
+
+    # Check if content unchanged via hash comparison
+    try:
+        if hash_path.exists():
+            existing_hash = hash_path.read_text(encoding="utf-8").strip()
+            if existing_hash == new_hash:
+                logger.debug(
+                    "write_skipped_unchanged",
+                    path=str(path),
+                    reason="content_hash_unchanged",
+                )
+                return False
+    except Exception as e:
+        # Hash check failed, proceed to write
+        logger.debug(
+            "hash_check_failed",
+            path=str(hash_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="proceeding_to_write",
+        )
+
+    # Write content and hash atomically
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with AtomicFile(path, "w", encoding="utf-8") as f:
+        f.write(content)
+    with AtomicFile(hash_path, "w", encoding="utf-8") as f:
+        f.write(new_hash)
+
+    return True

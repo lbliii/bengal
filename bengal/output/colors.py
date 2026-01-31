@@ -34,13 +34,20 @@ from __future__ import annotations
 
 # Re-export from utils for backward compatibility
 # Old names mapped to new names
-from bengal.output.utils import get_method_ansi as get_method_color_code
-from bengal.output.utils import get_method_style, get_status_ansi as get_status_color_code
-from bengal.output.utils import get_status_style
+from bengal.output.utils import (
+    get_method_ansi as get_method_color_code,
+)
+from bengal.output.utils import (
+    get_method_style,
+    get_status_style,
+)
+from bengal.output.utils import (
+    get_status_ansi as get_status_color_code,
+)
 
 __all__ = [
-    "get_status_color_code",
-    "get_status_style",
     "get_method_color_code",
     "get_method_style",
+    "get_status_color_code",
+    "get_status_style",
 ]

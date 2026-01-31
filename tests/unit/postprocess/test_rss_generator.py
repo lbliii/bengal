@@ -418,17 +418,14 @@ class TestRSSGeneratorIndentation:
     """Test XML indentation functionality."""
 
     def test_indent_adds_whitespace(self) -> None:
-        """Test that _indent adds whitespace to XML."""
-        from bengal.postprocess.rss import RSSGenerator
-
-        site = MagicMock()
-        generator = RSSGenerator(site)
+        """Test that indent_xml adds whitespace to XML."""
+        from bengal.postprocess.utils import indent_xml
 
         rss = ET.Element("rss")
         channel = ET.SubElement(rss, "channel")
         ET.SubElement(channel, "title").text = "Test"
 
-        generator._indent(rss)
+        indent_xml(rss)
 
         # After indentation, elements should have text/tail with newlines
         assert channel.text is not None or channel.tail is not None

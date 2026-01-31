@@ -28,6 +28,7 @@ import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
+from bengal.postprocess.utils import indent_xml
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -210,7 +211,7 @@ class SitemapGenerator:
         sitemap_path = self.site.output_dir / "sitemap.xml"
 
         # Format XML with indentation
-        self._indent(urlset)
+        indent_xml(urlset)
 
         # Write atomically using context manager
         try:
@@ -293,27 +294,3 @@ class SitemapGenerator:
         else:
             # Older versions get lower priority but still indexed
             return "0.3"
-
-    def _indent(self, elem: ET.Element, level: int = 0) -> None:
-        """
-        Add indentation to XML for readability.
-
-        Args:
-            elem: XML element to indent
-            level: Current indentation level
-        """
-        indent = "\n" + "  " * level
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = indent + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = indent
-            last_child: ET.Element | None = None
-            for child in elem:
-                self._indent(child, level + 1)
-                last_child = child
-            # Set tail on last child (last_child is guaranteed non-None when len(elem) > 0)
-            if last_child is not None and (not last_child.tail or not last_child.tail.strip()):
-                last_child.tail = indent
-        elif level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = indent

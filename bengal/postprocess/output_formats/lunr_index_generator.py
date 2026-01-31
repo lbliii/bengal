@@ -33,6 +33,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.postprocess.output_formats.utils import get_i18n_output_path
 from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
@@ -258,15 +259,7 @@ class LunrIndexGenerator:
 
     def _get_index_json_path(self) -> Path:
         """Get the path to index.json, handling i18n prefixes."""
-        i18n = self.site.config.get("i18n", {}) or {}
-        if i18n.get("strategy") == "prefix":
-            current_lang = getattr(self.site, "current_language", None) or i18n.get(
-                "default_language", "en"
-            )
-            default_in_subdir = bool(i18n.get("default_in_subdir", False))
-            if default_in_subdir or current_lang != i18n.get("default_language", "en"):
-                return Path(self.site.output_dir) / str(current_lang) / "index.json"
-        return Path(self.site.output_dir) / "index.json"
+        return get_i18n_output_path(self.site, "index.json")
 
     def _get_output_path(self, index_json_path: Path | None = None) -> Path:
         """
@@ -286,12 +279,4 @@ class LunrIndexGenerator:
             return index_json_path.parent / "search-index.json"
 
         # Default behavior: handle i18n prefixes
-        i18n = self.site.config.get("i18n", {}) or {}
-        if i18n.get("strategy") == "prefix":
-            current_lang = getattr(self.site, "current_language", None) or i18n.get(
-                "default_language", "en"
-            )
-            default_in_subdir = bool(i18n.get("default_in_subdir", False))
-            if default_in_subdir or current_lang != i18n.get("default_language", "en"):
-                return Path(self.site.output_dir) / str(current_lang) / "search-index.json"
-        return Path(self.site.output_dir) / "search-index.json"
+        return get_i18n_output_path(self.site, "search-index.json")

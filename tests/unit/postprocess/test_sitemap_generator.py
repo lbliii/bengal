@@ -340,17 +340,14 @@ class TestSitemapGeneratorIndentation:
     """Test XML indentation functionality."""
 
     def test_indent_adds_whitespace(self) -> None:
-        """Test that _indent adds whitespace to XML."""
-        from bengal.postprocess.sitemap import SitemapGenerator
-
-        site = MagicMock()
-        generator = SitemapGenerator(site)
+        """Test that indent_xml adds whitespace to XML."""
+        from bengal.postprocess.utils import indent_xml
 
         urlset = ET.Element("urlset")
         url_elem = ET.SubElement(urlset, "url")
         ET.SubElement(url_elem, "loc").text = "https://example.com/"
 
-        generator._indent(urlset)
+        indent_xml(urlset)
 
         # After indentation, elements should have text/tail with newlines
         assert url_elem.text is not None or url_elem.tail is not None

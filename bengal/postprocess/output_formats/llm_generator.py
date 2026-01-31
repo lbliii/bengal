@@ -70,7 +70,9 @@ from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
+    write_if_content_changed,
 )
+from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
@@ -198,25 +200,13 @@ class SiteLlmTxtGenerator:
                 url = get_page_relative_url(page, self.site)
                 f.write(f"URL: {url}\n")
 
-                section_name = (
-                    getattr(page._section, "name", "")
-                    if hasattr(page, "_section") and page._section
-                    else ""
-                )
+                section_name = get_section_name(page)
                 if section_name:
                     f.write(f"Section: {section_name}\n")
 
-                if page.tags:
-                    tags = page.tags
-                    if isinstance(tags, list | tuple):
-                        tags_list = list(tags)
-                    else:
-                        try:
-                            tags_list = list(tags) if tags else []
-                        except (TypeError, ValueError):
-                            tags_list = []
-                    if tags_list:
-                        f.write(f"Tags: {', '.join(str(tag) for tag in tags_list)}\n")
+                tags_list = tags_to_list(page.tags)
+                if tags_list:
+                    f.write(f"Tags: {', '.join(str(tag) for tag in tags_list)}\n")
 
                 if page.date:
                     f.write(f"Date: {page.date.strftime('%Y-%m-%d')}\n")

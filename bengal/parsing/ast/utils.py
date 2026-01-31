@@ -29,11 +29,11 @@ See Also:
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections.abc import Iterator
 from typing import Any
 
 from bengal.parsing.ast.types import ASTNode, is_heading, is_link, is_text
+from bengal.utils.primitives.text import slugify
 
 
 def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
@@ -69,6 +69,7 @@ def generate_heading_id(node: ASTNode) -> str:
     Generate a URL-friendly ID from a heading node.
 
     Extracts text content and converts to a slug suitable for anchor links.
+    Uses the shared slugify utility from bengal.utils.primitives.text.
 
     Args:
         node: A heading node
@@ -83,7 +84,7 @@ def generate_heading_id(node: ASTNode) -> str:
 
     """
     text = extract_text_from_node(node)
-    return _slugify(text)
+    return slugify(text, unescape_html=True, max_length=100)
 
 
 def extract_text_from_node(node: ASTNode) -> str:
@@ -108,29 +109,6 @@ def extract_text_from_node(node: ASTNode) -> str:
             parts.append(extract_text_from_node(child))
 
     return "".join(parts)
-
-
-def _slugify(text: str) -> str:
-    """
-    Convert text to a URL-friendly slug.
-
-    Args:
-        text: Text to slugify
-
-    Returns:
-        Lowercase, hyphenated slug
-
-    """
-    # Normalize unicode
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("ascii")
-    # Lowercase
-    text = text.lower()
-    # Replace non-alphanumeric with hyphens
-    text = re.sub(r"[^a-z0-9]+", "-", text)
-    # Remove leading/trailing hyphens
-    text = text.strip("-")
-    return text
 
 
 def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:

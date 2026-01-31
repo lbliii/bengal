@@ -518,27 +518,37 @@ class Markdown:
             site=site,
         )
 
+    def _get_config_with_transformer[T](
+        self, base_config: T, text_transformer: Callable[[str], str] | None
+    ) -> T:
+        """Get config, optionally with text_transformer override.
+
+        Generic helper to avoid duplication between parse and render configs.
+
+        Args:
+            base_config: The base configuration (ParseConfig or RenderConfig)
+            text_transformer: Optional text transformer to apply
+
+        Returns:
+            The config (unchanged if no transformer, or new copy with transformer)
+        """
+        if text_transformer is None:
+            return base_config
+        from dataclasses import replace
+
+        return replace(base_config, text_transformer=text_transformer)
+
     def _get_parse_config(
         self, text_transformer: Callable[[str], str] | None = None
     ) -> ParseConfig:
         """Get parse config, optionally with text_transformer override."""
-        if text_transformer is None:
-            return self._parse_config
-        # Create new config with text_transformer (frozen dataclass, so we rebuild)
-        from dataclasses import replace
-
-        return replace(self._parse_config, text_transformer=text_transformer)
+        return self._get_config_with_transformer(self._parse_config, text_transformer)
 
     def _get_render_config(
         self, text_transformer: Callable[[str], str] | None = None
     ) -> RenderConfig:
         """Get render config, optionally with text_transformer override."""
-        if text_transformer is None:
-            return self._render_config
-        # Create new config with text_transformer (frozen dataclass, so we rebuild)
-        from dataclasses import replace
-
-        return replace(self._render_config, text_transformer=text_transformer)
+        return self._get_config_with_transformer(self._render_config, text_transformer)
 
     def _parse_to_ast(
         self, source: str, text_transformer: Callable[[str], str] | None = None
