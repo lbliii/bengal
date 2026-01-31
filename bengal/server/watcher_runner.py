@@ -94,6 +94,7 @@ class WatcherRunner:
 
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
+        self._async_stop_event: asyncio.Event | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
         # Change accumulation (thread-safe)
@@ -134,6 +135,10 @@ class WatcherRunner:
         # Signal the watch loop to exit gracefully
         self._stop_event.set()
 
+        # Set the async stop event (must be done from the loop's thread)
+        if self._loop is not None and self._async_stop_event is not None:
+            self._loop.call_soon_threadsafe(self._async_stop_event.set)
+
         # Wait for thread to finish (the loop will exit via stop_event check)
         self._thread.join(timeout=5.0)
         if self._thread.is_alive():
@@ -148,6 +153,7 @@ class WatcherRunner:
 
         self._thread = None
         self._loop = None
+        self._async_stop_event = None
 
     def _run(self) -> None:
         """
@@ -156,6 +162,9 @@ class WatcherRunner:
         try:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
+
+            # Create the async stop event in the loop's context
+            self._async_stop_event = asyncio.Event()
 
             self._loop.run_until_complete(self._watch_loop())
         except Exception as e:
@@ -173,6 +182,7 @@ class WatcherRunner:
         watcher = create_watcher(
             paths=self.paths,
             ignore_filter=self.ignore_filter,
+            stop_event=self._async_stop_event,
         )
 
         logger.debug("watcher_runner_watching", backend=type(watcher).__name__)

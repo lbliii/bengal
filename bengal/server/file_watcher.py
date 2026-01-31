@@ -29,6 +29,7 @@ Related:
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Protocol
@@ -76,6 +77,7 @@ class WatchfilesWatcher:
         - Built-in debouncing and batching
         - Native async iterator support
         - Low memory footprint
+        - Graceful shutdown via stop_event
 
     """
 
@@ -83,6 +85,7 @@ class WatchfilesWatcher:
         self,
         paths: list[Path],
         ignore_filter: Callable[[Path], bool],
+        stop_event: "asyncio.Event | None" = None,
     ) -> None:
         """
         Initialize watchfiles watcher.
@@ -90,9 +93,11 @@ class WatchfilesWatcher:
         Args:
             paths: Directories to watch recursively
             ignore_filter: Function returning True if path should be ignored
+            stop_event: Optional asyncio.Event to signal graceful shutdown
         """
         self.paths = paths
         self.ignore_filter = ignore_filter
+        self.stop_event = stop_event
 
     async def watch(self) -> AsyncIterator[tuple[set[Path], set[str]]]:
         """
@@ -120,6 +125,7 @@ class WatchfilesWatcher:
         async for changes in watchfiles.awatch(
             *self.paths,
             watch_filter=watch_filter,
+            stop_event=self.stop_event,
         ):
             paths = {Path(path) for (_, path) in changes}
             event_types = {change_type_map.get(change, "modified") for (change, _) in changes}
@@ -129,6 +135,7 @@ class WatchfilesWatcher:
 def create_watcher(
     paths: list[Path],
     ignore_filter: Callable[[Path], bool],
+    stop_event: asyncio.Event | None = None,
 ) -> WatchfilesWatcher:
     """
     Create a file watcher for the given paths.
@@ -136,6 +143,7 @@ def create_watcher(
     Args:
         paths: Directories to watch
         ignore_filter: Function returning True if path should be ignored
+        stop_event: Optional asyncio.Event to signal graceful shutdown
 
     Returns:
         Configured FileWatcher instance
@@ -146,4 +154,4 @@ def create_watcher(
 
     """
     logger.debug("file_watcher_backend", backend="watchfiles")
-    return WatchfilesWatcher(paths, ignore_filter)
+    return WatchfilesWatcher(paths, ignore_filter, stop_event)
