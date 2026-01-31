@@ -31,6 +31,7 @@ Example:
 from __future__ import annotations
 
 import types
+from functools import reduce
 from typing import Any, Union, get_args, get_origin
 
 
@@ -156,8 +157,8 @@ def unwrap_optional(type_hint: Any) -> Any:
         return non_none_args[0]
     else:
         # Union[A, B, None] -> Union[A, B]
-        # Reconstruct the Union without None
-        return Union[non_none_args]  # type: ignore[return-value]
+        # Reconstruct the Union without None using | operator
+        return reduce(lambda a, b: a | b, non_none_args)
 
 
 def type_display_name(type_hint: Any) -> str:

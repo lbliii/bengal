@@ -52,8 +52,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-from bengal.config.defaults import DEFAULTS
 from bengal.config.loader_utils import extract_baseurl, flatten_config, load_yaml_file
+from bengal.config.utils import get_default_config
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -440,11 +440,8 @@ class ConfigLoader:
         Returns:
             Default configuration dictionary with all settings from DEFAULTS.
         """
-        from bengal.config.merge import deep_merge
-
-        # Return a deep copy of DEFAULTS to avoid mutation
-        # This matches ConfigDirectoryLoader behavior for consistency
-        return deep_merge({}, DEFAULTS)
+        # Use shared utility for consistent default config retrieval
+        return get_default_config()
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
         """

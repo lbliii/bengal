@@ -49,7 +49,6 @@ from bengal.utils.primitives.types import (
     is_optional_type,
     is_union_type,
     type_display_name,
-    unwrap_optional,
 )
 
 logger = get_logger(__name__)
@@ -392,14 +391,14 @@ class SchemaValidator:
         # Check for unknown fields (if strict mode)
         if self.strict:
             unknown = set(data.keys()) - set(schema_fields.keys())
-            for field_name in sorted(unknown):
-                errors.append(
-                    ValidationError(
-                        field=field_name,
-                        message=f"Unknown field '{field_name}' (not in schema)",
-                        value=data[field_name],
-                    )
+            errors.extend(
+                ValidationError(
+                    field=field_name,
+                    message=f"Unknown field '{field_name}' (not in schema)",
+                    value=data[field_name],
                 )
+                for field_name in sorted(unknown)
+            )
 
         # Return early if errors
         if errors:
