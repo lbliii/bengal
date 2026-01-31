@@ -13,7 +13,7 @@ Tests the shared utilities extracted from validators:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,7 +25,6 @@ from bengal.health.utils import (
     relative_path,
     sample_pages,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -185,7 +184,7 @@ class TestReadOutputContent:
 
     def test_returns_none_on_read_error(self, mock_page):
         """Should return None if read fails."""
-        mock_page.output_path.read_text.side_effect = IOError("Read failed")
+        mock_page.output_path.read_text.side_effect = OSError("Read failed")
         content = read_output_content(mock_page)
         assert content is None
 
