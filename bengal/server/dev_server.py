@@ -71,16 +71,15 @@ from typing import Any
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
-from bengal.output.icons import get_icon_set
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
+from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.observability.rich_console import should_use_emoji
 
 logger = get_logger(__name__)
 
@@ -442,12 +441,12 @@ class DevServer:
             )
             # Trigger hot reload
             send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             print(
                 f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading..."
             )
         else:
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             print(f"\n  {icons.success} Cache validated - content is fresh")
 
     def _clear_html_cache_after_build(self) -> None:
@@ -679,16 +678,11 @@ class DevServer:
             version_scope=self.version_scope,
         )
 
-        # Create ignore filter from config
+        # Create ignore filter from config using class method
         config = getattr(self.site, "config", {}) or {}
-        dev_server = config.get("dev_server", {})
-
-        ignore_filter = IgnoreFilter(
-            glob_patterns=dev_server.get("exclude_patterns", []),
-            regex_patterns=dev_server.get("exclude_regex", []),
-            directories=[self.site.output_dir],
-            include_defaults=True,
-        )
+        # Handle ConfigSection objects that need .raw for dict access
+        config_dict = config.raw if hasattr(config, "raw") else config
+        ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)
 
         # Get watch directories
         watch_dirs = [Path(d) for d in self._get_watched_directories()]
@@ -793,7 +787,7 @@ class DevServer:
                 port=self.port if is_holding_port else None,
             )
 
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             print(f"\n{icons.warning} Found stale Bengal server process (PID {stale_pid})")
 
             if is_holding_port:
@@ -862,7 +856,7 @@ class DevServer:
         if not self._is_port_available(self.port):
             logger.warning("port_unavailable", port=self.port, auto_port_enabled=self.auto_port)
 
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             if self.auto_port:
                 # Try to find an available port
                 try:
@@ -975,7 +969,7 @@ class DevServer:
 
         lines.append("")  # Blank line
 
-        icons = get_icon_set(should_use_emoji())
+        icons = get_icons()
 
         # Serve-first status
         if serve_first:

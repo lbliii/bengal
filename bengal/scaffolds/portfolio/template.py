@@ -4,35 +4,8 @@ Creates a simple portfolio with home, about, projects, and contact pages. Uses
 light token substitution to inject the current date into example project pages.
 """
 
-from __future__ import annotations
-
-from datetime import datetime
-from pathlib import Path
-
 from ..base import SiteTemplate, TemplateFile
-
-
-def _load_template_file(relative_path: str) -> str:
-    """Load and lightly render a page from the ``pages/`` directory.
-
-    Args:
-        relative_path: Path inside this template's ``pages/`` directory.
-
-    Returns:
-        File contents with ``{{date}}`` placeholders resolved.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "pages" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        content = f.read()
-
-    # Replace template variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    content = content.replace("{{date}}", current_date)
-
-    return content
+from ..utils import load_template_file
 
 
 def _create_portfolio_template() -> SiteTemplate:
@@ -42,36 +15,35 @@ def _create_portfolio_template() -> SiteTemplate:
         A :class:`SiteTemplate` for a personal portfolio site.
 
     """
-
     files = [
         TemplateFile(
             relative_path="index.md",
-            content=_load_template_file("index.md"),
+            content=load_template_file(__file__, "index.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="about.md",
-            content=_load_template_file("about.md"),
+            content=load_template_file(__file__, "about.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="projects/index.md",
-            content=_load_template_file("projects/index.md"),
+            content=load_template_file(__file__, "projects/index.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="projects/project-1.md",
-            content=_load_template_file("projects/project-1.md"),
+            content=load_template_file(__file__, "projects/project-1.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="projects/project-2.md",
-            content=_load_template_file("projects/project-2.md"),
+            content=load_template_file(__file__, "projects/project-2.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="contact.md",
-            content=_load_template_file("contact.md"),
+            content=load_template_file(__file__, "contact.md", replace_date=True),
             target_dir="content",
         ),
     ]

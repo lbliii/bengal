@@ -6,7 +6,7 @@ that need consistent behavior across all template engines:
 
 - resolve_asset_url: Asset URLs with fingerprinting
 - resolve_tag_url: Tag URLs with i18n prefix support
-- resolve_relative_url: Relative URLs with baseurl
+- apply_baseurl: Apply baseurl prefix to paths
 
 Template engine adapters should use these instead of implementing their own logic.
 
@@ -26,6 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 # Re-export asset URL for convenience
 from bengal.rendering.assets import resolve_asset_url
+
+# Re-export URL utilities from consolidated module
+from bengal.rendering.utils.url import apply_baseurl
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -77,35 +80,3 @@ def resolve_tag_url(tag: str, site: SiteLike, page: Any = None) -> str:
 
     # Apply base URL prefix
     return apply_baseurl(relative_url, site)
-
-
-def apply_baseurl(path: str, site: SiteLike) -> str:
-    """
-    Apply baseurl prefix to a path.
-
-    Handles various baseurl formats:
-    - Path prefix: /bengal
-    - Absolute URL: https://example.com
-    - File protocol: file:///path
-
-    Args:
-        path: Relative path (e.g., '/tags/python/')
-        site: Site instance
-
-    Returns:
-        URL with baseurl applied
-
-    """
-    baseurl = (site.baseurl or "").rstrip("/")
-
-    if not baseurl:
-        return path
-
-    if not path.startswith("/"):
-        path = "/" + path
-
-    if baseurl.startswith(("http://", "https://", "file://")):
-        return f"{baseurl}{path}"
-    else:
-        base_path = "/" + baseurl.lstrip("/")
-        return f"{base_path}{path}"

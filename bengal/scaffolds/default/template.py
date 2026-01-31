@@ -9,28 +9,8 @@ Exported objects:
   instance discovered by the template registry.
 """
 
-from __future__ import annotations
-
-from pathlib import Path
-
 from ..base import SiteTemplate, TemplateFile
-
-
-def _load_template_file(relative_path: str) -> str:
-    """Load a static page stub bundled with this template.
-
-    Args:
-        relative_path: Path inside this template's ``pages/`` directory.
-
-    Returns:
-        The raw file contents for inclusion in a :class:`TemplateFile`.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "pages" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        return f.read()
+from ..utils import load_template_file
 
 
 def _create_default_template() -> SiteTemplate:
@@ -42,11 +22,10 @@ def _create_default_template() -> SiteTemplate:
         A fully populated :class:`SiteTemplate` instance.
 
     """
-
     files = [
         TemplateFile(
             relative_path="index.md",
-            content=_load_template_file("index.md"),
+            content=load_template_file(__file__, "index.md"),
             target_dir="content",
         ),
     ]

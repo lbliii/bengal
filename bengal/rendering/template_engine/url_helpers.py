@@ -39,19 +39,24 @@ Related Modules:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
+# Re-export apply_baseurl as with_baseurl for backward compatibility
+from bengal.rendering.utils.url import apply_baseurl as with_baseurl
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import PageLike
 
-logger = get_logger(__name__)
+# Re-export for backward compatibility
+__all__ = [
+    "filter_dateformat",
+    "href_for",
+    "with_baseurl",
+]
 
 
-def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
+def href_for(obj: PageLike | Any, site: Any = None) -> str:
     """
     Get href for any object. Prefer obj.href directly.
 
@@ -76,66 +81,6 @@ def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
     """
     # Use href property
     return obj.href
-
-
-def with_baseurl(path: str, site: SiteLike) -> str:
-    """
-    Apply baseurl prefix to a site-relative path.
-
-    Converts a site_path (without baseurl) to a public URL (with baseurl).
-
-    Args:
-        path: Site-relative path starting with '/' (e.g., "/docs/page/")
-        site: Site instance for baseurl config lookup
-
-    Returns:
-        Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
-
-    Example:
-        # Convert site_path to public URL
-        public_url = with_baseurl("/docs/getting-started/", site)
-        # Returns "/bengal/docs/getting-started/" when baseurl="/bengal"
-
-    Note:
-        Handles all baseurl formats:
-        - Path-only: "/bengal" → "/bengal/docs/page/"
-        - Absolute: "https://example.com" → "https://example.com/docs/page/"
-        - Empty: "" → "/docs/page/" (no change)
-
-    """
-    # Ensure path starts with '/'
-    if not path.startswith("/"):
-        path = "/" + path
-
-    # Get baseurl from config - use site.baseurl property for proper nested config access
-    try:
-        raw_baseurl = getattr(site, "baseurl", "") if site is not None else ""
-        # Guard against mocks/non-strings
-        if raw_baseurl is None or not isinstance(raw_baseurl, str):
-            raw_baseurl = ""
-        baseurl_value = raw_baseurl.rstrip("/")
-        # Treat "/" as empty (root-relative)
-        if baseurl_value == "/":
-            baseurl_value = ""
-    except Exception as e:
-        logger.debug(
-            "with_baseurl_config_access_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_empty_baseurl",
-        )
-        baseurl_value = ""
-
-    if not baseurl_value:
-        return path
-
-    # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
-    if baseurl_value.startswith(("http://", "https://", "file://")):
-        return f"{baseurl_value}{path}"
-
-    # Path-only baseurl (e.g., /bengal)
-    base_path = "/" + baseurl_value.lstrip("/")
-    return f"{base_path}{path}"
 
 
 def filter_dateformat(date: datetime | str | None, format: str = "%Y-%m-%d") -> str:

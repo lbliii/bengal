@@ -3,28 +3,8 @@
 Seeds a docs site with top‑level sections (Getting Started, Guides, API).
 """
 
-from __future__ import annotations
-
-from pathlib import Path
-
 from ..base import SiteTemplate, TemplateFile
-
-
-def _load_template_file(relative_path: str) -> str:
-    """Load a static page stub bundled with this template.
-
-    Args:
-        relative_path: Path inside this template's ``pages/`` directory.
-
-    Returns:
-        The raw file contents to write.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "pages" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        return f.read()
+from ..utils import load_template_file
 
 
 def _create_docs_template() -> SiteTemplate:
@@ -34,36 +14,35 @@ def _create_docs_template() -> SiteTemplate:
         A :class:`SiteTemplate` with common docs scaffolding.
 
     """
-
     files = [
         TemplateFile(
             relative_path="_index.md",
-            content=_load_template_file("_index.md"),
+            content=load_template_file(__file__, "_index.md"),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="getting-started/_index.md",
-            content=_load_template_file("getting-started/_index.md"),
+            content=load_template_file(__file__, "getting-started/_index.md"),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="getting-started/installation.md",
-            content=_load_template_file("getting-started/installation.md"),
+            content=load_template_file(__file__, "getting-started/installation.md"),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="getting-started/quickstart.md",
-            content=_load_template_file("getting-started/quickstart.md"),
+            content=load_template_file(__file__, "getting-started/quickstart.md"),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="guides/_index.md",
-            content=_load_template_file("guides/_index.md"),
+            content=load_template_file(__file__, "guides/_index.md"),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="api/_index.md",
-            content=_load_template_file("api/_index.md"),
+            content=load_template_file(__file__, "api/_index.md"),
             target_dir="content",
         ),
     ]

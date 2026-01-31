@@ -6,5 +6,3 @@ Provides a product-focused site template with:
 - JSON-LD structured data for SEO
 - Features and pricing pages
 """
-
-from __future__ import annotations

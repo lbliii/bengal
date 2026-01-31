@@ -303,16 +303,12 @@ def create_watcher_runner(
         Configured WatcherRunner instance
 
     """
-    # Create ignore filter from site config
+    # Create ignore filter from site config using class method
     config = getattr(site, "config", {}) or {}
-    dev_server = config.get("dev_server", {})
-
-    ignore_filter = IgnoreFilter(
-        glob_patterns=dev_server.get("exclude_patterns", []),
-        regex_patterns=dev_server.get("exclude_regex", []),
-        directories=[site.output_dir] if hasattr(site, "output_dir") else [],
-        include_defaults=True,
-    )
+    # Handle ConfigSection objects that need .raw for dict access
+    config_dict = config.raw if hasattr(config, "raw") else config
+    output_dir = site.output_dir if hasattr(site, "output_dir") else None
+    ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=output_dir)
 
     return WatcherRunner(
         paths=watch_dirs,

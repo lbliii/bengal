@@ -9,7 +9,7 @@ Key Concepts:
 - TrackedData: Wrapper that intercepts attribute access on site.data
 - Thread-local tracking: Uses DependencyTracker's current_page for thread-safety
 - File-level granularity: Tracks at data file level, not key level
-- ContextVar pattern: Tracker is accessed via ContextVar for thread safety
+- ContextVarManager pattern: Tracker is accessed via ContextVarManager for thread safety
 
 Related Modules:
 - bengal.build.tracking: Records dependencies
@@ -21,17 +21,15 @@ See Also:
 - plan/rfc-free-threading-patterns.md: ContextVar pattern
 
 RFC: rfc-incremental-build-dependency-gaps (Phase 1)
-RFC: rfc-free-threading-patterns (ContextVar pattern)
+RFC: rfc-free-threading-patterns (ContextVarManager pattern)
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.utils.contextvar import ContextVarManager
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -43,7 +41,7 @@ logger = get_logger(__name__)
 __all__ = [
     # Data wrapper
     "TrackedData",
-    # ContextVar functions for tracker management
+    # ContextVarManager functions for tracker management
     "get_current_tracker",
     "reset_current_tracker",
     "set_current_tracker",
@@ -53,21 +51,18 @@ __all__ = [
 
 
 # =============================================================================
-# ContextVar for Dependency Tracker (Thread-Safe)
+# ContextVarManager for Dependency Tracker (Thread-Safe)
 # =============================================================================
 # This allows SiteContext to access the current tracker without needing
 # it passed through the entire call stack. Each thread/async task gets
-# its own tracker via ContextVar.
+# its own tracker via ContextVarManager.
 #
 # RFC: rfc-free-threading-patterns.md
 # - ContextVars are thread-local by design (PEP 567)
 # - ~8M ops/sec throughput
 # - Zero lock contention
 
-_current_tracker: ContextVar[DependencyTracker | None] = ContextVar(
-    "current_tracker",
-    default=None,
-)
+_current_tracker: ContextVarManager[DependencyTracker] = ContextVarManager("current_tracker")
 
 
 def get_current_tracker() -> DependencyTracker | None:
@@ -77,12 +72,12 @@ def get_current_tracker() -> DependencyTracker | None:
         DependencyTracker if set, None otherwise.
 
     Thread Safety:
-        Uses ContextVar - each thread/async task has independent storage.
+        Uses ContextVarManager - each thread/async task has independent storage.
     """
     return _current_tracker.get()
 
 
-def set_current_tracker(tracker: DependencyTracker | None) -> Token[DependencyTracker | None]:
+def set_current_tracker(tracker: DependencyTracker | None):
     """Set the dependency tracker for the current context.
 
     Args:
@@ -91,24 +86,24 @@ def set_current_tracker(tracker: DependencyTracker | None) -> Token[DependencyTr
     Returns:
         Token for restoring previous value via reset_current_tracker().
     """
+    if tracker is None:
+        # For clearing, we reset to None
+        _current_tracker.reset()
+        return None
     return _current_tracker.set(tracker)
 
 
-def reset_current_tracker(token: Token[DependencyTracker | None] | None = None) -> None:
+def reset_current_tracker(token=None) -> None:
     """Reset the tracker to its previous value.
 
     Args:
         token: Token from set_current_tracker() for proper nesting.
                If None, sets tracker to None.
     """
-    if token is not None:
-        _current_tracker.reset(token)
-    else:
-        _current_tracker.set(None)
+    _current_tracker.reset(token)
 
 
-@contextmanager
-def tracker_context(tracker: DependencyTracker | None) -> Iterator[DependencyTracker | None]:
+def tracker_context(tracker: DependencyTracker | None):
     """Context manager for scoped tracker usage.
 
     Properly restores previous tracker on exit (supports nesting).
@@ -125,11 +120,12 @@ def tracker_context(tracker: DependencyTracker | None) -> Iterator[DependencyTra
     Yields:
         The tracker that was set.
     """
-    token = set_current_tracker(tracker)
-    try:
-        yield tracker
-    finally:
-        reset_current_tracker(token)
+    if tracker is None:
+        # Return a no-op context manager for None tracker
+        from contextlib import nullcontext
+
+        return nullcontext(None)
+    return _current_tracker(tracker)
 
 
 class TrackedData:

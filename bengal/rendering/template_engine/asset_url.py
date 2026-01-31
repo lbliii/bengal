@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.template_engine.url_helpers import with_baseurl
+from bengal.rendering.utils.url import apply_baseurl as with_baseurl
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 

@@ -60,6 +60,7 @@ import yaml
 
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
+from bengal.server.utils import get_timestamp
 from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
@@ -243,7 +244,7 @@ class BuildTrigger:
             )
 
             # Display building indicator
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = get_timestamp()
             cli = CLIOutput()
             cli.file_change_notice(file_name=file_name, timestamp=timestamp)
             show_building_indicator("Rebuilding")

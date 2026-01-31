@@ -7,54 +7,8 @@ Exported objects:
 - ``TEMPLATE``: the concrete :class:`~bengal.scaffolds.base.SiteTemplate`.
 """
 
-from __future__ import annotations
-
-from datetime import datetime
-from pathlib import Path
-
 from ..base import SiteTemplate, TemplateFile
-
-
-def _load_template_file(relative_path: str) -> str:
-    """Load and lightly render a page from the template's ``pages/`` dir.
-
-    Replaces ``{{date}}`` placeholders with today's date (``YYYY-MM-DD``).
-
-    Args:
-        relative_path: Path inside this template's ``pages/`` directory.
-
-    Returns:
-        The file contents with simple substitutions applied.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "pages" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        content = f.read()
-
-    # Replace template variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    content = content.replace("{{date}}", current_date)
-
-    return content
-
-
-def _load_data_file(relative_path: str) -> str:
-    """Load a data file from the template's ``data/`` dir.
-
-    Args:
-        relative_path: Path inside this template's ``data/`` directory.
-
-    Returns:
-        The file contents.
-
-    """
-    template_dir = Path(__file__).parent
-    file_path = template_dir / "data" / relative_path
-
-    with open(file_path, encoding="utf-8") as f:
-        return f.read()
+from ..utils import load_template_file
 
 
 def _create_product_template() -> SiteTemplate:
@@ -64,48 +18,47 @@ def _create_product_template() -> SiteTemplate:
         A :class:`SiteTemplate` that scaffolds a product-focused site.
 
     """
-
     files = [
         # Content pages
         TemplateFile(
             relative_path="_index.md",
-            content=_load_template_file("_index.md"),
+            content=load_template_file(__file__, "_index.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="products/_index.md",
-            content=_load_template_file("products/_index.md"),
+            content=load_template_file(__file__, "products/_index.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="products/product-1.md",
-            content=_load_template_file("products/product-1.md"),
+            content=load_template_file(__file__, "products/product-1.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="products/product-2.md",
-            content=_load_template_file("products/product-2.md"),
+            content=load_template_file(__file__, "products/product-2.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="features.md",
-            content=_load_template_file("features.md"),
+            content=load_template_file(__file__, "features.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="pricing.md",
-            content=_load_template_file("pricing.md"),
+            content=load_template_file(__file__, "pricing.md", replace_date=True),
             target_dir="content",
         ),
         TemplateFile(
             relative_path="contact.md",
-            content=_load_template_file("contact.md"),
+            content=load_template_file(__file__, "contact.md", replace_date=True),
             target_dir="content",
         ),
         # Data files
         TemplateFile(
             relative_path="products.yaml",
-            content=_load_data_file("products.yaml"),
+            content=load_template_file(__file__, "products.yaml", subdir="data"),
             target_dir="data",
         ),
     ]

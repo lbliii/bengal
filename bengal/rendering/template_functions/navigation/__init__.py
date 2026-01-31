@@ -84,6 +84,7 @@ __all__ = [
     "get_auto_nav",
     "get_breadcrumbs",
     "get_nav_context",
+    "get_nav_title",
     "get_nav_tree",
     "get_pagination_items",
     "get_section",
@@ -92,6 +93,10 @@ __all__ = [
     "register",
     "section_pages",
 ]
+
+# Re-export helper function for convenience
+# Note: Import from helpers.py to avoid circular import (auto_nav imports from helpers)
+from bengal.rendering.template_functions.navigation.helpers import get_nav_title  # noqa: E402
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:

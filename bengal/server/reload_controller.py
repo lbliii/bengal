@@ -63,8 +63,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.output.icons import get_icon_set
-from bengal.utils.observability.rich_console import should_use_emoji
+from bengal.server.utils import get_icons
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
@@ -248,6 +247,73 @@ class ReloadController:
         """Enable or disable content-hash based change detection."""
         with self._config_lock:
             self._use_content_hashes = bool(value)
+
+    # --- Shared decision helpers ---
+
+    def _is_throttled(self) -> bool:
+        """
+        Check if notification should be throttled.
+
+        Returns True if the time since last notification is less than
+        the minimum interval, indicating we should suppress this notification.
+
+        Returns:
+            True if notification should be suppressed, False otherwise.
+        """
+        now = self._now_ms()
+        if now - self._last_notify_time_ms < self._min_interval_ms:
+            return True
+        return False
+
+    def _record_notification(self) -> None:
+        """Record that a notification was sent (for throttling)."""
+        self._last_notify_time_ms = self._now_ms()
+
+    def _apply_ignore_globs(self, paths: list[str]) -> list[str]:
+        """
+        Filter paths through ignore globs.
+
+        Args:
+            paths: List of paths to filter
+
+        Returns:
+            Filtered list with ignored paths removed.
+        """
+        if not self._ignored_globs:
+            return paths
+
+        def is_ignored(p: str) -> bool:
+            return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
+
+        return [p for p in paths if not is_ignored(p)]
+
+    def _make_css_decision(self, paths: list[str], css_paths: list[str]) -> ReloadDecision:
+        """
+        Make reload decision based on changed paths.
+
+        Args:
+            paths: All changed paths
+            css_paths: CSS-only changed paths
+
+        Returns:
+            ReloadDecision with appropriate action.
+        """
+        if not paths:
+            return ReloadDecision(action="none", reason="no-output-change", changed_paths=[])
+
+        # CSS-only if all changes are CSS
+        if len(paths) == len(css_paths):
+            return ReloadDecision(
+                action="reload-css",
+                reason="css-only",
+                changed_paths=css_paths[:MAX_CHANGED_PATHS_TO_SEND],
+            )
+
+        return ReloadDecision(
+            action="reload",
+            reason="content-changed",
+            changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+        )
 
     # --- RFC: Output Cache Architecture - Content hash methods ---
 
@@ -632,7 +698,7 @@ class ReloadController:
                 action=decision.action,
                 reason=decision.reason,
             )
-            icons = get_icon_set(should_use_emoji())
+            icons = get_icons()
             print(
                 f"\n{icons.warning} RELOAD TRIGGERED: {len(changed)} files changed (action={decision.action}):"
             )
@@ -666,28 +732,23 @@ class ReloadController:
         if not outputs:
             return ReloadDecision(action="none", reason="no-outputs", changed_paths=[])
 
-        # Throttle
-        now = self._now_ms()
-        if now - self._last_notify_time_ms < self._min_interval_ms:
+        # Throttle check
+        if self._is_throttled():
             return ReloadDecision(action="none", reason="throttled", changed_paths=[])
-        self._last_notify_time_ms = now
 
-        # Convert to paths for ignore glob filtering
-        paths = [str(o.path) for o in outputs]
+        # Apply ignore globs to filter outputs
+        all_paths = [str(o.path) for o in outputs]
+        filtered_paths = self._apply_ignore_globs(all_paths)
 
-        # Apply ignore globs
-        if self._ignored_globs:
-
-            def _is_ignored(p: str) -> bool:
-                return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
-
-            filtered_outputs = [o for o in outputs if not _is_ignored(str(o.path))]
-            paths = [str(o.path) for o in filtered_outputs]
-        else:
-            filtered_outputs = outputs
-
-        if not filtered_outputs:
+        if not filtered_paths:
             return ReloadDecision(action="none", reason="all-ignored", changed_paths=[])
+
+        # Filter outputs to match filtered paths
+        filtered_path_set = set(filtered_paths)
+        filtered_outputs = [o for o in outputs if str(o.path) in filtered_path_set]
+
+        # Record notification time
+        self._record_notification()
 
         # Classify by output type - use typed classification, not extension checking
         css_only = all(o.output_type == OutputType.CSS for o in filtered_outputs)
@@ -696,12 +757,12 @@ class ReloadController:
             return ReloadDecision(
                 action="reload-css",
                 reason="css-only",
-                changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+                changed_paths=filtered_paths[:MAX_CHANGED_PATHS_TO_SEND],
             )
         return ReloadDecision(
             action="reload",
             reason="content-changed",
-            changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+            changed_paths=filtered_paths[:MAX_CHANGED_PATHS_TO_SEND],
         )
 
     def decide_from_changed_paths(self, changed_paths: list[str]) -> ReloadDecision:
@@ -720,35 +781,22 @@ class ReloadController:
             CSS-only changes → 'reload-css', otherwise → 'reload'.
         """
         # Apply ignore globs first
-        paths = list(changed_paths or [])
-        if self._ignored_globs:
-
-            def _is_ignored(p: str) -> bool:
-                return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
-
-            paths = [p for p in paths if not _is_ignored(p)]
+        paths = self._apply_ignore_globs(list(changed_paths or []))
 
         if not paths:
             return ReloadDecision(action="none", reason="no-output-change", changed_paths=[])
 
-        # Throttle
-        now = self._now_ms()
-        if now - self._last_notify_time_ms < self._min_interval_ms:
+        # Throttle check
+        if self._is_throttled():
             return ReloadDecision(action="none", reason="throttled", changed_paths=[])
-        self._last_notify_time_ms = now
 
-        css_only = all(p.lower().endswith(".css") for p in paths)
-        if css_only:
-            return ReloadDecision(
-                action="reload-css",
-                reason="css-only",
-                changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
-            )
-        return ReloadDecision(
-            action="reload",
-            reason="content-changed",
-            changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
-        )
+        # Record notification time
+        self._record_notification()
+
+        # Determine CSS-only paths
+        css_paths = [p for p in paths if p.lower().endswith(".css")]
+
+        return self._make_css_decision(paths, css_paths)
 
 
 # Global controller for dev server

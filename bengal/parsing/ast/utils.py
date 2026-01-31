@@ -35,6 +35,15 @@ from typing import Any
 from bengal.parsing.ast.types import ASTNode, is_heading, is_link, is_text
 from bengal.utils.primitives.text import slugify
 
+__all__ = [
+    "extract_links_from_ast",
+    "extract_plain_text",
+    "extract_text_from_node",
+    "extract_toc_from_ast",
+    "generate_heading_id",
+    "walk_ast",
+]
+
 
 def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
     """

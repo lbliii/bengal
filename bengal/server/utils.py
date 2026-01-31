@@ -2,12 +2,18 @@
 Utility functions for Bengal dev server.
 
 Provides helper functions for common dev server operations including
-HTTP header management, configuration access, and type coercion.
+HTTP header management, configuration access, type coercion, and
+shared utilities for icons, timestamps, and content types.
 
 Functions:
     apply_dev_no_cache_headers: Add cache-busting headers to HTTP responses
     get_dev_config: Safely access nested dev server configuration
+    get_dev_server_config: Access dev_server section of config
     safe_int: Parse integers with fallback for invalid input
+    get_icons: Get icon set based on terminal capabilities
+    get_timestamp: Get formatted timestamp for log display
+    get_content_type: Get MIME type for file extension
+    find_html_injection_point: Find injection point for live reload script
 
 Protocols:
 HeaderSender: Protocol for objects that can send HTTP headers
@@ -20,17 +26,48 @@ clear_output_directory.
 Related:
 - bengal/server/request_handler.py: Uses apply_dev_no_cache_headers
 - bengal/server/dev_server.py: Uses get_dev_config for configuration
+- bengal/server/live_reload.py: Uses find_html_injection_point
 - bengal/cache/utils.py: Cache management utilities
 
 """
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from datetime import datetime
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from bengal.utils.observability.logger import get_logger
 
+if TYPE_CHECKING:
+    from bengal.output.icons import IconSet
+
 logger = get_logger(__name__)
+
+
+# Content type mapping for common file extensions
+CONTENT_TYPES: dict[str, str] = {
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".mjs": "application/javascript; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".xml": "application/xml; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+    ".otf": "font/otf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".ico": "image/x-icon",
+}
 
 
 @runtime_checkable
@@ -176,3 +213,171 @@ def safe_int(value: object, default: int = 0) -> int:
 # Cache management functions moved to bengal.cache.utils
 # Import from bengal.cache instead:
 #   from bengal.cache import clear_build_cache, clear_output_directory
+
+
+def get_icons() -> IconSet:
+    """
+    Get icon set based on terminal capabilities.
+
+    Convenience function that combines icon set retrieval with emoji detection,
+    eliminating the need to import from two separate modules.
+
+    Returns:
+        IconSet configured for the current terminal's emoji support.
+
+    Example:
+            >>> icons = get_icons()
+            >>> print(f"{icons.success} Operation completed")
+
+    """
+    from bengal.output.icons import get_icon_set
+    from bengal.utils.observability.rich_console import should_use_emoji
+
+    return get_icon_set(should_use_emoji())
+
+
+def get_timestamp() -> str:
+    """
+    Get current time formatted for log display.
+
+    Returns:
+        Time string in HH:MM:SS format.
+
+    Example:
+            >>> timestamp = get_timestamp()
+            >>> print(f"[{timestamp}] Event occurred")
+        [14:32:05] Event occurred
+
+    """
+    return datetime.now().strftime("%H:%M:%S")
+
+
+def get_content_type(path: str) -> str:
+    """
+    Get MIME type for file path based on extension.
+
+    Uses a predefined mapping of common file extensions to MIME types.
+    Falls back to application/octet-stream for unknown extensions.
+
+    Args:
+        path: File path or URL path to check
+
+    Returns:
+        MIME type string (e.g., "text/css; charset=utf-8")
+
+    Example:
+            >>> get_content_type("/assets/style.css")
+        'text/css; charset=utf-8'
+            >>> get_content_type("script.js")
+        'application/javascript; charset=utf-8'
+            >>> get_content_type("unknown.xyz")
+        'application/octet-stream'
+
+    """
+    ext = Path(path).suffix.lower()
+    return CONTENT_TYPES.get(ext, "application/octet-stream")
+
+
+def find_html_injection_point(content: bytes) -> int:
+    """
+    Find the best injection point for live reload script in HTML content.
+
+    Searches for closing tags in order of preference:
+    1. </body> (preferred - script goes at end of body)
+    2. </BODY> (uppercase variant)
+    3. </html> (fallback)
+    4. </HTML> (uppercase fallback)
+
+    If no closing tag is found, returns -1 indicating the caller should
+    append the script at the end of the content.
+
+    Args:
+        content: HTML content as bytes
+
+    Returns:
+        Index of the injection point, or -1 if no suitable tag found.
+
+    Example:
+            >>> html = b"<html><body>Hello</body></html>"
+            >>> idx = find_html_injection_point(html)
+            >>> idx
+        18
+            >>> html[:idx] + b"<script>...</script>" + html[idx:]
+        b'<html><body>Hello<script>...</script></body></html>'
+
+    """
+    # Try </body> first (preferred injection point)
+    for tag in (b"</body>", b"</BODY>"):
+        idx = content.rfind(tag)
+        if idx != -1:
+            return idx
+
+    # Fallback to </html>
+    for tag in (b"</html>", b"</HTML>"):
+        idx = content.rfind(tag)
+        if idx != -1:
+            return idx
+
+    return -1
+
+
+def get_dev_server_config(
+    config: dict[str, Any] | Any,
+    *keys: str,
+    default: Any = None,
+) -> Any:
+    """
+    Safely access nested dev_server configuration values.
+
+    Traverses the config dictionary starting from the "dev_server" key
+    to access nested values. Returns a default value if any key in the
+    path is missing or if the intermediate value is not a dict.
+
+    This is the preferred function for accessing dev server configuration
+    (uses "dev_server" key, not "dev").
+
+    Args:
+        config: Site configuration dict or ConfigSection
+        *keys: Variable path of keys to traverse (e.g., 'exclude_patterns')
+        default: Value to return if path doesn't exist (default: None)
+
+    Returns:
+        The configuration value at the specified path, or default if not found.
+
+    Example:
+            >>> config = {"dev_server": {"exclude_patterns": ["*.pyc"], "debounce": 300}}
+            >>> get_dev_server_config(config, "exclude_patterns")
+        ['*.pyc']
+            >>> get_dev_server_config(config, "debounce", default=500)
+        300
+            >>> get_dev_server_config(config, "missing", default="auto")
+        'auto'
+
+    """
+    try:
+        # Handle ConfigSection objects that have .get() method
+        if hasattr(config, "get"):
+            node = config.get("dev_server", {})
+        else:
+            return default
+
+        for key in keys:
+            if not isinstance(node, dict):
+                # Try .get() for ConfigSection-like objects
+                if hasattr(node, "get"):
+                    node = node.get(key, default)
+                else:
+                    return default
+            else:
+                node = node.get(key, default)
+
+        return node if node is not None else default
+    except Exception as e:
+        logger.debug(
+            "server_utils_dev_server_config_access_failed",
+            keys=keys,
+            error=str(e),
+            error_type=type(e).__name__,
+            action="returning_default",
+        )
+        return default
