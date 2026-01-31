@@ -38,6 +38,7 @@ Usage:
 <nav class="track-sidebar" aria-label="Track navigation" data-bengal="track-nav" data-track-id="{{ track_id }}">
   {# =========================================================================
      CURRENT TRACK SECTIONS (Primary navigation)
+     Uses track_item_pages from parent context if available (pre-computed)
      ========================================================================= #}
   {% with current_track?.items as track_items %}
   {% if track_items | length > 0 %}
@@ -46,7 +47,8 @@ Usage:
     {% spaceless %}
     <ol class="track-nav-list">
       {% for item_slug in track_items %}
-      {% with get_page(item_slug) as item_page %}
+      {# Use pre-computed page from parent context, fallback to get_page() #}
+      {% let item_page = track_item_pages[item_slug] if (track_item_pages is defined and item_slug in track_item_pages) else get_page(item_slug) %}
       {% if item_page %}
       <li>
         <a href="#track-section-{{ loop.index }}"
@@ -59,7 +61,6 @@ Usage:
       </li>
       {% end %}
       {% end %}
-      {% end %}
     </ol>
     {% end %}
   </section>
@@ -68,17 +69,26 @@ Usage:
 
   {# =========================================================================
      OTHER TRACKS SECTION
+     Pre-compute track_id → page mapping ONCE (O(n) instead of O(n×m))
      ========================================================================= #}
   {% let track_count = (all_tracks ?? {}) | length %}
   {% if track_count > 1 %}
+  {# Build track_id → page map once #}
+  {% let all_track_pages = {} %}
+  {% for p in (site?.pages ?? []) %}
+  {% let tid = p?.metadata?.track_id ?? '' %}
+  {% if tid and tid != track_id %}
+  {% let all_track_pages = all_track_pages | merge({tid: p}) %}
+  {% end %}
+  {% end %}
+
   <section class="track-nav-other">
     <h3 class="track-nav-title">{{ t('tracks.other', default='Other Tracks') }}</h3>
     <ul class="track-nav-tracks">
       {% for id, track in all_tracks |> items %}
       {% if id != track_id %}
-      {# Find track page with nil-resilient access #}
-      {% let track_pages = (site?.pages ?? []) |> where('metadata.track_id', id) %}
-      {% with track_pages |> first as track_page %}
+      {# O(1) lookup from pre-computed map #}
+      {% let track_page = all_track_pages[id] if id in all_track_pages else none %}
       {% if track_page %}
       <li>
         <a href="{{ track_page.href }}" class="track-nav-track-link">
@@ -92,7 +102,6 @@ Usage:
           </span>
         </a>
       </li>
-      {% end %}
       {% end %}
       {% end %}
       {% end %}

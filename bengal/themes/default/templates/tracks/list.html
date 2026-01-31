@@ -102,6 +102,16 @@ MAIN TEMPLATE
 {% let page_desc = page?.description ?? '' %}
 {% let tracks_data = site?.data?.tracks ?? {} %}
 
+{# PRE-COMPUTE track_id → page mapping ONCE (O(n) instead of O(n×m)) #}
+{% let site_pages = site?.pages ?? [] %}
+{% let track_page_map = {} %}
+{% for p in site_pages %}
+{% let tid = p?.metadata?.track_id ?? '' %}
+{% if tid %}
+{% let track_page_map = track_page_map | merge({tid: p}) %}
+{% end %}
+{% end %}
+
 <div class="container py-5">
     {# Minimal Header - Title + optional description #}
     <header class="tracks-header tracks-header--compact mb-5">
@@ -115,9 +125,8 @@ MAIN TEMPLATE
     {% if tracks_data | length > 0 %}
     <div class="tracks-grid">
         {% for id, track in tracks_data | items %}
-        {% let site_pages = site?.pages ?? [] %}
-        {% let track_pages = site_pages |> where('metadata.track_id', id) |> list %}
-        {% let track_page = track_pages[0] if track_pages | length > 0 else none %}
+        {# O(1) lookup from pre-computed map #}
+        {% let track_page = track_page_map[id] if id in track_page_map else none %}
         {{ track_card(id, track, track_page) }}
         {% end %}
     </div>
