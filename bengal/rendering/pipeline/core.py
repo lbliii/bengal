@@ -205,6 +205,7 @@ class RenderingPipeline:
             build_stats=build_stats,
             block_cache=block_cache,
             build_context=build_context,
+            use_layered_context=True,  # RFC: Zero-copy layered context
         )
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
