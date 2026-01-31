@@ -19,7 +19,7 @@ import pytest
 
 from bengal.orchestration.render import (
     RenderOrchestrator,
-    clearthread_local_pipelines,
+    clear_thread_local_pipelines,
     get_current_generation,
 )
 
@@ -28,9 +28,9 @@ class TestBuildGenerationCounter:
     """Test the build generation counter mechanism."""
 
     def test_clear_increments_generation(self):
-        """Test that clearthread_local_pipelines increments the generation."""
+        """Test that clear_thread_local_pipelines increments the generation."""
         gen_before = get_current_generation()
-        clearthread_local_pipelines()
+        clear_thread_local_pipelines()
         gen_after = get_current_generation()
 
         assert gen_after == gen_before + 1
@@ -38,9 +38,9 @@ class TestBuildGenerationCounter:
     def test_multiple_clears_increment_sequentially(self):
         """Test that multiple clears increment sequentially."""
         gen_start = get_current_generation()
-        clearthread_local_pipelines()
-        clearthread_local_pipelines()
-        clearthread_local_pipelines()
+        clear_thread_local_pipelines()
+        clear_thread_local_pipelines()
+        clear_thread_local_pipelines()
         gen_end = get_current_generation()
 
         assert gen_end == gen_start + 3
@@ -53,7 +53,7 @@ class TestBuildGenerationCounter:
 
         def increment_many():
             for _ in range(increments_per_thread):
-                clearthread_local_pipelines()
+                clear_thread_local_pipelines()
 
         threads = [threading.Thread(target=increment_many) for _ in range(num_threads)]
         for t in threads:
@@ -86,7 +86,7 @@ class TestPipelineRecreationOnNewBuild:
         return RenderOrchestrator(mock_site)
 
     def test_process_clearsthread_local_pipelines(self, orchestrator):
-        """Test that process() calls clearthread_local_pipelines."""
+        """Test that process() calls clear_thread_local_pipelines."""
         gen_before = get_current_generation()
 
         with (
@@ -142,7 +142,7 @@ class TestPipelineRecreationOnNewBuild:
         assert all(g == gen_1 for g in pipeline_generations[-10:])
 
         # Simulate template change -> triggers clear
-        clearthread_local_pipelines()
+        clear_thread_local_pipelines()
 
         # Simulate Build 2 (reuses same threads from pool potentially)
         gen_2 = get_current_generation()
@@ -178,7 +178,7 @@ class TestDevServerRebuildScenario:
         gen_1 = get_current_generation()
 
         # Simulate "template edit triggers rebuild"
-        clearthread_local_pipelines()
+        clear_thread_local_pipelines()
 
         gen_2 = get_current_generation()
 
@@ -203,7 +203,7 @@ class TestRegressionStaleTemplates:
 
         # Record generation at the start of each simulated process() call
         for _ in range(3):
-            clearthread_local_pipelines()  # Called at start of process()
+            clear_thread_local_pipelines()  # Called at start of process()
             generations_seen.append(get_current_generation())
 
         # Each process() call should see a new generation

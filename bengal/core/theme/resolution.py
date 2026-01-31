@@ -31,6 +31,7 @@ from typing import cast
 
 from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
+from bengal.themes.utils import THEMES_ROOT
 
 
 def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
@@ -88,7 +89,7 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
         )
 
     # Bundled theme manifest
-    bundled_manifest = Path(__file__).parent.parent.parent / "themes" / theme_name / "theme.toml"
+    bundled_manifest = THEMES_ROOT / theme_name / "theme.toml"
     if bundled_manifest.exists():
         try:
             with open(bundled_manifest, "rb") as f:
@@ -199,7 +200,7 @@ def resolve_theme_templates_path(
 
     # Bundled theme directory
     if bundled_themes_root is None:
-        bundled_themes_root = Path(__file__).parent.parent.parent / "themes"
+        bundled_themes_root = THEMES_ROOT
     bundled_theme_templates = bundled_themes_root / theme_name / "templates"
     if bundled_theme_templates.exists():
         return bundled_theme_templates
@@ -241,7 +242,7 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
 
         # Bundled theme assets
         try:
-            bundled_dir = Path(__file__).parent.parent.parent / "themes" / theme_name / "assets"
+            bundled_dir = THEMES_ROOT / theme_name / "assets"
             if bundled_dir.exists():
                 dirs.append(bundled_dir)
         except Exception as e:

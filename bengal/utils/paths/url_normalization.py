@@ -55,9 +55,14 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     if not url:
         return "/"
 
-    # Handle absolute URLs (http://, https://, //)
+    # Handle absolute URLs (http://, https://)
     # Don't normalize these - return as-is
-    if url.startswith(("http://", "https://", "//")):
+    if url.startswith(("http://", "https://")):
+        return url
+
+    # Handle protocol-relative URLs (// followed by non-slash)
+    # These are like //example.com/path
+    if url.startswith("//") and len(url) > 2 and url[2] != "/":
         return url
 
     # Ensure starts with /

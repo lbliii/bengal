@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.orchestration.render import _get_current_generation, clear_thread_local_pipelines
+from bengal.orchestration.render import get_current_generation, clear_thread_local_pipelines
 
 
 class TestStreamingUsesRenderOrchestratorCacheInvalidation:
@@ -35,12 +35,12 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
         """StreamingRenderOrchestrator with empty pages returns early."""
         from bengal.orchestration.streaming import StreamingRenderOrchestrator
 
-        gen_before = _get_current_generation()
+        gen_before = get_current_generation()
 
         orch = StreamingRenderOrchestrator(mock_site)
         orch.process([], parallel=False, quiet=True)
 
-        gen_after = _get_current_generation()
+        gen_after = get_current_generation()
 
         # No pages means no render calls, generation unchanged
         assert gen_after == gen_before
@@ -62,13 +62,13 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
 
         orch = RenderOrchestrator(site)
 
-        gen_before = _get_current_generation()
+        gen_before = get_current_generation()
 
         # Process with no pages (just to trigger generation increment)
         with patch.object(orch, "_set_output_paths_for_pages"):
             orch.process([], parallel=False, quiet=True)
 
-        gen_after = _get_current_generation()
+        gen_after = get_current_generation()
 
         # Generation should have been incremented
         assert gen_after == gen_before + 1
@@ -90,14 +90,14 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
 
         orch = RenderOrchestrator(site)
 
-        gen_start = _get_current_generation()
+        gen_start = get_current_generation()
 
         # Simulate 3 process calls (like hub/mid/leaf batches)
         for _ in range(3):
             with patch.object(orch, "_set_output_paths_for_pages"):
                 orch.process([], parallel=False, quiet=True)
 
-        gen_end = _get_current_generation()
+        gen_end = get_current_generation()
 
         # Should have incremented 3 times
         assert gen_end == gen_start + 3
@@ -108,9 +108,9 @@ class TestBuildGenerationForCacheInvalidation:
 
     def test_clear_thread_local_pipelines_increments_generation(self):
         """Verify clear_thread_local_pipelines increments the build generation."""
-        gen_before = _get_current_generation()
+        gen_before = get_current_generation()
         clear_thread_local_pipelines()
-        gen_after = _get_current_generation()
+        gen_after = get_current_generation()
 
         assert gen_after == gen_before + 1
 
@@ -119,7 +119,7 @@ class TestBuildGenerationForCacheInvalidation:
         generations = []
         for _ in range(5):
             clear_thread_local_pipelines()
-            generations.append(_get_current_generation())
+            generations.append(get_current_generation())
 
         # Should be strictly increasing
         for i in range(1, len(generations)):

@@ -34,6 +34,7 @@ from kida.environment import (
 from bengal.errors import BengalRenderingError
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
+from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
     from bengal.core import Site
@@ -155,15 +156,13 @@ class KidaTemplateEngine:
                 pass
 
             # Bundled theme directory
-            bundled_theme_templates = (
-                Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
-            )
+            bundled_theme_templates = THEMES_ROOT / theme_name / "templates"
             if bundled_theme_templates.exists():
                 dirs.append(bundled_theme_templates)
 
         # Ensure default theme exists as ultimate fallback
         # (resolve_theme_chain filters out 'default' to avoid duplicates)
-        default_templates = Path(__file__).parent.parent.parent / "themes" / "default" / "templates"
+        default_templates = DEFAULT_THEME_PATH / "templates"
         if default_templates not in dirs and default_templates.exists():
             dirs.append(default_templates)
 
