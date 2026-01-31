@@ -786,22 +786,25 @@ class TaxonomyOrchestrator:
         from bengal.core.page import Page
 
         virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
-        tag_index = Page(
-            source_path=virtual_path,
-            _raw_content="",
-            metadata={
-                "title": "All Tags",
-                "template": "tags.html",
-                "type": "tag-index",
-                "_generated": True,
-                "_virtual": True,
-                "_tags": tags,
-            },
-        )
+            tag_index = Page(
+                source_path=virtual_path,
+                _raw_content="",
+                metadata={
+                    "title": "All Tags",
+                    "template": "tags.html",
+                    "type": "tag-index",
+                    "_generated": True,
+                    "_virtual": True,
+                    "_tags": tags,
+                },
+            )
 
-        # Set site reference BEFORE output_path for correct URL computation
-        tag_index._site = self.site
-        tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
+            # Mark as virtual page (attribute, not just metadata)
+            tag_index._virtual = True
+
+            # Set site reference BEFORE output_path for correct URL computation
+            tag_index._site = self.site
+            tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
 
         # Claim URL in registry for ownership enforcement
         # Priority 40 = taxonomy (auto-generated)
@@ -862,11 +865,15 @@ class TaxonomyOrchestrator:
                     "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
+                    "_taxonomy_term": tag_slug,  # For provenance tracking
                     "_posts": eligible_pages,  # Use filtered pages
                     "_paginator": paginator,
                     "_page_num": page_num,
                 },
             )
+
+            # Mark as virtual page (attribute, not just metadata)
+            tag_page._virtual = True
 
             # Set site reference BEFORE output_path for correct URL computation
             tag_page._site = self.site

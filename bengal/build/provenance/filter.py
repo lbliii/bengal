@@ -291,8 +291,11 @@ class ProvenanceFilter:
             provenance = self._compute_provenance(page)
 
         # Skip pages with no meaningful provenance (fallback only)
+        # This commonly happens for generated taxonomy pages during cold builds where
+        # provenance is computed before files are fully populated. Not a problem since
+        # cold builds rebuild everything anyway.
         if provenance.input_count <= 1:  # Only config, no real source
-            logger.warning(
+            logger.debug(
                 "skipping_provenance_storage",
                 page_path=str(page_path),
                 input_count=provenance.input_count,
