@@ -196,4 +196,5 @@ dev = [
     "types-jinja2>=2.11.0",
     "pytest-benchmark>=5.2.3",
     "radon>=6.0.1",
+    "prek>=0.3.0",
 ]
