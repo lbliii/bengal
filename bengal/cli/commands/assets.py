@@ -22,7 +22,6 @@ logger = get_logger(__name__)
 @click.group(cls=BengalGroup)
 def assets() -> None:
     """Manage and build assets."""
-    pass
 
 
 @assets.command()
@@ -42,19 +41,19 @@ def assets() -> None:
 def build(watch: bool, source: str) -> None:
     """
     Build assets using the configured pipeline.
-    
+
     Processes CSS, JavaScript, and other assets according to your
     asset pipeline configuration. Use --watch to automatically rebuild
     on file changes.
-    
+
     Examples:
         bengal assets build           # Build once
         bengal assets build --watch   # Watch and rebuild on changes
-    
+
     See also:
         bengal assets status - View asset manifest
         bengal site build - Build site with assets
-        
+
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
@@ -109,17 +108,17 @@ def build(watch: bool, source: str) -> None:
 def status(source: str) -> None:
     """
     📋 Display the current asset manifest.
-    
+
     Shows the mapping of logical asset paths to fingerprinted output files.
     Useful for debugging asset references and cache-busting.
-    
+
     Examples:
         bengal assets status
-    
+
     See also:
         bengal assets build - Build assets
         bengal site build - Build site with assets
-        
+
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)

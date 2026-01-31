@@ -71,12 +71,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.errors import BengalConfigError, ErrorCode
+
+# Import from canonical location (bengal.protocols)
+from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 from bengal.rendering.engines.errors import (
     TemplateError,
     TemplateNotFoundError,
 )
-# Import from canonical location (bengal.protocols)
-from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 from bengal.rendering.errors import TemplateRenderError
 
 if TYPE_CHECKING:
@@ -89,11 +90,11 @@ _ENGINES: dict[str, type[TemplateEngineProtocol]] = {}
 def register_engine(name: str, engine_class: type[TemplateEngineProtocol]) -> None:
     """
     Register a third-party template engine.
-    
+
     Args:
         name: Engine identifier (used in bengal.yaml)
         engine_class: Class implementing TemplateEngineProtocol
-        
+
     """
     _ENGINES[name] = engine_class
 
@@ -105,22 +106,22 @@ def create_engine(
 ) -> TemplateEngineProtocol:
     """
     Create a template engine based on site configuration.
-    
+
     This is the ONLY way to get a template engine instance.
-    
+
     Args:
         site: Site instance
         profile: Enable template profiling
-    
+
     Returns:
         Engine implementing TemplateEngineProtocol
-    
+
     Raises:
         ValueError: If engine is unknown or required package not installed
-    
+
     Configuration:
         template_engine: kida  # default (Bengal's native engine), or "jinja2", "mako", "patitas", etc.
-        
+
     """
     engine_name = site.config.get("template_engine", "kida")
 
@@ -137,7 +138,9 @@ def create_engine(
 
     if engine_name == "mako":
         try:
-            from bengal.rendering.engines.mako import MakoTemplateEngine  # type: ignore[import-not-found]
+            from bengal.rendering.engines.mako import (
+                MakoTemplateEngine,  # type: ignore[import-not-found]
+            )
         except ImportError as e:
             raise BengalConfigError(
                 "Mako engine requires mako package. Install with: pip install bengal[mako]",
@@ -149,7 +152,9 @@ def create_engine(
 
     if engine_name == "patitas":
         try:
-            from bengal.rendering.engines.patitas import PatitasTemplateEngine  # type: ignore[import-not-found]
+            from bengal.rendering.engines.patitas import (
+                PatitasTemplateEngine,  # type: ignore[import-not-found]
+            )
         except ImportError as e:
             raise BengalConfigError(
                 "Patitas engine requires patitas package. Install with: pip install bengal[patitas]",
@@ -174,11 +179,11 @@ def create_engine(
 __all__ = [
     # Protocol
     "TemplateEngineProtocol",
-    # Factory
-    "create_engine",
-    "register_engine",
     # Errors
     "TemplateError",
     "TemplateNotFoundError",
     "TemplateRenderError",
+    # Factory
+    "create_engine",
+    "register_engine",
 ]

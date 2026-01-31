@@ -43,14 +43,14 @@ logger = get_logger(__name__)
 class WatcherRunner:
     """
     Runs FileWatcher in a background thread with debouncing.
-    
+
     Features:
         - Async-to-sync bridge for FileWatcher
         - Built-in debouncing (configurable delay)
         - Event type tracking (created, modified, deleted)
         - Thread-safe change accumulation
         - Graceful shutdown
-    
+
     Example:
             >>> def on_changes(paths, event_types):
             ...     print(f"Changed: {paths}")
@@ -62,7 +62,7 @@ class WatcherRunner:
             >>> runner.start()
             >>> # ... later
             >>> runner.stop()
-        
+
     """
 
     def __init__(
@@ -286,10 +286,10 @@ def create_watcher_runner(
 ) -> WatcherRunner:
     """
     Create a WatcherRunner configured for a site.
-    
+
     Factory function that creates IgnoreFilter from site config
     and configures the watcher runner.
-    
+
     Args:
         site: Site instance with config
         watch_dirs: Directories to watch
@@ -298,10 +298,10 @@ def create_watcher_runner(
         on_file_change: Optional callback for immediate file change events (path, event_type).
                         Called before debouncing for real-time dashboard updates.
                         (RFC: rfc-dashboard-api-integration)
-    
+
     Returns:
         Configured WatcherRunner instance
-        
+
     """
     # Create ignore filter from site config
     config = getattr(site, "config", {}) or {}

@@ -6,8 +6,6 @@ layout: list
 menu:
   main:
     weight: 40
-cascade:
-  type: doc
 icon: info
 ---
 # About

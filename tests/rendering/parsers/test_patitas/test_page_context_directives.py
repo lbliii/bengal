@@ -228,9 +228,9 @@ class TestChildCardsWithPageContext:
 
 class TestParserParityForChildCards:
     """Ensure Mistune and Patitas produce equivalent output for child-cards.
-    
+
     This parity test would have caught the patitas placeholder bug.
-        
+
     """
 
     @pytest.fixture

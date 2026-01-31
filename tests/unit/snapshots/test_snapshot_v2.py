@@ -38,23 +38,27 @@ class TestConfigSnapshot:
 
     def test_from_dict_basic(self):
         """Test ConfigSnapshot creation from dict."""
-        config = ConfigSnapshot.from_dict({
-            "site": {"title": "Test Site", "baseurl": "/test/"},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "site": {"title": "Test Site", "baseurl": "/test/"},
+            }
+        )
 
         assert config.site.title == "Test Site"
         assert config.site.baseurl == "/test/"
 
     def test_from_dict_with_build_section(self):
         """Test build section extraction."""
-        config = ConfigSnapshot.from_dict({
-            "build": {
-                "parallel": False,
-                "incremental": True,
-                "output_dir": "dist",
-                "max_workers": 4,
+        config = ConfigSnapshot.from_dict(
+            {
+                "build": {
+                    "parallel": False,
+                    "incremental": True,
+                    "output_dir": "dist",
+                    "max_workers": 4,
+                }
             }
-        })
+        )
 
         assert config.build.parallel is False
         assert config.build.incremental is True
@@ -63,13 +67,15 @@ class TestConfigSnapshot:
 
     def test_from_dict_with_theme_features(self):
         """Test theme section with features list."""
-        config = ConfigSnapshot.from_dict({
-            "theme": {
-                "name": "custom",
-                "features": ["search", "toc", "graph"],
-                "default_appearance": "dark",
+        config = ConfigSnapshot.from_dict(
+            {
+                "theme": {
+                    "name": "custom",
+                    "features": ["search", "toc", "graph"],
+                    "default_appearance": "dark",
+                }
             }
-        })
+        )
 
         assert config.theme.name == "custom"
         assert config.theme.features == ("search", "toc", "graph")
@@ -77,12 +83,14 @@ class TestConfigSnapshot:
 
     def test_from_dict_with_dev_section(self):
         """Test dev section extraction."""
-        config = ConfigSnapshot.from_dict({
-            "dev": {
-                "port": 3000,
-                "live_reload": False,
+        config = ConfigSnapshot.from_dict(
+            {
+                "dev": {
+                    "port": 3000,
+                    "live_reload": False,
+                }
             }
-        })
+        )
 
         assert config.dev.port == 3000
         assert config.dev.live_reload is False
@@ -106,10 +114,12 @@ class TestConfigSnapshot:
 
     def test_raw_dict_access(self):
         """Test raw dict access for custom sections."""
-        config = ConfigSnapshot.from_dict({
-            "custom_section": {"key": "value"},
-            "params": {"author": "Test Author"},
-        })
+        config = ConfigSnapshot.from_dict(
+            {
+                "custom_section": {"key": "value"},
+                "params": {"author": "Test Author"},
+            }
+        )
 
         assert config["custom_section"] == {"key": "value"}
         assert config.params["author"] == "Test Author"

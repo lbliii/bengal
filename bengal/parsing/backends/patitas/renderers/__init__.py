@@ -22,4 +22,4 @@ from __future__ import annotations
 
 from bengal.parsing.backends.patitas.renderers.html import HeadingInfo, HtmlRenderer
 
-__all__ = ["HtmlRenderer", "HeadingInfo"]
+__all__ = ["HeadingInfo", "HtmlRenderer"]

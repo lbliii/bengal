@@ -43,21 +43,21 @@ logger = get_logger(__name__)
 def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
     """
     Resolve theme inheritance chain starting from the active theme.
-    
+
     Order: child first → parent → ... (do not duplicate 'default').
-    
+
     When active_theme is "default" (or None), returns ["default"] so that
     the bundled default theme assets are discovered. For child themes that
     extend "default", filters out "default" since it's added as a fallback
     separately in template loaders.
-    
+
     Args:
         active_theme: Active theme name
         site: Site instance
-    
+
     Returns:
         List of theme names in inheritance order
-        
+
     """
     chain = []
     visited: set[str] = set()
@@ -85,16 +85,16 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
 def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
     """
     Resolve the templates directory path for a theme.
-    
+
     Checks site themes, installed themes, and bundled themes in order.
-    
+
     Args:
         theme_name: Theme name to look up
         site: Site instance
-    
+
     Returns:
         Path to theme's templates directory, or None if not found
-        
+
     """
     # Site-level theme directory
     site_theme_templates = site.root_path / "themes" / theme_name / "templates"
@@ -128,14 +128,14 @@ def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
 def read_theme_extends(theme_name: str, site: Any) -> str | None:
     """
     Read theme.toml for 'extends' from site, installed, or bundled theme path.
-    
+
     Args:
         theme_name: Theme name to look up
         site: Site instance
-    
+
     Returns:
         Parent theme name if extends is set, None otherwise
-        
+
     """
     # Site theme manifest
     site_manifest = site.root_path / "themes" / theme_name / "theme.toml"
@@ -204,15 +204,15 @@ def create_jinja_environment(
 ) -> tuple[Environment, list[Path]]:
     """
     Create and configure Jinja2 environment.
-    
+
     Args:
         site: Site instance
         template_engine: TemplateEngine instance (for function bindings)
         profile_templates: Whether template profiling is enabled
-    
+
     Returns:
         Tuple of (Jinja2 Environment, list of template directories)
-        
+
     """
     import sys
 

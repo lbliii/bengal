@@ -3,8 +3,6 @@ title: Meta & Operations
 nav_title: Meta
 description: Performance, testing, and project structure
 weight: 50
-cascade:
-  type: doc
 icon: tag
 ---
 # Meta & Operations

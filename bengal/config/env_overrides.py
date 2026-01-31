@@ -54,11 +54,11 @@ logger = get_logger(__name__)
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     """
     Apply environment-based overrides for deployment platforms.
-    
+
     Auto-detects baseurl from platform environment variables when
     config baseurl is not explicitly set. Provides zero-config deployments
     for Netlify, Vercel, and GitHub Pages.
-    
+
     Priority:
         1) BENGAL_BASEURL (explicit override)
         2) Netlify (URL/DEPLOY_PRIME_URL)
@@ -66,20 +66,20 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         4) GitHub Pages (owner.github.io/repo) when running in Actions
            - Set GITHUB_PAGES_ROOT=true for root deployments (user/org sites)
            - Auto-detects user/org sites when repo name is {owner}.github.io
-    
+
     Behavior:
     - Explicit non-empty config baseurl takes precedence over all env vars
     - BENGAL_BASEURL (priority 1) can override empty or missing baseurl
     - Platform detection (priorities 2-4) only applies when baseurl is missing from config
     - If baseurl is explicitly set (even if empty), platform detection respects it
-    
+
     Args:
         config: Configuration dictionary (flat or nested)
-    
+
     Returns:
         Config with baseurl set from environment if applicable. Returns a
         new dictionary; the input dictionary is not mutated.
-    
+
     Examples:
             >>> import os
             >>> os.environ["GITHUB_ACTIONS"] = "true"
@@ -89,13 +89,13 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             >>> result = apply_env_overrides(config)
             >>> result["baseurl"]
             '/repo'
-    
+
             >>> # Explicit empty baseurl is respected by platform detection
             >>> config = {"baseurl": ""}
             >>> result = apply_env_overrides(config)
             >>> result["baseurl"]
             ''
-    
+
             >>> # But BENGAL_BASEURL can override explicit empty
             >>> import os
             >>> os.environ["BENGAL_BASEURL"] = "https://override.com"
@@ -103,13 +103,13 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             >>> result = apply_env_overrides(config)
             >>> result["baseurl"]
             'https://override.com'
-    
+
             >>> # Explicit non-empty baseurl is respected
             >>> config = {"baseurl": "https://custom.com"}
             >>> result = apply_env_overrides(config)
             >>> result["baseurl"]
             'https://custom.com'
-        
+
     """
     # Mutate config in place (test expects same object to be returned)
     # This is safe when config is a plain dict being built up

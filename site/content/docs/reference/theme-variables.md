@@ -3,7 +3,6 @@ title: Theme Variables
 nav_title: Variables
 description: Comprehensive reference of all variables and functions available in Kida templates.
 weight: 10
-type: doc
 tags:
 - reference
 - templates

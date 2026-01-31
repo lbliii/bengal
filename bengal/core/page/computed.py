@@ -68,19 +68,19 @@ class HasSiteAndMetadata(Protocol):
 class PageComputedMixin:
     """
     Mixin providing cached computed properties for pages.
-    
+
     This mixin handles expensive operations that are cached after first access:
     - meta_description - SEO-friendly description
     - word_count - Word count from source content
     - reading_time - Estimated reading time
     - excerpt - Content excerpt
-    
+
     Underscore Convention:
         Properties prefixed with `_` are for internal/advanced use:
         - _source: Raw markdown source (for plugins, custom analysis)
         Properties without `_` are template-ready:
         - word_count, reading_time: Pre-computed for templates
-        
+
     """
 
     @property

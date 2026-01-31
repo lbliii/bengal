@@ -74,9 +74,11 @@ class TestErrorCodeUsage:
 class TestErrorLogging:
     """Test that errors are logged at appropriate levels."""
 
-    def test_warning_level_used_for_non_fatal_errors(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_warning_level_used_for_non_fatal_errors(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Verify non-fatal errors log at warning level, not debug.
-        
+
         This test verifies the standard logging pattern used in Bengal's
         error handling. The actual logger (structlog wrapper) may use
         different semantics but the intent is to log at WARNING level
@@ -87,9 +89,7 @@ class TestErrorLogging:
 
         with caplog.at_level(logging.WARNING):
             # Simulate what the pipeline does on link extraction failure
-            test_logger.warning(
-                "link_extraction_failed: page=content/test.md error=Test error"
-            )
+            test_logger.warning("link_extraction_failed: page=content/test.md error=Test error")
 
         # Should have logged at warning level
         assert any(r.levelno >= logging.WARNING for r in caplog.records)

@@ -48,7 +48,7 @@ class TestExplainerProtocolCompliance:
         mock_page: MagicMock,
     ) -> None:
         """Must use get_template_path(), not _find_template_path().
-        
+
         This test verifies that PageExplainer uses the public protocol
         method `get_template_path` instead of the private implementation
         method `_find_template_path`.
@@ -80,21 +80,23 @@ class TestExplainerProtocolCompliance:
         # Create template files
         template_dir = tmp_path / "templates"
         template_dir.mkdir()
-        
+
         custom_template = template_dir / "custom.html"
-        custom_template.write_text('{% extends "base.html" %}\n{% block content %}...{% endblock %}')
-        
+        custom_template.write_text(
+            '{% extends "base.html" %}\n{% block content %}...{% endblock %}'
+        )
+
         base_template = template_dir / "base.html"
-        base_template.write_text('<!DOCTYPE html>\n<html>{% block content %}{% endblock %}</html>')
+        base_template.write_text("<!DOCTYPE html>\n<html>{% block content %}{% endblock %}</html>")
 
         # Create mock engine with realistic behavior
         mock_engine = MagicMock(spec=TemplateEngine)
         mock_engine.template_dirs = [template_dir]
-        
+
         def get_path(name: str) -> Path | None:
             path = template_dir / name
             return path if path.exists() else None
-        
+
         mock_engine.get_template_path.side_effect = get_path
 
         explainer = PageExplainer(
@@ -107,7 +109,7 @@ class TestExplainerProtocolCompliance:
         # Should resolve the chain through extends
         assert len(chain) >= 1
         assert chain[0].name == "custom.html"
-        
+
         # If chain is fully resolved, should include base.html
         if len(chain) > 1:
             assert chain[1].name == "base.html"
@@ -131,7 +133,7 @@ class TestExplainerProtocolCompliance:
 
         # Should have called get_template_path to check if template exists
         mock_engine.get_template_path.assert_called()
-        
+
         # Should report template not found
         template_issues = [i for i in issues if i.issue_type == "template_not_found"]
         assert len(template_issues) == 1
@@ -142,7 +144,7 @@ class TestExplainerProtocolCompliance:
         mock_page: MagicMock,
     ) -> None:
         """Ensure no private methods are accessed on template engine.
-        
+
         This test uses spec=TemplateEngine which will raise AttributeError
         if any method not in the protocol is accessed.
         """
@@ -194,14 +196,14 @@ class TestExplainerTemplateChainExtraction:
 
     def test_extract_includes_multiple(self, explainer: PageExplainer) -> None:
         """Should extract all includes."""
-        content = '''
+        content = """
 {% include "header.html" %}
 <main>Content</main>
 {% include 'sidebar.html' %}
 {% include "footer.html" %}
-'''
+"""
         result = explainer._extract_includes(content)
-        
+
         assert len(result) == 3
         assert "header.html" in result
         assert "sidebar.html" in result

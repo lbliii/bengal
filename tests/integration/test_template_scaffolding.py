@@ -25,16 +25,16 @@ AVAILABLE_TEMPLATES = [
 @pytest.mark.parametrize("template", AVAILABLE_TEMPLATES)
 def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
     """Each template should scaffold and build without errors.
-    
+
     This test validates the complete user workflow:
     1. Scaffold a new site from template
     2. Build the site
     3. Verify essential output files exist
-    
+
     Args:
         template: Template name to test
         tmp_path: Pytest temporary directory fixture
-        
+
     """
     site_name = f"site-{template}"
     site_dir = tmp_path / site_name
@@ -71,11 +71,11 @@ def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
 @pytest.mark.parametrize("template", AVAILABLE_TEMPLATES)
 def test_template_has_valid_structure(template: str, tmp_path) -> None:
     """Each template should scaffold with expected directory structure.
-    
+
     Args:
         template: Template name to test
         tmp_path: Pytest temporary directory fixture
-        
+
     """
     site_name = f"site-{template}"
     site_dir = tmp_path / site_name
@@ -176,10 +176,10 @@ def test_docs_template_generates_search_index(tmp_path) -> None:
 @pytest.mark.slow
 def test_template_dev_server_starts(tmp_path) -> None:
     """Verify dev server can start for default template.
-    
+
     This is a smoke test to ensure dev server infrastructure works.
     Only tests default template to keep CI fast.
-        
+
     """
     import signal
     import subprocess

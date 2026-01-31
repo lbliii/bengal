@@ -31,13 +31,13 @@ if TYPE_CHECKING:
 
 def register_context_functions(env: Environment, site: SiteLike) -> None:
     """Register context-dependent template functions for Jinja2.
-    
+
     These functions use @pass_context to extract page from the template context.
-    
+
     Args:
         env: Jinja2 Environment instance
         site: Site instance
-        
+
     """
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (

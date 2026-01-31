@@ -21,8 +21,8 @@ from typing import Any
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
-from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
 
 logger = get_logger(__name__)
 
@@ -30,13 +30,13 @@ logger = get_logger(__name__)
 def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     """
     Parse YAML frontmatter from content.
-    
+
     Args:
         content: Raw file content with optional frontmatter
-    
+
     Returns:
         Tuple of (frontmatter dict, body content)
-        
+
     """
     if not content.startswith("---"):
         return {}, content
@@ -74,16 +74,16 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
 class LocalSource(ContentSource):
     """
     Content source for local filesystem.
-    
+
     Reads markdown files from a directory, parsing frontmatter and
     generating content entries.
-    
+
     Configuration:
         directory: str - Directory path (relative to site root)
         glob: str - Glob pattern for matching files (default: "**/*.md")
         exclude: list[str] - Patterns to exclude (default: [])
         sort: bool - Sort entries alphabetically (default: False for performance)
-    
+
     Example:
             >>> source = LocalSource("docs", {
             ...     "directory": "content/docs",
@@ -93,7 +93,7 @@ class LocalSource(ContentSource):
             ... })
             >>> async for entry in source.fetch_all():
             ...     print(entry.title)
-        
+
     """
 
     source_type = "local"

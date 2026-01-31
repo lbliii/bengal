@@ -60,27 +60,27 @@ from collections.abc import Hashable
 class PerKeyLockManager:
     """
     Thread-safe manager for per-key locks.
-    
+
     Prevents duplicate work when multiple threads need the same resource.
     Each key gets its own lock, allowing parallel work on different keys.
-    
+
     Attributes:
         _locks: Dictionary mapping keys to their RLock instances
         _meta_lock: Lock protecting the _locks dictionary itself
-    
+
     Thread Safety:
         Fully thread-safe. The meta-lock ensures atomic get-or-create
         semantics for individual key locks.
-    
+
     Memory:
         Lock objects are tiny (~100 bytes). Even 1000 unique keys only
         consume ~100KB. Use clear() between build sessions to reset.
-    
+
     Example:
             >>> manager = PerKeyLockManager()
             >>> with manager.get_lock("base.html"):
             ...     template = compile_template("base.html")
-        
+
     """
 
     __slots__ = ("_locks", "_meta_lock")

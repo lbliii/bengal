@@ -27,7 +27,7 @@ def mock_site(tmp_path):
         page = Mock()
         page.metadata = {"draft": False}
         pages.append(page)
-    
+
     for i in range(2):
         page = Mock()
         page.metadata = {"draft": True}
@@ -59,7 +59,7 @@ class TestSitemapValidatorCoverage:
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         coverage_warnings = [r for r in warning_results if "missing" in r.message.lower()]
         assert len(coverage_warnings) >= 1
-        
+
         # Warning should mention the counts
         warning_msg = coverage_warnings[0].message
         assert "3" in warning_msg  # sitemap count
@@ -90,7 +90,7 @@ class TestSitemapValidatorCoverage:
     def test_no_warning_when_sitemap_has_more_urls(self, mock_site, tmp_path):
         """
         No warning when sitemap has MORE URLs than pages.
-        
+
         This is normal - generated pages like tags/archives add URLs.
         """
         # Create sitemap with 7 URLs (more than 5 non-draft pages)
@@ -146,7 +146,7 @@ class TestSitemapValidatorEmptyStates:
         site = Mock()
         site.output_dir = tmp_path
         site.config = {"baseurl": "https://example.com"}
-        
+
         # All pages are drafts
         page = Mock()
         page.metadata = {"draft": True}
@@ -185,6 +185,6 @@ class TestSitemapValidatorCodes:
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         coverage_warnings = [r for r in warning_results if "missing" in r.message.lower()]
-        
+
         if coverage_warnings:
             assert coverage_warnings[0].code == "H509"

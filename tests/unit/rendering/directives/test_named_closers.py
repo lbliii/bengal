@@ -196,7 +196,7 @@ Deeply nested content
     def test_five_level_nesting_no_counting(self, parser: MistuneParser) -> None:
         """
         Five levels deep - this would require :::::: with fence counting.
-        
+
         With named closers, we just use ::: everywhere.
         """
         markdown = """\
@@ -353,4 +353,3 @@ Content
         result = parser.parse(markdown, {})
         assert 'class="admonition note"' in result
         assert "Content" in result
-

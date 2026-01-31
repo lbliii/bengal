@@ -3,7 +3,6 @@ title: Scaffold Your First Site
 nav_title: Scaffold
 description: Create a Bengal site from a template in 5 minutes
 weight: 5
-type: doc
 draft: false
 tags:
 - tutorial

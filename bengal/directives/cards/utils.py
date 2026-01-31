@@ -11,9 +11,9 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from bengal.utils.observability.logger import get_logger
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -202,14 +202,14 @@ def resolve_link_url(renderer: Any, link: str) -> str:
 def render_icon(icon_name: str, card_title: str = "") -> str:
     """
     Render icon using Bengal SVG icons.
-    
+
     Args:
         icon_name: Name of the icon to render
         card_title: Title of the card (for warning context)
-    
+
     Returns:
         SVG HTML string, or empty string if not found
-        
+
     """
     from bengal.directives._icons import render_icon as _render_icon
     from bengal.directives._icons import warn_missing_icon
@@ -372,7 +372,7 @@ def render_child_card(
 
     if description:
         parts.append('  <div class="card-content">')
-        parts.append(f"    { _render_description_html(description) }")
+        parts.append(f"    {_render_description_html(description)}")
         parts.append("  </div>")
 
     parts.append("</a>")
@@ -413,18 +413,18 @@ def _render_description_html(description: str) -> str:
 
 def escape_html(text: str) -> str:
     """Escape HTML special characters for safe use in attributes.
-    
+
     This is a convenience re-export of the canonical implementation.
-    
+
     Args:
         text: Raw text to escape.
-    
+
     Returns:
         HTML-escaped string safe for use in attribute values.
-    
+
     See Also:
         ``bengal.utils.text.escape_html``: Canonical implementation.
-        
+
     """
     from bengal.utils.primitives.text import escape_html as _escape_html
 

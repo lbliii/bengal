@@ -31,17 +31,17 @@ from typing import Any
 def generate_menu_config(sections: list[str], menu_name: str = "main") -> str:
     """
     Generate menu configuration entries for given sections.
-    
+
     Creates [[menu.main]] entries with appropriate weights based on
     common conventions (Home first, then other sections in order).
-    
+
     Args:
         sections: List of section slugs (e.g., ['blog', 'about', 'projects'])
         menu_name: Menu identifier (default: 'main')
-    
+
     Returns:
         TOML-formatted menu configuration string
-    
+
     Example:
             >>> generate_menu_config(['blog', 'about'])
             '''
@@ -50,18 +50,18 @@ def generate_menu_config(sections: list[str], menu_name: str = "main") -> str:
         name = "Home"
         url = "/"
         weight = 1
-    
+
         [[menu.main]]
         name = "Blog"
         url = "/blog/"
         weight = 10
-    
+
         [[menu.main]]
         name = "About"
         url = "/about/"
         weight = 20
             '''
-        
+
     """
     lines = []
     lines.append("# Navigation Menu")
@@ -93,16 +93,16 @@ def generate_menu_config(sections: list[str], menu_name: str = "main") -> str:
 def _get_display_name(section_slug: str) -> str:
     """
     Convert section slug to display name.
-    
+
     Uses intelligent title-casing with special handling for
     common terms and acronyms.
-    
+
     Args:
         section_slug: Section slug (e.g., 'getting-started', 'api')
-    
+
     Returns:
         Display name (e.g., 'Getting Started', 'API')
-    
+
     Examples:
             >>> _get_display_name('blog')
             'Blog'
@@ -110,7 +110,7 @@ def _get_display_name(section_slug: str) -> str:
             'Getting Started'
             >>> _get_display_name('api')
             'API'
-        
+
     """
     # Special cases for common acronyms/terms
     special_cases = {
@@ -138,21 +138,21 @@ def _get_display_name(section_slug: str) -> str:
 def append_menu_to_config(config_path: Path, sections: list[str], menu_name: str = "main") -> bool:
     """
     Append menu configuration to existing bengal.toml file.
-    
+
     Safely appends menu entries to the config file, checking if
     menu configuration already exists to avoid duplicates.
-    
+
     Args:
         config_path: Path to bengal.toml
         sections: List of section slugs to add
         menu_name: Menu identifier (default: 'main')
-    
+
     Returns:
         True if menu was added, False if menu already exists
-    
+
     Raises:
         FileNotFoundError: If config file doesn't exist
-        
+
     """
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -186,19 +186,19 @@ def append_menu_to_config(config_path: Path, sections: list[str], menu_name: str
 def get_menu_suggestions(sections: list[str], menu_name: str = "main") -> dict[str, Any]:
     """
     Get menu configuration suggestions for display to user.
-    
+
     Returns structured menu data that can be used for:
     - CLI display/preview
     - Interactive prompts
     - Configuration generation
-    
+
     Args:
         sections: List of section slugs
         menu_name: Menu identifier (default: 'main')
-    
+
     Returns:
         Dictionary with menu items and TOML representation
-    
+
     Example:
             >>> get_menu_suggestions(['blog', 'about'])
         {
@@ -210,7 +210,7 @@ def get_menu_suggestions(sections: list[str], menu_name: str = "main") -> dict[s
             ],
                 'toml': '[[menu.main]]\nname = "Home"...'
         }
-        
+
     """
     items = [{"name": "Home", "url": "/", "weight": 1}]
 

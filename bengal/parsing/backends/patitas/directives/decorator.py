@@ -22,17 +22,18 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
-    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
-    from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
     from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
+    from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
 
 TOptions = TypeVar("TOptions", bound="DirectiveOptions")
 TClass = TypeVar("TClass", bound=type)
 
 
 @overload
-def directive(  # noqa: UP047
+def directive(
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,
@@ -42,7 +43,7 @@ def directive(  # noqa: UP047
 
 
 @overload
-def directive(  # noqa: UP047
+def directive(
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,
@@ -59,31 +60,32 @@ def directive(
     token_type: str | None = None,
 ):
     """Decorator to create directive handlers with minimal boilerplate.
-    
+
     Works with both functions (simple directives) and classes (complex directives).
-    
+
     Args:
         *names: Directive names (e.g., "note", "warning", "tip")
         options: Options class for typed option parsing
         contract: Optional nesting validation contract
         preserves_raw_content: If True, parser preserves raw content string
         token_type: Token type identifier (defaults to first name)
-    
+
     Example (function):
         @directive("note", options=NoteOptions)
         def render_note(node: Directive[NoteOptions], children: str, sb: StringBuilder) -> None:
             sb.append(f'<div class="note">{children}</div>')
-    
+
     Example (class):
         @directive("gallery", options=GalleryOptions, preserves_raw_content=True)
         class GalleryDirective:
             def render(self, node: Directive[GalleryOptions], children: str, sb: StringBuilder) -> None:
                 images = self._parse_images(node.raw_content)
                     ...
-        
+
     """
-    from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
     from patitas.nodes import Directive
+
+    from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
 
     if not names:
         msg = "At least one directive name must be provided"

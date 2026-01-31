@@ -61,7 +61,6 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
 
@@ -69,38 +68,38 @@ if TYPE_CHECKING:
 class SpecialPagesGenerator:
     """
     Generates special utility pages with site styling.
-    
+
     These pages use templates from the theme but don't have corresponding
     markdown source files. They are rendered during the build process to
     ensure proper styling, navigation, and integration with site features.
-    
+
     Creation:
         Direct instantiation: SpecialPagesGenerator(site)
             - Created by PostprocessOrchestrator for special page generation
             - Requires Site instance with template engine
-    
+
     Attributes:
         site: Site instance with configuration and template engine
-    
+
     Relationships:
         - Used by: PostprocessOrchestrator for special page generation
         - Uses: Site for config, TemplateEngine for rendering
         - Uses: GraphVisualizer for knowledge graph page
-    
+
     Currently Generates:
         - 404.html: Custom error page with site styling and navigation
         - search.html: Client-side search with Lunr.js integration
         - graph.html: Interactive D3.js knowledge graph visualization
-    
+
     Graceful Degradation:
         - Missing templates are silently skipped (not errors)
         - User content at same path takes precedence (priority system)
         - Generation failures are logged but don't stop the build
-    
+
     Example:
             >>> generator = SpecialPagesGenerator(site)
             >>> generator.generate(build_context=context)
-        
+
     """
 
     def __init__(self, site: SiteLike) -> None:
@@ -225,7 +224,7 @@ class SpecialPagesGenerator:
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
                     # Type narrowing: we know url_registry exists from hasattr check
-                    url_registry = getattr(self.site, "url_registry")
+                    url_registry = self.site.url_registry
                     url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,
@@ -316,6 +315,7 @@ class SpecialPagesGenerator:
             else:
                 # Cast SiteLike to Site for create_engine (which expects concrete Site)
                 from bengal.core.site import Site
+
                 site = cast(Site, self.site)
                 template_engine = create_engine(site)
 
@@ -369,7 +369,7 @@ class SpecialPagesGenerator:
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
                     # Type narrowing: we know url_registry exists from hasattr check
-                    url_registry = getattr(self.site, "url_registry")
+                    url_registry = self.site.url_registry
                     url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,
@@ -470,7 +470,7 @@ class SpecialPagesGenerator:
             if hasattr(self.site, "url_registry") and self.site.url_registry:
                 try:
                     # Type narrowing: we know url_registry exists from hasattr check
-                    url_registry = getattr(self.site, "url_registry")
+                    url_registry = self.site.url_registry
                     url_registry.claim_output_path(
                         output_path=output_path,
                         site=self.site,

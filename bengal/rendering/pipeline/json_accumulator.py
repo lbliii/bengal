@@ -25,22 +25,22 @@ logger = get_logger(__name__)
 class JsonAccumulator:
     """
     Accumulates JSON and unified page data during rendering.
-    
+
     Computes all per-page derivatives once (excerpt, word_count, etc.)
     for consumption by multiple post-processing generators:
     - PageJSONGenerator (per-page JSON files)
     - SiteIndexGenerator (index.json for search)
-    
+
     Attributes:
         site: Site instance for configuration
         build_context: BuildContext for data accumulation
         page_json_generator: Cached PageJSONGenerator instance
         page_json_generator_opts: Cached options for generator
-    
+
     Example:
             >>> accumulator = JsonAccumulator(site, build_context)
             >>> accumulator.accumulate_unified_page_data(page)
-        
+
     """
 
     def __init__(self, site: Any, build_context: BuildContext | None):
@@ -120,13 +120,13 @@ class JsonAccumulator:
         if not self.build_context or not self.site:
             return
 
+        from bengal.orchestration.build_context import AccumulatedPageData
         from bengal.postprocess.output_formats.utils import (
             generate_excerpt,
             get_page_json_path,
             get_page_relative_url,
             get_page_url,
         )
-        from bengal.orchestration.build_context import AccumulatedPageData
 
         try:
             # Compute URLs

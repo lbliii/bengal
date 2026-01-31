@@ -22,9 +22,10 @@ from dataclasses import dataclass, replace
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -32,9 +33,9 @@ if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
 __all__ = [
-    "ExampleLabelDirective",
-    "BuildDirective",
     "AsciinemaDirective",
+    "BuildDirective",
+    "ExampleLabelDirective",
 ]
 
 
@@ -71,27 +72,27 @@ class ExampleLabelOptions(DirectiveOptions):
 class ExampleLabelDirective:
     """
     Lightweight semantic label for example sections.
-    
+
     Syntax:
         :::{example-label} Basic Usage
         :::
-    
+
         :::{example-label} API Call
         :prefix: Demo
         :::
-    
+
         :::{example-label} Simple
         :no-prefix:
         :::
-    
+
     Output:
         <p class="example-label" role="heading" aria-level="6">
           <span class="example-label-prefix">Example:</span> Basic Usage
         </p>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("example-label",)
@@ -172,19 +173,19 @@ class BuildOptions(DirectiveOptions):
 class BuildDirective:
     """
     Build badge directive for displaying build status/duration.
-    
+
     Embeds HTML that references generated build badge (SVG) and optionally
     links to build stats JSON. The actual badge is generated at build finalization.
-    
+
     Syntax:
         :::{build}
         :::
-    
+
         :::{build}
         :json: true
         :class: mt-3
         :::
-    
+
     Options:
         :json: Link to build.json (default: false)
         :inline: Render inline (default: false)
@@ -192,18 +193,18 @@ class BuildDirective:
         :class: Additional CSS classes
         :alt: Image alt text (default: "Built in badge")
         :dir: Directory name for artifacts (default: "bengal")
-    
+
     Output:
         <span class="bengal-build-badge">
           <img class="bengal-build-badge__img" src="/bengal/build.svg" alt="...">
         </span>
-    
+
     Requires:
         Site context for URL resolution.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("build",)
@@ -362,9 +363,9 @@ class AsciinemaOptions(DirectiveOptions):
 class AsciinemaDirective:
     """
     Asciinema terminal recording embed directive.
-    
+
     Supports both remote (asciinema.org) and local (.cast file) recordings.
-    
+
     Remote recording syntax:
         :::{asciinema} 590029
         :title: Installation Demo
@@ -373,19 +374,19 @@ class AsciinemaDirective:
         :speed: 1.5
         :autoplay: true
         :::
-    
+
     Local file syntax:
         :::{asciinema} recordings/demo.cast
         :title: Local Demo
         :cols: 80
         :speed: 1.5
         :::
-    
+
     Input:
         - Numeric ID (e.g., "590029") for asciinema.org recordings
         - File path ending in .cast (e.g., "recordings/demo.cast") for local files
           Local paths are resolved relative to site root and should be in static/ directory
-    
+
     Options:
         :title: (required) Accessible title for recording
         :cols: Terminal columns (default: 80)
@@ -398,20 +399,20 @@ class AsciinemaDirective:
         :idle-time-limit: Max idle time between frames
         :start-at: Start playback at specific time
         :class: Additional CSS classes
-    
+
     Output:
         Remote: <figure> with script tag loading from asciinema.org
         Local: <figure> with asciinema player initialized with local .cast file
-    
+
     Security:
         Recording ID validated (numeric for remote, .cast extension for local).
-    
+
     Accessibility:
         ARIA role="img" with aria-label. Noscript fallback.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("asciinema",)
@@ -581,7 +582,7 @@ class AsciinemaDirective:
                 elif value is None:
                     continue
                 else:
-                    config_items.append(f'"{key}": {repr(str(value))}')
+                    config_items.append(f'"{key}": {str(value)!r}')
             config_json = "{" + ", ".join(config_items) + "}"
 
             sb.append(

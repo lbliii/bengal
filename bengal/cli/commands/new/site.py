@@ -21,8 +21,8 @@ from .config import create_config_directory
 from .wizard import run_init_wizard, should_run_init_wizard
 
 if TYPE_CHECKING:
-    from bengal.scaffolds.base import SiteTemplate
     from bengal.output import CLIOutput
+    from bengal.scaffolds.base import SiteTemplate
 
 # .gitignore content for new sites
 GITIGNORE_CONTENT = """# Bengal build outputs
@@ -87,19 +87,19 @@ def create_site(
 ) -> None:
     """
     Core logic for creating a new site.
-    
+
     🏗️  Create a new Bengal site with optional structure initialization.
-    
+
     Creates a new site directory with configuration, content structure, and
     optional sample content. Use --template to choose a preset layout.
-    
+
     Args:
         name: Site name (or None to prompt)
         theme: Theme to use
         template: Site template name
         no_init: Skip structure initialization wizard
         init_preset: Preset name if provided via flag
-        
+
     """
     cli = get_cli_output()
 
@@ -206,10 +206,10 @@ def _determine_template(
 ) -> tuple[str, bool, str | None]:
     """
     Determine the effective template based on wizard selection.
-    
+
     Returns:
         Tuple of (effective_template, is_custom, wizard_selection)
-        
+
     """
     effective_template = template
     is_custom = False

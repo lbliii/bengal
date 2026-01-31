@@ -22,7 +22,11 @@ from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 # Bengal now uses Kida as its template engine, so we need to handle both
 from kida.environment.exceptions import (
     TemplateRuntimeError as KidaRuntimeError,
+)
+from kida.environment.exceptions import (
     TemplateSyntaxError as KidaSyntaxError,
+)
+from kida.environment.exceptions import (
     UndefinedError as KidaUndefinedError,
 )
 

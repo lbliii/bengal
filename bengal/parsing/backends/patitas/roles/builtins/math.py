@@ -21,17 +21,17 @@ if TYPE_CHECKING:
 
 class MathRole:
     """Handler for {math}`expression` role.
-    
+
     Renders inline mathematical expressions. The output format
     depends on the math rendering library configured (MathJax, KaTeX, etc.).
-    
+
     Syntax:
         {math}`E = mc^2`
         {math}`\\sum_{i=1}^n x_i`
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("math",)

@@ -29,16 +29,16 @@ if TYPE_CHECKING:
 class IgnoreFilter:
     r"""
     Filter for determining which paths to ignore during file watching.
-    
+
     Supports glob patterns, regex patterns, and directory ignores.
     Default ignores are always applied (common temp/cache directories).
-    
+
     Features:
         - Glob patterns: Standard shell wildcards (e.g., "*.pyc", "**/__pycache__")
         - Regex patterns: Full regex support (e.g., r".*\.min\.(js|css)$")
         - Directory ignores: Always ignore files under specific directories
         - Default ignores: Common development directories (.git, node_modules, etc.)
-    
+
     Example:
             >>> filter = IgnoreFilter(
             ...     glob_patterns=["*.pyc", "__pycache__"],
@@ -49,7 +49,7 @@ class IgnoreFilter:
         True
             >>> filter(Path("/project/src/app.py"))
         False
-        
+
     """
 
     # Default directories to always ignore (common development patterns)

@@ -32,7 +32,7 @@ from bengal.utils.concurrency.workers import (
 def _make_page_mock(raw_content: str, metadata: dict | None = None) -> MagicMock:
     """
     Create a properly configured page mock for estimate_page_weight tests.
-    
+
     MagicMock auto-creates attributes, so hasattr(mock, "_source") is always True.
     The estimate_page_weight function checks _source first, then _raw_content.
     We set _source to the content so it works correctly.

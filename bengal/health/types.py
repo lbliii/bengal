@@ -206,10 +206,10 @@ class QualityThresholds(TypedDict, total=False):
 class ValidatorProtocol(Protocol):
     """
     Protocol for health validators.
-    
+
     All validators implement this interface, enabling polymorphic
     validation orchestration.
-        
+
     """
 
     @property
@@ -295,31 +295,31 @@ class ConnectivityReport(TypedDict, total=False):
 # =============================================================================
 
 __all__ = [
+    "AutofixConfig",
+    "AutofixResult",
+    # Link validation
+    "BrokenLink",
+    "CheckResultDict",
     # Check result types
     "CheckStatusLiteral",
-    "CheckResultDict",
-    "ValidatorIssue",
-    # Validator stats
-    "ValidatorStatsDict",
-    "ValidatorResultDict",
+    "ConnectivityReport",
+    # Connectivity
+    "ConnectivityScore",
+    "DirectiveInfo",
+    # Autofix
+    "FixAction",
+    "HealthCheckConfig",
     # Health report
     "HealthReportDict",
     "HealthSummary",
-    # Autofix
-    "FixAction",
-    "DirectiveInfo",
-    "AutofixResult",
-    "AutofixConfig",
+    "LinkValidationResult",
+    "QualityThresholds",
     # Configuration
     "ValidatorConfig",
-    "HealthCheckConfig",
-    "QualityThresholds",
+    "ValidatorIssue",
     # Protocol
     "ValidatorProtocol",
-    # Link validation
-    "BrokenLink",
-    "LinkValidationResult",
-    # Connectivity
-    "ConnectivityScore",
-    "ConnectivityReport",
+    "ValidatorResultDict",
+    # Validator stats
+    "ValidatorStatsDict",
 ]

@@ -26,10 +26,11 @@ RFC: rfc-contextvar-config-implementation.md
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Iterator, Literal
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -38,16 +39,16 @@ if TYPE_CHECKING:
 __all__ = [
     "RenderConfig",
     "get_render_config",
-    "set_render_config",
-    "reset_render_config",
     "render_config_context",
+    "reset_render_config",
+    "set_render_config",
 ]
 
 
 def _check_rosettes_available() -> bool:
     """Check if rosettes syntax highlighter is available (computed once)."""
     try:
-        import rosettes  # noqa: F401
+        import rosettes
 
         return True
     except ImportError:

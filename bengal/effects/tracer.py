@@ -30,22 +30,22 @@ if TYPE_CHECKING:
 class EffectTracer:
     """
     Unified dependency tracking.
-    
+
     Thread-safe because it only reads frozen SiteSnapshot.
     Records effects during rendering and computes invalidation sets.
-    
+
     Replaces 13 detector classes with one unified model.
-    
+
     Usage:
         >>> tracer = EffectTracer()
-        >>> 
+        >>>
         >>> # During rendering, record effects
         >>> tracer.record(Effect.for_page_render(...))
-        >>> 
+        >>>
         >>> # After file change, query what's invalidated
         >>> invalidated = tracer.invalidated_by({Path("content/page.md")})
         >>> outputs = tracer.outputs_needing_rebuild({Path("content/page.md")})
-    
+
     Attributes:
         effects: All recorded effects
         _dep_index: Reverse index from dependency → effects
@@ -57,7 +57,7 @@ class EffectTracer:
         """Initialize empty tracer."""
         self._effects: list[Effect] = []
         self._lock = threading.Lock()
-        
+
         # Indexes for fast lookup
         # dependency (Path | str) → list of effects that depend on it
         self._dep_index: dict[Path | str, list[Effect]] = defaultdict(list)
@@ -75,23 +75,23 @@ class EffectTracer:
     def record(self, effect: Effect) -> None:
         """
         Record an effect during rendering.
-        
+
         Thread-safe: Uses lock for index updates.
-        
+
         Args:
             effect: Effect to record
         """
         with self._lock:
             self._effects.append(effect)
-            
+
             # Update dependency index
             for dep in effect.depends_on:
                 self._dep_index[dep].append(effect)
-            
+
             # Update output index
             for output in effect.outputs:
                 self._output_index[output] = effect
-            
+
             # Update invalidation index
             for key in effect.invalidates:
                 self._invalidation_index[key].append(effect)
@@ -99,89 +99,89 @@ class EffectTracer:
     def record_batch(self, effects: list[Effect]) -> None:
         """
         Record multiple effects at once.
-        
+
         More efficient than recording one at a time.
-        
+
         Args:
             effects: List of effects to record
         """
         with self._lock:
             for effect in effects:
                 self._effects.append(effect)
-                
+
                 for dep in effect.depends_on:
                     self._dep_index[dep].append(effect)
-                
+
                 for output in effect.outputs:
                     self._output_index[output] = effect
-                
+
                 for key in effect.invalidates:
                     self._invalidation_index[key].append(effect)
 
     def invalidated_by(self, changed: set[Path]) -> set[str]:
         """
         What cache keys are invalidated by these changes?
-        
+
         Computes transitive closure of invalidations.
-        
+
         Args:
             changed: Set of changed file paths
-            
+
         Returns:
             Set of cache keys that should be invalidated
         """
         invalidated: set[str] = set()
-        
+
         with self._lock:
             # Direct invalidations
             for path in changed:
                 for effect in self._dep_index.get(path, []):
                     invalidated.update(effect.invalidates)
-                
+
                 # Also check string form for templates
                 for effect in self._dep_index.get(path.name, []):
                     invalidated.update(effect.invalidates)
-            
+
             # Transitive invalidations (if an output changes, its dependents are invalidated)
             outputs_changed = self._outputs_for_deps(changed)
             for output in outputs_changed:
                 for effect in self._dep_index.get(output, []):
                     invalidated.update(effect.invalidates)
-        
+
         return invalidated
 
     def outputs_needing_rebuild(self, changed: set[Path]) -> set[Path]:
         """
         Which outputs need rebuilding? (transitive)
-        
+
         Args:
             changed: Set of changed file paths
-            
+
         Returns:
             Set of output paths that need to be regenerated
         """
         outputs: set[Path] = set()
         seen: set[Path] = set()
         queue = list(changed)
-        
+
         with self._lock:
             while queue:
                 path = queue.pop()
                 if path in seen:
                     continue
                 seen.add(path)
-                
+
                 # Find effects that depend on this path
                 for effect in self._dep_index.get(path, []):
                     outputs.update(effect.outputs)
                     # Add outputs to queue for transitive deps
                     queue.extend(effect.outputs)
-                
+
                 # Also check string form for templates
                 for effect in self._dep_index.get(path.name, []):
                     outputs.update(effect.outputs)
                     queue.extend(effect.outputs)
-        
+
         return outputs
 
     def _outputs_for_deps(self, deps: set[Path]) -> set[Path]:
@@ -195,10 +195,10 @@ class EffectTracer:
     def get_dependencies_for_output(self, output_path: Path) -> frozenset[Path | str]:
         """
         Get all dependencies for a specific output.
-        
+
         Args:
             output_path: Path to the output file
-            
+
         Returns:
             Frozen set of dependencies (files and template names)
         """
@@ -211,10 +211,10 @@ class EffectTracer:
     def get_effects_for_cache_key(self, cache_key: str) -> list[Effect]:
         """
         Get effects that would invalidate a cache key.
-        
+
         Args:
             cache_key: Cache key to look up
-            
+
         Returns:
             List of effects that invalidate this key
         """
@@ -232,14 +232,14 @@ class EffectTracer:
     def get_statistics(self) -> dict[str, Any]:
         """
         Get statistics about recorded effects.
-        
+
         Useful for debugging and `bengal build --show-effects`.
         """
         with self._lock:
             operations: dict[str, int] = defaultdict(int)
             for effect in self._effects:
                 operations[effect.operation or "unknown"] += 1
-            
+
             return {
                 "total_effects": len(self._effects),
                 "unique_dependencies": len(self._dep_index),
@@ -251,17 +251,14 @@ class EffectTracer:
     def to_dependency_graph(self) -> dict[str, list[str]]:
         """
         Export dependency graph for visualization.
-        
+
         Returns:
             Dict mapping output paths to their dependencies
         """
         with self._lock:
             graph: dict[str, list[str]] = {}
             for output, effect in self._output_index.items():
-                deps = [
-                    str(d) if isinstance(d, Path) else d
-                    for d in effect.depends_on
-                ]
+                deps = [str(d) if isinstance(d, Path) else d for d in effect.depends_on]
                 graph[str(output)] = deps
             return graph
 
@@ -269,7 +266,7 @@ class EffectTracer:
 class SnapshotEffectBuilder:
     """
     Build effects from a SiteSnapshot.
-    
+
     Pre-computes effects for all pages in the snapshot,
     enabling fast incremental rebuild queries.
     """
@@ -277,7 +274,7 @@ class SnapshotEffectBuilder:
     def __init__(self, snapshot: SiteSnapshot) -> None:
         """
         Initialize builder with snapshot.
-        
+
         Args:
             snapshot: Frozen site snapshot
         """
@@ -287,19 +284,19 @@ class SnapshotEffectBuilder:
     def build_effects(self) -> EffectTracer:
         """
         Build effects for all pages in the snapshot.
-        
+
         Returns:
             EffectTracer with all page effects recorded
         """
         effects: list[Effect] = []
-        
+
         for page in self._snapshot.pages:
             # Get template includes from template snapshot
             template_includes: frozenset[str] = frozenset()
             if page.template_name in self._snapshot.templates:
                 template_snap = self._snapshot.templates[page.template_name]
                 template_includes = template_snap.all_dependencies
-            
+
             # Create effect for this page
             effect = Effect.for_page_render(
                 source_path=page.source_path,
@@ -309,7 +306,7 @@ class SnapshotEffectBuilder:
                 page_href=page.href,
             )
             effects.append(effect)
-        
+
         self._tracer.record_batch(effects)
         return self._tracer
 
@@ -317,10 +314,10 @@ class SnapshotEffectBuilder:
     def from_snapshot(cls, snapshot: SiteSnapshot) -> EffectTracer:
         """
         Convenience method to build tracer from snapshot.
-        
+
         Args:
             snapshot: Frozen site snapshot
-            
+
         Returns:
             EffectTracer with all page effects
         """

@@ -38,9 +38,9 @@ _warned_translation_keys: set[str] = set()
 class LanguageInfo(TypedDict, total=False):
     """
     TypedDict for language information returned by _languages().
-    
+
     All fields except baseurl are required. baseurl is optional.
-        
+
     """
 
     code: str  # Language code (e.g., 'en', 'fr')
@@ -53,13 +53,13 @@ class LanguageInfo(TypedDict, total=False):
 def _warn_missing_translation(key: str, lang: str) -> None:
     """
     Log a debug warning when a translation key is missing.
-    
+
     Only warns once per key/lang combination per build to avoid log spam.
-    
+
     Args:
         key: The missing translation key
         lang: The language that was checked
-        
+
     """
     warn_key = f"{lang}:{key}"
     if warn_key not in _warned_translation_keys:
@@ -76,9 +76,9 @@ def _warn_missing_translation(key: str, lang: str) -> None:
 def reset_translation_warnings() -> None:
     """
     Reset the set of warned translation keys.
-    
+
     Useful for testing or when starting a new build.
-        
+
     """
     _warned_translation_keys.clear()
 
@@ -92,20 +92,20 @@ _DEF_FORMATS = {
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register i18n helpers into template environment.
-    
+
     Context-dependent functions (t, current_lang) are registered via the
     adapter layer which handles engine-specific context mechanisms.
-    
+
     Non-context functions (languages, alternate_links, locale_date) are
     registered directly here as they don't need @pass_context.
-    
+
     Globals:
       - t (via adapter)
       - current_lang (via adapter)
       - languages
       - alternate_links
       - locale_date
-        
+
     """
 
     # Register context-independent functions directly
@@ -144,10 +144,10 @@ def _current_lang(site: SiteLike, page: Page | None = None) -> str | None:
 def _languages(site: SiteLike) -> list[LanguageInfo]:
     """
     Get normalized list of configured languages.
-    
+
     Returns:
         List of LanguageInfo dictionaries with code, name, hreflang, and optional baseurl/weight.
-        
+
     """
     i18n = site.config.get("i18n", {}) or {}
     langs = i18n.get("languages") or []
@@ -256,13 +256,13 @@ _translation_key_index_cache: dict[int, tuple[int, dict[str, list[Any]]]] = {}
 def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
     """
     Get or build translation_key -> pages index.
-    
+
     PERF: This is O(pages) once per build instead of O(pages) per page render.
     Cache is invalidated when page count changes (e.g., dev server rebuild).
-    
+
     Returns:
         Dict mapping translation_key to list of pages with that key.
-        
+
     """
     site_id = id(site)
     current_page_count = len(site.pages)

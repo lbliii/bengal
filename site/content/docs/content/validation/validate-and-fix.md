@@ -3,7 +3,6 @@ title: Validate and Fix
 nav_title: Validate & Fix
 description: Run health checks and automatically fix common content issues
 weight: 10
-type: doc
 icon: wrench
 tags:
 - validation
@@ -113,10 +112,9 @@ Bengal includes validators organized by phase:
 |-----------|--------|---------------|
 | **Rendering** | HTML output quality | Template errors, undefined variables |
 | **Output** | Generated pages, assets | Missing output, structure errors |
-| **Asset Processing** | Asset optimization | Missing files, processing failures |
-| **Asset URLs** | Asset references | Broken asset paths, fingerprinting issues |
+| **Asset URLs** | Asset references in HTML | Broken asset paths, fingerprinting mismatches, case issues |
 | **Performance** | Build metrics | Slow builds, large pages |
-| **Cache Integrity** | Incremental build cache | Stale cache, invalidation issues |
+| **URL Collisions** | Duplicate output paths | Multiple pages writing to same URL |
 
 ### Production Validators
 
@@ -124,8 +122,8 @@ Bengal includes validators organized by phase:
 |-----------|--------|---------------|
 | **Sitemap** | sitemap.xml validity | SEO issues, missing pages |
 | **RSS Feed** | RSS/Atom feed quality | Schema compliance, missing fields |
-| **Accessibility** | HTML accessibility | Missing alt text, ARIA issues |
 | **Fonts** | Font downloads, CSS | Missing fonts, subsetting issues |
+| **Ownership Policy** | Reserved namespaces | Content in system directories |
 
 ### Validation Output
 

@@ -72,10 +72,9 @@ __all__ = [
     # Primary models
     "Asset",
     "BuildState",
-    "Page",
-    "Section",
-    "Site",
-    "Theme",
+    # Versioning
+    "GitBranchPattern",
+    "GitVersionConfig",
     # Navigation
     "MenuBuilder",
     "MenuItem",
@@ -84,13 +83,14 @@ __all__ = [
     "NavTree",
     "NavTreeCache",
     "NavTreeContext",
-    # Versioning
-    "GitBranchPattern",
-    "GitVersionConfig",
-    "Version",
-    "VersionConfig",
+    "Page",
+    "Section",
+    "Site",
+    "Theme",
     # URL ownership
     "URLClaim",
     "URLCollisionError",
     "URLRegistry",
+    "Version",
+    "VersionConfig",
 ]

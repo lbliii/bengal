@@ -3,8 +3,6 @@ title: Tooling & CLI
 nav_title: Tooling
 description: Developer tools, CLI, server, and configuration
 weight: 40
-cascade:
-  type: doc
 icon: terminal
 ---
 # Tooling & CLI

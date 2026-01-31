@@ -61,16 +61,16 @@ logger = get_logger(__name__)
 def determine_output_path(page: Page, site: Site) -> Path:
     """
     Determine the output path for a page.
-    
+
     Delegates path computation to centralized URLStrategy (i18n-aware).
-    
+
     Args:
         page: Page to determine path for
         site: Site instance
-    
+
     Returns:
         Output path
-        
+
     """
     return URLStrategy.compute_regular_page_output_path(page, site)
 
@@ -78,18 +78,18 @@ def determine_output_path(page: Page, site: Site) -> Path:
 def determine_template(page: Page) -> str:
     """
     Determine which template will be used for this page.
-    
+
     Template resolution order:
     1. page.template attribute
     2. page.metadata['template']
     3. Default based on page type
-    
+
     Args:
         page: Page object
-    
+
     Returns:
         Template name (e.g., 'single.html', 'page.html')
-        
+
     """
     # Check page-specific template first
     if hasattr(page, "template") and page.template:
@@ -122,7 +122,7 @@ def write_output(
 ) -> None:
     """
     Write rendered page to output directory.
-    
+
     Handles:
     - Directory creation with caching (reduces syscalls)
     - Atomic writes for crash safety (optional)
@@ -130,21 +130,21 @@ def write_output(
     - Source→output tracking for incremental cleanup
     - Output tracking for hot reload (when collector provided)
     - Write-behind async I/O (when write_behind provided)
-    
+
     RFC: rfc-path-to-200-pgs (Phase III - Write-Behind I/O)
-    
+
     Args:
         page: Page with rendered content
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload tracking
         write_behind: Optional write-behind collector for async writes
-        
+
     """
     # Ensure output_path is set
     if page.output_path is None:
         return
-    
+
     # Ensure rendered_html is set and non-empty (required for writing)
     if not hasattr(page, "rendered_html") or not page.rendered_html:
         logger.warning(
@@ -218,13 +218,13 @@ def _track_and_record(
     collector: OutputCollector | None,
 ) -> None:
     """Track dependencies and record output (shared by sync and async paths).
-    
+
     Args:
         page: Page with output_path set
         site: Site instance
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload
-        
+
     """
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
@@ -248,34 +248,34 @@ def _track_and_record(
 def format_html(html: str, page: Page, site: Site) -> str:
     """
     Format HTML output (minify/pretty) with content hash embedding.
-    
+
     RFC: Output Cache Architecture - Content hash is computed BEFORE formatting
     to ensure deterministic results. This enables accurate change detection.
-    
+
     RFC: rfc-build-performance-optimizations - fast_mode skips formatting entirely.
-    
+
     Respects page-level and site-level configuration:
     - site.config.build.fast_mode: Skip formatting (highest priority)
     - page.metadata.no_format: Skip formatting
     - site.config.html_output.mode: 'minify', 'pretty', or 'raw'
     - site.config.minify_html: Option
     - site.config.build.content_hash_in_html: Embed content hash (default: true)
-    
+
     Args:
         html: Rendered HTML content
         page: Page being rendered
         site: Site instance for config
-    
+
     Returns:
         Formatted HTML with content hash embedded
-        
+
     """
     # RFC: Output Cache Architecture - Embed content hash BEFORE formatting
     # This ensures identical content always produces identical hash
     build_cfg = site.config.get("build", {}) or {}
     if build_cfg.get("content_hash_in_html", True):
         html = embed_content_hash(html)
-    
+
     try:
         from bengal.postprocess.html_output import format_html_output
 
@@ -283,7 +283,7 @@ def format_html(html: str, page: Page, site: Site) -> str:
         # Check fast_mode first (highest priority) - skip all formatting
         if build_cfg.get("fast_mode", False):
             return html  # Return raw HTML without formatting
-        
+
         # Resolve mode from config with backward compatibility
         # Priority: page.metadata.no_format → html_output.mode → minify_html
         if page.metadata.get("no_format") is True:
@@ -330,46 +330,46 @@ _CONTENT_HASH_REMOVE_PATTERN = re.compile(
     r'<meta\s+name="bengal:content-hash"\s+content="[a-f0-9]+"[^>]*>\s*',
     re.IGNORECASE,
 )
-_HEAD_TAG_PATTERN = re.compile(r'<head[^>]*>', re.IGNORECASE)
+_HEAD_TAG_PATTERN = re.compile(r"<head[^>]*>", re.IGNORECASE)
 
 
 def embed_content_hash(html: str, content_hash: str | None = None) -> str:
     """
     Embed content hash in HTML using safe template-aware insertion.
-    
+
     RFC: Output Cache Architecture - Embeds a content hash meta tag in the
     <head> section for accurate change detection during hot reload.
-    
+
     Handles edge cases:
     - Missing <head> tag → skip embedding (don't break output)
     - Uppercase/whitespace variants → normalize matching
     - Already has hash → update existing
-    
+
     Args:
         html: HTML content to embed hash into
         content_hash: Pre-computed hash (if None, computes from html)
-    
+
     Returns:
         HTML with content hash meta tag embedded
-        
+
     """
     from bengal.utils.primitives.hashing import hash_str
-    
+
     # Compute hash if not provided
     if content_hash is None:
         content_hash = hash_str(html, truncate=16)
-    
+
     meta_tag = f'<meta name="bengal:content-hash" content="{content_hash}">'
-    
+
     # Remove existing hash if present (for rebuilds)
-    html = _CONTENT_HASH_REMOVE_PATTERN.sub('', html)
-    
+    html = _CONTENT_HASH_REMOVE_PATTERN.sub("", html)
+
     # Find <head> tag (case-insensitive, handle attributes)
     head_match = _HEAD_TAG_PATTERN.search(html)
     if head_match:
         insert_pos = head_match.end()
         return html[:insert_pos] + f"\n    {meta_tag}" + html[insert_pos:]
-    
+
     # No <head> tag found - log warning and return unchanged
     # (This shouldn't happen for valid HTML, but don't break output)
     logger.debug("content_hash_embed_skipped", reason="no_head_tag")
@@ -379,28 +379,28 @@ def embed_content_hash(html: str, content_hash: str | None = None) -> str:
 def extract_content_hash(html: str) -> str | None:
     """
     Extract content hash from HTML meta tag.
-    
+
     RFC: Output Cache Architecture - Extracts embedded content hash for
     comparison during hot reload change detection.
-    
+
     Returns None if no hash found (old/external content).
     Handles case-insensitive matching and attribute order variations.
-    
+
     Args:
         html: HTML content to extract hash from
-    
+
     Returns:
         Content hash string, or None if not found
-        
+
     """
     # Try name-first pattern (most common)
     match = _CONTENT_HASH_PATTERN_NAME_FIRST.search(html)
     if match:
         return match.group(1)
-    
+
     # Try content-first pattern (alternate attribute order)
     match = _CONTENT_HASH_PATTERN_CONTENT_FIRST.search(html)
     if match:
         return match.group(1)
-    
+
     return None

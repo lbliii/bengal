@@ -29,14 +29,14 @@ __all__ = ["AccessibilityValidator"]
 class AccessibilityValidator(BaseValidator):
     """
     Validates accessibility best practices.
-    
+
     Checks:
     1. Heading hierarchy (no skipped levels)
     2. Image alt text presence
     3. Link text quality
     4. ARIA landmark presence
     5. Form label associations
-    
+
     Configuration:
         health_check:
           accessibility:
@@ -45,7 +45,7 @@ class AccessibilityValidator(BaseValidator):
             check_links: true
             check_aria: true
             strict_mode: false
-        
+
     """
 
     name = "accessibility"
@@ -61,7 +61,9 @@ class AccessibilityValidator(BaseValidator):
         r"^this$",
     ]
 
-    def validate(self, site: SiteLike, build_context: BuildContext | None = None) -> list[CheckResult]:
+    def validate(
+        self, site: SiteLike, build_context: BuildContext | None = None
+    ) -> list[CheckResult]:
         """
         Run accessibility validation.
 

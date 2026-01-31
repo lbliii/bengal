@@ -206,6 +206,12 @@ if TYPE_CHECKING:
         reset_dev_server_state,
     )
 
+    # Display (moved from cli.helpers.error_display)
+    from bengal.errors.display import (
+        beautify_common_exception,
+        display_bengal_error,
+    )
+
     # Runtime handlers
     from bengal.errors.handlers import (
         ContextAwareHelp,
@@ -223,12 +229,6 @@ if TYPE_CHECKING:
     from bengal.errors.reporter import (
         format_error_report,
         format_error_summary,
-    )
-
-    # Display (moved from cli.helpers.error_display)
-    from bengal.errors.display import (
-        beautify_common_exception,
-        display_bengal_error,
     )
 
     # Session tracking
@@ -257,98 +257,98 @@ if TYPE_CHECKING:
 
 __all__ = [
     # ============================================================
-    # Error Codes (eager)
+    # Suggestions (lazy)
     # ============================================================
-    "ErrorCode",
-    "get_error_code_by_name",
-    "get_codes_by_category",
+    "ActionableSuggestion",
+    "BengalAssetError",
+    "BengalAutodocError",
+    "BengalBuildError",
+    "BengalCacheError",
+    "BengalConfigError",
+    "BengalContentError",
+    "BengalDiscoveryError",
     # ============================================================
     # Exceptions (eager)
     # ============================================================
     "BengalError",
-    "BengalConfigError",
-    "BengalContentError",
-    "BengalRenderingError",
-    "BengalDiscoveryError",
-    "BengalCacheError",
-    "BengalServerError",
-    "BengalAssetError",
     "BengalGraphError",
     "BengalParsingError",
-    "BengalAutodocError",
-    "BengalValidatorError",
-    "BengalBuildError",
+    "BengalRenderingError",
+    "BengalServerError",
     "BengalTemplateFunctionError",
-    "DirectiveContractError",
+    "BengalValidatorError",
     # ============================================================
     # Context (lazy)
     # ============================================================
     "BuildPhase",
-    "ErrorSeverity",
-    "ErrorContext",
-    "ErrorDebugPayload",
-    "RelatedFile",
-    "enrich_error",
-    "get_context_from_exception",
-    "create_rendering_context",
-    "create_discovery_context",
-    "create_config_context",
+    # ============================================================
+    # Handlers (lazy)
+    # ============================================================
+    "ContextAwareHelp",
     # ============================================================
     # Dev Server (lazy)
     # ============================================================
     "DevServerErrorContext",
     "DevServerState",
-    "FileChange",
-    "create_dev_error",
-    "get_dev_server_state",
-    "reset_dev_server_state",
-    # ============================================================
-    # Session Tracking (lazy)
-    # ============================================================
-    "ErrorSession",
-    "ErrorPattern",
-    "ErrorOccurrence",
-    "get_session",
-    "reset_session",
-    "record_error",
-    # ============================================================
-    # Suggestions (lazy)
-    # ============================================================
-    "ActionableSuggestion",
-    "get_suggestion",
-    "get_suggestion_dict",
-    "format_suggestion",
-    "format_suggestion_full",
-    "enhance_error_context",
-    "get_attribute_error_suggestion",
-    "get_all_suggestions_for_category",
-    "search_suggestions",
+    "DirectiveContractError",
     # ============================================================
     # Aggregation (lazy)
     # ============================================================
     "ErrorAggregator",
-    "extract_error_context",
     # ============================================================
-    # Handlers (lazy)
+    # Error Codes (eager)
     # ============================================================
-    "ContextAwareHelp",
-    "get_context_aware_help",
+    "ErrorCode",
+    "ErrorContext",
+    "ErrorDebugPayload",
+    "ErrorOccurrence",
+    "ErrorPattern",
     # ============================================================
-    # Recovery (lazy)
+    # Session Tracking (lazy)
     # ============================================================
-    "with_error_recovery",
+    "ErrorSession",
+    "ErrorSeverity",
+    "FileChange",
+    "RelatedFile",
+    "beautify_common_exception",
+    "create_config_context",
+    "create_dev_error",
+    "create_discovery_context",
+    "create_rendering_context",
+    # ============================================================
+    # Display (lazy, moved from cli.helpers.error_display)
+    # ============================================================
+    "display_bengal_error",
+    "enhance_error_context",
+    "enrich_error",
     "error_recovery_context",
-    "recover_file_processing",
+    "extract_error_context",
     # ============================================================
     # Reporter (lazy)
     # ============================================================
     "format_error_report",
     "format_error_summary",
+    "format_suggestion",
+    "format_suggestion_full",
+    "get_all_suggestions_for_category",
+    "get_attribute_error_suggestion",
+    "get_codes_by_category",
+    "get_context_aware_help",
+    "get_context_from_exception",
+    "get_dev_server_state",
+    "get_error_code_by_name",
+    "get_session",
+    "get_suggestion",
+    "get_suggestion_dict",
+    "record_error",
+    "recover_file_processing",
+    "reset_dev_server_state",
+    "reset_session",
+    "search_suggestions",
     # ============================================================
-    # Display (lazy, moved from cli.helpers.error_display)
+    # Recovery (lazy)
     # ============================================================
-    "display_bengal_error",
-    "beautify_common_exception",
+    "with_error_recovery",
 ]
 
 
@@ -421,11 +421,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
 def __getattr__(name: str) -> Any:
     """
     Lazy import for heavy error infrastructure.
-    
+
     This avoids loading context enrichment, session tracking, reporter,
     and other heavy modules until they are actually needed. Most code
     only needs ErrorCode and exception classes, which are loaded eagerly.
-        
+
     """
     if name in _LAZY_IMPORTS:
         module_path, attr_name = _LAZY_IMPORTS[name]

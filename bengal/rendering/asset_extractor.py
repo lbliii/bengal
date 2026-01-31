@@ -45,9 +45,9 @@ class AssetExtractorParser(HTMLParser):
 
         if tag == "img":
             # Extract src and srcset
-            if "src" in attrs_dict and attrs_dict["src"]:
+            if attrs_dict.get("src"):
                 self.assets.add(attrs_dict["src"])
-            if "srcset" in attrs_dict and attrs_dict["srcset"]:
+            if attrs_dict.get("srcset"):
                 # srcset can contain multiple URLs: "url1 1x, url2 2x"
                 for item in attrs_dict["srcset"].split(","):
                     url = item.strip().split()[0]
@@ -56,12 +56,12 @@ class AssetExtractorParser(HTMLParser):
 
         elif tag == "script":
             # Extract script src
-            if "src" in attrs_dict and attrs_dict["src"]:
+            if attrs_dict.get("src"):
                 self.assets.add(attrs_dict["src"])
 
         elif tag == "link":
             # Extract link href (stylesheets, fonts, etc.)
-            if "href" in attrs_dict and attrs_dict["href"]:
+            if attrs_dict.get("href"):
                 href = attrs_dict["href"]
                 rel_value = attrs_dict.get("rel", "")
                 if rel_value is not None:
@@ -72,17 +72,17 @@ class AssetExtractorParser(HTMLParser):
 
         elif tag == "source":
             # Extract srcset from picture/video sources
-            if "srcset" in attrs_dict and attrs_dict["srcset"]:
+            if attrs_dict.get("srcset"):
                 for item in attrs_dict["srcset"].split(","):
                     url = item.strip().split()[0]
                     if url:
                         self.assets.add(url)
-            if "src" in attrs_dict and attrs_dict["src"]:
+            if attrs_dict.get("src"):
                 self.assets.add(attrs_dict["src"])
 
         elif tag == "iframe":
             # Extract iframe src
-            if "src" in attrs_dict and attrs_dict["src"]:
+            if attrs_dict.get("src"):
                 self.assets.add(attrs_dict["src"])
 
         elif tag == "style":
@@ -144,19 +144,19 @@ class AssetExtractorParser(HTMLParser):
 def extract_assets_from_html(html_content: str) -> set[str]:
     """
     Extract all asset references from rendered HTML.
-    
+
     Args:
         html_content: Rendered HTML content
-    
+
     Returns:
         Set of asset URLs/paths referenced in the HTML
-    
+
     Example:
             >>> html = '<img src="/images/logo.png" /><script src="/js/app.js"></script>'
             >>> assets = extract_assets_from_html(html)
             >>> assert "/images/logo.png" in assets
             >>> assert "/js/app.js" in assets
-        
+
     """
     if not html_content:
         return set()

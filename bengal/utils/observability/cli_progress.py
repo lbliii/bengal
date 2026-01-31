@@ -53,13 +53,13 @@ logger = get_logger(__name__)
 class PhaseStatus(Enum):
     """
     Status of a build phase.
-    
+
     Values:
         PENDING: Phase not yet started
         RUNNING: Phase currently in progress
         COMPLETE: Phase finished successfully
         FAILED: Phase encountered an error
-        
+
     """
 
     PENDING = "pending"
@@ -72,7 +72,7 @@ class PhaseStatus(Enum):
 class PhaseProgress:
     """
     Track progress for a single build phase.
-    
+
     Attributes:
         name: Display name for the phase (e.g., 'Rendering', 'Discovery')
         status: Current phase status
@@ -83,7 +83,7 @@ class PhaseProgress:
         start_time: Unix timestamp when phase started
         metadata: Additional phase-specific data (e.g., error messages)
         recent_items: Rolling list of recently processed items
-        
+
     """
 
     name: str
@@ -125,25 +125,25 @@ class PhaseProgress:
 class LiveProgressManager:
     """
     Manager for live progress updates across build phases.
-    
+
     Features:
     - Profile-aware display (Writer/Theme-Dev/Developer)
     - In-place updates (no scrolling)
     - Graceful fallback for CI/non-TTY
     - Context manager for clean setup/teardown
-    
+
     Example:
         with LiveProgressManager(profile) as progress:
             progress.add_phase('rendering', 'Rendering', total=100)
             progress.start_phase('rendering')
-    
+
             for i in range(100):
                 process_page(i)
                 progress.update_phase('rendering', current=i+1,
                                      current_item=f"page_{i}.html")
-    
+
             progress.complete_phase('rendering', elapsed_ms=1234)
-        
+
     """
 
     def __init__(self, profile: BuildProfile, console: Console | None = None, enabled: bool = True):
@@ -209,10 +209,10 @@ class LiveProgressManager:
     def start(self) -> LiveProgressManager:
         """
         Start the live display explicitly.
-        
+
         Alternative to using as context manager when the progress display
         needs to span multiple function calls.
-        
+
         Returns:
             Self for method chaining.
         """
@@ -229,7 +229,7 @@ class LiveProgressManager:
     def stop(self) -> None:
         """
         Stop the live display explicitly.
-        
+
         Call this when done with progress updates to clean up the display.
         """
         if self.live:

@@ -130,6 +130,8 @@ class Site:
     output_dir: Path = field(default_factory=lambda: Path("public"))
     build_time: datetime | None = None
     taxonomies: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Cross-reference index for internal linking (built during rendering)
+    xref_index: dict[str, Any] = field(default_factory=dict)
     menu: dict[str, list[MenuItem]] = field(default_factory=dict)
     menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
     # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}.
@@ -227,6 +229,11 @@ class Site:
     # Used by CSSOptimizer to include only CSS for features actually in use.
     features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
+    # --- Cascade Snapshot ---
+    # Immutable cascade data computed once per build for thread-safe access.
+    # See: bengal/core/cascade_snapshot.py
+    _cascade_snapshot: Any = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         if isinstance(self.root_path, str):
@@ -254,11 +261,8 @@ class Site:
             theme_value = self.config.get("theme")
             if isinstance(theme_value, str):
                 self.theme = theme_value
-            elif (
-                (isinstance(theme_value, dict)
-                and theme_value.get("name"))
-                or (hasattr(theme_value, "get")
-                and theme_value.get("name"))
+            elif (isinstance(theme_value, dict) and theme_value.get("name")) or (
+                hasattr(theme_value, "get") and theme_value.get("name")
             ):
                 self.theme = str(theme_value.get("name"))
             elif hasattr(theme_value, "name") and theme_value.name:
@@ -598,11 +602,7 @@ class Site:
         self.menu_builders_localized = {}
 
         # Indices (rebuilt from pages)
-        if hasattr(self, "xref_index"):
-            from contextlib import suppress
-
-            with suppress(Exception):
-                self.xref_index: dict[str, Any] = {}
+        self.xref_index = {}
 
         # Cached properties
         self.invalidate_page_caches()
@@ -1018,6 +1018,23 @@ class Site:
         if site_attr is not None:
             return getattr(site_attr, "baseurl", None)
         return self.config.get("site", {}).get("baseurl")
+
+    @property
+    def content_dir(self) -> Path:
+        """
+        Get path to the content directory.
+
+        Returns the configured content directory or defaults to root_path/content.
+
+        Returns:
+            Path to the content directory
+        """
+        content_config = self.config.get("content", {})
+        if isinstance(content_config, dict):
+            dir_name = content_config.get("dir", "content")
+        else:
+            dir_name = getattr(content_config, "dir", "content") or "content"
+        return self.root_path / dir_name
 
     @property
     def author(self) -> str | None:
@@ -2413,9 +2430,158 @@ class Site:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
 
-        Delegates to CascadeEngine for the actual implementation.
+        Implementation:
+            1. Build immutable CascadeSnapshot for thread-safe resolution
+            2. Apply cascade values to page.metadata for backward compatibility
         """
-        from bengal.core.cascade_engine import CascadeEngine
+        # Build immutable cascade snapshot for thread-safe resolution
+        self.build_cascade_snapshot()
 
-        engine = CascadeEngine(self.pages, self.sections)
-        engine.apply()
+        # Apply cascade values to page.metadata for backward compatibility
+        # This ensures templates using page.metadata.get('cascaded_key') still work
+        self._apply_cascade_to_pages()
+
+    def _apply_cascade_to_pages(self) -> None:
+        """
+        Apply cascade values from snapshot to page.metadata.
+
+        For each page, resolves all cascade values from the snapshot and applies
+        them to page.metadata. Page-level values take precedence over cascades.
+        """
+
+        content_dir = self.root_path / "content"
+
+        for section in self.sections:
+            self._apply_cascade_to_section_pages(section, content_dir)
+
+    def _apply_cascade_to_section_pages(self, section: Section, content_dir: Path) -> None:
+        """
+        Apply cascade values to pages in a section and its subsections.
+
+        Args:
+            section: Section to process
+            content_dir: Content directory for relative path computation
+        """
+        from bengal.core.page.proxy import PageProxy
+
+        # Compute section path for cascade lookup
+        if section.path is None:
+            section_path = ""
+        else:
+            try:
+                section_path = str(section.path.relative_to(content_dir))
+            except ValueError:
+                section_path = str(section.path)
+
+        # Get all cascade values for this section
+        cascade = self.cascade.resolve_all(section_path)
+
+        if cascade:
+            for page in section.pages:
+                # Skip PageProxy objects - they resolve cascade at access time
+                if isinstance(page, PageProxy):
+                    continue
+
+                # Skip index pages - they define cascade, don't receive it
+                if page.source_path.stem in ("_index", "index"):
+                    continue
+
+                # Apply cascade values (page values take precedence)
+                for key, value in cascade.items():
+                    if key not in page.metadata:
+                        page.metadata[key] = value
+
+        # Recurse into subsections
+        for subsection in section.subsections:
+            self._apply_cascade_to_section_pages(subsection, content_dir)
+
+    # =========================================================================
+    # CASCADE SNAPSHOT (immutable cascade data for thread-safe access)
+    # =========================================================================
+
+    @property
+    def cascade(self) -> Any:
+        """
+        Get the immutable cascade snapshot for this build.
+
+        The cascade snapshot provides thread-safe access to cascade metadata
+        without locks. It is computed once at build start and can be safely
+        accessed from multiple render threads in free-threaded Python.
+
+        If accessed before build_cascade_snapshot() is called, returns an
+        empty snapshot for graceful fallback (no cascade values will resolve).
+
+        Returns:
+            CascadeSnapshot instance (empty if not yet built)
+
+        Example:
+            >>> page_type = site.cascade.resolve("docs/guide", "type")
+            >>> all_cascade = site.cascade.resolve_all("docs/guide")
+        """
+        if self._cascade_snapshot is None:
+            # Return empty snapshot instead of raising to allow graceful fallback
+            from bengal.core.cascade_snapshot import CascadeSnapshot
+
+            return CascadeSnapshot.empty()
+        return self._cascade_snapshot
+
+    def build_cascade_snapshot(self) -> None:
+        """
+        Build the immutable cascade snapshot from all sections.
+
+        This scans all sections and extracts cascade metadata from their
+        index pages (_index.md). The resulting snapshot is frozen and can
+        be safely shared across threads.
+
+        Also extracts root-level cascade from pages not in any section
+        (like content/index.md) and applies it site-wide.
+
+        Called automatically by _apply_cascades() during discovery.
+        Can also be called manually to refresh the snapshot after
+        incremental changes to _index.md files.
+
+        Example:
+            >>> site.build_cascade_snapshot()
+            >>> print(f"Cascade data for {len(site.cascade)} sections")
+        """
+        from bengal.core.cascade_snapshot import CascadeSnapshot
+
+        # Gather all sections including subsections
+        all_sections = self._collect_all_sections()
+
+        # Compute content directory
+        content_dir = self.root_path / "content"
+
+        # Collect root-level cascade from pages not in any section
+        # This handles content/index.md with cascade that applies site-wide
+        pages_in_sections: set[Page] = set()
+        for section in all_sections:
+            pages_in_sections.update(section.get_all_pages(recursive=True))
+
+        root_cascade: dict[str, Any] = {}
+        for page in self.pages:
+            if page not in pages_in_sections and "cascade" in page.metadata:
+                root_cascade.update(page.metadata["cascade"])
+
+        # Build and store immutable snapshot
+        self._cascade_snapshot = CascadeSnapshot.build(
+            content_dir, all_sections, root_cascade=root_cascade
+        )
+
+    def _collect_all_sections(self) -> list[Section]:
+        """
+        Collect all sections including nested subsections.
+
+        Returns:
+            Flat list of all Section objects in the site.
+        """
+        all_sections: list[Section] = []
+
+        def collect_recursive(sections: list[Section]) -> None:
+            for section in sections:
+                all_sections.append(section)
+                if section.subsections:
+                    collect_recursive(section.subsections)
+
+        collect_recursive(self.sections)
+        return all_sections

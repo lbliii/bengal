@@ -23,9 +23,9 @@ from bengal.cli.commands.upgrade.command import upgrade
 from bengal.cli.commands.upgrade.installers import InstallerInfo, detect_installer
 
 __all__ = [
+    "InstallerInfo",
     "UpgradeInfo",
     "check_for_upgrade",
-    "InstallerInfo",
     "detect_installer",
     "upgrade",
 ]

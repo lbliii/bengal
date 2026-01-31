@@ -87,18 +87,18 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 def normalize_page_type_to_content_type(page_type: str) -> str | None:
     """
     Normalize a page type to a content type.
-    
+
     Handles special cases where page types (from frontmatter) map to content types:
     - python-module -> autodoc-python
     - cli-command -> autodoc-cli
     - Other types pass through if registered
-    
+
     Args:
         page_type: Page type from frontmatter (e.g., "python-module", "blog")
-    
+
     Returns:
         Content type name if recognized, None otherwise
-    
+
     Example:
             >>> normalize_page_type_to_content_type("python-module")
             'autodoc-python'
@@ -106,7 +106,7 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
             'blog'
             >>> normalize_page_type_to_content_type("unknown")
         None
-        
+
     """
     # Special mappings for autodoc-generated types
     special_mappings = {
@@ -128,29 +128,29 @@ def normalize_page_type_to_content_type(page_type: str) -> str | None:
 def get_strategy(content_type: str) -> ContentTypeStrategy:
     """
     Get the strategy for a content type.
-    
+
     Retrieves a strategy instance from the registry by name. If the content
     type is not found, returns the ``PageStrategy`` singleton as the default
     fallback, ensuring graceful degradation for unknown types.
-    
+
     Args:
         content_type: Type name to look up (e.g., ``"blog"``, ``"doc"``).
             Case-sensitive; use lowercase.
-    
+
     Returns:
         ContentTypeStrategy instance for the requested type, or a
         ``PageStrategy`` if the type is not registered.
-    
+
     Example:
             >>> strategy = get_strategy("blog")
             >>> sorted_posts = strategy.sort_pages(posts)
             >>> template = strategy.get_template(page, template_engine)
-    
+
             >>> # Unknown types fall back to PageStrategy
             >>> strategy = get_strategy("unknown-type")
             >>> isinstance(strategy, PageStrategy)
         True
-        
+
     """
     # Use the registered "page" singleton as fallback, not a new instance
     return CONTENT_TYPE_REGISTRY.get(content_type, CONTENT_TYPE_REGISTRY["page"])
@@ -159,55 +159,55 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
 def detect_content_type(section: Section, config: Config | dict[str, Any] | None = None) -> str:
     """
     Auto-detect content type from section characteristics.
-    
+
     Uses a priority-based detection algorithm that checks multiple sources
     in order, returning the first match. This allows explicit configuration
     to override auto-detection while still providing intelligent defaults.
-    
+
     Detection Priority:
         1. **Explicit metadata**: ``content_type`` in section's ``_index.md``
         2. **Parent cascade**: ``cascade.type`` from parent section metadata
         3. **Auto-detection**: Strategy heuristics (name patterns, page metadata)
         4. **Config default**: ``content.default_type`` or legacy ``site.default_content_type``
         5. **Fallback**: ``"list"`` for generic page listings
-    
+
     Auto-detection Order:
         Strategies are tried in this order to prioritize specificity:
         ``autodoc-python`` → ``autodoc-cli`` → ``blog`` → ``tutorial`` → ``doc``
-    
+
     Args:
         section: Section to analyze for content type.
         config: Optional site configuration dict for default type lookup.
             Checks ``config["content"]["default_type"]`` first, then
             ``config["site"]["default_content_type"]`` for backward compatibility.
-    
+
     Returns:
         Content type name string (e.g., ``"blog"``, ``"doc"``, ``"list"``).
-    
+
     Example:
             >>> # Auto-detect from section characteristics
             >>> content_type = detect_content_type(blog_section)
             >>> assert content_type == "blog"
-    
+
             >>> # With config-based default
             >>> config = {"content": {"default_type": "doc"}}
             >>> content_type = detect_content_type(generic_section, config)
             >>> # Returns "doc" if auto-detection fails
-    
+
             >>> # Legacy config still supported
             >>> config = {"site": {"default_content_type": "doc"}}
             >>> content_type = detect_content_type(section, config)
-    
+
     Note:
         To force a specific content type, set ``content_type`` in the
         section's ``_index.md`` frontmatter:
-    
+
         .. code-block:: yaml
-    
+
             ---
             content_type: tutorial
             ---
-        
+
     """
     # 1. Explicit override (highest priority)
     if "content_type" in section.metadata:
@@ -256,17 +256,17 @@ def detect_content_type(section: Section, config: Config | dict[str, Any] | None
 def register_strategy(content_type: str, strategy: ContentTypeStrategy) -> None:
     """
     Register a custom content type strategy.
-    
+
     Adds a new content type to the global registry, making it available
     for use in section metadata and auto-detection. Can also override
     built-in strategies by registering with an existing type name.
-    
+
     Args:
         content_type: Type name to register. Use lowercase, hyphenated names
             (e.g., ``"custom-docs"``, ``"project-showcase"``).
         strategy: Strategy instance to register. Should be a subclass of
             ``ContentTypeStrategy`` with appropriate method overrides.
-    
+
     Example:
             >>> from bengal.content_types import ContentTypeStrategy, register_strategy
             >>>
@@ -285,16 +285,16 @@ def register_strategy(content_type: str, strategy: ContentTypeStrategy) -> None:
             ...         return section.name.lower() == "projects"
             >>>
             >>> register_strategy("project", ProjectStrategy())
-    
+
     Note:
         Strategies should be registered early in the build process,
         typically in a plugin or site configuration hook, before
         content discovery runs.
-    
+
     Warning:
         Registering with an existing type name will override the built-in
         strategy. This is intentional to allow customization but should
         be done with care.
-        
+
     """
     CONTENT_TYPE_REGISTRY[content_type] = strategy

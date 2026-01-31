@@ -3,7 +3,6 @@ title: The Component Model
 nav_title: Component Model
 description: 'Understanding Bengal''s Component Model: Identity, Mode, and Data.'
 weight: 20
-type: doc
 variant: editorial
 ---
 

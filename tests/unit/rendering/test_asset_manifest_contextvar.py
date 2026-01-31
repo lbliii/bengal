@@ -151,9 +151,9 @@ class TestAssetManifestContextManager:
 
 class TestThreadIsolation:
     """Tests for thread isolation of asset manifest ContextVar.
-    
+
     RFC: rfc-global-build-state-dependencies.md (Phase 2)
-    
+
     These tests verify that ContextVar provides proper thread isolation,
     which is essential for free-threaded Python (PEP 703) support.
     """

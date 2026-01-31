@@ -329,7 +329,9 @@ class TestIncrementalDecision:
         decision = IncrementalDecision(
             pages_to_build=[mock_page],
             pages_skipped_count=10,
-            rebuild_reasons={"content/index.md": RebuildReason(code=RebuildReasonCode.CONTENT_CHANGED)},
+            rebuild_reasons={
+                "content/index.md": RebuildReason(code=RebuildReasonCode.CONTENT_CHANGED)
+            },
             skip_reasons={"content/about.md": SkipReasonCode.NO_CHANGES},
             asset_changes=["style.css"],
             fingerprint_changes=True,
@@ -355,7 +357,9 @@ class TestIncrementalDecision:
         )
 
         assert "content/index.md" in decision.rebuild_reasons
-        assert decision.rebuild_reasons["content/index.md"].code == RebuildReasonCode.CONTENT_CHANGED
+        assert (
+            decision.rebuild_reasons["content/index.md"].code == RebuildReasonCode.CONTENT_CHANGED
+        )
 
     def test_add_rebuild_reason_with_details(self):
         """Test add_rebuild_reason method with details."""
@@ -392,7 +396,9 @@ class TestIncrementalDecision:
         )
 
         # First reason should be preserved
-        assert decision.rebuild_reasons["content/index.md"].code == RebuildReasonCode.CONTENT_CHANGED
+        assert (
+            decision.rebuild_reasons["content/index.md"].code == RebuildReasonCode.CONTENT_CHANGED
+        )
 
     def test_get_reason_summary(self):
         """Test get_reason_summary returns counts by reason code."""

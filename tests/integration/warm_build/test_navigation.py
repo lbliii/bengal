@@ -99,9 +99,7 @@ menu:
         # Note: Config changes typically trigger full rebuild in Bengal
         assert stats2.total_pages >= 1
 
-    def test_nav_weight_change_updates_ordering(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_nav_weight_change_updates_ordering(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         When page nav weight changes, nav ordering updates.
 
@@ -137,9 +135,7 @@ menu:
         # Build should succeed
         assert stats2.total_pages >= 1
 
-    def test_new_section_appears_in_nav(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_new_section_appears_in_nav(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         When new section is created, it appears in nav if configured.
 
@@ -195,9 +191,7 @@ Your first tutorial.
         site_with_nav.assert_output_exists("tutorials/index.html")
         site_with_nav.assert_output_exists("tutorials/getting-started/index.html")
 
-    def test_deleted_section_removed_from_nav(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_deleted_section_removed_from_nav(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         When section is deleted, nav should not reference it.
 
@@ -237,9 +231,7 @@ menu:
         # Note: Output cleanup behavior depends on Bengal implementation
         assert stats2.total_pages >= 1
 
-    def test_nested_menu_changes_cascade(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_nested_menu_changes_cascade(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         Nested menu changes should cascade to all affected pages.
 
@@ -281,9 +273,7 @@ Updated documentation section.
         docs_html = site_with_nav.read_output("docs/index.html")
         assert "Documentation Center" in docs_html
 
-    def test_breadcrumb_updates_on_parent_change(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_breadcrumb_updates_on_parent_change(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         Breadcrumb navigation updates when parent changes.
 
@@ -332,9 +322,7 @@ menu:
 class TestWarmBuildNavEdgeCases:
     """Edge cases for navigation warm builds."""
 
-    def test_menu_item_url_change(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_menu_item_url_change(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         Test that menu item URL changes are detected.
 
@@ -384,9 +372,7 @@ weight = 3
         stats2 = site_with_nav.full_build()
         assert stats2.total_pages >= 1
 
-    def test_empty_menu_section(
-        self, site_with_nav: WarmBuildTestSite
-    ) -> None:
+    def test_empty_menu_section(self, site_with_nav: WarmBuildTestSite) -> None:
         """
         Test handling of empty menu sections.
 

@@ -55,14 +55,14 @@ from typing import Any
 class Author:
     """
     Content author with structured metadata.
-    
+
     This dataclass represents a content author with support for:
     - Basic info: name, email, bio
     - Avatar image for visual identification
     - Social links for various platforms
-    
+
     The class is frozen (immutable) for hashability and cache safety.
-    
+
     Attributes:
         name: Display name (required)
         email: Contact email (optional)
@@ -70,7 +70,7 @@ class Author:
         avatar: Path to avatar image (optional)
         social: Dictionary of social platform handles (optional)
         url: Personal website URL (optional)
-    
+
     Example:
             >>> author = Author(
             ...     name="Jane Smith",
@@ -83,7 +83,7 @@ class Author:
             'Jane Smith'
             >>> author.social.get("twitter")
             'janesmith'
-        
+
     """
 
     name: str

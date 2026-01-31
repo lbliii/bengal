@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str | None]:
     """
     Determine configured markdown engine and resolve its library version.
-        
+
     """
     # Support legacy flat key and new nested config
     engine = config.get("markdown_engine")
@@ -91,7 +91,6 @@ def _get_theme_info(site: SiteLike) -> dict[str, Any]:
             error=str(e),
             error_type=type(e).__name__,
         )
-        pass
 
     return {"name": theme_name, "version": version}
 
@@ -108,20 +107,20 @@ def _get_i18n_info(config: dict[str, Any]) -> dict[str, Any]:
 def _get_capabilities() -> dict[str, bool]:
     """
     Detect runtime capabilities based on installed optional dependencies.
-    
+
     These are checked once at build time and cached. Templates can use these
     to conditionally enable features (e.g., only emit search-index.json meta
     tag when lunr is installed and will generate the pre-built index).
-    
+
     Returns:
         Dictionary of capability name → availability boolean
-        
+
     """
     capabilities: dict[str, bool] = {}
 
     # Pre-built Lunr search index (requires `pip install bengal[search]`)
     try:
-        from lunr import lunr  # type: ignore[import-not-found]  # noqa: F401
+        from lunr import lunr  # type: ignore[import-not-found]
 
         capabilities["prebuilt_search"] = True
     except ImportError:
@@ -129,7 +128,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
     try:
-        import aiohttp  # noqa: F401
+        import aiohttp
 
         capabilities["remote_content"] = True
     except ImportError:
@@ -141,12 +140,12 @@ def _get_capabilities() -> dict[str, bool]:
 def build_template_metadata(site: SiteLike) -> dict[str, Any]:
     """
     Build a curated, privacy-aware metadata dictionary for templates/JS.
-    
+
     Exposure levels (via config['expose_metadata']):
       - minimal: engine only
       - standard: + theme, build timestamp, i18n basics
       - extended: + rendering details (markdown/highlighter versions)
-        
+
     """
     config = getattr(site, "config", {}) or {}
     exposure = (config.get("expose_metadata") or "minimal").strip().lower()

@@ -31,11 +31,11 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 __all__ = [
+    "clear_cache",
+    "get_available_icons",
+    "get_search_paths",
     "initialize",
     "load_icon",
-    "get_search_paths",
-    "get_available_icons",
-    "clear_cache",
 ]
 
 # Module-level state (set during Site initialization)
@@ -53,18 +53,18 @@ _INVALID_CHARS = frozenset("/\\.\x00")
 def _is_valid_icon_name(name: str) -> bool:
     """
     Validate icon name to prevent path traversal attacks.
-    
+
     Rejects names containing:
     - Path separators (/ or \\)
     - Directory traversal characters (.)
     - Null bytes
-    
+
     Args:
         name: Icon name to validate
-    
+
     Returns:
         True if the name is safe, False otherwise
-        
+
     """
     if not name:
         return False
@@ -75,16 +75,16 @@ def _is_valid_icon_name(name: str) -> bool:
 def initialize(site: Site, preload: bool = False) -> None:
     """
     Initialize icon resolver with Site context.
-    
+
     Called once during Site initialization, before any rendering.
     Sets up search paths based on theme configuration.
-    
+
     Thread-safe: Atomically updates all state under lock.
-    
+
     Args:
         site: Site instance for theme resolution
         preload: If True, eagerly load all icons (production mode)
-        
+
     """
     global _search_paths, _initialized
     # Compute paths outside lock (expensive I/O)
@@ -103,15 +103,15 @@ def initialize(site: Site, preload: bool = False) -> None:
 def _get_icon_search_paths(site: Site) -> list[Path]:
     """
     Get ordered list of icon directories to search.
-    
+
     Returns directories from highest to lowest priority:
     1. Site theme icons (site/themes/{theme}/assets/icons)
     2. Theme icons with inheritance chain
     3. Default theme icons (if extend_defaults=True)
-        
+
     """
     from bengal.services.theme import get_theme_assets_chain
-    
+
     paths: list[Path] = []
 
     # Get theme asset chain (handles inheritance)
@@ -153,21 +153,21 @@ def _get_fallback_path() -> Path:
 def load_icon(name: str) -> str | None:
     """
     Load icon from first matching path in search chain.
-    
+
     Uses caching to avoid repeated disk I/O:
     - Found icons cached by content
     - Not-found icons cached to skip repeated searches
-    
+
     Security: Validates icon name to prevent path traversal attacks.
-    
+
     Thread-safe: Cache reads/writes protected by lock.
-    
+
     Args:
         name: Icon name (without .svg extension)
-    
+
     Returns:
         SVG content string, or None if not found
-        
+
     """
     # Validate icon name to prevent path traversal attacks
     if not _is_valid_icon_name(name):
@@ -220,12 +220,12 @@ def load_icon(name: str) -> str | None:
 def get_search_paths() -> list[Path]:
     """
     Get current search paths (for error messages).
-    
+
     Thread-safe: Returns copy under lock.
-    
+
     Returns:
         Copy of the current search paths list
-        
+
     """
     with _icon_lock:
         if _initialized:
@@ -236,15 +236,15 @@ def get_search_paths() -> list[Path]:
 def get_available_icons() -> list[str]:
     """
     Get list of all available icon names across search paths.
-    
+
     Returns icon names in priority order (higher priority first).
     Duplicates are included only once (first occurrence wins).
-    
+
     Thread-safe: Copies search paths under lock.
-    
+
     Returns:
         List of icon names (without .svg extension)
-        
+
     """
     seen: set[str] = set()
     icons: list[str] = []
@@ -268,11 +268,11 @@ def get_available_icons() -> list[str]:
 def clear_cache() -> None:
     """
     Clear icon cache (for dev server hot reload).
-    
+
     Call this when theme assets change to reload modified icons.
-    
+
     Thread-safe: Clears under lock.
-        
+
     """
     with _icon_lock:
         _icon_cache.clear()
@@ -282,12 +282,12 @@ def clear_cache() -> None:
 def _preload_all_icons() -> None:
     """
     Preload all icons from search paths (production optimization).
-    
+
     Scans all icon directories and loads SVG content into cache.
     First match wins for duplicate icon names.
-    
+
     Thread-safe: Cache writes protected by lock.
-        
+
     """
     # Copy search paths under lock
     with _icon_lock:

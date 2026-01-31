@@ -36,12 +36,10 @@ DEFAULT_LOCK_TIMEOUT = 30
 class LockAcquisitionError(BengalCacheError):
     """
     Raised when a lock cannot be acquired within the timeout.
-    
-    Extends BengalCacheError for consistent error handling.
-        
-    """
 
-    pass
+    Extends BengalCacheError for consistent error handling.
+
+    """
 
 
 @contextmanager
@@ -52,27 +50,27 @@ def file_lock(
 ) -> Generator[None]:
     """
     Context manager for file locking.
-    
+
     Acquires a lock on a .lock file adjacent to the target path.
     Uses non-blocking attempts with retry for better timeout control.
-    
+
     Args:
         path: Path to the file to lock (lock file will be path.lock)
         exclusive: If True, acquire exclusive (write) lock; else shared (read) lock
         timeout: Maximum seconds to wait for lock (default: 30)
-    
+
     Yields:
         None
-    
+
     Raises:
         LockAcquisitionError: If lock cannot be acquired within timeout
-    
+
     Example:
             >>> with file_lock(Path("cache.json"), exclusive=True):
             ...     # Safely write to cache
             ...     data = load_cache()
             ...     save_cache(data)
-        
+
     """
     lock_path = path.with_suffix(path.suffix + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,16 +90,16 @@ def _acquire_lock(
 ) -> None:
     """
     Acquire a lock with timeout using non-blocking retries.
-    
+
     Args:
         lock_file: Open file handle for the lock file
         exclusive: If True, acquire exclusive lock; else shared lock
         timeout: Maximum seconds to wait
         lock_path: Path to lock file (for logging)
-    
+
     Raises:
         LockAcquisitionError: If lock cannot be acquired within timeout
-        
+
     """
     start_time = time.monotonic()
     retry_interval = 0.1  # Start with 100ms retries
@@ -142,14 +140,14 @@ def _acquire_lock(
 def _try_lock_nonblocking(lock_file: IO[str], exclusive: bool) -> None:
     """
     Try to acquire lock without blocking.
-    
+
     Args:
         lock_file: Open file handle
         exclusive: If True, acquire exclusive lock
-    
+
     Raises:
         BlockingIOError: If lock is held by another process
-        
+
     """
     if sys.platform == "win32":
         _lock_windows(lock_file, exclusive, blocking=False)
@@ -160,15 +158,15 @@ def _try_lock_nonblocking(lock_file: IO[str], exclusive: bool) -> None:
 def _lock_unix(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
     """
     Acquire lock on Unix/macOS using fcntl.flock().
-    
+
     Args:
         lock_file: Open file handle
         exclusive: If True, acquire exclusive (LOCK_EX); else shared (LOCK_SH)
         blocking: If False, raise BlockingIOError if lock unavailable
-    
+
     Raises:
         BlockingIOError: If non-blocking and lock is held by another process
-        
+
     """
     import fcntl
 
@@ -188,15 +186,15 @@ def _lock_unix(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
 def _lock_windows(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
     """
     Acquire lock on Windows using msvcrt.locking().
-    
+
     Args:
         lock_file: Open file handle
         exclusive: If True, acquire exclusive lock (always exclusive on Windows)
         blocking: If False, raise BlockingIOError if lock unavailable
-    
+
     Raises:
         BlockingIOError: If non-blocking and lock is held by another process
-        
+
     """
     import msvcrt
 
@@ -217,10 +215,10 @@ def _lock_windows(lock_file: IO[str], exclusive: bool, blocking: bool) -> None:
 def _release_lock(lock_file: IO[str]) -> None:
     """
     Release lock on the file.
-    
+
     Args:
         lock_file: Open file handle with lock
-        
+
     """
     if sys.platform == "win32":
         _unlock_windows(lock_file)
@@ -251,13 +249,13 @@ def _unlock_windows(lock_file: IO[str]) -> None:
 def is_locked(path: Path) -> bool:
     """
     Check if a file is currently locked.
-    
+
     Args:
         path: Path to check
-    
+
     Returns:
         True if file appears to be locked by another process
-        
+
     """
     lock_path = path.with_suffix(path.suffix + ".lock")
 
@@ -280,14 +278,14 @@ def is_locked(path: Path) -> bool:
 def remove_stale_lock(path: Path, max_age_seconds: float = 3600) -> bool:
     """
     Remove a stale lock file that may have been left by a crashed process.
-    
+
     Args:
         path: Path to the file (not the lock file)
         max_age_seconds: Maximum age in seconds before considering stale
-    
+
     Returns:
         True if stale lock was removed
-        
+
     """
     lock_path = path.with_suffix(path.suffix + ".lock")
 

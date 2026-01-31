@@ -40,29 +40,29 @@ if TYPE_CHECKING:
 class TemplateEnvironment(Protocol):
     """
     Protocol for template environment objects.
-    
+
     Template environments provide the runtime context for template rendering,
     including global variables, filters, and tests. Both Jinja2's Environment
     and Kida's Environment implement this interface.
-    
+
     This protocol defines the minimal interface needed for registering
     template functions. Environments may provide additional features
     beyond this protocol.
-    
+
     Attributes:
         globals: Dict-like mapping of global variables available in all templates
         filters: Dict-like mapping of filter functions (value transformers)
         tests: Dict-like mapping of test functions (boolean predicates)
-    
+
     Example:
             >>> def register(env: TemplateEnvironment, site: Site) -> None:
             ...     env.globals["my_func"] = my_function
             ...     env.filters["my_filter"] = my_filter
-    
+
     Implementations:
         - jinja2.Environment: Jinja2's native environment
         - kida.Environment: Kida template engine
-        
+
     """
 
     globals: MutableMapping[str, Any]
@@ -78,19 +78,19 @@ class TemplateEnvironment(Protocol):
 class EngineCapability(Flag):
     """
     Capabilities that template engines may support.
-    
+
     Using Flag enum allows:
     - Composable capabilities (BLOCK_CACHING | INTROSPECTION)
     - Single property on engine (vs multiple can_* methods)
     - Easy extensibility (add new capabilities without API change)
     - Type-safe capability checks
-    
+
     Example:
             >>> if engine.has_capability(EngineCapability.BLOCK_CACHING):
             ...     enable_block_cache()
             >>> if EngineCapability.INTROSPECTION in engine.capabilities:
             ...     analyze_template_structure()
-        
+
     """
 
     NONE = 0
@@ -110,20 +110,20 @@ class EngineCapability(Flag):
 class TemplateRenderer(Protocol):
     """
     Core rendering capability - the minimum viable engine.
-    
+
     This is the minimal interface for template rendering. Functions that
     only need to render templates should accept this protocol, not the
     full TemplateEngine.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. render_template() and
         render_string() may be called concurrently from multiple
         render threads during parallel builds.
-    
+
     Example:
             >>> def render_page(engine: TemplateRenderer, page: Page) -> str:
             ...     return engine.render_template("page.html", {"page": page})
-        
+
     """
 
     site: Site
@@ -181,10 +181,10 @@ class TemplateRenderer(Protocol):
 class TemplateIntrospector(Protocol):
     """
     Optional introspection capabilities for template engines.
-    
+
     Provides methods for querying template existence and paths.
     Not all engines need to implement this.
-        
+
     """
 
     def template_exists(self, name: str) -> bool:
@@ -238,10 +238,10 @@ class TemplateIntrospector(Protocol):
 class TemplateValidator(Protocol):
     """
     Optional validation capabilities for template engines.
-    
+
     Provides syntax validation for templates. Useful for CI/CD
     and pre-commit validation.
-        
+
     """
 
     def validate(self, patterns: list[str] | None = None) -> list[TemplateError]:
@@ -267,22 +267,22 @@ class TemplateValidator(Protocol):
 class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, Protocol):
     """
     Full template engine with all capabilities.
-    
+
     This is the complete interface that combines rendering, introspection,
     and validation. Use this when you need all engine capabilities.
-    
+
     For simpler use cases, prefer the focused protocols:
     - TemplateRenderer: Just rendering
     - TemplateIntrospector: Template discovery
     - TemplateValidator: Syntax validation
-    
+
     Thread Safety:
         All methods MUST be thread-safe for parallel builds.
-    
+
     Example:
             >>> def validate_site(engine: TemplateEngine) -> list[TemplateError]:
             ...     return engine.validate()
-        
+
     """
 
     @property
@@ -345,39 +345,39 @@ TemplateEngineProtocol = TemplateEngine
 class HighlightService(Protocol):
     """
     Unified interface for syntax highlighting.
-    
+
     This protocol bridges Bengal with highlighting backends (Rosettes
     or custom implementations). Implementations handle the translation
     from this interface to backend-specific APIs.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. The highlight() method
         may be called concurrently from multiple render threads.
-    
+
     Example (Rosettes adapter):
             >>> class RosettesHighlightService:
             ...     def __init__(self):
             ...         self._formatter = HtmlFormatter()
-            ...     
+            ...
             ...     @property
             ...     def name(self) -> str:
             ...         return "rosettes"
-            ...     
+            ...
             ...     def highlight(self, code, language, hl_lines=None, linenos=False):
             ...         lexer = get_lexer(language)
             ...         config = FormatConfig(hl_lines=hl_lines, linenos=linenos)
             ...         return self._formatter.format_string(lexer.tokenize(code), config)
-            ...     
+            ...
             ...     def supports_language(self, language):
             ...         return has_lexer(language)
-        
+
     """
 
     @property
     def name(self) -> str:
         """
         Backend identifier (e.g., 'rosettes', 'pygments').
-        
+
         Contract:
             - MUST be lowercase, hyphen-separated
             - MUST be stable (same value across calls)
@@ -444,23 +444,23 @@ HighlightBackend = HighlightService
 class RoleHandler(Protocol):
     """
     Protocol for role implementations.
-    
+
     Roles are inline text processors like :doc:`reference` or :ref:`label`.
     They are the inline counterpart to block-level directives.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. Roles may be processed
         concurrently during parallel page rendering.
-    
+
     Example:
             >>> class DocRole:
             ...     name = "doc"
-            ...     
+            ...
             ...     def render(self, target: str, text: str | None, context: dict) -> str:
             ...         page = context.get("site").get_page(target)
             ...         label = text or page.title
             ...         return f'<a href="{page.href}">{label}</a>'
-        
+
     """
 
     @property
@@ -497,22 +497,22 @@ class RoleHandler(Protocol):
 class DirectiveHandler(Protocol):
     """
     Protocol for directive implementations.
-    
+
     Directives are block-level processors like ```{note} or ```{warning}.
     They are the block counterpart to inline roles.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. Directives may be processed
         concurrently during parallel page rendering.
-    
+
     Example:
             >>> class NoteDirective:
             ...     name = "note"
             ...     has_content = True
-            ...     
+            ...
             ...     def render(self, content: str, options: dict, context: dict) -> str:
             ...         return f'<div class="admonition note">{content}</div>'
-        
+
     """
 
     @property
@@ -555,20 +555,20 @@ class DirectiveHandler(Protocol):
 # =============================================================================
 
 __all__ = [
-    # Template environment
-    "TemplateEnvironment",
+    "DirectiveHandler",
     # Engine capabilities
     "EngineCapability",
-    # Template engine protocols (composable)
-    "TemplateRenderer",
-    "TemplateIntrospector",
-    "TemplateValidator",
-    "TemplateEngine",
-    "TemplateEngineProtocol",  # Backwards compatibility
+    "HighlightBackend",  # Backwards compatibility
     # Highlighting
     "HighlightService",
-    "HighlightBackend",  # Backwards compatibility
     # Roles and directives
     "RoleHandler",
-    "DirectiveHandler",
+    "TemplateEngine",
+    "TemplateEngineProtocol",  # Backwards compatibility
+    # Template environment
+    "TemplateEnvironment",
+    "TemplateIntrospector",
+    # Template engine protocols (composable)
+    "TemplateRenderer",
+    "TemplateValidator",
 ]

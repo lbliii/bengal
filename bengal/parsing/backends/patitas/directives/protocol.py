@@ -28,8 +28,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
-    from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
     from patitas.location import SourceLocation
     from patitas.nodes import Block, Directive
     from patitas.stringbuilder import StringBuilder
@@ -38,23 +36,23 @@ if TYPE_CHECKING:
 @runtime_checkable
 class DirectiveHandler(Protocol):
     """Protocol for directive implementations.
-    
+
     Implement this protocol to create custom directives. The parser calls
     parse() to build the AST node, and the renderer calls render() to
     produce HTML output.
-    
+
     Attributes:
         names: Tuple of directive names this handler responds to.
                Example: ("note", "warning", "tip") for admonitions
         token_type: Token type identifier for the AST. Used for dispatch.
         contract: Optional nesting validation contract.
         options_class: Class for typed options parsing.
-    
+
     Thread Safety:
         Handlers must be stateless. All mutable state must be in the AST
         node (which is immutable) or passed as arguments. Multiple threads
         may call the same handler instance concurrently.
-    
+
     Example:
             >>> class VideoDirective:
             ...     names = ("video",)
@@ -66,7 +64,7 @@ class DirectiveHandler(Protocol):
             ...
             ...     def render(self, node, rendered_children, sb):
             ...         sb.append(f'<video src="{node.title}"></video>')
-        
+
     """
 
     # Attribute declarations for structural typing
@@ -134,10 +132,10 @@ class DirectiveHandler(Protocol):
 @runtime_checkable
 class DirectiveParseOnly(Protocol):
     """Protocol for directives that only need custom parsing.
-    
+
     Use this when default rendering is acceptable but you need
     custom AST construction.
-        
+
     """
 
     names: tuple[str, ...]
@@ -159,10 +157,10 @@ class DirectiveParseOnly(Protocol):
 @runtime_checkable
 class DirectiveRenderOnly(Protocol):
     """Protocol for directives that only need custom rendering.
-    
+
     Use this when default parsing is acceptable but you need
     custom HTML output.
-        
+
     """
 
     names: tuple[str, ...]

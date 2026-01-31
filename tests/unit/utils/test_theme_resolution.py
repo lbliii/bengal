@@ -283,10 +283,10 @@ class TestIterThemeAssetDirs:
 
 class TestResolveThemeTemplatesPath:
     """Tests for resolve_theme_templates_path function.
-    
+
     This function is the canonical way to find theme template directories,
     used by all template engines for cross-theme extends support.
-        
+
     """
 
     def test_finds_site_theme_templates(self, tmp_path):

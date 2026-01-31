@@ -39,12 +39,12 @@ from .page_core import PageCore
 
 def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) -> property:
     """Create a lazy property that delegates to _full_page.
-    
+
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         doc: Optional docstring for the property
-        
+
     """
 
     def getter(self: PageProxy) -> Any:
@@ -55,14 +55,16 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) 
     return property(getter)
 
 
-def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None) -> property:
+def _lazy_property_with_setter(
+    attr_name: str, default: Any = None, getter_doc: str | None = None
+) -> property:
     """Create a lazy property with getter and setter that delegates to _full_page.
-    
+
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         getter_doc: Optional docstring for the getter
-        
+
     """
 
     def getter(self: PageProxy) -> Any:
@@ -82,46 +84,46 @@ def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: 
 class PageProxy:
     """
     Lazy-loaded page placeholder.
-    
+
     Holds page metadata from cache and defers loading full content until
     accessed. Transparent to callers - implements Page-like interface.
-    
+
     LIFECYCLE IN INCREMENTAL BUILDS:
     ---------------------------------
     1. **Discovery** (content_discovery.py):
        - Created from cached metadata for unchanged pages
        - Has: title, date, tags, slug, _section, _site, output_path
        - Does NOT have: content, rendered_html (lazy-loaded on demand)
-    
+
     2. **Filtering** (incremental.py):
        - PageProxy objects pass through find_work_early() unchanged
        - Only modified pages become full Page objects for rendering
-    
+
     3. **Rendering** (render.py):
        - Modified pages rendered as full Page objects
        - PageProxy objects skipped (already have cached output)
-    
+
     4. **Update** (build/rendering.py Phase 15):
        - Freshly rendered Page objects REPLACE their PageProxy counterparts
        - site.pages becomes: mix of fresh Page (rebuilt) + PageProxy (cached)
-    
+
     5. **Postprocessing** (postprocess.py):
        - Iterates over site.pages (now updated with fresh Pages)
        - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
          * output_path (for finding where to write .txt/.json)
          * href, _path, permalink (for generating index.json)
          * title, date, tags (for content in output files)
-    
+
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
     - **Templates**: Implements .href, ._path, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
-    
+
     ⚠️ When adding new Page properties used by templates/postprocessing,
     MUST also add to PageProxy or handle in _ensure_loaded().
-    
+
     Usage:
         # Create from cached metadata
         page = PageProxy(
@@ -129,17 +131,17 @@ class PageProxy:
             metadata=cached_metadata,
             loader=load_page_from_disk,  # Callable that loads full page
         )
-    
+
         # Access metadata (instant, from cache)
         print(page.title)  # "My Post"
         print(page.tags)   # ["python", "web"]
-    
+
         # Access full content (triggers lazy load)
         print(page.content)  # Loads from disk and parses
-    
+
         # After first access, it's fully loaded
         assert page._lazy_loaded  # True
-        
+
     """
 
     # Site reference - set externally during content discovery
@@ -239,19 +241,46 @@ class PageProxy:
 
     @property
     def type(self) -> str | None:
-        """Get page type from cached metadata (cascaded)."""
+        """
+        Get page type from cascade snapshot or cached metadata.
+
+        Priority:
+        1. Cascade snapshot lookup (always current, even after _index.md changes)
+        2. Cached core.type (fallback for non-cascade type)
+        """
+        # 1. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come first to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
+        cascade_type = self._resolve_cascade_from_snapshot("type")
+        if cascade_type is not None:
+            return cascade_type
+
+        # 2. Fall back to cached value for non-cascade type
         return self.core.type
 
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from cached metadata (Mode).
+        Get visual variant from cascade snapshot or cached metadata (Mode).
 
-        Falls back to layout/hero_style fields in props if not set.
+        Priority:
+        1. Cascade snapshot lookup for 'variant' or 'layout' keys
+        2. Cached core.variant (fallback for non-cascade variant)
+        3. Frontmatter fallback (layout/hero_style)
         """
+        # 1. Cascade snapshot lookup (thread-safe, always current)
+        cascade_variant = self._resolve_cascade_from_snapshot("variant")
+        if cascade_variant is not None:
+            return cascade_variant
+        cascade_layout = self._resolve_cascade_from_snapshot("layout")
+        if cascade_layout is not None:
+            return cascade_layout
+
+        # 2. Fall back to cached value for non-cascade variant
         if self.core.variant:
             return self.core.variant
-        # Fallback via metadata
+
+        # 3. Frontmatter fallback
         props = self.metadata  # Triggers metadata build (but not full page)
         return props.get("layout") or props.get("hero_style")
 
@@ -342,12 +371,10 @@ class PageProxy:
         Returns cached metadata including cascaded fields like 'type'.
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
-        
-        For fields that can be cascaded (type, layout, variant), performs
-        lazy resolution by traversing the section hierarchy if the value
-        is not set in the page's own frontmatter. This ensures PageProxy
-        objects correctly inherit cascade values without requiring them
-        to be stored in the cache.
+
+        Cascade resolution uses the immutable CascadeSnapshot for thread-safe
+        access. The snapshot is computed once per build and can be safely
+        accessed from multiple render threads in free-threaded Python.
         """
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
@@ -368,47 +395,34 @@ class PageProxy:
             cached_metadata["slug"] = self.core.slug
         if self.core.lang:
             cached_metadata["lang"] = self.core.lang
-        # Include cascade so sections can access cascade metadata from index_page
-        if self.core.cascade:
-            cached_metadata["cascade"] = self.core.cascade
-
-        # Lazy cascade resolution for standard cascade keys
-        # If a key is not in the page's own metadata, look it up from
-        # the section hierarchy. This ensures cascade works for PageProxy
-        # without storing cascade values in the cache.
+        # Cascade resolution via immutable snapshot (thread-safe, always current)
+        # Uses the section path stored in core to avoid needing section object
         cascade_keys = ("type", "layout", "variant")
         for key in cascade_keys:
             if key not in cached_metadata or cached_metadata.get(key) is None:
-                cascade_value = self._resolve_cascade(key)
+                cascade_value = self._resolve_cascade_from_snapshot(key)
                 if cascade_value is not None:
                     cached_metadata[key] = cascade_value
 
         return cached_metadata
 
-    def _resolve_cascade(self, key: str) -> Any:
+    def _resolve_cascade_from_snapshot(self, key: str) -> Any:
         """
-        Resolve a cascade value by traversing the section hierarchy.
-        
-        Walks up from this page's section to the root, checking each
-        section's cascade metadata for the requested key. Returns the
-        first value found, or None if not found.
-        
-        This enables lazy cascade resolution without storing cascade
-        values in the page cache. Sections are always freshly parsed
-        each build, so cascade values are always current.
-        
+        Resolve a cascade value using the immutable CascadeSnapshot.
+
+        Uses the Site's cascade snapshot for O(depth) lookup without
+        needing to traverse section objects. This is thread-safe and
+        works correctly in free-threaded Python.
+
         Args:
             key: The cascade key to look up (e.g., "type", "layout")
-            
+
         Returns:
             The cascade value from the nearest ancestor section, or None
         """
-        section = self._section  # O(1) lookup via site registry
-        while section is not None:
-            cascade = getattr(section, "metadata", {}).get("cascade", {})
-            if key in cascade:
-                return cascade[key]
-            section = getattr(section, "parent", None)
+        if self._site:
+            section_path = self.core.section or ""
+            return self._site.cascade.resolve(section_path, key)
         return None
 
     rendered_html = _lazy_property_with_setter(
@@ -479,7 +493,6 @@ class PageProxy:
         (they were loaded from the cache which stores relative paths).
         """
         # PageProxy paths are already relative from cache - no normalization needed
-        pass
 
     @property
     def related_posts(self) -> list[Page]:
@@ -601,9 +614,7 @@ class PageProxy:
     in_search = _lazy_property(
         "in_search", default=True, doc="Check if page should appear in search index."
     )
-    in_rss = _lazy_property(
-        "in_rss", default=True, doc="Check if page should appear in RSS feeds."
-    )
+    in_rss = _lazy_property("in_rss", default=True, doc="Check if page should appear in RSS feeds.")
     robots_meta = _lazy_property(
         "robots_meta", default="index, follow", doc="Robots meta content for this page."
     )

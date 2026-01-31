@@ -57,16 +57,16 @@ _logger = logging.getLogger(__name__)
 
 class RosettesBackend:
     """Rosettes-based syntax highlighting backend.
-    
+
     Uses the external rosettes package (https://pypi.org/project/rosettes/).
-    
+
     Thread-safe by design: Rosettes uses immutable state and
     functools.cache for memoization.
-    
+
     Supports theming via site configuration (RFC-0003):
         - css_class_style: "semantic" (default) or "pygments"
         - theme: auto-inherited from site palette
-        
+
     """
 
     def __init__(self, config: dict[str, Any] | None = None) -> None:

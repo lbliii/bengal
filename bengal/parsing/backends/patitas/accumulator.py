@@ -20,17 +20,17 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
-from typing import Iterator
 
 __all__ = [
     "RenderMetadata",
     "get_metadata",
     "metadata_context",
-    "set_metadata",
     "reset_metadata",
+    "set_metadata",
 ]
 
 

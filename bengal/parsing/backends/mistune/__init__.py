@@ -33,7 +33,6 @@ from typing import Any, override
 from mistune.renderers.html import HTMLRenderer
 
 from bengal.errors import ErrorCode, format_suggestion, record_error
-from bengal.parsing.base import BaseMarkdownParser
 from bengal.parsing.backends.mistune.ast import (
     create_ast_parser,
     parse_to_ast,
@@ -43,6 +42,7 @@ from bengal.parsing.backends.mistune.highlighting import (
     create_syntax_highlighting_plugin,
 )
 from bengal.parsing.backends.mistune.toc import extract_toc, inject_heading_anchors
+from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,7 +54,7 @@ class MistuneParser(BaseMarkdownParser):
     """
     Parser using mistune library.
     Faster with full documentation features.
-    
+
     Supported features:
     - Tables (GFM)
     - Fenced code blocks
@@ -66,7 +66,7 @@ class MistuneParser(BaseMarkdownParser):
     - Footnotes (custom plugin)
     - Definition lists (custom plugin)
     - Variable substitution (custom plugin)
-        
+
     """
 
     def __init__(self, enable_highlighting: bool = True) -> None:

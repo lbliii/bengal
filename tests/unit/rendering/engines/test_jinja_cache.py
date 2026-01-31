@@ -52,9 +52,7 @@ class TestJinjaTemplateCaching:
 
         mock_site = make_mock_site(dev_mode=True)
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 
@@ -68,9 +66,7 @@ class TestJinjaTemplateCaching:
 
         mock_site = make_mock_site(dev_mode=False)
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 
@@ -84,9 +80,7 @@ class TestJinjaTemplateCaching:
 
         # Test with dev_mode=True
         mock_site_dev = make_mock_site(dev_mode=True)
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
             engine_dev = JinjaTemplateEngine(mock_site_dev)
@@ -94,9 +88,7 @@ class TestJinjaTemplateCaching:
 
         # Test with dev_mode=False
         mock_site_prod = make_mock_site(dev_mode=False)
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
             engine_prod = JinjaTemplateEngine(mock_site_prod)
@@ -109,9 +101,7 @@ class TestJinjaTemplateCaching:
         mock_site = make_mock_site(dev_mode=False)
         template_dir = Path("/tmp/templates")
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [template_dir])
 
@@ -135,9 +125,7 @@ class TestJinjaTemplateCaching:
         mock_site = make_mock_site(dev_mode=True)
         template_dir = Path("/tmp/templates")
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [template_dir])
 
@@ -172,9 +160,7 @@ class TestJinjaCacheInvalidation:
         mock_site = make_mock_site(dev_mode=False)
         template_dir = Path("/tmp/templates")
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [template_dir])
 
@@ -193,9 +179,7 @@ class TestJinjaCacheInvalidation:
 
         mock_site = make_mock_site(dev_mode=False)
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 
@@ -220,11 +204,11 @@ class TestJinjaMenuCacheInvalidation:
 
         mock_site = make_mock_site(dev_mode=False)
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
-            mock_env.get_template = MagicMock(return_value=MagicMock(render=MagicMock(return_value="")))
+            mock_env.get_template = MagicMock(
+                return_value=MagicMock(render=MagicMock(return_value=""))
+            )
             mock_create_env.return_value = (mock_env, [])
 
             engine = JinjaTemplateEngine(mock_site)
@@ -244,9 +228,7 @@ class TestJinjaMenuCacheInvalidation:
 
         mock_site = make_mock_site(dev_mode=False)
 
-        with patch(
-            "bengal.rendering.engines.jinja.create_jinja_environment"
-        ) as mock_create_env:
+        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 

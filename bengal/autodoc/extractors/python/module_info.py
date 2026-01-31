@@ -22,19 +22,19 @@ logger = get_logger(__name__)
 def infer_module_name(file_path: Path, source_root: Path | None) -> str:
     """
     Infer module name from file path relative to source root.
-    
+
     Examples:
         source_root: bengal/
         file_path: bengal/cli/commands/build.py
         result: bengal.cli.commands.build
-    
+
     Args:
         file_path: Path to the Python file
         source_root: Root directory of the source tree
-    
+
     Returns:
         Qualified module name (e.g., "bengal.cli.commands.build")
-        
+
     """
     # Resolve file_path to handle relative paths correctly
     resolved_file = file_path.resolve()
@@ -86,14 +86,14 @@ def infer_module_name(file_path: Path, source_root: Path | None) -> str:
 def get_relative_source_path(file_path: Path, source_root: Path | None) -> Path:
     """
     Get source path relative to source root for GitHub links.
-    
+
     Args:
         file_path: Absolute file path
         source_root: Root directory of the source tree
-    
+
     Returns:
         Path relative to source root (e.g., "bengal/core/page.py")
-        
+
     """
     if source_root:
         for base in (source_root, source_root.parent):
@@ -111,28 +111,28 @@ def get_output_path(
 ) -> Path | None:
     """
     Get output path for a DocElement.
-    
+
     Packages (modules from __init__.py) generate _index.md files to act as
     section indexes. With grouping enabled, modules are organized under
     group directories based on package hierarchy or explicit configuration.
-    
+
     Examples (without grouping):
         bengal (package) → bengal/_index.md
         bengal.core (package) → bengal/core/_index.md
         bengal.core.site (module) → bengal/core/site.md
-    
+
     Examples (with grouping, strip_prefix="bengal."):
         bengal.core (package) → core/_index.md
         bengal.scaffolds.blog (module) → scaffolds/blog.md
-    
+
     Args:
         element: DocElement to get path for
         config: Extractor configuration
         grouping_config: Grouping configuration from _init_grouping()
-    
+
     Returns:
         Path object for output location, or None if element should be skipped
-        
+
     """
     qualified_name = element.qualified_name
 

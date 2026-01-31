@@ -61,7 +61,7 @@ DEFAULT_GLOSSARY_PATH = "data/glossary.yaml"
 class GlossaryDirective(DirectivePlugin):
     """
     Glossary directive using Mistune's fenced syntax.
-    
+
     Syntax:
         :::{glossary}
         :tags: tag1, tag2
@@ -70,7 +70,7 @@ class GlossaryDirective(DirectivePlugin):
         :collapsed: true
         :limit: 3
         :::
-    
+
     Options:
         - tags: Comma-separated list of tags to filter terms (required)
         - sorted: Sort terms alphabetically (default: false, preserves file order)
@@ -78,11 +78,11 @@ class GlossaryDirective(DirectivePlugin):
         - collapsed: Wrap in collapsible <details> element (default: false)
         - limit: Show only first N terms with "Show all" expansion (default: all)
         - source: Custom glossary file path (default: data/glossary.yaml)
-    
+
     Architecture:
         Parse phase records options only. Data loading is deferred to render
         phase where renderer._site provides access to site.data and site.root_path.
-        
+
     """
 
     # Directive names this class registers (for health check introspection)
@@ -173,19 +173,19 @@ class GlossaryDirective(DirectivePlugin):
 def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render glossary to HTML as a definition list.
-    
+
     Data loading happens here (deferred from parse phase) using:
     1. renderer._site.data.glossary (pre-loaded by Site from data/ directory)
     2. Fallback: file loading using renderer._site.root_path
-    
+
     Args:
         renderer: Mistune renderer (has _site attribute with site.data and root_path)
         text: Rendered children content (unused for glossary)
         **attrs: Glossary attributes from directive (tags, sorted, etc.)
-    
+
     Returns:
         HTML string for glossary definition list
-        
+
     """
     # Check for error from parse phase
     if "error" in attrs and not attrs.get("_deferred"):
@@ -280,18 +280,18 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
 def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
     """
     Load glossary data from site.data or file.
-    
+
     Tries these sources in order:
     1. site.data.glossary (if source is default data/glossary.yaml)
     2. File loading using site.root_path
-    
+
     Args:
         renderer: Mistune renderer with _site attribute
         source_path: Path to glossary file (default: data/glossary.yaml)
-    
+
     Returns:
         Dict with 'terms' key, or 'error' key on failure
-        
+
     """
     site = getattr(renderer, "_site", None)
 
@@ -374,16 +374,16 @@ def _load_glossary_data(renderer: Any, source_path: str) -> dict[str, Any]:
 def _filter_terms(terms: list[dict[str, Any]], tags: list[str]) -> list[dict[str, Any]]:
     """
     Filter terms by tags.
-    
+
     A term matches if it has ANY of the requested tags (OR logic).
-    
+
     Args:
         terms: List of term dicts from glossary
         tags: List of tags to match
-    
+
     Returns:
         List of matching terms
-        
+
     """
     filtered = []
     tags_set = set(tags)
@@ -432,17 +432,17 @@ def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> s
 def _parse_inline_markdown(renderer: Any, text: str) -> str:
     """
     Parse inline markdown in glossary definitions.
-    
+
     Tries to use mistune's inline parser first (proper way),
     falls back to simple regex for basic markdown if not available.
-    
+
     Args:
         renderer: Mistune renderer instance
         text: Text to parse
-    
+
     Returns:
         HTML string with inline markdown converted
-        
+
     """
     from bengal.directives.utils import get_markdown_instance
     from bengal.utils.primitives.text import escape_html

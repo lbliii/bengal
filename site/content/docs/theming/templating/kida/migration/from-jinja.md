@@ -3,7 +3,6 @@ title: From Jinja2
 nav_title: From Jinja2
 description: Convert existing Jinja2 templates to Kida syntax
 weight: 10
-type: doc
 tags:
 - how-to
 - kida

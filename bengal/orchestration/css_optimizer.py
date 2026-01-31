@@ -44,25 +44,25 @@ logger = get_logger(__name__)
 class CSSOptimizer:
     """
     Generates optimized CSS bundles based on site content.
-    
+
     Analyzes pages and sections to detect:
     - Content types in use (blog, doc, tutorial, etc.)
     - Features enabled (graph, search, mermaid, etc.)
-    
+
     Then generates a minimal style.css containing only needed imports.
-    
+
     Attributes:
         site: Site instance to analyze
         _manifest: Loaded CSS manifest from theme
-    
+
     Example:
         optimizer = CSSOptimizer(site)
         optimized_css = optimizer.generate()
-    
+
         # Or with reporting
         optimized_css, report = optimizer.generate(report=True)
         print(f"Included {report['included_count']} of {report['total_count']} CSS files")
-        
+
     """
 
     def __init__(self, site: Site) -> None:
@@ -478,13 +478,13 @@ class CSSOptimizer:
 def optimize_css_for_site(site: Site) -> str:
     """
     Convenience function to generate optimized CSS.
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         Optimized CSS content (empty string if optimization not applicable)
-        
+
     """
     optimizer = CSSOptimizer(site)
     result = optimizer.generate()

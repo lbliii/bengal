@@ -20,6 +20,7 @@ def _pillow_available() -> bool:
     """Check if Pillow is installed."""
     try:
         from PIL import Image
+
         return True
     except ImportError:
         return False
@@ -129,7 +130,7 @@ class TestImageResourceGracefulDegradation:
                 source_path=Path("/fake/image.jpg"),
                 site=None,
             )
-            
+
             # Clear cached property if exists
             if hasattr(resource, "_dimensions"):
                 del resource.__dict__["_dimensions"]
@@ -154,10 +155,7 @@ class TestImageResourceGracefulDegradation:
 class TestImageProcessorMethods:
     """Verify ImageProcessor method contracts."""
 
-    @pytest.mark.skipif(
-        not _pillow_available(),
-        reason="Pillow not installed"
-    )
+    @pytest.mark.skipif(not _pillow_available(), reason="Pillow not installed")
     def test_fill_requires_both_dimensions(self, tmp_path: Path) -> None:
         """_fill returns input image if dimensions missing."""
         from PIL import Image
@@ -167,7 +165,7 @@ class TestImageProcessorMethods:
 
         # Create test image
         img = Image.new("RGB", (100, 100), color="red")
-        
+
         # Create processor with mock site
         site = MagicMock()
         site.root_path = tmp_path
@@ -176,14 +174,11 @@ class TestImageProcessorMethods:
         # Missing height
         params = ProcessParams(width=50, height=None)
         result = processor._fill(img, params)
-        
+
         # Should return original (unchanged)
         assert result.size == (100, 100)
 
-    @pytest.mark.skipif(
-        not _pillow_available(),
-        reason="Pillow not installed"
-    )
+    @pytest.mark.skipif(not _pillow_available(), reason="Pillow not installed")
     def test_fit_does_not_upscale(self, tmp_path: Path) -> None:
         """_fit doesn't upscale images."""
         from PIL import Image
@@ -193,7 +188,7 @@ class TestImageProcessorMethods:
 
         # Create small test image
         img = Image.new("RGB", (50, 50), color="blue")
-        
+
         site = MagicMock()
         site.root_path = tmp_path
         processor = ImageProcessor(site)
@@ -201,14 +196,11 @@ class TestImageProcessorMethods:
         # Request larger size
         params = ProcessParams(width=100, height=100)
         result = processor._fit(img, params)
-        
+
         # Should NOT upscale
         assert result.size == (50, 50)
 
-    @pytest.mark.skipif(
-        not _pillow_available(),
-        reason="Pillow not installed"
-    )
+    @pytest.mark.skipif(not _pillow_available(), reason="Pillow not installed")
     def test_resize_preserves_aspect_ratio_width_only(self, tmp_path: Path) -> None:
         """_resize preserves aspect ratio with width-only spec."""
         from PIL import Image
@@ -218,7 +210,7 @@ class TestImageProcessorMethods:
 
         # Create 100x50 image (2:1 aspect ratio)
         img = Image.new("RGB", (100, 50), color="green")
-        
+
         site = MagicMock()
         site.root_path = tmp_path
         processor = ImageProcessor(site)
@@ -226,7 +218,7 @@ class TestImageProcessorMethods:
         # Resize to width=50, height should be 25
         params = ProcessParams(width=50, height=None)
         result = processor._resize(img, params)
-        
+
         assert result.size == (50, 25)
 
 

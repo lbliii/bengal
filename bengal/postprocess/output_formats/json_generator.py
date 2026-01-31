@@ -75,37 +75,37 @@ logger = get_logger(__name__)
 class PageJSONGenerator:
     """
     Generates per-page JSON files for client-side features.
-    
+
     Creates a JSON file alongside each HTML page containing metadata,
     content, and graph connections. Used for search indexing, page
     previews, and contextual navigation minimaps.
-    
+
     Creation:
         Direct instantiation: PageJSONGenerator(site, graph_data=...)
             - Created by OutputFormatsGenerator for JSON generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages
         graph_data: Optional pre-computed graph data for contextual minimap
         include_html: Whether to include HTML content (default: False)
         include_text: Whether to include plain text content (default: True)
-    
+
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for page access, utils for path resolution
-    
+
     Performance:
         - Parallel writes with 8-thread pool
         - Lazy graph index building (O(1) lookups vs O(n²))
         - Compact JSON serialization (no whitespace)
         - Optional accumulated JSON from rendering phase
-    
+
     Example:
             >>> generator = PageJSONGenerator(site, graph_data=graph_data)
             >>> count = generator.generate(pages)
             >>> print(f"Generated {count} JSON files")
-        
+
     """
 
     def __init__(

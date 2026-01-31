@@ -102,11 +102,11 @@ def generate_post(num: int, date: datetime) -> tuple[str, str]:
 def generate_blog(target_dir: Path, num_posts: int = 25) -> None:
     """
     Generate a blog test site with paginated posts.
-    
+
     Args:
         target_dir: Directory to generate content in
         num_posts: Number of posts to generate (default: 25)
-        
+
     """
     content_dir = target_dir / "content"
     content_dir.mkdir(parents=True, exist_ok=True)

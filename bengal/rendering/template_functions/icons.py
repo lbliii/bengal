@@ -46,13 +46,13 @@ _site_instance: Site | None = None
 def _get_mapped_icon_name(name: str) -> str:
     """
     Get mapped icon name from theme config or ICON_MAP.
-    
+
     Thread-safe: All site access happens under lock to prevent TOCTOU race.
     Copies needed values while holding lock, then releases before return.
-    
+
     Args:
         name: Original icon name
-        
+
     Returns:
         Mapped icon name (may be same as input if no mapping found)
     """
@@ -62,7 +62,7 @@ def _get_mapped_icon_name(name: str) -> str:
         if site is None:
             # No site instance, use ICON_MAP
             return ICON_MAP.get(name, name)
-        
+
         # Extract icon aliases while holding lock
         try:
             theme_config = site.theme_config
@@ -79,7 +79,7 @@ def _get_mapped_icon_name(name: str) -> str:
                 error_type=type(e).__name__,
                 action="falling_back_to_icon_map",
             )
-    
+
     # Fall back to ICON_MAP (outside lock, ICON_MAP is module-level constant)
     return ICON_MAP.get(name, name)
 
@@ -114,26 +114,26 @@ def _render_icon_cached(
 ) -> str:
     """
     Render an icon with LRU caching for repeated calls.
-    
+
     The cache key is (name, size, css_class, aria_label). This captures
     the vast majority of repeated icon renders (e.g., navigation icons
     appear on every page with the same parameters).
-    
+
     Thread-safe: Uses LRUCache with RLock for safe concurrent access
     under free-threading (PEP 703).
-    
+
     Args:
         name: Icon name (already mapped through ICON_MAP)
         size: Icon size in pixels
         css_class: Additional CSS classes
         aria_label: Accessibility label
-    
+
     Returns:
         Rendered SVG HTML string, or empty string if icon not found
-        
+
     """
     key = (name, size, css_class, aria_label)
-    
+
     def _render_impl() -> str:
         # Load icon via theme-aware resolver
         svg_content = icon_resolver.load_icon(name)
@@ -164,35 +164,35 @@ def _render_icon_cached(
         )
 
         return svg_modified
-    
+
     return _icon_render_cache.get_or_set(key, _render_impl)
 
 
 def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -> Markup:
     """
     Render an SVG icon for use in templates.
-    
+
     Uses theme-aware icon resolution and LRU caching for optimal performance.
     Icons are loaded from the theme asset chain (site > theme > parent > default).
-    
+
     Icon name mapping priority:
     1. theme.yaml aliases (if theme config available)
     2. ICON_MAP (fallback for backwards compatibility)
-    
+
     Args:
         name: Icon name (e.g., "search", "menu", "close", "arrow-up")
         size: Icon size in pixels (default: 24)
         css_class: Additional CSS classes
         aria_label: Accessibility label (if empty, uses aria-hidden)
-    
+
     Returns:
         Markup object containing inline SVG HTML, or empty Markup if icon not found
-    
+
     Example:
         {{ icon("search", size=20) }}
         {{ icon("menu", size=24, css_class="nav-icon") }}
         {{ icon("arrow-up", size=18, aria_label="Back to top") }}
-        
+
     """
     if not name:
         return Markup("")
@@ -229,16 +229,16 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register icon template functions.
-    
+
     Icons are loaded on-demand via the theme-aware resolver, which is
     initialized during Site setup.
-    
+
     Thread-safe: Site instance assignment protected by lock.
-    
+
     Args:
         env: Jinja2 environment
         site: Site instance (stored for theme config access)
-        
+
     """
     global _site_instance
     with _site_lock:
@@ -251,10 +251,10 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def get_icon_cache_stats() -> dict[str, int]:
     """
     Get icon cache statistics for debugging/profiling.
-    
+
     Returns:
         Dictionary with cache hit/miss information
-        
+
     """
     stats = _icon_render_cache.stats()
     return {
@@ -269,11 +269,11 @@ def get_icon_cache_stats() -> dict[str, int]:
 def clear_icon_cache() -> None:
     """
     Clear the icon render cache and warned icons set.
-    
+
     Useful for testing or when icons are modified during development.
-    
+
     Thread-safe: Protected by lock.
-        
+
     """
     _icon_render_cache.clear()
     with _warned_lock:

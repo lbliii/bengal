@@ -22,60 +22,60 @@ Migration Path:
 
 Usage:
     >>> from bengal.services import get_section, get_page, get_theme_assets
-    >>> 
+    >>>
     >>> # With SiteSnapshot
     >>> section = get_section(snapshot, "/docs/")
     >>> page = get_page(snapshot, "/docs/getting-started/")
-    >>> 
+    >>>
     >>> # With Site (compatibility)
     >>> section = get_section(site, "/docs/")
 """
 
-from bengal.services.theme import (
-    ThemeService,
-    get_theme_assets_dir,
-    get_theme_assets_chain,
-    get_theme_templates_chain,
+from bengal.services.data import (
+    DataService,
+    get_data,
+    get_data_file,
+    load_data_directory,
 )
 from bengal.services.query import (
     QueryService,
-    get_section,
-    get_section_by_path,
-    get_section_by_url,
+    get_children_pages,
     get_page,
     get_page_by_path,
     get_page_by_url,
-    get_pages_by_tag,
     get_pages_by_section,
-    get_children_pages,
+    get_pages_by_tag,
+    get_section,
+    get_section_by_path,
+    get_section_by_url,
 )
-from bengal.services.data import (
-    DataService,
-    load_data_directory,
-    get_data,
-    get_data_file,
+from bengal.services.theme import (
+    ThemeService,
+    get_theme_assets_chain,
+    get_theme_assets_dir,
+    get_theme_templates_chain,
 )
 
 __all__ = [
-    # Theme services
-    "ThemeService",
-    "get_theme_assets_dir",
-    "get_theme_assets_chain",
-    "get_theme_templates_chain",
+    # Data services
+    "DataService",
     # Query services
     "QueryService",
-    "get_section",
-    "get_section_by_path",
-    "get_section_by_url",
+    # Theme services
+    "ThemeService",
+    "get_children_pages",
+    "get_data",
+    "get_data_file",
     "get_page",
     "get_page_by_path",
     "get_page_by_url",
-    "get_pages_by_tag",
     "get_pages_by_section",
-    "get_children_pages",
-    # Data services
-    "DataService",
+    "get_pages_by_tag",
+    "get_section",
+    "get_section_by_path",
+    "get_section_by_url",
+    "get_theme_assets_chain",
+    "get_theme_assets_dir",
+    "get_theme_templates_chain",
     "load_data_directory",
-    "get_data",
-    "get_data_file",
 ]

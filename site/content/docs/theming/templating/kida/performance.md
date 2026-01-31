@@ -3,7 +3,6 @@ title: Kida Performance
 nav_title: Performance
 description: Automatic caching, free-threading, and optimization strategies
 weight: 20
-type: doc
 draft: false
 lang: en
 tags:

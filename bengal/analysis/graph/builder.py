@@ -27,8 +27,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from bengal.analysis.links.types import LinkMetrics, LinkType
 from bengal.errors import BengalGraphError, ErrorCode, record_error
-from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -45,7 +45,7 @@ MIN_PAGES_FOR_PARALLEL = 100
 class GraphBuilder:
     """
     Builds the knowledge graph by analyzing page connections.
-    
+
     Analyzes connections from multiple sources:
     - Cross-references: Internal markdown links between pages
     - Taxonomies: Shared tags and categories
@@ -53,7 +53,7 @@ class GraphBuilder:
     - Menu items: Navigation structure
     - Section hierarchy: Parent-child relationships
     - Navigation links: Next/prev sequential relationships
-    
+
     Attributes:
         site: Site instance to analyze
         exclude_autodoc: Whether to exclude autodoc pages from analysis
@@ -61,12 +61,12 @@ class GraphBuilder:
         outgoing_refs: Dict mapping pages to sets of target pages
         link_types: Dict mapping (source, target) tuples to link types
         link_metrics: Dict mapping pages to LinkMetrics objects
-    
+
     Example:
             >>> builder = GraphBuilder(site, exclude_autodoc=True)
             >>> builder.build()
             >>> # Results available in builder.incoming_refs, etc.
-        
+
     """
 
     def __init__(
@@ -408,7 +408,7 @@ class GraphBuilder:
         # Type narrowing: xref_index is a dict-like structure
         if not isinstance(xref, dict):
             return None
-        
+
         xref_dict = cast(dict[str, Any], xref)
 
         # Try by ID
@@ -431,7 +431,7 @@ class GraphBuilder:
         if isinstance(by_slug, dict):
             pages = by_slug.get(link, [])
             return pages[0] if pages else None
-        
+
         return None
 
     def _analyze_taxonomies(self) -> None:
@@ -451,9 +451,9 @@ class GraphBuilder:
         taxonomies = self.site.taxonomies
         if not isinstance(taxonomies, dict):
             return
-        
+
         taxonomies_dict = cast(dict[str, Any], taxonomies)
-        
+
         for _taxonomy_name, taxonomy_dict in taxonomies_dict.items():
             if not isinstance(taxonomy_dict, dict):
                 continue
@@ -514,9 +514,9 @@ class GraphBuilder:
         menu = self.site.menu
         if not isinstance(menu, dict):
             return
-        
+
         menu_dict = cast(dict[str, Any], menu)
-        
+
         for _menu_name, menu_items in menu_dict.items():
             for item in menu_items:
                 if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
@@ -614,7 +614,9 @@ class GraphBuilder:
 
         # Build inverted index: target -> {link_type: count}
         # O(L) single pass instead of O(P × L) nested loop
-        incoming_by_type: dict[PageLike, dict[LinkType, int]] = defaultdict(lambda: defaultdict(int))
+        incoming_by_type: dict[PageLike, dict[LinkType, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
         for (_source, target), link_type in self.link_types.items():
             incoming_by_type[target][link_type] += 1
 

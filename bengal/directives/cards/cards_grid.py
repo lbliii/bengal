@@ -27,14 +27,14 @@ __all__ = ["CardsDirective", "CardsOptions"]
 class CardsOptions(DirectiveOptions):
     """
     Options for cards grid directive.
-    
+
     Attributes:
         columns: Column layout ("auto", "1-6", or responsive "1-2-3")
         gap: Grid gap (small, medium, large)
         style: Visual style (default, minimal, bordered)
         variant: Card variant (navigation, info, concept)
         layout: Card layout (default, horizontal, portrait, compact)
-        
+
     """
 
     columns: str = "auto"
@@ -53,9 +53,9 @@ class CardsOptions(DirectiveOptions):
 class CardsDirective(BengalDirective):
     """
     Cards grid container directive.
-    
+
     Creates a responsive grid of cards with sensible defaults.
-    
+
     Syntax:
         ::::{cards}
         :columns: 3
@@ -63,17 +63,17 @@ class CardsDirective(BengalDirective):
         :style: default
         :variant: navigation
         :layout: default
-    
+
         :::{card} Title
         Content
         :::
         ::::
-    
+
     Columns accept:
         - "auto" - Auto-fit layout
         - "2", "3", "4" - Fixed columns
         - "1-2-3" - Responsive (mobile-tablet-desktop)
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["cards"]

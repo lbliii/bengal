@@ -39,11 +39,11 @@ _EXTENSION_MAP: dict[str, str] = {
 
 class OutputType(Enum):
     """Classification of output files.
-    
+
     Used to determine reload strategy in the dev server:
     - CSS-only changes trigger CSS hot reload (no page refresh)
     - Other changes trigger full page reload
-        
+
     """
 
     HTML = "html"
@@ -60,17 +60,17 @@ class OutputType(Enum):
 @dataclass(frozen=True, slots=True)
 class OutputRecord:
     """Immutable record of a written output file.
-    
+
     Attributes:
         path: Relative path to output file (relative to output directory)
         output_type: Classification of the output file
         phase: Build phase that produced this output (render, asset, postprocess)
-    
+
     Example:
             >>> record = OutputRecord(Path("posts/hello.html"), OutputType.HTML, "render")
             >>> record.output_type == OutputType.HTML
         True
-        
+
     """
 
     path: Path

@@ -48,13 +48,14 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
+from patitas.nodes import Directive
+
 from bengal.parsing.backends.patitas.directives.contracts import (
     TAB_ITEM_CONTRACT,
     TAB_SET_CONTRACT,
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
-from patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -76,13 +77,13 @@ except ImportError:
 @dataclass(frozen=True, slots=True)
 class TabItemOptions(StyledOptions):
     """Options for tab-item directive.
-    
+
     Attributes:
         selected: Whether this tab is initially selected
         icon: Icon name to show next to tab label
         badge: Badge text (e.g., "New", "Beta", "Pro")
         disabled: Mark tab as disabled/unavailable
-        
+
     """
 
     selected: bool = False
@@ -95,12 +96,12 @@ class TabItemOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class TabSetOptions(StyledOptions):
     """Options for tab-set directive.
-    
+
     Attributes:
         id: Unique ID for the tab set
         sync: Sync key for synchronizing tabs across multiple tab-sets
         mode: Rendering mode - "enhanced" (JS) or "css_state_machine" (URL-driven)
-        
+
     """
 
     id: str | None = None
@@ -122,12 +123,12 @@ class TabItemData:
 
 class TabItemDirective:
     """Handler for tab-item directive.
-    
+
     Must be inside a tab-set container.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("tab-item", "tab")
@@ -185,12 +186,12 @@ class TabItemDirective:
 
 class TabSetDirective:
     """Handler for tab-set container directive.
-    
+
     Contains tab-item children that form a tabbed interface.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("tab-set", "tabs")
@@ -380,13 +381,13 @@ class TabSetDirective:
 
 def _extract_tab_items(text: str) -> list[TabItemData]:
     """Extract tab-item divs from rendered HTML, handling nested divs correctly.
-    
+
     Args:
         text: Rendered HTML containing tab-item divs
-    
+
     Returns:
         List of TabItemData with extracted attributes
-        
+
     """
     matches: list[TabItemData] = []
     pattern = re.compile(

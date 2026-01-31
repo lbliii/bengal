@@ -35,9 +35,9 @@ from .memory_test_helpers import MemoryProfiler, profile_memory
 def site_generator(tmp_path):
     """
     Factory fixture for generating test sites.
-    
+
     NOTE: Memory used by this fixture is NOT included in build measurements.
-        
+
     """
 
     def _generate_site(page_count: int, sections: int = 5) -> Path:

@@ -41,10 +41,8 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
-
 # Import shared types from types.py to avoid circular imports with processor.py
-from bengal.core.resources.types import ProcessParams, parse_spec
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     pass
@@ -55,9 +53,9 @@ logger = get_logger(__name__)
 @dataclass
 class ProcessedImage:
     """Result of image processing operation.
-    
+
     Contains the processed image path and metadata.
-        
+
     """
 
     source: ImageResource
@@ -79,20 +77,20 @@ class ProcessedImage:
 @dataclass
 class ImageResource:
     """Image resource with processing and caching.
-    
+
     Provides methods for resizing, cropping, and format conversion
     with automatic caching of processed results.
-    
+
     Attributes:
         source_path: Path to source image file
         site: Site instance for output configuration
-    
+
     Example:
             >>> img = ImageResource(source_path=Path("hero.jpg"), site=site)
             >>> processed = img.fill("800x600 webp q80")
             >>> print(processed.rel_permalink)
             '/assets/images/hero_800x600_q80.webp'
-        
+
     """
 
     source_path: Path

@@ -39,8 +39,8 @@ from __future__ import annotations
 import concurrent.futures
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,36 +56,36 @@ if TYPE_CHECKING:
 class RelatedPostsOrchestrator:
     """
     Builds related posts relationships during the build phase.
-    
+
     Uses the taxonomy index for efficient tag-based matching. For each page,
     finds other pages with overlapping tags and scores by shared tag count.
-    
+
     Complexity:
         Build: O(n·t) where n=pages, t=average tags per page (typically 2-5)
         Access: O(1) via page.related_posts attribute
-    
+
     Creation:
         Direct instantiation: RelatedPostsOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with taxonomies populated
-    
+
     Attributes:
         site: Site instance containing pages and taxonomies
-    
+
     Relationships:
         - Uses: site.taxonomies['tags'] for tag-to-page mapping
         - Updates: page.related_posts for each processed page
         - Used by: BuildOrchestrator for Phase 10 (related posts)
-    
+
     Thread Safety:
         Supports parallel processing for sites with 100+ pages.
         Each page's computation is independent and thread-safe.
-    
+
     Example:
         orchestrator = RelatedPostsOrchestrator(site)
         orchestrator.build_index(limit=5, parallel=True)
         # page.related_posts now contains list of related Page objects
-        
+
     """
 
     def __init__(self, site: Site):

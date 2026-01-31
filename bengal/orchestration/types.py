@@ -34,7 +34,7 @@ from bengal.protocols.build import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core import Page, Section
+    pass
 
 
 # =============================================================================
@@ -202,23 +202,23 @@ class AutodocResult(TypedDict, total=False):
 # =============================================================================
 
 __all__ = [
+    "AssetManifest",
+    "AssetResult",
+    "AutodocModuleInfo",
+    "AutodocResult",
+    "BuildContextDict",
+    "BuildOptionsDict",
+    "CacheEntry",
+    "CacheStats",
+    # Local types
+    "LastBuildStats",
+    "OutputRecord",
+    "OutputStats",
     # Re-exported from protocols.build
     "PhaseStats",
     "PhaseTiming",
-    "BuildContextDict",
-    "BuildOptionsDict",
-    "RenderContext",
-    "RenderResult",
-    # Local types
-    "LastBuildStats",
-    "CacheEntry",
-    "CacheStats",
-    "AssetResult",
-    "AssetManifest",
-    "OutputStats",
-    "OutputRecord",
-    "AutodocModuleInfo",
-    "AutodocResult",
     # Protocols
     "ProgressManagerProtocol",
+    "RenderContext",
+    "RenderResult",
 ]

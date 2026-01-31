@@ -18,12 +18,12 @@ import pytest
 class TestIncrementalBuildStability:
     """
     Tests for incremental build stability.
-    
+
     Verifies that:
     1. Consecutive incremental builds with no changes don't rebuild pages
     2. Touching templates without content changes doesn't trigger rebuilds
     3. Cache is consistent across builds
-        
+
     """
 
     @pytest.fixture
@@ -294,14 +294,14 @@ New content here.
 class TestCacheOutputMismatch:
     """
     Regression tests for cache/output mismatch scenarios.
-    
+
     Bug: When .bengal cache is restored but output directory is cleaned
     (e.g., CI with `rm -rf public/*`), Bengal incorrectly skipped rebuilding
     because cache said "nothing changed".
-    
+
     Fix: phase_incremental_filter now checks if output is missing BEFORE
     deciding to skip, forcing a full rebuild when output is empty.
-        
+
     """
 
     @pytest.fixture
@@ -481,14 +481,14 @@ title: Home
 class TestAutodocOutputMismatch:
     """
     Regression tests for autodoc output missing scenarios.
-    
+
     Bug: When .bengal cache is restored in CI but site/public/api/ (autodoc output)
     was not cached, Bengal incorrectly skipped rebuilding virtual pages because
     the cache said "source files unchanged".
-    
+
     Fix: _check_autodoc_output_missing() now checks if autodoc output directories
     exist and contain content before deciding to skip.
-        
+
     """
 
     @pytest.fixture
@@ -541,9 +541,7 @@ title: Home
         cache.update_file(content_dir / "index.md")
         cache.last_build = time.strftime("%Y-%m-%dT%H:%M:%S")
         # Simulate previous autodoc build by adding dependencies
-        cache.autodoc_dependencies = {
-            "src/mypackage/__init__.py": {"api/mypackage/index.md"}
-        }
+        cache.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
         cache.save(paths.build_cache)
 
         # Create output directory with HTML and assets (so basic checks pass)
@@ -731,9 +729,7 @@ output_prefix = "cli"
 
         result = _check_autodoc_output_missing(orchestrator, cache)
 
-        assert result is True, (
-            "CLI autodoc output (cli/) missing should trigger rebuild"
-        )
+        assert result is True, "CLI autodoc output (cli/) missing should trigger rebuild"
 
     def test_empty_autodoc_dir_triggers_rebuild(self, site_with_autodoc_cache: Path) -> None:
         """
@@ -763,9 +759,7 @@ output_prefix = "cli"
 
         result = _check_autodoc_output_missing(orchestrator, cache)
 
-        assert result is True, (
-            "Empty autodoc directory (no index.html) should trigger rebuild"
-        )
+        assert result is True, "Empty autodoc directory (no index.html) should trigger rebuild"
 
     def test_auto_derived_prefix(self, tmp_path: Path) -> None:
         """
@@ -831,6 +825,4 @@ source_dirs = ["src/mypackage"]
 
         result = _check_autodoc_output_missing(orchestrator, cache)
 
-        assert result is True, (
-            "Auto-derived prefix (api/mypackage) missing should trigger rebuild"
-        )
+        assert result is True, "Auto-derived prefix (api/mypackage) missing should trigger rebuild"

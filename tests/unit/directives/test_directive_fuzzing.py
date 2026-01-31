@@ -50,9 +50,7 @@ class TestValidatorFuzzing:
         )
     )
     @settings(max_examples=100)
-    def test_code_fences_with_languages_never_crash(
-        self, fence_specs: list[tuple[str, str]]
-    ):
+    def test_code_fences_with_languages_never_crash(self, fence_specs: list[tuple[str, str]]):
         """Code fences with various language specifiers should not crash."""
         lines = []
         for fence, lang in fence_specs:
@@ -74,9 +72,7 @@ class TestValidatorFuzzing:
         )
     )
     @settings(max_examples=100)
-    def test_directive_fences_with_types_never_crash(
-        self, directive_specs: list[tuple[int, str]]
-    ):
+    def test_directive_fences_with_types_never_crash(self, directive_specs: list[tuple[int, str]]):
         """Directive fences with various types should not crash."""
         lines = []
         for colon_count, directive_type in directive_specs:
@@ -132,27 +128,19 @@ class TestDirectiveSpecificValidatorFuzzing:
 
     @given(st.text(max_size=2000), st.text(max_size=100))
     @settings(max_examples=100)
-    def test_dropdown_directive_validation_never_crashes(
-        self, content: str, title: str
-    ):
+    def test_dropdown_directive_validation_never_crashes(self, content: str, title: str):
         """Dropdown directive validation should never crash."""
         errors = DirectiveSyntaxValidator.validate_dropdown_directive(content, title)
         assert isinstance(errors, list)
 
     @given(
-        st.sampled_from(
-            ["note", "tip", "warning", "danger", "error", "info", "example"]
-        ),
+        st.sampled_from(["note", "tip", "warning", "danger", "error", "info", "example"]),
         st.text(max_size=2000),
     )
     @settings(max_examples=100)
-    def test_admonition_directive_validation_never_crashes(
-        self, admon_type: str, content: str
-    ):
+    def test_admonition_directive_validation_never_crashes(self, admon_type: str, content: str):
         """Admonition directive validation should never crash."""
-        errors = DirectiveSyntaxValidator.validate_admonition_directive(
-            admon_type, content
-        )
+        errors = DirectiveSyntaxValidator.validate_admonition_directive(admon_type, content)
         assert isinstance(errors, list)
 
     @given(
@@ -164,9 +152,7 @@ class TestDirectiveSpecificValidatorFuzzing:
         st.text(max_size=1000),
     )
     @settings(max_examples=100)
-    def test_directive_validation_never_crashes(
-        self, directive_type: str, content: str
-    ):
+    def test_directive_validation_never_crashes(self, directive_type: str, content: str):
         """General directive validation should never crash."""
         errors = DirectiveSyntaxValidator.validate_directive(
             directive_type=directive_type,
@@ -181,9 +167,7 @@ class TestOptionsParsingFuzzing:
 
     @given(
         st.dictionaries(
-            keys=st.text(
-                alphabet="abcdefghijklmnopqrstuvwxyz-_", min_size=1, max_size=20
-            ),
+            keys=st.text(alphabet="abcdefghijklmnopqrstuvwxyz-_", min_size=1, max_size=20),
             values=st.text(max_size=100),
             max_size=20,
         )
@@ -199,9 +183,7 @@ class TestOptionsParsingFuzzing:
 
     @given(
         st.dictionaries(
-            keys=st.text(
-                alphabet="abcdefghijklmnopqrstuvwxyz-_", min_size=1, max_size=20
-            ),
+            keys=st.text(alphabet="abcdefghijklmnopqrstuvwxyz-_", min_size=1, max_size=20),
             values=st.text(max_size=100),
             max_size=20,
         )

@@ -22,8 +22,8 @@ from jinja2 import TemplateSyntaxError
 
 from bengal.assets.manifest import AssetManifestEntry
 from bengal.errors import ErrorCode, record_error
-from bengal.rendering.engines.errors import TemplateError
 from bengal.protocols import EngineCapability
+from bengal.rendering.engines.errors import TemplateError
 from bengal.rendering.template_engine.asset_url import AssetURLMixin
 from bengal.rendering.template_engine.environment import (
     create_jinja_environment,
@@ -55,19 +55,19 @@ _template_compilation_locks = PerKeyLockManager()
 class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
     """
     Jinja2 template engine for rendering pages.
-    
+
     Provides Jinja2 template rendering with theme inheritance, template function
     registration, asset manifest access, and optional template profiling.
-    
+
     Attributes:
         site: Site instance with theme and configuration
         template_dirs: List of template directories (populated during init)
         env: Jinja2 Environment instance
-    
+
     Example:
         engine = JinjaTemplateEngine(site, profile=True)
         html = engine.render_template("page.html", {"page": page})
-        
+
     """
 
     def __init__(self, site: Site, *, profile: bool = False) -> None:
@@ -125,7 +125,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self._referenced_template_paths_cache: dict[str, tuple[Path, ...]] = {}
         # Template path cache is DISABLED in dev mode (templates may change frequently)
         # and ENABLED in production mode (paths are stable, cache improves performance)
-        # 
+        #
         # dev_mode can be:
         # - Site attribute: site.dev_mode (bool)
         # - Config dict: config.get("development", {}).get("dev_mode", False)
@@ -529,9 +529,9 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 def clear_template_locks() -> None:
     """
     Clear all template compilation locks.
-    
+
     Call this at the end of a build session to reset lock state.
     Safe to call when no threads are actively compiling templates.
-        
+
     """
     _template_compilation_locks.clear()

@@ -23,20 +23,20 @@ if TYPE_CHECKING:
 def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     """
     Normalize a relative URL to a consistent format.
-    
+
     Rules:
     - Always starts with /
     - No multiple consecutive slashes (except after protocol)
     - Trailing slash for directory-like URLs (if ensure_trailing_slash=True)
     - Root is "/"
-    
+
     Args:
         url: URL to normalize (can be empty, relative, or absolute)
         ensure_trailing_slash: Whether to ensure trailing slash (default: True)
-    
+
     Returns:
         Normalized URL string
-    
+
     Examples:
             >>> normalize_url("api/bengal")
             '/api/bengal/'
@@ -50,7 +50,7 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
             '/'
             >>> normalize_url("/api/bengal", ensure_trailing_slash=False)
             '/api/bengal'
-        
+
     """
     if not url:
         return "/"
@@ -80,13 +80,13 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
 def join_url_paths(*parts: str) -> str:
     """
     Join URL path components, normalizing slashes.
-    
+
     Args:
         *parts: URL path components to join
-    
+
     Returns:
         Normalized joined URL
-    
+
     Examples:
             >>> join_url_paths("/api", "bengal")
             '/api/bengal/'
@@ -94,7 +94,7 @@ def join_url_paths(*parts: str) -> str:
             '/api/bengal/'
             >>> join_url_paths("api", "bengal", "core")
             '/api/bengal/core/'
-        
+
     """
     # Filter out empty parts
     filtered_parts = [p for p in parts if p]
@@ -122,13 +122,13 @@ def join_url_paths(*parts: str) -> str:
 def validate_url(url: str) -> bool:
     """
     Validate that a URL is in correct format.
-    
+
     Args:
         url: URL to validate
-    
+
     Returns:
         True if URL is valid, False otherwise
-        
+
     """
     if not url:
         return False

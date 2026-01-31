@@ -3,8 +3,6 @@ title: Core Architecture
 nav_title: Core
 description: Data models and build coordination
 weight: 10
-cascade:
-  type: doc
 icon: bengal-rosette
 ---
 

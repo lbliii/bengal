@@ -60,31 +60,31 @@ _NAMED_CLOSER_PATTERN = re.compile(
 class FencedDirective(BaseFencedDirective):
     """
     FencedDirective that allows indentation, skips code blocks, and supports named closers.
-    
+
     This is crucial for:
     1. Nesting directives inside lists or other blocks where indentation
        is required/present
     2. Showing directive syntax examples inside code blocks without the
        ::: sequences being consumed by the directive parser
     3. Using named closers (:::{/name}) for complex nested structures
-    
+
     Example with fence-depth counting (traditional):
         ::::{tab-set}
         :::{tab-item} Example
         Content here
         :::
         ::::
-    
+
     Example with named closers (new):
         :::{tab-set}
         :::{tab-item} Example
         Content here
         :::{/tab-item}
         :::{/tab-set}
-    
+
     Both syntaxes work and can be mixed. Named closers are optional but
     recommended for deeply nested structures where counting colons is error-prone.
-        
+
     """
 
     def __init__(self, plugins: list[Any], markers: str = ":") -> None:

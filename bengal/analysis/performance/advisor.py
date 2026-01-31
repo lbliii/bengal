@@ -76,10 +76,10 @@ class SuggestionPriority(Enum):
 class PerformanceSuggestion:
     """
     A single performance improvement suggestion.
-    
+
     Represents an actionable recommendation to improve build performance,
     with estimated impact and configuration examples.
-    
+
     Attributes:
         type: Category of suggestion (BUILD, CONTENT, CONFIG, etc.)
         priority: Priority level (HIGH, MEDIUM, LOW)
@@ -88,7 +88,7 @@ class PerformanceSuggestion:
         impact: Estimated performance impact (e.g., "Could save ~2.5s")
         action: What the user should do to implement this suggestion
         config_example: Optional example configuration change
-        
+
     """
 
     type: SuggestionType
@@ -115,16 +115,16 @@ class PerformanceSuggestion:
 class PerformanceGrade:
     """
     Overall performance assessment for a build.
-    
+
     Provides a letter grade (A-F) and category assessment based on
     build performance metrics and best practices compliance.
-    
+
     Attributes:
         grade: Letter grade (A, B, C, D, or F)
         score: Numeric score (0-100)
         category: Performance category ("Excellent", "Good", "Fair", "Poor", "Critical")
         summary: One-line summary of performance assessment
-        
+
     """
 
     grade: str  # A, B, C, D, F
@@ -226,10 +226,10 @@ class PerformanceGrade:
 class PerformanceAdvisor:
     """
     Analyzes build performance and provides intelligent suggestions.
-    
+
     Uses build statistics to identify bottlenecks and recommend
     optimizations tailored to the specific project.
-        
+
     """
 
     def __init__(self, stats: BuildStats, environment: dict[str, Any] | None = None):
@@ -525,14 +525,14 @@ def analyze_build(
 ) -> PerformanceAdvisor:
     """
     Quick analysis of build statistics.
-    
+
     Args:
         stats: Build statistics
         environment: Optional environment info
-    
+
     Returns:
         PerformanceAdvisor with analysis complete
-        
+
     """
     advisor = PerformanceAdvisor(stats, environment)
     advisor.analyze()

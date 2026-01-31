@@ -122,9 +122,7 @@ class TestChangeDetectionResult:
 
     def test_needs_rebuild_with_pages(self) -> None:
         """needs_rebuild returns True when pages need rebuilding."""
-        result = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("content/about.md")])
-        )
+        result = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("content/about.md")]))
         assert result.needs_rebuild is True
 
     def test_needs_rebuild_with_full_rebuild(self) -> None:
@@ -139,12 +137,8 @@ class TestChangeDetectionResult:
 
     def test_merge_combines_pages(self) -> None:
         """merge() combines pages_to_rebuild from both results."""
-        result1 = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page1.md")])
-        )
-        result2 = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page2.md")])
-        )
+        result1 = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page1.md")]))
+        result2 = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page2.md")]))
         merged = result1.merge(result2)
         assert CacheKey("page1.md") in merged.pages_to_rebuild
         assert CacheKey("page2.md") in merged.pages_to_rebuild
@@ -153,36 +147,24 @@ class TestChangeDetectionResult:
         """merge() combines rebuild_reasons from both results."""
         reason1 = RebuildReason(RebuildReasonCode.CONTENT_CHANGED)
         reason2 = RebuildReason(RebuildReasonCode.DATA_FILE_CHANGED)
-        result1 = ChangeDetectionResult(
-            rebuild_reasons={CacheKey("page1.md"): reason1}
-        )
-        result2 = ChangeDetectionResult(
-            rebuild_reasons={CacheKey("page2.md"): reason2}
-        )
+        result1 = ChangeDetectionResult(rebuild_reasons={CacheKey("page1.md"): reason1})
+        result2 = ChangeDetectionResult(rebuild_reasons={CacheKey("page2.md"): reason2})
         merged = result1.merge(result2)
         assert CacheKey("page1.md") in merged.rebuild_reasons
         assert CacheKey("page2.md") in merged.rebuild_reasons
 
     def test_merge_combines_assets(self) -> None:
         """merge() combines assets_to_process from both results."""
-        result1 = ChangeDetectionResult(
-            assets_to_process=frozenset([CacheKey("style.css")])
-        )
-        result2 = ChangeDetectionResult(
-            assets_to_process=frozenset([CacheKey("main.js")])
-        )
+        result1 = ChangeDetectionResult(assets_to_process=frozenset([CacheKey("style.css")]))
+        result2 = ChangeDetectionResult(assets_to_process=frozenset([CacheKey("main.js")]))
         merged = result1.merge(result2)
         assert CacheKey("style.css") in merged.assets_to_process
         assert CacheKey("main.js") in merged.assets_to_process
 
     def test_merge_combines_content_files(self) -> None:
         """merge() combines content_files_changed from both results."""
-        result1 = ChangeDetectionResult(
-            content_files_changed=frozenset([CacheKey("content/a.md")])
-        )
-        result2 = ChangeDetectionResult(
-            content_files_changed=frozenset([CacheKey("content/b.md")])
-        )
+        result1 = ChangeDetectionResult(content_files_changed=frozenset([CacheKey("content/a.md")]))
+        result2 = ChangeDetectionResult(content_files_changed=frozenset([CacheKey("content/b.md")]))
         merged = result1.merge(result2)
         assert CacheKey("content/a.md") in merged.content_files_changed
         assert CacheKey("content/b.md") in merged.content_files_changed
@@ -201,12 +183,8 @@ class TestChangeDetectionResult:
 
     def test_merge_combines_templates(self) -> None:
         """merge() combines templates_changed from both results."""
-        result1 = ChangeDetectionResult(
-            templates_changed=frozenset([CacheKey("base.html")])
-        )
-        result2 = ChangeDetectionResult(
-            templates_changed=frozenset([CacheKey("single.html")])
-        )
+        result1 = ChangeDetectionResult(templates_changed=frozenset([CacheKey("base.html")]))
+        result2 = ChangeDetectionResult(templates_changed=frozenset([CacheKey("single.html")]))
         merged = result1.merge(result2)
         assert CacheKey("base.html") in merged.templates_changed
         assert CacheKey("single.html") in merged.templates_changed
@@ -221,12 +199,8 @@ class TestChangeDetectionResult:
 
     def test_merge_combines_sections(self) -> None:
         """merge() combines affected_sections from both results."""
-        result1 = ChangeDetectionResult(
-            affected_sections=frozenset([CacheKey("docs")])
-        )
-        result2 = ChangeDetectionResult(
-            affected_sections=frozenset([CacheKey("blog")])
-        )
+        result1 = ChangeDetectionResult(affected_sections=frozenset([CacheKey("docs")]))
+        result2 = ChangeDetectionResult(affected_sections=frozenset([CacheKey("blog")]))
         merged = result1.merge(result2)
         assert CacheKey("docs") in merged.affected_sections
         assert CacheKey("blog") in merged.affected_sections
@@ -298,9 +272,7 @@ class TestChangeDetectionResult:
 
     def test_summary_assets(self) -> None:
         """summary() includes asset count."""
-        result = ChangeDetectionResult(
-            assets_to_process=frozenset([CacheKey("style.css")])
-        )
+        result = ChangeDetectionResult(assets_to_process=frozenset([CacheKey("style.css")]))
         assert "1 assets" in result.summary()
 
     def test_summary_data_files(self) -> None:

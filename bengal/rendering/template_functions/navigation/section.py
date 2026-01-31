@@ -17,17 +17,17 @@ if TYPE_CHECKING:
 def get_section(path: str, site: SiteLike) -> Section | None:
     """
     Get a section by its path.
-    
+
     Convenience wrapper around site.get_section_by_path() with
     path normalization.
-    
+
     Args:
         path: Section path (e.g., 'docs', 'blog/tutorials')
         site: Site instance
-    
+
     Returns:
         Section object if found, None otherwise
-    
+
     Example:
         {% set docs = get_section('docs') %}
         {% if docs %}
@@ -35,7 +35,7 @@ def get_section(path: str, site: SiteLike) -> Section | None:
             <a href="{{ page.href }}">{{ page.title }}</a>
           {% endfor %}
         {% endif %}
-        
+
     """
     if not path:
         return None
@@ -46,22 +46,22 @@ def get_section(path: str, site: SiteLike) -> Section | None:
 def section_pages(path: str, site: SiteLike, recursive: bool = False) -> list[Page]:
     """
     Get pages in a section.
-    
+
     Convenience function combining get_section() with pages access.
-    
+
     Args:
         path: Section path (e.g., 'docs', 'blog')
         site: Site instance
         recursive: Include pages from subsections (default: False)
-    
+
     Returns:
         List of pages (empty if section not found)
-    
+
     Example:
         {% for page in section_pages('docs') | sort_by('weight') %}
           <a href="{{ page.href }}">{{ page.title }}</a>
         {% endfor %}
-        
+
     """
     section = get_section(path, site)
     if not section:

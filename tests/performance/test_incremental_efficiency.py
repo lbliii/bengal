@@ -154,8 +154,7 @@ class EfficiencyMetrics:
 
         if min_cache_hit_rate is not None and self.cache_hit_rate < min_cache_hit_rate:
             errors.append(
-                f"Cache hit rate too low: {self.cache_hit_rate:.1f}% "
-                f"(min: {min_cache_hit_rate}%)"
+                f"Cache hit rate too low: {self.cache_hit_rate:.1f}% (min: {min_cache_hit_rate}%)"
             )
 
         if expected_reasons:
@@ -163,9 +162,7 @@ class EfficiencyMetrics:
                 actual = self.rebuild_by_reason.get(reason, 0)
                 tolerance = max(1, int(expected * 0.2))  # 20% tolerance, min 1
                 if abs(actual - expected) > tolerance:
-                    errors.append(
-                        f"Reason '{reason}': expected ~{expected}, got {actual}"
-                    )
+                    errors.append(f"Reason '{reason}': expected ~{expected}, got {actual}")
 
         if errors:
             raise AssertionError(
@@ -176,9 +173,9 @@ class EfficiencyMetrics:
 
 def _print_efficiency_report(metrics: EfficiencyMetrics) -> None:
     """Print a human-readable efficiency report."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"EFFICIENCY REPORT: {metrics.scenario}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Total pages:    {metrics.total_pages}")
     print(f"  Rebuilt:        {metrics.rebuild_count}")
     print(f"  Skipped:        {metrics.skip_count}")
@@ -188,7 +185,7 @@ def _print_efficiency_report(metrics: EfficiencyMetrics) -> None:
         print(f"\n  Rebuild reasons:")
         for reason, count in sorted(metrics.rebuild_by_reason.items()):
             print(f"    {reason}: {count}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 # =============================================================================
@@ -224,7 +221,7 @@ baseURL = "/"
 output_dir = "public"
 """
         if with_tags:
-            config += "\n[taxonomies]\ntags = \"tags\"\n"
+            config += '\n[taxonomies]\ntags = "tags"\n'
 
         (site_dir / "bengal.toml").write_text(config)
 
@@ -233,9 +230,7 @@ output_dir = "public"
         content_dir.mkdir(exist_ok=True)
 
         # Home page
-        (content_dir / "_index.md").write_text(
-            "---\ntitle: Home\n---\n# Home"
-        )
+        (content_dir / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
 
         # Create pages
         for i in range(page_count):
@@ -252,9 +247,7 @@ output_dir = "public"
                 page_path = content_dir / f"page_{i}.md"
 
             tags = f"tags:\n  - tag{i % 3}\n" if with_tags else ""
-            page_path.write_text(
-                f"---\ntitle: Page {i}\n{tags}---\n# Page {i}\n\nContent."
-            )
+            page_path.write_text(f"---\ntitle: Page {i}\n{tags}---\n# Page {i}\n\nContent.")
 
         # Create and initialize site
         site = Site.from_config(site_dir)
@@ -300,9 +293,7 @@ class TestWarmCacheEfficiency:
         stats = site2.build(options=options_incr)
 
         # Extract metrics
-        metrics = EfficiencyMetrics.from_build_stats(
-            stats, scenario="warm_cache_no_changes"
-        )
+        metrics = EfficiencyMetrics.from_build_stats(stats, scenario="warm_cache_no_changes")
         _print_efficiency_report(metrics)
 
         # EFFICIENCY ASSERTION: Zero rebuilds on warm cache
@@ -347,9 +338,7 @@ class TestWarmCacheEfficiency:
         stats = site2.build(options=options_incr)
 
         # Extract metrics
-        metrics = EfficiencyMetrics.from_build_stats(
-            stats, scenario="single_page_change"
-        )
+        metrics = EfficiencyMetrics.from_build_stats(stats, scenario="single_page_change")
         _print_efficiency_report(metrics)
 
         # EFFICIENCY ASSERTION: At most 5 rebuilds for single page change
@@ -391,9 +380,7 @@ class TestWarmCacheEfficiency:
         options_incr = BuildOptions(incremental=True, quiet=True, explain=True)
         stats = site2.build(options=options_incr)
 
-        metrics = EfficiencyMetrics.from_build_stats(
-            stats, scenario="multiple_page_changes"
-        )
+        metrics = EfficiencyMetrics.from_build_stats(stats, scenario="multiple_page_changes")
         _print_efficiency_report(metrics)
 
         # EFFICIENCY ASSERTION: At most 15 rebuilds for 3 page changes
@@ -424,9 +411,7 @@ class TestSectionEfficiency:
         # Modify one page in section0
         time.sleep(0.01)
         section_dir = site_dir / "content" / "section0"
-        (section_dir / "page_0.md").write_text(
-            "---\ntitle: Page 0 Modified\n---\n# Modified"
-        )
+        (section_dir / "page_0.md").write_text("---\ntitle: Page 0 Modified\n---\n# Modified")
 
         # Reload and incremental build
         from bengal.core.site import Site
@@ -438,9 +423,7 @@ class TestSectionEfficiency:
         options_incr = BuildOptions(incremental=True, quiet=True, explain=True)
         stats = site2.build(options=options_incr)
 
-        metrics = EfficiencyMetrics.from_build_stats(
-            stats, scenario="section_contained_change"
-        )
+        metrics = EfficiencyMetrics.from_build_stats(stats, scenario="section_contained_change")
         _print_efficiency_report(metrics)
 
         # EFFICIENCY ASSERTION: Should only rebuild ~5-10 pages (one section)
@@ -488,9 +471,7 @@ class TestTaxonomyEfficiency:
         options_incr = BuildOptions(incremental=True, quiet=True, explain=True)
         stats = site2.build(options=options_incr)
 
-        metrics = EfficiencyMetrics.from_build_stats(
-            stats, scenario="tag_change_cascade"
-        )
+        metrics = EfficiencyMetrics.from_build_stats(stats, scenario="tag_change_cascade")
         _print_efficiency_report(metrics)
 
         # EFFICIENCY ASSERTION: Should rebuild changed page + tag pages

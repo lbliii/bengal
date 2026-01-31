@@ -34,12 +34,12 @@ if TYPE_CHECKING:
 class PageNavigationMixin:
     """
     Mixin providing navigation capabilities for pages.
-    
+
     This mixin handles:
     - Site-level navigation: next, prev
     - Section-level navigation: next_in_section, prev_in_section
     - Hierarchy: parent, ancestors
-        
+
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into

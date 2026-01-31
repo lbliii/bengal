@@ -27,8 +27,8 @@ import httpx
 
 from bengal.health.linkcheck.ignore_policy import IgnorePolicy
 from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
-from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.retry import calculate_backoff
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -36,16 +36,16 @@ logger = get_logger(__name__)
 class AsyncLinkChecker:
     """
     Async HTTP link checker with retries, backoff, and concurrency control.
-    
+
     Uses httpx AsyncClient with connection pooling for efficient concurrent
     requests. Implements two-tier concurrency limiting (global and per-host)
     to balance throughput against rate limiting risks.
-    
+
     Request Strategy:
         1. Send HEAD request (lightweight)
         2. On 405/501, fallback to GET
         3. Retry on timeout/network errors with exponential backoff
-    
+
     Attributes:
         max_concurrency: Global concurrent request limit
         per_host_limit: Per-host concurrent request limit
@@ -54,12 +54,12 @@ class AsyncLinkChecker:
         retry_backoff: Base delay for exponential backoff
         ignore_policy: IgnorePolicy for filtering URLs/statuses
         user_agent: User-Agent header sent with requests
-    
+
     Example:
             >>> checker = AsyncLinkChecker(max_concurrency=10, timeout=5.0)
             >>> urls = [("https://example.com", "index.html")]
             >>> results = await checker.check_links(urls)
-        
+
     """
 
     def __init__(

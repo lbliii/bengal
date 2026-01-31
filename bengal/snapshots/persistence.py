@@ -8,7 +8,7 @@ previous build, eliminating re-parsing for unchanged pages.
 Architecture:
     Build N:
         parse all pages → create snapshot → save to disk
-        
+
     Build N+1:
         load previous snapshot → compare hashes → reuse parsed HTML
         only parse changed pages → merge with old snapshot data
@@ -25,14 +25,13 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.snapshots.types import PageSnapshot, SiteSnapshot
+    from bengal.snapshots.types import SiteSnapshot
 
 logger = get_logger(__name__)
 
@@ -46,53 +45,53 @@ DEFAULT_CACHE_DIR = ".bengal/cache/snapshots"
 class SnapshotCache:
     """
     Persistent cache for SiteSnapshot data.
-    
+
     Stores snapshot metadata and page content hashes to enable
     fast incremental builds by reusing pre-parsed HTML.
-    
+
     File Format:
         snapshot_meta.json - Metadata and page index
         snapshot_pages.json - Page content (parsed HTML, TOC, etc.)
-    
+
     Example:
         cache = SnapshotCache(site.root_path / ".bengal/cache/snapshots")
-        
+
         # On build start, try to load previous snapshot
         old_pages = cache.load_page_cache()
-        
+
         # After parsing, save new snapshot
         cache.save(snapshot)
-        
+
     """
-    
+
     __slots__ = ("_cache_dir", "_meta_path", "_pages_path")
-    
+
     def __init__(self, cache_dir: Path) -> None:
         """Initialize snapshot cache.
-        
+
         Args:
             cache_dir: Directory for cache files (created if missing)
         """
         self._cache_dir = cache_dir
         self._meta_path = cache_dir / "snapshot_meta.json"
         self._pages_path = cache_dir / "snapshot_pages.json"
-    
+
     def load_page_cache(self) -> dict[str, CachedPageData] | None:
         """
         Load cached page data from previous build.
-        
+
         Returns:
             Dict mapping source_path -> CachedPageData, or None if no cache
         """
         if not self._meta_path.exists() or not self._pages_path.exists():
             logger.debug("snapshot_cache_miss", reason="files_not_found")
             return None
-        
+
         try:
             # Load metadata to verify version
             with open(self._meta_path) as f:
                 meta = json.load(f)
-            
+
             if meta.get("version") != SNAPSHOT_VERSION:
                 logger.debug(
                     "snapshot_cache_miss",
@@ -101,11 +100,11 @@ class SnapshotCache:
                     current=SNAPSHOT_VERSION,
                 )
                 return None
-            
+
             # Load page data
             with open(self._pages_path) as f:
                 pages_data = json.load(f)
-            
+
             # Convert to CachedPageData objects
             result: dict[str, CachedPageData] = {}
             for path_str, data in pages_data.items():
@@ -118,14 +117,14 @@ class SnapshotCache:
                     word_count=data.get("word_count", 0),
                     excerpt=data.get("excerpt", ""),
                 )
-            
+
             logger.debug(
                 "snapshot_cache_hit",
                 pages_cached=len(result),
                 cache_time=meta.get("timestamp"),
             )
             return result
-            
+
         except Exception as e:
             logger.warning(
                 "snapshot_cache_load_error",
@@ -133,18 +132,18 @@ class SnapshotCache:
                 error_type=type(e).__name__,
             )
             return None
-    
+
     def save(self, snapshot: SiteSnapshot) -> None:
         """
         Save snapshot to disk for future incremental builds.
-        
+
         Uses atomic write pattern to prevent corruption.
-        
+
         Args:
             snapshot: SiteSnapshot to persist
         """
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         try:
             # Build metadata
             meta = {
@@ -153,7 +152,7 @@ class SnapshotCache:
                 "page_count": snapshot.page_count,
                 "section_count": snapshot.section_count,
             }
-            
+
             # Build page cache data (only what we need for incremental)
             pages_data: dict[str, dict[str, Any]] = {}
             for page in snapshot.pages:
@@ -166,28 +165,28 @@ class SnapshotCache:
                     "word_count": page.word_count,
                     "excerpt": page.excerpt,
                 }
-            
+
             # Atomic write: write to temp file, then rename
             meta_tmp = self._meta_path.with_suffix(".tmp")
             pages_tmp = self._pages_path.with_suffix(".tmp")
-            
+
             with open(meta_tmp, "w") as f:
                 json.dump(meta, f)
-            
+
             with open(pages_tmp, "w") as f:
                 json.dump(pages_data, f)
-            
+
             # Atomic rename
             meta_tmp.rename(self._meta_path)
             pages_tmp.rename(self._pages_path)
-            
+
             logger.debug(
                 "snapshot_cache_saved",
                 pages=len(pages_data),
                 meta_size=self._meta_path.stat().st_size,
                 pages_size=self._pages_path.stat().st_size,
             )
-            
+
         except Exception as e:
             logger.warning(
                 "snapshot_cache_save_error",
@@ -198,7 +197,7 @@ class SnapshotCache:
             for tmp in [self._meta_path.with_suffix(".tmp"), self._pages_path.with_suffix(".tmp")]:
                 if tmp.exists():
                     tmp.unlink()
-    
+
     def clear(self) -> None:
         """Clear the snapshot cache."""
         for path in [self._meta_path, self._pages_path]:
@@ -210,20 +209,20 @@ class SnapshotCache:
 class CachedPageData:
     """
     Cached data for a single page.
-    
+
     Contains pre-parsed content that can be reused if content_hash matches.
     """
-    
+
     __slots__ = (
         "content_hash",
+        "excerpt",
         "parsed_html",
+        "reading_time",
         "toc",
         "toc_items",
-        "reading_time",
         "word_count",
-        "excerpt",
     )
-    
+
     def __init__(
         self,
         content_hash: str,
@@ -245,7 +244,7 @@ class CachedPageData:
 
 def compute_content_hash(content: str) -> str:
     """Compute hash of page content for change detection.
-    
+
     Uses full SHA256 hash to match snapshot builder format.
     """
     return hashlib.sha256(content.encode()).hexdigest()
@@ -257,34 +256,34 @@ def apply_cached_parsing(
 ) -> tuple[list[Any], list[Any], int]:
     """
     Apply cached parsed content to pages that haven't changed.
-    
+
     Compares content hashes and copies pre-parsed HTML from cache
     for unchanged pages, eliminating re-parsing overhead.
-    
+
     Args:
         pages: List of Page objects to check
         cache: Dict of path -> CachedPageData from previous build
-        
+
     Returns:
         Tuple of (pages_needing_parse, pages_from_cache, cache_hits)
     """
     pages_to_parse: list[Any] = []
     pages_from_cache: list[Any] = []
     cache_hits = 0
-    
+
     for page in pages:
         path_str = str(page.source_path)
         cached = cache.get(path_str)
-        
+
         if cached is None:
             # New page, needs parsing
             pages_to_parse.append(page)
             continue
-        
+
         # Compute current content hash
         content = getattr(page, "_source", "") or getattr(page, "content", "") or ""
         current_hash = compute_content_hash(content)
-        
+
         if current_hash == cached.content_hash:
             # Content unchanged - apply cached data
             page.parsed_ast = cached.parsed_html
@@ -296,13 +295,13 @@ def apply_cached_parsing(
                 page._word_count = cached.word_count
             if hasattr(page, "_excerpt"):
                 page._excerpt = cached.excerpt
-            
+
             pages_from_cache.append(page)
             cache_hits += 1
         else:
             # Content changed, needs re-parsing
             pages_to_parse.append(page)
-    
+
     logger.debug(
         "snapshot_cache_applied",
         total_pages=len(pages),
@@ -310,5 +309,5 @@ def apply_cached_parsing(
         pages_to_parse=len(pages_to_parse),
         hit_rate=f"{cache_hits / len(pages) * 100:.1f}%" if pages else "0%",
     )
-    
+
     return pages_to_parse, pages_from_cache, cache_hits

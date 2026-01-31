@@ -19,11 +19,12 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -33,10 +34,10 @@ __all__ = [
     "RequestContext",
     "RequestContextError",
     "get_request_context",
-    "try_get_request_context",
-    "set_request_context",
-    "reset_request_context",
     "request_context",
+    "reset_request_context",
+    "set_request_context",
+    "try_get_request_context",
 ]
 
 
@@ -46,8 +47,6 @@ class RequestContextError(RuntimeError):
     This is a fail-fast error to catch missing context setup early.
     Use try_get_request_context() for optional access.
     """
-
-    pass
 
 
 @dataclass(frozen=True, slots=True)

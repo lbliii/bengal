@@ -155,7 +155,9 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=False, pages_to_build=[])
+        phase_taxonomies(
+            orchestrator, cache, incremental=False, force_sequential=False, pages_to_build=[]
+        )
 
         # parallel is computed from force_sequential and page count
         orchestrator.taxonomy.collect_and_generate.assert_called_once()
@@ -198,7 +200,9 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[])
+        phase_taxonomies(
+            orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[]
+        )
 
         assert orchestrator.stats.taxonomy_time_ms >= 0
 
@@ -207,7 +211,9 @@ class TestPhaseTaxonomies:
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         cache = MagicMock()
 
-        phase_taxonomies(orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[])
+        phase_taxonomies(
+            orchestrator, cache, incremental=False, force_sequential=True, pages_to_build=[]
+        )
 
         orchestrator.site.invalidate_regular_pages_cache.assert_called_once()
 

@@ -207,17 +207,17 @@ class BuildStateProtocol(Protocol):
 # =============================================================================
 
 __all__ = [
-    # Build phase enum
-    "BuildPhase",
-    # Phase stats
-    "PhaseStats",
-    "PhaseTiming",
     # Build context
     "BuildContextDict",
     "BuildOptionsDict",
+    # Build phase enum
+    "BuildPhase",
+    # Protocols
+    "BuildStateProtocol",
+    # Phase stats
+    "PhaseStats",
+    "PhaseTiming",
     # Render
     "RenderContext",
     "RenderResult",
-    # Protocols
-    "BuildStateProtocol",
 ]

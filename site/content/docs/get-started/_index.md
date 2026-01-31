@@ -4,7 +4,6 @@ description: Install Bengal and create your first site
 draft: false
 weight: 10
 lang: en
-type: doc
 tags:
 - onboarding
 - quickstart
@@ -13,8 +12,6 @@ keywords:
 - installation
 - quickstart
 category: onboarding
-cascade:
-  type: doc
 icon: arrow-clockwise
 ---
 

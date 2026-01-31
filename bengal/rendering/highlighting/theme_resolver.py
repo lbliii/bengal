@@ -21,10 +21,10 @@ if TYPE_CHECKING:
     from typing import Any
 
 __all__ = [
-    "resolve_syntax_theme",
-    "resolve_css_class_style",
     "PALETTE_INHERITANCE",
     "CssClassStyle",
+    "resolve_css_class_style",
+    "resolve_syntax_theme",
 ]
 
 # Type alias for CSS class style
@@ -50,26 +50,26 @@ PALETTE_INHERITANCE: dict[str, str] = {
 def resolve_syntax_theme(config: dict[str, Any]) -> str:
     """
     Resolve which syntax palette to use based on site configuration.
-    
+
     This implements the "auto" theme inheritance from RFC-0003:
     - If theme is "auto", inherit from default_palette
     - Otherwise, use the explicitly specified theme
-    
+
     Args:
         config: Full site configuration dictionary.
-    
+
     Returns:
         Name of the Rosettes syntax palette to use.
-    
+
     Example:
             >>> config = {"theme": {"default_palette": "snow-lynx"}}
             >>> resolve_syntax_theme(config)
             'bengal-snow-lynx'
-    
+
             >>> config = {"theme": {"syntax_highlighting": {"theme": "monokai"}}}
             >>> resolve_syntax_theme(config)
             'monokai'
-        
+
     """
     theme_config = config.get("theme", {})
     syntax_config = theme_config.get("syntax_highlighting", {})
@@ -87,18 +87,18 @@ def resolve_syntax_theme(config: dict[str, Any]) -> str:
 def resolve_css_class_style(config: dict[str, Any]) -> CssClassStyle:
     """
     Resolve which CSS class style to use for syntax highlighting.
-    
+
     Args:
         config: Full site configuration dictionary.
-    
+
     Returns:
         Either "semantic" (default) or "pygments".
-    
+
     Example:
             >>> config = {"theme": {"syntax_highlighting": {"css_class_style": "pygments"}}}
             >>> resolve_css_class_style(config)
             'pygments'
-        
+
     """
     theme_config = config.get("theme", {})
     syntax_config = theme_config.get("syntax_highlighting", {})

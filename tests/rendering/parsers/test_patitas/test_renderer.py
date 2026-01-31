@@ -87,7 +87,7 @@ class TestCodeRendering:
 
     def test_fenced_code_language_class(self, parse_md):
         """Fenced code includes language class or data attribute.
-        
+
         Note: With syntax highlighting enabled (default), rosettes adds
         data-language attribute. Without highlighting, uses language-{lang} class.
         """

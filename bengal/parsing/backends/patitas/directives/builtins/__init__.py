@@ -104,64 +104,64 @@ from bengal.parsing.backends.patitas.directives.builtins.video import (
 __all__ = [
     # Admonitions
     "AdmonitionDirective",
+    # Miscellaneous
+    "AsciinemaDirective",
+    # Media
+    "AudioDirective",
+    # Inline
+    "BadgeDirective",
+    # Navigation
+    "BreadcrumbsDirective",
+    "BuildDirective",
     # Button
     "ButtonDirective",
     # Cards
     "CardDirective",
     "CardsDirective",
-    "ChildCardsDirective",
+    # Versioning
+    "ChangedDirective",
     # Checklist
     "ChecklistDirective",
+    "ChildCardsDirective",
+    # Embed
+    "CodePenDirective",
+    "CodeSandboxDirective",
     # Code Tabs
     "CodeTabsDirective",
     # Container
     "ContainerDirective",
     # Data Table
     "DataTableDirective",
+    "DeprecatedDirective",
     # Dropdown
     "DropdownDirective",
-    # Embed
-    "CodePenDirective",
-    "CodeSandboxDirective",
+    "ExampleLabelDirective",
+    "FigureDirective",
+    "GalleryDirective",
     "GistDirective",
+    "IconDirective",
+    # Include (File I/O)
+    "IncludeDirective",
+    # Tables
+    "ListTableDirective",
+    "LiteralIncludeDirective",
+    "PrevNextDirective",
+    "RelatedDirective",
+    "RubricDirective",
+    # Video
+    "SelfHostedVideoDirective",
+    "SiblingsDirective",
+    "SinceDirective",
     "SoundCloudDirective",
     "SpotifyDirective",
     "StackBlitzDirective",
-    # Include (File I/O)
-    "IncludeDirective",
-    "LiteralIncludeDirective",
-    # Inline
-    "BadgeDirective",
-    "IconDirective",
-    "RubricDirective",
-    "TargetDirective",
-    # Media
-    "AudioDirective",
-    "FigureDirective",
-    "GalleryDirective",
-    # Miscellaneous
-    "AsciinemaDirective",
-    "BuildDirective",
-    "ExampleLabelDirective",
-    # Navigation
-    "BreadcrumbsDirective",
-    "PrevNextDirective",
-    "RelatedDirective",
-    "SiblingsDirective",
     # Steps
     "StepDirective",
     "StepsDirective",
-    # Tables
-    "ListTableDirective",
     # Tabs
     "TabItemDirective",
     "TabSetDirective",
-    # Versioning
-    "ChangedDirective",
-    "DeprecatedDirective",
-    "SinceDirective",
-    # Video
-    "SelfHostedVideoDirective",
+    "TargetDirective",
     "TikTokDirective",
     "VimeoDirective",
     "YouTubeDirective",

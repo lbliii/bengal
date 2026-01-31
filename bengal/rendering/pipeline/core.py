@@ -35,8 +35,8 @@ from bengal.core.page import Page
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.site import Site
-    from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.stats import BuildStats
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -66,45 +66,45 @@ logger = get_logger(__name__)
 class RenderingPipeline:
     """
     Coordinates the entire rendering process for content pages.
-    
+
     Orchestrates the complete rendering pipeline from markdown parsing through
     template rendering to final HTML output. Manages thread-local parser instances
     for performance and integrates with dependency tracking for incremental builds.
-    
+
     Creation:
         Direct instantiation: RenderingPipeline(site, dependency_tracker=None, ...)
             - Created by RenderOrchestrator for page rendering
             - One instance per worker thread (thread-local)
             - Requires Site instance with config
-    
+
     Attributes:
         site: Site instance with config and xref_index
         parser: Thread-local markdown parser (cached per thread)
         dependency_tracker: Optional DependencyTracker for incremental builds
         quiet: Whether to suppress per-page output
         build_stats: Optional BuildStats for error collection
-    
+
     Pipeline Stages:
         1. Parse source content (Markdown, etc.)
         2. Build Abstract Syntax Tree (AST)
         3. Apply templates (Kida by default)
         4. Render output (HTML)
         5. Write to output directory
-    
+
     Relationships:
         - Uses: TemplateEngine for template rendering
         - Uses: Renderer for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Used by: RenderOrchestrator for page rendering
-    
+
     Thread Safety:
         Thread-safe. Uses thread-local parser instances. Each thread should
         have its own RenderingPipeline instance.
-    
+
     Examples:
         pipeline = RenderingPipeline(site, dependency_tracker=tracker)
         pipeline.render_page(page)
-        
+
     """
 
     def __init__(
@@ -250,7 +250,9 @@ class RenderingPipeline:
 
         # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
         try:
-            injected_enhancer = getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            injected_enhancer = (
+                getattr(build_context, "api_doc_enhancer", None) if build_context else None
+            )
             if injected_enhancer:
                 self._api_doc_enhancer = injected_enhancer
             else:
@@ -275,7 +277,7 @@ class RenderingPipeline:
             Sets the dependency tracker in ContextVar so that template access
             to site.data.X is automatically tracked. This enables incremental
             builds to rebuild pages when data files change.
-            
+
             RFC: rfc-incremental-build-dependency-gaps (Phase 1)
 
         Args:
@@ -287,7 +289,7 @@ class RenderingPipeline:
         from bengal.rendering.template_functions.get_page import clear_get_page_cache
 
         clear_get_page_cache()
-        
+
         # Set tracker context for data file dependency tracking
         # This enables site.data.X access to be tracked automatically
         # RFC: rfc-incremental-build-dependency-gaps (Phase 1)
@@ -295,9 +297,9 @@ class RenderingPipeline:
             reset_current_tracker,
             set_current_tracker,
         )
-        
+
         tracker_token = set_current_tracker(self.dependency_tracker)
-        
+
         try:
             self._process_page_impl(page)
         finally:
@@ -327,7 +329,7 @@ class RenderingPipeline:
             self._json_accumulator.accumulate_unified_page_data(page)
             # Inline asset extraction for virtual pages
             self._accumulate_asset_deps(page)
-            
+
             # Cache the rendered output for next time
             if is_autodoc:
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
@@ -547,30 +549,29 @@ class RenderingPipeline:
 
     def _render_and_write(self, page: Page, template: str) -> None:
         """Render template and write output.
-        
+
         RFC: rfc-build-performance-optimizations Phase 2
         Uses render-time asset tracking to avoid post-render HTML parsing.
-        
+
         RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
         Optionally records effects for unified dependency tracking.
         """
-        # Allow empty parsed_ast - pages like home pages, section indexes, and 
+        # Allow empty parsed_ast - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
         if page.parsed_ast is None:
             page.parsed_ast = ""  # Ensure it's a string, not None
-        
+
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
-        from bengal.rendering.asset_tracking import AssetTracker
-        
         # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
         # Record render effects if effect tracing is enabled
         from bengal.effects import BuildEffectTracer
-        
+        from bengal.rendering.asset_tracking import AssetTracker
+
         effect_tracer = BuildEffectTracer.get_instance()
         effect_recorder = effect_tracer.record_page_render(page, template)
-        
+
         tracker = AssetTracker()
         with tracker:
             # Use effect recorder context if enabled
@@ -583,7 +584,7 @@ class RenderingPipeline:
                 html_content = self.renderer.render_content(page.parsed_ast or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
                 page.rendered_html = format_html(page.rendered_html, page, self.site)
-        
+
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
 
@@ -601,7 +602,7 @@ class RenderingPipeline:
 
         # Accumulate unified page data during rendering (JSON + search index)
         self._json_accumulator.accumulate_unified_page_data(page)
-        
+
         # RFC: rfc-build-performance-optimizations Phase 2
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
@@ -621,7 +622,7 @@ class RenderingPipeline:
             return
 
         assets: set[str] = set()
-        
+
         # RFC: rfc-build-performance-optimizations Phase 2
         # Use render-time tracked assets if available (fast path)
         if tracked_assets:
@@ -630,6 +631,7 @@ class RenderingPipeline:
             # Fallback: parse HTML (slow, but catches assets not using filters)
             try:
                 from bengal.rendering.asset_extractor import extract_assets_from_html
+
                 assets = extract_assets_from_html(page.rendered_html)
             except Exception as e:
                 # Extraction failure should not break render
@@ -639,7 +641,7 @@ class RenderingPipeline:
                     page=str(page.source_path),
                     error=str(e)[:100],
                 )
-        
+
         if assets:
             self.build_context.accumulate_page_assets(page.source_path, assets)
 
@@ -664,9 +666,8 @@ class RenderingPipeline:
         if snapshot and section:
             # Find section snapshot
             for sec_snap in snapshot.sections:
-                if (
-                    sec_snap.path == getattr(section, "path", None)
-                    or sec_snap.name == getattr(section, "name", "")
+                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                    section, "name", ""
                 ):
                     section_for_context = sec_snap
                     break

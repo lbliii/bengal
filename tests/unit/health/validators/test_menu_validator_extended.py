@@ -149,12 +149,12 @@ class TestMenuValidatorNestedItems:
                 self.name = name
                 self.href = href
                 self.children = children or []
-            
+
             # Explicitly define _path as not existing
             # The validator uses getattr(item, "_path", None)
             # Without defining _path, MagicMock would auto-create it,
             # but with a real class, getattr returns None default
-        
+
         # Create nested broken link
         broken_child = MenuItem(
             name="Broken Child",
@@ -175,7 +175,7 @@ class TestMenuValidatorNestedItems:
         results = validator.validate(site)
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        # Should find the broken child link  
+        # Should find the broken child link
         # Note: the message says "potentially broken links"
         assert any("broken" in r.message.lower() for r in warning_results), (
             f"Expected broken link warning, got: {[r.message for r in results]}"

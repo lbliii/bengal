@@ -27,14 +27,14 @@ from .scaffolds import layout_command, page_command, partial_command, theme_comm
 from .site import create_site, site_command
 
 __all__ = [
-    "new",
-    "site_command",
-    "page_command",
-    "layout_command",
-    "partial_command",
-    "theme_command",
     "create_site",
+    "layout_command",
+    "new",
+    "page_command",
+    "partial_command",
+    "site_command",
     "slugify",
+    "theme_command",
 ]
 
 
@@ -42,16 +42,15 @@ __all__ = [
 def new() -> None:
     """
     Create new site, page, layout, partial, or theme.
-    
+
     Subcommands:
         site      Create a new Bengal site with optional presets
         page      Create a new page in content directory
         layout    Create a new layout template in templates/layouts/
         partial   Create a new partial template in templates/partials/
         theme     Create a new theme scaffold with templates and assets
-        
+
     """
-    pass
 
 
 # Register commands

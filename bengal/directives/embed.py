@@ -40,16 +40,16 @@ if TYPE_CHECKING:
     from bengal.directives.types import DirectiveRenderer, MistuneBlockState
 
 __all__ = [
-    "GistDirective",
-    "GistOptions",
     "CodePenDirective",
     "CodePenOptions",
     "CodeSandboxDirective",
     "CodeSandboxOptions",
-    "StackBlitzDirective",
-    "StackBlitzOptions",
+    "GistDirective",
+    "GistOptions",
     "SpotifyDirective",
     "SpotifyOptions",
+    "StackBlitzDirective",
+    "StackBlitzOptions",
 ]
 
 
@@ -62,16 +62,16 @@ __all__ = [
 class GistOptions(DirectiveOptions):
     """
     Options for GitHub Gist embed.
-    
+
     Attributes:
         file: Specific file from gist to display
         css_class: Additional CSS classes
-    
+
     Example:
         :::{gist} username/abc123def456789012345678901234567890
         :file: example.py
         :::
-        
+
     """
 
     file: str = ""
@@ -83,30 +83,30 @@ class GistOptions(DirectiveOptions):
 class GistDirective(BengalDirective):
     """
     GitHub Gist embed directive.
-    
+
     Embeds GitHub Gists using the official script embed method.
     Includes noscript fallback with link to gist.
-    
+
     Syntax:
         :::{gist} username/gist_id
         :file: example.py
         :::
-    
+
     Options:
         :file: Specific file from gist to display
         :class: Additional CSS classes
-    
+
     Output:
         <div class="gist-embed">
           <script src="https://gist.github.com/username/gist_id.js?file=example.py"></script>
           <noscript><p>View gist: <a href="...">username/gist_id</a></p></noscript>
         </div>
-    
+
     Security:
         - Username validated (alphanumeric, underscore, hyphen)
         - Gist ID validated (32 hex characters)
         - File parameter escaped for URL safety
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["gist"]
@@ -198,7 +198,7 @@ class GistDirective(BengalDirective):
 class CodePenOptions(DirectiveOptions):
     """
     Options for CodePen embed.
-    
+
     Attributes:
         title: Required - Accessible title for iframe
         default_tab: Tab to show - html, css, js, result (default: result)
@@ -207,14 +207,14 @@ class CodePenOptions(DirectiveOptions):
         editable: Allow editing (default: false)
         preview: Show preview on load (default: true)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{codepen} chriscoyier/pen/abc123
         :title: CSS Grid Example
         :default-tab: result
         :height: 400
         :::
-        
+
     """
 
     title: str = ""
@@ -238,16 +238,16 @@ class CodePenOptions(DirectiveOptions):
 class CodePenDirective(BengalDirective):
     """
     CodePen embed directive.
-    
+
     Embeds CodePen pens using iframe with customizable display options.
-    
+
     Syntax:
         :::{codepen} username/pen/pen_id
         :title: Interactive Example
         :default-tab: result
         :height: 400
         :::
-    
+
     Options:
         :title: (required) Accessible title for iframe
         :default-tab: Tab to show - html, css, js, result (default: result)
@@ -256,11 +256,11 @@ class CodePenDirective(BengalDirective):
         :editable: Allow editing (default: false)
         :preview: Show preview on load (default: true)
         :class: Additional CSS classes
-    
+
     Security:
         - Username validated (alphanumeric, underscore, hyphen)
         - Pen ID validated (alphanumeric, underscore, hyphen)
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["codepen"]
@@ -396,7 +396,7 @@ class CodePenDirective(BengalDirective):
 class CodeSandboxOptions(DirectiveOptions):
     """
     Options for CodeSandbox embed.
-    
+
     Attributes:
         title: Required - Accessible title for iframe
         module: File to show initially
@@ -406,14 +406,14 @@ class CodeSandboxOptions(DirectiveOptions):
         hidenavigation: Hide file navigation (default: false)
         theme: Color theme - light, dark (default: dark)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{codesandbox} new
         :title: React Example
         :module: /src/App.js
         :view: preview
         :::
-        
+
     """
 
     title: str = ""
@@ -435,16 +435,16 @@ class CodeSandboxOptions(DirectiveOptions):
 class CodeSandboxDirective(BengalDirective):
     """
     CodeSandbox embed directive.
-    
+
     Embeds CodeSandbox projects using iframe with customizable display options.
-    
+
     Syntax:
         :::{codesandbox} sandbox_id
         :title: React Example
         :module: /src/App.js
         :view: preview
         :::
-    
+
     Options:
         :title: (required) Accessible title for iframe
         :module: File to show initially
@@ -454,10 +454,10 @@ class CodeSandboxDirective(BengalDirective):
         :hidenavigation: Hide file navigation (default: false)
         :theme: Color theme - light, dark (default: dark)
         :class: Additional CSS classes
-    
+
     Security:
         - Sandbox ID validated (alphanumeric, 5+ characters)
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["codesandbox"]
@@ -582,7 +582,7 @@ class CodeSandboxDirective(BengalDirective):
 class StackBlitzOptions(DirectiveOptions):
     """
     Options for StackBlitz embed.
-    
+
     Attributes:
         title: Required - Accessible title for iframe
         file: File to show initially
@@ -591,14 +591,14 @@ class StackBlitzOptions(DirectiveOptions):
         hidenavigation: Hide file navigation (default: false)
         hidedevtools: Hide dev tools panel (default: false)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{stackblitz} angular-quickstart
         :title: Angular Demo
         :file: src/app.component.ts
         :view: preview
         :::
-        
+
     """
 
     title: str = ""
@@ -618,16 +618,16 @@ class StackBlitzOptions(DirectiveOptions):
 class StackBlitzDirective(BengalDirective):
     """
     StackBlitz embed directive.
-    
+
     Embeds StackBlitz projects using iframe with customizable display options.
-    
+
     Syntax:
         :::{stackblitz} project_id
         :title: Angular Demo
         :file: src/app.component.ts
         :view: preview
         :::
-    
+
     Options:
         :title: (required) Accessible title for iframe
         :file: File to show initially
@@ -636,10 +636,10 @@ class StackBlitzDirective(BengalDirective):
         :hidenavigation: Hide file navigation (default: false)
         :hidedevtools: Hide dev tools panel (default: false)
         :class: Additional CSS classes
-    
+
     Security:
         - Project ID validated (alphanumeric, underscore, hyphen)
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["stackblitz"]
@@ -763,20 +763,20 @@ class StackBlitzDirective(BengalDirective):
 class SpotifyOptions(DirectiveOptions):
     """
     Options for Spotify embed.
-    
+
     Attributes:
         title: Required - Accessible title for iframe
         type: Content type - track, album, playlist, episode, show (default: track)
         height: Embed height in pixels (default: 152 for track, 352 for others)
         theme: Color theme - 0 for dark, 1 for light (default: 0)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
         :title: Bohemian Rhapsody by Queen
         :type: track
         :::
-        
+
     """
 
     title: str = ""
@@ -795,38 +795,38 @@ class SpotifyOptions(DirectiveOptions):
 class SpotifyDirective(BengalDirective):
     """
     Spotify embed directive.
-    
+
     Embeds Spotify content (tracks, albums, playlists, podcasts) using iframe.
     Validates Spotify IDs (22 alphanumeric characters).
-    
+
     Syntax:
         :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
         :title: Bohemian Rhapsody by Queen
         :type: track
         :::
-    
+
     Options:
         :title: (required) Accessible title for iframe
         :type: Content type - track, album, playlist, episode, show, artist (default: track)
         :height: Embed height in pixels (auto-detected if not set)
         :theme: 0 for dark, 1 for light (default: 0)
         :class: Additional CSS classes
-    
+
     Heights by type (defaults):
         - track: 152px (compact player)
         - album/playlist/show/artist: 352px (full player with art)
         - episode: 232px (medium player)
-    
+
     Output:
         <div class="audio-embed spotify">
           <iframe src="https://open.spotify.com/embed/track/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
         </div>
-    
+
     Security:
         - Spotify ID validated via regex (22 alphanumeric characters)
         - XSS prevention via strict ID validation
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["spotify"]
@@ -950,7 +950,7 @@ class SpotifyDirective(BengalDirective):
 class SoundCloudOptions(DirectiveOptions):
     """
     Options for SoundCloud embed.
-    
+
     Attributes:
         title: Required - Accessible title for iframe
         type: Content type - track or playlist (default: track)
@@ -963,17 +963,17 @@ class SoundCloudOptions(DirectiveOptions):
         show_reposts: Show reposts (default: false)
         visual: Use visual player (larger artwork) (default: false for tracks)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{soundcloud} artistname/track-title
         :title: Track Title by Artist
         :::
-    
+
         # Also accepts full URLs:
         :::{soundcloud} https://soundcloud.com/artistname/track-title
         :title: Track Title by Artist
         :::
-        
+
     """
 
     title: str = ""
@@ -997,15 +997,15 @@ class SoundCloudOptions(DirectiveOptions):
 class SoundCloudDirective(BengalDirective):
     """
     SoundCloud embed directive.
-    
+
     Embeds SoundCloud tracks and playlists using iframe.
     Accepts SoundCloud URLs (username/track-slug format).
-    
+
     Syntax:
         :::{soundcloud} username/track-name
         :title: Track Title
         :::
-    
+
     Options:
         :title: (required) Accessible title for iframe
         :type: Content type - track or playlist (default: track)
@@ -1018,22 +1018,22 @@ class SoundCloudDirective(BengalDirective):
         :show_reposts: Show reposts (default: false)
         :visual: Use visual player with large artwork (default: false)
         :class: Additional CSS classes
-    
+
     Heights by type (defaults):
         - track: 166px (compact player)
         - track (visual): 300px (visual player)
         - playlist: 450px (list view)
-    
+
     Output:
         <div class="audio-embed soundcloud">
           <iframe src="https://w.soundcloud.com/player/?url=..."
                   title="..." loading="lazy"></iframe>
         </div>
-    
+
     Security:
         - URL path validated via regex (username/track-name format)
         - XSS prevention via strict URL validation
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["soundcloud"]

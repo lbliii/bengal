@@ -31,9 +31,10 @@ from html import escape as html_escape
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -41,9 +42,9 @@ if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
 __all__ = [
+    "FileResolver",
     "IncludeDirective",
     "LiteralIncludeDirective",
-    "FileResolver",
 ]
 
 
@@ -54,12 +55,12 @@ __all__ = [
 
 class FileResolver(Protocol):
     """Protocol for file resolution and loading.
-    
+
     Implementations must handle:
     - Path resolution relative to current file or site root
     - Security validation (containment, symlinks, size limits)
     - File loading with encoding support
-        
+
     """
 
     def resolve_path(self, path: str, source_file: str | None) -> Path | None:
@@ -109,29 +110,29 @@ class IncludeOptions(DirectiveOptions):
 class IncludeDirective:
     """
     Include markdown files directly in content.
-    
+
     Syntax:
         :::{include} path/to/file.md
         :::
-    
+
         :::{include} path/to/file.md
         :start-line: 5
         :end-line: 20
         :::
-    
+
     Requires:
         FileResolver for path resolution and file loading.
-    
+
     Security:
         - Maximum include depth of 10 (stack overflow protection)
         - Cycle detection (infinite loop protection)
         - File size limits (memory exhaustion protection)
         - Symlink rejection (path traversal protection)
         - Path containment within site root
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("include",)
@@ -272,11 +273,11 @@ class LiteralIncludeOptions(DirectiveOptions):
 class LiteralIncludeDirective:
     """
     Include code files as syntax-highlighted code blocks.
-    
+
     Syntax:
         :::{literalinclude} path/to/file.py
         :::
-    
+
         :::{literalinclude} path/to/file.py
         :language: python
         :start-line: 5
@@ -284,13 +285,13 @@ class LiteralIncludeDirective:
         :emphasize-lines: 7,8,9
         :linenos:
         :::
-    
+
     Requires:
         FileResolver for path resolution and file loading.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("literalinclude",)

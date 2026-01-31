@@ -18,17 +18,17 @@ Thread Safety:
 
 Example:
         >>> from bengal.protocols import SectionLike, HighlightService
-        >>> 
+        >>>
         >>> def build_nav(section: SectionLike) -> list[dict]:
         ...     return [{"title": p.title, "href": p.href} for p in section.pages]
 
 Migration:
     Old import paths emit deprecation warnings and re-export from here.
     Update imports to use bengal.protocols directly:
-    
+
     # Old (deprecated)
     from bengal.core.section.protocols import SectionLike
-    
+
     # New (preferred)
     from bengal.protocols import SectionLike
 
@@ -92,54 +92,54 @@ from bengal.protocols.stats import (
 )
 
 __all__ = [
-    # Build
-    "BuildPhase",
-    "PhaseStats",
-    "PhaseTiming",
     "BuildContextDict",
     "BuildOptionsDict",
-    "RenderContext",
-    "RenderResult",
+    # Build
+    "BuildPhase",
     "BuildStateProtocol",
-    # Core
-    "PageLike",
-    "SectionLike",
-    "SiteLike",
-    "NavigableSection",
-    "QueryableSection",
-    "ConfigLike",
-    # Rendering - Template
-    "TemplateEnvironment",
-    "EngineCapability",
-    "TemplateRenderer",
-    "TemplateIntrospector",
-    "TemplateValidator",
-    "TemplateEngine",
-    "TemplateEngineProtocol",  # Backwards compatibility
-    # Rendering - Highlighting
-    "HighlightService",
-    "HighlightBackend",  # Backwards compatibility
-    # Rendering - Roles and Directives
-    "RoleHandler",
-    "DirectiveHandler",
-    # Infrastructure
-    "ProgressReporter",
-    "Cacheable",
-    "OutputCollector",
-    "ContentSourceProtocol",
-    "OutputTarget",
-    # Analysis
-    "KnowledgeGraphProtocol",
     # Stats
     "BuildStatsProtocol",
+    "Cacheable",
+    "ConfigLike",
+    "ContentSourceProtocol",
+    "DirectiveHandler",
+    "EngineCapability",
+    "HasActionRebuild",
     # Capabilities (TypeGuard protocols)
     "HasClearTemplateCache",
-    "HasActionRebuild",
     "HasConfigChangedSignal",
     "HasErrors",
     "HasWalk",
-    "has_clear_template_cache",
+    "HighlightBackend",  # Backwards compatibility
+    # Rendering - Highlighting
+    "HighlightService",
+    # Analysis
+    "KnowledgeGraphProtocol",
+    "NavigableSection",
+    "OutputCollector",
+    "OutputTarget",
+    # Core
+    "PageLike",
+    "PhaseStats",
+    "PhaseTiming",
+    # Infrastructure
+    "ProgressReporter",
+    "QueryableSection",
+    "RenderContext",
+    "RenderResult",
+    # Rendering - Roles and Directives
+    "RoleHandler",
+    "SectionLike",
+    "SiteLike",
+    "TemplateEngine",
+    "TemplateEngineProtocol",  # Backwards compatibility
+    # Rendering - Template
+    "TemplateEnvironment",
+    "TemplateIntrospector",
+    "TemplateRenderer",
+    "TemplateValidator",
     "has_action_rebuild",
+    "has_clear_template_cache",
     "has_config_changed_signal",
     "has_errors",
     "has_walk",

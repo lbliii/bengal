@@ -16,10 +16,10 @@ from bengal.build.contracts.results import ChangeDetectionResult
 
 if TYPE_CHECKING:
     from bengal.build.contracts.keys import CacheKey
-    from bengal.cache import BuildCache
     from bengal.build.tracking import DependencyTracker
-    from bengal.orchestration.build.coordinator import CacheCoordinator
+    from bengal.cache import BuildCache
     from bengal.core.site import Site
+    from bengal.orchestration.build.coordinator import CacheCoordinator
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,10 +33,10 @@ class DetectionContext:
     """
 
     # Core dependencies
-    cache: "BuildCache"
-    site: "Site"
-    tracker: "DependencyTracker | None" = None
-    coordinator: "CacheCoordinator | None" = None
+    cache: BuildCache
+    site: Site
+    tracker: DependencyTracker | None = None
+    coordinator: CacheCoordinator | None = None
 
     # Accumulated results from previous detectors
     previous: ChangeDetectionResult = field(default_factory=ChangeDetectionResult.empty)
@@ -45,12 +45,12 @@ class DetectionContext:
     verbose: bool = False
 
     # Forced changes (from file watcher)
-    forced_changed: frozenset["CacheKey"] = field(default_factory=frozenset)
+    forced_changed: frozenset[CacheKey] = field(default_factory=frozenset)
 
     # Nav-affecting changes (structural)
-    nav_changed: frozenset["CacheKey"] = field(default_factory=frozenset)
+    nav_changed: frozenset[CacheKey] = field(default_factory=frozenset)
 
-    def with_previous(self, result: ChangeDetectionResult) -> "DetectionContext":
+    def with_previous(self, result: ChangeDetectionResult) -> DetectionContext:
         """Create new context with updated previous results."""
         return DetectionContext(
             cache=self.cache,

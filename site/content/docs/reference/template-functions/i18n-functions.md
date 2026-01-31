@@ -2,7 +2,6 @@
 title: Internationalization Functions
 description: Translation, language detection, and localized formatting
 weight: 40
-type: doc
 tags:
 - reference
 - functions

@@ -36,10 +36,10 @@ EXEMPT_DIRS = {
 def find_bengal_error_raises(file_path: Path) -> list[tuple[int, str]]:
     """
     Find all BengalError raises in a Python file.
-    
+
     Returns list of (line_number, line_content) tuples for raises
     that don't include code= parameter.
-        
+
     """
     violations = []
 
@@ -84,12 +84,12 @@ def find_bengal_error_raises(file_path: Path) -> list[tuple[int, str]]:
 def test_all_bengal_errors_have_codes() -> None:
     """
     Ensure all BengalError raises include code= parameter.
-    
+
     This test enforces that all BengalError exceptions should include error codes for:
     - User-friendly CLI output
     - Documentation links
     - Searchability and debugging
-        
+
     """
     violations: list[str] = []
 
@@ -119,10 +119,10 @@ def test_all_bengal_errors_have_codes() -> None:
 def test_error_code_coverage_report() -> None:
     """
     Generate a report of error code coverage across the codebase.
-    
+
     This is an informational test that doesn't fail but prints statistics
     about error code usage.
-        
+
     """
     from bengal.errors.codes import ErrorCode
 

@@ -2,7 +2,6 @@
 title: Glossary
 description: Definitions of terms used throughout Bengal documentation
 weight: 30
-type: doc
 tags:
 - reference
 - glossary

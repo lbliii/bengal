@@ -22,9 +22,10 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -60,7 +61,7 @@ class ButtonOptions(DirectiveOptions):
 class ButtonDirective:
     """
     Button directive for styled link buttons.
-    
+
     Syntax:
         :::{button} /path/to/page/
         :color: primary
@@ -68,26 +69,26 @@ class ButtonDirective:
         :size: large
         :icon: rocket
         :target: _blank
-    
+
         Button Text
         :::
-    
+
     Options:
         color: primary, secondary, success, danger, warning, info, light, dark
         style: default (rounded), pill (fully rounded), outline
         size: small, medium (default), large
         icon: Icon name (same as cards)
         target: _blank for external links (optional)
-    
+
     Output:
         <a class="button button-primary button-lg" href="/path/">
           <span class="button-icon">...</span>
           <span class="button-text">Button Text</span>
         </a>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("button",)

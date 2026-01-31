@@ -62,11 +62,17 @@ class PathRegistry:
             site: Site instance for path resolution
         """
         self.site = site
-        self._content_dir = site.paths.content_dir if hasattr(site, "paths") else site.root_path / "content"
-        self._generated_dir = (
-            site.paths.generated_dir if hasattr(site, "paths") else site.root_path / ".bengal" / "generated"
+        self._content_dir = (
+            site.paths.content_dir if hasattr(site, "paths") else site.root_path / "content"
         )
-        self._output_dir = site.output_dir if hasattr(site, "output_dir") else site.root_path / "public"
+        self._generated_dir = (
+            site.paths.generated_dir
+            if hasattr(site, "paths")
+            else site.root_path / ".bengal" / "generated"
+        )
+        self._output_dir = (
+            site.output_dir if hasattr(site, "output_dir") else site.root_path / "public"
+        )
 
     def canonical_source(self, page: Page) -> Path:
         """

@@ -28,10 +28,10 @@ if TYPE_CHECKING:
 class PostView:
     """
     Normalized view of a blog post for templates.
-    
+
     Consolidates metadata extraction with fallback logic so templates
     can access properties directly without defensive chaining.
-    
+
     Attributes:
         title: Post title (defaults to 'Untitled')
         href: URL to the post
@@ -48,7 +48,7 @@ class PostView:
         featured: Whether post is featured
         draft: Whether post is a draft
         updated: Last updated date (None if not set)
-        
+
     """
 
     title: str
@@ -153,18 +153,18 @@ class PostView:
 def posts_filter(pages: Any) -> list[PostView]:
     """
     Convert a list of pages to normalized PostView objects.
-    
+
     Args:
         pages: List of Page objects or iterable
-    
+
     Returns:
         List of PostView objects
-    
+
     Example:
         {% for post in posts | posts %}
           {{ post.title }} - {{ post.reading_time }} min
         {% end %}
-        
+
     """
     if not pages:
         return []
@@ -183,17 +183,17 @@ def posts_filter(pages: Any) -> list[PostView]:
 def post_view_filter(page: Any) -> PostView | None:
     """
     Convert a single page to a PostView.
-    
+
     Args:
         page: Single Page object
-    
+
     Returns:
         PostView object or None if conversion fails
-    
+
     Example:
         {% let p = page | post_view %}
         <h1>{{ p.title }}</h1>
-        
+
     """
     if not page:
         return None
@@ -207,19 +207,19 @@ def post_view_filter(page: Any) -> PostView | None:
 def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
     """
     Get featured posts from a list of pages.
-    
+
     Args:
         pages: List of Page objects
         limit: Maximum number of featured posts to return
-    
+
     Returns:
         List of featured PostView objects
-    
+
     Example:
         {% for post in posts | featured_posts(3) %}
           {{ post.title }}
         {% end %}
-        
+
     """
     all_posts = posts_filter(pages)
     featured = [p for p in all_posts if p.featured]

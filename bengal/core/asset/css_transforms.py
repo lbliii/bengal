@@ -18,7 +18,7 @@ from re import Match
 def transform_css_nesting(css: str) -> str:
     """
     Transform CSS nesting syntax (&:hover, &.class, etc.) to traditional selectors.
-    
+
     Transforms patterns like:
         .parent {
           color: red;
@@ -27,18 +27,18 @@ def transform_css_nesting(css: str) -> str:
     Into:
         .parent { color: red; }
         .parent:hover { color: blue; }
-    
+
     This ensures browser compatibility for CSS nesting syntax.
-    
+
     NOTE: We should NOT write nested CSS in source files. Use traditional selectors instead.
     This is a safety net for any nested CSS that slips through.
-    
+
     Args:
         css: CSS content string
-    
+
     Returns:
         Transformed CSS with nesting syntax expanded
-        
+
     """
     result = css
 
@@ -113,20 +113,20 @@ def transform_css_nesting(css: str) -> str:
 def remove_duplicate_bare_h1_rules(css: str) -> str:
     """
     Remove duplicate bare h1 rules that appear right after scoped h1 rules.
-    
+
     CSS processing sometimes creates duplicate rules like:
         .browser-header h1 { font-size: var(--text-5xl); }
         h1 { font-size: var(--text-5xl); }  # Duplicate!
-    
+
     The bare h1 rule overrides the base typography rule, breaking text sizing.
     This function removes the duplicate bare h1 rules.
-    
+
     Args:
         css: CSS content string
-    
+
     Returns:
         CSS with duplicate bare h1 rules removed
-        
+
     """
     # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
     # We need to match the scoped rule, then check if there's a duplicate bare h1
@@ -167,16 +167,16 @@ def remove_duplicate_bare_h1_rules(css: str) -> str:
 def lossless_minify_css(css: str) -> str:
     """
     Remove comments and redundant whitespace without touching selectors/properties.
-    
+
     This intentionally avoids aggressive rewrites so modern CSS (nesting, @layer, etc.)
     remains intact.
-    
+
     Args:
         css: CSS content string
-    
+
     Returns:
         Minified CSS with comments and extra whitespace removed
-        
+
     """
     result: list[str] = []
     length = len(css)

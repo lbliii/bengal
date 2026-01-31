@@ -435,14 +435,14 @@ def test_edge_case_parity(
     assert_html_equal: Callable[[str, str, str], None],
 ) -> None:
     """Verify edge cases produce identical results in both backends.
-    
+
     Args:
         name: Test case name
         source: Markdown source to render
         render_with_mistune: Fixture to render with mistune
         render_with_patitas: Fixture to render with patitas
         assert_html_equal: Fixture for HTML comparison
-        
+
     """
     mistune_html = render_with_mistune(source)
     patitas_html = render_with_patitas(source)
@@ -457,12 +457,12 @@ def test_edge_case_no_crash(
     render_with_patitas: Callable[[str], str],
 ) -> None:
     """Verify Patitas handles all edge cases without crashing.
-    
+
     Args:
         name: Test case name
         source: Markdown source to render
         render_with_patitas: Fixture to render with patitas
-        
+
     """
     # Should not raise any exception
     html = render_with_patitas(source)

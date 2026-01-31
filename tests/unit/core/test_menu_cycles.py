@@ -49,10 +49,10 @@ class TestMenuCircularDependencies:
 
 class TestCycleDetectionEdgeCases:
     """Edge case tests for cycle detection algorithm.
-    
+
     The _has_cycle() method uses backtracking with O(d) space complexity
     instead of O(n × d) from copying the path set on each recursive call.
-        
+
     """
 
     def test_self_referencing_item(self):

@@ -13,25 +13,25 @@ from typing import Any
 def normalize_html(html_str: str, preserve_structure: bool = True) -> str:
     """
     Normalize HTML for deterministic assertions.
-    
+
     Removes or replaces volatile elements:
     - Absolute file paths → 'PATH'
     - Asset hashes (style.abc123.css) → style.HASH.css
     - Timestamps → 'TIMESTAMP'
     - Optionally normalizes whitespace
-    
+
     Args:
         html_str: HTML string to normalize
         preserve_structure: If True, preserve basic structure (minimal whitespace changes)
-    
+
     Returns:
         Normalized HTML string
-    
+
     Example:
         html = '<link href="/assets/css/style.abc123.css" />'
         normalized = normalize_html(html)
         # normalized: '<link href="/assets/css/style.HASH.css" />'
-        
+
     """
     html = html_str
 
@@ -63,23 +63,23 @@ def normalize_html(html_str: str, preserve_structure: bool = True) -> str:
 def normalize_json(data: dict | list | Any) -> dict | list | Any:
     """
     Normalize JSON data for deterministic assertions.
-    
+
     Recursively:
     - Sorts dict keys
     - Strips known volatile fields (timestamps, build_time, etc.)
     - Normalizes paths
-    
+
     Args:
         data: JSON data (dict, list, or primitive)
-    
+
     Returns:
         Normalized data structure
-    
+
     Example:
         data = {"z": 1, "a": 2, "build_time": "2024-01-01"}
         normalized = normalize_json(data)
         # normalized: {"a": 2, "z": 1}  # sorted, volatile removed
-        
+
     """
     if isinstance(data, dict):
         normalized = {}
@@ -117,14 +117,14 @@ def normalize_json(data: dict | list | Any) -> dict | list | Any:
 def json_dumps_normalized(data: Any, **kwargs) -> str:
     """
     Dump JSON with normalization and stable formatting.
-    
+
     Args:
         data: Data to serialize
         **kwargs: Additional arguments for json.dumps
-    
+
     Returns:
         Normalized JSON string with consistent formatting
-        
+
     """
     normalized = normalize_json(data)
     return json.dumps(normalized, sort_keys=True, indent=2, **kwargs)

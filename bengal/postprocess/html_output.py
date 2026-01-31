@@ -47,9 +47,9 @@ _VOID_TAGS = {
 def _split_protected_regions(html: str) -> list[tuple[str, bool]]:
     """
     Split HTML into segments, marking whitespace-sensitive regions to preserve.
-    
+
     Returns list of tuples: (segment_text, is_protected)
-        
+
     """
     if not html:
         return [("", False)]
@@ -129,9 +129,9 @@ def _trim_title_text(text: str) -> str:
 def _pretty_indent_html(html: str) -> str:
     """
     Indent non-protected HTML lines with two spaces per nesting level.
-    
+
     Depth carries across protected segments, but protected content is left untouched.
-        
+
     """
     segments = _split_protected_regions(html)
     depth = 0
@@ -173,15 +173,15 @@ def _pretty_indent_html(html: str) -> str:
 def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | None = None) -> str:
     """
     Format HTML to produce pristine output, preserving whitespace-sensitive regions.
-    
+
     Args:
         html: Input HTML string
         mode: "raw" (no-op), "pretty" (stable whitespace), or "minify" (compact inter-tag spacing)
         options: optional flags, e.g., {"remove_comments": True, "collapse_blank_lines": True}
-    
+
     Returns:
         Formatted HTML string
-        
+
     """
     if not html or mode == "raw":
         return html or ""

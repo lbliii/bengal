@@ -43,17 +43,17 @@ logger = get_logger(__name__)
 class LinkCheckOrchestrator:
     """
     Orchestrates internal and external link checking.
-    
+
     Extracts links from built HTML files, classifies them, and delegates to
     specialized checkers. Provides consolidated results and multiple output
     formats (console, JSON).
-    
+
     Features:
         - HTML parsing to extract href attributes
         - Automatic internal/external classification
         - Concurrent checking with ignore policies
         - Console and JSON report formatting
-    
+
     Attributes:
         site: Site instance with output_dir
         check_internal: Whether to validate internal links
@@ -62,13 +62,13 @@ class LinkCheckOrchestrator:
         ignore_policy: IgnorePolicy instance for filtering
         internal_checker: InternalLinkChecker (if check_internal)
         external_checker: AsyncLinkChecker (if check_external)
-    
+
     Example:
             >>> orchestrator = LinkCheckOrchestrator(site, check_external=True)
             >>> results, summary = orchestrator.check_all_links()
             >>> if not summary.passed:
             ...     print(orchestrator.format_console_report(results, summary))
-        
+
     """
 
     def __init__(

@@ -7,9 +7,10 @@ with .merge() to compose detector outputs.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.build.contracts.keys import CacheKey
@@ -58,38 +59,38 @@ class ChangeDetectionResult:
     """
 
     # Pages that need rebuilding (canonical keys)
-    pages_to_rebuild: frozenset["CacheKey"] = field(default_factory=frozenset)
+    pages_to_rebuild: frozenset[CacheKey] = field(default_factory=frozenset)
 
     # Why each page needs rebuilding (for logging/debugging)
-    rebuild_reasons: Mapping["CacheKey", RebuildReason] = field(default_factory=dict)
+    rebuild_reasons: Mapping[CacheKey, RebuildReason] = field(default_factory=dict)
 
     # Assets that need processing
-    assets_to_process: frozenset["CacheKey"] = field(default_factory=frozenset)
+    assets_to_process: frozenset[CacheKey] = field(default_factory=frozenset)
 
     # What changed (for downstream detectors)
-    content_files_changed: frozenset["CacheKey"] = field(default_factory=frozenset)
-    data_files_changed: frozenset["CacheKey"] = field(default_factory=frozenset)
-    templates_changed: frozenset["CacheKey"] = field(default_factory=frozenset)
+    content_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
+    data_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
+    templates_changed: frozenset[CacheKey] = field(default_factory=frozenset)
 
     # Affected taxonomies (for taxonomy detector)
     affected_tags: frozenset[str] = field(default_factory=frozenset)
-    affected_sections: frozenset["CacheKey"] = field(default_factory=frozenset)
+    affected_sections: frozenset[CacheKey] = field(default_factory=frozenset)
 
     # Global flags
     config_changed: bool = False
     force_full_rebuild: bool = False
 
     @classmethod
-    def empty(cls) -> "ChangeDetectionResult":
+    def empty(cls) -> ChangeDetectionResult:
         """Create empty result."""
         return cls()
 
     @classmethod
-    def full_rebuild(cls, reason: str = "forced") -> "ChangeDetectionResult":
+    def full_rebuild(cls, reason: str = "forced") -> ChangeDetectionResult:
         """Create result indicating full rebuild needed."""
         return cls(force_full_rebuild=True)
 
-    def merge(self, other: "ChangeDetectionResult") -> "ChangeDetectionResult":
+    def merge(self, other: ChangeDetectionResult) -> ChangeDetectionResult:
         """
         Merge two results (immutable - returns new instance).
 
@@ -110,9 +111,9 @@ class ChangeDetectionResult:
 
     def with_pages(
         self,
-        pages: frozenset["CacheKey"],
+        pages: frozenset[CacheKey],
         reason: RebuildReason,
-    ) -> "ChangeDetectionResult":
+    ) -> ChangeDetectionResult:
         """Add pages with reason (returns new instance)."""
         new_reasons = {**self.rebuild_reasons}
         for page in pages:

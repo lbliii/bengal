@@ -800,7 +800,7 @@ class UnionSchema:
 
 class TestUnionTypeCoercion:
     """Tests for union type handling.
-    
+
     Note: Union coercion tries types in order. For `str | int`, `str` is tried
     first. Since most values can be coerced to str, the first type often wins.
     """
@@ -815,7 +815,7 @@ class TestUnionTypeCoercion:
 
     def test_union_coerces_to_first_matching_type(self) -> None:
         """Test union coerces to the first type that works.
-        
+
         For `str | int`, even an int value gets coerced to str since
         str(42) succeeds. This matches how unions try types in order.
         """
@@ -976,11 +976,13 @@ class TestErrorMessageQuality:
     def test_list_item_error_shows_index(self) -> None:
         """Test that list item errors show the index."""
         validator = SchemaValidator(ComplexTypesSchema)
-        result = validator.validate({
-            "items": ["valid"],
-            "mapping": {},
-            "optional_list": [1, 2, "not-int", 4],
-        })
+        result = validator.validate(
+            {
+                "items": ["valid"],
+                "mapping": {},
+                "optional_list": [1, 2, "not-int", 4],
+            }
+        )
 
         assert result.valid is False
         # Error should mention optional_list[2]
@@ -996,10 +998,12 @@ class TestDatetimeEdgeCases:
     def test_datetime_with_timezone(self) -> None:
         """Test datetime with timezone offset."""
         validator = SchemaValidator(BlogPostSchema)
-        result = validator.validate({
-            "title": "Post",
-            "date": "2025-01-15T10:30:00+05:00",
-        })
+        result = validator.validate(
+            {
+                "title": "Post",
+                "date": "2025-01-15T10:30:00+05:00",
+            }
+        )
 
         assert result.valid is True
         assert result.data.date.year == 2025
@@ -1007,10 +1011,12 @@ class TestDatetimeEdgeCases:
     def test_datetime_iso_format_with_microseconds(self) -> None:
         """Test datetime with microseconds."""
         validator = SchemaValidator(BlogPostSchema)
-        result = validator.validate({
-            "title": "Post",
-            "date": "2025-01-15T10:30:00.123456",
-        })
+        result = validator.validate(
+            {
+                "title": "Post",
+                "date": "2025-01-15T10:30:00.123456",
+            }
+        )
 
         assert result.valid is True
 

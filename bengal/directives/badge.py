@@ -24,15 +24,15 @@ logger = get_logger(__name__)
 class BadgeOptions(DirectiveOptions):
     """
     Options for badge directive.
-    
+
     Attributes:
         css_class: CSS classes for the badge
-    
+
     Example:
         :::{badge} Command
         :class: badge-cli-command
         :::
-        
+
     """
 
     css_class: str = "badge badge-secondary"
@@ -43,24 +43,24 @@ class BadgeOptions(DirectiveOptions):
 class BadgeDirective(BengalDirective):
     """
     Badge directive for MyST-style badges.
-    
+
     Syntax:
         :::{badge} Command
         :class: badge-cli-command
         :::
-    
+
         :::{badge} Deprecated
         :class: badge-danger
         :::
-    
+
     The badge text is provided as the title (after directive name).
     Optional :class: attribute specifies CSS classes.
     Default class is "badge badge-secondary".
-    
+
     Aliases:
         - badge: Primary name
         - bdg: Short alias for compatibility
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["badge", "bdg"]

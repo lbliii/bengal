@@ -58,12 +58,12 @@ _lossless_minify_css_string = lossless_minify_css
 
 __all__ = [
     "Asset",
-    # CSS transform utilities
-    "transform_css_nesting",
-    "remove_duplicate_bare_h1_rules",
-    "lossless_minify_css",
+    "_lossless_minify_css_string",
+    "_remove_duplicate_bare_h1_rules",
     # Aliases
     "_transform_css_nesting",
-    "_remove_duplicate_bare_h1_rules",
-    "_lossless_minify_css_string",
+    "lossless_minify_css",
+    "remove_duplicate_bare_h1_rules",
+    # CSS transform utilities
+    "transform_css_nesting",
 ]

@@ -38,19 +38,19 @@ def transform_links_in_ast(
 ) -> list[ASTNode]:
     """
     Transform links at AST level (replaces regex in link_transformer.py).
-    
+
     Benefits over regex:
     - No risk of matching href inside code blocks
     - Handles edge cases (quotes, escapes) correctly
     - Type-safe: operates on structured data
-    
+
     Args:
         ast: Root-level AST nodes
         transformer: Function that takes a URL and returns transformed URL
-    
+
     Returns:
         New AST with transformed links
-    
+
     Example:
             >>> def add_prefix(url: str) -> str:
             ...     return f"/prefix{url}" if url.startswith("/") else url
@@ -58,7 +58,7 @@ def transform_links_in_ast(
             >>> transformed = transform_links_in_ast(ast, add_prefix)
             >>> transformed[0]["url"]
             '/prefix/docs/'
-        
+
     """
 
     def transform_node(node: ASTNode) -> ASTNode:
@@ -116,26 +116,26 @@ def transform_links_in_ast(
 def normalize_md_links_in_ast(ast: list[ASTNode]) -> list[ASTNode]:
     """
     Convert .md links to clean URLs at AST level.
-    
+
     Transforms:
     - ./folder-mode.md  ->  ./folder-mode/
     - ../other.md       ->  ../other/
     - sibling.md        ->  sibling/
     - ./_index.md       ->  ./
     - path/page.md      ->  path/page/
-    
+
     Args:
         ast: Root-level AST nodes
-    
+
     Returns:
         New AST with normalized links
-    
+
     Example:
             >>> ast = [{"type": "link", "url": "./guide.md", "children": []}]
             >>> transformed = normalize_md_links_in_ast(ast)
             >>> transformed[0]["url"]
             './guide/'
-        
+
     """
 
     def normalize(url: str) -> str:
@@ -167,27 +167,27 @@ def normalize_md_links_in_ast(ast: list[ASTNode]) -> list[ASTNode]:
 def add_baseurl_to_ast(ast: list[ASTNode], baseurl: str) -> list[ASTNode]:
     """
     Prepend baseurl to internal links at AST level.
-    
+
     Only transforms:
     - Links starting with "/" (internal absolute paths)
     - Does NOT transform external URLs (http://, https://)
     - Does NOT transform anchors (#section)
     - Does NOT transform relative paths (../other, ./sibling)
     - Does NOT transform links that already have baseurl
-    
+
     Args:
         ast: Root-level AST nodes
         baseurl: Base URL prefix (e.g., "/bengal")
-    
+
     Returns:
         New AST with baseurl-prefixed internal links
-    
+
     Example:
             >>> ast = [{"type": "link", "url": "/docs/guide/", "children": []}]
             >>> transformed = add_baseurl_to_ast(ast, "/bengal")
             >>> transformed[0]["url"]
             '/bengal/docs/guide/'
-        
+
     """
     if not baseurl:
         return ast
@@ -220,19 +220,19 @@ def transform_ast_for_output(
 ) -> list[ASTNode]:
     """
     Apply all output transformations to AST.
-    
+
     Convenience function that applies:
     1. .md link normalization (if normalize_md=True)
     2. baseurl prefixing (if baseurl provided)
-    
+
     Args:
         ast: Root-level AST nodes
         baseurl: Optional base URL prefix
         normalize_md: Whether to normalize .md links (default True)
-    
+
     Returns:
         Transformed AST ready for rendering
-        
+
     """
     result = ast
 

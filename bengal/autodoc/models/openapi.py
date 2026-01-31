@@ -22,14 +22,14 @@ type HTTPMethod = Literal["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTI
 class OpenAPIParameterMetadata:
     """
     Metadata for OpenAPI parameter.
-    
+
     Attributes:
         name: Parameter name
         location: Where parameter is located (path, query, header, cookie)
         required: Whether parameter is required
         schema_type: Type of parameter
         description: Parameter description
-    
+
     Example:
             >>> meta = OpenAPIParameterMetadata(
             ...     name="user_id",
@@ -39,7 +39,7 @@ class OpenAPIParameterMetadata:
             ... )
             >>> meta.location
             'path'
-        
+
     """
 
     name: str
@@ -53,13 +53,13 @@ class OpenAPIParameterMetadata:
 class OpenAPIRequestBodyMetadata:
     """
     Metadata for OpenAPI request body.
-    
+
     Attributes:
         content_type: Media type (e.g., "application/json")
         schema_ref: Reference to schema
         required: Whether request body is required
         description: Request body description
-    
+
     Example:
             >>> meta = OpenAPIRequestBodyMetadata(
             ...     content_type="application/json",
@@ -68,7 +68,7 @@ class OpenAPIRequestBodyMetadata:
             ... )
             >>> meta.required
         True
-        
+
     """
 
     content_type: str = "application/json"
@@ -81,13 +81,13 @@ class OpenAPIRequestBodyMetadata:
 class OpenAPIResponseMetadata:
     """
     Metadata for OpenAPI response.
-    
+
     Attributes:
         status_code: HTTP status code (e.g., "200", "404", "default")
         description: Response description
         content_type: Media type
         schema_ref: Reference to response schema
-    
+
     Example:
             >>> meta = OpenAPIResponseMetadata(
             ...     status_code="200",
@@ -96,7 +96,7 @@ class OpenAPIResponseMetadata:
             ... )
             >>> meta.status_code
             '200'
-        
+
     """
 
     status_code: str
@@ -109,7 +109,7 @@ class OpenAPIResponseMetadata:
 class OpenAPIEndpointMetadata:
     """
     Metadata specific to OpenAPI endpoints.
-    
+
     Attributes:
         method: HTTP method (GET, POST, PUT, DELETE, etc.)
         path: URL path
@@ -121,7 +121,7 @@ class OpenAPIEndpointMetadata:
         responses: Response metadata
         security: Security requirements
         deprecated: Whether endpoint is deprecated
-    
+
     Example:
             >>> meta = OpenAPIEndpointMetadata(
             ...     method="GET",
@@ -131,7 +131,7 @@ class OpenAPIEndpointMetadata:
             ... )
             >>> meta.method
             'GET'
-        
+
     """
 
     method: HTTPMethod
@@ -150,13 +150,13 @@ class OpenAPIEndpointMetadata:
 class OpenAPIOverviewMetadata:
     """
     Metadata for OpenAPI spec overview.
-    
+
     Attributes:
         version: API version
         servers: Server URLs
         security_schemes: Available security schemes
         tags: API tags with descriptions
-    
+
     Example:
             >>> meta = OpenAPIOverviewMetadata(
             ...     version="1.0.0",
@@ -164,7 +164,7 @@ class OpenAPIOverviewMetadata:
             ... )
             >>> meta.version
             '1.0.0'
-        
+
     """
 
     version: str | None = None
@@ -188,14 +188,14 @@ class OpenAPIOverviewMetadata:
 class OpenAPISchemaMetadata:
     """
     Metadata for OpenAPI schema/model.
-    
+
     Attributes:
         schema_type: Type of schema (object, array, string, etc.)
         properties: Schema properties
         required: Required property names
         enum: Enum values if applicable
         example: Example value
-    
+
     Example:
             >>> meta = OpenAPISchemaMetadata(
             ...     schema_type="object",
@@ -203,7 +203,7 @@ class OpenAPISchemaMetadata:
             ... )
             >>> meta.schema_type
             'object'
-        
+
     """
 
     schema_type: str | None = None

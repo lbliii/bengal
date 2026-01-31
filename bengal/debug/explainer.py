@@ -76,28 +76,28 @@ DIRECTIVE_PATTERN = re.compile(
 class PageExplainer:
     """
     Generate explanations for how pages are built.
-    
+
     Provides complete traceability for any page including source info,
     template chain, dependencies, cache status, and diagnostics.
-    
+
     Creation:
         Direct instantiation: PageExplainer(site, cache=None, template_engine=None)
             - Created by CLI explain command
             - Requires Site instance with discovered content
-    
+
     Attributes:
         site: Site instance with pages and configuration
         cache: Optional BuildCache for cache status
         template_engine: Optional TemplateEngineProtocol for template resolution
-    
+
     Thread Safety:
         Thread-safe. Read-only operations only.
-    
+
     Examples:
         explainer = PageExplainer(site)
         explanation = explainer.explain("docs/guide.md")
         print(explanation.source.size_human)
-        
+
     """
 
     def __init__(
@@ -280,7 +280,9 @@ class PageExplainer:
             try:
                 return self._resolve_chain_from_engine(template_name)
             except Exception as e:
-                logger.debug("template_chain_resolution_failed", template=template_name, error=str(e))
+                logger.debug(
+                    "template_chain_resolution_failed", template=template_name, error=str(e)
+                )
 
         # Fallback: basic info without full chain
         chain.append(

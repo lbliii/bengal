@@ -54,9 +54,7 @@ class TestDetectionContext:
         assert ctx.cache is mock_cache
         assert ctx.site is mock_site
 
-    def test_default_values(
-        self, mock_cache: MagicMock, mock_site: MagicMock
-    ) -> None:
+    def test_default_values(self, mock_cache: MagicMock, mock_site: MagicMock) -> None:
         """DetectionContext has expected default values."""
         ctx = DetectionContext(cache=mock_cache, site=mock_site)
         assert ctx.tracker is None
@@ -66,15 +64,11 @@ class TestDetectionContext:
         assert ctx.forced_changed == frozenset()
         assert ctx.nav_changed == frozenset()
 
-    def test_creates_with_all_fields(
-        self, mock_cache: MagicMock, mock_site: MagicMock
-    ) -> None:
+    def test_creates_with_all_fields(self, mock_cache: MagicMock, mock_site: MagicMock) -> None:
         """DetectionContext can be created with all fields."""
         mock_tracker = MagicMock()
         mock_coordinator = MagicMock()
-        previous = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page.md")])
-        )
+        previous = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page.md")]))
         forced = frozenset([CacheKey("forced.md")])
         nav = frozenset([CacheKey("nav.md")])
 
@@ -103,13 +97,9 @@ class TestDetectionContext:
         ctx = DetectionContext(
             cache=mock_cache,
             site=mock_site,
-            previous=ChangeDetectionResult(
-                pages_to_rebuild=frozenset([CacheKey("page1.md")])
-            ),
+            previous=ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page1.md")])),
         )
-        new_result = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page2.md")])
-        )
+        new_result = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page2.md")]))
         new_ctx = ctx.with_previous(new_result)
 
         assert CacheKey("page1.md") in new_ctx.previous.pages_to_rebuild
@@ -120,9 +110,7 @@ class TestDetectionContext:
     ) -> None:
         """with_previous() returns new context (immutable)."""
         ctx = DetectionContext(cache=mock_cache, site=mock_site)
-        new_result = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page.md")])
-        )
+        new_result = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page.md")]))
         new_ctx = ctx.with_previous(new_result)
 
         assert new_ctx is not ctx
@@ -151,9 +139,7 @@ class TestDetectionContext:
         assert new_ctx.verbose is True
         assert new_ctx.forced_changed == forced
 
-    def test_is_frozen(
-        self, mock_cache: MagicMock, mock_site: MagicMock
-    ) -> None:
+    def test_is_frozen(self, mock_cache: MagicMock, mock_site: MagicMock) -> None:
         """DetectionContext is immutable (frozen)."""
         ctx = DetectionContext(cache=mock_cache, site=mock_site)
         with pytest.raises(AttributeError):
@@ -170,6 +156,7 @@ class TestChangeDetectorProtocol:
 
     def test_protocol_is_runtime_checkable(self) -> None:
         """ChangeDetector protocol is runtime checkable."""
+
         @dataclass
         class ValidDetector:
             def detect(self, ctx: DetectionContext) -> ChangeDetectionResult:
@@ -180,6 +167,7 @@ class TestChangeDetectorProtocol:
 
     def test_invalid_detector_not_instance(self) -> None:
         """Invalid detector is not instance of ChangeDetector."""
+
         @dataclass
         class InvalidDetector:
             def check(self, ctx: DetectionContext) -> ChangeDetectionResult:
@@ -190,6 +178,7 @@ class TestChangeDetectorProtocol:
 
     def test_detector_with_different_signature_not_instance(self) -> None:
         """Detector with wrong signature is not instance."""
+
         @dataclass
         class WrongSignatureDetector:
             def detect(self) -> ChangeDetectionResult:  # Missing ctx parameter
@@ -217,9 +206,7 @@ class TestChangeDetectorProtocol:
                 self.received_ctx = ctx
                 return self.result
 
-        expected_result = ChangeDetectionResult(
-            pages_to_rebuild=frozenset([CacheKey("page.md")])
-        )
+        expected_result = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page.md")]))
         detector = MockDetector(expected_result)
 
         result = detector.detect(ctx)
@@ -248,9 +235,7 @@ class TestDetectionContextIntegration:
                 return ChangeDetectionResult(
                     pages_to_rebuild=frozenset([CacheKey("page1.md")]),
                     rebuild_reasons={
-                        CacheKey("page1.md"): RebuildReason(
-                            RebuildReasonCode.CONTENT_CHANGED
-                        )
+                        CacheKey("page1.md"): RebuildReason(RebuildReasonCode.CONTENT_CHANGED)
                     },
                 )
 
@@ -261,9 +246,7 @@ class TestDetectionContextIntegration:
                     return ChangeDetectionResult(
                         pages_to_rebuild=frozenset([CacheKey("page2.md")]),
                         rebuild_reasons={
-                            CacheKey("page2.md"): RebuildReason(
-                                RebuildReasonCode.TAXONOMY_CASCADE
-                            )
+                            CacheKey("page2.md"): RebuildReason(RebuildReasonCode.TAXONOMY_CASCADE)
                         },
                     )
                 return ChangeDetectionResult.empty()

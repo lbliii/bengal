@@ -205,10 +205,10 @@ class TestPageMetaDescription:
 
 class TestPageReadingTime:
     """Test Page.reading_time cached property.
-    
+
     Note: reading_time now uses word_count (from _source) for calculation,
     ensuring consistent word counting between properties.
-        
+
     """
 
     def test_reading_time_calculation(self, tmp_path):

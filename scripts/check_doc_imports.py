@@ -50,7 +50,7 @@ STALE_PATTERNS = [
     ),
     # Patitas listed as template engine (it's a markdown parser)
     (
-        r'template_engine.*patitas',
+        r"template_engine.*patitas",
         None,  # Manual fix needed
         "patitas is a markdown parser, not a template engine",
     ),
@@ -80,39 +80,41 @@ DOC_EXTENSIONS = {".md", ".mdx", ".rst", ".txt"}
 
 def find_issues(root: Path) -> list[tuple[Path, int, str, str, str | None]]:
     """Find stale imports in documentation files.
-    
+
     Returns:
         List of (file, line_num, line_content, message, suggested_fix)
     """
     issues = []
-    
+
     for doc_dir in DOC_DIRS:
         dir_path = root / doc_dir
         if not dir_path.exists():
             continue
-            
+
         for file_path in dir_path.rglob("*"):
             if file_path.suffix not in DOC_EXTENSIONS:
                 continue
             if not file_path.is_file():
                 continue
-                
+
             try:
                 content = file_path.read_text(encoding="utf-8")
             except Exception:
                 continue
-                
+
             for line_num, line in enumerate(content.splitlines(), 1):
                 for pattern, replacement, message in STALE_PATTERNS:
                     if re.search(pattern, line):
-                        issues.append((
-                            file_path.relative_to(root),
-                            line_num,
-                            line.strip(),
-                            message,
-                            replacement,
-                        ))
-    
+                        issues.append(
+                            (
+                                file_path.relative_to(root),
+                                line_num,
+                                line.strip(),
+                                message,
+                                replacement,
+                            )
+                        )
+
     return issues
 
 
@@ -130,19 +132,19 @@ def main() -> int:
         help="Root directory to check (default: current directory)",
     )
     args = parser.parse_args()
-    
+
     print(f"Checking documentation in {args.root}...")
     print()
-    
+
     issues = find_issues(args.root)
-    
+
     if not issues:
         print("✅ No stale imports found")
         return 0
-    
+
     print(f"❌ Found {len(issues)} issue(s):")
     print()
-    
+
     for file_path, line_num, line_content, message, suggested_fix in issues:
         print(f"  {file_path}:{line_num}")
         print(f"    Line: {line_content[:80]}{'...' if len(line_content) > 80 else ''}")
@@ -150,7 +152,7 @@ def main() -> int:
         if args.fix and suggested_fix:
             print(f"    Fix: Change to '{suggested_fix}'")
         print()
-    
+
     return 1
 
 

@@ -88,7 +88,7 @@ logger = get_logger(__name__)
 class DevServer:
     """
     Development server with file watching, auto-rebuild, and serve-first startup.
-    
+
     Provides a complete development environment for Bengal sites with:
     - Serve-first startup: Serves cached content immediately for instant first paint
     - Background validation: Validates cache and hot-reloads if stale
@@ -98,14 +98,14 @@ class DevServer:
     - Stale process detection and cleanup
     - Automatic port fallback
     - Optional browser auto-open
-    
+
     The server uses serve-first when cached output exists: it starts serving
     immediately while validating in the background. If validation finds stale
     content, it triggers a hot reload. This provides instant first paint for
     returning users.
-    
+
     When no cache exists, the server falls back to build-first mode.
-    
+
     Features:
     - Serve-first startup (instant first paint when cache exists)
     - Incremental + parallel builds (5-10x faster than full builds)
@@ -113,15 +113,15 @@ class DevServer:
     - Custom 404 error pages
     - PID file tracking for stale process detection
     - Comprehensive resource cleanup on shutdown
-    
+
     Example:
         from bengal.core import Site
         from bengal.server import DevServer
-    
+
         site = Site.from_config()
         server = DevServer(site, port=5173, watch=True)
         server.start()  # Runs until Ctrl+C
-        
+
     """
 
     def __init__(
@@ -443,7 +443,9 @@ class DevServer:
             # Trigger hot reload
             send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
             icons = get_icon_set(should_use_emoji())
-            print(f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading...")
+            print(
+                f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading..."
+            )
         else:
             icons = get_icon_set(should_use_emoji())
             print(f"\n  {icons.success} Cache validated - content is fresh")
@@ -476,9 +478,7 @@ class DevServer:
             cfg = getattr(self.site, "config", {}) or {}
 
             try:
-                min_interval = get_dev_config(
-                    cfg, "reload", "min_notify_interval_ms", default=300
-                )
+                min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
                 controller.set_min_notify_interval_ms(int(min_interval))
             except Exception as e:
                 logger.warning("reload_config_min_interval_failed", error=str(e))

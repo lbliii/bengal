@@ -58,14 +58,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from bengal.config.defaults import DEFAULTS
-from bengal.config.environment import detect_environment, get_environment_file_candidates
+from bengal.config.environment import detect_environment
 from bengal.config.feature_mappings import expand_features
+from bengal.config.loader_utils import (
+    extract_baseurl,
+    flatten_config,
+    load_environment_config,
+    load_profile_config,
+    load_yaml_file,
+    warn_search_ui_without_index,
+)
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
-from bengal.errors import BengalConfigError, ErrorCode, format_suggestion, record_error
+from bengal.errors import BengalConfigError, ErrorCode, format_suggestion
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -74,12 +80,12 @@ logger = get_logger(__name__)
 class ConfigLoadError(BengalConfigError):
     """
     Raised when configuration loading fails.
-    
+
     This exception is raised for various configuration loading failures
     including missing directories, invalid YAML syntax, or file permission
     errors. Extends :class:`~bengal.errors.BengalConfigError` for consistent
     error handling throughout the configuration system.
-    
+
     Attributes:
         Inherited from BengalConfigError:
             message: Description of the error.
@@ -87,20 +93,18 @@ class ConfigLoadError(BengalConfigError):
             line_number: Line number where the error occurred (if applicable).
             suggestion: Helpful suggestion for fixing the error.
             original_error: The underlying exception, if any.
-        
-    """
 
-    pass
+    """
 
 
 class ConfigDirectoryLoader:
     """
     Load configuration from a directory structure with layered overrides.
-    
+
     This loader supports multi-file configurations organized in directories,
     with automatic environment detection and profile-based customization.
     It provides deterministic merging with clear precedence rules.
-    
+
     Features:
         - **Multi-file configs**: Split configuration across multiple YAML files
           in ``_default/`` for better organization.
@@ -111,32 +115,32 @@ class ConfigDirectoryLoader:
         - **Origin tracking**: Optional tracking of which file contributed each
           configuration key (for ``bengal config show --origin``).
         - **Feature expansion**: Simple feature toggles expanded to detailed config.
-    
+
     Attributes:
         track_origins: Whether origin tracking is enabled.
         origin_tracker: The :class:`ConfigWithOrigin` instance if tracking is enabled.
-    
+
     Example:
         Basic usage::
-    
+
             loader = ConfigDirectoryLoader()
             config = loader.load(Path("config"))
-    
+
         With origin tracking::
-    
+
             loader = ConfigDirectoryLoader(track_origins=True)
             config = loader.load(Path("config"), environment="production")
             tracker = loader.get_origin_tracker()
             print(tracker.show_with_origin())
-    
+
         With profile::
-    
+
             config = loader.load(
                 Path("config"),
                 environment="local",
                 profile="developer"
             )
-        
+
     """
 
     def __init__(self, track_origins: bool = False) -> None:
@@ -224,7 +228,7 @@ class ConfigDirectoryLoader:
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
             default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
-            detected_baseurl = self._extract_baseurl(default_config)
+            detected_baseurl = extract_baseurl(default_config)
             if detected_baseurl is not None:
                 explicit_baseurl = detected_baseurl
             config = deep_merge(config, default_config)
@@ -239,9 +243,9 @@ class ConfigDirectoryLoader:
             )
 
         # Layer 2: Environment overrides from environments/<env>.yaml
-        env_config = self._load_environment(config_dir, environment)
+        env_config = load_environment_config(config_dir, environment)
         if env_config:
-            detected_baseurl = self._extract_baseurl(env_config)
+            detected_baseurl = extract_baseurl(env_config)
             if detected_baseurl is not None:
                 explicit_baseurl = detected_baseurl
             config = deep_merge(config, env_config)
@@ -250,9 +254,9 @@ class ConfigDirectoryLoader:
 
         # Layer 3: Profile settings from profiles/<profile>.yaml
         if profile:
-            profile_config = self._load_profile(config_dir, profile)
+            profile_config = load_profile_config(config_dir, profile)
             if profile_config:
-                detected_baseurl = self._extract_baseurl(profile_config)
+                detected_baseurl = extract_baseurl(profile_config)
                 if detected_baseurl is not None:
                     explicit_baseurl = detected_baseurl
                 config = deep_merge(config, profile_config)
@@ -263,13 +267,13 @@ class ConfigDirectoryLoader:
         config = expand_features(config)
 
         # Warn about common theme.features vs features confusion
-        self._warn_search_ui_without_index(config)
+        warn_search_ui_without_index(config)
 
         # Normalize misplaced site keys (title/baseurl/etc. at root) into site section
         config = self._normalize_site_keys(config)
 
         # Flatten config (site.title → title, build.parallel → parallel)
-        config = self._flatten_config(config)
+        config = flatten_config(config)
 
         # Preserve whether baseurl was explicitly set in user config (including empty string)
         if explicit_baseurl is not None:
@@ -323,7 +327,7 @@ class ConfigDirectoryLoader:
 
         for yaml_file in yaml_files:
             try:
-                file_config = self._load_yaml(yaml_file)
+                file_config = load_yaml_file(yaml_file)
                 configs.append(file_config)
 
                 logger.debug(
@@ -387,122 +391,6 @@ class ConfigDirectoryLoader:
 
         return config
 
-    def _load_environment(self, config_dir: Path, environment: str) -> dict[str, Any] | None:
-        """
-        Load environment-specific configuration overrides.
-
-        Searches for environment configuration in ``config_dir/environments/``
-        using multiple filename candidates (e.g., ``production.yaml``,
-        ``prod.yaml``).
-
-        Args:
-            config_dir: Root configuration directory.
-            environment: Environment name (e.g., ``"production"``, ``"preview"``).
-
-        Returns:
-            Environment configuration dictionary, or ``None`` if no matching
-            file is found.
-        """
-        env_dir = config_dir / "environments"
-        if not env_dir.exists():
-            return None
-
-        # Try candidates (production.yaml, prod.yaml, etc.)
-        candidates = get_environment_file_candidates(environment)
-
-        for candidate in candidates:
-            env_file = env_dir / candidate
-            if env_file.exists():
-                logger.debug("environment_config_found", file=str(env_file))
-                return self._load_yaml(env_file)
-
-        logger.debug(
-            "environment_config_not_found",
-            environment=environment,
-            tried=candidates,
-        )
-        return None
-
-    def _load_profile(self, config_dir: Path, profile: str) -> dict[str, Any] | None:
-        """
-        Load profile-specific configuration overrides.
-
-        Searches for profile configuration in ``config_dir/profiles/`` with
-        both ``.yaml`` and ``.yml`` extensions.
-
-        Args:
-            config_dir: Root configuration directory.
-            profile: Profile name (e.g., ``"writer"``, ``"developer"``).
-
-        Returns:
-            Profile configuration dictionary, or ``None`` if no matching
-            file is found.
-        """
-        profiles_dir = config_dir / "profiles"
-        if not profiles_dir.exists():
-            return None
-
-        # Try .yaml and .yml
-        for ext in [".yaml", ".yml"]:
-            profile_file = profiles_dir / f"{profile}{ext}"
-            if profile_file.exists():
-                logger.debug("profile_config_found", file=str(profile_file))
-                return self._load_yaml(profile_file)
-
-        logger.debug("profile_config_not_found", profile=profile)
-        return None
-
-    def _load_yaml(self, path: Path) -> dict[str, Any]:
-        """
-        Load a single YAML file with comprehensive error handling.
-
-        Parses the YAML file and returns its contents as a dictionary.
-        Provides detailed error messages with line numbers for syntax errors.
-
-        Args:
-            path: Path to the YAML file.
-
-        Returns:
-            Parsed YAML content as a dictionary. Returns an empty dict
-            if the file is empty or contains only ``null``.
-
-        Raises:
-            ConfigLoadError: If YAML parsing fails (with line number if available)
-                or if the file cannot be read (permissions, encoding, etc.).
-        """
-        try:
-            with path.open("r", encoding="utf-8") as f:
-                content = yaml.safe_load(f)
-                return content or {}
-        except yaml.YAMLError as e:
-            # Extract line number from YAML error if available
-            line_number = getattr(e, "problem_mark", None)
-            if line_number and hasattr(line_number, "line"):
-                line_num = line_number.line + 1  # YAML line numbers are 0-based
-            else:
-                line_num = None
-
-            error = ConfigLoadError(
-                f"Invalid YAML in {path}: {e}",
-                code=ErrorCode.C001,  # config_yaml_parse_error
-                file_path=path,
-                line_number=line_num,
-                suggestion="Check YAML syntax, indentation, and ensure all quotes are properly closed",
-                original_error=e,
-            )
-            record_error(error, file_path=str(path))
-            raise error from e
-        except Exception as e:
-            error = ConfigLoadError(
-                f"Failed to load {path}: {e}",
-                code=ErrorCode.C003,  # config_invalid_value
-                file_path=path,
-                suggestion="Check file permissions and encoding (must be UTF-8)",
-                original_error=e,
-            )
-            record_error(error, file_path=str(path))
-            raise error from e
-
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """
         Get the origin tracker instance.
@@ -524,110 +412,3 @@ class ConfigDirectoryLoader:
             '_default/site.yaml'
         """
         return self.origin_tracker
-
-    @staticmethod
-    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
-        """
-        Extract baseurl from a config dict if explicitly provided.
-
-        Returns the value if present (including empty string) or None if missing.
-        """
-        if not config or not isinstance(config, dict):
-            return None
-
-        site_section = config.get("site")
-        if isinstance(site_section, dict) and "baseurl" in site_section:
-            return site_section.get("baseurl")
-
-        if "baseurl" in config:
-            return config.get("baseurl")
-
-        return None
-
-    def _warn_search_ui_without_index(self, config: dict[str, Any]) -> None:
-        """
-        Warn if theme.features has search but search index won't be generated.
-
-        This catches a common confusion: users set ``theme.features: [search]``
-        (which only enables UI components) but don't realize they also need
-        ``features.search: true`` or ``output_formats.site_wide: [index_json]``
-        for search to actually work.
-
-        Args:
-            config: Configuration dictionary after feature expansion.
-        """
-        # Get theme.features (UI flags - list of strings)
-        theme = config.get("theme", {})
-        if not isinstance(theme, dict):
-            return
-
-        theme_features = theme.get("features", [])
-        if not isinstance(theme_features, list):
-            return
-
-        # Check if "search" is in theme.features
-        has_search_ui = any(
-            f == "search" or (isinstance(f, str) and f.startswith("search."))
-            for f in theme_features
-        )
-
-        if not has_search_ui:
-            return
-
-        # Check if search index will be generated
-        output_formats = config.get("output_formats", {})
-        if not isinstance(output_formats, dict):
-            return
-
-        site_wide = output_formats.get("site_wide", [])
-        has_index_json = "index_json" in site_wide if isinstance(site_wide, list) else False
-
-        if has_index_json:
-            return
-
-        # Search UI is enabled but no index will be generated - warn user
-        logger.warning(
-            "search_ui_without_index",
-            theme_features=[f for f in theme_features if "search" in str(f)],
-            site_wide_formats=site_wide,
-            suggestion=(
-                "Add 'features.search: true' to config/_default/features.yaml, "
-                "or add 'index_json' to output_formats.site_wide"
-            ),
-        )
-
-    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Flatten nested configuration for easier access.
-
-        Extracts values from common sections to the top level while preserving
-        the original section structure. This allows both flat access
-        (``config["title"]``) and section access (``config["site"]["title"]``).
-        Nested values (site.*, build.*, etc.) take precedence over top-level
-        values for consistency with Bengal's nested-first architecture.
-
-        Sections flattened:
-            - ``site.*`` → top level (title, baseurl, etc.)
-            - ``build.*`` → top level (parallel, incremental, etc.)
-            - ``features.*`` → top level (rss, sitemap, etc.)
-            - ``assets.*`` → top level (minify, optimize, etc.)
-            
-        Note: ``dev.*`` is NOT flattened to preserve environment-specific nesting.
-
-        Args:
-            config: Nested configuration dictionary.
-
-        Returns:
-            Flattened configuration dictionary. Original sections are preserved
-            and values are also accessible at the top level.
-        """
-        flat = dict(config)
-
-        # Extract values from known sections to top level
-        # Specific nested values override general flat values
-        # Note: "dev" is excluded from flattening to preserve environment-specific nesting
-        for section in ("site", "build", "assets", "features"):
-            if section in config and isinstance(config[section], dict):
-                flat.update(config[section])
-
-        return flat

@@ -21,6 +21,11 @@ Example:
 
 """
 
+from bengal.utils.observability.cli_progress import (
+    LiveProgressManager,
+    PhaseProgress,
+    PhaseStatus,
+)
 from bengal.utils.observability.logger import (
     BengalLogger,
     LazyLogger,
@@ -63,11 +68,6 @@ from bengal.utils.observability.progress import (
     NoopReporter,
     ProgressReporter,
 )
-from bengal.utils.observability.cli_progress import (
-    LiveProgressManager,
-    PhaseProgress,
-    PhaseStatus,
-)
 from bengal.utils.observability.rich_console import (
     PALETTE,
     bengal_theme,
@@ -80,53 +80,53 @@ from bengal.utils.observability.rich_console import (
 )
 
 __all__ = [
-    # logger
-    "BengalLogger",
-    "LazyLogger",
-    "LogLevel",
-    "LogEvent",
-    "get_logger",
-    "configure_logging",
-    "set_console_quiet",
-    "close_all_loggers",
-    "reset_loggers",
-    "print_all_summaries",
-    "truncate_str",
-    "truncate_error",
     # rich_console
     "PALETTE",
-    "bengal_theme",
-    "get_console",
-    "should_use_rich",
-    "should_use_emoji",
-    "detect_environment",
-    "reset_console",
-    "is_live_display_active",
-    # progress
-    "ProgressReporter",
-    "NoopReporter",
-    "LiveProgressReporterAdapter",
-    # cli_progress (moved from cli.progress)
-    "LiveProgressManager",
-    "PhaseProgress",
-    "PhaseStatus",
+    # logger
+    "BengalLogger",
+    # performance_report
+    "BuildMetric",
+    # profile
+    "BuildProfile",
     # observability
     "ComponentStats",
     "HasStats",
-    "format_phase_stats",
+    "LazyLogger",
+    # cli_progress (moved from cli.progress)
+    "LiveProgressManager",
+    "LiveProgressReporterAdapter",
+    "LogEvent",
+    "LogLevel",
+    "NoopReporter",
     # performance_collector
     "PerformanceCollector",
-    "format_memory",
-    # performance_report
-    "BuildMetric",
     "PerformanceReport",
-    # profile
-    "BuildProfile",
-    "set_current_profile",
+    "PhaseProgress",
+    "PhaseStatus",
+    # progress
+    "ProgressReporter",
+    "bengal_theme",
+    "close_all_loggers",
+    "configure_logging",
+    "detect_environment",
+    "format_memory",
+    "format_phase_stats",
+    "get_console",
     "get_current_profile",
+    "get_enabled_health_checks",
+    "get_logger",
+    "is_live_display_active",
+    "is_validator_enabled",
+    "print_all_summaries",
+    "reset_console",
+    "reset_loggers",
+    "set_console_quiet",
+    "set_current_profile",
+    "should_collect_metrics",
     "should_show_debug",
     "should_track_memory",
-    "should_collect_metrics",
-    "get_enabled_health_checks",
-    "is_validator_enabled",
+    "should_use_emoji",
+    "should_use_rich",
+    "truncate_error",
+    "truncate_str",
 ]

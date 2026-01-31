@@ -696,12 +696,12 @@ class TestCrossVersionLinks:
 
 class TestVersionDirectives:
     """Tests for version-aware directives (since, deprecated, changed).
-    
+
     Version directives now use Bengal's theme aesthetic with:
     - Luminescent left-edge glow animation
     - Palette-aware colors via CSS custom properties
     - Neumorphic badge styling with SVG icons
-        
+
     """
 
     def test_since_directive_badge(self) -> None:

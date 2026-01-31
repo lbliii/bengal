@@ -75,7 +75,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -83,39 +83,39 @@ logger = get_logger(__name__)
 class SiteLlmTxtGenerator:
     """
     Generates site-wide llm-full.txt for AI/LLM consumption.
-    
+
     Creates a single consolidated text file containing all site content,
     formatted for easy parsing by LLMs with clear page separators and
     structured metadata headers.
-    
+
     Creation:
         Direct instantiation: SiteLlmTxtGenerator(site, separator_width=80)
             - Created by OutputFormatsGenerator for LLM text generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages and configuration
         separator_width: Width of separator lines (default: 80)
-    
+
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for pages, Page.plain_text for content
-    
+
     Output Structure:
         - Site header: Title, URL, build date, page count
         - Per-page sections: Numbered pages with metadata and content
         - Separator lines between pages for clear boundaries
-    
+
     Optimizations:
         - Streaming write: O(c) memory instead of O(n×c) for large sites
         - Hash-based change detection: Skip regeneration if content unchanged
         - Uses cached Page.plain_text (computed during rendering)
-    
+
     Example:
             >>> generator = SiteLlmTxtGenerator(site, separator_width=80)
             >>> path = generator.generate(pages)
             >>> print(f"Generated: {path}")
-        
+
     """
 
     def __init__(

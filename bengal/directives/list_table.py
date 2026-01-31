@@ -23,12 +23,12 @@ logger = get_logger(__name__)
 class ListTableDirective(DirectivePlugin):
     """
     List table directive using MyST syntax.
-    
+
     Syntax:
         :::{list-table}
         :header-rows: 1
         :widths: 20 30 50
-    
+
         * - Header 1
           - Header 2
           - Header 3
@@ -39,12 +39,12 @@ class ListTableDirective(DirectivePlugin):
           - Row 2, Col 2
           - Row 2, Col 3
         :::
-    
+
     Supports:
     - :header-rows: number - Number of header rows (default: 0)
     - :widths: space-separated percentages - Column widths
     - :class: CSS class for the table
-        
+
     """
 
     # Directive names this class registers (for health check introspection)
@@ -192,15 +192,15 @@ class ListTableDirective(DirectivePlugin):
 def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render list table to HTML.
-    
+
     Args:
         renderer: Mistune renderer
         text: Rendered children content (unused for list tables)
         **attrs: Table attributes from directive
-    
+
     Returns:
         HTML string for list table
-        
+
     """
     import html as html_lib
 

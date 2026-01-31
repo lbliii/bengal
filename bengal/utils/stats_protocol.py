@@ -29,11 +29,11 @@ from typing import Any, Protocol, runtime_checkable
 class CoreStats(Protocol):
     """
     Minimal contract for any stats object.
-    
+
     This protocol defines the absolute minimum attributes that any
     build stats object must provide. Used for basic logging and
     simple display scenarios.
-        
+
     """
 
     total_pages: int
@@ -45,11 +45,11 @@ class CoreStats(Protocol):
 class DisplayableStats(CoreStats, Protocol):
     """
     Contract for stats objects usable with display_build_stats().
-    
+
     This protocol defines all attributes that display_build_stats()
     may access. Implementations must provide all these attributes,
     though timing values can be 0 (display skips them if 0).
-    
+
     Attributes:
         # Core counts
         total_pages: Total number of pages built
@@ -60,16 +60,16 @@ class DisplayableStats(CoreStats, Protocol):
         taxonomies_count: Number of taxonomy terms
         total_directives: Number of directives processed
         directives_by_type: Directive counts by type name
-    
+
         # Build flags
         build_time_ms: Total build duration in milliseconds
         incremental: Whether this was an incremental build
         parallel: Whether parallel rendering was used
         skipped: Whether the build was skipped (no changes)
-    
+
         # Warnings
         warnings: List of build warnings
-    
+
         # Phase timings (display skips if 0)
         discovery_time_ms: Content discovery phase duration
         taxonomy_time_ms: Taxonomy building phase duration
@@ -77,11 +77,11 @@ class DisplayableStats(CoreStats, Protocol):
         assets_time_ms: Asset processing phase duration
         postprocess_time_ms: Post-processing phase duration
         health_check_time_ms: Health check phase duration
-    
+
     Methods:
         has_errors: Property that returns True if build has errors
         get_error_summary: Returns dict with error/warning counts
-        
+
     """
 
     # Core counts

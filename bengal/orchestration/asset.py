@@ -31,16 +31,16 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
-from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.site import Site
+    from bengal.utils.observability.cli_progress import LiveProgressManager
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
@@ -49,37 +49,37 @@ _print_lock = Lock()
 class AssetOrchestrator:
     """
     Orchestrates asset processing for static files.
-    
+
     Handles asset copying, minification, optimization, and fingerprinting.
     Supports parallel processing for performance and maintains CSS entry point
     cache for efficient incremental builds.
-    
+
     Creation:
         Direct instantiation: AssetOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with assets populated
-    
+
     Attributes:
         site: Site instance containing assets and configuration
         logger: Logger instance for asset processing events
         _cached_css_entry_points: Cached CSS entry points (invalidated on asset changes)
         _cached_assets_id: Asset list identity for cache invalidation
         _cached_assets_len: Asset list length for cache invalidation
-    
+
     Relationships:
         - Uses: Asset class for asset representation and processing
         - Uses: AssetManifest for cache-busting manifest generation
         - Used by: BuildOrchestrator for asset processing phase
         - Uses: ThreadPoolExecutor for parallel asset processing
-    
+
     Thread Safety:
         Thread-safe for parallel asset processing. Uses thread-safe locks
         for output operations and maintains thread-local state where needed.
-    
+
     Examples:
         orchestrator = AssetOrchestrator(site)
         orchestrator.process(site.assets, parallel=True, progress_manager=progress)
-        
+
     """
 
     def __init__(self, site: Site):
@@ -593,12 +593,12 @@ class AssetOrchestrator:
         Returns:
             Asset representing the bundle.js file, or None if bundling fails
         """
-        from bengal.core.asset import Asset
         from bengal.assets.js_bundler import (
             bundle_js_files,
             get_theme_js_bundle_order,
             get_theme_js_excluded,
         )
+        from bengal.core.asset import Asset
 
         try:
             # Get configuration
@@ -639,7 +639,11 @@ class AssetOrchestrator:
                 if name in module_map:
                     target_file = module_map[name]
                     # Canonicalize for exclusion check
-                    rel_path_str = str(target_file.relative_to(js_dir)).replace("\\", "/") if js_dir else target_file.name
+                    rel_path_str = (
+                        str(target_file.relative_to(js_dir)).replace("\\", "/")
+                        if js_dir
+                        else target_file.name
+                    )
                     if rel_path_str not in excluded:
                         ordered_files.append(target_file)
 

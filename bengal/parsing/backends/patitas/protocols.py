@@ -12,11 +12,11 @@ from typing import Any, Protocol
 
 class LexerDelegate(Protocol):
     """Protocol for sub-lexers that process source ranges.
-    
+
     Thread Safety:
         Implementations must be stateless or use only local variables.
         The source string is read-only shared state.
-        
+
     """
 
     def tokenize_range(

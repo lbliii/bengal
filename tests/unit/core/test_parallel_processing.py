@@ -256,9 +256,9 @@ rss = false
 
 class TestParallelConfiguration:
     """Test configuration options for parallel processing.
-    
+
     Note: Config is now nested (build.parallel, build.max_workers).
-        
+
     """
 
     def test_parallel_enabled_by_default(self):
@@ -314,10 +314,10 @@ max_workers = 8
 @pytest.mark.parallel_unsafe
 class TestThreadSafety:
     """Test thread safety of parallel operations.
-    
+
     Marked parallel_unsafe: Uses ThreadPoolExecutor internally, which conflicts
     with pytest-xdist's parallel test execution (nested parallelism causes worker crashes).
-        
+
     """
 
     def test_concurrent_directory_creation(self):

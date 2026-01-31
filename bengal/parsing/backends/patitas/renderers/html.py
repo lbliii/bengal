@@ -48,8 +48,8 @@ from bengal.parsing.backends.patitas.render_config import RenderConfig, get_rend
 # Import modular components
 from bengal.parsing.backends.patitas.renderers.blocks import BlockRendererMixin
 from bengal.parsing.backends.patitas.renderers.directives import (
-    DirectiveRendererMixin,
     PAGE_DEPENDENT_DIRECTIVES,
+    DirectiveRendererMixin,
 )
 from bengal.parsing.backends.patitas.renderers.inline import INLINE_DISPATCH
 from bengal.parsing.backends.patitas.renderers.utils import (
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 
 
 # Re-export HeadingInfo for backward compatibility
-__all__ = ["HtmlRenderer", "HeadingInfo"]
+__all__ = ["HeadingInfo", "HtmlRenderer"]
 
 
 class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
@@ -100,14 +100,14 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
     _PAGE_DEPENDENT_DIRECTIVES = PAGE_DEPENDENT_DIRECTIVES
 
     __slots__ = (
+        "_current_page",
+        "_delegate",
+        "_directive_cache",
+        "_headings",
+        "_page_context",
+        "_seen_slugs",
         # Per-render state only (7 slots)
         "_source",
-        "_delegate",
-        "_headings",
-        "_seen_slugs",
-        "_page_context",
-        "_current_page",
-        "_directive_cache",
     )
 
     def __init__(

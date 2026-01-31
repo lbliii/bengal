@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 
 def pytest_configure(config: pytest.Config) -> None:
     """Configure Hypothesis and scaling knobs for CI speed vs nightly depth.
-    
+
     Environment-controlled profiles:
     - BENGAL_CI_FAST=1: reduce Hypothesis examples and scale of long tests.
-        
+
     """
     # Enforce Python 3.14+ requirement (fail fast if wrong version)
     import sys
@@ -92,36 +92,36 @@ pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers", "tests._t
 def test_progress(request):
     """
     Progress reporter for long-running tests.
-    
+
     Provides visual feedback during test execution. Enabled when running
     pytest with -v/--verbose flag.
-    
+
     Usage:
         def test_long_operation(test_progress):
             # Simple status updates
             test_progress.status("Starting...")
-    
+
             # Timed operations
             with test_progress.timed("Building site"):
                 site.build()
-    
+
             # Progress tracking for loops
             with test_progress.phase("Processing pages", total=100) as update:
                 for i, page in enumerate(pages):
                     process(page)
                     update(i + 1, page.title)
-    
+
             # Step-by-step progress
             test_progress.step(1, 3, "Discovering content")
             test_progress.step(2, 3, "Rendering pages")
             test_progress.step(3, 3, "Writing output")
-    
+
     Args:
         request: pytest request fixture (auto-injected)
-    
+
     Returns:
         TestProgressReporter instance
-        
+
     """
     from tests._testing.progress import TestProgressReporter
 
@@ -144,14 +144,14 @@ def pytest_collection_modifyitems(config, items):
     Modify collected test items to:
     1. Filter out non-test functions
     2. Configure xdist scheduling for parallel-unsafe tests
-    
+
     This prevents pytest from collecting functions like test_draft() from
     bengal/rendering/template_tests.py which are Jinja2 template tests,
     not pytest tests.
-    
+
     For xdist: Tests marked with 'serial' or 'parallel_unsafe' are assigned
     to the same worker to prevent "node down" errors from nested multiprocessing.
-        
+
     """
     # Filter out items that are collected from outside the tests directory
     filtered_items = []
@@ -185,11 +185,11 @@ def pytest_collection_modifyitems(config, items):
 def pytest_runtest_makereport(item, call):
     """
     Save detailed failure information and extract Bengal error codes.
-    
+
     This hook captures test failures and:
     1. Saves them to .pytest_cache/ for AI debugging
     2. Extracts Bengal error codes for the terminal summary
-        
+
     """
     outcome = yield
     report = outcome.get_result()
@@ -266,10 +266,10 @@ def pytest_terminal_summary(
 ) -> None:
     """
     Display Bengal error code summary for failed tests.
-    
+
     Groups failures by error category and shows actionable fix hints.
     This makes CI output more parseable for debugging.
-        
+
     """
     failed_reports: list[TestReport] = terminalreporter.stats.get("failed", [])
     if not failed_reports:
@@ -341,12 +341,12 @@ def pytest_terminal_summary(
 def sample_config_immutable():
     """
     Session-scoped config fixture for read-only tests.
-    
+
     Performance: Created ONCE per test session.
     Use this when tests only READ config and don't modify it.
-    
+
     WARNING: Do NOT modify this config in tests! Use sample_config() instead.
-        
+
     """
     return {
         "site": {"title": "Test Site", "baseurl": "https://example.com"},
@@ -358,20 +358,20 @@ def sample_config_immutable():
 def class_tmp_site(tmp_path_factory):
     """
     Class-scoped temporary site for tests that share setup.
-    
+
     Performance: Created ONCE per test class.
     Use this when multiple tests in a class can share the same site structure.
-    
+
     Example:
         class TestSiteFeatures:
             def test_feature_a(self, class_tmp_site):
                 # All tests in this class share the same site
-    
+
             def test_feature_b(self, class_tmp_site):
                 # Reuses the same site from test_feature_a
-    
+
     Note: If tests modify the site, use tmp_site() instead.
-        
+
     """
     return tmp_path_factory.mktemp("class_site")
 
@@ -380,13 +380,13 @@ def class_tmp_site(tmp_path_factory):
 def tmp_site(tmp_path):
     """
     Function-scoped temporary site for tests that modify state.
-    
+
     Performance: Created FRESH for each test.
     Use this when tests need isolated, clean state.
-    
+
     Note: This is SLOWER than class_tmp_site because it creates
     a new site for every test. Use class_tmp_site when possible.
-        
+
     """
     return tmp_path
 
@@ -395,14 +395,14 @@ def tmp_site(tmp_path):
 def sample_config():
     """
     Function-scoped config fixture for tests that modify config.
-    
+
     Performance: Created FRESH for each test.
     Each test gets its own copy, safe to modify.
-    
+
     Example:
         def test_config_modification(sample_config):
             sample_config["site"]["title"] = "Modified"  # Safe!
-        
+
     """
     return {
         "site": {"title": "Test Site", "baseurl": "https://example.com"},
@@ -414,7 +414,7 @@ def sample_config():
 def reset_bengal_state(request):
     """
     Reset all stateful singletons/caches between tests for test isolation.
-    
+
     This fixture runs automatically for every test (autouse=True) and ensures:
     - Rich console is reset (prevents Live display conflicts)
     - Logger state is cleared (prevents file handle leaks)
@@ -423,17 +423,17 @@ def reset_bengal_state(request):
       - Parser cache (ensures fresh parsers with current directives)
       - Created directories cache (fresh directory tracking per test)
       - Theme cache (ensures fresh theme discovery)
-    
+
     Cache Registry System:
         Caches register themselves at module import time via
         bengal.utils.cache_registry.register_cache(). This ensures new caches
         are automatically included in test cleanup without manual updates.
-    
+
     With the LazyLogger pattern, module-level logger references automatically
     refresh when reset_loggers() is called, eliminating orphaned logger issues.
-    
+
     See: docs/cache-registry-system.md for details on the cache registry system.
-        
+
     """
     # Setup: Clear all registered caches before test (ensures fresh state)
     # This is done before test to ensure clean state, and again after test for cleanup
@@ -509,12 +509,12 @@ def reset_bengal_state(request):
 def shared_site_class(request, tmp_path_factory):
     """
     Class-scoped temporary site for tests that can share setup.
-    
+
     Creates a basic site with sample content and builds it once per class.
     Tests can modify if needed, but prefer tmp_site for heavy changes.
-    
+
     Yields: Site object
-        
+
     """
     site_dir = tmp_path_factory.mktemp("shared_site")
 

@@ -24,7 +24,7 @@ def create_config_directory(
 ) -> None:
     """
     Create config directory structure with sensible defaults.
-    
+
     Args:
         site_path: Root path for the new site
         site_title: Title for the site
@@ -32,7 +32,7 @@ def create_config_directory(
         cli: CLI output helper for logging
         template: Site template type (blog, docs, portfolio, resume, default)
         baseurl: Base URL for the site
-        
+
     """
     config_dir = site_path / "config"
 
@@ -180,10 +180,10 @@ def _create_content_config(template: str) -> dict[str, Any]:
 
 def _create_build_config() -> dict[str, Any]:
     """Create build configuration.
-    
+
     Note: We don't set `incremental` here - it auto-detects based on cache presence.
     First build will be full (no cache), subsequent builds will be incremental (cache exists).
-        
+
     """
     return {
         "build": {

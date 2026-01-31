@@ -38,13 +38,13 @@ from bengal.orchestration.build.options import BuildOptions
 def create_test_site(template_complexity: str) -> Path:
     """
     Create test site with specified template complexity.
-    
+
     Args:
         template_complexity: One of 'baseline', 'light', 'medium', 'heavy', 'extreme'
-    
+
     Returns:
         Path to created site
-        
+
     """
     site_root = Path(mkdtemp(prefix=f"bengal_template_{template_complexity}_"))
 
@@ -394,14 +394,14 @@ def _create_extreme_templates(templates_dir: Path):
 def benchmark_template_complexity(complexity: str, runs: int = 3) -> dict:
     """
     Benchmark build with specified template complexity.
-    
+
     Args:
         complexity: Template complexity level
         runs: Number of runs to average
-    
+
     Returns:
         Dict with timing results
-        
+
     """
     print(f"\nBenchmarking {complexity.upper()} template complexity...")
 

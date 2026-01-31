@@ -130,20 +130,20 @@ logger = get_logger(__name__)
 def register_all(env: TemplateEnvironment, site: SiteLike, engine_type: str | None = None) -> None:
     """
     Register all template functions with template environment.
-    
+
     This is a thin coordinator - each module handles its own registration
     following the Single Responsibility Principle.
-    
+
     Non-context-dependent functions are registered directly by their modules.
     Context-dependent functions (t, current_lang, tag_url, asset_url) are
     registered by the adapter layer (see bengal.rendering.adapters).
-    
+
     Args:
         env: Template environment to register functions with
         site: Site instance for context-aware functions
         engine_type: Engine type for adapter selection (auto-detected if None).
                      If provided, also registers context-dependent functions.
-        
+
     """
     logger.debug("registering_template_functions", phase="template_setup")
 
@@ -217,8 +217,8 @@ def register_all(env: TemplateEnvironment, site: SiteLike, engine_type: str | No
 __all__ = [
     "advanced_collections",
     "advanced_strings",
-    "autodoc",
     "authors",
+    "autodoc",
     "blog",
     "changelog",
     "collections",

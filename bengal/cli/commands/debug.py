@@ -30,7 +30,6 @@ from bengal.errors.traceback import TracebackStyle
 @click.group("debug", cls=BengalGroup)
 def debug_cli() -> None:
     """Debug and diagnostic commands for builds."""
-    pass
 
 
 @debug_cli.command("incremental")
@@ -68,15 +67,15 @@ def incremental(
 ) -> None:
     """
     Debug incremental build issues.
-    
+
     Analyzes cache state, explains why pages rebuild, identifies phantom
     rebuilds, and validates cache consistency.
-    
+
     Examples:
         bengal debug incremental
         bengal debug incremental --explain content/posts/my-post.md
         bengal debug incremental --format json --output debug-report.json
-        
+
     """
     from bengal.cache.build_cache import BuildCache
     from bengal.debug import IncrementalBuildDebugger
@@ -188,16 +187,16 @@ def delta(
 ) -> None:
     """
     Compare builds and explain changes.
-    
+
     Shows what changed between builds including added/removed pages,
     timing changes, and configuration differences.
-    
+
     Examples:
         bengal debug delta
         bengal debug delta --baseline
         bengal debug delta --save-baseline
         bengal debug delta --format json --output delta-report.json
-        
+
     """
     from bengal.cache.build_cache import BuildCache
     from bengal.debug import BuildDeltaAnalyzer
@@ -309,15 +308,15 @@ def deps(
 ) -> None:
     """
     Visualize build dependencies.
-    
+
     Shows what a page depends on (templates, partials, data files) and
     what would rebuild if a file changed.
-    
+
     Examples:
         bengal debug deps content/posts/my-post.md
         bengal debug deps --blast-radius themes/default/layouts/base.html
         bengal debug deps --export mermaid --output deps.md
-        
+
     """
     from bengal.cache.build_cache import BuildCache
     from bengal.debug import DependencyVisualizer
@@ -423,16 +422,16 @@ def migrate(
 ) -> None:
     """
     Preview and execute content migrations.
-    
+
     Safely move, split, or merge content while maintaining link integrity
     and generating redirect rules.
-    
+
     Examples:
         bengal debug migrate
         bengal debug migrate --move docs/old.md guides/new.md
         bengal debug migrate --move docs/old.md guides/new.md --execute
         bengal debug migrate --move docs/old.md guides/new.md --dry-run
-        
+
     """
     from bengal.debug import ContentMigrator
 
@@ -533,17 +532,17 @@ def sandbox(
 ) -> None:
     """
     Test shortcodes/directives in isolation.
-    
+
     Renders directives without building the entire site, useful for
     testing and debugging directive syntax before adding to content.
-    
+
     Examples:
             bengal debug sandbox '```{note}\nThis is a note.\n```'
             bengal debug sandbox --file test-directive.md
             bengal debug sandbox --list-directives
             bengal debug sandbox --help-directive tabs
             bengal debug sandbox --validate-only '```{note}\nTest\n```'
-        
+
     """
     from bengal.debug import ShortcodeSandbox
 
@@ -678,16 +677,16 @@ def config_inspect(
 ) -> None:
     """
     Advanced configuration inspection and comparison.
-    
+
     Goes beyond 'bengal config diff' with origin tracking, impact analysis,
     and key-level value resolution explanations.
-    
+
     Examples:
         bengal debug config-inspect --list-sources
         bengal debug config-inspect --compare-to production
         bengal debug config-inspect --explain-key site.baseurl
         bengal debug config-inspect --find-issues
-        
+
     """
     from bengal.debug import ConfigInspector
 

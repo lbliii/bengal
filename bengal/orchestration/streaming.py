@@ -45,14 +45,14 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import ProgressReporter
     from bengal.build.tracking import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.render import RenderOrchestrator
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
-    from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import ProgressReporter
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 logger = get_logger(__name__)
@@ -61,43 +61,43 @@ logger = get_logger(__name__)
 class StreamingRenderOrchestrator:
     """
     Memory-optimized page rendering using knowledge graph analysis.
-    
+
     Processes pages in connectivity-based order to minimize memory usage.
     Hub pages are rendered first and kept in memory (they're referenced
     often), while leaf pages are streamed in batches with immediate release.
-    
+
     Strategy:
         1. Build/reuse knowledge graph to identify page connectivity
         2. Classify into hubs, mid-tier, and leaves based on link count
         3. Render hubs first (keep in memory for cross-page references)
         4. Process mid-tier in batches
         5. Stream leaves with gc.collect() after each batch
-    
+
     Memory Savings:
         80-90% reduction on large sites by not keeping all pages in memory.
         Leaf pages (typically 70-80% of content) are released immediately.
-    
+
     Creation:
         Direct instantiation: StreamingRenderOrchestrator(site)
             - Created by BuildOrchestrator when memory_optimized=True
             - Requires Site instance with pages populated
-    
+
     Attributes:
         site: Site instance containing pages for rendering
-    
+
     Relationships:
         - Uses: KnowledgeGraph for connectivity analysis
         - Uses: RenderOrchestrator for actual page rendering
         - Used by: BuildOrchestrator when memory_optimized flag is set
-    
+
     Best For:
         Sites with 5K+ pages where memory is constrained. For smaller sites,
         the graph analysis overhead exceeds benefits.
-    
+
     Example:
         streaming = StreamingRenderOrchestrator(site)
         streaming.process(pages, parallel=True, batch_size=100)
-        
+
     """
 
     def __init__(self, site: Site):

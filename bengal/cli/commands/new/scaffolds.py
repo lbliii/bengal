@@ -34,10 +34,10 @@ from .site import slugify
 def page_command(name: str, section: str) -> None:
     """
     📄 Create a new page.
-    
+
     The page name will be automatically slugified for the filename.
     Example: "My Awesome Page" → my-awesome-page.md
-        
+
     """
     cli = get_cli_output()
 
@@ -100,14 +100,14 @@ Your content goes here.
 def layout_command(name: str) -> None:
     """
     📋 Create a new layout template.
-    
+
     Layouts are reusable HTML templates used by pages.
     Example: "article" → templates/layouts/article.html
-    
+
     See also:
         bengal new partial - Create a partial template
         bengal new theme - Create a theme scaffold
-        
+
     """
     cli = get_cli_output()
 
@@ -165,14 +165,14 @@ def layout_command(name: str) -> None:
 def partial_command(name: str) -> None:
     """
     🧩 Create a new partial template.
-    
+
     Partials are reusable template fragments included in other templates.
     Example: "sidebar" → templates/partials/sidebar.html
-    
+
     See also:
         bengal new layout - Create a layout template
         bengal new theme - Create a theme scaffold
-        
+
     """
     cli = get_cli_output()
 
@@ -229,14 +229,14 @@ def partial_command(name: str) -> None:
 def theme_command(name: str) -> None:
     """
     Create a new theme scaffold.
-    
+
     Themes are self-contained template and asset packages.
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
-    
+
     See also:
         bengal new layout - Create a layout template
         bengal new partial - Create a partial template
-        
+
     """
     cli = get_cli_output()
 

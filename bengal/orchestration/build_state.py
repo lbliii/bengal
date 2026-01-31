@@ -50,20 +50,20 @@ from typing import Any
 class BuildState:
     """
     Mutable state for a single build execution.
-    
+
     Created fresh for each build. Passed through orchestration phases.
     Never stored on Site—Site remains the stable data container.
-    
+
     Lifecycle:
         1. Created at start of BuildOrchestrator.build()
         2. Passed through all 21 build phases
         3. Discarded after build completes (stats extracted first)
-    
+
     Thread Safety:
         - get_lock() provides named locks for parallel operations
         - Per-build isolation prevents cross-build interference
         - DevServer creates new BuildState for each rebuild
-    
+
     Attributes:
         build_time: Timestamp when build started
         incremental: Whether this is an incremental build
@@ -79,7 +79,7 @@ class BuildState:
         template_metadata_cache: Cached template metadata
         asset_manifest_previous: Previous manifest for incremental comparison
         asset_manifest_fallbacks: Set of fallback warnings already emitted
-        
+
     """
 
     # Build context

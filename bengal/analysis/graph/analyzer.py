@@ -38,8 +38,8 @@ from typing import TYPE_CHECKING
 from bengal.errors import BengalGraphError, ErrorCode
 
 if TYPE_CHECKING:
-    from bengal.analysis.graph.metrics import PageConnectivity
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
+    from bengal.analysis.graph.metrics import PageConnectivity
     from bengal.analysis.results import PageLayers
     from bengal.protocols import PageLike
 else:
@@ -49,14 +49,14 @@ else:
 class GraphAnalyzer:
     """
     Analyzes knowledge graph structure for page connectivity insights.
-    
+
     Provides methods for:
     - Connectivity scoring (incoming + outgoing refs)
     - Hub detection (highly connected pages)
     - Leaf detection (low connectivity pages)
     - Orphan detection (no connections)
     - Layer partitioning (for hub-first streaming builds)
-    
+
     Example:
             >>> from bengal.analysis import KnowledgeGraph
             >>> graph = KnowledgeGraph(site)
@@ -64,7 +64,7 @@ class GraphAnalyzer:
             >>> analyzer = GraphAnalyzer(graph)
             >>> hubs = analyzer.get_hubs(threshold=10)
             >>> orphans = analyzer.get_orphans()
-        
+
     """
 
     def __init__(self, graph: KnowledgeGraph) -> None:

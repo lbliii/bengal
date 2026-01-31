@@ -73,11 +73,11 @@ type ProgressCallback = Callable[[int, int, str], None]
 class PathAnalysisResults:
     """
     Results from path analysis and centrality computations.
-    
+
     Contains centrality metrics that identify important pages in the
     site's link structure. High betweenness indicates bridge pages,
     high closeness indicates easily accessible pages.
-    
+
     Attributes:
         betweenness_centrality: Map of pages to betweenness scores (0.0-1.0)
         closeness_centrality: Map of pages to closeness scores (0.0-1.0)
@@ -85,7 +85,7 @@ class PathAnalysisResults:
         avg_path_length: Average shortest path length between all page pairs
         is_approximate: True if approximation was used (for large sites)
         pivots_used: Number of pivot nodes used (if approximate)
-        
+
     """
 
     betweenness_centrality: dict[PageLike, float]
@@ -134,12 +134,12 @@ class PathAnalysisResults:
 class PathSearchResult:
     """
     Result from find_all_paths including metadata about the search.
-    
+
     Attributes:
         paths: List of paths found (each path is a list of pages)
         complete: True if search completed, False if terminated early
         termination_reason: Reason for early termination (if any)
-        
+
     """
 
     paths: list[list[PageLike]] = field(default_factory=list)
@@ -150,23 +150,23 @@ class PathSearchResult:
 class PathAnalyzer:
     """
     Analyze navigation paths and page accessibility.
-    
+
     Computes centrality metrics to identify:
     - Bridge pages (high betweenness): Pages that connect different parts of the site
     - Accessible pages (high closeness): Pages that are easy to reach from anywhere
     - Navigation bottlenecks: Critical pages for site navigation
-    
+
     For large sites (>500 pages by default), uses pivot-based approximation
     to achieve O(k*N) complexity instead of O(N²). This provides ~100x speedup
     for 10k page sites while maintaining accurate relative rankings.
-    
+
     Example:
             >>> analyzer = PathAnalyzer(knowledge_graph, k_pivots=100)
             >>> results = analyzer.analyze(progress_callback=lambda c, t, p: print(f"{p}: {c}/{t}"))
             >>> bridges = results.get_top_bridges(10)
             >>> print(f"Top bridge: {bridges[0][0].title}")
             >>> print(f"Approximate: {results.is_approximate}")
-        
+
     """
 
     # Default configuration
@@ -343,7 +343,7 @@ class PathAnalyzer:
         Returns:
             Dictionary mapping pages to betweenness centrality scores
         """
-        betweenness: dict[PageLike, float] = {page: 0.0 for page in pages}
+        betweenness: dict[PageLike, float] = dict.fromkeys(pages, 0.0)
 
         # Select sources (all pages for exact, k pivots for approximate)
         if use_approximate:
@@ -362,9 +362,9 @@ class PathAnalyzer:
             # BFS to find shortest paths
             stack: list[PageLike] = []
             predecessors: dict[PageLike, list[PageLike]] = {p: [] for p in pages}
-            sigma: dict[PageLike, int] = {p: 0 for p in pages}
+            sigma: dict[PageLike, int] = dict.fromkeys(pages, 0)
             sigma[source] = 1
-            distance: dict[PageLike, int] = {p: -1 for p in pages}
+            distance: dict[PageLike, int] = dict.fromkeys(pages, -1)
             distance[source] = 0
 
             queue: deque[PageLike] = deque([source])
@@ -389,7 +389,7 @@ class PathAnalyzer:
                         predecessors[neighbor].append(current)
 
             # Accumulation (back-propagation)
-            delta: dict[PageLike, float] = {p: 0.0 for p in pages}
+            delta: dict[PageLike, float] = dict.fromkeys(pages, 0.0)
 
             while stack:
                 current = stack.pop()
@@ -508,7 +508,7 @@ class PathAnalyzer:
 
     def _bfs_distances(self, source: PageLike, pages: list[PageLike]) -> dict[PageLike, int]:
         """Compute shortest path distances from source to all other pages."""
-        distances: dict[PageLike, int] = {p: -1 for p in pages}
+        distances: dict[PageLike, int] = dict.fromkeys(pages, -1)
         distances[source] = 0
 
         queue: deque[PageLike] = deque([source])
@@ -644,24 +644,24 @@ def analyze_paths(
 ) -> PathAnalysisResults:
     """
     Convenience function for path analysis.
-    
+
     Args:
         graph: KnowledgeGraph with page connections
         k_pivots: Number of pivot nodes for approximation (default: 100)
         seed: Random seed for deterministic results (default: 42)
         auto_approximate_threshold: Use exact if pages <= this (default: 500)
         progress_callback: Optional progress callback
-    
+
     Returns:
         PathAnalysisResults with centrality metrics
-    
+
     Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
             >>> results = analyze_paths(graph, k_pivots=50)
             >>> bridges = results.get_top_bridges(10)
             >>> print(f"Approximate: {results.is_approximate}")
-        
+
     """
     analyzer = PathAnalyzer(
         graph,

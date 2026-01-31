@@ -56,9 +56,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
-from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -79,14 +79,14 @@ if TYPE_CHECKING:
 class TaxonomyOrchestrator:
     """
     Handles taxonomies and dynamic page generation.
-    
+
     Responsibilities:
         - Collect tags, categories, and other taxonomies
         - Generate tag index pages
         - Generate individual tag pages (with pagination)
-    
+
     Note: Section archive pages are now handled by SectionOrchestrator
-        
+
     """
 
     def __init__(self, site: Site, threshold: int = 20, parallel: bool = True):

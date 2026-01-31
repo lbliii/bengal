@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 class MenuValidator(BaseValidator):
     """
     Validates navigation menu structure.
-    
+
     Checks:
     - Menu items exist and have valid URLs
     - No orphaned menu items (parent doesn't exist)
     - No circular references
     - Menu weights are sensible
-        
+
     """
 
     name = "Navigation Menus"
@@ -106,7 +106,8 @@ class MenuValidator(BaseValidator):
                 if not url.startswith(("http://", "https://", "//")):
                     # Check if any page has this URL (use _path for internal comparison)
                     found = any(
-                        (getattr(page, "_path", None) == url) or (getattr(page, "href", None) == url)
+                        (getattr(page, "_path", None) == url)
+                        or (getattr(page, "href", None) == url)
                         for page in site.pages
                     )
 

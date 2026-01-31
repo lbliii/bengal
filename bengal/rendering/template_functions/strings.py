@@ -14,8 +14,8 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorCode
-from bengal.utils.primitives import text as text_utils
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives import text as text_utils
 
 logger = get_logger(__name__)
 
@@ -54,18 +54,18 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def split_string(text: str, separator: str = " ") -> list[str]:
     """
     Split a string into a list using a separator.
-    
+
     Args:
         text: Text to split
         separator: Separator string (default: space)
-    
+
     Returns:
         List of string parts
-    
+
     Example:
         {{ "1.2.3" | split('.') }}  # ["1", "2", "3"]
         {{ "a,b,c" | split(',') }}  # ["a", "b", "c"]
-        
+
     """
     if not text:
         return []
@@ -88,28 +88,27 @@ def dict_get(obj: Any, key: str, default: Any = None) -> Any:
             error_type=type(e).__name__,
             action="returning_default",
         )
-        pass
     return default
 
 
 def truncatewords(text: str, count: int, suffix: str = "...") -> str:
     """
     Truncate text to a specified number of words.
-    
+
     Uses bengal.utils.text.truncate_words internally.
-    
+
     Args:
         text: Text to truncate
         count: Maximum number of words
         suffix: Text to append when truncated (default: "...")
-    
+
     Returns:
         Truncated text with suffix if needed
-    
+
     Example:
         {{ post.content | truncatewords(50) }}
         {{ post.content | truncatewords(30, " [Read more]") }}
-        
+
     """
     return text_utils.truncate_words(text, count, suffix)
 
@@ -117,24 +116,24 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
 def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     Truncate HTML text to word count, preserving HTML structure.
-    
+
     Uses a tag-aware approach that:
     1. Counts only text content words (not tag content)
     2. Keeps track of open tags
     3. Closes any unclosed tags at truncation point
-    
+
     Args:
         html: HTML text to truncate
         count: Maximum number of words
         suffix: Text to append when truncated
-    
+
     Returns:
         Truncated HTML with properly closed tags
-    
+
     Example:
         {{ post.html_content | truncatewords_html(50) }}
         {{ "<p>Hello <strong>world</strong></p>" | truncatewords_html(1) }}  # "<p>Hello...</p>"
-        
+
     """
     if not html:
         return ""
@@ -224,19 +223,19 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
 def slugify(text: str) -> str:
     """
     Convert text to URL-safe slug.
-    
+
     Uses bengal.utils.text.slugify internally.
     Converts to lowercase, removes special characters, replaces spaces with hyphens.
-    
+
     Args:
         text: Text to convert
-    
+
     Returns:
         URL-safe slug
-    
+
     Example:
         {{ page.title | slugify }}  # "Hello World!" -> "hello-world"
-        
+
     """
     return text_utils.slugify(text, unescape_html=False)
 
@@ -244,19 +243,19 @@ def slugify(text: str) -> str:
 def _convert_docstring_to_markdown(text: str) -> str:
     """
     Convert Google/NumPy-style docstrings to markdown.
-    
+
     Handles:
     - Indented lists (    - Item) → proper markdown lists
     - Section headers (Section:) → bold labels or headings
     - Doctest blocks (>>> ...) → fenced code blocks
     - Preserves existing code blocks
-    
+
     Args:
         text: Docstring text
-    
+
     Returns:
         Markdown-formatted text
-        
+
     """
     if not text:
         return ""
@@ -314,17 +313,17 @@ def _convert_docstring_to_markdown(text: str) -> str:
 def _convert_doctest_to_codeblocks(text: str) -> str:
     """
     Convert doctest-style examples (>>> ...) to fenced code blocks.
-    
+
     This prevents >>> from being interpreted as nested blockquotes by markdown.
     Only converts non-indented doctest blocks (indented ones become code blocks
     automatically via 4-space markdown rule).
-    
+
     Args:
         text: Text containing potential doctest blocks
-    
+
     Returns:
             Text with doctest blocks wrapped in ```python fences
-        
+
     """
     lines = text.split("\n")
     result = []
@@ -390,19 +389,19 @@ def _convert_doctest_to_codeblocks(text: str) -> str:
 def markdownify(text: str) -> str:
     """
     Render Markdown text to HTML.
-    
+
     Pre-processes Google-style docstrings to markdown, then converts to HTML
     using Patitas (Bengal's native parser) with table and strikethrough support.
-    
+
     Args:
         text: Markdown or docstring text
-    
+
     Returns:
         Rendered HTML
-    
+
     Example:
         {{ markdown_text | markdownify | safe }}
-        
+
     """
     if not text:
         return ""
@@ -421,18 +420,18 @@ def markdownify(text: str) -> str:
 def strip_html(text: str) -> str:
     """
     Remove all HTML tags from text.
-    
+
     Uses bengal.utils.text.strip_html internally.
-    
+
     Args:
         text: HTML text
-    
+
     Returns:
         Text with HTML tags removed
-    
+
     Example:
         {{ post.html_content | strip_html }}
-        
+
     """
     return text_utils.strip_html(text, decode_entities=True)
 
@@ -440,20 +439,20 @@ def strip_html(text: str) -> str:
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     """
     Truncate text to character length.
-    
+
     Uses bengal.utils.text.truncate_chars internally.
-    
+
     Args:
         text: Text to truncate
         length: Maximum character length
         suffix: Text to append when truncated
-    
+
     Returns:
         Truncated text with suffix if needed
-    
+
     Example:
         {{ post.excerpt | truncate_chars(200) }}
-        
+
     """
     return text_utils.truncate_chars(text, length, suffix)
 
@@ -461,18 +460,18 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
 def replace_regex(text: str, pattern: str, replacement: str) -> str:
     """
     Replace text using regular expression.
-    
+
     Args:
         text: Text to search in
         pattern: Regular expression pattern
         replacement: Replacement text
-    
+
     Returns:
         Text with replacements made
-    
+
     Example:
         {{ text | replace_regex('\\d+', 'NUM') }}
-        
+
     """
     if not text:
         return ""
@@ -495,21 +494,21 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
 def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     """
     Return singular or plural form based on count.
-    
+
     Uses bengal.utils.text.pluralize internally.
-    
+
     Args:
         count: Number to check
         singular: Singular form
         plural: Plural form (default: singular + 's')
-    
+
     Returns:
         Appropriate form based on count
-    
+
     Example:
         {{ posts | length }} {{ posts | length | pluralize('post', 'posts') }}
         {{ count | pluralize('item') }}  # auto-pluralizes to "items"
-        
+
     """
     return text_utils.pluralize(count, singular, plural)
 
@@ -517,18 +516,18 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
 def reading_time(text: str, wpm: int = 200) -> int:
     """
     Calculate reading time in minutes.
-    
+
     Args:
         text: Text to analyze
         wpm: Words per minute reading speed (default: 200)
-    
+
     Returns:
         Reading time in minutes (minimum 1)
-    
+
     Example:
         {{ post.content | reading_time }} min read
         {{ post.content | reading_time(250) }} min read
-        
+
     """
     if not text:
         return 1
@@ -549,22 +548,22 @@ def reading_time(text: str, wpm: int = 200) -> int:
 def word_count(text: str) -> int:
     """
     Count words in text.
-    
+
     Strips HTML tags before counting. Uses same logic as reading_time.
-    
+
     Args:
         text: Text to count (can contain HTML)
-    
+
     Returns:
         Number of words
-    
+
     Example:
         {{ page.word_count }} words  {# Recommended: use computed property #}
         {{ page.word_count }} words ({{ page.reading_time }} min read)
-    
+
         {# Filter works on any text #}
         {{ custom_text | word_count }} words
-        
+
     """
     if not text:
         return 0
@@ -575,19 +574,19 @@ def word_count(text: str) -> int:
 def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) -> str:
     """
     Extract excerpt from text, optionally respecting word boundaries.
-    
+
     Args:
         text: Text to excerpt from
         length: Maximum length in characters
         respect_word_boundaries: Don't cut words in half (default: True)
-    
+
     Returns:
         Excerpt with ellipsis if truncated
-    
+
     Example:
         {{ post.content | excerpt(200) }}
         {{ post.content | excerpt(150, false) }}  # Can cut words
-        
+
     """
     if not text:
         return ""
@@ -609,19 +608,19 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
 def strip_whitespace(text: str) -> str:
     """
     Remove extra whitespace (multiple spaces, newlines, tabs).
-    
+
     Uses bengal.utils.text.normalize_whitespace internally.
     Replaces all whitespace sequences with a single space.
-    
+
     Args:
         text: Text to clean
-    
+
     Returns:
         Text with normalized whitespace
-    
+
     Example:
         {{ messy_text | strip_whitespace }}
-        
+
     """
     return text_utils.normalize_whitespace(text, collapse=True)
 
@@ -629,21 +628,21 @@ def strip_whitespace(text: str) -> str:
 def first_sentence(text: str, max_length: int = 120) -> str:
     """
     Extract first sentence from text, or truncate if too long.
-    
+
     Useful for generating short descriptions from longer text blocks.
     Looks for sentence-ending punctuation (. ! ?) followed by whitespace.
-    
+
     Args:
         text: Text to extract first sentence from
         max_length: Maximum length before truncation (default: 120)
-    
+
     Returns:
         First sentence or truncated text with ellipsis
-    
+
     Example:
         {{ page.description | first_sentence }}
         {{ section.metadata.description | first_sentence(80) }}
-        
+
     """
     if not text:
         return ""
@@ -670,19 +669,19 @@ def first_sentence(text: str, max_length: int = 120) -> str:
 def filesize(size_bytes: int) -> str:
     """
     Format bytes as human-readable file size.
-    
+
     Wraps bengal.utils.text.humanize_bytes for template use.
-    
+
     Args:
         size_bytes: Size in bytes
-    
+
     Returns:
         Human-readable size string (e.g., "1.5 MB", "256 KB")
-    
+
     Example:
         {{ asset.size | filesize }}
         {{ page.content | length | filesize }}
-        
+
     """
     return text_utils.humanize_bytes(size_bytes)
 
@@ -690,17 +689,17 @@ def filesize(size_bytes: int) -> str:
 def base64_encode(text: str | None) -> str:
     """
     Encode text as Base64.
-    
+
     Args:
         text: Text to encode
-    
+
     Returns:
         Base64 encoded string
-    
+
     Example:
         {{ "hello" | base64_encode }}  # "aGVsbG8="
         {{ small_image | base64_encode }}  # For data URLs
-        
+
     """
     if not text:
         return ""
@@ -714,16 +713,16 @@ def base64_encode(text: str | None) -> str:
 def base64_decode(text: str | None) -> str:
     """
     Decode Base64 text.
-    
+
     Args:
         text: Base64 encoded string
-    
+
     Returns:
         Decoded text, or empty string on error
-    
+
     Example:
         {{ "aGVsbG8=" | base64_decode }}  # "hello"
-        
+
     """
     if not text:
         return ""

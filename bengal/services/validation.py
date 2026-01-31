@@ -52,24 +52,24 @@ if TYPE_CHECKING:
 class TemplateValidationService(Protocol):
     """
     Protocol defining the template validation service interface.
-    
+
     Implementations validate templates for a given site and return the count
     of validation errors found. This protocol enables dependency injection
     and makes validation logic easily swappable for testing.
-    
+
     Any class implementing this protocol must provide a `validate` method
     that accepts a Site and returns an integer error count.
-    
+
     Example:
         Custom implementation::
-    
+
             class StrictValidator:
                 def validate(self, site: Any) -> int:
                     # Custom validation logic
                     return count_errors(site)
-    
+
             validator: TemplateValidationService = StrictValidator()
-        
+
     """
 
     def validate(self, site: Any) -> int:
@@ -88,17 +88,17 @@ class TemplateValidationService(Protocol):
 def _default_engine_factory(site: Any) -> TemplateEngine:
     """
     Create a TemplateEngine instance from a site.
-    
+
     This is the default factory used by DefaultTemplateValidationService.
     It uses the create_engine() factory which respects site configuration
     for template engine selection (Kida, Jinja2, etc.).
-    
+
     Args:
         site: The Site instance to create the engine for.
-    
+
     Returns:
         Configured TemplateEngine for the given site.
-        
+
     """
     from bengal.rendering.engines import create_engine
 
@@ -108,16 +108,16 @@ def _default_engine_factory(site: Any) -> TemplateEngine:
 def _default_validator(engine: Any) -> int:
     """
     Validate templates using the health.validators.templates module.
-    
+
     This is the default validator used by DefaultTemplateValidationService.
     It delegates to the concrete validate_templates function.
-    
+
     Args:
         engine: The TemplateEngine instance to validate.
-    
+
     Returns:
         Number of validation errors found.
-        
+
     """
     from bengal.health.validators.templates import validate_templates
 
@@ -128,31 +128,31 @@ def _default_validator(engine: Any) -> int:
 class DefaultTemplateValidationService:
     """
     Default implementation of TemplateValidationService.
-    
+
     Adapts bengal.health.validators.templates for use via the service interface.
     This keeps CLI commands and other consumers decoupled from concrete rendering
     internals while preserving all validation behavior.
-    
+
     Dependencies are injectable via constructor, enabling testing without patches
     or mocks. Pass custom `engine_factory` or `validator` callables to override
     the default behavior.
-    
+
     Attributes:
         engine_factory: Callable that creates a TemplateEngine from a Site.
         validator: Callable that validates templates and returns error count.
-    
+
     Example:
         Default usage::
-    
+
             service = DefaultTemplateValidationService()
             errors = service.validate(site)
-    
+
         With custom validator for testing::
-    
+
             service = DefaultTemplateValidationService(
                 validator=lambda engine: 0  # Always passes
             )
-        
+
     """
 
     engine_factory: Callable[[Any], Any] = field(default=_default_engine_factory)

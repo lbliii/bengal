@@ -50,23 +50,23 @@ if TYPE_CHECKING:
 class ContentRegistry:
     """
     O(1) content lookups by path, URL, and metadata.
-    
+
     Thread-safe for reads after freeze(). Rebuilt atomically during discovery.
-    
+
     Lifecycle:
         1. Created empty at Site initialization
         2. Populated during discovery phase (register_page/register_section)
         3. Frozen before rendering phase (freeze())
         4. Cleared on rebuild (clear())
-    
+
     Thread Safety:
         - Writes (register_*) must happen single-threaded during discovery
         - Reads (get_*) are safe after freeze() for concurrent rendering
         - Frozen registry raises BengalError on mutation attempts
-    
+
     Attributes:
         url_ownership: URLRegistry for collision detection and ownership tracking
-        
+
     """
 
     # Path-based lookups (primary keys)

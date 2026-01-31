@@ -38,18 +38,18 @@ from typing import Protocol
 @dataclass
 class TemplateFile:
     """Represents a file to be created from a site template.
-    
+
     A ``TemplateFile`` encapsulates the rendered content and the relative path
     where the file should be placed inside a specific target area of the
     project tree. The CLI will iterate these instances and write them to disk.
-    
+
     Attributes:
         relative_path: Project‑relative path under ``target_dir`` (e.g.
             ``"posts/first-post.md"`` or ``"_index.md"``).
         content: The fully rendered file contents to be written.
         target_dir: Top‑level destination directory. Common values are
             ``"content"``, ``"data"``, and ``"templates"``.
-        
+
     """
 
     relative_path: str  # Relative path from content/data directory
@@ -60,12 +60,12 @@ class TemplateFile:
 @dataclass
 class SiteTemplate:
     """A concrete site template definition.
-    
+
     A ``SiteTemplate`` declares all files and optional directories that should
     be created when the template is applied. Template providers typically
     construct one instance per template (e.g. ``blog``, ``docs``) and expose it
     via a module‑level ``TEMPLATE`` variable for discovery.
-    
+
     Attributes:
         id: Stable identifier used from the CLI (e.g. ``"blog"``).
         name: Human‑friendly display name.
@@ -75,7 +75,7 @@ class SiteTemplate:
             files (useful for empty folders that should be tracked).
         menu_sections: Section slugs that can be used by generators to seed a
             default navigation menu for the site.
-        
+
     """
 
     id: str
@@ -112,12 +112,12 @@ class SiteTemplate:
 
 class TemplateProvider(Protocol):
     """Protocol for template providers.
-    
+
     Custom template packages can implement this protocol and expose a
     ``get_template`` classmethod that returns a fully constructed
     ``SiteTemplate`` instance. The registry will import such providers during
     discovery.
-        
+
     """
 
     @classmethod

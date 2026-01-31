@@ -43,7 +43,9 @@ class TestDebugToolsInstantiation:
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
         (templates_dir / "base.html").write_text("<html>{% block content %}{% endblock %}</html>")
-        (templates_dir / "page.html").write_text('{% extends "base.html" %}{% block content %}{{ page.content }}{% endblock %}')
+        (templates_dir / "page.html").write_text(
+            '{% extends "base.html" %}{% block content %}{{ page.content }}{% endblock %}'
+        )
 
         return tmp_path
 

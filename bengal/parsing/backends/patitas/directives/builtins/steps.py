@@ -49,13 +49,14 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
+from patitas.nodes import Directive
+
 from bengal.parsing.backends.patitas.directives.contracts import (
     STEP_CONTRACT,
     STEPS_CONTRACT,
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
-from patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -66,14 +67,14 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class StepOptions(StyledOptions):
     """Options for step directive.
-    
+
     Attributes:
         description: Lead-in text with special typography
         optional: Mark step as optional/skippable
         duration: Estimated time for the step
         step_number: Step number (injected by parent steps container)
         heading_level: Heading level for step title (injected by parent)
-        
+
     """
 
     description: str | None = None
@@ -86,11 +87,11 @@ class StepOptions(StyledOptions):
 @dataclass(frozen=True, slots=True)
 class StepsOptions(StyledOptions):
     """Options for steps container directive.
-    
+
     Attributes:
         style: Step style (compact, default)
         start: Start numbering from this value
-        
+
     """
 
     style: str | None = None
@@ -99,12 +100,12 @@ class StepsOptions(StyledOptions):
 
 class StepDirective:
     """Handler for step directive.
-    
+
     Individual step that must be inside a steps container.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("step",)
@@ -225,12 +226,12 @@ class StepDirective:
 
 class StepsDirective:
     """Handler for steps container directive.
-    
+
     Contains step children that form a numbered list.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("steps",)

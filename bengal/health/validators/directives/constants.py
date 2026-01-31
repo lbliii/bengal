@@ -21,9 +21,9 @@ KNOWN_DIRECTIVES = KNOWN_DIRECTIVE_NAMES
 
 # Re-export type-specific constants
 __all__ = [
-    "KNOWN_DIRECTIVES",
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
+    "KNOWN_DIRECTIVES",
     "MAX_NESTING_DEPTH",
     "MAX_TABS_PER_BLOCK",
 ]

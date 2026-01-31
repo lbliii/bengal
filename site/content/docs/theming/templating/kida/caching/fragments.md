@@ -3,7 +3,6 @@ title: Fragment Caching
 nav_title: Fragment Caching
 description: Manual caching for expensive template operations
 weight: 20
-type: doc
 tags:
 - how-to
 - kida

@@ -113,10 +113,10 @@ def measure_cache_size(site_root: Path) -> float:
 def run_stability_benchmark(num_builds: int = 100):
     """
     Run multiple consecutive incremental builds and track stability.
-    
+
     Args:
         num_builds: Number of consecutive builds to perform
-        
+
     """
     print("=" * 80)
     print(f"BUILD STABILITY BENCHMARK - {num_builds} CONSECUTIVE BUILDS")
@@ -278,10 +278,10 @@ def run_stability_benchmark(num_builds: int = 100):
 def run_cache_corruption_test():
     """
     Test that cache remains valid after many updates.
-    
+
     Validates that incremental builds produce identical output to full builds
     even after hundreds of cache updates.
-        
+
     """
     print("=" * 80)
     print("CACHE INTEGRITY TEST")

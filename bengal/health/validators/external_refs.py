@@ -16,10 +16,10 @@ from bengal.health.report import CheckResult, CheckStatus
 class ExternalRefValidator(BaseValidator):
     """
     Validate external references resolved during rendering.
-    
+
     Emits warnings for unresolved [[ext:project:target]] so builds can surface
     missing templates or indexes without failing.
-        
+
     """
 
     name = "external_references"

@@ -39,32 +39,32 @@ logger = get_logger(__name__)
 
 class WriteBehindCollector:
     """Async write-behind buffer for rendered pages.
-    
+
     Worker threads push (path, content) pairs to a queue.
     A dedicated writer thread drains the queue to disk.
-    
+
     Benefits:
         - Overlaps CPU (rendering) with I/O (writing)
         - Reduces worker thread blocking on disk
         - Batches directory creation
-    
+
     Attributes:
         _queue: Thread-safe queue of (Path, str) pairs
         _writer_thread: Background thread draining to disk
         _shutdown: Event signaling shutdown
         _error: Any error from writer thread
         _writes_completed: Count of successful writes
-        
+
     """
 
     __slots__ = (
-        "_queue",
-        "_writer_thread",
-        "_shutdown",
-        "_error",
-        "_writes_completed",
-        "_fast_writes",
         "_created_dirs",
+        "_error",
+        "_fast_writes",
+        "_queue",
+        "_shutdown",
+        "_writer_thread",
+        "_writes_completed",
     )
 
     def __init__(self, site: Site | None = None, max_queue_size: int = 500) -> None:

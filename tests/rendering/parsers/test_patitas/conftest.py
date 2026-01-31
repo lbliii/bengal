@@ -87,7 +87,7 @@ def tokenize():
 @pytest.fixture
 def parse_md():
     """Parse markdown and return HTML with default plugins enabled.
-    
+
     Uses create_markdown() to enable table, strikethrough, task_lists,
     math, and footnotes plugins (matches PatitasParser defaults).
     """
@@ -98,8 +98,10 @@ def parse_md():
 @pytest.fixture
 def parse_ast():
     """Parse markdown and return AST with default plugins enabled."""
+
     def _parse_ast(source: str):
         return parse_to_ast(source, plugins=DEFAULT_TEST_PLUGINS)
+
     return _parse_ast
 
 

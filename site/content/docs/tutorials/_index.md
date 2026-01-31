@@ -4,9 +4,6 @@ nav_title: Tutorials
 description: Step-by-step guides for building with Bengal
 weight: 20
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: graduation-cap
 ---
 

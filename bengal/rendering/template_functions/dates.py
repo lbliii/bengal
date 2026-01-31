@@ -34,18 +34,18 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def time_ago(date: datetime | str | None) -> str:
     """
     Convert date to human-readable "time ago" format.
-    
+
     Uses bengal.utils.dates.time_ago internally for robust date handling.
-    
+
     Args:
         date: Date to convert (datetime object or ISO string)
-    
+
     Returns:
         Human-readable time ago string
-    
+
     Example:
         {{ post.date | time_ago }}  # "2 days ago", "5 hours ago", etc.
-        
+
     """
     from bengal.utils.primitives.dates import time_ago as time_ago_util
 
@@ -55,19 +55,19 @@ def time_ago(date: datetime | str | None) -> str:
 def date_iso(date: datetime | str | None) -> str:
     """
     Format date as ISO 8601 string.
-    
+
     Uses bengal.utils.dates.format_date_iso internally for robust date handling.
-    
+
     Args:
         date: Date to format
-    
+
     Returns:
         ISO 8601 formatted date string
-    
+
     Example:
         <time datetime="{{ post.date | date_iso }}">
         # Output: 2025-10-03T14:30:00
-        
+
     """
     from bengal.utils.primitives.dates import format_date_iso
 
@@ -77,19 +77,19 @@ def date_iso(date: datetime | str | None) -> str:
 def date_rfc822(date: datetime | str | None) -> str:
     """
     Format date as RFC 822 string (for RSS feeds).
-    
+
     Uses bengal.utils.dates.format_date_rfc822 internally for robust date handling.
-    
+
     Args:
         date: Date to format
-    
+
     Returns:
         RFC 822 formatted date string
-    
+
     Example:
         <pubDate>{{ post.date | date_rfc822 }}</pubDate>
         # Output: Fri, 03 Oct 2025 14:30:00 +0000
-        
+
     """
     from bengal.utils.primitives.dates import format_date_rfc822
 
@@ -99,18 +99,18 @@ def date_rfc822(date: datetime | str | None) -> str:
 def days_ago(date: datetime | str | None, now: datetime | None = None) -> int:
     """
     Calculate days since the given date.
-    
+
     Args:
         date: Date to calculate from (datetime object or ISO string)
         now: Current time for comparison (defaults to now)
-    
+
     Returns:
         Number of days since date, or 0 if date is None/invalid
-    
+
     Example:
         {% if post.date | days_ago < 7 %}NEW{% endif %}
         {{ post.date | days_ago }} days old
-        
+
     """
     from bengal.utils.primitives.dates import parse_date
 
@@ -128,20 +128,20 @@ def days_ago(date: datetime | str | None, now: datetime | None = None) -> int:
 def months_ago(date: datetime | str | None, now: datetime | None = None) -> int:
     """
     Calculate months since the given date.
-    
+
     Uses calendar months rather than 30-day periods for more intuitive results.
-    
+
     Args:
         date: Date to calculate from (datetime object or ISO string)
         now: Current time for comparison (defaults to now)
-    
+
     Returns:
         Number of months since date, or 0 if date is None/invalid
-    
+
     Example:
         {% if post.date | months_ago > 6 %}OLD{% endif %}
         Published {{ post.date | months_ago }} months ago
-        
+
     """
     from bengal.utils.primitives.dates import parse_date
 
@@ -160,19 +160,19 @@ def months_ago(date: datetime | str | None, now: datetime | None = None) -> int:
 def month_name(month: int, abbrev: bool = False) -> str:
     """
     Get month name from month number (1-12).
-    
+
     Args:
         month: Month number (1=January, 12=December)
         abbrev: If True, return abbreviated name (Jan, Feb, etc.)
-    
+
     Returns:
         Month name string, or empty string if invalid
-    
+
     Example:
         {{ 3 | month_name }}        → "March"
         {{ 3 | month_name(true) }}  → "Mar"
         {{ post.date.month | month_name }}
-        
+
     """
     if not isinstance(month, int) or month < 1 or month > 12:
         return ""
@@ -185,19 +185,19 @@ def month_name(month: int, abbrev: bool = False) -> str:
 def humanize_days(days: int) -> str:
     """
     Convert day count to human-readable relative time.
-    
+
     Provides friendly labels for common time periods.
-    
+
     Args:
         days: Number of days
-    
+
     Returns:
         Human-readable string like "today", "yesterday", "3 days ago"
-    
+
     Example:
         {{ post.date | days_ago | humanize_days }}
         → "yesterday", "3 days ago", "2 weeks ago", "3 months ago"
-        
+
     """
     if not isinstance(days, int):
         try:
@@ -240,7 +240,7 @@ def date_add(
 ) -> datetime | None:
     """
     Add time to a date.
-    
+
     Args:
         date: Base date (datetime object or ISO string)
         days: Days to add (negative to subtract)
@@ -248,15 +248,15 @@ def date_add(
         hours: Hours to add
         minutes: Minutes to add
         seconds: Seconds to add
-    
+
     Returns:
         New datetime, or None if date is invalid
-    
+
     Example:
         {{ page.date | date_add(days=7) }}  # One week later
         {{ now | date_add(days=-30) }}  # 30 days ago
         {{ event.start | date_add(hours=2) }}  # 2 hours later
-        
+
     """
     from bengal.utils.primitives.dates import parse_date
 
@@ -281,21 +281,21 @@ def date_diff(
 ) -> int | dict | None:
     """
     Calculate difference between two dates.
-    
+
     Args:
         date1: First date (usually the later date)
         date2: Second date (usually the earlier date)
         unit: Return unit ('days', 'hours', 'minutes', 'seconds', or 'all')
-    
+
     Returns:
         Difference in specified unit, or dict with all units if unit='all'
         Returns None if either date is invalid
-    
+
     Example:
         {{ end_date | date_diff(start_date) }}  # Days between dates
         {{ end_date | date_diff(start_date, unit='hours') }}  # Hours between
         {{ end_date | date_diff(start_date, unit='all') }}  # Dict with all units
-        
+
     """
     from bengal.utils.primitives.dates import parse_date
 

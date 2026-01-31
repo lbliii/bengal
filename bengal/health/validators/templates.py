@@ -38,17 +38,17 @@ logger = get_logger(__name__)
 class TemplateValidator:
     """
     Validates templates for syntax errors and missing dependencies.
-    
+
     This validator uses the template engine's built-in validation to check:
     - Syntax errors (unclosed tags, invalid expressions)
     - Missing included templates
     - Invalid extends references
-    
+
     Works with any engine implementing TemplateEngineProtocol (Jinja2, Kida, etc.).
-    
+
     Attributes:
         template_engine: TemplateEngine instance to validate
-        
+
     """
 
     def __init__(self, template_engine: Any) -> None:
@@ -63,7 +63,7 @@ class TemplateValidator:
     def validate_all(self) -> list[Any]:
         """
         Validate all templates in the theme.
-        
+
         Uses the engine's built-in validate() method which is engine-agnostic.
         Works with Jinja2, Kida, and any other engine implementing the protocol.
 
@@ -104,15 +104,15 @@ class TemplateValidator:
 def validate_templates(template_engine: Any) -> int:
     """
     Validate all templates and display results.
-    
+
     This is the main entry point for CLI template validation.
-    
+
     Args:
         template_engine: TemplateEngine instance
-    
+
     Returns:
         Number of errors found
-        
+
     """
     click.echo(click.style("\n🔍 Validating templates...\n", fg="cyan", bold=True))
 

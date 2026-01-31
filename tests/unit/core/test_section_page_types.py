@@ -20,9 +20,7 @@ from bengal.core.page.page_core import PageCore
 from bengal.core.section import Section
 
 
-def make_page_core(
-    source_path: str | Path, title: str, *, weight: int | None = None
-) -> PageCore:
+def make_page_core(source_path: str | Path, title: str, *, weight: int | None = None) -> PageCore:
     """Helper to create a PageCore for testing."""
     return PageCore(
         source_path=str(source_path),
@@ -50,8 +48,10 @@ def make_proxy(
     """Helper to create a PageProxy for testing."""
     core = make_page_core(source_path, title, weight=weight)
     if loader is None:
+
         def loader(path: Path = source_path) -> Page:
             return make_page(path, title)
+
     return PageProxy(
         source_path=source_path,
         metadata=core,
@@ -135,9 +135,7 @@ class TestSectionQueriesWithProxy:
 
         assert len(all_pages) == 2
 
-    def test_find_page_by_title(
-        self, docs_section: Section, content_dir: Path
-    ) -> None:
+    def test_find_page_by_title(self, docs_section: Section, content_dir: Path) -> None:
         """Finding pages by attribute should work with proxies."""
         page1 = make_proxy(content_dir / "p1.md", "First")
         page2 = make_proxy(content_dir / "p2.md", "Second")
@@ -190,9 +188,7 @@ class TestPageProxyLazyLoading:
             full_page = proxy._full_page
             assert isinstance(full_page, Page)
 
-    def test_proxy_load_once(
-        self, docs_section: Section, content_dir: Path
-    ) -> None:
+    def test_proxy_load_once(self, docs_section: Section, content_dir: Path) -> None:
         """Loader should only be called once on repeated access."""
         call_count = [0]
 
@@ -244,9 +240,7 @@ class TestSectionIterationWithProxies:
 class TestSectionPageFiltering:
     """Test filtering operations work with both types."""
 
-    def test_filter_by_attribute(
-        self, docs_section: Section, content_dir: Path
-    ) -> None:
+    def test_filter_by_attribute(self, docs_section: Section, content_dir: Path) -> None:
         """Filtering pages by attribute should work for proxies."""
         page1 = make_proxy(content_dir / "p1.md", "Python Guide", weight=1)
         page2 = make_proxy(content_dir / "p2.md", "Java Guide", weight=2)
@@ -273,9 +267,7 @@ class TestTypeAnnotationCompatibility:
 
         assert len(docs_section.pages) == 2
 
-    def test_section_builder_compatibility(
-        self, content_dir: Path
-    ) -> None:
+    def test_section_builder_compatibility(self, content_dir: Path) -> None:
         """SectionBuilder should work with PageProxy."""
         from bengal.content.discovery.section_builder import SectionBuilder
 

@@ -30,12 +30,12 @@ from textual.widgets import Static
 class BuildPhase:
     """
     Represents a build phase with status.
-    
+
     Attributes:
         name: Phase name (e.g., "Discovery", "Rendering")
         status: Phase status (pending, running, complete, error)
         duration_ms: Duration in milliseconds (None if not complete)
-        
+
     """
 
     name: str
@@ -46,16 +46,16 @@ class BuildPhase:
 class BuildPhasePlan(Grid):
     """
     Visual build phase tracker.
-    
+
     Displays build phases in a grid with status icons, names, and durations.
     Automatically recomposes when phases are updated.
-    
+
     Status icons:
         ○ pending (gray)
         ● running (orange, animated)
         ✓ complete (green)
         ✗ error (red)
-    
+
     Example:
         plan = BuildPhasePlan(id="build-phases")
         plan.phases = [
@@ -63,7 +63,7 @@ class BuildPhasePlan(Grid):
             BuildPhase("Taxonomies", "running"),
             BuildPhase("Rendering", "pending"),
         ]
-        
+
     """
 
     DEFAULT_CSS = """

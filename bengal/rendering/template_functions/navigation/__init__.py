@@ -73,24 +73,24 @@ if TYPE_CHECKING:
 
 
 __all__ = [
-    # Functions
-    "register",
-    "get_breadcrumbs",
-    "get_toc_grouped",
-    "build_toc_tree",
-    "get_pagination_items",
-    "get_nav_tree",
-    "get_nav_context",
-    "get_auto_nav",
-    "get_section",
-    "section_pages",
-    "combine_track_toc_items",
+    "AutoNavItem",
     # Models
     "BreadcrumbItem",
-    "PaginationItem",
     "PaginationInfo",
+    "PaginationItem",
     "TocGroupItem",
-    "AutoNavItem",
+    "build_toc_tree",
+    "combine_track_toc_items",
+    "get_auto_nav",
+    "get_breadcrumbs",
+    "get_nav_context",
+    "get_nav_tree",
+    "get_pagination_items",
+    "get_section",
+    "get_toc_grouped",
+    # Functions
+    "register",
+    "section_pages",
 ]
 
 

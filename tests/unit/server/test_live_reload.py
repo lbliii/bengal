@@ -189,7 +189,9 @@ class TestInjectLiveReloadIntoResponse:
             inject_live_reload_into_response,
         )
 
-        response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Test</body></html>"
+        response = (
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Test</body></html>"
+        )
         result = inject_live_reload_into_response(response)
 
         assert LIVE_RELOAD_SCRIPT.encode() in result

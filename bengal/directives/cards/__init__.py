@@ -42,17 +42,17 @@ from bengal.directives.cards.utils import (
 )
 
 __all__ = [
-    # Main directives
-    "CardsDirective",
-    "CardDirective",
-    "ChildCardsDirective",
-    # Options classes
-    "CardsOptions",
-    "CardOptions",
-    "ChildCardsOptions",
     # Utilities
     "VALID_COLORS",
     "VALID_GAPS",
     "VALID_LAYOUTS",
     "VALID_STYLES",
+    "CardDirective",
+    "CardOptions",
+    # Main directives
+    "CardsDirective",
+    # Options classes
+    "CardsOptions",
+    "ChildCardsDirective",
+    "ChildCardsOptions",
 ]

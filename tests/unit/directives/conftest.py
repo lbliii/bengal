@@ -16,7 +16,7 @@ import pytest
 class MockBlockState:
     """
     Realistic mock for Mistune's BlockState.
-    
+
     Mimics the structure of patitas.core.BlockState with proper env handling.
     This fixture helps test directive parsing with realistic state tracking.
     """
@@ -55,12 +55,12 @@ class MockBlockState:
 def mock_block_state(tmp_path: Path) -> MockBlockState:
     """
     Create a realistic mock BlockState for directive parsing tests.
-    
+
     The state has:
     - root_path set to a temp directory (for file resolution)
     - env initialized as empty dict (not None!)
     - source_path set to a content file in the temp dir
-    
+
     Usage:
         def test_directive(mock_block_state):
             directive = SomeDirective()
@@ -83,9 +83,9 @@ def mock_block_state(tmp_path: Path) -> MockBlockState:
 def mock_block_state_factory(tmp_path: Path):
     """
     Factory fixture for creating multiple isolated block states.
-    
+
     Useful for testing state isolation between parallel parses.
-    
+
     Usage:
         def test_parallel_parsing(mock_block_state_factory):
             state1 = mock_block_state_factory()
@@ -114,12 +114,12 @@ def mock_block_state_factory(tmp_path: Path):
 def mock_renderer():
     """
     Create a mock renderer for directive rendering tests.
-    
+
     The renderer has:
     - _site with default config
     - __call__ method that returns rendered HTML
     - render_children for nested content
-    
+
     Usage:
         def test_render(mock_renderer):
             directive = SomeDirective()
@@ -145,7 +145,7 @@ def mock_renderer():
 def mock_renderer_factory():
     """
     Factory for creating renderers with specific configs.
-    
+
     Usage:
         def test_different_configs(mock_renderer_factory):
             css_renderer = mock_renderer_factory(tabs_mode="css_state_machine")
@@ -182,9 +182,9 @@ def mock_renderer_factory():
 def temp_content_tree(tmp_path: Path):
     """
     Create a temporary content tree for include directive tests.
-    
+
     Returns a helper to create files within the content directory.
-    
+
     Usage:
         def test_includes(temp_content_tree):
             temp_content_tree.create("snippets/code.md", "```python\ncode\n```")

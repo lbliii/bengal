@@ -227,9 +227,7 @@ class WarmBuildTestSite:
         if not self.output_exists(relative_path):
             return  # File doesn't exist, so it can't contain text
         content = self.read_output(relative_path)
-        assert text not in content, (
-            f"Found unexpected '{text}' in {relative_path}"
-        )
+        assert text not in content, f"Found unexpected '{text}' in {relative_path}"
 
     def assert_output_exists(self, relative_path: str) -> None:
         """

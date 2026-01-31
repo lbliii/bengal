@@ -111,17 +111,17 @@ class FunctionTimings:
 class TemplateProfiler:
     """
     Collects and reports template rendering performance data.
-    
+
     Thread-safe implementation supports parallel builds.
-    
+
     Example:
         profiler = TemplateProfiler()
         profiler.start_template("base.html")
         # ... render ...
         profiler.end_template("base.html")
-    
+
         report = profiler.get_report()
-        
+
     """
 
     def __init__(self) -> None:
@@ -270,19 +270,19 @@ def profile_function(
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator factory for profiling template functions.
-    
+
     Args:
         profiler: TemplateProfiler instance
         func_name: Name to record for this function
-    
+
     Returns:
         Decorator that wraps function with timing
-    
+
     Example:
         @profile_function(profiler, "get_menu_lang")
         def get_menu_lang(menu_name, lang):
                 ...
-        
+
     """
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -306,10 +306,10 @@ def profile_function(
 class ProfiledTemplate:
     """
     Wrapper around Jinja2 Template that adds render timing.
-    
+
     Delegates all attribute access to the wrapped template while
     intercepting render() calls for profiling.
-        
+
     """
 
     def __init__(self, template: Template, profiler: TemplateProfiler) -> None:
@@ -350,14 +350,14 @@ class ProfiledTemplate:
 def format_profile_report(report: dict[str, Any], top_n: int = 20) -> str:
     """
     Format profiling report for CLI output.
-    
+
     Args:
         report: Profiling report from TemplateProfiler.get_report()
         top_n: Number of top items to show per category
-    
+
     Returns:
         Formatted report string for display
-        
+
     """
     lines = []
     summary = report.get("summary", {})
@@ -435,10 +435,10 @@ def get_profiler() -> TemplateProfiler | None:
 def enable_profiling() -> TemplateProfiler:
     """
     Enable template profiling globally.
-    
+
     Returns:
         The global TemplateProfiler instance
-        
+
     """
     global _global_profiler
     if _global_profiler is None:

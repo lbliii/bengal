@@ -33,9 +33,10 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
+from patitas.nodes import Directive
+
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
-from patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -46,24 +47,24 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class ContainerOptions(StyledOptions):
     """Options for container directive.
-    
+
     The :class: option adds additional CSS classes beyond
     those specified in the title.
-        
+
     """
 
-    pass  # Uses class_ from StyledOptions
+    # Uses class_ from StyledOptions
 
 
 class ContainerDirective:
     """Handler for container directive.
-    
+
     Renders a generic wrapper div with custom CSS classes.
     The title line is treated as class names.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("container", "div")

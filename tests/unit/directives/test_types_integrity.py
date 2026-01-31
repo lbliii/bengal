@@ -73,7 +73,7 @@ class TestTypedDictInheritance:
     def test_all_typed_dicts_have_base_fields(self):
         """All directive TypedDicts should have the base fields from DirectiveAttrs."""
         base_fields = {"class_", "id", "title"}
-        
+
         directive_types = [
             DirectiveAttrs,
             TitledAttrs,
@@ -92,9 +92,7 @@ class TestTypedDictInheritance:
         for typed_dict in directive_types:
             hints = get_type_hints(typed_dict)
             for field in base_fields:
-                assert field in hints, (
-                    f"{typed_dict.__name__} missing base field '{field}'"
-                )
+                assert field in hints, f"{typed_dict.__name__} missing base field '{field}'"
 
 
 class TestDirectiveTokenIntegrity:
@@ -260,8 +258,7 @@ class TestTypeHintConsistency:
             first_type = title_types[0][1]
             for name, hint in title_types[1:]:
                 assert hint == first_type, (
-                    f"Inconsistent title type: {name} has {hint}, "
-                    f"expected {first_type}"
+                    f"Inconsistent title type: {name} has {hint}, expected {first_type}"
                 )
 
     def test_class_field_consistent(self):

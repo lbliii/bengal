@@ -32,7 +32,7 @@ rendering begins.
 Related Modules:
 bengal.content.discovery.content_discovery: Low-level content discovery
 bengal.content.discovery.asset_discovery: Low-level asset discovery
-bengal.core.cascade_engine: Cascade application logic
+bengal.core.cascade_snapshot: Immutable cascade data for thread-safe resolution
 
 See Also:
 bengal.orchestration.build: Build coordinator that calls this orchestrator
@@ -49,11 +49,10 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.asset import Asset
+    from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -62,13 +61,13 @@ logger = get_logger(__name__)
 class ContentOrchestrator:
     """
     Handles content and asset discovery.
-    
+
     Responsibilities:
         - Discover content (pages and sections)
         - Discover assets (site and theme)
         - Set up page/section references for navigation
         - Apply cascading frontmatter from sections to pages
-        
+
     """
 
     def __init__(self, site: Site):
@@ -381,10 +380,15 @@ class ContentOrchestrator:
                                 cached_payload
                             )
                             # Register autodoc dependencies with build_cache so has_autodoc_tracking is True
-                            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
+                            if build_cache is not None and hasattr(
+                                build_cache, "add_autodoc_dependency"
+                            ):
                                 from bengal.utils.primitives.hashing import hash_file
 
-                                for source_file, page_hashes in run_result.autodoc_dependencies.items():
+                                for (
+                                    source_file,
+                                    page_hashes,
+                                ) in run_result.autodoc_dependencies.items():
                                     src_path = _resolve_autodoc_source(Path(source_file))
                                     if _is_external_autodoc_source(src_path):
                                         continue
@@ -579,23 +583,36 @@ class ContentOrchestrator:
         # Optimization: Skip asset discovery if only content files changed
         options = getattr(self.site, "_last_build_options", None)
         cache = getattr(self.site, "_cache", None)
-        
-        if options and options.incremental and options.changed_sources and not options.structural_changed:
+
+        if (
+            options
+            and options.incremental
+            and options.changed_sources
+            and not options.structural_changed
+        ):
             content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
             non_content_changes = [
-                s for s in options.changed_sources 
-                if s.suffix.lower() not in content_extensions
+                s for s in options.changed_sources if s.suffix.lower() not in content_extensions
             ]
-            
-            if not non_content_changes and cache and hasattr(cache, "discovered_assets") and cache.discovered_assets:
+
+            if (
+                not non_content_changes
+                and cache
+                and hasattr(cache, "discovered_assets")
+                and cache.discovered_assets
+            ):
                 from bengal.core.asset import Asset
+
                 self.site.assets = []
                 for src_rel, out_rel in cache.discovered_assets.items():
-                    self.site.assets.append(Asset(
-                        source_path=self.site.root_path / src_rel,
-                        output_path=Path(out_rel)
-                    ))
-                logger.debug("asset_discovery_skipped", reason="only_content_changed", count=len(self.site.assets))
+                    self.site.assets.append(
+                        Asset(source_path=self.site.root_path / src_rel, output_path=Path(out_rel))
+                    )
+                logger.debug(
+                    "asset_discovery_skipped",
+                    reason="only_content_changed",
+                    count=len(self.site.assets),
+                )
                 return
 
         from bengal.content.discovery.asset_discovery import AssetDiscovery
@@ -672,32 +689,21 @@ class ContentOrchestrator:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
 
-        Delegates to CascadeEngine for the actual implementation and collects statistics.
+        Implementation:
+            1. Builds immutable CascadeSnapshot for thread-safe resolution
+            2. Applies cascade values to page.metadata for backward compatibility
         """
-        from bengal.core.cascade_engine import CascadeEngine
+        # Build immutable cascade snapshot for thread-safe resolution
+        # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
+        self.site.build_cascade_snapshot()
+        logger.debug(
+            "cascade_snapshot_built",
+            sections_with_cascade=len(self.site.cascade),
+        )
 
-        engine = CascadeEngine(self.site.pages, self.site.sections)
-        stats = engine.apply()
-
-        # Log cascade statistics
-        if stats.get("cascade_keys_applied"):
-            keys_info = ", ".join(
-                f"{k}({v})" for k, v in sorted(stats["cascade_keys_applied"].items())
-            )
-            logger.info(
-                "cascades_applied",
-                pages_processed=stats["pages_processed"],
-                pages_affected=stats["pages_with_cascade"],
-                root_cascade_pages=stats["root_cascade_pages"],
-                cascade_keys=keys_info,
-            )
-        else:
-            logger.debug(
-                "cascades_applied",
-                pages_processed=stats["pages_processed"],
-                pages_affected=0,
-                reason="no_cascades_defined",
-            )
+        # Apply cascade values to page.metadata for backward compatibility
+        # This ensures templates using page.metadata.get('cascaded_key') still work
+        self.site._apply_cascade_to_pages()
 
     def _check_weight_metadata(self) -> None:
         """
@@ -962,5 +968,5 @@ class ContentOrchestrator:
             Path to theme assets or None if not found
         """
         from bengal.services.theme import get_theme_assets_dir
-        
+
         return get_theme_assets_dir(self.site.root_path, self.site.theme)

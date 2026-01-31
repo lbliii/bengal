@@ -99,13 +99,13 @@ if TYPE_CHECKING:
 class CollectionConfig[T]:
     """
     Configuration for a content collection.
-    
+
     Defines how content in a directory (or remote source) maps to a typed
     schema. Created via :func:`define_collection` rather than direct instantiation.
-    
+
     Type Parameters:
         T: The schema type (dataclass or Pydantic model)
-    
+
     Attributes:
         schema: Dataclass or Pydantic model class defining the frontmatter
             structure. Required fields in the schema become required frontmatter.
@@ -121,7 +121,7 @@ class CollectionConfig[T]:
         loader: Optional :class:`ContentSource` for fetching remote content.
             When provided, content is fetched from the remote source instead
             of the local filesystem. Requires extras: ``pip install bengal[github]``
-    
+
     Example:
             >>> config = CollectionConfig(
             ...     schema=BlogPost,
@@ -133,10 +133,10 @@ class CollectionConfig[T]:
         False
             >>> config.source_type
             'local'
-    
+
     See Also:
         :func:`define_collection`: Preferred way to create configurations.
-        
+
     """
 
     schema: type[T]
@@ -202,11 +202,11 @@ def define_collection[T](
 ) -> CollectionConfig[T]:
     """
     Define a content collection with a typed schema.
-    
+
     Collections provide type-safe frontmatter validation during content
     discovery. Errors are caught early, and IDEs provide autocompletion
     for frontmatter fields.
-    
+
     Args:
         schema: Dataclass or Pydantic model class defining the frontmatter
             structure. Fields without defaults are required; fields with
@@ -221,17 +221,17 @@ def define_collection[T](
             dict on the validated instance. Only effective when ``strict=False``.
         loader: Optional :class:`ContentSource` for fetching remote content.
             Requires extras: ``pip install bengal[github]`` or ``bengal[notion]``.
-    
+
     Returns:
         A :class:`CollectionConfig` instance for use in the project's
         ``collections`` dictionary.
-    
+
     Raises:
         BengalConfigError: If neither ``directory`` nor ``loader`` is provided.
-    
+
     Example:
         Basic local collection:
-    
+
             >>> from dataclasses import dataclass, field
             >>> from datetime import datetime
             >>>
@@ -246,21 +246,21 @@ def define_collection[T](
             ...     schema=BlogPost,
             ...     directory="content/blog",
             ... )
-    
+
     Example:
         Remote content from GitHub:
-    
+
             >>> from bengal.content.sources import github_loader
             >>>
             >>> api_docs = define_collection(
             ...     schema=APIDoc,
             ...     loader=github_loader(repo="myorg/api-docs", path="docs/"),
             ... )
-    
+
     See Also:
         - :class:`CollectionConfig`: The returned configuration class
         - :class:`SchemaValidator`: How validation is performed
-        
+
     """
     return CollectionConfig(
         schema=schema,
@@ -273,27 +273,27 @@ def define_collection[T](
 
 
 __all__ = [
-    # --- Core API ---
-    "CollectionConfig",
-    "define_collection",
-    # --- Validation ---
-    "ContentValidationError",
-    "SchemaValidator",
-    "ValidationError",
-    "ValidationResult",
-    # --- Loader Utilities ---
-    "CollectionPathTrie",
-    "build_collection_trie",
-    "get_collection_for_path",
-    "load_collections",
-    "validate_collections_config",
     # --- Standard Schemas ---
     "API",
     "APIReference",
     "BlogPost",
     "Changelog",
+    # --- Core API ---
+    "CollectionConfig",
+    # --- Loader Utilities ---
+    "CollectionPathTrie",
+    # --- Validation ---
+    "ContentValidationError",
     "Doc",
     "DocPage",
     "Post",
+    "SchemaValidator",
     "Tutorial",
+    "ValidationError",
+    "ValidationResult",
+    "build_collection_trie",
+    "define_collection",
+    "get_collection_for_path",
+    "load_collections",
+    "validate_collections_config",
 ]

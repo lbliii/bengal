@@ -22,15 +22,15 @@ if TYPE_CHECKING:
 class SiteContext:
     """
     Smart wrapper for Site object with ergonomic access patterns.
-    
+
     Provides clean access to site configuration with sensible defaults.
     All properties return safe values (never None for strings).
-    
+
     Data File Tracking:
         When accessing `site.data`, returns a TrackedData wrapper that
         records data file dependencies for incremental builds. This is
         automatic when a DependencyTracker is set via tracker_context().
-    
+
     Example:
         {{ site.title }}             # Site title
         {{ site.logo }}              # Logo URL ('' if not set)
@@ -38,10 +38,10 @@ class SiteContext:
         {{ site.author }}            # Default author
         {{ site.params.repo_url }}   # Custom params
         {{ site.data.team }}         # Data file (tracked for incremental builds)
-        
+
     """
 
-    __slots__ = ("_site", "_params_cache", "_tracked_data_cache")
+    __slots__ = ("_params_cache", "_site", "_tracked_data_cache")
 
     def __init__(self, site: SiteLike):
         self._site = site
@@ -71,18 +71,18 @@ class SiteContext:
 
     def _get_tracked_data(self) -> Any:
         """Get site.data wrapped with TrackedData for dependency tracking.
-        
+
         Returns a TrackedData wrapper that will record data file access
         when a tracker is available via get_current_tracker() at access time.
-        
+
         The TrackedData wrapper is cached per-SiteContext instance since
         it looks up the tracker dynamically from ContextVar.
-        
+
         Returns:
             TrackedData wrapper (tracks only when tracker is set)
         """
         from bengal.rendering.context.data_tracking import TrackedData
-        
+
         # Create TrackedData wrapper (cached per-site)
         # TrackedData looks up tracker from ContextVar at access time,
         # so caching is safe even across different page renders.
@@ -92,7 +92,7 @@ class SiteContext:
                 self._site.data,
                 data_dir,
             )
-        
+
         return self._tracked_data_cache
 
     @property
@@ -182,22 +182,22 @@ class SiteContext:
 class ThemeContext:
     """
     Smart wrapper for Theme configuration with ergonomic access.
-    
+
     Provides clean access to theme settings:
     - Direct properties: name, appearance, palette, features
     - Custom config via get() or dot notation
     - Feature checking via has()
-    
+
     Example:
         {{ theme.name }}                    # Theme name
         {{ theme.appearance }}              # 'light', 'dark', or 'system'
         {{ theme.hero_style }}              # Custom config value
         {% if theme.has('navigation.toc') %}
         {% if 'feature' in theme.features %}
-        
+
     """
 
-    __slots__ = ("_theme", "_config_cache")
+    __slots__ = ("_config_cache", "_theme")
 
     def __init__(self, theme: Theme | None):
         self._theme = theme
@@ -321,15 +321,15 @@ class ThemeContext:
 class ConfigContext:
     """
     Smart wrapper for site configuration with safe access.
-    
+
     Allows both dot notation and get() access to config values.
     Never raises KeyError or returns None for string values.
-    
+
     Example:
         {{ config.title }}
         {{ config.get('baseurl', '/') }}
         {{ config.params.repo_url }}
-        
+
     """
 
     __slots__ = ("_config", "_nested_cache")

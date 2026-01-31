@@ -473,16 +473,16 @@ class TestCSSNestingTransformation:
 
 class TestCSSMinifierUtility:
     """Test CSS minifier utility function.
-    
+
     Comprehensive tests for CSS minification covering:
     - Basic minification (comments, whitespace)
     - Modern CSS features (@layer, nesting, @import)
     - CSS functions (calc, color-mix)
     - Complex selectors and combinators
     - Edge cases and real-world patterns
-    
+
     For manual diagnostic tools, see scripts/test_css_minification.py
-        
+
     """
 
     def test_removes_comments(self, temp_asset_dir):

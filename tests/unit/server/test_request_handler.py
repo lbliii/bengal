@@ -407,7 +407,7 @@ class TestDoGetIntegrationMinimal:
 class TestDashboardStatusCodeTracking:
     """
     Tests for accurate status code tracking in dashboard callbacks.
-    
+
     BUG FIX: Previously, the status code was always reported as 200 to the
     dashboard callback because it was never updated during request handling.
     """
@@ -585,7 +585,7 @@ class TestDashboardStatusCodeTracking:
 class TestSendErrorWithNoneDirectory:
     """
     Tests for send_error handling when directory is None.
-    
+
     BUG FIX: Previously, send_error would crash with TypeError when
     self.directory was None because it tried to construct Path(None).
     """

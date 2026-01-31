@@ -222,17 +222,20 @@ class TestDetectModifications:
     def test_unmodified_template(self, swizzle_manager, temp_site):
         """Test detecting unmodified template."""
         from bengal.themes.swizzle import ModificationStatus
-        
+
         swizzle_manager.swizzle("partials/test-component.html")
 
         # Template not modified - use public API
         assert swizzle_manager.is_modified("partials/test-component.html") is False
-        assert swizzle_manager.get_modification_status("partials/test-component.html") == ModificationStatus.UNCHANGED
+        assert (
+            swizzle_manager.get_modification_status("partials/test-component.html")
+            == ModificationStatus.UNCHANGED
+        )
 
     def test_modified_template(self, swizzle_manager, temp_site):
         """Test detecting modified template."""
         from bengal.themes.swizzle import ModificationStatus
-        
+
         swizzle_manager.swizzle("partials/test-component.html")
 
         # Modify the local template
@@ -241,15 +244,21 @@ class TestDetectModifications:
 
         # Use public API
         assert swizzle_manager.is_modified("partials/test-component.html") is True
-        assert swizzle_manager.get_modification_status("partials/test-component.html") == ModificationStatus.MODIFIED
+        assert (
+            swizzle_manager.get_modification_status("partials/test-component.html")
+            == ModificationStatus.MODIFIED
+        )
 
     def test_modified_detection_for_missing_template(self, swizzle_manager):
         """Test modification detection for template not in registry."""
         from bengal.themes.swizzle import ModificationStatus
-        
+
         # Template never swizzled - use public API
         assert swizzle_manager.is_modified("partials/nonexistent.html") is False
-        assert swizzle_manager.get_modification_status("partials/nonexistent.html") == ModificationStatus.NOT_SWIZZLED
+        assert (
+            swizzle_manager.get_modification_status("partials/nonexistent.html")
+            == ModificationStatus.NOT_SWIZZLED
+        )
 
 
 class TestChecksumCalculation:

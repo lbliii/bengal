@@ -50,8 +50,8 @@ from .base import ContentTypeStrategy
 from .registry import CONTENT_TYPE_REGISTRY, get_strategy, register_strategy
 
 __all__ = [
+    "CONTENT_TYPE_REGISTRY",
     "ContentTypeStrategy",
     "get_strategy",
     "register_strategy",
-    "CONTENT_TYPE_REGISTRY",
 ]

@@ -535,7 +535,14 @@ class TestSingletonBehavior:
 
     def test_get_strategy_returns_registry_singletons(self):
         """get_strategy should return the exact same instances as in registry."""
-        for content_type in ["blog", "doc", "autodoc-python", "autodoc-cli", "tutorial", "changelog"]:
+        for content_type in [
+            "blog",
+            "doc",
+            "autodoc-python",
+            "autodoc-cli",
+            "tutorial",
+            "changelog",
+        ]:
             retrieved = get_strategy(content_type)
             registered = CONTENT_TYPE_REGISTRY[content_type]
             assert retrieved is registered, f"{content_type} should return exact registry singleton"

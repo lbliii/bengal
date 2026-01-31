@@ -68,10 +68,10 @@ if TYPE_CHECKING:
 class AuthorIndex(QueryIndex):
     """
     Index pages by author.
-    
+
     Supports both string and dict author formats:
         author: "Jane Smith"
-    
+
         # Or with details:
         author:
           name: "Jane Smith"
@@ -81,17 +81,17 @@ class AuthorIndex(QueryIndex):
           social:
             twitter: "janesmith"
             github: "janesmith"
-    
+
     Provides O(1) lookup:
         site.indexes.author.get('Jane Smith')   # All posts by Jane
-    
+
     Multi-author support (multi-valued index):
         authors: ["Jane Smith", "Bob Jones"]    # Both authors get index entry
-    
+
     Rich metadata support:
         site.indexes.author.get_metadata('Jane Smith')
         # Returns: {email: "...", bio: "...", avatar: "...", url: "...", social: {...}}
-        
+
     """
 
     def __init__(self, cache_path: Path):

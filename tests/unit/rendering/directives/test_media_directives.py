@@ -849,7 +849,7 @@ class TestMediaDirectivesSecurity:
         [
             "/images/../../../etc/passwd.png",
             "javascript:alert(1).png",
-            '<script>alert(1)</script>.png',
+            "<script>alert(1)</script>.png",
         ],
     )
     def test_figure_path_sanitization(self, parser: MistuneParser, malicious_path: str) -> None:
@@ -864,7 +864,7 @@ class TestMediaDirectivesSecurity:
         assert "figure-error" in result
         assert "Invalid image path" in result
         # Should not have an actual img src with the malicious content
-        assert '<img src=' not in result
+        assert "<img src=" not in result
 
 
 class TestMediaDirectivesIntegration:
@@ -1215,4 +1215,3 @@ class TestMediaDirectivesEdgeCases:
         # Title should be escaped to prevent XSS
         assert "<script>" not in result
         assert "&lt;script&gt;" in result or "Test" in result
-

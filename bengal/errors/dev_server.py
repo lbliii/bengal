@@ -78,13 +78,13 @@ if TYPE_CHECKING:
 class FileChange:
     """
     Record of a file change that may have caused an error.
-    
+
     Attributes:
         path: Path to the changed file
         change_type: Type of change (modified, created, deleted)
         timestamp: When the change was detected
         relevant_lines: Line numbers that changed (if available)
-        
+
     """
 
     path: Path
@@ -100,13 +100,13 @@ class FileChange:
 class DevServerErrorContext(ErrorContext):
     """
     Enhanced error context for dev server errors.
-    
+
     Extends ErrorContext with information about:
     - Recent file changes that may have caused the error
     - Whether this is a new or recurring error
     - Auto-fix availability
     - Hot-reload state
-        
+
     """
 
     # File change tracking
@@ -182,7 +182,7 @@ class DevServerErrorContext(ErrorContext):
                     return f"Recent {change.change_type} of {change.path}"
 
         # Multiple changes - summarize
-        types = set(c.change_type for c in self.changed_files)
+        types = {c.change_type for c in self.changed_files}
         return f"Recent changes to {len(self.changed_files)} files ({', '.join(types)})"
 
     def get_rollback_suggestion(self) -> str | None:
@@ -238,19 +238,19 @@ def create_dev_error(
 ) -> DevServerErrorContext:
     """
     Create a dev server error context from an exception.
-    
+
     Convenience function for creating DevServerErrorContext from an exception
     with common dev server context.
-    
+
     Args:
         error: Exception that occurred
         changed_files: Files that changed since last successful build
         trigger_file: File change that triggered the rebuild
         last_successful_build: When the last successful build completed
-    
+
     Returns:
         DevServerErrorContext with extracted and provided context
-        
+
     """
     # Extract basic context from error
     file_path = getattr(error, "file_path", None)
@@ -288,14 +288,14 @@ def create_dev_error(
 def _generate_quick_actions(error: Exception, context: DevServerErrorContext) -> list[str]:
     """
     Generate quick action suggestions for dev server errors.
-    
+
     Args:
         error: The exception
         context: Dev server error context
-    
+
     Returns:
         List of quick action strings
-        
+
     """
     actions: list[str] = []
 
@@ -328,11 +328,11 @@ def _generate_quick_actions(error: Exception, context: DevServerErrorContext) ->
 def _check_auto_fixable(error: Exception, context: DevServerErrorContext) -> None:
     """
     Check if error is auto-fixable and set context fields.
-    
+
     Args:
         error: The exception
         context: Dev server error context to update
-        
+
     """
     error_msg = str(error).lower()
 
@@ -367,23 +367,23 @@ def _check_auto_fixable(error: Exception, context: DevServerErrorContext) -> Non
 class DevServerState:
     """
     Track dev server state for error context enrichment.
-    
+
     Maintains state across hot reloads to provide richer error context
     and detect recurring error patterns. This is a singleton managed
     via ``get_dev_server_state()`` and ``reset_dev_server_state()``.
-    
+
     Attributes:
         last_successful_build: Timestamp of last successful build.
         builds_since_success: Count of failed builds since last success.
         reload_count: Total number of hot reloads in this session.
         error_history: Map of error signatures to first occurrence time.
-    
+
     Example:
             >>> state = get_dev_server_state()
             >>> state.record_success()  # After successful build
             >>> is_new = state.record_failure("R001::template not found")
             >>> print(f"New error: {is_new}")
-        
+
     """
 
     last_successful_build: datetime | None = None

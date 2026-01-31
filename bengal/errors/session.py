@@ -83,7 +83,7 @@ if TYPE_CHECKING:
 class ErrorOccurrence:
     """
     Record of a single error occurrence.
-    
+
     Attributes:
         error_type: Type name of the exception
         error_message: Error message
@@ -91,7 +91,7 @@ class ErrorOccurrence:
         file_path: File where error occurred
         timestamp: When the error occurred
         build_phase: Build phase where error occurred
-        
+
     """
 
     error_type: str
@@ -106,13 +106,13 @@ class ErrorOccurrence:
 class ErrorPattern:
     """
     Aggregated pattern for similar errors.
-    
+
     Attributes:
         signature: Unique signature for this error pattern
         occurrences: List of all occurrences
         first_file: File where error first occurred
         affected_files: Set of all affected files
-        
+
     """
 
     signature: str
@@ -139,18 +139,18 @@ class ErrorPattern:
 class ErrorSession:
     """
     Track errors across a build session for pattern detection.
-    
+
     Thread-safe error tracking that persists across incremental builds
     and dev server hot reloads. Errors are indexed by:
-    
+
     - **Pattern signature**: Groups similar errors for recurrence detection
     - **File path**: Find all errors for a specific file
     - **Error code**: Find all errors with a specific Bengal error code
     - **Build phase**: Find all errors in a specific phase
-    
+
     The session is a singleton accessed via ``get_session()``. Use
     ``reset_session()`` to start fresh (e.g., at start of new build).
-    
+
     Attributes:
         _patterns: Map of error signatures to ErrorPattern objects.
         _errors_by_file: Index of errors by file path.
@@ -158,14 +158,14 @@ class ErrorSession:
         _errors_by_phase: Index of errors by build phase.
         _start_time: Session start timestamp.
         _total_errors: Total error count.
-    
+
     Example:
             >>> session = get_session()
             >>> info = session.record(error, file_path="content/post.md")
             >>> print(f"Occurrence #{info['occurrence_number']}")
             >>> summary = session.get_summary()
             >>> hints = session.get_investigation_hints()
-        
+
     """
 
     def __init__(self) -> None:
@@ -461,10 +461,10 @@ _session_lock = Lock()
 def get_session() -> ErrorSession:
     """
     Get the current error session (singleton).
-    
+
     Returns:
         Current ErrorSession instance
-        
+
     """
     global _current_session
     with _session_lock:
@@ -476,10 +476,10 @@ def get_session() -> ErrorSession:
 def reset_session() -> ErrorSession:
     """
     Reset the error session (start fresh).
-    
+
     Returns:
         New ErrorSession instance
-        
+
     """
     global _current_session
     with _session_lock:
@@ -495,14 +495,14 @@ def record_error(
 ) -> dict[str, Any]:
     """
     Convenience function to record an error in the current session.
-    
+
     Args:
         error: Exception that occurred
         file_path: File where error occurred
         build_phase: Build phase where error occurred
-    
+
     Returns:
         Pattern info dict (see ErrorSession.record)
-        
+
     """
     return get_session().record(error, file_path=file_path, build_phase=build_phase)

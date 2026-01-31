@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def _convert_sphinx_roles(text: str) -> str:
     """
     Convert reStructuredText-style cross-reference roles to inline code.
-    
+
     Handles common reStructuredText roles:
     - :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
     - :func:`function_name` → `function_name()`
@@ -61,17 +61,17 @@ def _convert_sphinx_roles(text: str) -> str:
     - :mod:`module_name` → `module_name`
     - :attr:`attribute_name` → `attribute_name`
     - :exc:`ExceptionName` → `ExceptionName`
-    
+
     Args:
         text: Text containing reStructuredText roles
-    
+
     Returns:
         Text with roles converted to inline code
-    
+
     Example:
             >>> _convert_sphinx_roles("Use :class:`~bengal.core.Site` class")
             'Use `Site` class'
-        
+
     """
     # Pattern: :role:`~module.path.ClassName` or :role:`ClassName`
     # The ~ prefix means "show only the last component"
@@ -107,21 +107,21 @@ def _convert_sphinx_roles(text: str) -> str:
 def sanitize_text(text: str | None) -> str:
     """
     Clean user-provided text for markdown generation.
-    
+
     This function is the single source of truth for text cleaning across
     all autodoc extractors. It prevents common markdown rendering issues by:
-    
+
     - Removing leading/trailing whitespace
     - Dedenting indented blocks (prevents accidental code blocks)
     - Normalizing line endings
     - Collapsing excessive blank lines
-    
+
     Args:
         text: Raw text from docstrings, help text, or API specs
-    
+
     Returns:
         Cleaned text safe for markdown generation
-    
+
     Example:
             >>> text = '''
             ...     Indented docstring text.
@@ -130,7 +130,7 @@ def sanitize_text(text: str | None) -> str:
             ... '''
             >>> sanitize_text(text)
             'Indented docstring text.\n\nMore content here.'
-        
+
     """
     if not text:
         return ""
@@ -162,19 +162,19 @@ def sanitize_text(text: str | None) -> str:
 def truncate_text(text: str, max_length: int = 200, suffix: str = "...") -> str:
     """
     Truncate text to a maximum length, adding suffix if truncated.
-    
+
     Args:
         text: Text to truncate
         max_length: Maximum length (default: 200)
         suffix: Suffix to add if truncated (default: '...')
-    
+
     Returns:
         Truncated text
-    
+
     Example:
             >>> truncate_text('A very long description here', max_length=20)
             'A very long descr...'
-        
+
     """
     if len(text) <= max_length:
         return text
@@ -190,21 +190,21 @@ def truncate_text(text: str, max_length: int = 200, suffix: str = "...") -> str:
 def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> dict[str, str]:
     """
     Auto-detect grouping from __init__.py hierarchy.
-    
+
     Scans source directories for packages (directories containing __init__.py)
     and builds a prefix map for every package path. Each entry maps the full
     dotted module path to its slash-separated path relative to the stripped
     prefix (e.g., "scaffolds" → "scaffolds"). Using the full path
     ensures nested packages stay under their parent directories (scaffolds
     lives under scaffolds/).
-    
+
     Args:
         source_dirs: Directories to scan for packages
         strip_prefix: Optional dotted prefix to remove from detected modules
-    
+
     Returns:
         Prefix map: {"package.path": "group_path"}
-    
+
     Example:
             >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
         {
@@ -213,7 +213,7 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             "core": "core",
             "cache": "cache",
         }
-        
+
     """
     prefix_map: dict[str, str] = {}
     normalized_strip = strip_prefix.rstrip(".") if strip_prefix else ""
@@ -272,23 +272,23 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
 def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | None, str]:
     """
     Apply grouping config to qualified module name.
-    
+
     Args:
         qualified_name: Full module name (e.g., "bengal.scaffolds.blog")
         config: Grouping config dict with mode and prefix_map
-    
+
     Returns:
         Tuple of (group_name, remaining_path):
         - group_name: Top-level group (or None if no grouping)
         - remaining_path: Path after group prefix
-    
+
     Example:
             >>> apply_grouping("bengal.scaffolds.blog", {
             ...     "mode": "auto",
             ...     "prefix_map": {"scaffolds": "scaffolds"}
             ... })
         ("scaffolds", "blog")
-        
+
     """
     mode = config.get("mode", "off")
 
@@ -332,16 +332,16 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
 def resolve_cli_url_path(qualified_name: str) -> str:
     """
     Resolve CLI qualified name to a URL path by dropping the root command.
-    
+
     This ensures that CLI documentation paths are concise and don't redundantly
     include the tool name (e.g., /cli/build instead of /cli/bengal/build).
-    
+
     Args:
         qualified_name: Dotted qualified name from Click/Typer (e.g. 'bengal.build')
-    
+
     Returns:
         Slash-separated path relative to CLI prefix
-    
+
     Example:
             >>> resolve_cli_url_path("bengal.build")
             'build'
@@ -349,7 +349,7 @@ def resolve_cli_url_path(qualified_name: str) -> str:
             'site/new'
             >>> resolve_cli_url_path("bengal")
             ''
-        
+
     """
     if not qualified_name:
         return ""
@@ -375,18 +375,18 @@ def resolve_cli_url_path(qualified_name: str) -> str:
 def get_python_class_bases(element: DocElement) -> tuple[str, ...]:
     """
     Get class base classes with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "class"
-    
+
     Returns:
         Tuple of base class names (e.g., ("ABC", "Mixin"))
-    
+
     Example:
             >>> bases = get_python_class_bases(class_element)
             >>> if "ABC" in bases:
             ...     print("Abstract class")
-        
+
     """
     from bengal.autodoc.models import PythonClassMetadata
 
@@ -398,13 +398,13 @@ def get_python_class_bases(element: DocElement) -> tuple[str, ...]:
 def get_python_class_decorators(element: DocElement) -> tuple[str, ...]:
     """
     Get class decorators with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "class"
-    
+
     Returns:
         Tuple of decorator names (e.g., ("dataclass", "frozen"))
-        
+
     """
     from bengal.autodoc.models import PythonClassMetadata
 
@@ -416,13 +416,13 @@ def get_python_class_decorators(element: DocElement) -> tuple[str, ...]:
 def get_python_class_is_dataclass(element: DocElement) -> bool:
     """
     Check if class is a dataclass with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "class"
-    
+
     Returns:
         True if class has @dataclass decorator
-        
+
     """
     from bengal.autodoc.models import PythonClassMetadata
 
@@ -434,13 +434,13 @@ def get_python_class_is_dataclass(element: DocElement) -> bool:
 def get_python_function_decorators(element: DocElement) -> tuple[str, ...]:
     """
     Get function/method decorators with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "function" or "method"
-    
+
     Returns:
         Tuple of decorator names (e.g., ("classmethod", "override"))
-        
+
     """
     from bengal.autodoc.models import PythonFunctionMetadata
 
@@ -452,13 +452,13 @@ def get_python_function_decorators(element: DocElement) -> tuple[str, ...]:
 def get_python_function_is_property(element: DocElement) -> bool:
     """
     Check if function is a property with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "function" or "method"
-    
+
     Returns:
         True if function has @property decorator
-        
+
     """
     from bengal.autodoc.models import PythonFunctionMetadata
 
@@ -470,13 +470,13 @@ def get_python_function_is_property(element: DocElement) -> bool:
 def get_python_function_signature(element: DocElement) -> str:
     """
     Get function signature with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "function" or "method"
-    
+
     Returns:
         Signature string (e.g., "def build(force: bool = False) -> None")
-        
+
     """
     from bengal.autodoc.models import PythonFunctionMetadata
 
@@ -488,13 +488,13 @@ def get_python_function_signature(element: DocElement) -> str:
 def get_python_function_return_type(element: DocElement) -> str | None:
     """
     Get function return type with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "function" or "method"
-    
+
     Returns:
         Return type string or None
-        
+
     """
     from bengal.autodoc.models import PythonFunctionMetadata
 
@@ -506,13 +506,13 @@ def get_python_function_return_type(element: DocElement) -> str | None:
 def get_cli_command_callback(element: DocElement) -> str | None:
     """
     Get CLI command callback name with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "command"
-    
+
     Returns:
         Callback function name or None
-        
+
     """
     from bengal.autodoc.models import CLICommandMetadata
 
@@ -524,13 +524,13 @@ def get_cli_command_callback(element: DocElement) -> str | None:
 def get_cli_command_option_count(element: DocElement) -> int:
     """
     Get CLI command option count with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "command"
-    
+
     Returns:
         Number of options
-        
+
     """
     from bengal.autodoc.models import CLICommandMetadata
 
@@ -542,13 +542,13 @@ def get_cli_command_option_count(element: DocElement) -> int:
 def get_cli_group_command_count(element: DocElement) -> int:
     """
     Get CLI group command count with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "command-group"
-    
+
     Returns:
         Number of subcommands
-        
+
     """
     from bengal.autodoc.models import CLIGroupMetadata
 
@@ -560,13 +560,13 @@ def get_cli_group_command_count(element: DocElement) -> int:
 def get_openapi_tags(element: DocElement) -> tuple[str, ...]:
     """
     Get OpenAPI endpoint tags with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "openapi_endpoint"
-    
+
     Returns:
         Tuple of tag names (e.g., ("users", "admin"))
-        
+
     """
     from bengal.autodoc.models import OpenAPIEndpointMetadata
 
@@ -578,13 +578,13 @@ def get_openapi_tags(element: DocElement) -> tuple[str, ...]:
 def get_openapi_method(element: DocElement) -> str:
     """
     Get OpenAPI HTTP method with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "openapi_endpoint"
-    
+
     Returns:
         HTTP method string (e.g., "GET", "POST")
-        
+
     """
     from bengal.autodoc.models import OpenAPIEndpointMetadata
 
@@ -596,13 +596,13 @@ def get_openapi_method(element: DocElement) -> str:
 def get_openapi_path(element: DocElement) -> str:
     """
     Get OpenAPI endpoint path with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "openapi_endpoint"
-    
+
     Returns:
         Path string (e.g., "/users/{id}")
-        
+
     """
     from bengal.autodoc.models import OpenAPIEndpointMetadata
 
@@ -614,13 +614,13 @@ def get_openapi_path(element: DocElement) -> str:
 def get_openapi_operation_id(element: DocElement) -> str | None:
     """
     Get OpenAPI operation ID with type-safe access.
-    
+
     Args:
         element: DocElement with element_type "openapi_endpoint"
-    
+
     Returns:
         Operation ID string or None
-        
+
     """
     from bengal.autodoc.models import OpenAPIEndpointMetadata
 
@@ -643,12 +643,12 @@ def get_function_parameters(
 ) -> list[dict[str, Any]]:
     """
     Get normalized function/method parameters across all extractor types.
-    
+
     This is the canonical way to access parameters in templates. It handles:
     - Python functions/methods (typed_metadata.parameters or metadata.args)
     - CLI options (typed_metadata or metadata.options)
     - OpenAPI endpoints (typed_metadata.parameters or metadata.parameters)
-    
+
     Each parameter is normalized to a consistent dict format:
         {
             "name": str,           # Parameter name
@@ -657,19 +657,19 @@ def get_function_parameters(
             "required": bool,      # Whether required (derived from default)
             "description": str,    # Description from docstring
         }
-    
+
     Args:
         element: DocElement to extract parameters from
         exclude_self: If True, excludes 'self' and 'cls' parameters (default True)
-    
+
     Returns:
         List of normalized parameter dicts (empty list if element has no params)
-    
+
     Example:
             >>> params = get_function_parameters(method_element)
             >>> for p in params:
             ...     print(f"{p['name']}: {p['type']} = {p['default']}")
-        
+
     """
     # Guard: Only process elements that can have parameters
     valid_types = {"function", "method", "command", "openapi_endpoint", "endpoint"}
@@ -779,24 +779,24 @@ def get_function_parameters(
 def get_function_return_info(element: DocElement) -> dict[str, Any]:
     """
     Get normalized return type information across all extractor types.
-    
+
     Returns a consistent dict format:
         {
             "type": str | None,        # Return type annotation
             "description": str | None, # Return description from docstring
         }
-    
+
     Args:
         element: DocElement to extract return info from
-    
+
     Returns:
         Dict with 'type' and 'description' keys (both None if not applicable)
-    
+
     Example:
             >>> ret = get_function_return_info(func_element)
             >>> if ret['type'] and ret['type'] != 'None':
             ...     print(f"Returns: {ret['type']}")
-        
+
     """
     # Guard: Only process elements that can have return types
     valid_types = {"function", "method", "openapi_endpoint", "endpoint"}

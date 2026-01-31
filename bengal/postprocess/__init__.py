@@ -97,25 +97,25 @@ from bengal.postprocess.speculation import (
 )
 
 __all__ = [
-    # SEO & Syndication
-    "RSSGenerator",
-    "SitemapGenerator",
-    # Social Cards
-    "SocialCardConfig",
-    "SocialCardGenerator",
-    "get_social_card_path",
-    "parse_social_cards_config",
-    # Special Pages
-    "RedirectGenerator",
-    "SpecialPagesGenerator",
     # Output Formats
     "OutputFormatsGenerator",
     "PageJSONGenerator",
     "PageTxtGenerator",
+    # SEO & Syndication
+    "RSSGenerator",
+    # Special Pages
+    "RedirectGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
+    "SitemapGenerator",
+    # Social Cards
+    "SocialCardConfig",
+    "SocialCardGenerator",
+    "SpecialPagesGenerator",
     # Document Application
     "SpeculationRule",
     "SpeculationRulesGenerator",
     "generate_speculation_rules",
+    "get_social_card_path",
+    "parse_social_cards_config",
 ]

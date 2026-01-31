@@ -62,17 +62,17 @@ def categorize_asset(asset: Asset) -> str:
 class AssetExplorer(Vertical):
     """
     Tabbed asset browser grouped by type.
-    
+
     Features:
     - Tabs for each asset category (images, styles, scripts, etc.)
     - DataTable with asset details (name, size, path)
     - Size summary per category
     - Quick filter within tabs
-    
+
     Example:
         explorer = AssetExplorer(id="asset-explorer")
         explorer.set_site(site)
-        
+
     """
 
     DEFAULT_CSS = """

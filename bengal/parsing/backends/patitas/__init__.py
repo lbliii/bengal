@@ -106,6 +106,13 @@ from bengal.parsing.backends.patitas.config import (
     set_parse_config,
 )
 from bengal.parsing.backends.patitas.pool import ParserPool, RendererPool
+from bengal.parsing.backends.patitas.render_config import (
+    RenderConfig,
+    get_render_config,
+    render_config_context,
+    reset_render_config,
+    set_render_config,
+)
 from bengal.parsing.backends.patitas.request_context import (
     RequestContext,
     RequestContextError,
@@ -115,95 +122,89 @@ from bengal.parsing.backends.patitas.request_context import (
     set_request_context,
     try_get_request_context,
 )
-from bengal.parsing.backends.patitas.render_config import (
-    RenderConfig,
-    get_render_config,
-    render_config_context,
-    reset_render_config,
-    set_render_config,
-)
 
 if TYPE_CHECKING:
     from patitas.parser import Parser
+
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 __all__ = [
-    # Public API
-    "parse",
-    "parse_many",
-    "parse_to_ast",
-    "render_ast",
-    "create_markdown",
-    # Wrapper for BaseMarkdownParser interface
-    "PatitasParser",
+    "Block",
+    "BlockQuote",
+    "CodeSpan",
+    # Directive and Role nodes
+    "Directive",
+    "Document",
+    "Emphasis",
+    "FencedCode",
+    "FootnoteDef",
+    "FootnoteRef",
+    "Heading",
+    "HtmlBlock",
+    "HtmlInline",
+    "Image",
+    "IndentedCode",
+    "Inline",
+    "LineBreak",
+    "Link",
+    "List",
+    "ListItem",
+    "Math",
+    "MathBlock",
+    # AST Nodes - Core
+    "Node",
+    "Paragraph",
     # Configuration (ContextVar pattern)
     "ParseConfig",
-    "get_parse_config",
-    "set_parse_config",
-    "reset_parse_config",
-    "parse_config_context",
+    # Instance Pooling (RFC: rfc-contextvar-downstream-patterns)
+    "ParserPool",
+    # Wrapper for BaseMarkdownParser interface
+    "PatitasParser",
     "RenderConfig",
-    "get_render_config",
-    "set_render_config",
-    "reset_render_config",
-    "render_config_context",
     # Metadata Accumulator (RFC: rfc-contextvar-downstream-patterns)
     "RenderMetadata",
-    "get_metadata",
-    "set_metadata",
-    "reset_metadata",
-    "metadata_context",
+    "RendererPool",
     # Request Context (RFC: rfc-contextvar-downstream-patterns)
     "RequestContext",
     "RequestContextError",
-    "get_request_context",
-    "try_get_request_context",
-    "set_request_context",
-    "reset_request_context",
-    "request_context",
-    # Instance Pooling (RFC: rfc-contextvar-downstream-patterns)
-    "ParserPool",
-    "RendererPool",
+    "Role",
     # Types
     "SourceLocation",
-    "Token",
-    "TokenType",
-    "StringBuilder",
-    # AST Nodes - Core
-    "Node",
-    "Block",
-    "Inline",
-    "Document",
-    "Heading",
-    "Paragraph",
-    "FencedCode",
-    "IndentedCode",
-    "BlockQuote",
-    "List",
-    "ListItem",
-    "ThematicBreak",
-    "HtmlBlock",
-    "Text",
-    "Emphasis",
-    "Strong",
-    "Link",
-    "Image",
-    "CodeSpan",
-    "LineBreak",
-    "HtmlInline",
-    # Directive and Role nodes
-    "Directive",
-    "Role",
     # Plugin AST Nodes
     "Strikethrough",
+    "StringBuilder",
+    "Strong",
     "Table",
-    "TableRow",
     "TableCell",
-    "Math",
-    "MathBlock",
-    "FootnoteRef",
-    "FootnoteDef",
+    "TableRow",
+    "Text",
+    "ThematicBreak",
+    "Token",
+    "TokenType",
+    "create_markdown",
+    "get_metadata",
+    "get_parse_config",
+    "get_render_config",
+    "get_request_context",
+    "metadata_context",
+    # Public API
+    "parse",
+    "parse_config_context",
+    "parse_many",
+    "parse_to_ast",
+    "render_ast",
+    "render_config_context",
+    "request_context",
+    "reset_metadata",
+    "reset_parse_config",
+    "reset_render_config",
+    "reset_request_context",
+    "set_metadata",
+    "set_parse_config",
+    "set_render_config",
+    "set_request_context",
+    "try_get_request_context",
 ]
 
 # Version
@@ -212,14 +213,14 @@ __version__ = "0.1.0"
 
 def __getattr__(name: str) -> object:
     """Module-level getattr for free-threading declaration and lazy imports.
-    
+
     Declares this module safe for free-threaded Python (PEP 703/779).
     The interpreter queries _Py_mod_gil to determine if the module
     needs the GIL.
-    
+
     Also provides lazy import of PatitasParser to avoid circular imports
     (wrapper.py imports from this module).
-        
+
     """
     if name == "_Py_mod_gil":
         # Signal: this module is safe for free-threading
@@ -234,17 +235,17 @@ def __getattr__(name: str) -> object:
 
 def parse(source: str, *, highlight: bool = False, delegate: LexerDelegate | None = None) -> str:
     """Parse Markdown source to HTML.
-    
+
     Simple one-shot parsing function for common use cases.
-    
+
     Args:
         source: Markdown source text
         highlight: Enable syntax highlighting for code blocks
         delegate: Optional sub-lexer delegate for ZCLH handoff
-    
+
     Returns:
         Rendered HTML string
-        
+
     """
     ast = parse_to_ast(source)
     return render_ast(ast, source, highlight=highlight, delegate=delegate)
@@ -258,9 +259,9 @@ def parse_many(
     workers: int | Literal["auto"] = "auto",
 ) -> list[str]:
     """Parse multiple Markdown documents in parallel.
-    
+
     Leverages Python 3.14t free-threading for true parallel execution.
-        
+
     """
     n_docs = len(sources)
 
@@ -309,12 +310,16 @@ def parse_to_ast(
 
     Uses ContextVar pattern for configuration. Plugins are set via ParseConfig.
     """
-    from patitas.parser import Parser
     from patitas.config import (
         ParseConfig as PatitasParseConfig,
-        set_parse_config as set_patitas_parse_config,
+    )
+    from patitas.config import (
         reset_parse_config as reset_patitas_parse_config,
     )
+    from patitas.config import (
+        set_parse_config as set_patitas_parse_config,
+    )
+    from patitas.parser import Parser
 
     # Build config from plugins
     config = ParseConfig(
@@ -329,7 +334,7 @@ def parse_to_ast(
 
     # Set Bengal config
     parse_token = set_parse_config(config)
-    
+
     # Also set external patitas's config (what Parser actually reads)
     patitas_config = PatitasParseConfig(
         tables_enabled=config.tables_enabled,
@@ -419,11 +424,11 @@ class Markdown:
     """
 
     __slots__ = (
-        "_plugins",
-        "_plugins_enabled",
         "_delegate",
         # Pre-built immutable configs (reused for all parses)
         "_parse_config",
+        "_plugins",
+        "_plugins_enabled",
         "_render_config",
     )
 
@@ -534,21 +539,25 @@ class Markdown:
         """Parse source to AST with plugins applied.
 
         Uses ContextVar pattern - sets config before creating parser.
-        
+
         Note: We set BOTH Bengal's ParseConfig AND external patitas's ParseConfig.
         Bengal's config is for compatibility with Bengal's wrappers.
         External patitas's config is what the Parser actually reads from.
         """
-        from patitas.parser import Parser
         from patitas.config import (
             ParseConfig as PatitasParseConfig,
-            set_parse_config as set_patitas_parse_config,
+        )
+        from patitas.config import (
             reset_parse_config as reset_patitas_parse_config,
         )
+        from patitas.config import (
+            set_parse_config as set_patitas_parse_config,
+        )
+        from patitas.parser import Parser
 
         config = self._get_parse_config(text_transformer)
         parse_token = set_parse_config(config)
-        
+
         # Also set external patitas's config (what Parser actually reads)
         patitas_config = PatitasParseConfig(
             tables_enabled=config.tables_enabled,

@@ -48,13 +48,13 @@ from bengal.utils.observability.rich_console import should_use_emoji
 class PIDManager:
     """
     Manage PID files for process tracking and recovery.
-    
+
     Features:
     - Detect stale processes
     - Graceful process termination
     - PID file validation
     - Cross-platform support
-        
+
     """
 
     @staticmethod

@@ -17,11 +17,11 @@ from typing import Any
 class MenuHelpersMixin:
     """
     Mixin providing menu helper methods for TemplateEngine.
-    
+
     Requires these attributes on the host class:
         - site: Site instance
         - _menu_dict_cache: dict[str, list[dict]]
-        
+
     """
 
     site: Any

@@ -79,19 +79,19 @@ SHORTCUTS_DISPLAY: list[tuple[str, str]] = [
 def get_aliases_for_command(cmd_name: str) -> list[str]:
     """
     Get all aliases for a canonical command name.
-    
+
     Args:
         cmd_name: The canonical command name (e.g., 'build', 'serve')
-    
+
     Returns:
         List of alias strings, or empty list if no aliases exist.
-    
+
     Example:
             >>> get_aliases_for_command('build')
         ['b']
             >>> get_aliases_for_command('serve')
         ['s', 'dev']
-        
+
     """
     return CANONICAL_TO_ALIASES.get(cmd_name, [])
 
@@ -99,22 +99,22 @@ def get_aliases_for_command(cmd_name: str) -> list[str]:
 def get_canonical_name(cmd_or_alias: str) -> str:
     """
     Get the canonical command name for an alias.
-    
+
     If the input is already a canonical name (or not a known alias),
     returns the input unchanged.
-    
+
     Args:
         cmd_or_alias: A command name or alias string
-    
+
     Returns:
         The canonical command name.
-    
+
     Example:
             >>> get_canonical_name('b')
             'build'
             >>> get_canonical_name('build')
             'build'
-        
+
     """
     return COMMAND_ALIASES.get(cmd_or_alias, cmd_or_alias)
 
@@ -122,17 +122,17 @@ def get_canonical_name(cmd_or_alias: str) -> str:
 def _sanitize_help_text(text: str) -> str:
     """
     Remove Commands section from help text to avoid duplication.
-    
+
     Click automatically generates a Commands section in group help output,
     so we remove any manually-written Commands section from docstrings
     to avoid showing duplicated information.
-    
+
     Args:
         text: Raw help text from command/group docstring
-    
+
     Returns:
         Sanitized help text with Commands section removed.
-        
+
     """
     if not text:
         return ""
@@ -156,22 +156,22 @@ def _sanitize_help_text(text: str) -> str:
 class BengalCommand(click.Command):
     """
     Custom Click command with themed help output.
-    
+
     Extends Click's Command class to provide Bengal-branded help formatting
     using Rich console output with consistent styling.
-    
+
     Features:
         - Bengal mascot in headers (ᓚᘏᗢ)
         - Themed options and arguments display
         - Automatic fallback to plain text for non-TTY
-    
+
     Example:
             >>> @click.command(cls=BengalCommand)
             ... @click.option('--verbose', is_flag=True)
             ... def my_command(verbose):
             ...     '''My command description.'''
             ...     pass
-        
+
     """
 
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
@@ -253,21 +253,21 @@ class BengalCommand(click.Command):
 class BengalGroup(click.Group):
     """
     Custom Click group with typo detection and themed help output.
-    
+
     Extends Click's Group class to provide:
     - Fuzzy command matching with helpful suggestions for typos
     - Bengal-themed help output with Quick Start section
     - Alias display in shortcuts section
     - Filtered command list (hides aliases from main list)
-    
+
     The group automatically uses BengalCommand for all subcommands.
-    
+
     Example:
             >>> @click.group(cls=BengalGroup)
             ... def my_group():
             ...     '''My command group.'''
             ...     pass
-        
+
     """
 
     # Use our custom command class by default

@@ -3,7 +3,6 @@ title: Large Site Optimization
 nav_title: Large Sites
 description: Build and render 5K-100K+ pages efficiently with streaming, parallel processing, and query indexes
 weight: 10
-type: doc
 icon: server
 tags:
 - performance

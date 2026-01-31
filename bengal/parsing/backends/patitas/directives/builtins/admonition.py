@@ -40,9 +40,10 @@ from collections.abc import Sequence
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
+from patitas.nodes import Directive
+
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from bengal.parsing.backends.patitas.directives.options import AdmonitionOptions
-from patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -97,13 +98,13 @@ TYPE_TO_ICON: dict[str, str] = {
 
 def _render_admonition_icon(icon_name: str) -> str:
     """Render admonition icon using Phosphor icons.
-    
+
     Args:
         icon_name: Name of the icon to render
-    
+
     Returns:
         SVG HTML string, or empty string if icon not found
-        
+
     """
     try:
         from bengal.directives._icons import render_svg_icon
@@ -116,13 +117,13 @@ def _render_admonition_icon(icon_name: str) -> str:
 
 class AdmonitionDirective:
     """Handler for admonition directives.
-    
+
     Renders callout boxes for notes, warnings, tips, etc.
     Produces HTML identical to Bengal's admonition directive.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = tuple(ADMONITION_TYPES)

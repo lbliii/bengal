@@ -207,10 +207,10 @@ def build(
 ) -> None:
     """
     Build the static site.
-    
+
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
-        
+
     """
 
     # Import profile system
@@ -419,7 +419,9 @@ def build(
                         # Update nested config structure - use raw dict for mutations
                         if "build" not in worktree_site.config:
                             worktree_site.config["build"] = {}
-                        worktree_site.config["build"]["output_dir"] = str(Path(site.output_dir) / version.id)
+                        worktree_site.config["build"]["output_dir"] = str(
+                            Path(site.output_dir) / version.id
+                        )
 
                     # Build this version
                     from bengal.orchestration.build.options import BuildOptions
@@ -660,12 +662,12 @@ def build(
 def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     """
     Print detailed incremental build decision breakdown.
-    
+
     RFC: rfc-incremental-build-observability Phase 2
-    
+
     Displays a human-readable breakdown of why pages were rebuilt or skipped,
     grouped by rebuild reason. Useful for debugging cache issues.
-    
+
     Args:
         stats: BuildStats object containing incremental_decision
         cli: CLIOutput instance for formatted output
@@ -688,7 +690,9 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         verb = "Rebuilt"
 
     total_pages = len(decision.pages_to_build) + decision.pages_skipped_count
-    cli.info(f"  {verb} {len(decision.pages_to_build)} pages ({decision.pages_skipped_count} skipped)")
+    cli.info(
+        f"  {verb} {len(decision.pages_to_build)} pages ({decision.pages_skipped_count} skipped)"
+    )
     cli.blank()
 
     # Group pages by rebuild reason
@@ -702,9 +706,15 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     # Display rebuild reasons table
     if reason_groups:
         cli.info("  REBUILD:")
-        cli.info("  ┌───────────────────────────────────┬───────┬─────────────────────────────────┐")
-        cli.info("  │ Reason                            │ Count │ Pages                           │")
-        cli.info("  ├───────────────────────────────────┼───────┼─────────────────────────────────┤")
+        cli.info(
+            "  ┌───────────────────────────────────┬───────┬─────────────────────────────────┐"
+        )
+        cli.info(
+            "  │ Reason                            │ Count │ Pages                           │"
+        )
+        cli.info(
+            "  ├───────────────────────────────────┼───────┼─────────────────────────────────┤"
+        )
 
         for reason_code, pages in sorted(reason_groups.items(), key=lambda x: -len(x[1])):
             # Format pages list (show first 2, truncate if more)
@@ -724,7 +734,9 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
 
             cli.info(f"  │ {reason_display:<33} │ {len(pages):>5} │ {pages_str:<31} │")
 
-        cli.info("  └───────────────────────────────────┴───────┴─────────────────────────────────┘")
+        cli.info(
+            "  └───────────────────────────────────┴───────┴─────────────────────────────────┘"
+        )
         cli.blank()
 
     # Asset changes section
@@ -733,7 +745,9 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         for asset in decision.asset_changes:
             cli.info(f"    • {asset} → CHANGED")
         if decision.fingerprint_changes:
-            cli.detail("    (fingerprint changed, all pages using these assets were rebuilt)", indent=0)
+            cli.detail(
+                "    (fingerprint changed, all pages using these assets were rebuilt)", indent=0
+            )
         cli.blank()
 
     # Skip summary
@@ -762,7 +776,10 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     else:
         reason_summary = decision.get_reason_summary()
         if reason_summary:
-            summary_parts = [f"{count} {reason}" for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]]
+            summary_parts = [
+                f"{count} {reason}"
+                for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]
+            ]
             cli.detail(f"  Reason summary: {', '.join(summary_parts)}", indent=0)
 
 
@@ -773,25 +790,25 @@ def _truncate_path(path: str, max_len: int = 25) -> str:
     # Keep the last part (filename) and truncate from the start
     parts = path.split("/")
     if len(parts) == 1:
-        return path[:max_len - 3] + "..."
+        return path[: max_len - 3] + "..."
     # Try to keep at least the filename
     filename = parts[-1]
     if len(filename) >= max_len - 3:
-        return "..." + filename[-(max_len - 3):]
+        return "..." + filename[-(max_len - 3) :]
     remaining = max_len - len(filename) - 4  # 4 for ".../"
     if remaining > 0:
         return ".../" + filename
-    return "..." + filename[-(max_len - 3):]
+    return "..." + filename[-(max_len - 3) :]
 
 
 def _print_explain_json(stats, *, dry_run: bool = False) -> None:
     """
     Print incremental build decision as JSON.
-    
+
     RFC: rfc-incremental-build-observability Phase 2
-    
+
     Outputs machine-readable JSON for tooling integration.
-    
+
     Args:
         stats: BuildStats object containing incremental_decision
         dry_run: Whether this was a dry-run (preview) build
@@ -801,7 +818,7 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
     from bengal.orchestration.build.results import IncrementalDecision
 
     decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
-    
+
     if decision is None:
         output = {
             "error": "No incremental decision data available",

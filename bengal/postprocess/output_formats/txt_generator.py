@@ -70,7 +70,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -78,37 +78,37 @@ logger = get_logger(__name__)
 class PageTxtGenerator:
     """
     Generates per-page LLM-friendly text files.
-    
+
     Creates a .txt file alongside each HTML page in a structured format
     optimized for AI/LLM discovery, RAG pipelines, and content extraction.
-    
+
     Creation:
         Direct instantiation: PageTxtGenerator(site, separator_width=80)
             - Created by OutputFormatsGenerator for TXT generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages
         separator_width: Width of separator lines in output (default: 80)
-    
+
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for page access, Page.plain_text for content
-    
+
     Output Structure:
         - Header: Title, URL, section, tags, date
         - Content: Plain text from AST (no HTML)
         - Footer: Author, word count, reading time
-    
+
     Performance:
         - Parallel writes with 8-thread pool
         - Uses cached Page.plain_text (computed during rendering)
-    
+
     Example:
             >>> generator = PageTxtGenerator(site, separator_width=80)
             >>> count = generator.generate(pages)
             >>> print(f"Generated {count} TXT files")
-        
+
     """
 
     def __init__(

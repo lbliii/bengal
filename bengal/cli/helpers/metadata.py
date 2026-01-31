@@ -42,11 +42,11 @@ F = TypeVar("F", bound=Callable[..., Any])
 class CommandMetadata:
     """
     Metadata for a CLI command.
-    
+
     Stores information about a command that can be used for documentation,
     categorization, and runtime validation. Attach to commands using the
     @command_metadata decorator.
-    
+
     Attributes:
         category: Functional grouping (build, content, config, dev)
         description: One-line summary of command purpose
@@ -55,7 +55,7 @@ class CommandMetadata:
         requires_build: True if site must be built first
         tags: Searchable tags for filtering
         aliases: Alternative names for command discovery
-        
+
     """
 
     category: str = "general"
@@ -108,7 +108,7 @@ def command_metadata(
 ) -> Callable[[F], F]:
     """
     Decorator to attach metadata to a CLI command.
-    
+
     Args:
         category: Command category (e.g., 'build', 'content', 'config', 'dev')
         description: Short description of what the command does
@@ -117,7 +117,7 @@ def command_metadata(
         requires_build: Whether this command requires the site to be built first
         tags: Tags for filtering/discovery (e.g., ['dev', 'content', 'quick'])
         aliases: Command aliases (for discovery)
-    
+
     Example:
         @click.command()
         @command_metadata(
@@ -130,7 +130,7 @@ def command_metadata(
         def build():
             # ...
             pass
-        
+
     """
 
     def decorator(func: F) -> F:
@@ -153,13 +153,13 @@ def command_metadata(
 def get_command_metadata(cmd: click.Command | Callable[..., Any]) -> CommandMetadata | None:
     """
     Get metadata from a command.
-    
+
     Args:
         cmd: Click command or callable
-    
+
     Returns:
         CommandMetadata if found, None otherwise
-        
+
     """
     if isinstance(cmd, click.Command):
         # Check if metadata is attached to the callback
@@ -176,13 +176,13 @@ def get_command_metadata(cmd: click.Command | Callable[..., Any]) -> CommandMeta
 def list_commands_by_category(group: click.Group) -> dict[str, list[click.Command]]:
     """
     List all commands in a group, organized by category.
-    
+
     Args:
         group: Click group to scan
-    
+
     Returns:
         Dictionary mapping category names to lists of commands
-        
+
     """
     categories: dict[str, list[click.Command]] = {}
 
@@ -206,14 +206,14 @@ def list_commands_by_category(group: click.Group) -> dict[str, list[click.Comman
 def find_commands_by_tag(group: click.Group, tag: str) -> list[tuple[str, click.Command]]:
     """
     Find commands that have a specific tag.
-    
+
     Args:
         group: Click group to scan
         tag: Tag to search for
-    
+
     Returns:
         List of (command_path, command) tuples
-        
+
     """
     results: list[tuple[str, click.Command]] = []
 

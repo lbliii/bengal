@@ -250,11 +250,11 @@ class TestNormalizeMdLinks:
 
     def test_handles_multiple_links(self):
         """Test that multiple .md links are all transformed."""
-        html = '''
+        html = """
         <a href="guide.md">Guide</a>
         <a href="api.md#endpoints">API</a>
         <a href="../overview.md">Overview</a>
-        '''
+        """
         result = normalize_md_links(html)
         assert 'href="guide/"' in result
         assert 'href="api/#endpoints"' in result

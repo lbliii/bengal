@@ -263,9 +263,7 @@ class TestValidatorCheckResultContracts:
         results = validator.validate(minimal_mock_site)
 
         for result in results:
-            assert result.message, (
-                f"{validator_class.name} returned result without message"
-            )
+            assert result.message, f"{validator_class.name} returned result without message"
             assert isinstance(result.message, str)
 
     @pytest.mark.parametrize("validator_class", get_all_validator_classes())

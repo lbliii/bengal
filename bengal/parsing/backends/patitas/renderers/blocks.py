@@ -8,8 +8,7 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from patitas.nodes import (
     Block,
@@ -286,9 +285,7 @@ class BlockRendererMixin:
             meta.add_code_block(lang)
 
         if lang == "mermaid":
-            sb.append(
-                f'<div class="mermaid">{escape_html(node.get_code(self._source))}</div>\n'
-            )
+            sb.append(f'<div class="mermaid">{escape_html(node.get_code(self._source))}</div>\n')
             return
 
         # Attempt syntax highlighting via delegate (ZCLH protocol)

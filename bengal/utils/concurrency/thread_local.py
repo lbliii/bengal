@@ -42,24 +42,24 @@ T = TypeVar("T")
 class ThreadLocalCache(Generic[T]):
     """
     Generic thread-local cache with factory pattern.
-    
+
     Creates one instance per thread per key, reusing it for subsequent calls.
     Useful for expensive objects like parsers that are not thread-safe but
     can be reused within a single thread.
-    
+
     Thread Safety:
         Each thread gets its own instance(s), no locking required for access.
         The factory function should be thread-safe if it accesses shared state.
-    
+
     Performance:
         - First access per thread/key: factory() cost (e.g., 10ms for parser)
         - Subsequent access: ~1µs (attribute lookup)
-    
+
     Example:
             >>> cache = ThreadLocalCache(lambda: ExpensiveParser(), name="parser")
             >>> parser = cache.get()  # Creates parser for this thread
             >>> parser = cache.get()  # Reuses same parser
-        
+
     """
 
     def __init__(
@@ -130,12 +130,12 @@ class ThreadLocalCache(Generic[T]):
 class ThreadSafeSet:
     """
     Thread-safe set for tracking created resources (e.g., directories).
-    
+
     Example:
             >>> created_dirs = ThreadSafeSet()
             >>> if created_dirs.add_if_new("/path/to/dir"):
             ...     os.makedirs("/path/to/dir")  # Only if not already created
-        
+
     """
 
     def __init__(self) -> None:

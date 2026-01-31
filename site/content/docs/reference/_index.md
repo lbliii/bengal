@@ -5,8 +5,6 @@ weight: 40
 menu:
   main:
     weight: 30
-cascade:
-  type: doc
 icon: bookmark
 ---
 # Reference

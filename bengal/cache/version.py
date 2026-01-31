@@ -55,10 +55,10 @@ class CacheVersion(NamedTuple):
 def validate_cache_header(data: bytes) -> tuple[bool, bytes]:
     """
     Validate cache magic header and return remaining data.
-    
+
     Returns:
         Tuple of (is_valid, remaining_data). If invalid, returns (False, original_data).
-        
+
     """
     if not data.startswith(b"bg"):
         return False, data

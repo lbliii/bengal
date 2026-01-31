@@ -83,8 +83,8 @@ from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
     get_page_relative_url,
 )
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.autodoc import is_autodoc_page
+from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -92,11 +92,9 @@ if TYPE_CHECKING:
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
     from bengal.protocols import SiteLike
 else:
-    from bengal.protocols import PageLike as Page
-    from bengal.orchestration.build_context import AccumulatedPageData
-    from bengal.protocols import PageLike as Page
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike as Page
 
 logger = get_logger(__name__)
 
@@ -104,25 +102,25 @@ logger = get_logger(__name__)
 class SiteIndexGenerator:
     """
     Generates site-wide index.json for search and navigation.
-    
+
     Creates a comprehensive JSON index optimized for Lunr.js client-side
     search, faceted filtering, and programmatic access to site content.
-    
+
     Creation:
         Direct instantiation: SiteIndexGenerator(site, excerpt_length=200)
             - Created by OutputFormatsGenerator for index generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages and configuration
         excerpt_length: Character length for page excerpts (default: 200)
         json_indent: JSON indentation (None for compact)
         include_full_content: Include full content in index (default: False)
-    
+
     Relationships:
         - Used by: OutputFormatsGenerator facade
         - Uses: Site for pages, LunrIndexGenerator for pre-built search index
-    
+
     Features:
         - Search-optimized summaries with objectID for Lunr
         - Section and tag aggregations for faceted navigation
@@ -130,11 +128,11 @@ class SiteIndexGenerator:
         - Per-version indexes when versioning enabled
         - i18n support with per-locale indexes
         - Write-if-changed optimization
-    
+
     Example:
             >>> generator = SiteIndexGenerator(site, excerpt_length=200)
             >>> path = generator.generate(pages)  # Returns Path or list[Path]
-        
+
     """
 
     def __init__(
@@ -312,7 +310,9 @@ class SiteIndexGenerator:
         index_path = self._get_index_path()
 
         # Write only if content changed (sort_keys for deterministic JSON)
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
+        new_json_str = json.dumps(
+            site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
+        )
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(
@@ -465,7 +465,9 @@ class SiteIndexGenerator:
             index_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write only if content changed (sort_keys for deterministic JSON)
-        new_json_str = json.dumps(site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True)
+        new_json_str = json.dumps(
+            site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
+        )
         self._write_if_changed(index_path, new_json_str)
 
         logger.debug(

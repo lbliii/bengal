@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def to_jsonable(value: Any) -> Any:
     """
     Convert a value to a JSON-serializable form.
-    
+
     Features:
     - Handles standard primitives (str, int, float, bool, None)
     - Recursively handles collections (dict, list, tuple, set)
@@ -27,13 +27,13 @@ def to_jsonable(value: Any) -> Any:
     - Preserves tuples (useful for frozen dataclass reconstruction)
     - Converts Path objects to strings
     - Best-effort fallback to str() for unknown types
-    
+
     Args:
         value: Object to convert
-    
+
     Returns:
         JSON-serializable representation
-        
+
     """
     if value is None:
         return None

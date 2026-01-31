@@ -50,12 +50,13 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
+from patitas.nodes import Directive
+
 from bengal.parsing.backends.patitas.directives.contracts import (
     DROPDOWN_CONTRACT,
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
-from patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -69,14 +70,14 @@ DROPDOWN_COLORS = frozenset(["success", "warning", "danger", "info", "minimal"])
 
 def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
     """Render dropdown icon using shared icon utilities.
-    
+
     Args:
         icon_name: Name of the icon to render
         dropdown_title: Title of the dropdown (for warning context)
-    
+
     Returns:
         SVG HTML string, or empty string if icon not found
-        
+
     """
     try:
         from bengal.directives._icons import (
@@ -101,14 +102,14 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
 @dataclass(frozen=True, slots=True)
 class DropdownOptions(StyledOptions):
     """Options for dropdown directive.
-    
+
     Attributes:
         open: Whether dropdown is initially open (expanded)
         icon: Icon name to display next to the title
         badge: Badge text (e.g., "New", "Advanced", "Beta")
         color: Color variant (success, warning, danger, info, minimal)
         description: Secondary text below the title
-    
+
     Example:
         :::{dropdown} My Title
         :open: true
@@ -116,10 +117,10 @@ class DropdownOptions(StyledOptions):
         :badge: Advanced
         :color: info
         :description: Additional context about what's inside
-    
+
         Content here
         :::
-        
+
     """
 
     open: bool = False
@@ -131,13 +132,13 @@ class DropdownOptions(StyledOptions):
 
 class DropdownDirective:
     """Handler for dropdown (collapsible) directive.
-    
+
     Renders collapsible content using <details>/<summary>.
     Produces HTML identical to Bengal's dropdown directive.
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("dropdown", "details")

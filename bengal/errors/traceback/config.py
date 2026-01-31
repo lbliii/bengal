@@ -95,10 +95,10 @@ if TYPE_CHECKING:
 class TracebackConfig:
     """
     Configuration for traceback display and Rich installation.
-    
+
     Controls how exceptions are rendered in Bengal CLI output. Can be
     loaded from environment variables via ``from_environment()``.
-    
+
     Attributes:
         style: Traceback verbosity style (default: COMPACT).
         show_locals: Whether to show local variables in tracebacks
@@ -107,14 +107,14 @@ class TracebackConfig:
             (default: 10, 25 for FULL, 5 for MINIMAL).
         suppress: Module names to suppress from tracebacks
             (default: click, jinja2).
-    
+
     Example:
             >>> config = TracebackConfig.from_environment()
             >>> config.style
         <TracebackStyle.COMPACT: 'compact'>
             >>> config.install()  # Install Rich handler
             >>> renderer = config.get_renderer()
-        
+
     """
 
     style: TracebackStyle = TracebackStyle.COMPACT
@@ -203,7 +203,6 @@ class TracebackConfig:
                         error_type=type(e).__name__,
                         action="skipping_module",
                     )
-                    pass
 
             rich_install(
                 console=get_console(),
@@ -241,10 +240,10 @@ class TracebackConfig:
 
 def set_effective_style_from_cli(style_value: str | None) -> None:
     """Helper to set the process env for traceback style from a CLI flag.
-    
+
     This allows downstream code that calls TracebackConfig.from_environment()
     to see the user choice consistently.
-        
+
     """
     if not style_value:
         return
@@ -261,7 +260,7 @@ def map_debug_flag_to_traceback(debug: bool, current: str | None = None) -> None
 
 def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
     """Apply file-based traceback config ([dev.traceback]) to environment.
-    
+
     Precedence: existing env vars win. Only set if not already present.
     Expected structure:
         site_config["dev"]["traceback"] = {
@@ -270,7 +269,7 @@ def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
             "max_frames": int,
             "suppress": ["click", "jinja2"],
         }
-        
+
     """
     if not isinstance(site_config, dict):
         return

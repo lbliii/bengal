@@ -3,7 +3,6 @@ title: Automatic Block Caching
 nav_title: Automatic Caching
 description: How Kida automatically caches site-scoped template blocks
 weight: 10
-type: doc
 tags:
 - explanation
 - kida

@@ -138,33 +138,25 @@ class TestGetAttributeErrorSuggestion:
 
     def test_page_relative_url_migration(self) -> None:
         """Suggests ._path for 'has no attribute relative_url' errors."""
-        result = get_attribute_error_suggestion(
-            "'Page' object has no attribute 'relative_url'"
-        )
+        result = get_attribute_error_suggestion("'Page' object has no attribute 'relative_url'")
         assert result is not None
         assert "._path" in result
 
     def test_page_site_path_migration(self) -> None:
         """Suggests ._path for 'has no attribute site_path' errors."""
-        result = get_attribute_error_suggestion(
-            "'Page' object has no attribute 'site_path'"
-        )
+        result = get_attribute_error_suggestion("'Page' object has no attribute 'site_path'")
         assert result is not None
         assert "._path" in result
 
     def test_page_permalink_migration(self) -> None:
         """Suggests .href for 'has no attribute permalink' errors."""
-        result = get_attribute_error_suggestion(
-            "'Page' object has no attribute 'permalink'"
-        )
+        result = get_attribute_error_suggestion("'Page' object has no attribute 'permalink'")
         assert result is not None
         assert ".href" in result
 
     def test_unrecognized_attribute_returns_none(self) -> None:
         """Returns None for unrecognized attribute errors."""
-        result = get_attribute_error_suggestion(
-            "'SomeObject' object has no attribute 'xyz'"
-        )
+        result = get_attribute_error_suggestion("'SomeObject' object has no attribute 'xyz'")
         assert result is None
 
 

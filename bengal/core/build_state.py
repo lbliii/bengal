@@ -31,13 +31,13 @@ if TYPE_CHECKING:
 class BuildState:
     """
     Immutable build configuration passed across build phases.
-    
+
     This is a frozen dataclass containing only the configuration values
     that don't change during a build. Lower-layer modules can depend on
     this instead of the full BuildContext.
-    
+
     The full BuildContext wraps BuildState and adds mutable tracking state.
-    
+
     Attributes:
         parallel: Whether to use parallel processing
         incremental: Whether this is an incremental build
@@ -48,7 +48,7 @@ class BuildState:
         full_output: Whether to produce full output
         profile: Build profile name (Writer, Theme-Dev, Developer)
         profile_templates: Whether to profile template rendering
-    
+
     Example:
         # Lower-layer module can use BuildState
         def process_content(state: BuildState) -> None:
@@ -56,11 +56,11 @@ class BuildState:
                 use_threadpool()
             if state.strict:
                 fail_on_warning()
-    
+
     Relationships:
         - Used by: discovery, rendering, postprocess modules
         - Wrapped by: orchestration.build_context.BuildContext
-        
+
     """
 
     parallel: bool = True
@@ -76,7 +76,6 @@ class BuildState:
     def __post_init__(self) -> None:
         """Validate state after creation."""
         # Frozen dataclass, so no modifications allowed after creation
-        pass
 
     @classmethod
     def from_build_options(
@@ -92,10 +91,10 @@ class BuildState:
         profile_templates: bool = False,
     ) -> BuildState:
         """Create BuildState from build options.
-        
+
         Convenience factory method for creating BuildState from
         individual options.
-        
+
         Args:
             parallel: Whether to use parallel processing
             incremental: Whether this is an incremental build
@@ -106,7 +105,7 @@ class BuildState:
             full_output: Whether to produce full output
             profile: Build profile name
             profile_templates: Whether to profile template rendering
-            
+
         Returns:
             BuildState instance
         """

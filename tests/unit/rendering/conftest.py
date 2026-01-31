@@ -38,18 +38,18 @@ from bengal.parsing import MistuneParser
 def parser() -> MistuneParser:
     """
     Module-scoped parser for rendering tests.
-    
+
     Reused across all tests in a module to avoid repeated instantiation.
     Parser state is reset between tests by the reset_parser_state autouse fixture.
-    
+
     Returns:
         MistuneParser instance
-    
+
     Example:
         def test_markdown_parsing(parser):
             result = parser.parse("# Hello World", {})
             assert "<h1>Hello World</h1>" in result
-        
+
     """
     return MistuneParser()
 
@@ -58,13 +58,13 @@ def parser() -> MistuneParser:
 def reset_parser_state(request: pytest.FixtureRequest) -> None:
     """
     Reset parser state between tests to prevent pollution.
-    
+
     Some tests modify parser.md.renderer._xref_index. This fixture ensures
     each test starts with a clean parser state, even when using a
     module-scoped parser fixture.
-    
+
     Only runs when parser fixture is used (checks if parser is in request.fixturenames).
-        
+
     """
     # Only reset if parser fixture is used in this test
     if "parser" not in request.fixturenames and "parser_with_site" not in request.fixturenames:
@@ -93,21 +93,21 @@ def reset_parser_state(request: pytest.FixtureRequest) -> None:
 def parser_with_site(request: pytest.FixtureRequest, site_factory):
     """
     Parser with xref_index from test-directives root.
-    
+
     Provides a parser pre-configured with cross-reference index built from
     the test-directives test root. Useful for testing link resolution.
-    
+
     Note: Tests using this fixture should NOT modify _xref_index directly.
     Use the base parser fixture if you need to modify xref_index per test.
-    
+
     Returns:
         MistuneParser with populated xref_index
-    
+
     Example:
         def test_xref_resolution(parser_with_site):
             result = parser_with_site.parse("See [[cards]] for examples", {})
             assert "/cards/" in result
-        
+
     """
     site = site_factory("test-directives")
     site.discover_content()
@@ -121,17 +121,17 @@ def parser_with_site(request: pytest.FixtureRequest, site_factory):
 def mock_xref_index():
     """
     Empty xref_index for tests that need manual control.
-    
+
     Returns:
         Empty xref_index dict structure
-    
+
     Example:
         def test_custom_xref(parser, mock_xref_index):
             from tests._testing.mocks import MockPage
             mock_xref_index["by_slug"]["custom"] = [MockPage(title="Custom", url="/custom/")]
             parser.md.renderer._xref_index = mock_xref_index
             result = parser.parse("See [[custom]]", {})
-        
+
     """
     return {
         "by_id": {},

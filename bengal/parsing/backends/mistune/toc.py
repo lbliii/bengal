@@ -29,23 +29,23 @@ logger = get_logger(__name__)
 def inject_heading_anchors(html: str, slugify_func: Any) -> str:
     """
     Inject IDs into heading tags using fast regex (5-10x faster than BS4).
-    
+
     Excludes headings inside blockquotes from getting IDs (so they don't appear in TOC).
-    
+
     Single-pass regex replacement handles:
     - h2, h3, h4 headings (matching python-markdown's toc_depth)
     - Existing IDs (preserves them)
     - Heading content with nested HTML
     - Generates clean slugs from heading text
     - Skips headings inside <blockquote> tags
-    
+
     Args:
         html: HTML content from markdown parser
         slugify_func: Function to convert text to slug
-    
+
     Returns:
         HTML with heading IDs added (except those in blockquotes)
-        
+
     """
     # Quick rejection: skip if no headings
     if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
@@ -185,16 +185,16 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
 def extract_toc(html: str) -> str:
     """
     Extract table of contents from HTML with anchored headings using fast regex.
-    
+
     Builds a nested list of links to heading anchors (5-8x faster than BS4).
     Expects headings to have IDs (anchors handled by theme).
-    
+
     Args:
         html: HTML content with heading IDs and headerlinks
-    
+
     Returns:
         TOC as HTML (div.toc > ul > li > a structure)
-        
+
     """
     # Quick rejection: skip if no headings
     if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):

@@ -40,19 +40,19 @@ KnowledgeGraph = None
 class ConnectivityValidator(BaseValidator):
     """
     Validates site connectivity using semantic link model and knowledge graph analysis.
-    
+
     Checks:
     - Isolated pages (weighted score < 0.25)
     - Lightly linked pages (score 0.25-1.0, only structural links)
     - Over-connected hubs (too many incoming references)
     - Overall connectivity health (average weighted score)
     - Content discovery issues
-    
+
     Uses weighted scoring based on link types (explicit, menu, taxonomy, etc.)
     to provide nuanced analysis beyond binary orphan detection.
-    
+
     This helps writers improve SEO, content discoverability, and site structure.
-        
+
     """
 
     name = "Connectivity"
@@ -81,7 +81,9 @@ class ConnectivityValidator(BaseValidator):
         try:
             # Respect pre-patched symbol from tests; only import if not set
             if KnowledgeGraph is None:
-                from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KG  # local alias
+                from bengal.analysis.graph.knowledge_graph import (
+                    KnowledgeGraph as _KG,  # local alias
+                )
 
                 KnowledgeGraph = _KG  # expose for test patching
         except ImportError as e:  # pragma: no cover - exercised by tests
@@ -158,7 +160,9 @@ class ConnectivityValidator(BaseValidator):
                         return {
                             "total_pages": metrics_dict.get("nodes", 0),
                             "total_links": metrics_dict.get("edges", 0),
-                            "avg_connectivity": float(metrics_dict.get("average_degree", 0.0) or 0.0),
+                            "avg_connectivity": float(
+                                metrics_dict.get("average_degree", 0.0) or 0.0
+                            ),
                             "hub_count": 0,
                             "orphan_count": 0,
                         }
@@ -292,7 +296,8 @@ class ConnectivityValidator(BaseValidator):
                 health_cfg = site.config.get("health_check", {})
                 super_hub_threshold = (
                     health_cfg.get("super_hub_threshold", 50)
-                    if isinstance(health_cfg, dict) else 50
+                    if isinstance(health_cfg, dict)
+                    else 50
                 )
                 hubs = _normalize_hubs(graph.get_hubs(threshold=super_hub_threshold))
                 if hubs:

@@ -61,16 +61,16 @@ def profile_function(
 ) -> tuple[Any, Path | None]:
     """
     Profile a function call and return result + profile path.
-    
+
     Args:
         func: Function to profile
         *args: Positional arguments for func
         profile_name: Name for the profile file
         **kwargs: Keyword arguments for func (use profile=True to enable)
-    
+
     Returns:
         Tuple of (function_result, profile_path)
-        
+
     """
     should_profile = kwargs.pop("profile", False)
 
@@ -94,15 +94,15 @@ def save_profile_for_benchmark(
 ) -> Path:
     """
     Save profile data with consistent naming for benchmarks.
-    
+
     Args:
         profiler: The profiler object
         benchmark_name: Name of the benchmark
         site_root: Site root directory (uses .bengal/profiles/)
-    
+
     Returns:
         Path to saved profile
-        
+
     """
     if site_root:
         profile_path = BengalPaths.get_profile_path(
@@ -124,14 +124,14 @@ def save_profile_for_benchmark(
 def compare_profile_with_baseline(current_profile: Path, baseline_name: str = "baseline") -> bool:
     """
     Compare current profile with stored baseline.
-    
+
     Args:
         current_profile: Path to current profile
         baseline_name: Name of baseline profile
-    
+
     Returns:
         True if no significant regressions, False otherwise
-        
+
     """
     baseline_path = current_profile.parent / f"{baseline_name}.stats"
 

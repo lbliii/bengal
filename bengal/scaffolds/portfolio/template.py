@@ -14,13 +14,13 @@ from ..base import SiteTemplate, TemplateFile
 
 def _load_template_file(relative_path: str) -> str:
     """Load and lightly render a page from the ``pages/`` directory.
-    
+
     Args:
         relative_path: Path inside this template's ``pages/`` directory.
-    
+
     Returns:
         File contents with ``{{date}}`` placeholders resolved.
-        
+
     """
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
@@ -37,10 +37,10 @@ def _load_template_file(relative_path: str) -> str:
 
 def _create_portfolio_template() -> SiteTemplate:
     """Construct the portfolio template definition.
-    
+
     Returns:
         A :class:`SiteTemplate` for a personal portfolio site.
-        
+
     """
 
     files = [

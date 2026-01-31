@@ -25,8 +25,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.primitives.hashing import hash_file
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_file
 
 logger = get_logger(__name__)
 
@@ -35,20 +35,20 @@ logger = get_logger(__name__)
 class FileFingerprint:
     """
     Fast file change detection using mtime + size, with optional hash verification.
-    
+
     Performance Optimization:
         - mtime + size comparison is O(1) stat call (no file read)
         - Hash computed lazily only when mtime/size mismatch detected
         - Handles edge cases like touch/rsync that change mtime but not content
-    
+
     Attributes:
         mtime: File modification time (seconds since epoch)
         size: File size in bytes
         hash: SHA256 hash (computed lazily, may be None for fast path)
-    
+
     Thread Safety:
         Immutable after creation. Thread-safe for read operations.
-        
+
     """
 
     mtime: float

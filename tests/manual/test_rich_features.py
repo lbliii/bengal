@@ -102,7 +102,11 @@ def test_rich_console():
         from rich.syntax import Syntax
         from rich.tree import Tree
 
-        from bengal.utils.observability.rich_console import detect_environment, get_console, should_use_rich
+        from bengal.utils.observability.rich_console import (
+            detect_environment,
+            get_console,
+            should_use_rich,
+        )
 
         console = get_console()
 

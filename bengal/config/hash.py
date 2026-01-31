@@ -66,22 +66,22 @@ EXCLUDED_KEYS = frozenset(
 def _json_default(obj: Any) -> str:
     """
     Handle non-JSON-serializable types for deterministic hashing.
-    
+
     Converts Python types that aren't natively JSON-serializable into
     string representations suitable for consistent hashing.
-    
+
     Supported Types:
         - ``Path``: Converted to POSIX path string for cross-platform consistency.
         - ``set``, ``frozenset``: Sorted and converted to string.
         - Objects with ``__dict__``: Dictionary representation as string.
         - Other types: ``str()`` fallback.
-    
+
     Args:
         obj: Object to convert to a hashable string representation.
-    
+
     Returns:
         String representation suitable for deterministic hashing.
-        
+
     """
     if isinstance(obj, Path):
         # Use POSIX paths for cross-platform consistency
@@ -99,17 +99,17 @@ def _json_default(obj: Any) -> str:
 def _clean_config(d: dict[str, Any] | Any) -> dict[str, Any]:
     """
     Recursively remove excluded keys from config dict.
-    
+
     Removes internal/runtime keys that shouldn't affect build output:
     - Keys in EXCLUDED_KEYS set
     - Keys starting with underscore (private/internal)
-    
+
     Args:
         d: Configuration dictionary or ConfigSection to clean
-    
+
     Returns:
         Cleaned dictionary without excluded keys
-        
+
     """
     # Convert ConfigSection to dict if needed
     if hasattr(d, "_data"):
@@ -137,44 +137,44 @@ def _clean_config(d: dict[str, Any] | Any) -> dict[str, Any]:
 def compute_config_hash(config: dict[str, Any] | Any) -> str:
     """
     Compute deterministic SHA-256 hash of configuration state.
-    
+
     The hash is computed from the *resolved* configuration dictionary,
     capturing all effective settings including:
     - Base configuration from config files
     - Environment variable overrides
     - Profile-specific settings
     - Merged split config files
-    
+
     Excludes internal/runtime keys that don't affect build output.
-    
+
     Algorithm:
         1. Remove excluded/internal keys (keys starting with '_')
         2. Recursively sort all dictionary keys (deterministic ordering)
         3. Serialize to JSON with custom handler for non-JSON types
         4. Compute SHA-256 hash
         5. Return first 16 characters (sufficient for uniqueness)
-    
+
     Args:
         config: Resolved configuration dictionary
-    
+
     Returns:
         16-character hex string (truncated SHA-256)
-    
+
     Examples:
             >>> config1 = {"title": "My Site", "baseurl": "/"}
             >>> config2 = {"baseurl": "/", "title": "My Site"}  # Same values, different order
             >>> compute_config_hash(config1) == compute_config_hash(config2)
         True
-    
+
             >>> config3 = {"title": "My Site", "baseurl": "/blog"}
             >>> compute_config_hash(config1) == compute_config_hash(config3)
         False
-    
+
             >>> # Internal keys don't affect hash
             >>> config4 = {"title": "My Site", "baseurl": "/", "_paths": object()}
             >>> compute_config_hash(config1) == compute_config_hash(config4)
         True
-        
+
     """
     # Convert Config object to raw dict if needed
     if hasattr(config, "raw"):

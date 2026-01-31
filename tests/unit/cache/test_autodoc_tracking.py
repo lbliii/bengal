@@ -24,7 +24,6 @@ def add_dep(cache: BuildCache, source: str, page: str) -> None:
     )
 
 
-
 class TestAutodocTrackingMixin:
     """Test autodoc dependency tracking in BuildCache."""
 

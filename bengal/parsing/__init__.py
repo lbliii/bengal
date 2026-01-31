@@ -89,9 +89,9 @@ from __future__ import annotations
 import os
 import warnings
 
-from bengal.parsing.base import BaseMarkdownParser
 from bengal.parsing.backends.mistune import MistuneParser
 from bengal.parsing.backends.patitas.wrapper import PatitasParser
+from bengal.parsing.base import BaseMarkdownParser
 from bengal.parsing.python_markdown import PythonMarkdownParser
 
 # Alias for convenience
@@ -102,10 +102,10 @@ _SHOW_DEPRECATION = os.environ.get("BENGAL_PARSER_DEPRECATION_WARNINGS", "0") ==
 
 __all__ = [
     "BaseMarkdownParser",
-    "PythonMarkdownParser",
+    "MarkdownParser",
     "MistuneParser",
     "PatitasParser",
-    "MarkdownParser",
+    "PythonMarkdownParser",
     "create_markdown_parser",
 ]
 
@@ -113,23 +113,23 @@ __all__ = [
 def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
     """
     Create a markdown parser instance.
-    
+
     Factory function to instantiate the appropriate parser based on engine
     selection. This is the recommended way to create parsers.
-    
+
     Args:
         engine: Parser engine name. Options:
             - 'patitas' (default): Modern parser with typed AST
             - 'mistune': Legacy parser, will be deprecated in Bengal 3.0
             - 'python-markdown' / 'markdown': Full-featured, slower
-    
+
     Returns:
         Parser instance implementing BaseMarkdownParser protocol.
-    
+
     Raises:
         BengalConfigError: If engine name is not recognized.
         ImportError: If python-markdown is requested but not installed.
-    
+
     Examples:
             >>> # Modern parser (recommended for Python 3.14+)
             >>> parser = create_markdown_parser('patitas')
@@ -139,11 +139,11 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
             >>>
             >>> # Explicit engine selection
             >>> parser = create_markdown_parser('python-markdown')
-    
+
     Note:
         Set BENGAL_PARSER_DEPRECATION_WARNINGS=1 to see deprecation warnings
         for mistune parser usage.
-        
+
     """
     engine = (engine or "patitas").lower()
 

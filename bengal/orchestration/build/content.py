@@ -9,7 +9,6 @@ RFC: Output Cache Architecture - Integrates GeneratedPageCache for tag page cach
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -27,19 +26,19 @@ def phase_sections(
 ) -> None:
     """
     Phase 6: Section Finalization.
-    
+
     Ensures all sections have index pages and validates section structure.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         incremental: Whether this is an incremental build
         affected_sections: Set of section paths affected by changes (or None for full build)
-    
+
     Side effects:
         - May create generated index pages for sections without them
         - Invalidates regular_pages cache
-        
+
     """
     with orchestrator.logger.phase("section_finalization"):
         # If incremental and there are no affected sections, skip noisy finalization/validation
@@ -89,26 +88,26 @@ def phase_taxonomies(
 ) -> set[str]:
     """
     Phase 7: Taxonomies & Dynamic Pages.
-    
+
     Collects taxonomy terms (tags, categories) and generates taxonomy pages.
     Optimized for incremental builds - only processes changed pages.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
         force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental)
-    
+
     Returns:
         Set of affected tag slugs
-    
+
     Side effects:
         - Populates orchestrator.site.taxonomies
         - Creates taxonomy pages in orchestrator.site.pages
         - Invalidates regular_pages cache
         - Updates orchestrator.stats.taxonomy_time_ms
-        
+
     """
     affected_tags = set()
 
@@ -198,12 +197,12 @@ def phase_taxonomies(
 def phase_taxonomy_index(orchestrator: BuildOrchestrator) -> None:
     """
     Phase 8: Save Taxonomy Index.
-    
+
     Persists tag-to-pages mapping for incremental builds.
-    
+
     Side effects:
         - Writes taxonomy index to .bengal/taxonomy_index.json
-        
+
     """
     with orchestrator.logger.phase("save_taxonomy_index", enabled=True):
         try:
@@ -255,18 +254,18 @@ def phase_menus(
 ) -> None:
     """
     Phase 9: Menu Building.
-    
+
     Builds navigation menus. Optimized for incremental builds.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         changed_page_paths: Set of paths for pages that changed
-    
+
     Side effects:
         - Populates orchestrator.site.menu
         - Updates orchestrator.stats.menu_time_ms
-        
+
     """
     with orchestrator.logger.phase("menus"):
         menu_start = time.time()
@@ -295,20 +294,20 @@ def phase_related_posts(
 ) -> None:
     """
     Phase 10: Related Posts Index.
-    
+
     Pre-computes related posts for O(1) template access.
     Skipped for large sites (>5K pages) or sites without tags.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
         force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental optimization)
-    
+
     Side effects:
         - Populates page.related_posts for each page
         - Updates orchestrator.stats.related_posts_time_ms
-        
+
     """
     should_build_related = (
         hasattr(orchestrator.site, "taxonomies")
@@ -369,18 +368,18 @@ def phase_query_indexes(
 ) -> None:
     """
     Phase 11: Query Indexes.
-    
+
     Builds pre-computed indexes for O(1) template lookups.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
         pages_to_build: List of pages being built (for incremental)
-    
+
     Side effects:
         - Builds/updates site.indexes
-        
+
     """
     with orchestrator.logger.phase("query_indexes"):
         query_indexes_start = time.time()
@@ -422,19 +421,19 @@ def phase_update_pages_list(
     incremental: bool,
     pages_to_build: list[Any],
     affected_tags: set[str],
-    generated_page_cache: "GeneratedPageCache | None" = None,
+    generated_page_cache: GeneratedPageCache | None = None,
 ) -> list[Any]:
     """
     Phase 12: Update Pages List.
-    
+
     Updates the pages_to_build list to include newly generated taxonomy pages.
-    
+
     Handles metadata cascade: when a page's title/date/summary changes, taxonomy
     pages that list it must be rebuilt to show updated content.
-    
+
     RFC: Output Cache Architecture - Uses GeneratedPageCache to skip unchanged
     tag pages based on member content hashes.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cache: BuildCache instance for cache invalidation
@@ -442,21 +441,21 @@ def phase_update_pages_list(
         pages_to_build: Current list of pages to build
         affected_tags: Set of affected tag slugs
         generated_page_cache: GeneratedPageCache for skipping unchanged tag pages
-    
+
     Returns:
         Updated pages_to_build list including generated taxonomy pages
-    
+
     Side effects:
         - Invalidates page caches
         - Invalidates rendered output cache for cascaded taxonomy pages
-        
+
     """
     # Convert to set for O(1) membership and automatic deduplication
     pages_to_build_set = set(pages_to_build) if pages_to_build else set()
-    
+
     # RFC: Output Cache Architecture - Build content hash lookup from parsed_content cache
     content_hash_lookup: dict[str, str] = {}
-    if cache and hasattr(cache, 'parsed_content'):
+    if cache and hasattr(cache, "parsed_content"):
         for path_str, entry in cache.parsed_content.items():
             if isinstance(entry, dict):
                 # The content hash is stored as metadata_hash in parsed_content
@@ -484,7 +483,7 @@ def phase_update_pages_list(
                     if tag is not None:
                         tag_slug = str(tag).lower().replace(" ", "-")
                         cascaded_tags.add(tag_slug)
-        
+
         # Merge cascaded tags with affected_tags
         if cascaded_tags:
             affected_tags = affected_tags | cascaded_tags
@@ -504,14 +503,14 @@ def phase_update_pages_list(
             # For incremental builds, add only affected tag pages + tag index
             tag_slug = page.metadata.get("_tag_slug")
             page_type = page.metadata.get("type")
-            
+
             # Base inclusion logic
             should_include = (
                 not incremental  # Full build: include all
                 or page_type == "tag-index"  # Always include tag index
                 or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
             )
-            
+
             # RFC: Output Cache Architecture - Check if page actually needs regeneration
             # This is the KEY optimization: skip if member content hasn't changed
             if should_include and incremental and generated_page_cache and page_type == "tag":
@@ -538,17 +537,18 @@ def phase_update_pages_list(
                 # CRITICAL: Invalidate rendered output cache for taxonomy pages
                 # This ensures fresh rendering with updated member metadata
                 # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
-                coordinator = getattr(orchestrator.incremental, 'coordinator', None)
+                coordinator = getattr(orchestrator.incremental, "coordinator", None)
                 if coordinator:
                     from bengal.orchestration.build.coordinator import PageInvalidationReason
+
                     coordinator.invalidate_page(
                         page.source_path,
                         PageInvalidationReason.TAXONOMY_CASCADE,
                         trigger=f"tag:{tag_slug}" if tag_slug else "tag-index",
                     )
-                elif cache and hasattr(cache, 'invalidate_rendered_output'):
+                elif cache and hasattr(cache, "invalidate_rendered_output"):
                     cache.invalidate_rendered_output(page.source_path)
-    
+
     # Log cache effectiveness
     if skipped_by_cache > 0:
         orchestrator.logger.info(

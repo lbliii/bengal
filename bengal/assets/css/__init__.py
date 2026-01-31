@@ -37,21 +37,22 @@ _directive_css_cache: LRUCache[str, str] = LRUCache(maxsize=1, name="directive_c
 def get_directive_base_css() -> str:
     """
     Return bundled directive base CSS as a single string.
-    
+
     Reads and bundles all CSS files from the directives/ subdirectory,
     resolving @import statements. The result is cached for performance.
-    
+
     Thread-safe: Uses LRUCache with RLock for safe concurrent access
     under free-threading (PEP 703).
-    
+
     Returns:
         Bundled CSS content (~200 lines, < 2KB)
-    
+
     Example:
             >>> css = get_directive_base_css()
             >>> print(len(css))  # ~2000 characters
-        
+
     """
+
     def _load_css() -> str:
         directives_dir = Path(__file__).parent / "directives"
         index_file = directives_dir / "_index.css"
@@ -61,20 +62,20 @@ def get_directive_base_css() -> str:
 
         # Read the index file and resolve @import statements
         return _bundle_css(index_file)
-    
+
     return _directive_css_cache.get_or_set("directive_base_css", _load_css)
 
 
 def _bundle_css(css_file: Path) -> str:
     """
     Bundle CSS by resolving @import statements recursively.
-    
+
     Args:
         css_file: Path to CSS file to bundle
-    
+
     Returns:
         Bundled CSS content with all imports inlined
-        
+
     """
     import re
 
@@ -104,9 +105,9 @@ def _bundle_css(css_file: Path) -> str:
 def get_directive_base_css_path() -> Path:
     """
     Return the path to the directive base CSS directory.
-    
+
     Returns:
         Path to bengal/assets/css/directives/
-        
+
     """
     return Path(__file__).parent / "directives"

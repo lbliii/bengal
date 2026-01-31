@@ -2,7 +2,6 @@
 title: String & Date Filters
 description: Text transformation and date calculation filters
 weight: 50
-type: doc
 tags:
 - reference
 - filters

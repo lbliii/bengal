@@ -34,27 +34,27 @@ if TYPE_CHECKING:
 class MinimalStats:
     """
     Lightweight stats for subprocess build results.
-    
+
     Implements the DisplayableStats protocol with sensible defaults
     for attributes not available from BuildResult. This replaces
     ad-hoc local stub classes with a tested, protocol-compliant
     implementation.
-    
+
     Attributes:
         total_pages: Number of pages built (from BuildResult.pages_built)
         build_time_ms: Build duration in ms (from BuildResult.build_time_ms)
         incremental: Whether this was an incremental build
-    
+
     All other attributes default to appropriate zero/empty values,
     which display_build_stats() handles gracefully (skips if 0).
-    
+
     Example:
             >>> from bengal.server.build_executor import BuildResult
             >>> result = BuildResult(success=True, pages_built=50, build_time_ms=500.0)
             >>> stats = MinimalStats.from_build_result(result, incremental=True)
             >>> stats.total_pages
         50
-        
+
     """
 
     # Required: from BuildResult

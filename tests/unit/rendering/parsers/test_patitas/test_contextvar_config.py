@@ -26,6 +26,7 @@ from bengal.parsing.backends.patitas import (
     reset_parse_config as reset_bengal_parse_config,
     set_parse_config as set_bengal_parse_config,
 )
+
 # For tests that use external patitas's Parser directly, we use patitas's config
 from patitas.config import (
     ParseConfig,
@@ -40,7 +41,7 @@ from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 class TestParseConfig:
     """Tests for ParseConfig and parse_config_context.
-    
+
     Note: These tests use external patitas's ParseConfig and Parser directly
     to validate the ContextVar pattern works correctly. Bengal wraps these
     via its own config and Markdown class.
@@ -264,9 +265,7 @@ class TestThreadIsolation:
         ]
 
         with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = [
-                executor.submit(worker, i, pc, rc) for i, (pc, rc) in enumerate(configs)
-            ]
+            futures = [executor.submit(worker, i, pc, rc) for i, (pc, rc) in enumerate(configs)]
             for f in futures:
                 f.result()
 

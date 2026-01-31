@@ -196,9 +196,7 @@ class TestContentParserStrictMode:
         assert metadata.get("custom_field") == "value"
         assert "Content" in content
 
-    def test_validate_against_collection_no_op_without_collections(
-        self, tmp_path: Path
-    ) -> None:
+    def test_validate_against_collection_no_op_without_collections(self, tmp_path: Path) -> None:
         """validate_against_collection should be no-op without collections."""
         parser = ContentParser(tmp_path)  # No collections
 

@@ -88,14 +88,14 @@ from .display import (
 from .exceptions import TemplateRenderError
 
 __all__ = [
-    "TemplateErrorContext",
-    "InclusionChain",
     "ErrorDeduplicator",
+    "InclusionChain",
+    "TemplateErrorContext",
     "TemplateRenderError",
-    "display_template_error",
+    "_extract_dict_attribute",
+    "_extract_filter_name",
     # Helper functions (exported for testing)
     "_extract_variable_name",
-    "_extract_filter_name",
-    "_extract_dict_attribute",
     "_generate_enhanced_suggestions",
+    "display_template_error",
 ]

@@ -267,10 +267,10 @@ class TestIgnoreFilterEdgeCases:
 
 class TestIgnoreFilterBengalCache:
     """Tests for .bengal cache directory ignoring.
-    
+
     The .bengal directory contains cache files that are written during builds.
     These must be ignored to prevent infinite rebuild loops in the dev server.
-        
+
     """
 
     def test_bengal_cache_dir_is_ignored_by_default(self) -> None:
@@ -316,10 +316,10 @@ class TestIgnoreFilterBengalCache:
 
 class TestIgnoreFilterCaching:
     """Tests for path result caching.
-    
+
     RFC: rfc-server-package-optimizations
     The IgnoreFilter caches path check results for O(1) repeated lookups.
-        
+
     """
 
     def test_cache_hit_returns_same_result(self) -> None:

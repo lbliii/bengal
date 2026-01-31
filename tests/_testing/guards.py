@@ -18,13 +18,23 @@ except ImportError:
     psutil = None
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def process_guard(request):
     """
     Guard against leaked processes.
     Ensures all child processes created during the test are terminated on teardown.
-        
+
+    This is an opt-in fixture. Use it by:
+    1. Adding the fixture as a test parameter: def test_foo(process_guard): ...
+    2. Using the marker: @pytest.mark.process_guard
+
     """
+    # Check if activated via marker (allows using marker instead of fixture param)
+    marker = request.node.get_closest_marker("process_guard")
+    if marker is None and "process_guard" not in request.fixturenames:
+        yield
+        return
+
     if psutil is None:
         yield
         return

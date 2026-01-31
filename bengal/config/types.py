@@ -364,9 +364,9 @@ class ExternalRefIndexConfig(TypedDict, total=False):
 
 class ExternalRefsConfig(TypedDict, total=False):
     """External references configuration for cross-project linking.
-    
+
     Enables linking to external documentation using [[ext:project:target]] syntax.
-    
+
     Example:
             >>> config: ExternalRefsConfig = {
             ...     "enabled": True,
@@ -378,9 +378,9 @@ class ExternalRefsConfig(TypedDict, total=False):
             ...         {"name": "kida", "url": "https://lbliii.github.io/kida/xref.json"},
             ...     ],
             ... }
-    
+
     See: plan/rfc-external-references.md
-        
+
     """
 
     enabled: bool
@@ -420,11 +420,11 @@ class SitemapConfig(TypedDict, total=False):
 
 class SiteConfig(TypedDict, total=False):
     """Complete site configuration schema.
-    
+
     This TypedDict provides full type information for Bengal site configuration.
     All fields are optional (total=False) to support partial configuration with
     defaults applied by :func:`bengal.config.defaults.get_default`.
-    
+
     Categories:
         - Site Metadata: title, baseurl, description, author, language
         - Build Settings: output_dir, parallel, incremental, etc.
@@ -443,7 +443,7 @@ class SiteConfig(TypedDict, total=False):
         - Markdown: parser configuration
         - Link Previews: hover card settings
         - Document Application: modern browser features
-    
+
     Example:
             >>> config: SiteConfig = {
             ...     "title": "My Documentation",
@@ -451,7 +451,7 @@ class SiteConfig(TypedDict, total=False):
             ...     "theme": {"name": "default"},
             ...     "content": {"excerpt_length": 300},
             ... }
-        
+
     """
 
     # -------------------------------------------------------------------------
@@ -526,55 +526,55 @@ type NormalizedFeatureConfig = dict[str, object]
 # =============================================================================
 
 __all__ = [
-    # Top-level config
-    "SiteConfig",
-    # Build settings
-    "StaticConfig",
-    "HtmlOutputConfig",
+    "ASTCacheConfig",
     "AssetsConfig",
-    # Theme
-    "ThemeConfig",
+    # Type aliases
+    "BoolOrDictConfig",
+    "ConnectivityThresholds",
     # Content
     "ContentConfig",
-    # Search
-    "SearchConfig",
-    "LunrConfig",
-    "SearchUIConfig",
-    "SearchAnalyticsConfig",
-    # Pagination
-    "PaginationConfig",
-    # Health check
-    "HealthCheckConfig",
-    "ConnectivityThresholds",
-    "LinkWeights",
+    # Document application
+    "DocumentApplicationConfig",
+    "ExternalRefIndexConfig",
+    # External references
+    "ExternalRefsConfig",
     # Features
     "FeaturesConfig",
     # Graph
     "GraphConfig",
+    # Health check
+    "HealthCheckConfig",
+    "HtmlOutputConfig",
     # i18n
     "I18nConfig",
-    # Output formats
-    "OutputFormatsConfig",
-    "OutputFormatOptions",
-    # Markdown
-    "MarkdownConfig",
-    "ASTCacheConfig",
+    "InteractivityConfig",
     # Link previews
     "LinkPreviewsConfig",
-    # Document application
-    "DocumentApplicationConfig",
+    "LinkWeights",
+    "LunrConfig",
+    # Markdown
+    "MarkdownConfig",
     "NavigationConfig",
-    "SpeculationConfig",
-    "PrerenderConfig",
+    "NormalizedFeatureConfig",
+    "OutputFormatOptions",
+    # Output formats
+    "OutputFormatsConfig",
+    # Pagination
+    "PaginationConfig",
     "PrefetchConfig",
-    "InteractivityConfig",
+    "PrerenderConfig",
     # RSS/Sitemap
     "RSSConfig",
+    "SearchAnalyticsConfig",
+    # Search
+    "SearchConfig",
+    "SearchUIConfig",
+    # Top-level config
+    "SiteConfig",
     "SitemapConfig",
-    # External references
-    "ExternalRefsConfig",
-    "ExternalRefIndexConfig",
-    # Type aliases
-    "BoolOrDictConfig",
-    "NormalizedFeatureConfig",
+    "SpeculationConfig",
+    # Build settings
+    "StaticConfig",
+    # Theme
+    "ThemeConfig",
 ]

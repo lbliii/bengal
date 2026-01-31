@@ -19,9 +19,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.errors import BengalRenderingError
-from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
-from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from kida import Environment
 from kida.bytecode_cache import BytecodeCache
 from kida.environment import (
@@ -34,25 +31,29 @@ from kida.environment import (
     TemplateSyntaxError as KidaTemplateSyntaxError,
 )
 
+from bengal.errors import BengalRenderingError
+from bengal.protocols import EngineCapability, TemplateEngineProtocol
+from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
+
 if TYPE_CHECKING:
     from bengal.core import Site
 
 
 class KidaTemplateEngine:
     """Bengal integration for Kida template engine.
-    
+
     Implements TemplateEngineProtocol for seamless integration
     with Bengal's rendering pipeline.
-    
+
     Example:
         # In bengal.yaml:
         site:
           template_engine: kida
-        
+
     """
 
     NAME = "kida"
-    __slots__ = ("site", "template_dirs", "_env", "_dependency_tracker", "_menu_dict_cache")
+    __slots__ = ("_dependency_tracker", "_env", "_menu_dict_cache", "site", "template_dirs")
 
     def __init__(self, site: Site, *, profile: bool = False):
         """Initialize Kida engine for site.

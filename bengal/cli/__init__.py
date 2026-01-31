@@ -77,8 +77,8 @@ from bengal.cli.commands.serve import serve as serve_cmd
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.theme import theme as theme_cli
-from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.upgrade.command import upgrade as upgrade_cmd
+from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.cli.commands.version import version_cli
 
@@ -136,14 +136,14 @@ def main(
 ) -> None:
     """
     Bengal Static Site Generator CLI.
-    
+
     Build fast, modern static sites with Python.
-    
+
     For more information, see: https://lbliii.github.io/bengal/docs
-        
+
     """
     import sys
-    
+
     # Python 3.14+ required - warn early and clearly
     if sys.version_info < (3, 14):
         click.secho(
@@ -155,7 +155,7 @@ def main(
             bold=True,
             err=True,
         )
-    
+
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     TracebackConfig.from_environment().install()
@@ -324,10 +324,10 @@ def _show_upgrade_notification_after_command(
 ) -> None:
     """
     Show upgrade notification after command completion.
-    
+
     This is called after every command finishes. It checks for available
     upgrades and shows a non-intrusive banner if one is available.
-    
+
     The notification is:
     - Cached (only checks PyPI once per 24h)
     - Skipped in CI environments

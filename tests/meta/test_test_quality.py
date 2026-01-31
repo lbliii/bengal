@@ -47,10 +47,13 @@ def _parse_python_file(file_path: Path) -> ast.Module | None:
 class TestNoWeakAssertions:
     """Tests that catch weak/useless assertions."""
 
-    @pytest.mark.parametrize("pattern,description,threshold", [
-        (r"^\s*assert\s+True\s*$", "assert True", 10),  # Start with baseline, reduce over time
-        (r"^\s*assert\s+False\s*$", "assert False (always fails)", 0),
-    ])
+    @pytest.mark.parametrize(
+        "pattern,description,threshold",
+        [
+            (r"^\s*assert\s+True\s*$", "assert True", 10),  # Start with baseline, reduce over time
+            (r"^\s*assert\s+False\s*$", "assert False (always fails)", 0),
+        ],
+    )
     def test_no_bare_assert_true_or_false(
         self,
         pattern: str,
@@ -131,9 +134,7 @@ class TestMockUsagePatterns:
             if mock_count > 0:
                 densities.append(mock_count)
                 if mock_count > 50:  # Flag very high density
-                    high_density_files.append(
-                        (test_file.relative_to(TESTS_DIR), mock_count)
-                    )
+                    high_density_files.append((test_file.relative_to(TESTS_DIR), mock_count))
 
         avg_density = sum(densities) / len(densities) if densities else 0
 
@@ -219,8 +220,7 @@ class TestHardeningProgress:
         # Tests get marked as hardening is identified
         if count > 0:
             print(
-                "Run: pytest --collect-only -m needs_hardening "
-                "to see all tests needing hardening"
+                "Run: pytest --collect-only -m needs_hardening to see all tests needing hardening"
             )
 
 
@@ -282,15 +282,10 @@ class TestGoldenFileScenarios:
         if not golden_dir.exists():
             pytest.skip("Golden directory not yet created")
 
-        scenarios = [
-            d.name
-            for d in golden_dir.iterdir()
-            if d.is_dir() and (d / "input").exists()
-        ]
+        scenarios = [d.name for d in golden_dir.iterdir() if d.is_dir() and (d / "input").exists()]
 
         assert len(scenarios) >= 1, (
-            "No golden scenarios found. "
-            "Create tests/golden/*/input/ directories."
+            "No golden scenarios found. Create tests/golden/*/input/ directories."
         )
 
         print(f"\nGolden scenarios: {scenarios}")

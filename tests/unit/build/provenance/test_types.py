@@ -73,28 +73,28 @@ class TestHashFile:
         """Existing file is hashed correctly."""
         file_path = tmp_path / "test.txt"
         file_path.write_text("file content")
-        
+
         result = hash_file(file_path)
-        
+
         assert isinstance(result, str)
         assert len(result) == 16
 
     def test_missing_file(self, tmp_path: Path) -> None:
         """Missing file returns special hash."""
         file_path = tmp_path / "nonexistent.txt"
-        
+
         result = hash_file(file_path)
-        
+
         assert result == "_missing_"
 
     def test_deterministic(self, tmp_path: Path) -> None:
         """Same file content produces same hash."""
         file_path = tmp_path / "test.txt"
         file_path.write_text("file content")
-        
+
         hash1 = hash_file(file_path)
         hash2 = hash_file(file_path)
-        
+
         assert hash1 == hash2
 
 
@@ -192,18 +192,22 @@ class TestProvenance:
 
     def test_creates_with_inputs(self) -> None:
         """Provenance can be created with inputs."""
-        inputs = frozenset([
-            InputRecord("content", CacheKey("content/a.md"), ContentHash("abc")),
-            InputRecord("template", CacheKey("templates/b.html"), ContentHash("xyz")),
-        ])
+        inputs = frozenset(
+            [
+                InputRecord("content", CacheKey("content/a.md"), ContentHash("abc")),
+                InputRecord("template", CacheKey("templates/b.html"), ContentHash("xyz")),
+            ]
+        )
         prov = Provenance(inputs=inputs)
         assert len(prov.inputs) == 2
 
     def test_combined_hash_computed_automatically(self) -> None:
         """Combined hash is computed from inputs."""
-        inputs = frozenset([
-            InputRecord("content", CacheKey("content/a.md"), ContentHash("abc123")),
-        ])
+        inputs = frozenset(
+            [
+                InputRecord("content", CacheKey("content/a.md"), ContentHash("abc123")),
+            ]
+        )
         prov = Provenance(inputs=inputs)
         assert prov.combined_hash != ""
         assert len(prov.combined_hash) == 16
@@ -223,16 +227,16 @@ class TestProvenance:
         """merge() combines inputs from both provenances."""
         prov1 = Provenance().with_input("content", CacheKey("a.md"), ContentHash("abc"))
         prov2 = Provenance().with_input("template", CacheKey("b.html"), ContentHash("xyz"))
-        
+
         merged = prov1.merge(prov2)
-        
+
         assert len(merged.inputs) == 2
 
     def test_input_count(self) -> None:
         """input_count returns number of inputs."""
         prov = Provenance().with_input("content", CacheKey("a.md"), ContentHash("abc"))
         prov = prov.with_input("template", CacheKey("b.html"), ContentHash("xyz"))
-        
+
         assert prov.input_count == 2
 
     def test_inputs_by_type(self) -> None:
@@ -241,10 +245,10 @@ class TestProvenance:
         prov = prov.with_input("content", CacheKey("a.md"), ContentHash("abc"))
         prov = prov.with_input("content", CacheKey("b.md"), ContentHash("def"))
         prov = prov.with_input("template", CacheKey("base.html"), ContentHash("xyz"))
-        
+
         content_inputs = prov.inputs_by_type("content")
         template_inputs = prov.inputs_by_type("template")
-        
+
         assert len(content_inputs) == 2
         assert len(template_inputs) == 1
 
@@ -253,9 +257,9 @@ class TestProvenance:
         prov = Provenance()
         prov = prov.with_input("content", CacheKey("a.md"), ContentHash("abc"))
         prov = prov.with_input("template", CacheKey("b.html"), ContentHash("xyz"))
-        
+
         summary = prov.summary()
-        
+
         assert "1 content" in summary
         assert "1 template" in summary
         assert prov.combined_hash in summary
@@ -307,9 +311,9 @@ class TestProvenanceRecord:
             output_hash=ContentHash("output123"),
             build_id="build-001",
         )
-        
+
         data = record.to_dict()
-        
+
         assert data["page_path"] == "content/about.md"
         assert data["output_hash"] == "output123"
         assert data["build_id"] == "build-001"
@@ -320,17 +324,15 @@ class TestProvenanceRecord:
         """from_dict() deserializes correctly."""
         data = {
             "page_path": "content/about.md",
-            "inputs": [
-                {"type": "content", "path": "content/about.md", "hash": "abc123"}
-            ],
+            "inputs": [{"type": "content", "path": "content/about.md", "hash": "abc123"}],
             "combined_hash": "combined123",
             "output_hash": "output123",
             "created_at": "2026-01-16T12:00:00",
             "build_id": "build-001",
         }
-        
+
         record = ProvenanceRecord.from_dict(data)
-        
+
         assert record.page_path == CacheKey("content/about.md")
         assert record.output_hash == ContentHash("output123")
         assert record.build_id == "build-001"
@@ -347,10 +349,10 @@ class TestProvenanceRecord:
             output_hash=ContentHash("output123"),
             build_id="build-001",
         )
-        
+
         data = original.to_dict()
         recovered = ProvenanceRecord.from_dict(data)
-        
+
         assert recovered.page_path == original.page_path
         assert recovered.output_hash == original.output_hash
         assert recovered.build_id == original.build_id

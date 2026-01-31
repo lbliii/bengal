@@ -87,11 +87,7 @@ def _get_golden_scenarios() -> list[str]:
     """Get list of available golden test scenarios."""
     if not GOLDEN_DIR.exists():
         return []
-    return [
-        d.name
-        for d in GOLDEN_DIR.iterdir()
-        if d.is_dir() and (d / "input").exists()
-    ]
+    return [d.name for d in GOLDEN_DIR.iterdir() if d.is_dir() and (d / "input").exists()]
 
 
 @pytest.fixture
@@ -163,8 +159,7 @@ class TestGoldenOutput:
 
         if not expected_dir.exists():
             pytest.skip(
-                f"No expected/ directory for this scenario. "
-                f"Run with --update-golden to generate."
+                f"No expected/ directory for this scenario. Run with --update-golden to generate."
             )
 
         mismatches = []

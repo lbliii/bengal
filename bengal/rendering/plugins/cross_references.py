@@ -35,7 +35,7 @@ __all__ = ["CrossReferencePlugin"]
 class CrossReferencePlugin:
     """
     Mistune plugin for inline cross-references with [[link]] syntax.
-    
+
     Syntax:
         [[docs/installation]]           -> Link with page title
         [[docs/installation|Install]]   -> Link with custom text
@@ -49,23 +49,23 @@ class CrossReferencePlugin:
         [[ext:project:target]]          -> External reference (cross-project)
         [[ext:python:pathlib.Path]]     -> Link to Python stdlib docs
         [[ext:kida:Markup|Kida Markup]] -> Link to Kida docs with custom text
-    
+
     Performance: O(1) per reference (dictionary lookup from xref_index)
     Thread-safe: Read-only access to xref_index built during discovery
-    
+
     Architecture:
     - Runs as inline parser (processes text before rendering)
     - Uses xref_index for O(1) lookups (no linear search)
     - External refs use three-tier resolution (template, index, fallback)
     - Returns raw HTML that bypasses further processing
     - Broken refs get special markup for debugging/health checks
-    
+
     Note: For Mistune v3, this works by post-processing the rendered HTML
     to replace [[link]] patterns. This is simpler and more compatible than
     trying to hook into the inline parser which has a complex API.
-    
+
     See: plan/rfc-external-references.md
-        
+
     """
 
     def __init__(
@@ -343,9 +343,7 @@ class CrossReferencePlugin:
 
         # Fall back to first entry (any version)
         first_entry = anchor_entries[0]
-        if len(first_entry) >= 3:
-            return (first_entry[0], first_entry[1])
-        elif len(first_entry) >= 2:
+        if len(first_entry) >= 3 or len(first_entry) >= 2:
             return (first_entry[0], first_entry[1])
         else:
             # Malformed entry

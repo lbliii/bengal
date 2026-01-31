@@ -18,10 +18,10 @@ class TestAssetTracker:
     def test_track_assets(self) -> None:
         """Test tracking assets."""
         tracker = AssetTracker()
-        
+
         tracker.track("/assets/css/style.css")
         tracker.track("/assets/js/app.js")
-        
+
         assets = tracker.get_assets()
         assert "/assets/css/style.css" in assets
         assert "/assets/js/app.js" in assets
@@ -30,23 +30,23 @@ class TestAssetTracker:
     def test_context_manager(self) -> None:
         """Test tracker as context manager."""
         tracker = AssetTracker()
-        
+
         assert get_current_tracker() is None
-        
+
         with tracker:
             assert get_current_tracker() is tracker
             tracker.track("/assets/test.css")
-        
+
         assert get_current_tracker() is None
         assert "/assets/test.css" in tracker.get_assets()
 
     def test_track_empty_string_ignored(self) -> None:
         """Test that empty strings are not tracked."""
         tracker = AssetTracker()
-        
+
         tracker.track("")
         tracker.track("  ")
-        
+
         assets = tracker.get_assets()
         assert len(assets) == 0
 
@@ -54,10 +54,10 @@ class TestAssetTracker:
         """Test that get_assets() returns a copy."""
         tracker = AssetTracker()
         tracker.track("/assets/test.css")
-        
+
         assets1 = tracker.get_assets()
         assets2 = tracker.get_assets()
-        
+
         # Should be different objects
         assert assets1 is not assets2
         # But same content
@@ -73,18 +73,18 @@ class TestAssetTrackingIntegration:
             root_path=tmp_path,
             config={},
         )
-        
+
         tracker = AssetTracker()
         with tracker:
             # Resolve asset URLs - should be tracked
             url1 = resolve_asset_url("css/style.css", site)
             url2 = resolve_asset_url("js/app.js", site)
-        
+
         # Check that assets were tracked
         assets = tracker.get_assets()
         assert "css/style.css" in assets
         assert "js/app.js" in assets
-        
+
         # URLs should still be resolved correctly
         assert url1
         assert url2
@@ -95,16 +95,16 @@ class TestAssetTrackingIntegration:
             root_path=tmp_path,
             config={},
         )
-        
+
         # No tracker active
         assert get_current_tracker() is None
-        
+
         # Resolve asset URLs - should not track
         url = resolve_asset_url("css/style.css", site)
-        
+
         # Should still work (no error)
         assert url
-        
+
         # But no tracker to check (this is expected behavior)
 
     def test_tracking_with_multiple_assets(self, tmp_path) -> None:
@@ -113,14 +113,14 @@ class TestAssetTrackingIntegration:
             root_path=tmp_path,
             config={},
         )
-        
+
         tracker = AssetTracker()
         with tracker:
             resolve_asset_url("css/style.css", site)
             resolve_asset_url("css/theme.css", site)
             resolve_asset_url("js/app.js", site)
             resolve_asset_url("images/logo.png", site)
-        
+
         assets = tracker.get_assets()
         assert len(assets) == 4
         assert "css/style.css" in assets

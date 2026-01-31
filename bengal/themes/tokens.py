@@ -51,49 +51,49 @@ from typing import Protocol, runtime_checkable
 class ColorPalette(Protocol):
     """
     Protocol defining the common interface for color palettes.
-    
+
     Both BengalPalette (full palette) and PaletteVariant (subset) implement
     this interface, ensuring type safety when using get_palette().
-    
+
     This protocol guarantees that callers can access these core color
     attributes regardless of which palette type is returned:
-    
+
     Attributes:
         primary: Primary brand color
-        accent: Accent/highlight color  
+        accent: Accent/highlight color
         success: Success state color
         error: Error state color
         surface: Widget surface color
         background: Base background color
-    
+
     Example:
             >>> def apply_theme(palette: ColorPalette) -> None:
             ...     # Safe to access these attributes on any palette
             ...     print(f"Primary: {palette.primary}")
             ...     print(f"Background: {palette.background}")
-        
+
     Note:
         BengalPalette has additional attributes (secondary, warning, info,
         muted, foreground, border, border_focus, text_primary, text_secondary,
         text_muted, surface_light) that are NOT part of this protocol.
         Access them only after checking isinstance(palette, BengalPalette).
     """
-    
+
     @property
     def primary(self) -> str: ...
-    
+
     @property
     def accent(self) -> str: ...
-    
+
     @property
     def success(self) -> str: ...
-    
+
     @property
     def error(self) -> str: ...
-    
+
     @property
     def surface(self) -> str: ...
-    
+
     @property
     def background(self) -> str: ...
 
@@ -102,10 +102,10 @@ class ColorPalette(Protocol):
 class BengalPalette:
     """
     Bengal color palette with semantic color tokens.
-    
+
     All colors meet WCAG AA contrast ratio (4.5:1) against both dark (#1a1a1a)
     and light (#fafafa) backgrounds for accessibility compliance.
-    
+
     Attributes:
         primary: Bengal signature vivid orange (#FF9D00)
         secondary: Complementary bright blue (#3498DB)
@@ -124,14 +124,14 @@ class BengalPalette:
         text_primary: Main text color (#e0e0e0)
         text_secondary: Secondary text (#9e9e9e)
         text_muted: De-emphasized text (#757575)
-    
+
     Example:
             >>> palette = BengalPalette()
             >>> palette.primary
             '#FF9D00'
             >>> palette.success
             '#2ECC71'
-        
+
     """
 
     # Brand Colors
@@ -170,11 +170,11 @@ BENGAL_PALETTE = BengalPalette()
 class BengalMascots:
     """
     Bengal brand mascots and status icons for terminal output.
-    
+
     Provides ASCII-compatible characters for terminal UI elements including
     the Bengal cat mascot, status indicators, navigation symbols, and
     performance grades. All characters render across modern terminals.
-    
+
     Attributes:
         cat: Bengal cat mascot for success/help headers (ᓚᘏᗢ)
         mouse: Mouse for error headers - cat catches bugs (ᘛ⁐̤ᕐᐷ)
@@ -193,16 +193,16 @@ class BengalMascots:
         grade_fast: Fast performance (+)
         grade_moderate: Moderate performance (~)
         grade_slow: Slow performance (-)
-    
+
     Example:
             >>> mascots = BengalMascots()
             >>> print(f"{mascots.cat} Build successful {mascots.success}")
         ᓚᘏᗢ Build successful ✓
-    
+
     Note:
         Status icons are ASCII-first for compatibility. Set BENGAL_EMOJI=1
         environment variable to enable emoji alternatives.
-        
+
     """
 
     # Mascot characters
@@ -239,11 +239,11 @@ BENGAL_MASCOT = BengalMascots()
 class PaletteVariant:
     """
     Named color palette variant for theming.
-    
+
     Provides a subset of color tokens that define a cohesive visual theme.
     Variants can be applied via the BENGAL_PALETTE environment variable or
     theme configuration.
-    
+
     Attributes:
         name: Variant identifier (e.g., "blue-bengal", "charcoal-bengal")
         primary: Primary brand color for the variant
@@ -252,7 +252,7 @@ class PaletteVariant:
         error: Error state color
         surface: Widget surface color (default: #1e1e1e)
         background: Base background color (default: #121212)
-    
+
     Example:
             >>> variant = PaletteVariant(
             ...     name="custom",
@@ -263,7 +263,7 @@ class PaletteVariant:
             ... )
             >>> variant.primary
             '#1976D2'
-        
+
     """
 
     name: str
@@ -327,33 +327,33 @@ PALETTE_VARIANTS: dict[str, PaletteVariant] = {
 def get_palette(name: str = "default") -> ColorPalette:
     """
     Get a color palette by name.
-    
+
     Retrieves either the default BengalPalette or a named PaletteVariant.
     Falls back to the default palette if the requested name is not found.
-    
+
     The returned palette implements the ColorPalette protocol, guaranteeing
     access to: primary, accent, success, error, surface, background.
-    
+
     Args:
         name: Palette variant name. Use "default" for the full BengalPalette,
             or a variant name like "blue-bengal", "charcoal-bengal", etc.
-    
+
     Returns:
         A ColorPalette instance. May be BengalPalette (for "default") or
         PaletteVariant (for named variants). Falls back to BENGAL_PALETTE
         if name is not found.
-    
+
     Example:
             >>> palette = get_palette("default")
             >>> palette.primary  # Safe: ColorPalette guarantees this
             '#FF9D00'
-            >>> 
+            >>>
             >>> # For BengalPalette-specific attributes, check type first:
             >>> if isinstance(palette, BengalPalette):
             ...     print(palette.secondary)  # Only on BengalPalette
-        
+
     Note:
-        If you need BengalPalette-specific attributes (secondary, warning, 
+        If you need BengalPalette-specific attributes (secondary, warning,
         info, muted, foreground, border, text_* colors), use isinstance()
         to check the type or access BENGAL_PALETTE directly.
     """

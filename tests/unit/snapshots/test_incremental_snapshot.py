@@ -40,7 +40,7 @@ class TestPredictAffected:
         """Create a mock snapshot for testing."""
         page_snapshots = []
         template_groups: dict[str, list[PageSnapshot]] = {}
-        
+
         for i, (path_str, template) in enumerate(pages):
             # Note: PageSnapshot is frozen dataclass but contains toc_items
             # which has dicts inside - we use frozenset for the set operations
@@ -65,7 +65,7 @@ class TestPredictAffected:
             )
             page_snapshots.append(page)
             template_groups.setdefault(template, []).append(page)
-        
+
         return SiteSnapshot(
             pages=tuple(page_snapshots),
             regular_pages=tuple(page_snapshots),
@@ -77,9 +77,7 @@ class TestPredictAffected:
             menus=MappingProxyType({}),
             taxonomies=MappingProxyType({}),
             topological_order=(),
-            template_groups=MappingProxyType({
-                k: tuple(v) for k, v in template_groups.items()
-            }),
+            template_groups=MappingProxyType({k: tuple(v) for k, v in template_groups.items()}),
             attention_order=tuple(page_snapshots),
             scout_hints=(),
             snapshot_time=0.0,
@@ -92,27 +90,31 @@ class TestPredictAffected:
 
     def test_markdown_file_predicts_single_page(self):
         """Test that .md file change predicts only that page."""
-        snapshot = self._create_mock_snapshot([
-            ("content/index.md", "page.html"),
-            ("content/about.md", "page.html"),
-            ("content/docs/guide.md", "doc.html"),
-        ])
-        
+        snapshot = self._create_mock_snapshot(
+            [
+                ("content/index.md", "page.html"),
+                ("content/about.md", "page.html"),
+                ("content/docs/guide.md", "doc.html"),
+            ]
+        )
+
         affected = predict_affected(Path("content/about.md"), snapshot)
-        
+
         assert len(affected) == 1
         assert list(affected)[0].source_path == Path("content/about.md")
 
     def test_template_file_predicts_using_pages(self):
         """Test that .html template change predicts pages using it."""
-        snapshot = self._create_mock_snapshot([
-            ("content/index.md", "page.html"),
-            ("content/about.md", "page.html"),
-            ("content/docs/guide.md", "doc.html"),
-        ])
-        
+        snapshot = self._create_mock_snapshot(
+            [
+                ("content/index.md", "page.html"),
+                ("content/about.md", "page.html"),
+                ("content/docs/guide.md", "doc.html"),
+            ]
+        )
+
         affected = predict_affected(Path("templates/page.html"), snapshot)
-        
+
         # Should include pages using page.html
         assert len(affected) >= 2
         paths = {p.source_path for p in affected}
@@ -121,34 +123,40 @@ class TestPredictAffected:
 
     def test_css_file_predicts_all_pages(self):
         """Test that CSS change predicts all pages (conservative)."""
-        snapshot = self._create_mock_snapshot([
-            ("content/index.md", "page.html"),
-            ("content/about.md", "page.html"),
-        ])
-        
+        snapshot = self._create_mock_snapshot(
+            [
+                ("content/index.md", "page.html"),
+                ("content/about.md", "page.html"),
+            ]
+        )
+
         affected = predict_affected(Path("assets/style.css"), snapshot)
-        
+
         assert len(affected) == len(snapshot.pages)
 
     def test_image_file_predicts_none(self):
         """Test that image change predicts no pages."""
-        snapshot = self._create_mock_snapshot([
-            ("content/index.md", "page.html"),
-        ])
-        
+        snapshot = self._create_mock_snapshot(
+            [
+                ("content/index.md", "page.html"),
+            ]
+        )
+
         affected = predict_affected(Path("assets/logo.png"), snapshot)
-        
+
         assert len(affected) == 0
 
     def test_unknown_file_type_conservative(self):
         """Test that unknown file type is conservative (all pages)."""
-        snapshot = self._create_mock_snapshot([
-            ("content/index.md", "page.html"),
-            ("content/about.md", "page.html"),
-        ])
-        
+        snapshot = self._create_mock_snapshot(
+            [
+                ("content/index.md", "page.html"),
+                ("content/about.md", "page.html"),
+            ]
+        )
+
         affected = predict_affected(Path("unknown.xyz"), snapshot)
-        
+
         assert len(affected) == len(snapshot.pages)
 
 
@@ -185,36 +193,36 @@ class TestSpeculativeRenderer:
         """Test that initial accuracy uses default assumption."""
         snapshot = self._create_mock_snapshot()
         renderer = SpeculativeRenderer(snapshot)
-        
+
         assert renderer.prediction_accuracy == 0.9  # Default
 
     def test_should_speculate_with_high_accuracy(self):
         """Test that speculation is enabled with high accuracy."""
         snapshot = self._create_mock_snapshot()
         renderer = SpeculativeRenderer(snapshot)
-        
+
         # Record high-accuracy predictions
         for _ in range(10):
             renderer.record_prediction_result(5, 5)  # 100% accurate
-        
+
         assert renderer.should_speculate() is True
 
     def test_should_not_speculate_with_low_accuracy(self):
         """Test that speculation is disabled with low accuracy."""
         snapshot = self._create_mock_snapshot()
         renderer = SpeculativeRenderer(snapshot)
-        
+
         # Record low-accuracy predictions
         for _ in range(10):
             renderer.record_prediction_result(10, 2)  # Very inaccurate
-        
+
         assert renderer.should_speculate() is False
 
     def test_validate_speculation_records_history(self):
         """Test that validation records prediction history."""
         snapshot = self._create_mock_snapshot()
         renderer = SpeculativeRenderer(snapshot)
-        
+
         page1 = PageSnapshot(
             title="Test",
             href="/test/",
@@ -234,12 +242,12 @@ class TestSpeculativeRenderer:
             content_hash="abc",
             section=NO_SECTION,
         )
-        
+
         predicted = {page1}
         actual = {page1}
-        
+
         result = renderer.validate_speculation(predicted, actual)
-        
+
         assert result["hits"] == 1
         assert result["misses"] == 0
         assert result["accuracy"] == 1.0
@@ -299,16 +307,16 @@ class TestShadowModeValidator:
     def test_validate_perfect_prediction(self):
         """Test validation with perfect prediction."""
         validator = ShadowModeValidator()
-        
+
         page = self._create_page("test")
         snapshot = self._create_mock_snapshot([page])
-        
+
         result = validator.validate(
             file_path=page.source_path,
             snapshot=snapshot,
             actual_affected={page},
         )
-        
+
         assert result["accuracy"] == 1.0
         assert result["hit_count"] == 1
         assert result["miss_count"] == 0
@@ -316,30 +324,30 @@ class TestShadowModeValidator:
     def test_overall_accuracy_tracking(self):
         """Test that overall accuracy is tracked across validations."""
         validator = ShadowModeValidator()
-        
+
         page1 = self._create_page("page1")
         page2 = self._create_page("page2")
         snapshot = self._create_mock_snapshot([page1, page2])
-        
+
         # First validation - perfect
         validator.validate(page1.source_path, snapshot, {page1})
-        
+
         # Second validation - also perfect
         validator.validate(page2.source_path, snapshot, {page2})
-        
+
         assert validator.overall_accuracy == 1.0
 
     def test_get_report(self):
         """Test report generation."""
         validator = ShadowModeValidator()
-        
+
         page = self._create_page("test")
         snapshot = self._create_mock_snapshot([page])
-        
+
         validator.validate(page.source_path, snapshot, {page})
-        
+
         report = validator.get_report()
-        
+
         assert "total_validations" in report
         assert "overall_accuracy" in report
         assert "recommendation" in report
@@ -348,16 +356,16 @@ class TestShadowModeValidator:
     def test_recommendation_based_on_accuracy(self):
         """Test that recommendation depends on accuracy."""
         validator = ShadowModeValidator()
-        
+
         page = self._create_page("test")
         snapshot = self._create_mock_snapshot([page])
-        
+
         # Add high-accuracy validations
         for _ in range(10):
             validator.validate(page.source_path, snapshot, {page})
-        
+
         report = validator.get_report()
-        
+
         assert report["recommendation"] == "Enable speculation"
 
 
@@ -373,29 +381,29 @@ class TestUpdateSnapshotIntegration:
     def test_update_snapshot_with_no_changes(self, site, build_site):
         """Test that no changes returns same snapshot."""
         from bengal.snapshots import create_site_snapshot, update_snapshot
-        
+
         build_site()
         original = create_site_snapshot(site)
-        
+
         updated = update_snapshot(original, site, set())
-        
+
         # Should return same snapshot object
         assert updated is original
 
     def test_update_snapshot_preserves_unchanged_pages(self, site, build_site):
         """Test structural sharing for unchanged pages."""
         from bengal.snapshots import create_site_snapshot, update_snapshot
-        
+
         build_site()
         original = create_site_snapshot(site)
-        
+
         if not original.pages:
             pytest.skip("No pages in test site")
-        
+
         # Change one file
         changed = {original.pages[0].source_path}
         updated = update_snapshot(original, site, changed)
-        
+
         # Config should be reused (structural sharing)
         assert updated.config is original.config
         assert updated.params is original.params

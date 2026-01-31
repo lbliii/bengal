@@ -2,7 +2,6 @@
 title: Linking Functions
 description: Generate links to pages, headings, and external documentation
 weight: 30
-type: doc
 tags:
 - reference
 - functions

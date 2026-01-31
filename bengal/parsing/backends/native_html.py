@@ -24,26 +24,26 @@ from html.parser import HTMLParser
 class NativeHTMLParser(HTMLParser):
     """
     Fast HTML parser for build-time validation and text extraction.
-    
+
     This parser is the production parser used during `bengal build` for health
     checks and validation. It's optimized for speed over features, using Python's
     stdlib html.parser without external dependencies.
-    
+
     **Primary use cases:**
     - Health check validation (unrendered directives, Jinja templates)
     - Text extraction for search indexing
     - Link validation and content analysis
-    
+
     **Performance:**
     - ~5-10x faster than BeautifulSoup4 for text extraction
     - Zero external dependencies (uses stdlib only)
-    
+
     **Example:**
             >>> parser = NativeHTMLParser()
             >>> result = parser.feed("<p>Hello <code>world</code></p>")
             >>> result.get_text()
             'Hello'  # Code block excluded
-        
+
     """
 
     def __init__(self) -> None:

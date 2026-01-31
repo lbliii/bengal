@@ -112,8 +112,7 @@ def find_cycles(
                 # Check if all edges in cycle are deferred (TYPE_CHECKING or lazy imports)
                 cycle_edges = list(zip(cycle[:-1], cycle[1:]))
                 is_deferred_only = all(
-                    dst in deferred_edges.get(src, set())
-                    for src, dst in cycle_edges
+                    dst in deferred_edges.get(src, set()) for src, dst in cycle_edges
                 )
                 cycles.append((cycle, is_deferred_only))
 

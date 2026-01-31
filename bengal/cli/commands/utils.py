@@ -14,9 +14,8 @@ from bengal.cli.commands.theme import theme
 def utils_cli() -> None:
     """
     Utility commands for development and maintenance.
-        
+
     """
-    pass
 
 
 utils_cli.add_command(perf)

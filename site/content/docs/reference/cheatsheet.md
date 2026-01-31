@@ -2,7 +2,6 @@
 title: Cheatsheet
 description: Quick reference for common Bengal commands, patterns, and configurations
 weight: 1
-type: doc
 tags:
 - reference
 - cheatsheet

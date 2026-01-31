@@ -29,8 +29,8 @@ except ImportError as e:
     ) from e
 
 from bengal.content.sources.entry import ContentEntry
-from bengal.content.sources.source import ContentSource
 from bengal.content.sources.local import _parse_frontmatter
+from bengal.content.sources.source import ContentSource
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,22 +39,22 @@ logger = get_logger(__name__)
 class GitHubSource(ContentSource):
     """
     Content source for GitHub repositories.
-    
+
     Fetches markdown files from a GitHub repo using the GitHub API.
     Supports both public repos and private repos with token authentication.
-    
+
     Configuration:
         repo: str - Repository in "owner/repo" format (required)
         branch: str - Branch name (default: "main")
         path: str - Directory path within repo (default: "")
         token: str - GitHub token (optional, uses GITHUB_TOKEN env var)
         glob: str - File pattern to match (default: "*.md")
-    
+
     Performance:
         Files are fetched in parallel with a configurable concurrency limit.
         Rate limit responses (429/403) trigger automatic retry with exponential backoff.
         Results are streamed as they complete (order is non-deterministic).
-    
+
     Example:
             >>> source = GitHubSource("api-docs", {
             ...     "repo": "myorg/api-docs",
@@ -63,7 +63,7 @@ class GitHubSource(ContentSource):
             ... })
             >>> async for entry in source.fetch_all():
             ...     print(entry.title)
-        
+
     """
 
     source_type = "github"

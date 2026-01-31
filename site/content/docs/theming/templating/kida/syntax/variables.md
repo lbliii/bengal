@@ -3,7 +3,6 @@ title: Variables and Scoping
 nav_title: Variables
 description: Template variables, scoping rules, and exports
 weight: 20
-type: doc
 tags:
 - reference
 - kida

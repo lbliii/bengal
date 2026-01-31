@@ -31,9 +31,9 @@ from .health_report import HealthReport
 from .models import CheckResult, CheckStatus, ValidatorReport, ValidatorStats
 
 __all__ = [
-    "CheckStatus",
     "CheckResult",
-    "ValidatorStats",
-    "ValidatorReport",
+    "CheckStatus",
     "HealthReport",
+    "ValidatorReport",
+    "ValidatorStats",
 ]

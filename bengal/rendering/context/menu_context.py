@@ -15,20 +15,20 @@ if TYPE_CHECKING:
 class MenusContext:
     """
     Smart access to navigation menus.
-    
+
     Example:
         {% for item in menus.main %}
         {% for item in menus.footer %}
         {% for item in menus.get('sidebar') %}
-    
+
     Performance:
         Menu dicts are cached on first access to avoid repeated .to_dict() calls.
         For a 1000-page site accessing menus 3x per page, this eliminates
         ~3000 unnecessary dict creations per build.
-        
+
     """
 
-    __slots__ = ("_site", "_cache")
+    __slots__ = ("_cache", "_site")
 
     def __init__(self, site: SiteLike):
         self._site = site

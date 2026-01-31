@@ -3,7 +3,6 @@ title: Project Philosophy
 nav_title: Philosophy
 description: Bengal prioritizes correctness over compatibility. What that means for upgrades and contributions.
 weight: 1
-type: doc
 icon: lightbulb
 tags:
 - philosophy

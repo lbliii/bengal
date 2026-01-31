@@ -18,7 +18,7 @@ Usage:
     with tracker:
         # Render template - asset_url() calls will track assets
         html = render_template(template, context)
-    
+
     # Get tracked assets
     assets = tracker.get_assets()
 """
@@ -38,19 +38,19 @@ _current_tracker: ContextVar[AssetTracker | None] = ContextVar("asset_tracker", 
 class AssetTracker:
     """
     Track assets during template rendering (no HTML parsing).
-    
+
     Thread-safe via ContextVar - each thread/context has independent tracker.
-    
+
     Supports nesting: inner trackers restore the outer tracker on exit.
-    
+
     Usage:
         tracker = AssetTracker()
         with tracker:
             # Render template - asset_url() will track assets
             html = render_template(...)
-        
+
         assets = tracker.get_assets()
-    
+
     Nested usage:
         with outer_tracker:
             with inner_tracker:
@@ -58,39 +58,39 @@ class AssetTracker:
                 pass
             # outer_tracker is restored
     """
-    
+
     __slots__ = ("_assets", "_token")
-    
+
     def __init__(self) -> None:
         """Initialize empty asset tracker."""
         self._assets: set[str] = set()
         self._token: Token[AssetTracker | None] | None = None
-    
+
     def track(self, path: str) -> None:
         """Track an asset reference.
-        
+
         Empty strings and whitespace-only strings are ignored.
-        
+
         Args:
             path: Asset path/URL to track
         """
         # Strip whitespace and check for empty - whitespace-only paths are invalid
         if path and path.strip():
             self._assets.add(path)
-    
+
     def get_assets(self) -> set[str]:
         """Get all tracked asset paths.
-        
+
         Returns:
             Copy of tracked asset set
         """
         return self._assets.copy()
-    
+
     def __enter__(self) -> AssetTracker:
         """Enter context manager - set as current tracker, saving previous."""
         self._token = _current_tracker.set(self)
         return self
-    
+
     def __exit__(self, *_: Any) -> None:
         """Exit context manager - restore previous tracker."""
         if self._token is not None:
@@ -100,7 +100,7 @@ class AssetTracker:
 
 def get_current_tracker() -> AssetTracker | None:
     """Get the current asset tracker (if any).
-    
+
     Returns:
         Current AssetTracker instance, or None if not in tracking context
     """

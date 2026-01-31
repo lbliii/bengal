@@ -70,16 +70,16 @@ TYPE_TO_ICON = {
 class AdmonitionOptions(DirectiveOptions):
     """
     Options for admonition directive.
-    
+
     Attributes:
         css_class: Additional CSS classes
-    
+
     Example:
         :::{note} Title
         :class: holo custom-class
         Content
         :::
-        
+
     """
 
     css_class: str = ""
@@ -90,21 +90,21 @@ class AdmonitionOptions(DirectiveOptions):
 class AdmonitionDirective(BengalDirective):
     """
     Admonition directive using Mistune's fenced syntax.
-    
+
     Syntax:
         :::{note} Optional Title
         Content with **markdown** support.
         :::
-    
+
     With custom classes:
         :::{note} Optional Title
         :class: holo custom-class
         Content with **markdown** support.
         :::
-    
+
     Supported types: note, tip, warning, danger, error, info,
                     example, success, caution, seealso
-        
+
     """
 
     # All admonition types registered as names

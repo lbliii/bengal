@@ -29,10 +29,10 @@ def create_skeleton_from_args(
 ) -> Skeleton:
     """
     Create an in-memory skeleton based on legacy init arguments.
-    
+
     This bridges the gap between the old imperative init command
     and the new declarative skeleton system.
-        
+
     """
     structure: list[Component] = []
 
@@ -126,9 +126,9 @@ def init(
 ) -> None:
     """
     Initialize site structure.
-    
+
     Uses the Component Model to generate sections and pages.
-        
+
     """
     cli = CLIOutput()
 

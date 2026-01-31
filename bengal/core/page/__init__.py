@@ -58,6 +58,11 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
 
+# Import PageOperationsMixin from rendering layer where it logically belongs.
+# This is an intentional cross-layer import - the mixin contains rendering logic
+# that is mixed into the Page class for API convenience.
+from bengal.rendering.page_operations import PageOperationsMixin
+
 from .bundle import BundleType, PageBundleMixin, PageResource, PageResources
 from .computed import PageComputedMixin
 from .content import PageContentMixin
@@ -67,11 +72,6 @@ from .navigation import PageNavigationMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
-
-# Import PageOperationsMixin from rendering layer where it logically belongs.
-# This is an intentional cross-layer import - the mixin contains rendering logic
-# that is mixed into the Page class for API convenience.
-from bengal.rendering.page_operations import PageOperationsMixin
 
 
 @dataclass
@@ -86,7 +86,7 @@ class Page(
 ):
     """
     Represents a single content page.
-    
+
     HASHABILITY:
     ============
     Pages are hashable based on their source_path, allowing them to be stored
@@ -95,12 +95,12 @@ class Page(
     - Automatic deduplication with sets
     - Set operations for page analysis
     - Direct use as dictionary keys
-    
+
     Two pages with the same source_path are considered equal, even if their
     content differs. The hash is stable throughout the page lifecycle because
     source_path is immutable. Mutable fields (content, rendered_html, etc.)
     do not affect the hash or equality.
-    
+
     VIRTUAL PAGES:
     ==============
     Virtual pages represent dynamically-generated content (e.g., API docs)
@@ -109,27 +109,27 @@ class Page(
     - Are created via Page.create_virtual() factory
     - Don't read from disk (content provided directly)
     - Integrate with site's page collection and navigation
-    
+
     BUILD LIFECYCLE:
     ================
     Pages progress through distinct build phases. Properties have different
     availability depending on the current phase:
-    
+
     1. Discovery (content_discovery.py)
        ✅ Available: source_path, content, metadata, title, slug, date
        ❌ Not available: toc, parsed_ast, toc_items, rendered_html
-    
+
     2. Parsing (pipeline.py)
        ✅ Available: All Stage 1 + toc, parsed_ast
        ✅ toc_items can be accessed (will extract from toc)
-    
+
     3. Rendering (pipeline.py)
        ✅ Available: All previous + rendered_html, output_path
        ✅ All properties fully populated
-    
+
     Note: Some properties like toc_items can be accessed early (returning [])
     but won't cache empty results, allowing proper extraction after parsing.
-    
+
     Attributes:
         source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
@@ -144,7 +144,7 @@ class Page(
         toc_items: Structured TOC data for custom rendering
         related_posts: Related pages (pre-computed during build based on tag overlap)
         _virtual: True if this is a virtual page (not backed by a disk file)
-        
+
     """
 
     # Class-level warning counter (shared across all Page instances)
@@ -269,8 +269,6 @@ class Page(
             # Component Model Fields
             type=standard_fields.get("type"),
             variant=variant,
-            # Cascade metadata (for _index.md files that define cascade for children)
-            cascade=self.metadata.get("cascade", {}),
             description=standard_fields.get("description"),
             props=custom_props,  # Only custom fields go into props
             # Links
@@ -286,6 +284,9 @@ class Page(
         This should be called before caching to ensure all paths are relative
         to the site root, preventing absolute path leakage into cache.
 
+        Also updates core.section from _section_path since the page may have
+        been assigned to a section after core was initially created.
+
         Uses dataclasses.replace() since PageCore is frozen (immutable).
         """
         from dataclasses import replace
@@ -293,15 +294,31 @@ class Page(
         if not self._site or not self.core:
             return
 
+        updates: dict[str, str] = {}
+
         # Convert absolute source_path to relative
         source_path_str = self.core.source_path
         if Path(source_path_str).is_absolute():
             try:
                 rel_path = Path(source_path_str).relative_to(self._site.root_path)
-                # Create new frozen PageCore with updated path
-                self.core = replace(self.core, source_path=str(rel_path))
+                updates["source_path"] = str(rel_path)
             except (ValueError, AttributeError):
                 pass  # Keep absolute if not under root
+
+        # Update section from _section_path (may have been set after core creation)
+        # Convert to relative path for cache consistency
+        if self._section_path is not None:
+            try:
+                content_dir = self._site.root_path / "content"
+                rel_section = str(self._section_path.relative_to(content_dir))
+                updates["section"] = rel_section
+            except (ValueError, AttributeError):
+                # Fallback: use string representation
+                updates["section"] = str(self._section_path)
+
+        # Apply all updates at once
+        if updates:
+            self.core = replace(self.core, **updates)
 
     @property
     def is_virtual(self) -> bool:

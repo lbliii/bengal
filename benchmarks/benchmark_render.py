@@ -10,13 +10,13 @@ RFC Gate Criteria:
 Run with:
     # Standard pytest benchmark
     uv run pytest benchmarks/benchmark_render.py -v --benchmark-only
-    
+
     # Direct execution (no pytest)
     uv run python benchmarks/benchmark_render.py
-    
+
     # Save baseline for comparison
     uv run pytest benchmarks/benchmark_render.py --benchmark-save=render-baseline
-    
+
     # Compare against baseline
     uv run pytest benchmarks/benchmark_render.py --benchmark-compare=render-baseline
 
@@ -413,10 +413,14 @@ def run_benchmarks(output_path: str | None = None) -> dict:
 
     # Render-only benchmarks
     print("Render-Only (AST pre-parsed):")
-    mean, stddev = benchmark("render_medium", lambda: parser.render_ast(medium_ast, MEDIUM_DOC), 1000)
+    mean, stddev = benchmark(
+        "render_medium", lambda: parser.render_ast(medium_ast, MEDIUM_DOC), 1000
+    )
     print(f"  Medium doc: {mean * 1000:.3f}ms ± {stddev * 1000:.3f}ms")
 
-    mean, stddev = benchmark("render_complex", lambda: parser.render_ast(complex_ast, COMPLEX_DOC), 1000)
+    mean, stddev = benchmark(
+        "render_complex", lambda: parser.render_ast(complex_ast, COMPLEX_DOC), 1000
+    )
     print(f"  Complex doc: {mean * 1000:.3f}ms ± {stddev * 1000:.3f}ms")
 
     print()

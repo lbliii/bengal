@@ -18,21 +18,21 @@ from typing import Any
 class Effect:
     """
     Declarative effect of a build operation.
-    
+
     Records what a build operation:
     - Produces (outputs)
     - Reads/depends on (depends_on)
     - Invalidates (cache keys to clear if inputs change)
-    
+
     Replaces 13 detector classes with one unified model.
-    
+
     Attributes:
         outputs: Files this operation produces
         depends_on: Files/keys this operation reads (paths or template names)
         invalidates: Cache keys to clear if inputs change
         operation: Name of the operation (for debugging)
         metadata: Additional context (page href, template name, etc.)
-    
+
     Example:
         >>> effect = Effect(
         ...     outputs=frozenset({Path("public/docs/guide/index.html")}),
@@ -69,12 +69,12 @@ class Effect:
     def merge_with(self, other: Effect) -> Effect:
         """
         Merge two effects into one.
-        
+
         Useful for combining effects from multiple operations on the same output.
-        
+
         Args:
             other: Another effect to merge with
-            
+
         Returns:
             New Effect with combined dependencies and invalidations
         """
@@ -99,9 +99,9 @@ class Effect:
     ) -> Effect:
         """
         Create effect for page rendering.
-        
+
         Convenience factory for the most common effect type.
-        
+
         Args:
             source_path: Path to source markdown file
             output_path: Path where HTML will be written
@@ -110,18 +110,18 @@ class Effect:
             page_href: Page URL for cache key
             cascade_sources: Parent _index.md files that cascade to this page
             data_files: Data files (data/*.yaml) used by this page
-            
+
         Returns:
             Effect for this page render operation
         """
         deps: set[Path | str] = {source_path, template_name}
         deps.update(template_includes)
-        
+
         if cascade_sources:
             deps.update(cascade_sources)
         if data_files:
             deps.update(data_files)
-        
+
         return cls(
             outputs=frozenset({output_path}),
             depends_on=frozenset(deps),
@@ -139,12 +139,12 @@ class Effect:
     ) -> Effect:
         """
         Create effect for asset copy/processing.
-        
+
         Args:
             source_path: Source asset path
             output_path: Output asset path (may include fingerprint)
             fingerprinted: Whether asset has content hash in filename
-            
+
         Returns:
             Effect for this asset operation
         """
@@ -165,12 +165,12 @@ class Effect:
     ) -> Effect:
         """
         Create effect for index generation (sitemap, RSS, search index).
-        
+
         Args:
             output_path: Path to output index file
             source_pages: Pages included in this index
             index_type: Type of index (sitemap, rss, search, etc.)
-            
+
         Returns:
             Effect for this index generation
         """
@@ -192,13 +192,13 @@ class Effect:
     ) -> Effect:
         """
         Create effect for taxonomy term page.
-        
+
         Args:
             output_path: Path to output taxonomy page
             taxonomy_name: Name of taxonomy (tags, categories, etc.)
             term: Taxonomy term
             member_pages: Pages with this term
-            
+
         Returns:
             Effect for this taxonomy page
         """

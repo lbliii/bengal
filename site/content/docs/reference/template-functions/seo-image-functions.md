@@ -2,7 +2,6 @@
 title: SEO, Image & Theme Functions
 description: SEO meta tags, image manipulation, icons, and theme features
 weight: 100
-type: doc
 tags:
 - reference
 - functions

@@ -31,7 +31,7 @@ DROPDOWN_COLORS = frozenset(["success", "warning", "danger", "info", "minimal"])
 class DropdownOptions(DirectiveOptions):
     """
     Options for dropdown directive.
-    
+
     Attributes:
         open: Whether dropdown is initially open (expanded)
         icon: Icon name to display next to the title
@@ -39,7 +39,7 @@ class DropdownOptions(DirectiveOptions):
         color: Color variant (success, warning, danger, info, minimal)
         description: Secondary text below the title to elaborate on the dropdown content
         css_class: Additional CSS classes for the container
-    
+
     Example:
         :::{dropdown} My Title
         :open: true
@@ -48,10 +48,10 @@ class DropdownOptions(DirectiveOptions):
         :color: info
         :description: Additional context about what's inside this dropdown
         :class: my-custom-class
-    
+
         Content here
         :::
-        
+
     """
 
     open: bool = False
@@ -67,7 +67,7 @@ class DropdownOptions(DirectiveOptions):
 class DropdownDirective(BengalDirective):
     """
     Collapsible dropdown directive with markdown support.
-    
+
     Syntax:
         :::{dropdown} Title
         :open: true
@@ -76,23 +76,23 @@ class DropdownDirective(BengalDirective):
         :color: info
         :description: Brief explanation of the dropdown content
         :class: custom-class
-    
+
         Content with **markdown**, code blocks, etc.
-    
+
         :::{note}
         Even nested admonitions work!
         :::
         :::
-    
+
     Or using the HTML5 semantic alias:
         :::{details} Summary Text
         Content
         :::
-    
+
     Aliases:
         - dropdown: Primary name
         - details: HTML5 semantic alias (renders as <details>)
-    
+
     Options:
         :open: true/false - Whether initially expanded (default: false)
         :icon: string - Icon name to display next to title
@@ -100,7 +100,7 @@ class DropdownDirective(BengalDirective):
         :color: string - Color variant (success, warning, danger, info, minimal)
         :description: string - Secondary text to elaborate on dropdown content
         :class: string - Additional CSS classes
-        
+
     """
 
     # Directive names to register
@@ -224,14 +224,14 @@ class DropdownDirective(BengalDirective):
 def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
     """
     Render dropdown icon using shared icon utilities.
-    
+
     Args:
         icon_name: Name of the icon to render
         dropdown_title: Title of the dropdown (for warning context)
-    
+
     Returns:
         SVG HTML string, or empty string if icon not found
-        
+
     """
     from bengal.directives._icons import (
         ICON_MAP,

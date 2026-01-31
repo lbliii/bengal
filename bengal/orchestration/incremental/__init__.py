@@ -9,7 +9,7 @@ This package provides incremental build orchestration:
 
 Usage:
     from bengal.orchestration.incremental import IncrementalOrchestrator
-    
+
     orchestrator = IncrementalOrchestrator(site)
     cache, tracker = orchestrator.initialize(enabled=True)
     pages, assets, summary = orchestrator.find_work_early()
@@ -31,9 +31,9 @@ from bengal.orchestration.incremental.effect_detector import (
 from bengal.orchestration.incremental.orchestrator import IncrementalOrchestrator
 
 __all__ = [
-    "IncrementalOrchestrator",
-    "EffectBasedDetector",
-    "create_detector_from_build",
     "CacheManager",
+    "EffectBasedDetector",
+    "IncrementalOrchestrator",
     "cleanup_deleted_files",
+    "create_detector_from_build",
 ]

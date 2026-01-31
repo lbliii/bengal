@@ -37,37 +37,41 @@ logger = get_logger(__name__)
 class Renderer:
     """
     Renders individual pages using templates and content processing.
-    
+
     Handles template rendering, content processing (H1 stripping), and error
     collection. Integrates with template engine for rendering (Kida default) and
     provides graceful error handling.
-    
+
     Creation:
         Direct instantiation: Renderer(template_engine, build_stats=None)
             - Created by RenderingPipeline for page rendering
             - Requires TemplateEngine instance
-    
+
     Attributes:
         template_engine: TemplateEngine instance for rendering (Kida default)
         site: Site instance (accessed via template_engine.site)
         build_stats: Optional BuildStats for error collection
-    
+
     Relationships:
         - Uses: TemplateEngine for template rendering
         - Uses: BuildStats for error collection
         - Used by: RenderingPipeline for page rendering
-    
+
     Thread Safety:
         Thread-safe. Each thread should have its own Renderer instance.
-    
+
     Examples:
         renderer = Renderer(template_engine, build_stats=stats)
         html = renderer.render_page(page)
-        
+
     """
 
     def __init__(
-        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None, build_context: Any = None
+        self,
+        template_engine: Any,
+        build_stats: Any = None,
+        block_cache: Any = None,
+        build_context: Any = None,
     ) -> None:
         """
         Initialize the renderer.
@@ -126,48 +130,47 @@ class Renderer:
     def _to_section_snapshot(self, section: Any, snapshot: Any) -> Any:
         """
         Convert a mutable Section to its SectionSnapshot equivalent.
-        
+
         Args:
             section: Mutable Section object (or None)
             snapshot: SiteSnapshot containing section snapshots
-            
+
         Returns:
             SectionSnapshot if found, NO_SECTION sentinel otherwise
         """
         from bengal.snapshots.types import NO_SECTION, SectionSnapshot
-        
+
         if section is None:
             return NO_SECTION
-        
+
         # If already a SectionSnapshot, return as-is
         if isinstance(section, SectionSnapshot):
             return section
-        
+
         # Look up in snapshot
         if snapshot:
             for sec_snap in snapshot.sections:
-                if (
-                    sec_snap.path == getattr(section, "path", None)
-                    or sec_snap.name == getattr(section, "name", "")
+                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                    section, "name", ""
                 ):
                     return sec_snap
-        
+
         # Fallback: return NO_SECTION sentinel
         return NO_SECTION
 
     def _to_section_snapshots(self, sections: list[Any], snapshot: Any) -> list[Any]:
         """
         Convert a list of mutable Sections to SectionSnapshots.
-        
+
         Args:
             sections: List of mutable Section objects
             snapshot: SiteSnapshot containing section snapshots
-            
+
         Returns:
             List of SectionSnapshots
         """
-        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
-        
+        from bengal.snapshots.types import NO_SECTION
+
         result = []
         for section in sections:
             if section is None:
@@ -346,7 +349,7 @@ class Renderer:
         snapshot = None
         if hasattr(self, "build_context") and self.build_context:
             snapshot = getattr(self.build_context, "snapshot", None)
-        
+
         context = build_page_context(
             page=page,
             site=self.site,
@@ -407,9 +410,7 @@ class Renderer:
 
             # Convert subsections to SectionSnapshots (no wrapper needed)
             # SectionSnapshot has params property and __bool__ for template compatibility
-            subsections_for_context = self._to_section_snapshots(
-                top_level_subsections, snapshot
-            )
+            subsections_for_context = self._to_section_snapshots(top_level_subsections, snapshot)
 
             context.update(
                 {
@@ -464,7 +465,6 @@ class Renderer:
                             error=str(traceback_error),
                             error_type=type(traceback_error).__name__,
                         )
-                        pass
                 # Raise TemplateRenderError directly (now extends Exception)
                 raise rich_error from e
 
@@ -489,7 +489,6 @@ class Renderer:
                         error=str(traceback_error),
                         error_type=type(traceback_error).__name__,
                     )
-                    pass
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)
@@ -532,7 +531,6 @@ class Renderer:
         Note: Posts are already filtered and sorted by the content type strategy
         in the SectionOrchestrator, so we do not re-sort here.
         """
-        from bengal.snapshots.types import NO_SECTION
 
         section = page.metadata.get("_section") if page.metadata is not None else None
         all_posts = (
@@ -742,7 +740,9 @@ class Renderer:
             return str(page.metadata["template"])
 
         # 2. Get content type strategy and delegate
-        page_type = page.metadata.get("type")
+        # IMPORTANT: Use page.type property (not metadata.get) to include cascade resolution
+        # This ensures pages inherit template selection from parent sections via cascade
+        page_type = page.type
         content_type = None
 
         if hasattr(page, "_section") and page._section and hasattr(page._section, "metadata"):

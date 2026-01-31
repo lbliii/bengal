@@ -49,11 +49,11 @@ logger = get_logger(__name__)
 class FeatureFlags:
     """
     Feature flags organized by category.
-    
+
     Features are grouped into categories (navigation, content, search, etc.)
     with boolean toggles for each feature. Use dotted notation to query
     features (e.g., "navigation.toc").
-    
+
     Attributes:
         navigation: Navigation features (toc, breadcrumbs, prev_next, etc.)
         content: Content features (code_copy, syntax_highlight, etc.)
@@ -61,14 +61,14 @@ class FeatureFlags:
         header: Header features (logo, theme_toggle, etc.)
         footer: Footer features (copyright, social_links, etc.)
         accessibility: Accessibility features (skip_links, focus_visible, etc.)
-    
+
     Example:
             >>> flags = FeatureFlags(navigation={"toc": True, "breadcrumbs": False})
             >>> flags.has_feature("navigation.toc")
         True
             >>> flags.get_enabled_features()
         ['navigation.toc']
-        
+
     """
 
     navigation: dict[str, bool] = field(default_factory=dict)
@@ -142,34 +142,36 @@ class FeatureFlags:
 class AppearanceConfig:
     """
     Appearance configuration for theme mode and color palette.
-    
+
     Controls the default visual appearance including light/dark mode preference
     and optional color palette variant. Validates mode and palette against allowed values.
-    
+
     Attributes:
         default_mode: Theme mode preference ("light", "dark", or "system")
         default_palette: Optional palette variant name (e.g., "blue-bengal", "snow-lynx").
             Must be one of the valid palette names from PALETTE_VARIANTS or empty string.
-    
+
     Raises:
         BengalConfigError: If default_mode is not one of: light, dark, system
         BengalConfigError: If default_palette is not a valid palette variant name
-        
+
     """
 
     default_mode: str = "system"
     default_palette: str = ""
 
     # Valid palette names - imported lazily to avoid circular imports
-    _VALID_PALETTES: frozenset[str] = frozenset({
-        "",  # Empty string is valid (no palette override)
-        "default",
-        "blue-bengal",
-        "brown-bengal",
-        "charcoal-bengal",
-        "silver-bengal",
-        "snow-lynx",
-    })
+    _VALID_PALETTES: frozenset[str] = frozenset(
+        {
+            "",  # Empty string is valid (no palette override)
+            "default",
+            "blue-bengal",
+            "brown-bengal",
+            "charcoal-bengal",
+            "silver-bengal",
+            "snow-lynx",
+        }
+    )
 
     def __post_init__(self) -> None:
         """Validate appearance configuration."""
@@ -184,7 +186,7 @@ class AppearanceConfig:
             )
             record_error(error)
             raise error
-        
+
         # Validate palette
         if self.default_palette not in self._VALID_PALETTES:
             valid_palettes = sorted(p for p in self._VALID_PALETTES if p)  # Exclude empty string
@@ -219,25 +221,25 @@ class AppearanceConfig:
 class IconConfig:
     """
     Icon library configuration with semantic aliases.
-    
+
     Controls which icon library is used (default: Phosphor) and provides
     semantic name mappings for consistent icon usage across the theme.
-    
+
     Attributes:
         library: Icon library name (e.g., "phosphor", "heroicons")
         aliases: Semantic-to-icon name mappings (e.g., {"search": "magnifying-glass"})
         defaults: Default icons for common UI elements (e.g., {"external_link": "arrow-up-right"})
         extend_defaults: Whether to fall through to Bengal's default icons (Phosphor)
             when an icon is not found in the theme. Defaults to True.
-    
+
     Example:
             >>> icons = IconConfig(library="phosphor", aliases={"search": "magnifying-glass"})
             >>> icons.library
             'phosphor'
-    
+
             >>> # Disable fallback to default icons
             >>> icons = IconConfig(extend_defaults=False)
-        
+
     """
 
     library: str = "phosphor"
@@ -353,10 +355,10 @@ class HeaderConfig:
 class ThemeConfig:
     """
     Complete theme configuration loaded from theme.yaml.
-    
+
     Consolidates all theme settings into a single configuration object that
     can be loaded from YAML files and serialized back for export.
-    
+
     Attributes:
         name: Theme identifier (e.g., "default", "docs-theme")
         version: Semantic version string (e.g., "1.0.0")
@@ -364,19 +366,19 @@ class ThemeConfig:
         features: Feature flags organized by category
         appearance: Theme mode and palette settings
         icons: Icon library and alias configuration
-    
+
     Example:
             >>> config = ThemeConfig.load(Path("themes/default"))
             >>> config.name
             'default'
             >>> config.features.has_feature("navigation.toc")
         True
-    
+
     See Also:
         FeatureFlags: Feature toggle configuration
         AppearanceConfig: Visual appearance settings
         IconConfig: Icon library settings
-        
+
     """
 
     name: str = "default"
@@ -445,7 +447,7 @@ class ThemeConfig:
 
         # Merge: features.header provides defaults, top-level header overrides
         merged_header = {**features_header, **header_data}
-        
+
         # Warn about unknown keys in header config - these might be misplaced
         # feature flags that won't take effect as layout settings
         valid_header_keys = {"nav_position", "sticky", "autohide"}
@@ -458,7 +460,7 @@ class ThemeConfig:
                 hint="These may be feature flags that belong in 'features.header' "
                 "rather than layout settings in 'header'",
             )
-        
+
         header = HeaderConfig.from_dict(merged_header)
 
         return cls(

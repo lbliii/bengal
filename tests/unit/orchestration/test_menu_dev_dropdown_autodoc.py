@@ -19,7 +19,7 @@ def test_auto_menu_bundles_github_and_api_into_dev_dropdown() -> None:
     When repo_url is set and an 'api' section exists, auto-menu should:
     - create a 'Dev' parent item
     - add 'GitHub' and section title (or fallback) as children of Dev
-        
+
     """
     site = MagicMock()
     site.config = {"menu": {}, "params": {"repo_url": "https://example.com/repo"}}
@@ -46,11 +46,11 @@ def test_auto_menu_bundles_github_and_api_into_dev_dropdown() -> None:
 def test_auto_menu_api_only_no_dev_dropdown() -> None:
     """
     If there is only one dev asset (API), we do not create a Dev dropdown.
-    
+
     Note: This tests _create_default_dev_bundle directly since the full
     _build_auto_menu_with_dev_bundling relies on get_auto_nav which needs
     real sections with paths.
-        
+
     """
     site = MagicMock()
     site.config = {"menu": {}, "params": {}}
@@ -82,11 +82,11 @@ def test_auto_menu_api_only_no_dev_dropdown() -> None:
 def test_auto_menu_cli_only_no_dev_dropdown() -> None:
     """
     If there is only one dev asset (CLI), we do not create a Dev dropdown.
-    
+
     Note: This tests _create_default_dev_bundle directly since the full
     _build_auto_menu_with_dev_bundling relies on get_auto_nav which needs
     real sections with paths.
-        
+
     """
     site = MagicMock()
     site.config = {"menu": {}, "params": {}}
@@ -123,7 +123,7 @@ def test_auto_menu_cli_only_no_dev_dropdown() -> None:
 def test_menu_extra_appends_items_to_auto_menu() -> None:
     """
     menu.extra config should append items to the auto-generated menu.
-    
+
     This allows users to add one-off links (like forums) without
     replacing the entire auto-discovered menu.
     """

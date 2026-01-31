@@ -45,8 +45,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.content_types.registry import detect_content_type, get_strategy
 from bengal.content.discovery.page_factory import PageInitializer
+from bengal.content_types.registry import detect_content_type, get_strategy
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
@@ -61,16 +61,16 @@ if TYPE_CHECKING:
 class SectionOrchestrator:
     """
     Handles section structure and completeness.
-    
+
     Responsibilities:
     - Ensure all sections have index pages (explicit or auto-generated)
     - Generate archive pages for sections without _index.md
     - Validate section structure
     - Maintain section hierarchy integrity
-    
+
     This orchestrator implements the "structural" concerns of sections,
     separate from cross-cutting concerns like taxonomies (tags, categories).
-        
+
     """
 
     def __init__(self, site: Site):

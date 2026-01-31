@@ -27,17 +27,17 @@ if TYPE_CHECKING:
 @runtime_checkable
 class KnowledgeGraphProtocol(Protocol):
     """Protocol for knowledge graph access.
-    
+
     Defines the interface that analysis modules can depend on without
     importing the concrete KnowledgeGraph class. This breaks circular
     imports while maintaining type safety.
-    
+
     Example:
         def analyze(graph: KnowledgeGraphProtocol) -> dict:
             hubs = graph.get_hubs()
             orphans = graph.get_orphans()
             return {"hubs": len(hubs), "orphans": len(orphans)}
-        
+
     """
 
     # Core data structures
@@ -63,10 +63,10 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_hubs(self, threshold: int | None = None) -> list[Page]:
         """Get pages with high incoming references (hubs).
-        
+
         Args:
             threshold: Minimum incoming refs (defaults to hub_threshold)
-            
+
         Returns:
             List of hub pages
         """
@@ -74,7 +74,7 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_orphans(self) -> list[Page]:
         """Get pages with no incoming references.
-        
+
         Returns:
             List of orphaned pages
         """
@@ -82,10 +82,10 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_leaves(self, threshold: int | None = None) -> list[Page]:
         """Get pages with low connectivity (leaf nodes).
-        
+
         Args:
             threshold: Maximum connectivity (defaults to leaf_threshold)
-            
+
         Returns:
             List of leaf pages
         """
@@ -93,7 +93,7 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_bridges(self) -> list[Page]:
         """Get pages that connect different parts of the graph.
-        
+
         Returns:
             List of bridge pages
         """
@@ -101,10 +101,10 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_page_connectivity(self, page: Page) -> tuple[float, str]:
         """Get connectivity score and level for a page.
-        
+
         Args:
             page: Page to analyze
-            
+
         Returns:
             Tuple of (score, level_name)
         """
@@ -112,10 +112,10 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_incoming_links(self, page: Page) -> list[Page]:
         """Get pages that link TO the given page.
-        
+
         Args:
             page: Target page
-            
+
         Returns:
             List of pages linking to this page
         """
@@ -123,10 +123,10 @@ class KnowledgeGraphProtocol(Protocol):
 
     def get_outgoing_links(self, page: Page) -> set[Page]:
         """Get pages that this page links TO.
-        
+
         Args:
             page: Source page
-            
+
         Returns:
             Set of pages this page links to
         """
@@ -135,7 +135,7 @@ class KnowledgeGraphProtocol(Protocol):
     # Formatting
     def format_stats(self) -> str:
         """Format graph statistics as human-readable string.
-        
+
         Returns:
             Formatted stats string
         """

@@ -45,10 +45,10 @@ class TestDebugToolContract:
     @pytest.mark.parametrize(
         "tool_name",
         [
-            "migrate",      # ContentMigrator
+            "migrate",  # ContentMigrator
             "incremental",  # IncrementalBuildDebugger
-            "delta",        # BuildDeltaAnalyzer
-            "deps",         # DependencyVisualizer
+            "delta",  # BuildDeltaAnalyzer
+            "deps",  # DependencyVisualizer
         ],
     )
     def test_base_attributes_initialized(
@@ -58,7 +58,7 @@ class TestDebugToolContract:
         mock_cache: MagicMock,
     ) -> None:
         """DebugTool subclasses must have site, cache, root_path after init.
-        
+
         This test ensures that all registered debug tools properly call
         super().__init__() and inherit the base class attributes.
         """
@@ -108,7 +108,7 @@ class TestConfigInspectorContract:
 
     def test_uses_root_path_not_root(self, tmp_path: Path) -> None:
         """ConfigInspector must use site.root_path, not site.root.
-        
+
         This test would have caught the bug where ConfigInspector used
         site.root (which doesn't exist) instead of site.root_path.
         """
@@ -121,7 +121,7 @@ class TestConfigInspectorContract:
 
         # This should NOT raise AttributeError
         inspector = ConfigInspector(site=mock_site)
-        
+
         # Verify _config_dir was set correctly
         assert inspector._config_dir == tmp_path / "config"
 
@@ -146,7 +146,7 @@ class TestShortcodeSandboxContract:
 
     def test_inherits_debug_tool_attributes(self) -> None:
         """ShortcodeSandbox must inherit DebugTool attributes.
-        
+
         This test would have caught the bug where ShortcodeSandbox used
         self._site instead of self.site and didn't call super().__init__().
         """
@@ -159,7 +159,7 @@ class TestShortcodeSandboxContract:
         assert hasattr(sandbox, "site")
         assert hasattr(sandbox, "cache")
         assert hasattr(sandbox, "root_path")
-        
+
         # site should be the mock, not stored in _site
         assert sandbox.site is mock_site
 
@@ -187,16 +187,16 @@ class TestDebugToolSubclassDiscovery:
 
     def test_registered_tools_are_present(self) -> None:
         """Verify registered debug tools are in the registry.
-        
+
         Note: Not all DebugTool subclasses are registered. ConfigInspector
         and ShortcodeSandbox are standalone tools used directly.
         """
         # Only tools with @DebugRegistry.register decorator
         expected_registered = {
-            "migrate",      # ContentMigrator
+            "migrate",  # ContentMigrator
             "incremental",  # IncrementalBuildDebugger
-            "delta",        # BuildDeltaAnalyzer
-            "deps",         # DependencyVisualizer
+            "delta",  # BuildDeltaAnalyzer
+            "deps",  # DependencyVisualizer
         }
 
         registered = {name for name, _ in DebugRegistry.list_tools()}

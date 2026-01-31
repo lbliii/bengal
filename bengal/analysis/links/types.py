@@ -60,10 +60,10 @@ if TYPE_CHECKING:
 class LinkType(Enum):
     """
     Semantic relationship types between pages.
-    
+
     Links carry meaning beyond simple connectivity. The type indicates
     the editorial intent and discoverability value of the relationship.
-    
+
     Attributes:
         EXPLICIT: Human-authored markdown links [text](url) in content
         MENU: Navigation menu item (deliberate prominence)
@@ -71,7 +71,7 @@ class LinkType(Enum):
         RELATED: Algorithm-computed related posts (automated)
         TOPICAL: Section hierarchy parent → child (topical context)
         SEQUENTIAL: Next/prev navigation within section (reading order)
-        
+
     """
 
     # Human-authored (high editorial intent)
@@ -102,10 +102,10 @@ DEFAULT_WEIGHTS: dict[LinkType, float] = {
 class LinkMetrics:
     """
     Detailed link breakdown for a page.
-    
+
     Tracks the count of each link type pointing to a page,
     enabling weighted connectivity scoring.
-    
+
     Attributes:
         explicit: Count of explicit markdown links
         menu: Count of menu item references
@@ -113,14 +113,14 @@ class LinkMetrics:
         related: Count of related post links
         topical: Count of section hierarchy links (parent → child)
         sequential: Count of next/prev navigation links
-    
+
     Example:
             >>> metrics = LinkMetrics(explicit=2, taxonomy=1, topical=1)
             >>> metrics.connectivity_score()
         3.5
             >>> metrics.has_human_links()
         True
-        
+
     """
 
     explicit: int = 0
@@ -197,23 +197,23 @@ DEFAULT_THRESHOLDS: dict[str, float] = {
 class ConnectivityLevel(Enum):
     """
     Connectivity classification based on weighted score thresholds.
-    
+
     Replaces binary orphan/not-orphan with nuanced levels that
     reveal opportunities for improvement.
-    
+
     Levels (from best to worst):
         - WELL_CONNECTED: Score >= 2.0 (no action needed)
         - ADEQUATELY_LINKED: Score 1.0-2.0 (could improve)
         - LIGHTLY_LINKED: Score 0.25-1.0 (should improve)
         - ISOLATED: Score < 0.25 (needs attention)
-    
+
     Example:
             >>> level = ConnectivityLevel.from_score(1.5)
             >>> print(level.value)
         adequately
             >>> level.emoji
             '🟡'
-        
+
     """
 
     WELL_CONNECTED = "well_connected"
@@ -280,9 +280,9 @@ class ConnectivityLevel(Enum):
 class ConnectivityReport:
     """
     Complete connectivity report for a site.
-    
+
     Groups pages by connectivity level and provides distribution statistics.
-    
+
     Attributes:
         isolated: Pages with score < 0.25
         lightly_linked: Pages with score 0.25-1.0
@@ -290,7 +290,7 @@ class ConnectivityReport:
         well_connected: Pages with score >= 2.0
         total_pages: Total number of pages analyzed
         avg_score: Average connectivity score across all pages
-        
+
     """
 
     isolated: list = field(default_factory=list)
@@ -312,10 +312,9 @@ class ConnectivityReport:
     def get_percentages(self) -> dict[str, float]:
         """Get percentage distribution by level."""
         if self.total_pages == 0:
-            return {
-                level: 0.0
-                for level in ["isolated", "lightly_linked", "adequately_linked", "well_connected"]
-            }
+            return dict.fromkeys(
+                ["isolated", "lightly_linked", "adequately_linked", "well_connected"], 0.0
+            )
         return {
             level: (count / self.total_pages * 100)
             for level, count in self.get_distribution().items()

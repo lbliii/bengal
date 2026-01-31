@@ -3,7 +3,6 @@ title: Bring Your Own Template Engine
 nav_title: Custom Engine
 description: Implement a custom template engine with full access to Bengal's 200+ template functions, filters, and tests
 weight: 50
-type: doc
 draft: false
 lang: en
 tags:

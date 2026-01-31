@@ -111,10 +111,12 @@ class TestEffectFactories:
 
     def test_for_index_generation(self) -> None:
         """Effect.for_index_generation creates correct effect."""
-        source_pages = frozenset({
-            Path("content/page1.md"),
-            Path("content/page2.md"),
-        })
+        source_pages = frozenset(
+            {
+                Path("content/page1.md"),
+                Path("content/page2.md"),
+            }
+        )
         effect = Effect.for_index_generation(
             output_path=Path("public/sitemap.xml"),
             source_pages=source_pages,
@@ -127,10 +129,12 @@ class TestEffectFactories:
 
     def test_for_taxonomy_page(self) -> None:
         """Effect.for_taxonomy_page creates correct effect."""
-        members = frozenset({
-            Path("content/post1.md"),
-            Path("content/post2.md"),
-        })
+        members = frozenset(
+            {
+                Path("content/post1.md"),
+                Path("content/post2.md"),
+            }
+        )
         effect = Effect.for_taxonomy_page(
             output_path=Path("public/tags/python/index.html"),
             taxonomy_name="tags",

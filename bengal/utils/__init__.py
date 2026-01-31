@@ -24,14 +24,14 @@ from bengal.utils.pagination import Paginator
 from bengal.utils.primitives.lru_cache import LRUCache
 
 __all__ = [
-    # Sub-packages
-    "primitives",
-    "io",
-    "paths",
-    "concurrency",
-    "observability",
-    "pagination",
     # Re-exported utilities
     "LRUCache",
     "Paginator",
+    "concurrency",
+    "io",
+    "observability",
+    "pagination",
+    "paths",
+    # Sub-packages
+    "primitives",
 ]

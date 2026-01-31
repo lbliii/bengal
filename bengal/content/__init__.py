@@ -9,15 +9,15 @@ from __future__ import annotations
 __all__ = [
     "AssetDiscovery",
     "ContentDiscovery",
+    "ContentEntry",
+    "ContentLayerManager",
+    "ContentSource",
     "GitVersionAdapter",
     "VersionResolver",
-    "ContentEntry",
-    "ContentSource",
-    "ContentLayerManager",
-    "local_loader",
     "github_loader",
-    "rest_loader",
+    "local_loader",
     "notion_loader",
+    "rest_loader",
 ]
 
 

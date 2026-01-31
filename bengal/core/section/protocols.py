@@ -3,10 +3,10 @@ Protocol definitions for section and site-like objects.
 
 .. deprecated:: 0.2.0
     Import from :mod:`bengal.protocols` instead::
-    
+
         # Old (deprecated)
         from bengal.core.section.protocols import SectionLike
-        
+
         # New (preferred)
         from bengal.protocols import SectionLike
 
@@ -27,8 +27,14 @@ from typing import TYPE_CHECKING
 # Re-export from canonical location
 from bengal.protocols.core import (
     NavigableSection as _NavigableSection,
+)
+from bengal.protocols.core import (
     QueryableSection as _QueryableSection,
+)
+from bengal.protocols.core import (
     SectionLike as _SectionLike,
+)
+from bengal.protocols.core import (
     SiteLike as _SiteLike,
 )
 
@@ -50,7 +56,7 @@ def __getattr__(name: str) -> type:
         "NavigableSection": _NavigableSection,
         "QueryableSection": _QueryableSection,
     }
-    
+
     if name in _exports:
         warnings.warn(
             f"Import {name} from bengal.protocols instead of "
@@ -60,13 +66,13 @@ def __getattr__(name: str) -> type:
             stacklevel=2,
         )
         return _exports[name]
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
-    "SectionLike",
-    "SiteLike",
     "NavigableSection",
     "QueryableSection",
+    "SectionLike",
+    "SiteLike",
 ]

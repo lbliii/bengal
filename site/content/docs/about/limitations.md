@@ -2,7 +2,6 @@
 title: Limitations
 description: What Bengal doesn't do
 weight: 25
-type: doc
 tags:
 - limitations
 - constraints

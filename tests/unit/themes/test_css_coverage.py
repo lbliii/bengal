@@ -40,9 +40,7 @@ class TestTemplateCSSCoverage:
 
     def test_validation_script_exists(self, validation_script: Path) -> None:
         """Ensure the validation script exists."""
-        assert validation_script.exists(), (
-            f"Validation script not found: {validation_script}"
-        )
+        assert validation_script.exists(), f"Validation script not found: {validation_script}"
 
     def test_validation_script_runs_successfully(
         self, repo_root: Path, validation_script: Path
@@ -72,6 +70,7 @@ class TestTemplateCSSCoverage:
         # Log any orphaned classes as a warning for visibility
         if "orphaned" in result.stdout.lower():
             import warnings
+
             warnings.warn(
                 f"Found orphaned CSS classes (run with --strict to fail):\n"
                 f"{result.stdout[:500]}...",
@@ -98,15 +97,7 @@ class TestTemplateCSSCoverage:
 
     def test_docs_home_css_imported_in_style(self, repo_root: Path) -> None:
         """Ensure docs-home.css is imported in style.css."""
-        style_css = (
-            repo_root
-            / "bengal"
-            / "themes"
-            / "default"
-            / "assets"
-            / "css"
-            / "style.css"
-        )
+        style_css = repo_root / "bengal" / "themes" / "default" / "assets" / "css" / "style.css"
         content = style_css.read_text()
         assert "docs-home.css" in content, (
             "docs-home.css is not imported in style.css\n"
@@ -152,9 +143,7 @@ class TestTemplateCSSCoverage:
 
         missing = [cls for cls in required_classes if cls not in content]
 
-        assert not missing, (
-            f"docs-home.css is missing definitions for: {', '.join(missing)}"
-        )
+        assert not missing, f"docs-home.css is missing definitions for: {', '.join(missing)}"
 
 
 class TestCSSStructure:
@@ -181,9 +170,7 @@ class TestCSSStructure:
         style_css = css_dir / "style.css"
         content = style_css.read_text()
 
-        assert "@layer" in content, (
-            "style.css should use @layer for cascade management"
-        )
+        assert "@layer" in content, "style.css should use @layer for cascade management"
 
     def test_page_css_files_follow_naming_convention(self, css_dir: Path) -> None:
         """Page-specific CSS files should follow naming conventions."""

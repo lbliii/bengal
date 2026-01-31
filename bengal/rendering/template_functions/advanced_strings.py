@@ -51,17 +51,17 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def camelize(text: str) -> str:
     """
     Convert string to camelCase.
-    
+
     Args:
         text: Text to convert
-    
+
     Returns:
         camelCase text
-    
+
     Example:
         {{ "hello_world" | camelize }}  # "helloWorld"
         {{ "hello-world" | camelize }}  # "helloWorld"
-        
+
     """
     if not text:
         return ""
@@ -84,17 +84,17 @@ def camelize(text: str) -> str:
 def underscore(text: str) -> str:
     """
     Convert string to snake_case.
-    
+
     Args:
         text: Text to convert
-    
+
     Returns:
         snake_case text
-    
+
     Example:
         {{ "helloWorld" | underscore }}  # "hello_world"
         {{ "HelloWorld" | underscore }}  # "hello_world"
-        
+
     """
     if not text:
         return ""
@@ -116,20 +116,20 @@ def underscore(text: str) -> str:
 def titleize(text: str) -> str:
     """
     Convert string to Title Case (proper title capitalization).
-    
+
     More sophisticated than str.title() - handles articles, conjunctions,
     and prepositions correctly.
-    
+
     Args:
         text: Text to convert
-    
+
     Returns:
         Properly title-cased text
-    
+
     Example:
         {{ "the lord of the rings" | titleize }}
         # "The Lord of the Rings"
-        
+
     """
     if not text:
         return ""
@@ -178,17 +178,17 @@ def titleize(text: str) -> str:
 def wrap_text(text: str, width: int = 80) -> str:
     """
     Wrap text to specified width.
-    
+
     Args:
         text: Text to wrap
         width: Maximum line width (default: 80)
-    
+
     Returns:
         Wrapped text with newlines
-    
+
     Example:
         {{ long_text | wrap(60) }}
-        
+
     """
     if not text or width <= 0:
         return text
@@ -201,19 +201,19 @@ def wrap_text(text: str, width: int = 80) -> str:
 def indent_text(text: str, spaces: int = 4, first_line: bool = True) -> str:
     """
     Indent text by specified number of spaces.
-    
+
     Args:
         text: Text to indent
         spaces: Number of spaces to indent (default: 4)
         first_line: Indent first line too (default: True)
-    
+
     Returns:
         Indented text
-    
+
     Example:
         {{ code | indent(2) }}
         {{ text | indent(4, first_line=false) }}
-        
+
     """
     if not text:
         return ""
@@ -232,11 +232,11 @@ def indent_text(text: str, spaces: int = 4, first_line: bool = True) -> str:
 def softwrap_identifier(text: str) -> str:
     """
     Insert soft wrap opportunities into API identifiers and dotted paths.
-    
+
     Adds zero-width space (​) after sensible breakpoints like dots, underscores,
     and before uppercase letters in camelCase/PascalCase to allow titles like
     "build.tracking" to wrap nicely.
-        
+
     """
     if not text:
         return ""
@@ -253,12 +253,12 @@ def softwrap_identifier(text: str) -> str:
 def last_segment(text: str) -> str:
     """
     Return the last segment of a dotted or path-like identifier.
-    
+
     Examples:
     - "build.tracking" -> "tracking"
     - "a.b.c.ClassName" -> "ClassName"
     - "path/to/module" -> "module"
-        
+
     """
     if not text:
         return ""
@@ -274,19 +274,19 @@ def last_segment(text: str) -> str:
 def regex_search(text: str | None, pattern: str, group: int = 0) -> str | None:
     """
     Extract first regex match from text.
-    
+
     Args:
         text: Text to search in
         pattern: Regular expression pattern
         group: Capture group to return (0 for full match)
-    
+
     Returns:
         Matched text or None if no match
-    
+
     Example:
         {{ "Price: $99.99" | regex_search(r'\\$[\\d.]+') }}  # "$99.99"
         {{ "v2.3.1" | regex_search(r'v(\\d+)', group=1) }}  # "2"
-        
+
     """
     if text is None:
         return None
@@ -309,18 +309,18 @@ def regex_search(text: str | None, pattern: str, group: int = 0) -> str | None:
 def regex_findall(text: str | None, pattern: str) -> list[str]:
     """
     Find all regex matches in text.
-    
+
     Args:
         text: Text to search in
         pattern: Regular expression pattern
-    
+
     Returns:
         List of all matches
-    
+
     Example:
         {{ "a1 b2 c3" | regex_findall(r'\\d+') }}  # ["1", "2", "3"]
         {{ text | regex_findall(r'\\b\\w+@\\w+\\.\\w+\\b') }}  # Find emails
-        
+
     """
     if text is None:
         return []
@@ -335,18 +335,18 @@ def regex_findall(text: str | None, pattern: str) -> list[str]:
 def trim_prefix(text: str | None, prefix: str) -> str:
     """
     Remove prefix from string if present.
-    
+
     Args:
         text: Text to trim
         prefix: Prefix to remove
-    
+
     Returns:
         Text with prefix removed (or unchanged if no prefix)
-    
+
     Example:
         {{ "hello_world" | trim_prefix("hello_") }}  # "world"
         {{ "test" | trim_prefix("hello_") }}  # "test" (unchanged)
-        
+
     """
     if not text:
         return ""
@@ -358,18 +358,18 @@ def trim_prefix(text: str | None, prefix: str) -> str:
 def trim_suffix(text: str | None, suffix: str) -> str:
     """
     Remove suffix from string if present.
-    
+
     Args:
         text: Text to trim
         suffix: Suffix to remove
-    
+
     Returns:
         Text with suffix removed (or unchanged if no suffix)
-    
+
     Example:
         {{ "file.txt" | trim_suffix(".txt") }}  # "file"
         {{ "test" | trim_suffix(".txt") }}  # "test" (unchanged)
-        
+
     """
     if not text:
         return ""
@@ -383,17 +383,17 @@ def trim_suffix(text: str | None, suffix: str) -> str:
 def has_prefix(text: str | None, prefix: str) -> bool:
     """
     Check if string starts with prefix.
-    
+
     Args:
         text: Text to check
         prefix: Prefix to look for
-    
+
     Returns:
         True if text starts with prefix
-    
+
     Example:
         {% if url | has_prefix("https://") %}secure{% endif %}
-        
+
     """
     if not text:
         return False
@@ -403,17 +403,17 @@ def has_prefix(text: str | None, prefix: str) -> bool:
 def has_suffix(text: str | None, suffix: str) -> bool:
     """
     Check if string ends with suffix.
-    
+
     Args:
         text: Text to check
         suffix: Suffix to look for
-    
+
     Returns:
         True if text ends with suffix
-    
+
     Example:
         {% if file | has_suffix(".md") %}markdown{% endif %}
-        
+
     """
     if not text:
         return False
@@ -423,17 +423,17 @@ def has_suffix(text: str | None, suffix: str) -> bool:
 def contains(text: str | None, substring: str) -> bool:
     """
     Check if string contains substring.
-    
+
     Args:
         text: Text to search in
         substring: Substring to find
-    
+
     Returns:
         True if substring is found
-    
+
     Example:
         {% if text | contains("error") %}has error{% endif %}
-        
+
     """
     if not text:
         return False
@@ -443,20 +443,20 @@ def contains(text: str | None, substring: str) -> bool:
 def to_sentence(items: list | None, connector: str = "and", oxford: bool = True) -> str:
     """
     Convert list to natural language sentence.
-    
+
     Args:
         items: List of items to join
         connector: Word to use before last item (default: "and")
         oxford: Whether to use Oxford comma (default: True)
-    
+
     Returns:
         Natural language string
-    
+
     Example:
         {{ ['Alice', 'Bob', 'Charlie'] | to_sentence }}  # "Alice, Bob, and Charlie"
         {{ ['Alice', 'Bob'] | to_sentence }}  # "Alice and Bob"
         {{ tags | to_sentence(connector='or', oxford=false) }}  # "A, B or C"
-        
+
     """
     if not items:
         return ""

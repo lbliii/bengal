@@ -71,16 +71,15 @@ from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
 # =============================================================================
 
 if TYPE_CHECKING:
+    from bengal.build.tracking import DependencyTracker
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.cache_store import CacheStore
-    from bengal.protocols import Cacheable
     from bengal.cache.compression import (
         COMPRESSION_LEVEL,
         load_compressed,
         save_compressed,
     )
     from bengal.cache.content_hash_registry import ContentHashRegistry
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache.generated_page_cache import (
         GeneratedPageCache,
         GeneratedPageCacheEntry,
@@ -94,13 +93,15 @@ if TYPE_CHECKING:
         clear_output_directory,
         clear_template_cache,
     )
+    from bengal.protocols import Cacheable
 
 __all__ = [
+    "COMPRESSION_LEVEL",
+    "STATE_DIR_NAME",
     "BengalPaths",
     "BuildCache",
-    "Cacheable",
     "CacheStore",
-    "COMPRESSION_LEVEL",
+    "Cacheable",
     "ContentHashRegistry",
     "GeneratedPageCache",
     "GeneratedPageCacheEntry",
@@ -110,7 +111,6 @@ __all__ = [
     "QueryIndexRegistry",
     "RebuildEntry",
     "RebuildManifest",
-    "STATE_DIR_NAME",
     "clear_build_cache",
     "clear_output_directory",
     "clear_template_cache",
@@ -157,11 +157,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
 def __getattr__(name: str) -> Any:
     """
     Lazy import for heavy cache infrastructure.
-    
+
     This avoids loading BuildCache, compression, and other heavy modules
     until they are actually needed. BengalPaths is lightweight and loaded
     eagerly for path operations.
-        
+
     """
     if name in _LAZY_IMPORTS:
         module_path, attr_name = _LAZY_IMPORTS[name]

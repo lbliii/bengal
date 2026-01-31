@@ -47,20 +47,20 @@ from bengal.core.version import VersionConfig
 class SiteData:
     """
     Immutable site configuration and paths.
-    
+
     Created once from config, never modified. Enables caching and
     thread-safe access without locks.
-    
+
     Immutability Guarantees:
         - frozen=True prevents attribute assignment
         - MappingProxyType wraps config dict for read-only access
         - All Path attributes are computed at construction time
-    
+
     Thread Safety:
         - Fully thread-safe for reads (immutable)
         - No locks required
         - Safe to share across parallel rendering threads
-    
+
     Attributes:
         root_path: Site root directory (absolute path)
         output_dir: Output directory for built site (absolute path)
@@ -71,7 +71,7 @@ class SiteData:
         assets_dir: Assets directory path
         data_dir: Data directory path
         cache_dir: Cache directory path (.bengal)
-        
+
     """
 
     root_path: Path

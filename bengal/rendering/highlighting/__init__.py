@@ -47,21 +47,21 @@ if TYPE_CHECKING:
     pass
 
 __all__ = [
-    # Protocol (new canonical name)
-    "HighlightService",
+    "PALETTE_INHERITANCE",
     # Protocol (backwards compatibility alias)
     "HighlightBackend",
+    # Protocol (new canonical name)
+    "HighlightService",
+    "get_default_backend",
+    "get_highlighter",
     # Public API
     "highlight",
     "highlight_many",
-    "get_highlighter",
-    "get_default_backend",
-    "register_backend",
     "list_backends",
+    "register_backend",
+    "resolve_css_class_style",
     # Theme resolution (RFC-0003)
     "resolve_syntax_theme",
-    "resolve_css_class_style",
-    "PALETTE_INHERITANCE",
 ]
 
 
@@ -72,19 +72,19 @@ _HIGHLIGHT_BACKENDS: dict[str, type[HighlightService]] = {}
 def register_backend(name: str, backend_class: type[HighlightService]) -> None:
     """
     Register a syntax highlighting backend.
-    
+
     Args:
         name: Backend identifier (used in config, e.g., "rosettes", "my-custom-backend")
         backend_class: Class implementing HighlightBackend protocol
-    
+
     Raises:
         TypeError: If backend_class doesn't implement HighlightBackend
-    
+
     Example:
             >>> from bengal.rendering.highlighting import register_backend
             >>> from my_package import MyBackend
             >>> register_backend("my-backend", MyBackend)
-        
+
     """
     # Validate that it implements the protocol (structural typing check)
     if not isinstance(backend_class, type):
@@ -97,18 +97,18 @@ def register_backend(name: str, backend_class: type[HighlightService]) -> None:
 def get_highlighter(name: str | None = None) -> HighlightService:
     """
     Get a highlighting backend instance.
-    
+
     Args:
         name: Backend name. Options:
             - None or 'auto': Uses Rosettes (default)
             - 'rosettes': Built-in, lock-free, 55 languages
-    
+
     Returns:
         Backend instance implementing HighlightBackend
-    
+
     Raises:
         BengalConfigError: If backend name is unknown
-        
+
     """
     name = (name or "auto").lower()
 
@@ -130,10 +130,10 @@ def get_highlighter(name: str | None = None) -> HighlightService:
 
 def _select_best_backend() -> str:
     """Select the best available backend.
-    
+
     Returns:
         Backend name to use (currently always 'rosettes').
-        
+
     """
     # Rosettes is the default and only built-in backend
     if "rosettes" in _HIGHLIGHT_BACKENDS:
@@ -147,10 +147,10 @@ def _select_best_backend() -> str:
 def list_backends() -> list[str]:
     """
     List all registered highlighting backends.
-    
+
     Returns:
         Sorted list of backend names
-        
+
     """
     return sorted(_HIGHLIGHT_BACKENDS.keys())
 
@@ -158,17 +158,17 @@ def list_backends() -> list[str]:
 def get_default_backend() -> str:
     """
     Get the name of the default backend for the current environment.
-    
+
     This is useful for diagnostics and logging.
-    
+
     Returns:
         Backend name that would be used with get_highlighter(None)
-    
+
     Example:
             >>> from bengal.rendering.highlighting import get_default_backend
             >>> print(f"Using {get_default_backend()} for syntax highlighting")
         Using rosettes for syntax highlighting  # on Python 3.14t
-        
+
     """
     return _select_best_backend()
 
@@ -182,25 +182,25 @@ def highlight(
 ) -> str:
     """
     Highlight code using the configured backend.
-    
+
     This is the primary public API for syntax highlighting.
-    
+
     Args:
         code: Source code to highlight
         language: Programming language (e.g., "python", "rust")
         hl_lines: Lines to highlight (1-indexed)
         show_linenos: Include line numbers
         backend: Override default backend (None uses "rosettes" via "auto")
-    
+
     Returns:
         HTML string with highlighted code
-    
+
     Example:
             >>> from bengal.rendering.highlighting import highlight
             >>> html = highlight("def hello(): pass", "python")
             >>> html = highlight("fn main() {}", "rust", show_linenos=True)
             >>> html = highlight("print(1)", "python", hl_lines=[1])
-        
+
     """
     highlighter = get_highlighter(backend)
     return highlighter.highlight(code, language, hl_lines, show_linenos)
@@ -213,20 +213,20 @@ def highlight_many(
 ) -> list[str]:
     """
     Highlight multiple code blocks in parallel.
-    
+
     On Python 3.14t free-threaded, this provides significant speedups
     (1.5-2x) for pages with many code blocks.
-    
+
     Args:
         items: List of (code, language) tuples
         backend: Override default backend (None uses rosettes)
         css_class_style: Class naming style (HTML only):
             - "semantic" (default): Uses readable classes like .syntax-function
             - "pygments": Uses Pygments-compatible classes like .nf
-    
+
     Returns:
         List of highlighted HTML strings in the same order
-    
+
     Example:
             >>> from bengal.rendering.highlighting import highlight_many
             >>> blocks = [
@@ -236,7 +236,7 @@ def highlight_many(
             >>> results = highlight_many(blocks)
             >>> len(results)
         2
-        
+
     """
     # Rosettes has native parallel support
     backend_name = (backend or "auto").lower()
@@ -261,14 +261,14 @@ def highlight_many(
 
 def _register_rosettes_backend() -> None:
     """Register Rosettes backend (external dependency, always available).
-    
+
     Package: https://pypi.org/project/rosettes/
-    
+
     Features:
         - 55 languages supported
         - 3.4x faster than Pygments (parallel builds)
         - Lock-free, designed for free-threaded Python
-        
+
     """
     from bengal.rendering.highlighting.rosettes import RosettesBackend
 

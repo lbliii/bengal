@@ -29,11 +29,11 @@ __all__ = [
     "LegacyBengalPaths",
     # path_resolver
     "PathResolver",
-    "resolve_path",
-    # url_normalization
-    "normalize_url",
-    "join_url_paths",
-    "validate_url",
     # url_strategy
     "URLStrategy",
+    "join_url_paths",
+    # url_normalization
+    "normalize_url",
+    "resolve_path",
+    "validate_url",
 ]

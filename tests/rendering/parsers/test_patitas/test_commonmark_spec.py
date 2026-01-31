@@ -42,22 +42,22 @@ SPEC_TESTS: list[dict[str, Any]] = json.loads(SPEC_PATH.read_text())
 
 def normalize_html(html_string: str) -> str:
     """Normalize HTML for comparison.
-    
+
     CommonMark spec allows variation in:
     - Attribute ordering
     - Self-closing tag style (<br> vs <br />)
     - Whitespace handling
     - Entity encoding
-    
+
     This normalizer makes comparisons more forgiving while still
     validating semantic correctness.
-    
+
     Args:
         html_string: Raw HTML string to normalize
-    
+
     Returns:
         Normalized HTML string for comparison
-        
+
     """
     result = html_string.strip()
 
@@ -102,17 +102,17 @@ def normalize_html(html_string: str) -> str:
 
 def normalize_for_comparison(expected: str, actual: str) -> tuple[str, str]:
     """Normalize both expected and actual HTML for comparison.
-    
+
     This applies additional normalization rules that account for
     Patitas-specific rendering choices that are still spec-compliant.
-    
+
     Args:
         expected: Expected HTML from spec
         actual: Actual HTML from Patitas
-    
+
     Returns:
         Tuple of (normalized_expected, normalized_actual)
-        
+
     """
     expected = normalize_html(expected)
     actual = normalize_html(actual)
@@ -257,9 +257,9 @@ class TestBaseline:
 
 def generate_baseline_report() -> str:
     """Generate a detailed baseline report.
-    
+
     Run this function to get current pass/fail stats by section.
-        
+
     """
     results: dict[str, dict[str, int]] = {}
 

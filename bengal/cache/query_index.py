@@ -27,13 +27,13 @@ from __future__ import annotations
 import json
 import threading
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import Cacheable
-from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
@@ -45,21 +45,21 @@ logger = get_logger(__name__)
 class IndexEntry(Cacheable):
     """
     A single entry in a query index.
-    
+
     Represents one index key (e.g., 'blog' section, 'Jane Smith' author)
     and all pages that match that key.
-    
+
     Implements the Cacheable protocol for type-safe serialization.
-    
+
     Uses set for O(1) add/remove/contains operations.
-    
+
     Attributes:
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
         page_paths: Set of page source paths for O(1) operations
         metadata: Extra data for display (e.g., section title, author email)
         updated_at: ISO timestamp of last update (UTC)
         content_hash: Hash of page_paths for change detection
-        
+
     """
 
     def __init__(
@@ -74,7 +74,7 @@ class IndexEntry(Cacheable):
         self.key = key
         self.page_paths: set[str] = page_paths if page_paths is not None else set()
         self.metadata = metadata if metadata is not None else {}
-        self.updated_at = updated_at if updated_at else datetime.now(timezone.utc).isoformat()
+        self.updated_at = updated_at if updated_at else datetime.now(UTC).isoformat()
         self.content_hash = content_hash if content_hash else self._compute_hash()
 
     def add_page(self, page_path: str) -> bool:
@@ -122,7 +122,7 @@ class IndexEntry(Cacheable):
             key=data["key"],
             page_paths=set(data.get("page_paths", [])),
             metadata=data.get("metadata", {}),
-            updated_at=data.get("updated_at", datetime.now(timezone.utc).isoformat()),
+            updated_at=data.get("updated_at", datetime.now(UTC).isoformat()),
             content_hash=data.get("content_hash", ""),
         )
 
@@ -130,28 +130,28 @@ class IndexEntry(Cacheable):
 class QueryIndex(ABC):
     """
     Base class for queryable indexes.
-    
+
     Subclasses define:
     - What to index (e.g., by_section, by_author, by_tag)
     - How to extract keys from pages
     - Optionally: custom serialization logic
-    
+
     The base class handles:
     - Index storage and persistence
     - Incremental updates
     - Change detection
     - O(1) lookups
-    
+
     Thread Safety:
     - All mutating operations are protected by an RLock
     - Safe for concurrent access during parallel builds
-    
+
     Example:
         class SectionIndex(QueryIndex):
             def extract_keys(self, page):
                 section = page._section.name if page._section else None
                 return [(section, {})] if section else []
-        
+
     """
 
     VERSION = 1  # Schema version for cache invalidation
@@ -199,7 +199,6 @@ class QueryIndex(ABC):
             # Empty (skip this page)
             return []
         """
-        pass
 
     def update_page(self, page: Page, build_cache: BuildCache) -> set[str]:
         """
@@ -352,7 +351,7 @@ class QueryIndex(ABC):
                 "version": self.VERSION,
                 "name": self.name,
                 "entries": {key: entry.to_cache_dict() for key, entry in self.entries.items()},
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(UTC).isoformat(),
             }
 
         try:
@@ -468,7 +467,7 @@ class QueryIndex(ABC):
     def _add_page_to_key(self, key: str, page_path: str, metadata: dict[str, Any]) -> None:
         """
         Add page to index key (O(1) via set).
-        
+
         Note: Caller must hold self._lock.
 
         Args:
@@ -484,7 +483,7 @@ class QueryIndex(ABC):
 
         # O(1) set add
         if self.entries[key].add_page(page_path):
-            self.entries[key].updated_at = datetime.now(timezone.utc).isoformat()
+            self.entries[key].updated_at = datetime.now(UTC).isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
     def _remove_page_from_key(self, key: str, page_path: str) -> None:
@@ -493,7 +492,7 @@ class QueryIndex(ABC):
 
         Performance: O(1) instead of O(p) list.remove().
         (RFC: Cache Algorithm Optimization)
-        
+
         Note: Caller must hold self._lock.
 
         Args:
@@ -505,7 +504,7 @@ class QueryIndex(ABC):
 
         # O(1) set discard
         if self.entries[key].remove_page(page_path):
-            self.entries[key].updated_at = datetime.now(timezone.utc).isoformat()
+            self.entries[key].updated_at = datetime.now(UTC).isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
             # Remove empty entries

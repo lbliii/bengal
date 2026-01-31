@@ -112,14 +112,14 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
 def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
     """
     Resolve theme inheritance chain starting from the active theme.
-    
+
     Order: child first → parent → ... (does not duplicate 'default').
-    
+
     When active_theme is "default" (or None), returns ["default"] so that
     the bundled default theme assets are discovered. For child themes that
     extend "default", filters out "default" since it's added as a fallback
     separately in template loaders.
-        
+
     """
     chain: list[str] = []
     visited: set[str] = set()
@@ -151,30 +151,30 @@ def resolve_theme_templates_path(
 ) -> Path | None:
     """
     Resolve the templates directory path for a theme.
-    
+
     Checks site themes, installed themes, and bundled themes in order.
     This is the canonical function for finding theme template directories,
     used by all template engines (Jinja2, Mako, etc.) for cross-theme extends.
-    
+
     Args:
         theme_name: Theme name to look up (e.g., "default", "docs")
         site_root: Site root directory
         bundled_themes_root: Optional root for bundled themes. If None,
             defaults to bengal/themes/ relative to this module.
-    
+
     Returns:
         Path to theme's templates directory, or None if not found
-    
+
     Example:
             >>> path = resolve_theme_templates_path("default", site.root_path)
             >>> path
         PosixPath('/path/to/bengal/themes/default/templates')
-    
+
     Used by:
         - bengal.rendering.engines.jinja: PrefixLoader for cross-theme extends
         - bengal.rendering.engines.mako: (future) similar functionality
         - Any custom engine implementing TemplateEngineProtocol
-        
+
     """
     # Site-level theme directory
     site_theme_templates = site_root / "themes" / theme_name / "templates"
@@ -211,7 +211,7 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
     """
     Return list of theme asset directories from parents to child (low → high priority).
     Site assets can still override these.
-        
+
     """
     dirs: list[Path] = []
 

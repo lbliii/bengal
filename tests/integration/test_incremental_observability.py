@@ -133,8 +133,7 @@ This is the updated intro page.
 
         # Should have content_changed reason for the modified file
         content_changed_count = sum(
-            1 for r in decision.rebuild_reasons.values()
-            if r.code.value == "content_changed"
+            1 for r in decision.rebuild_reasons.values() if r.code.value == "content_changed"
         )
         assert content_changed_count >= 1
 

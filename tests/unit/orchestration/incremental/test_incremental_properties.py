@@ -246,8 +246,7 @@ class TestIncrementalProperties:
         if decision is not None:
             pages_rebuilt = len(decision.pages_to_build)
             assert pages_rebuilt == 0, (
-                f"Unchanged files rebuilt: {pages_rebuilt} pages. "
-                f"Expected 0 on warm cache."
+                f"Unchanged files rebuilt: {pages_rebuilt} pages. Expected 0 on warm cache."
             )
 
     def test_consecutive_builds_stable(
@@ -274,8 +273,7 @@ class TestIncrementalProperties:
             if decision is not None:
                 pages_rebuilt = len(decision.pages_to_build)
                 assert pages_rebuilt == 0, (
-                    f"The {label} build rebuilt {pages_rebuilt} pages. "
-                    f"Expected stable 0 rebuilds."
+                    f"The {label} build rebuilt {pages_rebuilt} pages. Expected stable 0 rebuilds."
                 )
 
 
@@ -361,9 +359,7 @@ class TestCacheProperties:
         loaded = BuildCache.load(cache_path, use_lock=False)
 
         # PROPERTY: Fingerprint should survive round-trip
-        assert len(loaded.file_fingerprints) == 1, (
-            "Fingerprint lost in round-trip"
-        )
+        assert len(loaded.file_fingerprints) == 1, "Fingerprint lost in round-trip"
 
     @given(content=st.text(min_size=1, max_size=1000))
     @settings(max_examples=50)

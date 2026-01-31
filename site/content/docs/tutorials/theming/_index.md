@@ -4,9 +4,6 @@ nav_title: Theming
 description: Customize templates, learn Kida, and build custom themes
 weight: 20
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: palette
 ---
 

@@ -50,20 +50,20 @@ logger = get_logger(__name__)
 class GraphReporter:
     """
     Generates reports and insights from knowledge graph analysis.
-    
+
     Provides methods for:
     - Formatted statistics output
     - Actionable recommendations for site structure
     - SEO-focused insights
     - Content gap detection
-    
+
     Example:
             >>> from bengal.analysis import KnowledgeGraph
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
             >>> reporter = GraphReporter(graph)
             >>> print(reporter.format_stats())
-        
+
     """
 
     def __init__(self, graph: KnowledgeGraph) -> None:

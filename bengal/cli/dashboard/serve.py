@@ -69,7 +69,7 @@ class ChangeEntry:
 class BengalServeDashboard(BengalDashboard):
     """
     Interactive serve dashboard with live file watching.
-    
+
     Shows:
     - Header with Bengal branding and server URL
     - Tabbed content area:
@@ -78,14 +78,14 @@ class BengalServeDashboard(BengalDashboard):
         - Errors: Any build errors or warnings
     - Sparkline showing build time history
     - Footer with keyboard shortcuts
-    
+
     Bindings:
         q: Quit (stops server)
         o: Open in browser
         r: Force rebuild
         c: Clear log
         ?: Help
-        
+
     """
 
     TITLE: ClassVar[str] = "Bengal Serve"
@@ -520,9 +520,9 @@ def run_serve_dashboard(
 ) -> None:
     """
     Run the serve dashboard for a site.
-    
+
     This is the entry point called by `bengal serve --dashboard`.
-    
+
     Args:
         site: Site instance to serve
         host: Server host
@@ -530,7 +530,7 @@ def run_serve_dashboard(
         watch: Enable file watching
         open_browser: Open browser on start
         **kwargs: Additional server options
-        
+
     """
     app = BengalServeDashboard(
         site=site,

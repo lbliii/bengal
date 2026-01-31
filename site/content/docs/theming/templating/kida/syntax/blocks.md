@@ -3,7 +3,6 @@ title: Block Syntax
 nav_title: Blocks
 description: Control flow blocks, endings, and pattern matching
 weight: 10
-type: doc
 tags:
 - reference
 - kida

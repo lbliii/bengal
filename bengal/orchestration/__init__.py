@@ -76,10 +76,10 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     """
     Lazily resolve orchestration re-exports.
-    
+
     This keeps `import bengal.orchestration` lightweight and avoids import
     cycles between orchestration packages.
-        
+
     """
     if name == "AssetOrchestrator":
         from bengal.orchestration.asset import AssetOrchestrator

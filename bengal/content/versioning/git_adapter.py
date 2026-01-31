@@ -64,13 +64,13 @@ logger = get_logger(__name__)
 class GitRef:
     """
     Represents a Git reference (branch or tag).
-    
+
     Attributes:
         name: Full ref name (e.g., "refs/heads/release/0.1.6")
         short_name: Short name (e.g., "release/0.1.6")
         commit: Commit SHA
         ref_type: Type of ref ("branch" or "tag")
-        
+
     """
 
     name: str
@@ -83,13 +83,13 @@ class GitRef:
 class GitWorktree:
     """
     Represents a Git worktree for a version.
-    
+
     Attributes:
         version_id: Version ID this worktree is for
         path: Path to the worktree directory
         ref: Git ref (branch/tag) checked out
         commit: Commit SHA checked out
-        
+
     """
 
     version_id: str
@@ -101,16 +101,16 @@ class GitWorktree:
 class GitVersionAdapter:
     """
     Discovers and manages versioned documentation from Git branches/tags.
-    
+
     This adapter enables building documentation from multiple Git branches
     without requiring folder duplication. It uses Git worktrees for
     parallel builds.
-    
+
     Attributes:
         repo_path: Path to the Git repository
         config: Git versioning configuration
         worktrees_dir: Directory for worktrees (default: .bengal/worktrees)
-    
+
     Example:
             >>> adapter = GitVersionAdapter(Path("."), git_config)
             >>>
@@ -126,7 +126,7 @@ class GitVersionAdapter:
             >>>
             >>> # Cleanup
             >>> adapter.cleanup_worktrees()
-        
+
     """
 
     def __init__(

@@ -53,6 +53,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.config.defaults import DEFAULTS
+from bengal.config.loader_utils import extract_baseurl, flatten_config, load_yaml_file
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -61,20 +62,20 @@ logger = get_logger(__name__)
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
     Pretty print configuration using Rich formatting.
-    
+
     Displays the configuration dictionary with syntax highlighting and
     formatting. Falls back to standard ``pprint`` if Rich is unavailable
     or disabled.
-    
+
     Args:
         config: Configuration dictionary to display.
         title: Title to display above the configuration output.
-    
+
     Example:
             >>> config = {"title": "My Site", "baseurl": "/"}
             >>> pretty_print_config(config, title="Site Configuration")
         # Outputs formatted configuration with Rich or pprint
-        
+
     """
     try:
         from rich.pretty import pprint as rich_pprint
@@ -109,27 +110,27 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
 class ConfigLoader:
     """
     Load site configuration from ``bengal.toml`` or ``bengal.yaml``.
-    
+
     This is the primary configuration loader for single-file Bengal configurations.
     It auto-discovers configuration files, validates contents, normalizes section
     names, and applies environment-based overrides.
-    
+
     Attributes:
         SECTION_ALIASES: Mapping of accepted section name variations to canonical names.
         KNOWN_SECTIONS: Set of recognized configuration section names.
         root_path: Root directory to search for configuration files.
         warnings: List of configuration warnings accumulated during loading.
-    
+
     Example:
             >>> loader = ConfigLoader(Path("my-site"))
             >>> config = loader.load()
             >>> config["title"]
             'My Site'
-    
+
             >>> # Check for configuration warnings
             >>> for warning in loader.get_warnings():
             ...     print(warning)
-        
+
     """
 
     # Section aliases for ergonomic config (accept common variations)
@@ -250,7 +251,7 @@ class ConfigLoader:
             if suffix == ".toml":
                 raw_config = self._load_toml(config_path)
             elif suffix in (".yaml", ".yml"):
-                raw_config = self._load_yaml(config_path)
+                raw_config = load_yaml_file(config_path)
             else:
                 from bengal.errors import BengalConfigError, ErrorCode
 
@@ -324,69 +325,7 @@ class ConfigLoader:
         if config is None:
             return {}
 
-        return self._flatten_config(config)
-
-    def _load_yaml(self, config_path: Path) -> dict[str, Any]:
-        """
-        Load a YAML configuration file.
-
-        Uses :func:`bengal.utils.file_io.load_yaml` internally for robust
-        loading with proper error handling.
-
-        Args:
-            config_path: Path to the YAML file.
-
-        Returns:
-            Flattened configuration dictionary.
-
-        Raises:
-            FileNotFoundError: If the configuration file doesn't exist.
-            YAMLError: If YAML syntax is invalid.
-        """
-        from bengal.utils.io.file_io import load_yaml
-
-        config = load_yaml(config_path, on_error="raise", caller="config_loader")
-
-        return self._flatten_config(config or {})
-
-    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Flatten nested configuration for easier access.
-
-        Extracts values from ``site`` and ``build`` sections to the top level
-        while preserving the original section structure. This allows both
-        flat access (``config["title"]``) and section access
-        (``config["site"]["title"]``).
-
-        Args:
-            config: Nested configuration dictionary.
-
-        Returns:
-            Configuration with values accessible at both section and top level.
-        """
-        # First, normalize section names (accept aliases)
-        normalized = self._normalize_sections(config)
-
-        # Keep the original structure but also flatten for convenience
-        flat = dict(normalized)
-
-        # Extract common sections to top level
-        if "site" in normalized:
-            for key, value in normalized["site"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        if "build" in normalized:
-            for key, value in normalized["build"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        # Preserve menu configuration (it's already in the right structure)
-        # [[menu.main]] in TOML becomes {'menu': {'main': [...]}}
-        if "menu" not in flat and "menu" in normalized:
-            flat["menu"] = normalized["menu"]
-
-        return flat
+        return flatten_config(config)
 
     def _normalize_sections(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -522,29 +461,10 @@ class ConfigLoader:
         """
         from bengal.config.env_overrides import apply_env_overrides
 
-        explicit_baseurl = self._extract_baseurl(config)
+        explicit_baseurl = extract_baseurl(config)
         if explicit_baseurl is not None:
             config["_baseurl_explicit"] = True
             if explicit_baseurl == "":
                 config["_baseurl_explicit_empty"] = True
 
         return apply_env_overrides(config)
-
-    @staticmethod
-    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
-        """
-        Extract baseurl from a config dict if explicitly provided.
-
-        Returns the value if present (including empty string) or None if missing.
-        """
-        if not config or not isinstance(config, dict):
-            return None
-
-        site_section = config.get("site")
-        if isinstance(site_section, dict) and "baseurl" in site_section:
-            return site_section.get("baseurl")
-
-        if "baseurl" in config:
-            return config.get("baseurl")
-
-        return None

@@ -49,26 +49,26 @@ from bengal.utils.observability.logger import LogLevel, close_all_loggers, confi
 def pagerank(top_n: int, damping: float, format: str, config: str, source: str) -> None:
     """
     🏆 Analyze page importance using PageRank algorithm.
-    
+
     Computes PageRank scores for all pages based on their link structure.
     Pages that are linked to by many important pages receive high scores.
-    
+
     Use PageRank to:
     - Identify your most important content
     - Prioritize content updates
     - Guide navigation and sitemap design
     - Find underlinked valuable content
-    
+
     Examples:
         # Show top 20 most important pages
         bengal pagerank
-    
+
         # Show top 50 pages
         bengal pagerank --top-n 50
-    
+
         # Export scores as JSON
         bengal pagerank --format json > pagerank.json
-        
+
     """
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 

@@ -20,13 +20,15 @@ from kida.environment.exceptions import (
     TemplateNotFoundError,
     TemplateSyntaxError,
 )
+
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from kida.template import Template
+
     from bengal.core.page import Page
     from bengal.protocols import TemplateEngine
-    from kida.template import Template
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -35,7 +37,7 @@ logger = get_logger(__name__)
 class MetadataView(dict[str, Any]):
     """
     Dict that also supports attribute-style access (dotted) used by templates.
-        
+
     """
 
     def __getattr__(self, item: str) -> Any:
@@ -45,17 +47,17 @@ class MetadataView(dict[str, Any]):
 class AutodocRenderer:
     """
     Renders autodoc pages through the site's template engine.
-    
+
     Handles both pre-rendered virtual pages and deferred autodoc pages
     that need full template context (menus, navigation, versioning).
-    
+
     Attributes:
         site: Site instance for configuration
         template_engine: TemplateEngine for template rendering
         renderer: Renderer for fallback rendering
         dependency_tracker: Optional DependencyTracker for dependency tracking
         output_collector: Optional collector for hot reload tracking
-    
+
     Example:
             >>> autodoc = AutodocRenderer(
             ...     site=site,
@@ -63,7 +65,7 @@ class AutodocRenderer:
             ...     renderer=renderer,
             ... )
             >>> autodoc.process_virtual_page(page)
-        
+
     """
 
     def __init__(
@@ -123,7 +125,9 @@ class AutodocRenderer:
         ):
             self._render_autodoc_page(page)
             write_output(
-                page, self.site, self.dependency_tracker,
+                page,
+                self.site,
+                self.dependency_tracker,
                 collector=self.output_collector,
                 write_behind=self.write_behind,
             )
@@ -158,7 +162,9 @@ class AutodocRenderer:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
         write_output(
-            page, self.site, self.dependency_tracker,
+            page,
+            self.site,
+            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
         )
@@ -520,7 +526,7 @@ class AutodocRenderer:
 def _safe_metadata_summary(meta: Any) -> str:
     """
     Summarize metadata for logging without raising on missing attributes.
-        
+
     """
     try:
         if isinstance(meta, dict):

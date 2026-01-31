@@ -19,15 +19,15 @@ def _build_section_menu_item(
 ) -> dict[str, Any] | None:
     """
     Build a menu item from a section, recursively including subsections.
-    
+
     Args:
         section: Section to build menu item for
         site: Site instance
         parent_identifier: Identifier of parent menu item (if nested)
-    
+
     Returns:
         Menu item dict or None if section should be hidden
-        
+
     """
     # Skip sections without paths (unless virtual)
     if not section.path and not getattr(section, "_virtual", False):
@@ -99,24 +99,24 @@ def _build_section_menu_item(
 def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     """
     Auto-discover hierarchical navigation from site sections.
-    
+
     This function provides automatic navigation discovery similar to how
     sidebars and TOC work. It discovers sections and creates nav items
     automatically, respecting the section hierarchy.
-    
+
     Features:
     - Auto-discovers all sections in content/ (not just top-level)
     - Builds hierarchical menu based on section.parent relationships
     - Respects section weight for ordering
     - Respects 'menu: false' in section _index.md to hide from nav
     - Returns empty list if manual [[menu.main]] config exists (hybrid mode)
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         List of navigation items with name, url, weight, parent (for hierarchy)
-    
+
     Example:
         {# In nav template #}
         {% set auto_items = get_auto_nav() %}
@@ -125,14 +125,14 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
             <a href="{{ item.href }}">{{ item.name }}</a>
           {% endfor %}
         {% endif %}
-    
+
     Section _index.md frontmatter can control visibility:
         ---
         title: Secret Section
         menu: false  # Won't appear in auto-nav
         weight: 10   # Controls ordering
         ---
-        
+
     """
     # Check if manual menu config exists - if so, don't auto-discover
     # This allows manual config to take precedence

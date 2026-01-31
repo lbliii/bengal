@@ -53,14 +53,14 @@ if TYPE_CHECKING:
 class PageMetadataMixin:
     """
     Mixin providing metadata properties and type checking for pages.
-    
+
     This mixin handles:
     - Basic properties: title, date, slug, url
     - Type checking: is_home, is_section, is_page, kind
     - Simple metadata: description, draft, keywords
     - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
-        
+
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
@@ -460,25 +460,52 @@ class PageMetadataMixin:
     @property
     def type(self) -> str | None:
         """
-        Get page type from cascade, core metadata, or frontmatter.
+        Get page type from frontmatter, cascade snapshot, or core.
 
         Component Model: Identity.
-        
+
         Priority:
-        1. Cascade-set value (metadata["type"] if in _cascade_keys)
-        2. Core metadata (cached value)
-        3. Frontmatter fallback
+        1. Explicit frontmatter value (page defines its own type)
+        2. Cascade snapshot lookup (immutable, thread-safe, always current)
+        3. Core metadata (cached value - fallback for non-cascade type)
+
+        Note:
+            The _cascade_keys field is legacy from the old CascadeEngine and may
+            be present in cached pages. It's checked for backward compatibility
+            but new code should rely on the cascade snapshot for resolution.
 
         Returns:
             Page type or None
         """
-        # Check if type was set by cascade (takes priority over cached core)
-        cascade_keys = self.metadata.get("_cascade_keys", [])
-        if "type" in cascade_keys and "type" in self.metadata:
-            return self.metadata.get("type")
-        # Fall back to core (cached) value
+        # 1. Check explicit frontmatter (page defines its own type)
+        # This takes precedence over cascade
+        if "type" in self.metadata:
+            # Legacy: _cascade_keys was populated by old CascadeEngine.
+            # If present, skip frontmatter check - let snapshot handle it.
+            cascade_keys = self.metadata.get("_cascade_keys", [])
+            if "type" not in cascade_keys:
+                return self.metadata.get("type")
+
+        # 2. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come before core to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
+        if self._site and self._section:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section.path.relative_to(content_dir))
+                cascade_value = self._site.cascade.resolve(section_path, "type")
+                if cascade_value is not None:
+                    return cascade_value
+            except (ValueError, AttributeError):
+                # ValueError: section.path not relative to content_dir (virtual sections)
+                # AttributeError: section has no path or site has no cascade
+                # In both cases, silently fall back to core/frontmatter resolution below
+                pass
+
+        # 3. Fall back to core (cached) value for non-cascade type
         if self.core is not None and self.core.type:
             return self.core.type
+
         return self.metadata.get("type")
 
     @property
@@ -496,29 +523,60 @@ class PageMetadataMixin:
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from cascade, core, or layout/hero_style fields.
+        Get visual variant from frontmatter, cascade snapshot, or core.
 
         Normalizes 'layout' and 'hero_style' into the Component Model 'variant'.
 
         Component Model: Mode.
-        
+
         Priority:
-        1. Cascade-set value (metadata["variant"] if in _cascade_keys)
-        2. Core metadata (cached value)
-        3. Frontmatter fallback (layout/hero_style)
+        1. Explicit frontmatter value (page defines its own variant)
+        2. Cascade snapshot lookup for 'variant' or 'layout' keys
+        3. Core metadata (cached value - fallback for non-cascade variant)
+        4. Frontmatter fallback (layout/hero_style)
+
+        Note:
+            The _cascade_keys field is legacy from the old CascadeEngine and may
+            be present in cached pages. It's checked for backward compatibility
+            but new code should rely on the cascade snapshot for resolution.
 
         Returns:
             Variant string or None
         """
-        # Check if variant was set by cascade (takes priority over cached core)
-        cascade_keys = self.metadata.get("_cascade_keys", [])
-        if "variant" in cascade_keys and "variant" in self.metadata:
-            return self.metadata.get("variant")
-        # Fall back to core (cached) value
+        # 1. Check explicit frontmatter (page defines its own variant)
+        # This takes precedence over cascade
+        if "variant" in self.metadata:
+            # Legacy: _cascade_keys was populated by old CascadeEngine.
+            # If present, skip frontmatter check - let snapshot handle it.
+            cascade_keys = self.metadata.get("_cascade_keys", [])
+            if "variant" not in cascade_keys:
+                return self.metadata.get("variant")
+
+        # 2. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come before core to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
+        if self._site and self._section:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section.path.relative_to(content_dir))
+                # Check both 'variant' and 'layout' keys
+                value = self._site.cascade.resolve(section_path, "variant")
+                if value:
+                    return value
+                value = self._site.cascade.resolve(section_path, "layout")
+                if value:
+                    return value
+            except (ValueError, AttributeError):
+                # ValueError: section.path not relative to content_dir (virtual sections)
+                # AttributeError: section has no path or site has no cascade
+                # In both cases, silently fall back to core/frontmatter resolution below
+                pass
+
+        # 3. Fall back to core (cached) value for non-cascade variant
         if self.core is not None and self.core.variant:
             return self.core.variant
 
-        # Fallbacks
+        # 4. Fallbacks from frontmatter
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
     @property

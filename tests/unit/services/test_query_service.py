@@ -80,12 +80,16 @@ def make_site_snapshot(
 ) -> SiteSnapshot:
     """Create a test SiteSnapshot."""
     # Create a minimal root section if needed
-    root_section = sections[0] if sections else make_section_snapshot(
-        Path("/test/site/content"),
-        "/",
-        "Root",
+    root_section = (
+        sections[0]
+        if sections
+        else make_section_snapshot(
+            Path("/test/site/content"),
+            "/",
+            "Root",
+        )
     )
-    
+
     return SiteSnapshot(
         pages=tuple(pages),
         regular_pages=tuple(pages),
@@ -118,7 +122,7 @@ class TestQueryService:
             section=section,
         )
         snapshot = make_site_snapshot([page], [section])
-        
+
         service = QueryService.from_snapshot(snapshot)
         assert service is not None
 
@@ -126,7 +130,7 @@ class TestQueryService:
         """QueryService.get_page returns page by href."""
         page = make_page_snapshot(Path("/test/content/page.md"), "/page/")
         snapshot = make_site_snapshot([page], [])
-        
+
         service = QueryService.from_snapshot(snapshot)
         result = service.get_page("/page/")
         assert result == page
@@ -135,7 +139,7 @@ class TestQueryService:
         """QueryService.get_page returns None for unknown href."""
         snapshot = make_site_snapshot([], [])
         service = QueryService.from_snapshot(snapshot)
-        
+
         result = service.get_page("/unknown/")
         assert result is None
 
@@ -144,7 +148,7 @@ class TestQueryService:
         source_path = Path("/test/content/page.md")
         page = make_page_snapshot(source_path, "/page/")
         snapshot = make_site_snapshot([page], [])
-        
+
         service = QueryService.from_snapshot(snapshot)
         result = service.get_page_by_path(source_path)
         assert result == page
@@ -153,7 +157,7 @@ class TestQueryService:
         """QueryService.get_section returns section by URL."""
         section = make_section_snapshot(Path("/test/docs"), "/docs/")
         snapshot = make_site_snapshot([], [section])
-        
+
         service = QueryService.from_snapshot(snapshot)
         result = service.get_section("/docs/")
         assert result == section
@@ -176,10 +180,10 @@ class TestQueryService:
             tags=("rust",),
         )
         snapshot = make_site_snapshot([page1, page2, page3], [])
-        
+
         service = QueryService.from_snapshot(snapshot)
         result = service.get_pages_by_tag("python")
-        
+
         assert len(result) == 2
         assert page1 in result
         assert page2 in result
@@ -189,7 +193,7 @@ class TestQueryService:
         """QueryService.get_pages_by_section returns section pages."""
         section = make_section_snapshot(Path("/test/docs"), "/docs/")
         other_section = make_section_snapshot(Path("/test/blog"), "/blog/")
-        
+
         page1 = make_page_snapshot(
             Path("/test/content/docs/p1.md"),
             "/docs/p1/",
@@ -205,10 +209,10 @@ class TestQueryService:
             "/blog/p3/",
             section=other_section,
         )
-        
+
         snapshot = make_site_snapshot([page1, page2, page3], [section, other_section])
         service = QueryService.from_snapshot(snapshot)
-        
+
         result = service.get_pages_by_section("/docs/")
         assert len(result) == 2
         assert page1 in result
@@ -222,7 +226,7 @@ class TestQueryPureFunctions:
         """get_section returns section by URL."""
         section = make_section_snapshot(Path("/test/docs"), "/docs/")
         snapshot = make_site_snapshot([], [section])
-        
+
         result = get_section(snapshot, "/docs/")
         assert result == section
 
@@ -230,7 +234,7 @@ class TestQueryPureFunctions:
         """get_page returns page by href."""
         page = make_page_snapshot(Path("/test/content/page.md"), "/page/")
         snapshot = make_site_snapshot([page], [])
-        
+
         result = get_page(snapshot, "/page/")
         assert result == page
 
@@ -239,7 +243,7 @@ class TestQueryPureFunctions:
         source_path = Path("/test/content/page.md")
         page = make_page_snapshot(source_path, "/page/")
         snapshot = make_site_snapshot([page], [])
-        
+
         result = get_page_by_path(snapshot, source_path)
         assert result == page
 
@@ -256,7 +260,7 @@ class TestQueryPureFunctions:
             tags=("rust",),
         )
         snapshot = make_site_snapshot([page1, page2], [])
-        
+
         result = get_pages_by_tag(snapshot, "python")
         assert len(result) == 1
         assert page1 in result

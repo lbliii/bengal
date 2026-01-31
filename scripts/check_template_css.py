@@ -26,34 +26,36 @@ CSS_DIR = Path("bengal/themes/default/assets/css")
 
 # Classes that are intentionally not defined in our CSS (from external libraries,
 # dynamically generated, or utility classes that don't need explicit styles)
-ALLOWLIST = frozenset({
-    # Utility classes from base/utilities.css that may not have explicit definitions
-    "sr-only",
-    "visually-hidden",
-    # Classes that are set dynamically via JavaScript
-    "active",
-    "open",
-    "is-open",
-    "is-active",
-    "is-visible",
-    "is-hidden",
-    "is-loading",
-    "is-expanded",
-    "is-collapsed",
-    "has-toc",
-    "no-toc",
-    "dark",
-    "light",
-    # Third-party library classes
-    "katex",
-    "mermaid",
-    "highlight",
-    "hljs",
-    # Generic HTML/accessibility classes
-    "prose",  # Defined in typography.css via complex selectors
-    # Jinja/Kida template variable classes (dynamic)
-    # These are patterns that may be generated at runtime
-})
+ALLOWLIST = frozenset(
+    {
+        # Utility classes from base/utilities.css that may not have explicit definitions
+        "sr-only",
+        "visually-hidden",
+        # Classes that are set dynamically via JavaScript
+        "active",
+        "open",
+        "is-open",
+        "is-active",
+        "is-visible",
+        "is-hidden",
+        "is-loading",
+        "is-expanded",
+        "is-collapsed",
+        "has-toc",
+        "no-toc",
+        "dark",
+        "light",
+        # Third-party library classes
+        "katex",
+        "mermaid",
+        "highlight",
+        "hljs",
+        # Generic HTML/accessibility classes
+        "prose",  # Defined in typography.css via complex selectors
+        # Jinja/Kida template variable classes (dynamic)
+        # These are patterns that may be generated at runtime
+    }
+)
 
 # Patterns for classes that are dynamically constructed (regex patterns)
 DYNAMIC_CLASS_PATTERNS = [
@@ -267,9 +269,7 @@ def extract_classes_from_css(css_dir: Path) -> dict[str, list[ClassDefinition]]:
 
             for match in class_selector_pattern.finditer(processed_line):
                 class_name = match.group(1)
-                classes[class_name].append(
-                    ClassDefinition(file=css_file, line=line_num)
-                )
+                classes[class_name].append(ClassDefinition(file=css_file, line=line_num))
 
     return dict(classes)
 

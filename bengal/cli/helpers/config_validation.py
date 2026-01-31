@@ -31,15 +31,15 @@ import yaml
 def check_yaml_syntax(config_dir: Path, errors: list[str], warnings: list[str]) -> None:
     """
     Check YAML syntax for all config files in a directory.
-    
+
     Recursively finds and parses all .yaml and .yml files, appending
     any syntax errors to the errors list.
-    
+
     Args:
         config_dir: Root directory to scan for YAML files
         errors: List to append error messages to (modified in place)
         warnings: List to append warning messages to (modified in place)
-        
+
     """
     yaml_files = list(config_dir.glob("**/*.yaml")) + list(config_dir.glob("**/*.yml"))
 
@@ -54,15 +54,15 @@ def check_yaml_syntax(config_dir: Path, errors: list[str], warnings: list[str]) 
 def validate_config_types(config: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
     """
     Validate that configuration values have the expected types.
-    
+
     Checks known boolean fields like 'parallel', 'incremental', 'minify_html',
     etc. to ensure they are actually boolean values.
-    
+
     Args:
         config: Parsed configuration dictionary
         errors: List to append error messages to (modified in place)
         warnings: List to append warning messages to (modified in place)
-        
+
     """
     # Known boolean fields
     boolean_fields = [
@@ -84,16 +84,16 @@ def validate_config_values(
 ) -> None:
     """
     Validate configuration values and check for reasonable ranges.
-    
+
     Performs environment-specific validation (e.g., production requires
     site.title) and checks that numeric values are within acceptable ranges.
-    
+
     Args:
         config: Parsed configuration dictionary
         environment: Target environment ("local", "preview", "production")
         errors: List to append error messages to (modified in place)
         warnings: List to append warning messages to (modified in place)
-        
+
     """
     # Check required fields for production
     if environment == "production" and "site" in config:
@@ -119,14 +119,14 @@ def validate_config_values(
 def check_unknown_keys(config: dict[str, Any], warnings: list[str]) -> None:
     """
     Check for unknown or misspelled configuration keys.
-    
+
     Compares top-level keys against known sections and suggests corrections
     using fuzzy matching when possible typos are detected.
-    
+
     Args:
         config: Parsed configuration dictionary
         warnings: List to append warning messages to (modified in place)
-        
+
     """
     known_sections = {
         "site",

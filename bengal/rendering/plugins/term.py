@@ -17,15 +17,15 @@ __all__ = ["TermPlugin"]
 class TermPlugin:
     """
     Mistune plugin for {term}`Word` syntax.
-    
+
     Syntax:
         {term}`Word`          -> Link to /glossary/#term-word
         {term}`Word Text`     -> Link to /glossary/#term-word-text
-    
+
     Architecture:
     - Runs as a standard Mistune inline plugin
     - Registers a high-priority rule to capture {term}`...`
-        
+
     """
 
     def __call__(self, md: Any) -> None:

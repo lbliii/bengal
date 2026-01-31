@@ -51,7 +51,7 @@ minify = false
         # Create content directory with multiple pages
         content_dir = site_root / "content"
         content_dir.mkdir()
-        
+
         (content_dir / "index.md").write_text(
             """---
 title: Home
@@ -62,7 +62,7 @@ title: Home
 This is the home page.
 """
         )
-        
+
         (content_dir / "about.md").write_text(
             """---
 title: About
@@ -99,10 +99,10 @@ body {
     ) -> None:
         """
         Test that CSS remains intact when only content changes.
-        
+
         This is the core regression test for Issue #130 where CSS would
         intermittently break during hot reload when editing markdown files.
-        
+
         Scenario:
         1. Full build creates CSS in output
         2. User edits markdown (content only, no CSS changes)
@@ -121,14 +121,14 @@ body {
         output_dir = site1.output_dir
         home_index = output_dir / "index.html"
         about_index = output_dir / "about" / "index.html"
-        
+
         assert home_index.exists(), "Build 1 should create index.html"
         assert about_index.exists(), "Build 1 should create about/index.html"
 
         # Verify CSS exists in output
         css_dir = output_dir / "assets" / "css"
         assert css_dir.exists(), "CSS directory should exist after full build"
-        
+
         css_files_v1 = list(css_dir.glob("style*.css"))
         assert len(css_files_v1) >= 1, "Should have CSS file after full build"
 
@@ -163,7 +163,7 @@ More information about what we do.
 
         # CRITICAL: CSS should still exist in output after incremental build
         assert css_dir.exists(), "CSS directory should exist after incremental build"
-        
+
         css_files_v2 = list(css_dir.glob("style*.css"))
         assert len(css_files_v2) >= 1, (
             "CSS file should exist after incremental build. "
@@ -185,12 +185,10 @@ More information about what we do.
             "Changed reference indicates unnecessary CSS reprocessing."
         )
 
-    def test_css_revalidated_when_output_cleaned(
-        self, site_with_css_and_content: Path
-    ) -> None:
+    def test_css_revalidated_when_output_cleaned(self, site_with_css_and_content: Path) -> None:
         """
         Test that CSS is re-created if output is cleaned during incremental build.
-        
+
         This tests the defensive check that validates CSS output exists
         before skipping asset processing.
         """
@@ -203,7 +201,7 @@ More information about what we do.
 
         output_dir = site1.output_dir
         css_dir = output_dir / "assets" / "css"
-        
+
         assert css_dir.exists(), "CSS directory should exist after full build"
 
         # Simulate partial output cleanup (CSS deleted but other files remain)
@@ -239,12 +237,10 @@ Content was modified.
             "This tests the defensive CSS validation check."
         )
 
-    def test_multiple_content_changes_preserve_css(
-        self, site_with_css_and_content: Path
-    ) -> None:
+    def test_multiple_content_changes_preserve_css(self, site_with_css_and_content: Path) -> None:
         """
         Test that multiple sequential content changes preserve CSS.
-        
+
         This simulates rapid editing during development where the user
         makes multiple changes without CSS ever being touched.
         """
@@ -378,12 +374,10 @@ body { color: black; }
 
         return site_root
 
-    def test_no_theme_site_builds_without_error(
-        self, site_without_theme: Path
-    ) -> None:
+    def test_no_theme_site_builds_without_error(self, site_without_theme: Path) -> None:
         """
         Test that sites without themes (no CSS) build correctly.
-        
+
         The CSS validation should not cause errors when there's no theme
         and no CSS is expected.
         """
@@ -426,10 +420,10 @@ Content was changed.
     ) -> None:
         """
         Test that CSS survives incremental builds with fingerprinting config disabled.
-        
+
         The CSS validation uses glob("style*.css") which should match
         both "style.css" and "style.abc123.css" patterns.
-        
+
         Note: The default theme may still have fingerprinted CSS even with
         fingerprinting disabled in config, because theme assets have their
         own processing. This test verifies CSS survives regardless.
@@ -476,7 +470,7 @@ New content here.
         assert len(css_files_after) >= 1, (
             "CSS should survive incremental build with fingerprinting config"
         )
-        
+
         # CSS names should be unchanged (no CSS was modified)
         after_css_names = {f.name for f in css_files_after}
         assert initial_css_names == after_css_names, (
@@ -488,7 +482,7 @@ New content here.
     ) -> None:
         """
         Test that CSS is regenerated when output directory is cleaned.
-        
+
         This tests the provenance filter's CSS entry check that forces
         a full rebuild when CSS is missing from output.
         """
@@ -506,6 +500,7 @@ New content here.
 
         # Delete entire CSS directory (simulates clean)
         import shutil
+
         shutil.rmtree(css_dir)
 
         assert not css_dir.exists(), "CSS dir should be deleted"

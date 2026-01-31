@@ -4,10 +4,10 @@ Live progress display system with profile-aware output.
 .. deprecated::
     This module has been moved to :mod:`bengal.utils.observability.cli_progress`.
     Import from there instead::
-    
+
         # New (preferred)
         from bengal.utils.observability.cli_progress import LiveProgressManager
-        
+
         # Old (deprecated, still works for backward compatibility)
         from bengal.cli.progress import LiveProgressManager
 

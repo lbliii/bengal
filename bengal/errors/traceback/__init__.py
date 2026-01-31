@@ -98,17 +98,17 @@ from bengal.errors.traceback.renderer import (
 )
 
 __all__ = [
-    # Config
-    "TracebackConfig",
-    "TracebackStyle",
     "DEFAULT_SUPPRESS",
-    "set_effective_style_from_cli",
-    "map_debug_flag_to_traceback",
-    "apply_file_traceback_to_env",
-    # Renderers
-    "TracebackRenderer",
-    "FullTracebackRenderer",
     "CompactTracebackRenderer",
+    "FullTracebackRenderer",
     "MinimalTracebackRenderer",
     "OffTracebackRenderer",
+    # Config
+    "TracebackConfig",
+    # Renderers
+    "TracebackRenderer",
+    "TracebackStyle",
+    "apply_file_traceback_to_env",
+    "map_debug_flag_to_traceback",
+    "set_effective_style_from_cli",
 ]

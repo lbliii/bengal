@@ -69,11 +69,11 @@ logger = get_logger(__name__)
 class InvalidationReason(Enum):
     """
     Why a cache was invalidated.
-    
+
     Used to declare which events should trigger cache invalidation.
     Caches register which reasons they respond to, enabling coordinated
     invalidation without scattered manual calls.
-        
+
     """
 
     CONFIG_CHANGED = auto()  # Site configuration changed
@@ -90,16 +90,16 @@ class InvalidationReason(Enum):
 class CacheEntry:
     """
     Registered cache with metadata.
-    
+
     Stores cache clear function along with lifecycle metadata for
     coordinated invalidation and dependency tracking.
-    
+
     Attributes:
         name: Unique cache name (for debugging and dependency tracking)
         clear_fn: Callable that clears the cache (e.g., lambda: cache.clear())
         invalidate_on: Set of reasons that should trigger invalidation
         depends_on: Set of cache names this cache depends on
-        
+
     """
 
     name: str
@@ -127,10 +127,10 @@ def register_cache(
 ) -> None:
     """
     Register a cache with lifecycle metadata.
-    
+
     Caches should register themselves at module import time (standard pattern).
     This ensures all caches are registered before any build operations.
-    
+
     Args:
         name: Unique cache name (for debugging and dependency tracking)
         clear_fn: Callable that clears the cache (e.g., lambda: cache.clear())
@@ -138,10 +138,10 @@ def register_cache(
                        Defaults to {FULL_REBUILD} if not specified.
         depends_on: Set of cache names this cache depends on (for cascade invalidation).
                     Dependencies must already be registered.
-    
+
     Raises:
         ValueError: If dependency cycle detected or dependencies don't exist
-    
+
     Example:
         register_cache(
             "nav_tree",
@@ -149,11 +149,11 @@ def register_cache(
             invalidate_on={InvalidationReason.CONFIG_CHANGED, InvalidationReason.STRUCTURAL_CHANGE},
             depends_on={"build_cache"},
         )
-    
+
     Note:
         If you want the cache cleared on test cleanup, include TEST_CLEANUP
         in invalidate_on, or just use FULL_REBUILD which is the default.
-        
+
     """
     effective_invalidate_on = (
         invalidate_on if invalidate_on is not None else {InvalidationReason.FULL_REBUILD}
@@ -187,16 +187,16 @@ def register_cache(
 def _validate_no_cycles(new_cache: str, new_deps: set[str]) -> None:
     """
     Validate that adding new_cache with new_deps doesn't create a cycle.
-    
+
     Uses DFS to detect cycles in dependency graph.
-    
+
     Args:
         new_cache: Name of cache being registered
         new_deps: Dependencies of the new cache
-    
+
     Raises:
         ValueError: If adding this cache would create a dependency cycle
-        
+
     """
     # Build dependency graph including new cache
     graph: dict[str, set[str]] = {}
@@ -232,16 +232,16 @@ def _validate_no_cycles(new_cache: str, new_deps: set[str]) -> None:
 def _topological_sort(cache_names: set[str]) -> list[str]:
     """
     Topologically sort cache names by dependency order.
-    
+
     Uses graphlib.TopologicalSorter (Python 3.9+) for reliable ordering.
     Ensures dependencies are invalidated before dependents.
-    
+
     Args:
         cache_names: Set of cache names to sort
-    
+
     Returns:
         List of cache names in dependency order (dependencies first)
-        
+
     """
     # Handle empty or single-item case
     if len(cache_names) <= 1:
@@ -275,24 +275,24 @@ def _topological_sort(cache_names: set[str]) -> list[str]:
 def invalidate_for_reason(reason: InvalidationReason) -> list[str]:
     """
     Invalidate all caches that should be cleared for this reason.
-    
+
     This is the primary API for triggering cache invalidation. Instead of
     calling individual cache invalidation functions, call this with the
     appropriate reason and let caches self-select.
-    
+
     Args:
         reason: Why invalidation is occurring
-    
+
     Returns:
         List of invalidated cache names (for logging)
-    
+
     Thread-safe: Uses registry lock for consistency.
-    
+
     Example:
         # When config changes:
         invalidated = invalidate_for_reason(InvalidationReason.CONFIG_CHANGED)
         logger.debug("caches_invalidated", reason="config_changed", caches=invalidated)
-        
+
     """
     to_invalidate: set[str] = set()
     timestamp = time.time()
@@ -328,23 +328,23 @@ def invalidate_for_reason(reason: InvalidationReason) -> list[str]:
 def invalidate_with_dependents(cache_name: str, reason: InvalidationReason) -> list[str]:
     """
     Invalidate a specific cache and all caches that depend on it.
-    
+
     Uses topological sort to ensure correct order (dependencies before dependents).
-    
+
     Args:
         cache_name: Name of cache to invalidate
         reason: Reason for invalidation (for logging)
-    
+
     Returns:
         List of invalidated cache names in dependency order
-    
+
     Raises:
         KeyError: If cache_name not registered
-    
+
     Example:
         # When nav tree changes, invalidate it and dependents:
         invalidated = invalidate_with_dependents("nav_tree", InvalidationReason.STRUCTURAL_CHANGE)
-        
+
     """
     timestamp = time.time()
 
@@ -395,10 +395,10 @@ def _log_invalidation(name: str, reason: InvalidationReason, timestamp: float) -
 def unregister_cache(name: str) -> None:
     """
     Unregister a cache (rarely needed).
-    
+
     Args:
         name: Name of cache to unregister
-        
+
     """
     with _registry_lock:
         _registered_caches.pop(name, None)
@@ -407,14 +407,14 @@ def unregister_cache(name: str) -> None:
 def clear_all_caches() -> None:
     """
     Clear all registered caches.
-    
+
     This is the main function to call in test fixtures or between builds
     to prevent memory leaks. Equivalent to invalidate_for_reason(FULL_REBUILD)
     but clears ALL caches regardless of their invalidate_on settings.
-    
+
     Thread Safety:
         Thread-safe - clears all caches under lock.
-        
+
     """
     with _registry_lock:
         for name, entry in _registered_caches.items():
@@ -428,10 +428,10 @@ def clear_all_caches() -> None:
 def list_registered_caches() -> list[str]:
     """
     List all registered cache names (for debugging).
-    
+
     Returns:
         List of cache names
-        
+
     """
     with _registry_lock:
         return list(_registered_caches.keys())
@@ -440,13 +440,13 @@ def list_registered_caches() -> list[str]:
 def get_cache_info(name: str) -> dict | None:
     """
     Get information about a registered cache.
-    
+
     Args:
         name: Cache name
-    
+
     Returns:
         Dict with cache info or None if not registered
-        
+
     """
     with _registry_lock:
         if name not in _registered_caches:
@@ -462,10 +462,10 @@ def get_cache_info(name: str) -> dict | None:
 def get_invalidation_log() -> list[tuple[str, str, float]]:
     """
     Get log of recent invalidations (for debugging).
-    
+
     Returns:
         List of (cache_name, reason_name, timestamp) tuples
-        
+
     """
     with _registry_lock:
         return [(name, reason.name, ts) for name, reason, ts in _invalidation_log]

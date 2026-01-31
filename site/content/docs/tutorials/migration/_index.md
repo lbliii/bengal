@@ -4,9 +4,6 @@ nav_title: Migration
 description: Migrate to Bengal from other static site generators
 weight: 50
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: arrow-right
 ---
 

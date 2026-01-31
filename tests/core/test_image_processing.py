@@ -15,7 +15,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from bengal.core.resources.image import ImageResource, ProcessedImage, parse_spec
+from bengal.core.resources.image import ImageResource, ProcessedImage
+from bengal.core.resources.types import parse_spec
 from bengal.core.resources.processor import (
     CACHE_SCHEMA_VERSION,
     ImageProcessor,

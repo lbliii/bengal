@@ -24,11 +24,11 @@ ConfigLike = "Config | dict[str, Any]"
 class ConfigValidatorWrapper(BaseValidator):
     """
     Wrapper for config validation.
-    
+
     Note: Config validation happens at load time, so by the time we get to
     health checks, the config has already been validated. This validator
     confirms that validation occurred and reports any config-related concerns.
-        
+
     """
 
     name = "Configuration"
@@ -97,7 +97,9 @@ class ConfigValidatorWrapper(BaseValidator):
                 parallel = build_dict.get("parallel", True)
                 # Fall back to top-level if not present in build.*
                 if max_workers_override is None:
-                    max_workers_override = config.get("max_workers") if hasattr(config, "get") else None
+                    max_workers_override = (
+                        config.get("max_workers") if hasattr(config, "get") else None
+                    )
                 if incremental is None:
                     incremental = config.get("incremental") if hasattr(config, "get") else None
                 if "parallel" not in build_dict and hasattr(config, "get"):

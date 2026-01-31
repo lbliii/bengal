@@ -54,46 +54,46 @@ __all__ = [
 class OutputFormatsGenerator:
     """
     Facade for generating all output format variants.
-    
+
     Coordinates generation of alternative content formats to enable
     client-side search, AI/LLM discovery, and programmatic API access.
-    
+
     Creation:
         Direct instantiation: OutputFormatsGenerator(site, config=config)
             - Created by PostprocessOrchestrator for output format generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages
         config: Normalized configuration dict
         graph_data: Optional pre-computed graph data for contextual minimap
         build_context: Optional BuildContext with accumulated JSON data
-    
+
     Relationships:
         - Used by: PostprocessOrchestrator for output format generation
         - Delegates to: PageJSONGenerator, PageTxtGenerator,
                         SiteIndexGenerator, SiteLlmTxtGenerator
-    
+
     Output Formats:
         Per-Page:
             - json: page.json with metadata, content, graph connections
             - llm_txt: page.txt with structured plain text
-    
+
         Site-Wide:
             - index_json: index.json for client-side search
             - llm_full: llm-full.txt with all site content
-    
+
     Configuration Formats:
         Simple (from [build.output_formats]):
             {'enabled': True, 'json': True, 'llm_txt': True}
-    
+
         Advanced (from [output_formats]):
             {'per_page': ['json', 'llm_txt'], 'site_wide': ['index_json']}
-    
+
     Example:
             >>> generator = OutputFormatsGenerator(site, config=config)
             >>> generator.generate()
-        
+
     """
 
     def __init__(
@@ -171,13 +171,9 @@ class OutputFormatsGenerator:
 
             # Only override defaults if user explicitly configured these options
             # This allows {"json": False, "llm_txt": False} to disable all per-page formats
-            if has_per_page_config:
+            if has_per_page_config or per_page:
                 normalized["per_page"] = per_page
-            elif per_page:
-                normalized["per_page"] = per_page
-            if has_site_wide_config:
-                normalized["site_wide"] = site_wide
-            elif site_wide:
+            if has_site_wide_config or site_wide:
                 normalized["site_wide"] = site_wide
 
         # Propagate enabled flag

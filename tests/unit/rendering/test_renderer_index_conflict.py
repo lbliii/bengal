@@ -52,7 +52,7 @@ def test_tag_page_does_not_trigger_root_index_logic(renderer):
     """
     Regression test: Generated tag pages (which look like index pages)
     don't accidentally trigger the "root home page" logic which overwrites 'posts'.
-        
+
     """
     # Create a tag page - it has no section, ends in index.md, and is generated
     tag_page = Page(

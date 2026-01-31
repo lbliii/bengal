@@ -54,28 +54,28 @@ from bengal.errors import BengalConfigError, ErrorCode
 class Theme:
     """
     Theme configuration object.
-    
+
     Available in templates as `site.theme` for theme developers to access
     theme-related settings.
-    
+
     Attributes:
         name: Theme name (e.g., "default", "my-custom-theme")
         default_appearance: Default appearance mode ("light", "dark", "system")
         default_palette: Default color palette key (empty string for default)
         features: List of enabled feature flags (e.g., ["navigation.toc", "content.code.copy"])
         config: Additional theme-specific configuration from [theme] section
-    
+
     Feature Flags:
         Features are declarative toggles for theme behavior. Users enable/disable
         features via config rather than editing templates.
-    
+
         Example:
             [theme]
             features = ["navigation.toc", "content.code.copy"]
-    
+
         Templates check features via:
             {% if 'navigation.toc' in site.theme_config.features %}
-        
+
     """
 
     name: str = "default"

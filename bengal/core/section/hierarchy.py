@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 class SectionHierarchyMixin:
     """
     Tree structure traversal and relationships.
-    
+
     This mixin handles:
     - Parent/child navigation (parent, root, subsections)
     - Depth and hierarchy calculation
@@ -51,7 +51,7 @@ class SectionHierarchyMixin:
     - Tree walking (walk)
     - Identity operations (__hash__, __eq__)
     - Icon property from index page metadata
-        
+
     """
 
     # =========================================================================

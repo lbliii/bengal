@@ -38,22 +38,22 @@ EVENT_ICONS: dict[str, str] = {
 class FileWatcherLog(Vertical):
     """
     Real-time file change log for dev server dashboard.
-    
+
     Features:
     - Timestamped change entries
     - Event type icons (created, modified, deleted)
     - Auto-scroll with max history
     - Clear functionality
-    
+
     Example:
         log = FileWatcherLog(id="file-changes")
-    
+
         # Connect to watcher
         watcher = WatcherRunner(
             on_file_change=lambda p, e: log.add_change(p, e),
                 ...
         )
-        
+
     """
 
     DEFAULT_CSS = """

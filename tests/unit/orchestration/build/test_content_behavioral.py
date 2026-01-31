@@ -71,9 +71,7 @@ tags = "tags"
     content_dir.mkdir()
 
     # Home page
-    (content_dir / "_index.md").write_text(
-        "---\ntitle: Home\n---\n# Welcome\nThis is home."
-    )
+    (content_dir / "_index.md").write_text("---\ntitle: Home\n---\n# Welcome\nThis is home.")
 
     # Regular page
     (content_dir / "about.md").write_text(
@@ -122,9 +120,7 @@ output_dir = "public"
     docs_dir = content_dir / "docs"
     docs_dir.mkdir()
     (docs_dir / "_index.md").write_text("---\ntitle: Docs\n---\n# Documentation")
-    (docs_dir / "quickstart.md").write_text(
-        "---\ntitle: Quickstart\n---\n# Quickstart Guide"
-    )
+    (docs_dir / "quickstart.md").write_text("---\ntitle: Quickstart\n---\n# Quickstart Guide")
 
     # Blog section
     blog_dir = content_dir / "blog"
@@ -179,9 +175,7 @@ tags = "tags"
     (content_dir / "rust-intro.md").write_text(
         "---\ntitle: Rust Intro\ntags:\n  - rust\n  - tutorial\n---\n# Rust"
     )
-    (content_dir / "go-basics.md").write_text(
-        "---\ntitle: Go Basics\ntags:\n  - go\n---\n# Go"
-    )
+    (content_dir / "go-basics.md").write_text("---\ntitle: Go Basics\ntags:\n  - go\n---\n# Go")
 
     site = Site.from_config(site_dir)
     site.discover_content()
@@ -220,9 +214,7 @@ class TestSectionsBehavior:
         site = site_with_sections
 
         for section in site.sections:
-            assert section.index_page is not None, (
-                f"Section '{section.name}' missing index page"
-            )
+            assert section.index_page is not None, f"Section '{section.name}' missing index page"
 
     def test_section_pages_are_rendered(self, site_with_sections: Site) -> None:
         """BEHAVIOR: Section pages produce output files."""
@@ -289,9 +281,7 @@ class TestTaxonomiesBehavior:
         for tag in expected_tags:
             assert tag in tags, f"Tag '{tag}' should exist in taxonomy"
 
-    def test_taxonomy_pages_list_correct_content(
-        self, site_with_taxonomies: Site
-    ) -> None:
+    def test_taxonomy_pages_list_correct_content(self, site_with_taxonomies: Site) -> None:
         """BEHAVIOR: Each tag page lists correct pages."""
         site = site_with_taxonomies
 
@@ -391,8 +381,7 @@ class TestPageURLsBehavior:
                 output_file = site.output_dir / "index.html"
 
             assert output_file.exists(), (
-                f"No output file for page with URL '{href}'. "
-                f"Expected: {output_file}"
+                f"No output file for page with URL '{href}'. Expected: {output_file}"
             )
 
 
@@ -408,9 +397,7 @@ class TestBuildInvariants:
         """BEHAVIOR: Build always produces index.html."""
         site = minimal_site
 
-        assert (site.output_dir / "index.html").exists(), (
-            "Build should produce index.html"
-        )
+        assert (site.output_dir / "index.html").exists(), "Build should produce index.html"
 
     def test_build_creates_output_directory(self, minimal_site: Site) -> None:
         """BEHAVIOR: Build creates output directory."""
@@ -423,9 +410,7 @@ class TestBuildInvariants:
         """BEHAVIOR: Site has regular pages after build."""
         site = minimal_site
 
-        assert len(site.regular_pages) >= 1, (
-            "Site should have at least one regular page"
-        )
+        assert len(site.regular_pages) >= 1, "Site should have at least one regular page"
 
     def test_pages_have_titles(self, minimal_site: Site) -> None:
         """BEHAVIOR: All pages have titles."""

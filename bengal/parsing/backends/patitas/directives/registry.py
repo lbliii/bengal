@@ -26,16 +26,16 @@ if TYPE_CHECKING:
 
 class DirectiveRegistry:
     """Immutable registry of directive handlers.
-    
+
     Maps directive names to their handlers for lookup during parsing
     and rendering.
-    
+
     Thread Safety:
         Immutable after creation. Safe to share across threads.
-        
+
     """
 
-    __slots__ = ("_handlers", "_by_name", "_by_token_type")
+    __slots__ = ("_by_name", "_by_token_type", "_handlers")
 
     def __init__(
         self,
@@ -98,19 +98,19 @@ class DirectiveRegistry:
 
 class DirectiveRegistryBuilder:
     """Mutable builder for DirectiveRegistry.
-    
+
     Use this to register handlers, then call build() to create
     an immutable registry.
-    
+
     Example:
             >>> builder = DirectiveRegistryBuilder()
             >>> builder.register(NoteDirective())
             >>> builder.register(WarningDirective())
             >>> registry = builder.build()
-        
+
     """
 
-    __slots__ = ("_handlers", "_by_name", "_by_token_type")
+    __slots__ = ("_by_name", "_by_token_type", "_handlers")
 
     def __init__(self) -> None:
         """Initialize empty builder."""
@@ -187,7 +187,7 @@ class DirectiveRegistryBuilder:
 
 def create_default_registry() -> DirectiveRegistry:
     """Create registry with all built-in directives.
-    
+
     Returns:
         Registry with all Bengal directives:
         - Admonitions: note, warning, tip, danger, etc.
@@ -207,7 +207,7 @@ def create_default_registry() -> DirectiveRegistry:
         - File I/O: include, literalinclude
         - Misc: example-label, build, asciinema
         - Code: code-tabs
-        
+
     """
     from bengal.parsing.backends.patitas.directives.builtins import (
         # Core

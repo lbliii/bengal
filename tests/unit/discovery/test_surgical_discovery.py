@@ -22,9 +22,7 @@ from bengal.core.page import Page, PageProxy
 from bengal.core.page.page_core import PageCore
 
 
-def make_page_core(
-    source_path: str | Path, title: str, *, weight: int | None = None
-) -> PageCore:
+def make_page_core(source_path: str | Path, title: str, *, weight: int | None = None) -> PageCore:
     """Helper to create a PageCore for testing."""
     return PageCore(
         source_path=str(source_path),
@@ -48,9 +46,7 @@ def content_dir(tmp_path: Path) -> Path:
     (docs_dir / "getting-started.md").write_text(
         "---\ntitle: Getting Started\nweight: 1\n---\n# Getting Started"
     )
-    (docs_dir / "advanced.md").write_text(
-        "---\ntitle: Advanced\nweight: 2\n---\n# Advanced"
-    )
+    (docs_dir / "advanced.md").write_text("---\ntitle: Advanced\nweight: 2\n---\n# Advanced")
 
     return content_dir
 
@@ -69,9 +65,7 @@ class TestSurgicalDiscoveryCacheHit:
     def test_cache_hit_returns_page_proxy(self, content_dir: Path, mock_cache: MagicMock) -> None:
         """When cache has metadata, should return PageProxy without parsing."""
         file_path = content_dir / "docs" / "getting-started.md"
-        mock_cache.get_metadata.return_value = make_page_core(
-            file_path, "Cached Title", weight=1
-        )
+        mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached Title", weight=1)
 
         discovery = ContentDiscovery(content_dir)
 
@@ -185,10 +179,9 @@ class TestSurgicalDiscoveryNoDoubleParsing:
             f"Some files were parsed multiple times: {create_page_calls}"
         )
 
-    def test_mixed_cache_hits_and_misses(
-        self, content_dir: Path, mock_cache: MagicMock
-    ) -> None:
+    def test_mixed_cache_hits_and_misses(self, content_dir: Path, mock_cache: MagicMock) -> None:
         """Discovery should handle mix of cache hits and misses."""
+
         # Set up cache to hit for some files, miss for others
         def get_metadata(path: Path) -> PageCore | None:
             if "getting-started" in str(path):

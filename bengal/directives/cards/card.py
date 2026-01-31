@@ -29,7 +29,7 @@ __all__ = ["CardDirective", "CardOptions"]
 class CardOptions(DirectiveOptions):
     """
     Options for individual card directive.
-    
+
     Attributes:
         icon: Icon name
         link: URL or page reference
@@ -40,7 +40,7 @@ class CardOptions(DirectiveOptions):
         footer: Footer content
         pull: Fields to pull from linked page (comma-separated)
         layout: Layout override (default, horizontal, portrait, compact)
-    
+
     Example:
         :::{card} Getting Started
         :icon: rocket
@@ -49,7 +49,7 @@ class CardOptions(DirectiveOptions):
         :badge: Updated
         Detailed content here.
         :::{/card}
-        
+
     """
 
     icon: str = ""
@@ -71,7 +71,7 @@ class CardOptions(DirectiveOptions):
 class CardDirective(BengalDirective):
     """
     Individual card directive (nested in cards).
-    
+
     Syntax:
         :::{card} Card Title
         :icon: book
@@ -80,20 +80,20 @@ class CardDirective(BengalDirective):
         :image: /hero.jpg
         :footer: Updated 2025
         :pull: title, description
-    
+
         Card content with **markdown** support.
         :::
-    
+
     Footer separator:
         :::{card} Title
         Body content
         +++
         Footer content
         :::
-    
+
     Contract:
         Typically nested inside :::{cards}, but can be standalone.
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["card"]

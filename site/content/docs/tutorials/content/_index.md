@@ -4,9 +4,6 @@ nav_title: Content
 description: Advanced content organization and structure patterns
 weight: 30
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: tree-structure
 ---
 

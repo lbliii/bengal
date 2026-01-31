@@ -133,9 +133,7 @@ class TestTemplateDirectoriesExist:
 class TestNoUnpackagedTemplates:
     """Detect template directories that might be missing from package-data."""
 
-    def test_all_template_dirs_are_packaged(
-        self, package_data_patterns: list[str]
-    ) -> None:
+    def test_all_template_dirs_are_packaged(self, package_data_patterns: list[str]) -> None:
         """Find any templates/ directories not covered by package-data.
 
         This test scans for 'templates' directories in the bengal package

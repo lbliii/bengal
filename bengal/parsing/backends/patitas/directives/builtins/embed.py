@@ -37,9 +37,10 @@ from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 from urllib.parse import quote
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -47,12 +48,12 @@ if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
 __all__ = [
-    "GistDirective",
     "CodePenDirective",
     "CodeSandboxDirective",
-    "StackBlitzDirective",
-    "SpotifyDirective",
+    "GistDirective",
     "SoundCloudDirective",
+    "SpotifyDirective",
+    "StackBlitzDirective",
 ]
 
 
@@ -79,21 +80,21 @@ class GistOptions(DirectiveOptions):
 class GistDirective:
     """
     GitHub Gist embed directive.
-    
+
     Syntax:
         :::{gist} username/abc123def456789012345678901234567890
         :file: example.py
         :::
-    
+
     Output:
         <div class="gist-embed">
           <script src="https://gist.github.com/username/id.js?file=example.py"></script>
           <noscript><p>View gist: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("gist",)
@@ -213,23 +214,23 @@ class CodePenOptions(DirectiveOptions):
 class CodePenDirective:
     """
     CodePen embed directive.
-    
+
     Syntax:
         :::{codepen} chriscoyier/pen/abc123
         :title: CSS Grid Example
         :default-tab: result
         :height: 400
         :::
-    
+
     Output:
         <div class="code-embed codepen" style="height: 400px">
           <iframe src="https://codepen.io/..." title="..." ...></iframe>
           <noscript><p>See the Pen: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("codepen",)
@@ -389,23 +390,23 @@ class CodeSandboxOptions(DirectiveOptions):
 class CodeSandboxDirective:
     """
     CodeSandbox embed directive.
-    
+
     Syntax:
         :::{codesandbox} new
         :title: React Example
         :module: /src/App.js
         :view: preview
         :::
-    
+
     Output:
         <div class="code-embed codesandbox" style="height: 500px">
           <iframe src="https://codesandbox.io/embed/..." title="..." ...></iframe>
           <noscript><p>View on CodeSandbox: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("codesandbox",)
@@ -553,23 +554,23 @@ class StackBlitzOptions(DirectiveOptions):
 class StackBlitzDirective:
     """
     StackBlitz embed directive.
-    
+
     Syntax:
         :::{stackblitz} angular-quickstart
         :title: Angular Demo
         :file: src/app.component.ts
         :view: preview
         :::
-    
+
     Output:
         <div class="code-embed stackblitz" style="height: 500px">
           <iframe src="https://stackblitz.com/edit/..." title="..." ...></iframe>
           <noscript><p>View on StackBlitz: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("stackblitz",)
@@ -720,22 +721,22 @@ class SpotifyOptions(DirectiveOptions):
 class SpotifyDirective:
     """
     Spotify embed directive.
-    
+
     Syntax:
         :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
         :title: Bohemian Rhapsody by Queen
         :type: track
         :::
-    
+
     Output:
         <div class="audio-embed spotify" style="height: 152px">
           <iframe src="https://open.spotify.com/embed/track/..." ...></iframe>
           <noscript><p>Listen on Spotify: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("spotify",)
@@ -878,21 +879,21 @@ class SoundCloudOptions(DirectiveOptions):
 class SoundCloudDirective:
     """
     SoundCloud embed directive.
-    
+
     Syntax:
         :::{soundcloud} artistname/track-title
         :title: Track Title by Artist
         :::
-    
+
     Output:
         <div class="audio-embed soundcloud" style="height: 166px">
           <iframe src="https://w.soundcloud.com/player/?url=..." ...></iframe>
           <noscript><p>Listen on SoundCloud: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("soundcloud",)

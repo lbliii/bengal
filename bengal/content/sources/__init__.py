@@ -129,17 +129,18 @@ def is_source_available(source_type: str) -> bool:
     """Check if a source type is available."""
     return source_type in SOURCE_REGISTRY
 
+
 __all__ = [
+    "SOURCE_REGISTRY",
     # Core types
     "ContentEntry",
-    "ContentSource",
     "ContentLayerManager",
-    "SOURCE_REGISTRY",
+    "ContentSource",
     "get_available_sources",
+    "github_loader",
     "is_source_available",
     # Loader factories
     "local_loader",
-    "github_loader",
-    "rest_loader",
     "notion_loader",
+    "rest_loader",
 ]

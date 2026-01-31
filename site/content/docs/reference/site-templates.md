@@ -3,7 +3,6 @@ title: Site Templates Reference
 nav_title: Site Templates
 description: Complete reference for Bengal's site scaffolding and template system
 weight: 25
-type: doc
 draft: false
 tags: [reference, templates, scaffolding, cli]
 keywords: [templates, scaffolding, new site, init, skeleton]

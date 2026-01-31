@@ -3,7 +3,6 @@ title: Security Hardening
 nav_title: Security
 description: Best practices for deploying Bengal sites securely
 weight: 50
-type: doc
 tags: [security, production, hardening]
 ---
 

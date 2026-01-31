@@ -35,9 +35,10 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -56,12 +57,12 @@ __all__ = ["ListTableDirective"]
 class ListTableOptions(DirectiveOptions):
     """
     Options for list-table directive.
-    
+
     Attributes:
         header_rows: Number of header rows (default: 0)
         widths: Column width percentages (space-separated string)
         css_class: Additional CSS classes
-        
+
     """
 
     header_rows: int = 0
@@ -77,12 +78,12 @@ class ListTableOptions(DirectiveOptions):
 class ListTableDirective:
     """
     MyST-style list-table for creating tables from nested lists.
-    
+
     Syntax:
         :::{list-table}
         :header-rows: 1
         :widths: 20 30 50
-    
+
         * - Header 1
           - Header 2
           - Header 3
@@ -90,18 +91,18 @@ class ListTableDirective:
           - Row 1, Col 2
           - Row 1, Col 3
         :::
-    
+
     Options:
         :header-rows: Number of header rows (default: 0)
         :widths: Space-separated column width percentages
         :class: Additional CSS classes
-    
+
     Row syntax: "* -" starts a new row
     Cell syntax: "  -" continues with next cell in row
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("list-table",)

@@ -7,7 +7,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.analysis.graph.page_rank import PageRankCalculator, PageRankResults, analyze_page_importance
+from bengal.analysis.graph.page_rank import (
+    PageRankCalculator,
+    PageRankResults,
+    analyze_page_importance,
+)
 from bengal.errors import BengalError
 
 

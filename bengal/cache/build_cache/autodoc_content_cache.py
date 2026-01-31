@@ -35,21 +35,21 @@ logger = get_logger(__name__)
 @dataclass
 class CachedModuleInfo:
     """Cached parsed module data.
-    
+
     Contains all information extracted from a Python module's AST,
     allowing us to skip AST parsing on subsequent builds if the source
     file hasn't changed.
-    
+
     RFC: rfc-build-performance-optimizations Phase 3
     Stores the full DocElement serialization to enable complete reconstruction
     without AST parsing.
-    
+
     Attributes:
         source_hash: Content hash of the source file (for validation)
         module_element_dict: Full DocElement serialization (from to_dict())
                           This allows complete reconstruction without AST parsing
     """
-    
+
     source_hash: str
     module_element_dict: dict[str, Any]  # Full DocElement.to_dict() serialization
 
@@ -57,18 +57,18 @@ class CachedModuleInfo:
 class AutodocContentCacheMixin:
     """
     Cache parsed autodoc content between builds.
-    
+
     RFC: rfc-build-performance-optimizations Phase 3
     Extends AutodocTrackingMixin to cache parsed module information,
     enabling AST parsing to be skipped for unchanged source files.
-    
+
     This mixin expects to be used with BuildCache which already has
     AutodocTrackingMixin for dependency tracking.
     """
-    
+
     # Cache: source_file_path → CachedModuleInfo
     autodoc_content_cache: dict[str, CachedModuleInfo] = field(default_factory=dict)
-    
+
     def get_cached_module(
         self,
         source_path: str,
@@ -76,11 +76,11 @@ class AutodocContentCacheMixin:
     ) -> CachedModuleInfo | None:
         """
         Return cached module info if hash matches.
-        
+
         Args:
             source_path: Path to Python source file
             source_hash: Current content hash of source file
-        
+
         Returns:
             CachedModuleInfo if cache hit (hash matches), None otherwise
         """
@@ -92,7 +92,7 @@ class AutodocContentCacheMixin:
                 hash=source_hash[:8],
             )
             return cached
-        
+
         if cached:
             logger.debug(
                 "autodoc_cache_miss_hash_mismatch",
@@ -100,9 +100,9 @@ class AutodocContentCacheMixin:
                 cached_hash=cached.source_hash[:8],
                 current_hash=source_hash[:8],
             )
-        
+
         return None
-    
+
     def cache_module(
         self,
         source_path: str,
@@ -110,7 +110,7 @@ class AutodocContentCacheMixin:
     ) -> None:
         """
         Cache parsed module info.
-        
+
         Args:
             source_path: Path to Python source file
             info: CachedModuleInfo with parsed module data
@@ -124,7 +124,7 @@ class AutodocContentCacheMixin:
             hash=info.source_hash[:8],
             children=children_count,
         )
-    
+
     def clear_autodoc_content_cache(self) -> None:
         """Clear all cached autodoc content."""
         count = len(self.autodoc_content_cache)

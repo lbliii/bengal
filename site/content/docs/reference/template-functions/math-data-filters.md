@@ -2,7 +2,6 @@
 title: Math & Data Functions
 description: Mathematical operations and data file manipulation
 weight: 70
-type: doc
 tags:
 - reference
 - filters

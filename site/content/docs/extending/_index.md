@@ -2,8 +2,6 @@
 title: Extending Bengal
 description: Create custom directives, content sources, collections, and build hooks
 weight: 35
-cascade:
-  type: doc
 icon: starburst
 ---
 

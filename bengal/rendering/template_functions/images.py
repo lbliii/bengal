@@ -59,21 +59,21 @@ def image_url(
 ) -> str:
     """
     Generate image URL with optional parameters.
-    
+
     Args:
         path: Image path
         base_url: Base URL for site
         width: Target width (optional)
         height: Target height (optional)
         quality: JPEG quality (optional)
-    
+
     Returns:
         Image URL with query parameters
-    
+
     Example:
         {{ image_url('photos/hero.jpg', width=800) }}
         # /assets/photos/hero.jpg?w=800
-        
+
     """
     if not path:
         return ""
@@ -104,20 +104,20 @@ def image_url(
 def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
     """
     Get image dimensions (width, height).
-    
+
     Requires Pillow (PIL) library. Returns None if not available or file not found.
-    
+
     Args:
         path: Image path
         root_path: Site root path
-    
+
     Returns:
         Tuple of (width, height) or None
-    
+
     Example:
         {% set width, height = image_dimensions('photo.jpg') %}
         <img width="{{ width }}" height="{{ height }}" src="..." alt="...">
-        
+
     """
     if not path:
         logger.debug("image_dimensions_empty_path", caller="template")
@@ -182,18 +182,18 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
 def image_srcset(image_path: str, sizes: list[int]) -> str:
     """
     Generate srcset attribute for responsive images.
-    
+
     Args:
         image_path: Base image path
         sizes: List of widths (e.g., [400, 800, 1200])
-    
+
     Returns:
         srcset attribute value
-    
+
     Example:
         <img srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}" />
         # hero.jpg?w=400 400w, hero.jpg?w=800 800w, hero.jpg?w=1200 1200w
-        
+
     """
     if not image_path or not sizes:
         return ""
@@ -209,17 +209,17 @@ def image_srcset(image_path: str, sizes: list[int]) -> str:
 def image_srcset_gen(image_path: str, sizes: list[int] | None = None) -> str:
     """
     Generate srcset attribute with default sizes.
-    
+
     Args:
         image_path: Base image path
         sizes: List of widths (default: [400, 800, 1200, 1600])
-    
+
     Returns:
         srcset attribute value
-    
+
     Example:
         <img srcset="{{ image_srcset_gen('hero.jpg') }}" />
-        
+
     """
     if sizes is None:
         sizes = [400, 800, 1200, 1600]
@@ -230,22 +230,22 @@ def image_srcset_gen(image_path: str, sizes: list[int] | None = None) -> str:
 def image_alt(filename: str) -> str:
     """
     Generate alt text from filename.
-    
+
     Converts filename to human-readable alt text by:
     - Removing extension
     - Replacing hyphens/underscores with spaces
     - Capitalizing words
-    
+
     Args:
         filename: Image filename
-    
+
     Returns:
         Alt text suggestion
-    
+
     Example:
         {{ 'mountain-sunset.jpg' | image_alt }}
         # "Mountain Sunset"
-        
+
     """
     if not filename:
         return ""
@@ -263,17 +263,17 @@ def image_alt(filename: str) -> str:
 def image_data_uri(path: str, root_path: Path) -> str:
     """
     Convert image to data URI for inline embedding.
-    
+
     Args:
         path: Image path
         root_path: Site root path
-    
+
     Returns:
         Data URI string
-    
+
     Example:
         <img src="{{ image_data_uri('icons/logo.svg') }}" alt="Logo">
-        
+
     """
     if not path:
         logger.debug("image_data_uri_empty_path", caller="template")

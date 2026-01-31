@@ -25,16 +25,16 @@ if TYPE_CHECKING:
 class WeightedPage:
     """
     Helper for weight-based page sorting.
-    
+
     Wraps a page with its weight and lowercase title for efficient
     comparison during sorting. Lower weights sort first, with title
     as secondary sort key.
-    
+
     Attributes:
         page: The wrapped Page object
         weight: Sort weight (lower = first, infinity = end)
         title_lower: Lowercase title for case-insensitive sorting
-        
+
     """
 
     page: Page

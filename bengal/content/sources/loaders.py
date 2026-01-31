@@ -33,19 +33,19 @@ def local_loader(
 ) -> ContentSource:
     """
     Create a local filesystem content loader.
-    
+
     Args:
         directory: Path to content directory (relative to site root)
         glob: Glob pattern for matching files (default: all .md files)
         exclude: List of patterns to exclude
-    
+
     Returns:
         LocalSource instance
-    
+
     Example:
             >>> from bengal.content.sources import local_loader
             >>> loader = local_loader("content/docs", exclude=["_drafts/*"])
-        
+
     """
     from bengal.content.sources.local import LocalSource
 
@@ -67,23 +67,23 @@ def github_loader(
 ) -> ContentSource:
     """
     Create a GitHub repository content loader.
-    
+
     Fetches markdown files from a GitHub repository. Supports both
     public and private repositories (with token).
-    
+
     Args:
         repo: Repository in "owner/repo" format
         branch: Branch name (default: "main")
         path: Directory path within repo (default: root)
         token: GitHub token (default: uses GITHUB_TOKEN env var)
         glob: File pattern to match (default: "*.md")
-    
+
     Returns:
         GitHubSource instance
-    
+
     Requires:
         pip install bengal[github]
-    
+
     Example:
             >>> from bengal.content.sources import github_loader
             >>> loader = github_loader(
@@ -91,7 +91,7 @@ def github_loader(
             ...     path="content/api",
             ...     branch="main",
             ... )
-        
+
     """
     from bengal.content.sources.github import GitHubSource
 
@@ -119,9 +119,9 @@ def rest_loader(
 ) -> ContentSource:
     """
     Create a REST API content loader.
-    
+
     Fetches content from any REST API that returns JSON.
-    
+
     Args:
         url: API endpoint URL
         headers: Request headers (supports ${ENV_VAR} expansion)
@@ -133,13 +133,13 @@ def rest_loader(
             - strategy: "link_header", "cursor", or "offset"
             - cursor_field: Field containing next cursor
             - cursor_param: Query param name for cursor
-    
+
     Returns:
         RESTSource instance
-    
+
     Requires:
         pip install bengal[rest]  # includes aiohttp
-    
+
     Example:
             >>> from bengal.content.sources import rest_loader
             >>> loader = rest_loader(
@@ -151,7 +151,7 @@ def rest_loader(
             ...         "date": "published_at",
             ...     },
             ... )
-        
+
     """
     from bengal.content.sources.rest import RESTSource
 
@@ -182,9 +182,9 @@ def notion_loader(
 ) -> ContentSource:
     """
     Create a Notion database content loader.
-    
+
     Fetches pages from a Notion database and converts them to markdown.
-    
+
     Args:
         database_id: Notion database ID (from URL or API)
         token: Notion integration token (default: uses NOTION_TOKEN env var)
@@ -192,18 +192,18 @@ def notion_loader(
             Default: {"title": "Name", "date": "Date", "tags": "Tags"}
         filter: Notion filter object for querying
         sorts: Notion sorts array for ordering
-    
+
     Returns:
         NotionSource instance
-    
+
     Requires:
         pip install bengal[notion]
-    
+
     Setup:
         1. Create integration at https://www.notion.so/my-integrations
         2. Share database with the integration
         3. Set NOTION_TOKEN env var or pass token parameter
-    
+
     Example:
             >>> from bengal.content.sources import notion_loader
             >>> loader = notion_loader(
@@ -215,7 +215,7 @@ def notion_loader(
             ...         "author": "Author",
             ...     },
             ... )
-        
+
     """
     from bengal.content.sources.notion import NotionSource
 
@@ -235,8 +235,8 @@ def notion_loader(
 
 
 __all__ = [
-    "local_loader",
     "github_loader",
-    "rest_loader",
+    "local_loader",
     "notion_loader",
+    "rest_loader",
 ]

@@ -36,16 +36,16 @@ from typing import Any
 class ConfigWithOrigin:
     """
     Configuration container with origin tracking for each key.
-    
+
     Tracks which file (or source) contributed each configuration key,
     enabling introspection and debugging of multi-file configurations.
     Later merges override earlier values, and the origin is updated
     to reflect the most recent source.
-    
+
     Attributes:
         config: The merged configuration dictionary.
         origins: Mapping of dot-separated key paths to their source identifiers.
-    
+
     Example:
             >>> tracker = ConfigWithOrigin()
             >>> tracker.merge({"site": {"title": "Test"}}, "_default/site.yaml")
@@ -56,7 +56,7 @@ class ConfigWithOrigin:
             '_default/site.yaml'
             >>> tracker.origins["site.baseurl"]
             'environments/prod.yaml'
-        
+
     """
 
     def __init__(self) -> None:

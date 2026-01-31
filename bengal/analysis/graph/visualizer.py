@@ -63,7 +63,7 @@ _TEMPLATE_PATH = Path(__file__).parent / "templates" / "graph_visualizer.html"
 class GraphNode:
     """
     Node in the graph visualization.
-    
+
     Attributes:
         id: Unique identifier for the node
         label: Display label (page title)
@@ -76,7 +76,7 @@ class GraphNode:
         reading_time: Content depth (minutes to read)
         size: Visual size (based on connectivity + content depth)
         color: Node color (based on type or connectivity)
-        
+
     """
 
     id: str
@@ -96,12 +96,12 @@ class GraphNode:
 class GraphEdge:
     """
     Edge in the graph visualization.
-    
+
     Attributes:
         source: Source node ID
         target: Target node ID
         weight: Edge weight (link strength)
-        
+
     """
 
     source: str
@@ -112,19 +112,19 @@ class GraphEdge:
 class GraphVisualizer:
     """
     Generate interactive D3.js visualizations of knowledge graphs.
-    
+
     Creates standalone HTML files with:
     - Force-directed graph layout
     - Interactive node exploration
     - Search and filtering
     - Responsive design
     - Customizable styling
-    
+
     Example:
             >>> visualizer = GraphVisualizer(site, graph)
             >>> html = visualizer.generate_html()
             >>> Path('graph.html').write_text(html)
-        
+
     """
 
     def __init__(self, site: SiteLike, graph: KnowledgeGraph):
@@ -254,11 +254,16 @@ class GraphVisualizer:
                         try:
                             # Type narrowing: output_path should be a Path
                             from pathlib import Path
+
                             output_path = page.output_path
-                            if isinstance(output_path, Path) and isinstance(self.site.output_dir, Path):
+                            if isinstance(output_path, Path) and isinstance(
+                                self.site.output_dir, Path
+                            ):
                                 # Compute relative URL from output_dir
                                 rel_path = output_path.relative_to(self.site.output_dir)
-                                page_url = f"/{rel_path}".replace("\\", "/").replace("/index.html", "/")
+                                page_url = f"/{rel_path}".replace("\\", "/").replace(
+                                    "/index.html", "/"
+                                )
                             else:
                                 raise ValueError("output_path or output_dir is not a Path")
                             if not page_url.endswith("/"):

@@ -18,14 +18,14 @@ if TYPE_CHECKING:
 
 def register_context_functions(env: Any, site: SiteLike) -> None:
     """Register context-dependent template functions for unknown engines.
-    
+
     These functions use site defaults since we can't access page context.
     For full context support, create a custom adapter for your engine.
-    
+
     Args:
         env: Template environment instance
         site: Site instance
-        
+
     """
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (

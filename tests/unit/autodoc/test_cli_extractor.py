@@ -22,9 +22,9 @@ except ImportError:
 def sample_cli():
     """
     A sample CLI application.
-    
+
     This is used for testing the CLI extractor.
-        
+
     """
     pass
 
@@ -36,9 +36,9 @@ def sample_cli():
 def process(filename, verbose, count):
     """
     Process a file.
-    
+
     This command processes the specified file with various options.
-        
+
     """
     pass
 
@@ -48,9 +48,9 @@ def process(filename, verbose, count):
 def clean(force):
     """
     Clean up resources.
-    
+
     Removes temporary files and caches.
-        
+
     """
     pass
 
@@ -60,9 +60,9 @@ def clean(force):
 def manage():
     """
     Manage resources and configuration.
-    
+
     Commands for managing system resources.
-        
+
     """
     pass
 
@@ -73,9 +73,9 @@ def manage():
 def create(name, description):
     """
     Create a new resource.
-    
+
     Creates a resource with the given name.
-        
+
     """
     pass
 
@@ -86,9 +86,9 @@ def create(name, description):
 def delete(name, force):
     """
     Delete a resource.
-    
+
     Removes the specified resource.
-        
+
     """
     pass
 

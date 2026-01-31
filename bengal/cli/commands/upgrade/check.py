@@ -55,10 +55,10 @@ class UpgradeInfo(NamedTuple):
 def get_cache_path() -> Path:
     """
     Get platform-appropriate cache path.
-    
+
     Returns:
         Path to the upgrade check cache file.
-        
+
     Locations:
         - Linux/macOS: ~/.config/bengal/upgrade_check.json (XDG)
         - Windows: %APPDATA%/bengal/upgrade_check.json
@@ -79,12 +79,12 @@ def get_cache_path() -> Path:
 def should_check() -> bool:
     """
     Determine if we should check for updates.
-    
+
     Returns False if:
     - Running in CI environment (CI, GITHUB_ACTIONS, etc.)
     - BENGAL_NO_UPDATE_CHECK=1 is set
     - Not running in interactive terminal (stderr not TTY)
-    
+
     Returns:
         True if update check should proceed.
     """
@@ -107,12 +107,12 @@ def should_check() -> bool:
 def load_cache() -> dict | None:
     """
     Load cached upgrade check result.
-    
+
     Returns cached data if:
     - Cache file exists
     - Cache is valid JSON
     - Cache is not expired (< CACHE_TTL old)
-    
+
     Returns:
         Cached data dict or None if cache is stale/missing.
     """
@@ -137,10 +137,10 @@ def load_cache() -> dict | None:
 def save_cache(latest_version: str) -> None:
     """
     Save upgrade check result to cache.
-    
+
     Creates parent directories if needed. Silently fails on write errors
     (cache is best-effort, not critical).
-    
+
     Args:
         latest_version: The latest version string from PyPI.
     """
@@ -162,10 +162,10 @@ def save_cache(latest_version: str) -> None:
 def fetch_latest_version() -> str | None:
     """
     Fetch latest version from PyPI.
-    
+
     Uses a short timeout (2s) to avoid slowing down CLI operations.
     Returns None on any error (network, timeout, parse error).
-    
+
     Returns:
         Latest version string or None on failure.
     """
@@ -182,14 +182,14 @@ def fetch_latest_version() -> str | None:
 def check_for_upgrade() -> UpgradeInfo | None:
     """
     Check if a newer version of Bengal is available.
-    
+
     This is the main entry point for upgrade checking. It:
     1. Checks if we should run (CI, disabled, non-TTY)
     2. Uses cached result if fresh (< 24h old)
     3. Fetches from PyPI if cache is stale
     4. Updates cache with new result
     5. Returns UpgradeInfo only if upgrade is available
-    
+
     Returns:
         UpgradeInfo if upgrade available, None otherwise.
         Also returns None on any error (network, parse, etc.)
