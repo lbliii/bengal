@@ -690,9 +690,8 @@ class ContentOrchestrator:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            Builds immutable CascadeSnapshot for thread-safe resolution.
-            Page.type, Page.variant, and PageProxy.metadata resolve cascades
-            at access time via Site.cascade.resolve().
+            1. Builds immutable CascadeSnapshot for thread-safe resolution
+            2. Applies cascade values to page.metadata for backward compatibility
         """
         # Build immutable cascade snapshot for thread-safe resolution
         # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
@@ -701,6 +700,10 @@ class ContentOrchestrator:
             "cascade_snapshot_built",
             sections_with_cascade=len(self.site.cascade),
         )
+
+        # Apply cascade values to page.metadata for backward compatibility
+        # This ensures templates using page.metadata.get('cascaded_key') still work
+        self.site._apply_cascade_to_pages()
 
     def _check_weight_metadata(self) -> None:
         """

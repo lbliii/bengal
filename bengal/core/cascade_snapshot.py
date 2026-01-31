@@ -30,9 +30,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from bengal.core.section import Section
 
 
@@ -60,20 +63,88 @@ class CascadeSnapshot:
     _data: dict[str, dict[str, Any]] = field(default_factory=dict)
     _content_dir: str = ""
 
-    def get_cascade_for_section(self, section_path: str) -> dict[str, Any]:
+    @staticmethod
+    def _normalize_path_static(section_path: str, content_dir: str | None) -> str:
+        """
+        Normalize section path to content-relative format for lookup.
+
+        This is a static method so it can be used by both build() and resolve().
+
+        Handles the path representation inconsistency between:
+        - Section.path: Absolute Path (e.g., /Users/foo/site/content/docs)
+        - PageCore.section: Absolute path string
+        - CascadeSnapshot._data keys: Content-relative strings (e.g., "docs")
+
+        Args:
+            section_path: Section path in any format (absolute or relative)
+            content_dir: Content directory for computing relative paths
+
+        Returns:
+            Content-relative path string suitable for _data lookup
+        """
+        if not section_path or section_path in ("", "."):
+            return ""
+
+        # Normalize path separators for cross-platform consistency
+        normalized = section_path.replace("\\", "/")
+
+        # If already relative (no leading /), use as-is
+        if not normalized.startswith("/"):
+            return normalized
+
+        # Try to make absolute path relative to content_dir
+        if content_dir:
+            try:
+                content_dir_path = Path(content_dir)
+                section_path_obj = Path(section_path)
+                rel = section_path_obj.relative_to(content_dir_path)
+                result = str(rel).replace("\\", "/")
+                # Normalize "." to empty string
+                return "" if result == "." else result
+            except ValueError:
+                # Path not relative to content_dir, try other approaches
+                pass
+
+        # Fallback: strip common content directory patterns
+        # This handles test scenarios where paths don't match the site structure
+        for prefix in ("/content/", "content/"):
+            if normalized.endswith(prefix.rstrip("/")):
+                return ""
+            idx = normalized.find(prefix)
+            if idx != -1:
+                return normalized[idx + len(prefix) :]
+
+        # Last resort: return as-is (will likely miss, but won't crash)
+        return normalized
+
+    def _normalize_section_path(self, section_path: str) -> str:
+        """
+        Normalize section path to content-relative format for lookup.
+
+        Delegates to static method with instance's content_dir.
+        """
+        return self._normalize_path_static(section_path, self._content_dir)
+
+    def get_cascade_for_section(self, section_path: str) -> Mapping[str, Any]:
         """
         Get the cascade dict defined by a specific section.
 
         This returns only the cascade values explicitly defined in that
         section's _index.md, not inherited values from parent sections.
 
+        Returns an immutable view (MappingProxyType) to preserve thread-safety
+        guarantees - callers cannot mutate the internal snapshot data.
+
         Args:
-            section_path: Relative path to section (e.g., "docs/guide")
+            section_path: Path to section (absolute or relative, e.g., "docs/guide")
 
         Returns:
-            Cascade dict for that section, or empty dict if none defined.
+            Immutable view of cascade dict for that section, or empty dict if none.
         """
-        return self._data.get(section_path, {})
+        normalized = self._normalize_section_path(section_path)
+        data = self._data.get(normalized, {})
+        # Return immutable view to prevent callers from corrupting snapshot
+        return MappingProxyType(data) if data else {}
 
     def resolve(self, section_path: str, key: str) -> Any:
         """
@@ -84,7 +155,8 @@ class CascadeSnapshot:
         The first section that defines the key wins (nearest ancestor).
 
         Args:
-            section_path: Relative path to the page's section (e.g., "docs/guide")
+            section_path: Path to the page's section (absolute or relative).
+                Absolute paths are normalized to content-relative format.
             key: Cascade key to look up (e.g., "type", "layout", "variant")
 
         Returns:
@@ -93,7 +165,9 @@ class CascadeSnapshot:
         Complexity:
             O(depth) where depth is the section nesting level (typically 2-4)
         """
-        path = section_path
+        # Normalize path to content-relative format for consistent lookup
+        path = self._normalize_section_path(section_path)
+
         while path:
             cascade = self._data.get(path, {})
             if key in cascade:
@@ -117,18 +191,23 @@ class CascadeSnapshot:
         section, with child sections overriding parent values.
 
         Args:
-            section_path: Relative path to the page's section
+            section_path: Path to the page's section (absolute or relative).
+                Absolute paths are normalized to content-relative format.
 
         Returns:
             Merged cascade dict with all inherited and local values.
+            Returns a new dict (safe to modify without affecting snapshot).
         """
         result: dict[str, Any] = {}
 
+        # Normalize path to content-relative format for consistent lookup
+        normalized_path = self._normalize_section_path(section_path)
+
         # Build path components from root to target
-        if not section_path or section_path == ".":
+        if not normalized_path or normalized_path == ".":
             components: list[str] = []
         else:
-            parts = section_path.split("/")
+            parts = normalized_path.split("/")
             components = ["/".join(parts[: i + 1]) for i in range(len(parts))]
 
         # Check root first
@@ -187,20 +266,15 @@ class CascadeSnapshot:
             if not cascade:
                 continue
 
-            # Compute relative section path
+            # Compute and normalize section path for consistent lookups
             if section.path is None:
                 # Virtual section or root
                 section_path = ""
             else:
-                try:
-                    section_path = str(section.path.relative_to(content_dir))
-                except ValueError:
-                    # Path not relative to content_dir, use as-is
-                    section_path = str(section.path)
-
-            # Normalize path (handle "." for root)
-            if section_path == ".":
-                section_path = ""
+                # Use the shared normalization logic for consistent key format
+                section_path = cls._normalize_path_static(
+                    str(section.path), str(content_dir)
+                )
 
             data[section_path] = dict(cascade)  # Copy to ensure immutability
 
@@ -224,4 +298,5 @@ class CascadeSnapshot:
 
     def __contains__(self, section_path: str) -> bool:
         """Check if a section has cascade data defined."""
-        return section_path in self._data
+        normalized = self._normalize_section_path(section_path)
+        return normalized in self._data

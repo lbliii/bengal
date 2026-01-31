@@ -19,9 +19,9 @@ class TestContentTypeDetection:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        site = Site(root_path=tmp_path)
-        site.content_dir = tmp_path / "content"
-        site.output_dir = tmp_path / "output"
+        # Create the content directory that Site.content_dir property expects
+        (tmp_path / "content").mkdir(exist_ok=True)
+        site = Site(root_path=tmp_path, output_dir=tmp_path / "output")
         return site
 
     @pytest.fixture
@@ -200,9 +200,9 @@ class TestTemplateSelection:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        site = Site(root_path=tmp_path)
-        site.content_dir = tmp_path / "content"
-        site.output_dir = tmp_path / "output"
+        # Create the content directory that Site.content_dir property expects
+        (tmp_path / "content").mkdir(exist_ok=True)
+        site = Site(root_path=tmp_path, output_dir=tmp_path / "output")
         return site
 
     @pytest.fixture
@@ -247,10 +247,13 @@ class TestPaginationDecision:
     @pytest.fixture
     def site(self, tmp_path):
         """Create a minimal test site."""
-        site = Site(root_path=tmp_path)
-        site.content_dir = tmp_path / "content"
-        site.output_dir = tmp_path / "output"
-        site.config = {"pagination": {"per_page": 10, "threshold": 20}}
+        # Create the content directory that Site.content_dir property expects
+        (tmp_path / "content").mkdir(exist_ok=True)
+        site = Site(
+            root_path=tmp_path,
+            output_dir=tmp_path / "output",
+            config={"pagination": {"per_page": 10, "threshold": 20}},
+        )
         return site
 
     @pytest.fixture

@@ -2508,11 +2508,11 @@ class Site:
         without locks. It is computed once at build start and can be safely
         accessed from multiple render threads in free-threaded Python.
 
-        Returns:
-            CascadeSnapshot instance
+        If accessed before build_cascade_snapshot() is called, returns an
+        empty snapshot for graceful fallback (no cascade values will resolve).
 
-        Raises:
-            RuntimeError: If called before build_cascade_snapshot()
+        Returns:
+            CascadeSnapshot instance (empty if not yet built)
 
         Example:
             >>> page_type = site.cascade.resolve("docs/guide", "type")

@@ -469,13 +469,19 @@ class PageMetadataMixin:
         2. Cascade snapshot lookup (immutable, thread-safe, always current)
         3. Core metadata (cached value - fallback for non-cascade type)
 
+        Note:
+            The _cascade_keys field is legacy from the old CascadeEngine and may
+            be present in cached pages. It's checked for backward compatibility
+            but new code should rely on the cascade snapshot for resolution.
+
         Returns:
             Page type or None
         """
         # 1. Check explicit frontmatter (page defines its own type)
         # This takes precedence over cascade
         if "type" in self.metadata:
-            # If this page has a cascade key set, skip - let snapshot handle it
+            # Legacy: _cascade_keys was populated by old CascadeEngine.
+            # If present, skip frontmatter check - let snapshot handle it.
             cascade_keys = self.metadata.get("_cascade_keys", [])
             if "type" not in cascade_keys:
                 return self.metadata.get("type")
@@ -491,6 +497,9 @@ class PageMetadataMixin:
                 if cascade_value is not None:
                     return cascade_value
             except (ValueError, AttributeError):
+                # ValueError: section.path not relative to content_dir (virtual sections)
+                # AttributeError: section has no path or site has no cascade
+                # In both cases, silently fall back to core/frontmatter resolution below
                 pass
 
         # 3. Fall back to core (cached) value for non-cascade type
@@ -526,12 +535,19 @@ class PageMetadataMixin:
         3. Core metadata (cached value - fallback for non-cascade variant)
         4. Frontmatter fallback (layout/hero_style)
 
+        Note:
+            The _cascade_keys field is legacy from the old CascadeEngine and may
+            be present in cached pages. It's checked for backward compatibility
+            but new code should rely on the cascade snapshot for resolution.
+
         Returns:
             Variant string or None
         """
         # 1. Check explicit frontmatter (page defines its own variant)
         # This takes precedence over cascade
         if "variant" in self.metadata:
+            # Legacy: _cascade_keys was populated by old CascadeEngine.
+            # If present, skip frontmatter check - let snapshot handle it.
             cascade_keys = self.metadata.get("_cascade_keys", [])
             if "variant" not in cascade_keys:
                 return self.metadata.get("variant")
@@ -551,6 +567,9 @@ class PageMetadataMixin:
                 if value:
                     return value
             except (ValueError, AttributeError):
+                # ValueError: section.path not relative to content_dir (virtual sections)
+                # AttributeError: section has no path or site has no cascade
+                # In both cases, silently fall back to core/frontmatter resolution below
                 pass
 
         # 3. Fall back to core (cached) value for non-cascade variant

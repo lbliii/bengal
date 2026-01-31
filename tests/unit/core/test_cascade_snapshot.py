@@ -272,6 +272,82 @@ class TestCascadeSnapshotGetCascadeForSection:
         assert result == {}
 
 
+class TestCascadeSnapshotPathNormalization:
+    """Test path normalization for consistent lookups."""
+
+    def test_resolve_with_absolute_path(self):
+        """Test resolving cascade with absolute section path."""
+        snapshot = CascadeSnapshot(
+            _data={"docs": {"type": "doc"}, "docs/guides": {"section": "guides"}},
+            _content_dir="/Users/test/site/content",
+        )
+
+        # Absolute path should be normalized to relative
+        assert snapshot.resolve("/Users/test/site/content/docs", "type") == "doc"
+        assert snapshot.resolve("/Users/test/site/content/docs/guides", "section") == "guides"
+
+    def test_resolve_with_relative_path(self):
+        """Test resolving cascade with relative section path (unchanged)."""
+        snapshot = CascadeSnapshot(
+            _data={"docs": {"type": "doc"}},
+            _content_dir="/content",
+        )
+
+        # Relative path should work as before
+        assert snapshot.resolve("docs", "type") == "doc"
+
+    def test_resolve_all_with_absolute_path(self):
+        """Test resolve_all with absolute section path."""
+        snapshot = CascadeSnapshot(
+            _data={
+                "docs": {"type": "doc", "version": "1.0"},
+                "docs/guides": {"section": "guides"},
+            },
+            _content_dir="/Users/test/site/content",
+        )
+
+        result = snapshot.resolve_all("/Users/test/site/content/docs/guides")
+
+        assert result["type"] == "doc"
+        assert result["version"] == "1.0"
+        assert result["section"] == "guides"
+
+    def test_contains_with_absolute_path(self):
+        """Test __contains__ with absolute section path."""
+        snapshot = CascadeSnapshot(
+            _data={"docs": {"type": "doc"}},
+            _content_dir="/Users/test/site/content",
+        )
+
+        assert "/Users/test/site/content/docs" in snapshot
+        assert "/Users/test/site/content/nonexistent" not in snapshot
+
+    def test_get_cascade_for_section_immutable(self):
+        """Test that get_cascade_for_section returns immutable view."""
+        snapshot = CascadeSnapshot(
+            _data={"docs": {"type": "doc", "version": "1.0"}},
+            _content_dir="/content",
+        )
+
+        result = snapshot.get_cascade_for_section("docs")
+
+        # Result should be immutable (MappingProxyType)
+        with pytest.raises(TypeError):
+            result["type"] = "modified"  # type: ignore
+
+    def test_normalize_empty_paths(self):
+        """Test normalization of empty/root paths."""
+        snapshot = CascadeSnapshot(
+            _data={"": {"site_wide": True}},
+            _content_dir="/content",
+        )
+
+        # Empty string should work
+        assert snapshot.resolve("", "site_wide") is True
+        # "." should normalize to ""
+        assert snapshot.resolve(".", "site_wide") is True
+
+
 class TestCascadeSnapshotThreadSafety:
     """Test thread-safety properties of CascadeSnapshot."""
 
@@ -291,14 +367,16 @@ class TestCascadeSnapshotThreadSafety:
         def resolve_type(section_path: str) -> str | None:
             return snapshot.resolve(section_path, "type")
 
+        # Interleaved paths pattern
         paths = ["docs", "docs/guides", "docs/api", "docs/other"] * 100
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             results = list(executor.map(resolve_type, paths))
 
-        # All results should be correct
-        expected = ["doc"] * 100 + ["doc"] * 100 + ["doc"] * 100 + ["doc"] * 100
-        assert results == expected
+        # executor.map preserves input order, so results follow the interleaved pattern
+        # All paths resolve to "doc" (inherited from "docs" section)
+        assert len(results) == len(paths)
+        assert all(r == "doc" for r in results)
 
     def test_concurrent_resolve_all_safe(self):
         """Test that concurrent resolve_all calls are safe."""
