@@ -57,7 +57,7 @@ import concurrent.futures
 import hashlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
@@ -127,7 +127,7 @@ def generate_excerpt(text: str, length: int = 200) -> str:
     return excerpt + "..."
 
 
-def get_page_relative_url(page: PageLike, site: Any) -> str:
+def get_page_relative_url(page: PageLike, site: SiteLike) -> str:
     """
     Get clean relative URL for page (without baseurl).
 
@@ -159,7 +159,7 @@ def get_page_public_url(page: PageLike, site: SiteLike) -> str:
     return page.href
 
 
-def get_page_url(page: PageLike, site: Any) -> str:
+def get_page_url(page: PageLike, site: SiteLike) -> str:
     """
     Get the public URL for a page.
 

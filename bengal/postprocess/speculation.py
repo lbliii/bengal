@@ -188,12 +188,11 @@ class SpeculationRulesGenerator:
         exclude = self.config.get("exclude_patterns", [])
         exclude_selectors = ["[data-external]", "[target=_blank]", ".external"]
 
-        # Add pattern-based exclusions
+        # Add CSS selector pattern exclusions (e.g., ".external", ".no-prefetch")
+        # Note: URL pattern exclusions (starting with "/") are not yet implemented
+        # in the speculation rules spec - they would need href_matches negation
         for pattern in exclude:
-            if pattern.startswith("/"):
-                # URL pattern exclusions are handled differently
-                pass
-            elif pattern.startswith("."):
+            if pattern.startswith("."):
                 exclude_selectors.append(pattern)
 
         return SpeculationRule(

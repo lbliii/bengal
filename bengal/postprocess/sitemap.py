@@ -25,7 +25,7 @@ See Also:
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.postprocess.utils import indent_xml
@@ -34,6 +34,7 @@ from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
+    from bengal.protocols import SiteLike
 
 
 class SitemapGenerator:
@@ -69,7 +70,7 @@ class SitemapGenerator:
 
     """
 
-    def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:
+    def __init__(self, site: SiteLike, collector: OutputCollector | None = None) -> None:
         """
         Initialize sitemap generator.
 
