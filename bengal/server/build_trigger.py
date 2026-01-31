@@ -277,6 +277,21 @@ class BuildTrigger:
             from bengal.orchestration.build.options import BuildOptions
             from bengal.utils.observability.profile import BuildProfile
 
+            # Reset site's mutable state before each build
+            # This keeps config/theme warm but lets the build rediscover content
+            # The build will use disk cache for unchanged pages (PageProxy)
+            self.site.pages = []
+            self.site.sections = []
+            self.site.assets = []
+            self.site.taxonomies = {}
+            self.site.menu = {}
+            self.site.xref_index = {}
+            # Invalidate any cached properties
+            if hasattr(self.site, 'invalidate_page_caches'):
+                self.site.invalidate_page_caches()
+            if hasattr(self.site, 'invalidate_regular_pages_cache'):
+                self.site.invalidate_regular_pages_cache()
+
             build_opts = BuildOptions(
                 force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
