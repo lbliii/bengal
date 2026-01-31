@@ -508,16 +508,24 @@ class TestPageProxyCascadePriority:
             loader=empty_loader,
         )
 
-        # Mock the site with a cascade snapshot that returns "doc"
+        # Mock the site with apply_to_page that actually modifies the metadata
         mock_site = MagicMock()
-        mock_site.cascade.resolve.return_value = "doc"
+        mock_site.root_path = Path("/fake/root")
+
+        def mock_apply_to_page(page, content_dir):
+            # Simulate cascade setting type to "doc"
+            if page._metadata_cache is not None:
+                page._metadata_cache["type"] = "doc"
+            return {"type"}
+
+        mock_site.cascade.apply_to_page.side_effect = mock_apply_to_page
         proxy._site = mock_site
 
         # The metadata property should return cascade "doc" not core "page"
         assert proxy.metadata.get("type") == "doc"
 
-        # Verify cascade was consulted
-        mock_site.cascade.resolve.assert_called()
+        # Verify apply_to_page was called
+        mock_site.cascade.apply_to_page.assert_called()
 
     def test_type_property_matches_metadata_type(self):
         """Verify page.type and page.metadata.get('type') are consistent.
@@ -547,9 +555,16 @@ class TestPageProxyCascadePriority:
             loader=empty_loader,
         )
 
-        # Mock cascade to return a different type
+        # Mock cascade to apply "doc" type via apply_to_page
         mock_site = MagicMock()
-        mock_site.cascade.resolve.return_value = "doc"
+        mock_site.root_path = Path("/fake/root")
+
+        def mock_apply_to_page(page, content_dir):
+            if page._metadata_cache is not None:
+                page._metadata_cache["type"] = "doc"
+            return {"type"}
+
+        mock_site.cascade.apply_to_page.side_effect = mock_apply_to_page
         proxy._site = mock_site
 
         # Both access paths should return the same value
@@ -583,9 +598,15 @@ class TestPageProxyCascadePriority:
             loader=empty_loader,
         )
 
-        # Mock cascade to return None (no cascade for this page)
+        # Mock cascade that doesn't modify anything (no cascade for this page)
         mock_site = MagicMock()
-        mock_site.cascade.resolve.return_value = None
+        mock_site.root_path = Path("/fake/root")
+
+        def mock_apply_to_page(page, content_dir):
+            # Don't modify metadata - simulating no cascade rules match
+            return set()
+
+        mock_site.cascade.apply_to_page.side_effect = mock_apply_to_page
         proxy._site = mock_site
 
         # Should fall back to core type
@@ -615,15 +636,16 @@ class TestPageProxyCascadePriority:
             loader=empty_loader,
         )
 
-        # Mock cascade to return different variant
+        # Mock cascade to apply variant via apply_to_page
         mock_site = MagicMock()
+        mock_site.root_path = Path("/fake/root")
 
-        def cascade_resolve(section_path, key):
-            if key == "variant":
-                return "sidebar"
-            return None
+        def mock_apply_to_page(page, content_dir):
+            if page._metadata_cache is not None:
+                page._metadata_cache["variant"] = "sidebar"
+            return {"variant"}
 
-        mock_site.cascade.resolve.side_effect = cascade_resolve
+        mock_site.cascade.apply_to_page.side_effect = mock_apply_to_page
         proxy._site = mock_site
 
         # Cascade variant should take priority

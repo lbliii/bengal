@@ -236,7 +236,8 @@ class TestButtonIntegration:
         :::
         """)
         result = parser.parse(markdown, {})
-        assert "<h2>" in result
+        # Heading may have id attribute, so check for <h2 prefix instead of <h2>
+        assert "<h2" in result
         assert "button-pill" in result
 
     def test_buttons_in_list(self, parser):

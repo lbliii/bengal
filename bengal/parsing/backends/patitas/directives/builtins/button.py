@@ -95,6 +95,7 @@ class ButtonDirective:
     token_type: ClassVar[str] = "button"
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[ButtonOptions]] = ButtonOptions
+    preserves_raw_content: ClassVar[bool] = True  # Needs raw content for button text
 
     def parse(
         self,
