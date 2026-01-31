@@ -670,7 +670,7 @@ class ContentOrchestrator:
 
     def _apply_cascades(self) -> None:
         """
-        Apply cascading metadata from sections to their child pages and subsections.
+        Build cascade snapshot for view-based resolution.
 
         Section _index.md files can define metadata that automatically applies to all
         descendant pages. This allows setting common metadata at the section level
@@ -691,20 +691,17 @@ class ContentOrchestrator:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            1. Builds immutable CascadeSnapshot for thread-safe resolution
-            2. Applies cascade values to page.metadata for backward compatibility
+            Builds immutable CascadeSnapshot with pre-merged cascade per section.
+            Page.metadata property returns CascadeView that resolves frontmatter + cascade.
+            No mutation of page.metadata needed - resolution happens on access.
         """
-        # Build immutable cascade snapshot for thread-safe resolution
-        # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
+        # Build immutable cascade snapshot with pre-merged data for O(1) resolution
+        # Page/PageProxy.metadata property returns CascadeView using this snapshot
         self.site.build_cascade_snapshot()
         logger.debug(
             "cascade_snapshot_built",
             sections_with_cascade=len(self.site.cascade),
         )
-
-        # Apply cascade values to page.metadata for backward compatibility
-        # This ensures templates using page.metadata.get('cascaded_key') still work
-        self.site._apply_cascade_to_pages()
 
     def _check_weight_metadata(self) -> None:
         """

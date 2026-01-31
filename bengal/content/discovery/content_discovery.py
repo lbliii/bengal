@@ -740,9 +740,7 @@ class ContentDiscovery:
 
         version = version_config.get_version_for_path(file_path)
         if version:
-            if page.metadata is None:
-                page.metadata = {}
-            page.metadata["_version"] = version.id
+            # Set version on page and core (metadata is now immutable CascadeView)
             page.version = version.id
             if page.core:
                 object.__setattr__(page.core, "version", version.id)

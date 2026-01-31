@@ -561,7 +561,7 @@ def phase_incremental_filter_provenance(
 
         # RFC: Reimagined Cascade Infrastructure
         # If any _index.md files changed, refresh the cascade snapshot.
-        # This ensures pages get updated cascade values after provenance filtering.
+        # Page.metadata returns CascadeView that automatically uses the new snapshot.
         index_files_changed = any(
             p.source_path.name in ("_index.md", "_index.markdown", "index.md")
             for p in result.pages_to_build
@@ -569,22 +569,9 @@ def phase_incremental_filter_provenance(
 
         if index_files_changed:
             # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
+            # Page.metadata property returns CascadeView that references site.cascade
+            # Cache key includes cascade id, so new snapshot = new CascadeView on access
             site.build_cascade_snapshot()
-            # Refresh cascade values for in-memory pages.
-            # Proxies are invalidated and will re-apply on first metadata access.
-            from bengal.core.page.proxy import PageProxy
-
-            content_dir = site.root_path / "content"
-            for page in site.pages:
-                if isinstance(page, PageProxy):
-                    page._cascade_invalidated = True  # type: ignore[attr-defined]
-                    continue
-
-                cascade_keys = page.metadata.get("_cascade_keys", [])
-                for key in cascade_keys:
-                    page.metadata.pop(key, None)
-                page.metadata.pop("_cascade_keys", None)
-                site.cascade.apply_to_page(page, content_dir)
             logger.debug(
                 "cascade_snapshot_refreshed",
                 reason="index_files_changed",

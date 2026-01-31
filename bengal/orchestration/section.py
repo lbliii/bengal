@@ -437,11 +437,11 @@ class SectionOrchestrator:
             "tutorial",
             "changelog",
         ):
-            # Add section context metadata if not already present
-            if "_section" not in index_page.metadata:
-                index_page.metadata["_section"] = section
+            # Add section context using explicit attributes (metadata is immutable)
+            if index_page._section is None:
+                index_page._section = section
 
-            if "_posts" not in index_page.metadata:
+            if index_page._posts is None:
                 # Use content type strategy to filter and sort pages
                 from bengal.content_types.registry import get_strategy
 
@@ -456,23 +456,21 @@ class SectionOrchestrator:
                 # Sort according to content type
                 sorted_pages = strategy.sort_pages(filtered_pages)
 
-                index_page.metadata["_posts"] = sorted_pages
+                index_page._posts = sorted_pages
 
-            if "_subsections" not in index_page.metadata:
-                index_page.metadata["_subsections"] = section.subsections
+            if index_page._subsections is None:
+                index_page._subsections = section.subsections
 
             # Add pagination if appropriate and not already present
-            if "_paginator" not in index_page.metadata and self._should_paginate(
-                section, page_type
-            ):
+            if index_page._paginator is None and self._should_paginate(section, page_type):
                 from bengal.utils.pagination import Paginator
 
                 paginator = Paginator(
                     items=section.pages,
                     per_page=self.site.config.get("pagination", {}).get("per_page", 10),
                 )
-                index_page.metadata["_paginator"] = paginator
-                index_page.metadata["_page_num"] = 1
+                index_page._paginator = paginator
+                index_page._page_num = 1
 
             logger.debug(
                 "section_index_enriched",

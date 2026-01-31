@@ -699,6 +699,20 @@ class BuildOrchestrator:
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
 
+        # Debug: Log output collection for hot reload diagnostics
+        if self.stats.changed_outputs:
+            self.logger.debug(
+                "output_collector_results",
+                total_outputs=len(self.stats.changed_outputs),
+                html_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "html"),
+                css_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "css"),
+            )
+        else:
+            self.logger.warning(
+                "output_collector_empty",
+                pages_rendered=len(pages_to_build) if pages_to_build else 0,
+            )
+
         finalization_duration_ms = (time.time() - finalization_start) * 1000
         notify_phase_complete(
             "finalization",

@@ -65,7 +65,9 @@ class PageMetadataMixin:
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
-    metadata: dict[str, Any]
+    # Note: metadata is a property returning CascadeView, _raw_metadata is the dict
+    metadata: Any  # CascadeView or dict (Mapping[str, Any])
+    _raw_metadata: dict[str, Any]
     source_path: Path
     output_path: Path | None
     toc: str | None

@@ -214,6 +214,13 @@ class RenderingPipeline:
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
+        # Debug: Warn if output collector is missing (hot reload won't track outputs)
+        if build_context and not self._output_collector:
+            logger.warning(
+                "output_collector_missing_in_pipeline",
+                has_build_context=bool(build_context),
+            )
+
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
         # NOTE: Must be computed before helper modules that need it (cache_checker, etc.)

@@ -354,7 +354,7 @@ class SiteDiscoveryMixin:
 
     def _apply_cascades(self) -> None:
         """
-        Apply cascading metadata from sections to their child pages and subsections.
+        Build cascade snapshot for view-based resolution.
 
         Section _index.md files can define metadata that automatically applies to all
         descendant pages. This allows setting common metadata (like type, version, or
@@ -375,56 +375,10 @@ class SiteDiscoveryMixin:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            1. Build immutable CascadeSnapshot for thread-safe resolution
-            2. Apply cascade values to page.metadata for backward compatibility
+            Builds immutable CascadeSnapshot with pre-merged cascade per section.
+            Page.metadata property returns CascadeView that resolves frontmatter + cascade.
+            No mutation of page.metadata needed - resolution happens on access.
         """
-        # Build immutable cascade snapshot for thread-safe resolution
+        # Build immutable cascade snapshot with pre-merged data for O(1) resolution
+        # Page/PageProxy.metadata property returns CascadeView using this snapshot
         self.build_cascade_snapshot()
-
-        # Apply cascade values to page.metadata for backward compatibility
-        # This ensures templates using page.metadata.get('cascaded_key') still work
-        self._apply_cascade_to_pages()
-
-    def _apply_cascade_to_pages(self) -> None:
-        """
-        Apply cascade values from snapshot to page.metadata.
-
-        For each page, resolves all cascade values from the snapshot and applies
-        them to page.metadata. Page-level values take precedence over cascades.
-        """
-
-        content_dir = self.root_path / "content"
-
-        for section in self.sections:
-            self._apply_cascade_to_section_pages(section, content_dir)
-
-    def _apply_cascade_to_section_pages(self, section: Section, content_dir: Path) -> None:
-        """
-        Apply cascade values to pages in a section and its subsections.
-
-        Uses CascadeSnapshot.apply_to_page() to merge cascade values into
-        page.metadata, creating a single source of truth. After this,
-        page.metadata.get("type") and page.type return the same value.
-
-        Index pages receive cascade from PARENT sections but not from their
-        own section's cascade (which they define).
-
-        Args:
-            section: Section to process
-            content_dir: Content directory for relative path computation
-        """
-        from bengal.core.page.proxy import PageProxy
-
-        for page in section.pages:
-            # Skip PageProxy objects - they handle cascade on first metadata access
-            if isinstance(page, PageProxy):
-                continue
-
-            # Apply cascade values using the new eager merge method
-            # This handles frontmatter precedence and _cascade_keys tracking
-            # Note: Index pages also receive cascade from parent sections
-            self.cascade.apply_to_page(page, content_dir)
-
-        # Recurse into subsections
-        for subsection in section.subsections:
-            self._apply_cascade_to_section_pages(subsection, content_dir)

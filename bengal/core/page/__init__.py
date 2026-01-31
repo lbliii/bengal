@@ -47,10 +47,12 @@ bengal.orchestration.content: Content discovery and page creation
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
@@ -165,7 +167,9 @@ class Page(
     # Optional fields (with defaults)
     # Raw markdown source content (use _source property for access)
     _raw_content: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
+    # Raw frontmatter from YAML parsing (user's metadata)
+    # Access via .metadata property which combines with cascade
+    _raw_metadata: dict[str, Any] = field(default_factory=dict)
     # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
     # The ASTNode types in bengal.parsing.ast.types are for future AST-based
     # processing. See plan/ready/plan-type-system-hardening.md for migration path.
@@ -213,6 +217,10 @@ class Page(
     # Private cache for lazy frontmatter property
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
 
+    # Cache for CascadeView (invalidated when site/section changes)
+    _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
+    _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
+
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
     _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
@@ -222,6 +230,15 @@ class Page(
     # Virtual page support (for API docs, generated content)
     _virtual: bool = field(default=False, repr=False)
 
+    # Internal metadata for section index pages (replaces metadata["_key"] pattern)
+    # These are build-time bookkeeping, not user-facing frontmatter
+    _posts: list[Page] | None = field(default=None, repr=False, init=False)
+    _subsections: list[Any] | None = field(default=None, repr=False, init=False)  # list[Section]
+    _paginator: Any | None = field(default=None, repr=False, init=False)
+    _page_num: int | None = field(default=None, repr=False, init=False)
+    _autodoc_fallback_template: bool = field(default=False, repr=False, init=False)
+    _autodoc_fallback_reason: str | None = field(default=None, repr=False, init=False)
+
     # Pre-rendered HTML for virtual pages (bypasses markdown parsing)
     _prerendered_html: str | None = field(default=None, repr=False)
 
@@ -230,14 +247,63 @@ class Page(
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
-        if self.metadata:
-            self.tags = self.metadata.get("tags", [])
+        if self._raw_metadata:
+            self.tags = self._raw_metadata.get("tags", [])
             # Priority: explicit 'version' frontmatter -> auto-detected '_version' metadata
-            self.version = self.metadata.get("version") or self.metadata.get("_version")
-            self.aliases = self.metadata.get("aliases", [])
+            self.version = self._raw_metadata.get("version") or self._raw_metadata.get("_version")
+            self.aliases = self._raw_metadata.get("aliases", [])
 
         # Auto-create PageCore from Page fields
         self._init_core_from_fields()
+
+    @property
+    def metadata(self) -> Mapping[str, Any]:
+        """
+        Return combined frontmatter + cascade metadata as CascadeView.
+
+        This property provides dict-like access to page metadata. Values come from:
+        1. Page frontmatter (always takes precedence)
+        2. Cascade from parent sections (inherited values)
+
+        The CascadeView is immutable and resolves values on access, ensuring
+        cascade values are always current even during incremental builds.
+
+        Returns:
+            CascadeView combining frontmatter and cascade, or raw metadata dict
+            if cascade is not yet available (during early construction).
+        """
+        # During early construction or without site, return raw metadata
+        if self._site is None:
+            return self._raw_metadata
+
+        # Get cascade snapshot from site
+        cascade = getattr(self._site, "cascade", None)
+        if cascade is None or not isinstance(cascade, CascadeSnapshot):
+            return self._raw_metadata
+
+        # Get section path for cascade lookup
+        section_path = ""
+        if self._section_path:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section_path.relative_to(content_dir))
+            except (ValueError, AttributeError):
+                section_path = str(self._section_path)
+
+        # Check cache validity (site id + section path)
+        cache_key = (id(cascade), section_path)
+        if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+            return self._metadata_view_cache
+
+        # Create and cache new CascadeView
+        view = CascadeView.for_page(
+            frontmatter=self._raw_metadata,
+            section_path=section_path,
+            snapshot=cascade,
+        )
+        self._metadata_view_cache = view
+        self._metadata_view_cache_key = cache_key
+        return view
 
     def _init_core_from_fields(self) -> None:
         """
@@ -249,7 +315,7 @@ class Page(
         # Separate standard fields from custom props (Component Model)
         from bengal.core.page.utils import separate_standard_and_custom_fields
 
-        standard_fields, custom_props = separate_standard_and_custom_fields(self.metadata)
+        standard_fields, custom_props = separate_standard_and_custom_fields(self._raw_metadata)
 
         # Component Model: variant (normalized from layout/hero_style)
         variant = standard_fields.get("variant")
@@ -275,6 +341,10 @@ class Page(
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
             aliases=standard_fields.get("aliases") or self.aliases or [],
+            # Cascade data (from _index.md frontmatter)
+            # Critical for incremental builds: without this, cascade data is lost
+            # when _index.md files are loaded from cache as PageProxy
+            cascade=self._raw_metadata.get("cascade", {}),
         )
 
     def normalize_core_paths(self) -> None:
