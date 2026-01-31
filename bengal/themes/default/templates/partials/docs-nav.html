@@ -6,15 +6,9 @@ Documentation Navigation Component (Kida-Native)
 Hierarchical sidebar navigation for documentation sites.
 Uses pre-computed NavTree for optimal performance.
 
-PERFORMANCE OPTIMIZATION:
-Nav HTML is rendered ONCE per section and cached. Active states (current page,
-active trail) are set client-side via JS based on current URL. This reduces
-O(N²) template rendering to O(N) for sites with N pages.
-
 KIDA FEATURES USED:
 - {% def %} for recursive macro (3x faster than {% include %})
 - {% let %} for template-scoped variables
-- {% cache %} for per-section nav HTML caching
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
 - {% match %} for node type dispatch
@@ -22,8 +16,8 @@ KIDA FEATURES USED:
 
 FEATURES:
 - Hierarchical tree structure via NavTree API
-- Active page highlighting (client-side via JS)
-- Active trail marking (client-side via JS)
+- Active page highlighting (automatic via NavNodeProxy)
+- Active trail marking (automatic via NavTreeContext)
 - Version-aware filtering (automatic via NavTreeCache)
 - Keyboard accessible
 - Section icons from frontmatter
@@ -42,10 +36,6 @@ NAV NODE MACRO - Recursive navigation node renderer
 Replaces the previous docs-nav-node.html include pattern.
 Macros are compiled once and called as functions, eliminating the
 per-call overhead of {% include %} (context copy, template lookup).
-
-PERF: Active states (is_current, is_in_trail) are NOT rendered here.
-Instead, we add data-nav-path attributes and let JS set active states.
-This allows the nav HTML to be cached per-section instead of per-page.
 ============================================================================= #}
 
 {% def nav_node(item, depth=0) %}
@@ -53,15 +43,16 @@ This allows the nav HTML to be cached per-section instead of per-page.
 {% let item_title = item?.title ?? 'Untitled' %}
 {% let item_icon = item?.icon ?? '' %}
 {% let item_href = item?.href ?? '' %}
-{% let item_path = item?._path ?? item_href %}
 {% let item_children = item?.children ?? [] %}
+{% let is_current = item?.is_current ?? false %}
+{% let is_in_trail = item?.is_in_trail ?? false %}
 {% let is_section = item?.is_section ?? false %}
 {% let has_children = item_children | length > 0 %}
 
 {% match has_children, depth %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
 {% case true, 0 %}
-<div class="docs-nav-group docs-nav-group--root" data-depth="{{ depth }}" data-nav-path="{{ item_path }}">
+<div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
   <div class="docs-nav-group-header">
     {% if show_nav_icons %}
     {% spaceless %}
@@ -72,7 +63,8 @@ This allows the nav HTML to be cached per-section instead of per-page.
     {% end %}
 
     {% if item_href %}
-    <a href="{{ item_href }}" class="docs-nav-group-title" data-nav-path="{{ item_path }}">
+    <a href="{{ item_href }}" class="docs-nav-group-title{{ ' active' if is_current else '' }}" {{ 'aria-current="page"'
+      | safe if is_current else '' }}>
       {{ item_title }}
     </a>
     {% else %}
@@ -90,11 +82,10 @@ This allows the nav HTML to be cached per-section instead of per-page.
 {# ===== EXPANDABLE NODE (depth > 0) - CSS-only accessible toggle ===== #}
     {# Uses <details>/<summary> for native toggle + CSS :has() to control sibling visibility.
        The <a> link is OUTSIDE <summary> (as a sibling), avoiding nested interactive elements.
-       CSS Grid arranges: [toggle] [icon] [link] on first row, [items] spanning full width below.
-       NOTE: <details> starts closed; JS opens parents of active link on page load. #}
+       CSS Grid arranges: [toggle] [icon] [link] on first row, [items] spanning full width below. #}
     {% case true, _ %}
-    <div class="docs-nav-group" data-depth="{{ depth }}" data-nav-path="{{ item_path }}">
-      <details class="docs-nav-details">
+    <div class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
+      <details class="docs-nav-details" {{ 'open' | safe if is_in_trail else '' }}>
         <summary class="docs-nav-toggle" aria-label="Toggle {{ item_title }} section">
           <span class="docs-nav-caret">
             {{ icon('caret-right', size=14) }}
@@ -111,7 +102,8 @@ This allows the nav HTML to be cached per-section instead of per-page.
       {% end %}
 
       {% if item_href %}
-      <a href="{{ item_href }}" class="docs-nav-group-link" data-nav-path="{{ item_path }}">
+      <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
+        {{ 'aria-current="page"' | safe if is_current else '' }}>
         {{ item_title }}
       </a>
       {% else %}
@@ -130,8 +122,8 @@ This allows the nav HTML to be cached per-section instead of per-page.
     <div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
       {% if item_href %}
       <a href="{{ item_href }}"
-        class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}"
-        data-nav-path="{{ item_path }}">
+        class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}{{ ' active' if is_current else '' }}"
+        {{ 'aria-current="page"' | safe if is_current else '' }}>
         {% if show_nav_icons and is_section %}
         {% spaceless %}
         <span class="docs-nav-icon docs-nav-icon--section" {{ ' data-default="true"' | safe if not item_icon else '' }}>
@@ -159,13 +151,6 @@ This allows the nav HTML to be cached per-section instead of per-page.
 
     {# =============================================================================
     MAIN NAVIGATION COMPONENT
-
-    PERF: Nav HTML is cached per-section. Active states are set client-side.
-    This reduces O(N²) rendering to O(N) for N pages in a section.
-
-    Cache key: "docs-nav-{section_path}-{nav_version}"
-    - section_path: Root section path for scoped nav (e.g., "docs", "api")
-    - nav_version: Invalidates when nav structure changes (content/config edits)
     ============================================================================= #}
 
     {# Check if page is autodoc - autodoc pages should use scoped navigation #}
@@ -182,21 +167,15 @@ This allows the nav HTML to be cached per-section instead of per-page.
     #}
     {% let page_section = page?._section %}
     {% let root_section = page_section?.root ?? none %}
-    {% let current_path = page?._path ?? '' %}
 
-    {# Cache key components #}
-    {% let section_key = root_section?._path ?? 'site-root' %}
-    {% let nav_version = site.nav_version ?? '' %}
-
-    <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav" data-current-path="{{ current_path }}">
+    <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
       {# Version Selector - only show if page is versioned (not autodoc) #}
       {% unless is_autodoc %}
       {% include 'partials/version-selector.html' %}
       {% end %}
 
-      {# Navigation Tree - CACHED per section for O(1) reuse across pages #}
+      {# Navigation Tree - uses cached NavTree infrastructure #}
       <div class="docs-nav-tree">
-        {% cache 'docs-nav-' ~ section_key ~ '-' ~ nav_version %}
         {% if root_section %}
         {# Scoped navigation: include root section as header #}
         {% let nav_context = get_nav_context(page, root_section=root_section) %}
@@ -210,6 +189,5 @@ This allows the nav HTML to be cached per-section instead of per-page.
         {{ nav_node(item, 0) }}
         {% end %}
         {% end %}
-        {% endcache %}
       </div>
     </nav>

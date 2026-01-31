@@ -304,57 +304,28 @@
    * Uses native <details>/<summary> for expand/collapse (no JS required for toggle).
    * CSS :has() syncs visibility of sibling items with details[open] state.
    *
-   * PERF OPTIMIZATION: Active states are set client-side instead of server-side.
-   * The nav HTML is cached per-section, then JS marks the active page/trail.
-   * This reduces O(N²) template rendering to O(N) for N pages.
-   *
-   * Algorithm:
-   * 1. Get current page path from nav's data-current-path attribute
-   * 2. Find link with matching data-nav-path attribute
-   * 3. Add 'active' class and aria-current="page" to that link
-   * 4. Walk up DOM to mark ancestor groups with 'is-in-trail' and open <details>
+   * This function provides a JS fallback for ensuring parent details elements
+   * are opened when they contain the active page (for deep links/bookmarks).
+   * The template already sets `open` attribute on active trail items via Jinja,
+   * but this provides a fallback for dynamic scenarios.
    */
   function setupDocsNavigation() {
-    const nav = document.querySelector('.docs-nav[data-current-path]');
-    if (!nav) {
-      log('Documentation navigation initialized (no nav element)');
-      return;
-    }
-
-    // Get current page path (set by server in data attribute)
-    const currentPath = nav.getAttribute('data-current-path');
-    if (!currentPath) {
-      log('Documentation navigation initialized (no current path)');
-      return;
-    }
-
-    // Find the link matching current path
-    // Try exact match first, then try with/without trailing slash
-    let activeLink = nav.querySelector(`a[data-nav-path="${currentPath}"]`);
-    if (!activeLink) {
-      // Try alternate path formats
-      const altPath = currentPath.endsWith('/')
-        ? currentPath.slice(0, -1)
-        : currentPath + '/';
-      activeLink = nav.querySelector(`a[data-nav-path="${altPath}"]`);
-    }
+    // Find the active navigation link
+    const activeLink = document.querySelector(
+      '.docs-nav-link.active, .docs-nav-link[aria-current="page"], ' +
+      '.docs-nav-group-link.active, .docs-nav-group-link[aria-current="page"]'
+    );
 
     if (!activeLink) {
-      log('Documentation navigation initialized (no matching link for path: ' + currentPath + ')');
+      log('Documentation navigation initialized (no active link)');
       return;
     }
-
-    // Mark the active link
-    activeLink.classList.add('active');
-    activeLink.setAttribute('aria-current', 'page');
 
     // If the active link is a section group link (section index page),
-    // ensure its parent details is open and mark as in-trail
-    if (activeLink.classList.contains('docs-nav-group-link') ||
-        activeLink.classList.contains('docs-nav-group-title')) {
+    // ensure its parent details is open
+    if (activeLink.classList.contains('docs-nav-group-link')) {
       const group = activeLink.closest('.docs-nav-group');
       if (group) {
-        group.classList.add('is-in-trail');
         const details = group.querySelector(':scope > .docs-nav-details');
         if (details) {
           details.setAttribute('open', '');
@@ -362,26 +333,21 @@
       }
     }
 
-    // Walk up the DOM and mark all ancestor groups as in-trail, open their details
+    // Walk up the DOM and ensure all parent <details> elements are open
     let parent = activeLink.parentElement;
-    while (parent && parent !== nav) {
-      if (parent.classList?.contains('docs-nav-group')) {
-        // Mark group as in active trail
-        parent.classList.add('is-in-trail');
-
-        // Open the details element (unless it's a leaf or root)
-        if (!parent.classList.contains('docs-nav-group--root') &&
-            !parent.classList.contains('docs-nav-group--leaf')) {
-          const details = parent.querySelector(':scope > .docs-nav-details');
-          if (details) {
-            details.setAttribute('open', '');
-          }
+    while (parent) {
+      if (parent.classList?.contains('docs-nav-group') &&
+          !parent.classList.contains('docs-nav-group--root') &&
+          !parent.classList.contains('docs-nav-group--leaf')) {
+        const details = parent.querySelector(':scope > .docs-nav-details');
+        if (details) {
+          details.setAttribute('open', '');
         }
       }
       parent = parent.parentElement;
     }
 
-    log('Documentation navigation initialized (active: ' + currentPath + ')');
+    log('Documentation navigation initialized');
   }
 
   /**
