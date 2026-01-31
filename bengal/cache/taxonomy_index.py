@@ -72,16 +72,6 @@ class TagEntry(Cacheable):
             is_valid=data.get("is_valid", True),
         )
 
-    # Aliases for test compatibility
-    def to_dict(self) -> dict[str, Any]:
-        """Alias for to_cache_dict (test compatibility)."""
-        return self.to_cache_dict()
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> TagEntry:
-        """Alias for from_cache_dict (test compatibility)."""
-        return cls.from_cache_dict(data)
-
 
 class TaxonomyIndex(PersistentCacheMixin):
     """

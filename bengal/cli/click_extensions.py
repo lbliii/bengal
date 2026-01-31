@@ -1,12 +1,9 @@
 """
 Click extensions re-exports for backward compatibility.
 
-This module provides re-exports of BengalCommand and BengalGroup from
-bengal.cli.base for modules that may import from click_extensions.
-
-Note:
-New code should import directly from bengal.cli.base.
-This module exists for backward compatibility only.
+.. deprecated::
+    This module exists solely for backward compatibility.
+    New code should import directly from :mod:`bengal.cli.base`.
 
 Related:
 - bengal/cli/base.py: Primary location of Click extensions
@@ -15,7 +12,6 @@ Related:
 
 from __future__ import annotations
 
-from .base import BengalCommand, BengalGroup
+from bengal.cli.base import BengalCommand, BengalGroup
 
-# Re-export for compatibility if other modules import from click_extensions
 __all__ = ["BengalCommand", "BengalGroup"]

@@ -47,7 +47,7 @@ class TestTagEntry:
         assert entry.tag_name == "Python"
         assert len(entry.page_paths) == 2
 
-    def test_entry_to_dict(self):
+    def test_entry_to_cache_dict(self):
         """Test converting entry to dict."""
         entry = TagEntry(
             tag_slug="python",
@@ -55,12 +55,12 @@ class TestTagEntry:
             page_paths=["post1.md"],
             updated_at="2025-10-16T12:00:00",
         )
-        data = entry.to_dict()
+        data = entry.to_cache_dict()
         assert data["tag_slug"] == "python"
         assert data["tag_name"] == "Python"
         assert data["page_paths"] == ["post1.md"]
 
-    def test_entry_from_dict(self):
+    def test_entry_from_cache_dict(self):
         """Test creating entry from dict."""
         data = {
             "tag_slug": "python",
@@ -69,7 +69,7 @@ class TestTagEntry:
             "updated_at": "2025-10-16T12:00:00",
             "is_valid": True,
         }
-        entry = TagEntry.from_dict(data)
+        entry = TagEntry.from_cache_dict(data)
         assert entry.tag_slug == "python"
         assert len(entry.page_paths) == 2
 

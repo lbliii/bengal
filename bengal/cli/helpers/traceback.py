@@ -1,82 +1,25 @@
 """
-Helper for configuring traceback behavior in CLI commands.
+Traceback configuration helper.
 
-Provides a unified function for setting up traceback display with
-proper precedence handling for CLI flags, environment variables,
-and file-based configuration.
+.. deprecated::
+    This module has been moved to :mod:`bengal.cli.utils.traceback`.
+    Import from there instead::
 
-Functions:
-    configure_traceback: Set up traceback handling with proper precedence
+        # New (preferred)
+        from bengal.cli.utils import configure_traceback
 
-Precedence (highest to lowest):
-    1. CLI --traceback flag
-    2. CLI --debug flag (maps to full traceback)
-    3. File config ([dev.traceback] in site config)
-    4. BENGAL_TRACEBACK environment variable
-    5. Default (minimal)
+        # Old (deprecated, still works for backward compatibility)
+        from bengal.cli.helpers.traceback import configure_traceback
+
+This re-export exists for backward compatibility.
+
+See Also:
+- bengal/cli/utils/traceback.py: Canonical location
+
 """
 
 from __future__ import annotations
 
-from bengal.core.site import Site
-from bengal.errors.traceback import (
-    TracebackConfig,
-    apply_file_traceback_to_env,
-    map_debug_flag_to_traceback,
-    set_effective_style_from_cli,
-)
-from bengal.utils.observability.logger import get_logger
+from bengal.cli.utils.traceback import configure_traceback
 
-logger = get_logger(__name__)
-
-
-def configure_traceback(
-    debug: bool = False,
-    traceback: str | None = None,
-    site: Site | None = None,
-) -> None:
-    """
-    Configure traceback handling with proper precedence.
-
-    Precedence order:
-    1. CLI --traceback flag (highest)
-    2. CLI --debug flag (maps to full traceback)
-    3. File-based config ([dev.traceback] in site config)
-    4. Environment variable (BENGAL_TRACEBACK)
-    5. Default (minimal)
-
-    Args:
-        debug: Whether debug mode is enabled (maps to full traceback)
-        traceback: Explicit traceback style (full, compact, minimal, off)
-        site: Optional Site instance to apply file-based config from
-
-    Example:
-        @click.command()
-        @click.option("--debug", is_flag=True)
-        @click.option("--traceback", type=click.Choice([...]))
-        def my_command(debug: bool, traceback: str | None):
-            configure_traceback(debug, traceback)
-            # ... rest of command ...
-
-    """
-    # Step 1: Map --debug flag to traceback style if --traceback not explicitly set
-    map_debug_flag_to_traceback(debug, traceback)
-
-    # Step 2: Set traceback style from CLI flag
-    set_effective_style_from_cli(traceback)
-
-    # Step 3: Install traceback handler
-    TracebackConfig.from_environment().install()
-
-    # Step 4: Apply file-based config if site is available (lowest precedence)
-    if site:
-        try:
-            apply_file_traceback_to_env(site.config)
-            TracebackConfig.from_environment().install()
-        except Exception as e:
-            # Silently fail if file config can't be applied
-            logger.debug(
-                "traceback_file_config_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+__all__ = ["configure_traceback"]
