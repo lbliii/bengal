@@ -31,7 +31,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.orchestration.utils.errors import is_shutdown_error
@@ -43,12 +43,9 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")  # Input item type
-R = TypeVar("R")  # Result type
-
 
 @dataclass
-class ProcessResult(Generic[R]):
+class ProcessResult[R]:
     """Result of parallel processing."""
 
     results: list[R] = field(default_factory=list)
@@ -173,7 +170,7 @@ class BatchProgressUpdater:
             return self._completed_count + self._pending_updates
 
 
-class ParallelProcessor(Generic[T, R]):
+class ParallelProcessor[T, R]:
     """
     Generic parallel processor with error aggregation and progress tracking.
 

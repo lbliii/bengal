@@ -123,7 +123,7 @@ def handle_orchestration_error(
 
     # Create error context
     context = ErrorContext(
-        file_path=file_path if isinstance(file_path, str) or file_path is None else file_path,
+        file_path=file_path,
         operation=operation,
         suggestion=suggestion,
         original_error=e,

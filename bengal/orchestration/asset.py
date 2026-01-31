@@ -27,7 +27,6 @@ from __future__ import annotations
 import concurrent.futures
 import time
 from pathlib import Path
-from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest

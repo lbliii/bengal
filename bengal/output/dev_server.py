@@ -35,6 +35,7 @@ from bengal.output.colors import (
     get_status_color_code,
     get_status_style,
 )
+from bengal.output.utils import ANSI
 from bengal.output.enums import MessageLevel
 
 if TYPE_CHECKING:

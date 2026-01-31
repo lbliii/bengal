@@ -37,19 +37,15 @@ from bengal.orchestration.utils.virtual_pages import (
 )
 
 __all__ = [
-    # parallel.py
-    "ParallelProcessor",
     "BatchProgressUpdater",
-    # i18n.py
     "I18nConfig",
+    "ParallelProcessor",
+    "VirtualPageSpec",
+    "claim_url_gracefully",
+    "create_virtual_page",
     "get_i18n_config",
     "get_site_languages",
-    "is_i18n_enabled",
-    # virtual_pages.py
-    "VirtualPageSpec",
-    "create_virtual_page",
-    "claim_url_gracefully",
-    # errors.py
-    "is_shutdown_error",
     "handle_orchestration_error",
+    "is_i18n_enabled",
+    "is_shutdown_error",
 ]

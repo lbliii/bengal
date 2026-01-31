@@ -58,13 +58,11 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.orchestration.utils.i18n import (
-    I18nConfig,
     filter_pages_by_language,
     get_i18n_config,
 )
 from bengal.orchestration.utils.virtual_pages import (
     VirtualPageSpec,
-    claim_url_gracefully,
     create_virtual_page,
 )
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers

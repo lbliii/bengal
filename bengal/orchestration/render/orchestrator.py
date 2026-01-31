@@ -36,7 +36,6 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.orchestration.utils.errors import is_shutdown_error
-from bengal.orchestration.utils.parallel import BatchProgressUpdater
 from bengal.protocols import ProgressReporter
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
