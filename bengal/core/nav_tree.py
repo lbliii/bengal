@@ -52,6 +52,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
+from bengal.core.utils.sorting import DEFAULT_WEIGHT
 from bengal.utils.cache_registry import InvalidationReason, register_cache
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.primitives.lru_cache import LRUCache
@@ -346,7 +347,7 @@ class NavTree:
             title=node_title,
             _path=node_url,
             icon=node_icon,
-            weight=section.metadata.get("weight", 0),
+            weight=section.metadata.get("weight", DEFAULT_WEIGHT),
             section=section,
             is_index=True,
             _depth=depth,
@@ -378,7 +379,7 @@ class NavTree:
                 title=getattr(page, "nav_title", page.title),
                 _path=page_url,
                 icon=getattr(page, "icon", None),
-                weight=page.metadata.get("weight", 0),
+                weight=page.metadata.get("weight", DEFAULT_WEIGHT),
                 page=page,
                 _depth=depth + 1,
             )

@@ -234,14 +234,13 @@ class SectionErgonomicsMixin:
         Example:
             <span>{{ section.word_count | intcomma }} words</span>
         """
-        import re
+        from bengal.core.utils.text import strip_html
 
         total = 0
         for page in self.sorted_pages:
             content = getattr(page, "content", "")
             if content:
-                # Strip HTML tags
-                clean = re.sub(r"<[^>]+>", "", content)
+                clean = strip_html(content)
                 total += len(clean.split())
         return total
 

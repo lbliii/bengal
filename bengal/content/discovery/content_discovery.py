@@ -746,36 +746,3 @@ class ContentDiscovery:
             page.version = version.id
             if page.core:
                 object.__setattr__(page.core, "version", version.id)
-
-    # Backward compatibility methods
-    def _is_content_file(self, file_path: Path) -> bool:
-        """Backward compatibility wrapper for DirectoryWalker.is_content_file."""
-        return self._walker.is_content_file(file_path)
-
-    def _parse_content_file(self, file_path: Path) -> tuple[str, dict[str, Any]]:
-        """Backward compatibility wrapper for ContentParser.parse_file."""
-        return self._parser.parse_file(file_path)
-
-    def _validate_against_collection(
-        self, file_path: Path, metadata: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Backward compatibility wrapper for ContentParser.validate_against_collection."""
-        return self._parser.validate_against_collection(file_path, metadata)
-
-    def _get_collection_for_file(
-        self, file_path: Path
-    ) -> tuple[str | None, CollectionConfig[Any] | None]:
-        """Backward compatibility wrapper for ContentParser._get_collection_for_file."""
-        return self._parser._get_collection_for_file(file_path)
-
-    def _extract_content_skip_frontmatter(self, file_content: str) -> str:
-        """Backward compatibility wrapper for ContentParser._extract_content_skip_frontmatter."""
-        return self._parser._extract_content_skip_frontmatter(file_content)
-
-    def _sort_all_sections(self) -> None:
-        """Backward compatibility wrapper for SectionBuilder.sort_all_sections."""
-        self._section_builder.sort_all_sections()
-
-    def _add_versioned_sections_recursive(self, version_container: Section) -> None:
-        """Backward compatibility wrapper for SectionBuilder.add_versioned_sections_recursive."""
-        self._section_builder.add_versioned_sections_recursive(version_container)
