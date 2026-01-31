@@ -36,9 +36,9 @@ class TestCascadeViewBasics:
 
     def test_cascade_only(self):
         """Test view with only cascade values (no frontmatter)."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={},
@@ -53,9 +53,9 @@ class TestCascadeViewBasics:
 
     def test_frontmatter_wins_over_cascade(self):
         """Test that frontmatter values override cascade values."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard", "layout": "docs"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard", "layout": "docs"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"type": "tutorial", "title": "My Tutorial"},
@@ -73,12 +73,12 @@ class TestCascadeViewBasics:
 
     def test_cascade_inheritance(self):
         """Test that cascade values are inherited from parent sections."""
-        snapshot = CascadeSnapshot(
-            _data={
+        snapshot = CascadeSnapshot.from_data(
+            {
                 "docs": {"type": "doc", "version": "1.0"},
                 "docs/tutorials": {"difficulty": "beginner"},
             },
-            _content_dir="/content",
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Getting Started"},
@@ -100,9 +100,9 @@ class TestCascadeViewMappingProtocol:
 
     def test_contains(self):
         """Test 'in' operator for membership testing."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -116,9 +116,9 @@ class TestCascadeViewMappingProtocol:
 
     def test_iteration(self):
         """Test iterating over keys."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test", "weight": 10},
@@ -135,9 +135,9 @@ class TestCascadeViewMappingProtocol:
 
     def test_len(self):
         """Test length calculation."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test", "type": "custom"},  # type overrides cascade
@@ -151,9 +151,9 @@ class TestCascadeViewMappingProtocol:
 
     def test_keys_values_items(self):
         """Test keys(), values(), and items() methods."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -180,9 +180,9 @@ class TestCascadeViewProvenance:
 
     def test_cascade_keys(self):
         """Test cascade_keys() returns keys from cascade only."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard", "layout": "docs"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard", "layout": "docs"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test", "type": "custom"},  # type overrides
@@ -201,9 +201,9 @@ class TestCascadeViewProvenance:
 
     def test_frontmatter_keys(self):
         """Test frontmatter_keys() returns keys from frontmatter only."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test", "weight": 10},
@@ -220,9 +220,9 @@ class TestCascadeViewCompatibility:
 
     def test_resolve_all(self):
         """Test resolve_all() materializes to dict."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -236,9 +236,9 @@ class TestCascadeViewCompatibility:
 
     def test_copy(self):
         """Test copy() returns mutable dict."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -258,9 +258,9 @@ class TestCascadeViewCompatibility:
 
     def test_dict_conversion(self):
         """Test converting view to dict via dict()."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -284,9 +284,9 @@ class TestCascadeViewImmutability:
 
     def test_cannot_delitem(self):
         """Test that __delitem__ is not supported."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
@@ -310,9 +310,9 @@ class TestCascadeViewEdgeCases:
 
     def test_empty_section_path(self):
         """Test view with empty/root section path."""
-        snapshot = CascadeSnapshot(
-            _data={"": {"type": "page"}},  # Root cascade
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"": {"type": "page"}},  # Root cascade
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Home"},
@@ -325,14 +325,14 @@ class TestCascadeViewEdgeCases:
 
     def test_deeply_nested_section(self):
         """Test view with deeply nested section path."""
-        snapshot = CascadeSnapshot(
-            _data={
+        snapshot = CascadeSnapshot.from_data(
+            {
                 "": {"root": True},
                 "a": {"level": 1},
                 "a/b": {"level": 2},
                 "a/b/c": {"level": 3},
             },
-            _content_dir="/content",
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Deep Page"},
@@ -346,9 +346,9 @@ class TestCascadeViewEdgeCases:
 
     def test_none_values_in_frontmatter(self):
         """Test handling of None values in frontmatter."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test", "description": None},
@@ -362,9 +362,9 @@ class TestCascadeViewEdgeCases:
 
     def test_repr(self):
         """Test string representation."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "standard"}},
-            _content_dir="/content",
+        snapshot = CascadeSnapshot.from_data(
+            {"docs": {"type": "doc", "variant": "standard"}},
+            content_dir="/content",
         )
         view = CascadeView.for_page(
             frontmatter={"title": "Test"},
