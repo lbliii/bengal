@@ -251,6 +251,13 @@ class RenderingPipeline:
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
         self._html_transformer = HybridHTMLTransformer(baseurl=getattr(site, "baseurl", "") or "")
 
+        # PERF: Cache build config flags to avoid repeated dict lookups per page
+        # These flags are immutable during a build, so caching is safe.
+        build_cfg = site.config.get("build", {}) or {}
+        self._fast_writes = build_cfg.get("fast_writes", False)
+        self._fast_mode = build_cfg.get("fast_mode", False)
+        self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
+
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
         self._api_doc_enhancer: Any | None = None

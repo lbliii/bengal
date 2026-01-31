@@ -109,9 +109,10 @@ _PROFILES: dict[tuple[WorkloadType, Environment], WorkloadProfile] = {
     (WorkloadType.IO_BOUND, Environment.PRODUCTION): WorkloadProfile(20, 2, 10, 0.75),
     # Mixed workloads (template rendering: I/O + CPU)
     # Balance between CPU and I/O constraints
-    (WorkloadType.MIXED, Environment.CI): WorkloadProfile(5, 2, 2, 1.0),
-    (WorkloadType.MIXED, Environment.LOCAL): WorkloadProfile(5, 2, 6, 0.5),
-    (WorkloadType.MIXED, Environment.PRODUCTION): WorkloadProfile(5, 2, 10, 0.5),
+    # PERF: Increased limits for free-threaded Python (3.14t+) which has true parallelism
+    (WorkloadType.MIXED, Environment.CI): WorkloadProfile(5, 2, 4, 1.0),
+    (WorkloadType.MIXED, Environment.LOCAL): WorkloadProfile(5, 2, 12, 0.75),
+    (WorkloadType.MIXED, Environment.PRODUCTION): WorkloadProfile(5, 2, 16, 0.75),
 }
 
 
