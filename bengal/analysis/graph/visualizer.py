@@ -167,6 +167,7 @@ class GraphVisualizer:
         """
         # Use content pages (excludes autodoc and generated pages like taxonomy pages)
         # This is consistent with other analysis modules (PageRank, path analysis, link suggestions)
+        analysis_pages = self.graph.get_analysis_pages()
         content_pages = get_content_pages(self.graph)
 
         logger.info(
