@@ -774,6 +774,9 @@ class TaxonomyOrchestrator:
             },
         )
 
+        # Mark as virtual page (attribute, not just metadata)
+        tag_index._virtual = True
+
         # Set site reference BEFORE output_path for correct URL computation
         tag_index._site = self.site
 
@@ -930,11 +933,15 @@ class TaxonomyOrchestrator:
                     "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
+                    "_taxonomy_term": tag_slug,  # For provenance tracking
                     "_posts": eligible_pages,  # Use filtered pages
                     "_paginator": paginator,  # Reuse paginator instance
                     "_page_num": page_num,
                 },
             )
+
+            # Mark as virtual page (attribute, not just metadata)
+            tag_page._virtual = True
 
             # Set site reference BEFORE output_path for correct URL computation
             tag_page._site = self.site
