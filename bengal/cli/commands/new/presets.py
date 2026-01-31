@@ -66,13 +66,13 @@ PRESETS = {
 def get_preset(name: str) -> dict[str, Any] | None:
     """
     Get a preset by name.
-    
+
     Args:
         name: Preset name (blog, docs, portfolio, product, resume)
-    
+
     Returns:
         Preset configuration dict or None if not found
-        
+
     """
     return PRESETS.get(name)
 
@@ -85,13 +85,13 @@ def get_preset_names() -> list[str]:
 def get_preset_template_id(name: str) -> str:
     """
     Get the template ID for a preset.
-    
+
     Args:
         name: Preset name
-    
+
     Returns:
         Template ID (defaults to 'default' if preset not found)
-        
+
     """
     preset = PRESETS.get(name)
     if preset:

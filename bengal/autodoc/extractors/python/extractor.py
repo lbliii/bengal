@@ -60,8 +60,8 @@ from bengal.autodoc.utils import (
     get_python_function_is_property,
     sanitize_text,
 )
-from bengal.utils.observability.logger import get_logger
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -69,7 +69,7 @@ logger = get_logger(__name__)
 class PythonExtractor(Extractor):
     """
     Extract Python API documentation via AST parsing.
-    
+
     Features:
     - No imports (AST-only) - fast and reliable
     - Extracts modules, classes, functions, methods
@@ -78,12 +78,12 @@ class PythonExtractor(Extractor):
     - Signature building
     - Alias detection
     - Inherited member synthesis
-    
+
     Performance:
     - ~0.1-0.5s per file
     - No dependencies loaded
     - No side effects
-        
+
     """
 
     def __init__(
@@ -414,7 +414,7 @@ class PythonExtractor(Extractor):
     def _extract_file(self, file_path: Path) -> list[DocElement]:
         """
         Extract documentation from a single Python file.
-        
+
         RFC: rfc-build-performance-optimizations Phase 3
         Checks cache before parsing AST to skip parsing for unchanged files.
         On cache hit, reconstructs DocElement from cached serialization.
@@ -422,12 +422,12 @@ class PythonExtractor(Extractor):
         # RFC: rfc-build-performance-optimizations Phase 3
         # Check cache before parsing - skip AST parsing on cache hit
         if self.cache:
-            from bengal.utils.primitives.hashing import hash_file
             from bengal.autodoc.base import DocElement
-            
+            from bengal.utils.primitives.hashing import hash_file
+
             source_hash = hash_file(file_path, truncate=16)
             cached_info = self.cache.get_cached_module(str(file_path), source_hash)
-            
+
             if cached_info:
                 # Cache hit - reconstruct DocElement from cached serialization
                 # This skips AST parsing entirely, providing the full performance benefit
@@ -449,7 +449,7 @@ class PythonExtractor(Extractor):
                         action="falling_back_to_ast_parsing",
                     )
                     # Fall through to normal parsing below
-        
+
         # Cache miss or reconstruction failed - parse AST normally
         source = file_path.read_text(encoding="utf-8")
 
@@ -460,7 +460,7 @@ class PythonExtractor(Extractor):
 
         # Extract module-level documentation
         module_element = self._extract_module(tree, file_path, source)
-        
+
         # RFC: rfc-build-performance-optimizations Phase 3
         # Cache parsed module info after extraction
         if self.cache and module_element:
@@ -479,10 +479,10 @@ class PythonExtractor(Extractor):
     ) -> None:
         """
         Cache parsed module information for future builds.
-        
+
         RFC: rfc-build-performance-optimizations Phase 3
         Stores full DocElement serialization in cache to skip AST parsing on subsequent builds.
-        
+
         Args:
             file_path: Path to Python source file
             source: Source file content
@@ -490,23 +490,23 @@ class PythonExtractor(Extractor):
         """
         if not self.cache:
             return
-        
+
         from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
         from bengal.utils.primitives.hashing import hash_str
-        
+
         # Compute source hash
         source_hash = hash_str(source, truncate=16)
-        
+
         # Store full DocElement serialization (enables complete reconstruction)
         # This includes all metadata, children, typed_metadata, etc.
         module_element_dict = module_element.to_dict()
-        
+
         # Create cached info with full serialization
         cached_info = CachedModuleInfo(
             source_hash=source_hash,
             module_element_dict=module_element_dict,
         )
-        
+
         # Store in cache
         self.cache.cache_module(str(file_path), cached_info)
 

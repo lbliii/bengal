@@ -33,20 +33,20 @@ if TYPE_CHECKING:
 @runtime_checkable
 class RoleHandler(Protocol):
     """Protocol for role implementations.
-    
+
     Roles are inline directives like {ref}`target` or {kbd}`Ctrl+C`.
     They produce inline AST nodes rather than block nodes.
-    
+
     Attributes:
         names: Tuple of role names this handler responds to.
                Example: ("ref", "doc") for reference roles
         token_type: Token type identifier for the AST.
-    
+
     Thread Safety:
         Handlers must be stateless. All mutable state must be in the AST
         node or passed as arguments. Multiple threads may call the same
         handler instance concurrently.
-    
+
     Example:
             >>> class AbbrRole:
             ...     names = ("abbr",)
@@ -61,7 +61,7 @@ class RoleHandler(Protocol):
             ...
             ...     def render(self, node, sb):
             ...         sb.append(f'<abbr title="{node.target}">{node.content}</abbr>')
-        
+
     """
 
     # Class-level attributes
@@ -120,10 +120,10 @@ class RoleHandler(Protocol):
 @runtime_checkable
 class RoleParseOnly(Protocol):
     """Protocol for roles that only need custom parsing.
-    
+
     Use this when default rendering is acceptable but you need
     custom AST construction.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]]
@@ -142,10 +142,10 @@ class RoleParseOnly(Protocol):
 @runtime_checkable
 class RoleRenderOnly(Protocol):
     """Protocol for roles that only need custom rendering.
-    
+
     Use this when default parsing is acceptable but you need
     custom HTML output.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]]

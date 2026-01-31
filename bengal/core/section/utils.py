@@ -20,23 +20,23 @@ from typing import Any
 def resolve_page_section_path(page: Any) -> str | None:
     """
     Resolve a page's section path as a string, handling multiple representations.
-    
+
     The page may expose its section association in different ways depending on
     build phase or caching:
     - `page.section` may be a `Section` object with a `.path` attribute
     - `page.section` may already be a string path
     - It may be missing or falsy for root-level pages
-    
+
     Args:
         page: Page-like object which may have a `section` attribute
-    
+
     Returns:
         String path to the section (e.g., "docs/tutorials") or None if not set.
-    
+
     Note:
         This function is intentionally silent on errors, falling back gracefully.
         Core modules do not log; orchestrators handle observability.
-        
+
     """
     if page is None:
         return None

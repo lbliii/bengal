@@ -44,11 +44,11 @@ from typing import Any
 class BuildMetric:
     """
     Represents a single build's performance metrics.
-    
+
     Immutable record of timing, memory, and configuration data
     captured during a build. Used for historical analysis and
     trend detection.
-    
+
     Attributes:
         timestamp: ISO 8601 timestamp when build completed.
         total_pages: Number of pages processed.
@@ -64,14 +64,14 @@ class BuildMetric:
         rendering_time_ms: Template rendering phase duration.
         assets_time_ms: Asset processing phase duration.
         postprocess_time_ms: Post-processing phase duration.
-    
+
     Example:
             >>> metric = BuildMetric.from_dict({"total_pages": 100, "build_time_ms": 2500})
             >>> metric.build_time_s
         2.5
             >>> metric.pages_per_second
         40.0
-        
+
     """
 
     timestamp: str
@@ -147,14 +147,14 @@ class BuildMetric:
 class PerformanceReport:
     """
     Generates performance reports from collected build metrics.
-    
+
     Loads metrics from `.bengal/metrics/history.jsonl`, analyzes trends,
     and outputs reports in various formats. Used by the `bengal perf`
     CLI command for performance monitoring.
-    
+
     Attributes:
         metrics_dir: Directory containing metrics files.
-    
+
     Example:
             >>> report = PerformanceReport()
             >>>
@@ -166,7 +166,7 @@ class PerformanceReport:
             >>>
             >>> # Compare latest build to previous
             >>> report.compare(build1_idx=0, build2_idx=1)
-        
+
     """
 
     def __init__(self, metrics_dir: Path | None = None):

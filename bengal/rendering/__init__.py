@@ -76,10 +76,10 @@ __all__ = ["Renderer", "RenderingPipeline"]
 
 def __getattr__(name: str) -> Any:
     """Lazily resolve top-level re-exports.
-    
+
     This keeps subpackage imports (like rosettes) lightweight while
     preserving the existing `bengal.rendering.RenderingPipeline` API.
-        
+
     """
     if name == "RenderingPipeline":
         from bengal.rendering.pipeline import RenderingPipeline

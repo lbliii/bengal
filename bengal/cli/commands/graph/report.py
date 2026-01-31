@@ -78,29 +78,29 @@ def report(
 ) -> None:
     """
     Generate comprehensive site analysis report.
-    
+
     Combines multiple analyses into a single unified report:
     - Connectivity analysis (orphans, link density)
     - Link suggestions (top recommendations)
     - Bridge pages (navigation bottlenecks)
     - Communities (topic clusters)
-    
+
     Use this command to get a complete picture of your site's structure
     and actionable recommendations for improvement.
-    
+
     Examples:
         # Full analysis report
         bengal graph report
-    
+
         # Quick summary for CI
         bengal graph report --brief
-    
+
         # CI mode with thresholds
         bengal graph report --ci --threshold-isolated 5
-    
+
         # Export as JSON
         bengal graph report --format json > report.json
-        
+
     """
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 

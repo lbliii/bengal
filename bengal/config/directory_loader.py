@@ -74,12 +74,12 @@ logger = get_logger(__name__)
 class ConfigLoadError(BengalConfigError):
     """
     Raised when configuration loading fails.
-    
+
     This exception is raised for various configuration loading failures
     including missing directories, invalid YAML syntax, or file permission
     errors. Extends :class:`~bengal.errors.BengalConfigError` for consistent
     error handling throughout the configuration system.
-    
+
     Attributes:
         Inherited from BengalConfigError:
             message: Description of the error.
@@ -87,20 +87,19 @@ class ConfigLoadError(BengalConfigError):
             line_number: Line number where the error occurred (if applicable).
             suggestion: Helpful suggestion for fixing the error.
             original_error: The underlying exception, if any.
-        
+
     """
 
-    pass
 
 
 class ConfigDirectoryLoader:
     """
     Load configuration from a directory structure with layered overrides.
-    
+
     This loader supports multi-file configurations organized in directories,
     with automatic environment detection and profile-based customization.
     It provides deterministic merging with clear precedence rules.
-    
+
     Features:
         - **Multi-file configs**: Split configuration across multiple YAML files
           in ``_default/`` for better organization.
@@ -111,32 +110,32 @@ class ConfigDirectoryLoader:
         - **Origin tracking**: Optional tracking of which file contributed each
           configuration key (for ``bengal config show --origin``).
         - **Feature expansion**: Simple feature toggles expanded to detailed config.
-    
+
     Attributes:
         track_origins: Whether origin tracking is enabled.
         origin_tracker: The :class:`ConfigWithOrigin` instance if tracking is enabled.
-    
+
     Example:
         Basic usage::
-    
+
             loader = ConfigDirectoryLoader()
             config = loader.load(Path("config"))
-    
+
         With origin tracking::
-    
+
             loader = ConfigDirectoryLoader(track_origins=True)
             config = loader.load(Path("config"), environment="production")
             tracker = loader.get_origin_tracker()
             print(tracker.show_with_origin())
-    
+
         With profile::
-    
+
             config = loader.load(
                 Path("config"),
                 environment="local",
                 profile="developer"
             )
-        
+
     """
 
     def __init__(self, track_origins: bool = False) -> None:
@@ -611,7 +610,7 @@ class ConfigDirectoryLoader:
             - ``build.*`` → top level (parallel, incremental, etc.)
             - ``features.*`` → top level (rss, sitemap, etc.)
             - ``assets.*`` → top level (minify, optimize, etc.)
-            
+
         Note: ``dev.*`` is NOT flattened to preserve environment-specific nesting.
 
         Args:

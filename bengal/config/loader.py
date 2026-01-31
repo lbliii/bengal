@@ -61,20 +61,20 @@ logger = get_logger(__name__)
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
     Pretty print configuration using Rich formatting.
-    
+
     Displays the configuration dictionary with syntax highlighting and
     formatting. Falls back to standard ``pprint`` if Rich is unavailable
     or disabled.
-    
+
     Args:
         config: Configuration dictionary to display.
         title: Title to display above the configuration output.
-    
+
     Example:
             >>> config = {"title": "My Site", "baseurl": "/"}
             >>> pretty_print_config(config, title="Site Configuration")
         # Outputs formatted configuration with Rich or pprint
-        
+
     """
     try:
         from rich.pretty import pprint as rich_pprint
@@ -109,27 +109,27 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
 class ConfigLoader:
     """
     Load site configuration from ``bengal.toml`` or ``bengal.yaml``.
-    
+
     This is the primary configuration loader for single-file Bengal configurations.
     It auto-discovers configuration files, validates contents, normalizes section
     names, and applies environment-based overrides.
-    
+
     Attributes:
         SECTION_ALIASES: Mapping of accepted section name variations to canonical names.
         KNOWN_SECTIONS: Set of recognized configuration section names.
         root_path: Root directory to search for configuration files.
         warnings: List of configuration warnings accumulated during loading.
-    
+
     Example:
             >>> loader = ConfigLoader(Path("my-site"))
             >>> config = loader.load()
             >>> config["title"]
             'My Site'
-    
+
             >>> # Check for configuration warnings
             >>> for warning in loader.get_warnings():
             ...     print(warning)
-        
+
     """
 
     # Section aliases for ergonomic config (accept common variations)

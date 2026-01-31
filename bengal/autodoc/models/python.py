@@ -21,19 +21,19 @@ from typing import Literal
 class ParameterInfo:
     """
     Single function parameter information.
-    
+
     Attributes:
         name: Parameter name
         type_hint: Type annotation as string (e.g., "str | None")
         default: Default value as string (e.g., "None", "'default'")
         kind: Parameter kind (positional, keyword, var_positional, var_keyword)
         description: Description from docstring
-    
+
     Example:
             >>> param = ParameterInfo(name="path", type_hint="Path", default="None")
             >>> param.name
             'path'
-        
+
     """
 
     name: str
@@ -49,11 +49,11 @@ class ParameterInfo:
 class RaisesInfo:
     """
     Exception information from docstring.
-    
+
     Attributes:
         type_name: Exception type name
         description: Description of when raised
-        
+
     """
 
     type_name: str
@@ -64,7 +64,7 @@ class RaisesInfo:
 class ParsedDocstring:
     """
     Parsed docstring information.
-    
+
     Attributes:
         summary: One-line summary
         description: Full description (may include summary)
@@ -72,12 +72,12 @@ class ParsedDocstring:
         returns: Return value description
         raises: Exception documentation
         examples: Code examples
-    
+
     Example:
             >>> doc = ParsedDocstring(summary="Build the site.", returns="None")
             >>> doc.summary
             'Build the site.'
-        
+
     """
 
     summary: str = ""
@@ -92,18 +92,18 @@ class ParsedDocstring:
 class PythonModuleMetadata:
     """
     Metadata specific to Python modules.
-    
+
     Attributes:
         file_path: Path to source file
         is_package: Whether this is a package (__init__.py)
         has_all: Whether module defines __all__
         all_exports: Contents of __all__ if present
-    
+
     Example:
             >>> meta = PythonModuleMetadata(file_path="bengal/core/__init__.py", is_package=True)
             >>> meta.is_package
         True
-        
+
     """
 
     file_path: str
@@ -116,7 +116,7 @@ class PythonModuleMetadata:
 class PythonClassMetadata:
     """
     Metadata specific to Python classes.
-    
+
     Attributes:
         bases: Base class names
         decorators: Decorator names
@@ -125,12 +125,12 @@ class PythonClassMetadata:
         is_abstract: Whether class inherits from ABC
         is_mixin: Whether class name ends with "Mixin"
         parsed_doc: Parsed docstring
-    
+
     Example:
             >>> meta = PythonClassMetadata(bases=("Page", "Cacheable"), is_dataclass=True)
             >>> meta.is_dataclass
         True
-        
+
     """
 
     bases: tuple[str, ...] = ()
@@ -146,7 +146,7 @@ class PythonClassMetadata:
 class PythonFunctionMetadata:
     """
     Metadata specific to Python functions/methods.
-    
+
     Attributes:
         signature: Full signature string (e.g., "def build(self, force: bool = False) -> None")
         parameters: Parameter information
@@ -158,12 +158,12 @@ class PythonFunctionMetadata:
         is_generator: Whether function uses yield
         decorators: Decorator names
         parsed_doc: Parsed docstring
-    
+
     Example:
             >>> meta = PythonFunctionMetadata(signature="def build()", is_async=False)
             >>> meta.signature
             'def build()'
-        
+
     """
 
     signature: str = ""
@@ -182,17 +182,17 @@ class PythonFunctionMetadata:
 class PythonAttributeMetadata:
     """
     Metadata specific to Python attributes/class variables.
-    
+
     Attributes:
         annotation: Type annotation as string
         is_class_var: Whether this is a class variable
         default_value: Default value as string
-    
+
     Example:
             >>> meta = PythonAttributeMetadata(annotation="str", is_class_var=True)
             >>> meta.annotation
             'str'
-        
+
     """
 
     annotation: str | None = None
@@ -204,16 +204,16 @@ class PythonAttributeMetadata:
 class PythonAliasMetadata:
     """
     Metadata for import aliases.
-    
+
     Attributes:
         alias_of: Qualified name of the aliased entity
         alias_kind: Type of alias (assignment or import)
-    
+
     Example:
             >>> meta = PythonAliasMetadata(alias_of="bengal.core.site.Site", alias_kind="assignment")
             >>> meta.alias_of
             'bengal.core.site.Site'
-        
+
     """
 
     alias_of: str

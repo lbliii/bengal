@@ -58,10 +58,10 @@ if TYPE_CHECKING:
 class RebuildReason(Enum):
     """
     Reasons why a page might be rebuilt during incremental builds.
-    
+
     Used to categorize and explain what triggered a page rebuild.
     A page may have multiple reasons (e.g., both content and template changed).
-    
+
     Values:
         CONTENT_CHANGED: The page's source content file was modified.
         TEMPLATE_CHANGED: A template in the page's template chain changed.
@@ -74,12 +74,12 @@ class RebuildReason(Enum):
         CACHE_INVALID: Cache entry exists but is corrupted/invalid.
         FORCED: Rebuild was explicitly requested (--force flag).
         UNKNOWN: No tracked dependency changed (phantom rebuild).
-    
+
     Example:
             >>> reason = RebuildReason.TEMPLATE_CHANGED
             >>> print(reason.description)
         Template file was modified
-        
+
     """
 
     CONTENT_CHANGED = "content_changed"
@@ -121,10 +121,10 @@ class RebuildReason(Enum):
 class RebuildExplanation:
     """
     Detailed explanation of why a page was rebuilt.
-    
+
     Provides comprehensive information about what triggered a rebuild,
     including the chain of dependencies that led to the rebuild.
-    
+
     Attributes:
         page_path: Path to the page that was rebuilt
         reasons: List of reasons why the page was rebuilt
@@ -133,7 +133,7 @@ class RebuildExplanation:
         timestamps: Relevant timestamps (content mtime, cache time, etc.)
         dependency_chain: Chain of dependencies that triggered rebuild
         suggestions: Suggestions for optimization if applicable
-        
+
     """
 
     page_path: str
@@ -204,24 +204,24 @@ class RebuildExplanation:
 class PhantomRebuild:
     """
     A page that rebuilds without apparent cause.
-    
+
     Phantom rebuilds are pages that rebuild even though none of their
     known dependencies changed. These indicate missing dependency tracking,
     cache issues, or untracked global state affecting the build.
-    
+
     Attributes:
         page_path: Path to the page experiencing phantom rebuilds.
         rebuild_count: Number of times this page has phantom rebuilt.
         last_rebuild: Timestamp of the most recent phantom rebuild.
         suspected_causes: Possible causes identified by analysis.
         investigation_notes: Additional notes from investigation.
-    
+
     Example:
             >>> phantom = PhantomRebuild(
             ...     page_path="content/posts/my-post.md",
             ...     suspected_causes=["Missing template dependency tracking"],
             ... )
-        
+
     """
 
     page_path: str
@@ -235,10 +235,10 @@ class PhantomRebuild:
 class CacheConsistencyReport:
     """
     Report on cache consistency and integrity.
-    
+
     Aggregates the results of cache validation, identifying orphaned
     entries, missing entries, and overall cache health.
-    
+
     Attributes:
         total_entries: Total number of entries in the cache.
         valid_entries: Entries that pass validation (file exists, valid format).
@@ -246,7 +246,7 @@ class CacheConsistencyReport:
         orphaned_entries: Cache entries for files that no longer exist on disk.
         missing_entries: Content files that exist but aren't in the cache.
         issues: Specific issues found during validation.
-    
+
     Example:
             >>> report = CacheConsistencyReport(
             ...     total_entries=100,
@@ -256,7 +256,7 @@ class CacheConsistencyReport:
             ... )
             >>> print(f"Cache health: {report.health_score:.1f}%")
         Cache health: 95.0%
-        
+
     """
 
     total_entries: int = 0
@@ -283,20 +283,20 @@ class CacheConsistencyReport:
 class IncrementalBuildDebugger(DebugTool):
     """
     Debug tool for incremental build issues.
-    
+
     Helps diagnose why pages rebuild, find phantom rebuilds, and
     validate cache consistency.
-    
+
     Creation:
         Direct instantiation or via DebugRegistry:
             debugger = IncrementalBuildDebugger(site=site, cache=cache)
             debugger = DebugRegistry.create("incremental", site=site, cache=cache)
-    
+
     Example:
             >>> debugger = IncrementalBuildDebugger(site=site, cache=cache)
             >>> explanation = debugger.explain_rebuild("content/posts/my-post.md")
             >>> print(explanation.format_detailed())
-        
+
     """
 
     name = "incremental"
@@ -580,7 +580,7 @@ class IncrementalBuildDebugger(DebugTool):
             for term, pages in self.cache.taxonomy_deps.items():
                 if file_path in pages:
                     page_terms.add(term)
-            
+
             # Add pages that share taxonomy terms with the changed page
             for term in page_terms:
                 for page in self.cache.taxonomy_deps.get(term, []):

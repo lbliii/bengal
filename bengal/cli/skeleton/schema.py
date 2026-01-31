@@ -40,15 +40,15 @@ import yaml
 class Component:
     """
     A component in the site structure (Page or Section).
-    
+
     Implements the Component Model pattern:
     - Identity: type (blog, doc, landing) - determines behavior
     - Mode: variant (hero, minimal, grid) - determines appearance
     - Data: props (title, date, author) - content data
-    
+
     Components can contain child pages, making them sections.
     Cascade values are inherited by all descendants.
-    
+
     Attributes:
         path: File/directory path relative to parent
         type: Component identity (determines template family)
@@ -57,7 +57,7 @@ class Component:
         content: Raw markdown body content
         pages: Child components (if present, this is a section)
         cascade: Values to inherit to all descendants
-        
+
     """
 
     # Identity (Required for sections, inferred for pages)
@@ -100,18 +100,18 @@ class Component:
 class Skeleton:
     """
     Root definition of a site skeleton.
-    
+
     A skeleton describes the complete structure of a site, including
     global cascade values that apply to all components and the
     hierarchical structure of pages and sections.
-    
+
     Attributes:
         name: Human-readable skeleton name
         description: Brief description of the skeleton's purpose
         version: Schema version for compatibility
         cascade: Global cascade applied to all components
         structure: Top-level components in the site
-        
+
     """
 
     # Metadata about the skeleton itself

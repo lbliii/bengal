@@ -61,10 +61,10 @@ from datetime import datetime
 class BlogPost:
     """
     Standard schema for blog posts.
-    
+
     Provides common fields for blog content including publication metadata,
     authorship, and categorization.
-    
+
     Attributes:
         title: Post title displayed in listings and page header. **Required.**
         date: Publication date used for sorting and display. **Required.**
@@ -75,12 +75,12 @@ class BlogPost:
         description: Short description for meta tags, social sharing, and listings.
         image: Featured image path (relative to assets) or absolute URL.
         excerpt: Manual excerpt. If not set, Bengal auto-generates from content.
-    
+
     Example:
         Frontmatter for a blog post:
-    
+
         .. code-block:: yaml
-    
+
             ---
             title: Getting Started with Bengal
             date: 2025-01-15
@@ -88,7 +88,7 @@ class BlogPost:
             tags: [tutorial, beginner]
             description: Learn how to build your first Bengal site
             ---
-        
+
     """
 
     title: str
@@ -105,10 +105,10 @@ class BlogPost:
 class DocPage:
     """
     Standard schema for documentation pages.
-    
+
     Optimized for technical documentation with navigation ordering,
     categorization, and version tracking.
-    
+
     Attributes:
         title: Page title. **Required.**
         weight: Sort order within section. Lower values appear first.
@@ -120,12 +120,12 @@ class DocPage:
         deprecated: If ``True``, displays a deprecation warning banner.
         since: Version when the documented feature was introduced
             (e.g., ``"1.2.0"``).
-    
+
     Example:
         Frontmatter for a documentation page:
-    
+
         .. code-block:: yaml
-    
+
             ---
             title: Configuration Reference
             weight: 10
@@ -133,7 +133,7 @@ class DocPage:
             toc: true
             since: "1.0.0"
             ---
-        
+
     """
 
     title: str
@@ -150,10 +150,10 @@ class DocPage:
 class APIReference:
     """
     Standard schema for API reference documentation.
-    
+
     Designed for REST API endpoint documentation with HTTP method,
     authentication, and rate limiting metadata.
-    
+
     Attributes:
         title: Human-readable name for the endpoint. **Required.**
         endpoint: API endpoint path (e.g., ``"/api/v1/users"``). **Required.**
@@ -164,12 +164,12 @@ class APIReference:
         auth_required: Whether authentication is required. Defaults to ``True``.
         rate_limit: Rate limit description (e.g., ``"100 req/min"``).
         description: Endpoint description for listings and meta tags.
-    
+
     Example:
         Frontmatter for an API endpoint:
-    
+
         .. code-block:: yaml
-    
+
             ---
             title: List Users
             endpoint: /api/v1/users
@@ -178,7 +178,7 @@ class APIReference:
             auth_required: true
             rate_limit: 100 req/min
             ---
-        
+
     """
 
     title: str
@@ -195,10 +195,10 @@ class APIReference:
 class Changelog:
     """
     Standard schema for changelog entries.
-    
+
     Designed for release notes and version history, with support for
     semantic versioning and breaking change indicators.
-    
+
     Attributes:
         title: Release title (e.g., ``"v1.2.0"`` or ``"Version 1.2.0"``).
             **Required.**
@@ -208,12 +208,12 @@ class Changelog:
         breaking: If ``True``, indicates the release contains breaking changes.
         draft: If ``True``, the release is not yet published.
         summary: Short release summary for listings and feeds.
-    
+
     Example:
         Frontmatter for a changelog entry:
-    
+
         .. code-block:: yaml
-    
+
             ---
             title: Version 1.2.0
             date: 2025-01-15
@@ -221,7 +221,7 @@ class Changelog:
             breaking: false
             summary: New features and bug fixes
             ---
-        
+
     """
 
     title: str
@@ -236,10 +236,10 @@ class Changelog:
 class Tutorial:
     """
     Standard schema for tutorial and guide pages.
-    
+
     Designed for step-by-step learning content with difficulty levels,
     time estimates, and series organization.
-    
+
     Attributes:
         title: Tutorial title. **Required.**
         difficulty: Skill level. Recommended values: ``"beginner"``,
@@ -250,12 +250,12 @@ class Tutorial:
         series: Name of the tutorial series this belongs to.
         order: Position within the series (1, 2, 3, ...). Used for
             navigation ordering.
-    
+
     Example:
         Frontmatter for a tutorial:
-    
+
         .. code-block:: yaml
-    
+
             ---
             title: Building Your First Site
             difficulty: beginner
@@ -266,7 +266,7 @@ class Tutorial:
             series: Getting Started
             order: 1
             ---
-        
+
     """
 
     title: str

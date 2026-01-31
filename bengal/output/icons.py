@@ -29,10 +29,10 @@ from dataclasses import dataclass
 class IconSet:
     """
     Icon set for CLI output.
-    
+
     Provides consistent symbols for status indicators, navigation, and branding.
     Frozen to ensure immutability of icon definitions.
-    
+
     Attributes:
         mascot: Bengal cat symbol for success headers
         error_mascot: Mouse symbol for error headers
@@ -47,7 +47,7 @@ class IconSet:
         tree_branch: Tree branch for hierarchical display
         tree_end: Tree end branch
         section: Section header prefix (empty by default for clean headers)
-        
+
     """
 
     # Branding
@@ -101,23 +101,23 @@ EMOJI_ICONS = IconSet(
 def get_icon_set(use_emoji: bool = False) -> IconSet:
     """
     Get icon set based on user preference.
-    
+
     Returns the appropriate IconSet instance based on the emoji preference.
     The default is ASCII icons for maximum terminal compatibility.
-    
+
     Args:
         use_emoji: If True, returns EMOJI_ICONS with rich visual symbols.
             If False (default), returns ASCII_ICONS with simple text symbols.
-    
+
     Returns:
         The IconSet instance matching the preference (ASCII or Emoji).
-    
+
     Example:
             >>> icons = get_icon_set()
             >>> print(f"{icons.success} Done")  # "✓ Done"
-    
+
             >>> icons = get_icon_set(use_emoji=True)
             >>> print(f"{icons.success} Done")  # "✨ Done"
-        
+
     """
     return EMOJI_ICONS if use_emoji else ASCII_ICONS

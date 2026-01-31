@@ -10,7 +10,7 @@ For implementation details and documentation, see:
 Migration:
     # Old (deprecated)
     from bengal.cache.cacheable import Cacheable
-    
+
     # New (preferred)
     from bengal.protocols import Cacheable
 
@@ -18,11 +18,11 @@ Migration:
 
 from __future__ import annotations
 
-# Re-export from canonical location for backwards compatibility
-from bengal.protocols.infrastructure import Cacheable
-
 # Re-export TypeVar for generic return types
 from typing import TypeVar
+
+# Re-export from canonical location for backwards compatibility
+from bengal.protocols.infrastructure import Cacheable
 
 T = TypeVar("T", bound="Cacheable")
 

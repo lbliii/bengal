@@ -49,7 +49,6 @@ See Also:
 
 from __future__ import annotations
 
-import logging
 from abc import abstractmethod
 from re import Match
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -66,11 +65,10 @@ if TYPE_CHECKING:
         MistuneDirectiveRegistry,
         MistuneMarkdown,
     )
-
     from bengal.utils.observability.logger import BengalLogger
 
 # Re-export commonly used items for convenience
-from .contracts import (  # noqa: F401
+from .contracts import (
     CARD_CONTRACT,
     CARDS_CONTRACT,
     CODE_TABS_CONTRACT,
@@ -82,10 +80,10 @@ from .contracts import (  # noqa: F401
     ContractViolation,
     DirectiveContract,
 )
-from .errors import DirectiveError, format_directive_error  # noqa: F401
-from .options import ContainerOptions, DirectiveOptions, StyledOptions, TitledOptions  # noqa: F401
+from .errors import DirectiveError, format_directive_error
+from .options import ContainerOptions, DirectiveOptions, StyledOptions, TitledOptions
 from .tokens import DirectiveToken
-from .utils import (  # noqa: F401
+from .utils import (
     attr_str,
     bool_attr,
     build_class_string,
@@ -97,62 +95,62 @@ from .utils import (  # noqa: F401
 
 class BengalDirective(DirectivePlugin):
     """Base class for Bengal directives with automatic registration and validation.
-    
+
     Subclass this to create custom directives. The base class handles directive
     registration, option parsing, contract validation, and provides shared
     utilities for HTML generation.
-    
+
     Subclass Requirements:
         Define these class attributes:
             NAMES: List of directive names (e.g., ``["dropdown", "details"]``).
             TOKEN_TYPE: Token type for the AST (e.g., ``"dropdown"``).
-    
+
         Override these methods:
             parse_directive: Build the token from parsed components.
             render: Render the token to HTML.
-    
+
         Optionally define:
             OPTIONS_CLASS: Typed options dataclass (default: ``DirectiveOptions``).
             CONTRACT: Nesting validation contract (default: ``None``).
-    
+
     Attributes:
         logger: Module logger for warnings and debug output.
-    
+
     Example:
         Basic directive with options::
-    
+
             class DropdownDirective(BengalDirective):
                 NAMES = ["dropdown", "details"]
                 TOKEN_TYPE = "dropdown"
                 OPTIONS_CLASS = DropdownOptions
-    
+
                 def parse_directive(self, title, options, content, children, state):
                     return DirectiveToken(
                         type=self.TOKEN_TYPE,
                         attrs={"title": title or "Details", "open": options.open},
                         children=children,
                     )
-    
+
                 def render(self, renderer, text, **attrs):
                     title = attrs.get("title", "Details")
                     open_attr = " open" if attrs.get("open") else ""
                     return f"<details{open_attr}><summary>{title}</summary>{text}</details>"
-    
+
         Directive with contract validation::
-    
+
             class StepDirective(BengalDirective):
                 NAMES = ["step"]
                 TOKEN_TYPE = "step"
                 CONTRACT = DirectiveContract(requires_parent=("steps",))
-    
+
                 def parse_directive(self, title, options, content, children, state):
                     # Implementation here
                         ...
-    
+
                 def render(self, renderer, text, **attrs):
                     # Render implementation
                         ...
-        
+
     """
 
     # -------------------------------------------------------------------------
@@ -546,34 +544,34 @@ class BengalDirective(DirectivePlugin):
 
 
 __all__ = [
-    # Base class
-    "BengalDirective",
-    # Tokens
-    "DirectiveToken",
-    # Options
-    "DirectiveOptions",
-    "StyledOptions",
-    "ContainerOptions",
-    "TitledOptions",
-    # Contracts
-    "DirectiveContract",
-    "ContractValidator",
-    "ContractViolation",
-    "STEPS_CONTRACT",
-    "STEP_CONTRACT",
-    "TAB_SET_CONTRACT",
-    "TAB_ITEM_CONTRACT",
     "CARDS_CONTRACT",
     "CARD_CONTRACT",
     "CODE_TABS_CONTRACT",
+    "STEPS_CONTRACT",
+    "STEP_CONTRACT",
+    "TAB_ITEM_CONTRACT",
+    "TAB_SET_CONTRACT",
+    # Base class
+    "BengalDirective",
+    "ContainerOptions",
+    "ContractValidator",
+    "ContractViolation",
+    # Contracts
+    "DirectiveContract",
     # Errors
     "DirectiveError",
-    "format_directive_error",
+    # Options
+    "DirectiveOptions",
+    # Tokens
+    "DirectiveToken",
+    "StyledOptions",
+    "TitledOptions",
+    "attr_str",
+    "bool_attr",
+    "build_class_string",
+    "class_attr",
+    "data_attrs",
     # Utilities
     "escape_html",
-    "build_class_string",
-    "bool_attr",
-    "data_attrs",
-    "attr_str",
-    "class_attr",
+    "format_directive_error",
 ]

@@ -4,9 +4,6 @@ nav_title: Sites
 description: End-to-end tutorials for building complete site types
 weight: 10
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: globe
 ---
 

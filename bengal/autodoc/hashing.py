@@ -7,8 +7,7 @@ selective rebuilds that skip code-only changes.
 
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.primitives.hashing import hash_str
 
@@ -24,18 +23,18 @@ def compute_doc_content_hash(
 ) -> str:
     """
     Compute 16-character hash of documentation-relevant content only.
-    
+
     Normalization Strategy:
     - Docstrings: strip(), skip empty lines.
     - Signatures: remove all whitespace.
     - Lists (decorators, bases): sorted() alphabetically.
     - Metadata: Deterministic JSON hashing of relevant fields.
-    
+
     Args:
         element: DocElement to hash
         include_signature: Whether to include signatures in the hash
         include_decorators: Whether to include decorators in the hash
-        
+
     Returns:
         16-character truncated SHA-256 hash
     """
@@ -45,8 +44,8 @@ def compute_doc_content_hash(
     if element.description:
         # Normalize: strip each line and skip empty lines to ignore indentation/spacing changes
         normalized_lines = [
-            line.strip() 
-            for line in element.description.strip().splitlines() 
+            line.strip()
+            for line in element.description.strip().splitlines()
             if line.strip()
         ]
         if normalized_lines:
@@ -54,20 +53,24 @@ def compute_doc_content_hash(
 
     # 2. Type-specific metadata (Signatures, Bases, etc.)
     tm = element.typed_metadata
-    
+
     # Python-specific
-    from bengal.autodoc.models.python import PythonClassMetadata, PythonFunctionMetadata
     # CLI-specific
     from bengal.autodoc.models.cli import CLICommandMetadata, CLIGroupMetadata, CLIOptionMetadata
+
     # OpenAPI-specific
-    from bengal.autodoc.models.openapi import OpenAPIEndpointMetadata, OpenAPISchemaMetadata, OpenAPIOverviewMetadata
-    
+    from bengal.autodoc.models.openapi import (
+        OpenAPIEndpointMetadata,
+        OpenAPISchemaMetadata,
+    )
+    from bengal.autodoc.models.python import PythonClassMetadata, PythonFunctionMetadata
+
     if isinstance(tm, PythonFunctionMetadata):
         if include_signature and tm.signature:
             parts.append("sig:" + tm.signature.replace(" ", ""))
         if include_decorators and tm.decorators:
             parts.append("dec:" + "|".join(sorted(tm.decorators)))
-            
+
     elif isinstance(tm, PythonClassMetadata):
         if tm.bases:
             parts.append("bases:" + "|".join(sorted(tm.bases)))
@@ -121,12 +124,12 @@ def compute_doc_content_hash(
         sig = element.metadata.get("signature")
         if include_signature and sig:
             parts.append("sig:" + str(sig).replace(" ", ""))
-            
+
         # Decorators fallback
         decs = element.metadata.get("decorators")
         if include_decorators and decs and isinstance(decs, (list, tuple)):
             parts.append("dec:" + "|".join(sorted(str(d) for d in decs)))
-            
+
         # Bases fallback
         bases = element.metadata.get("bases")
         if bases and isinstance(bases, (list, tuple)):

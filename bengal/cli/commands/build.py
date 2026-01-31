@@ -207,10 +207,10 @@ def build(
 ) -> None:
     """
     Build the static site.
-    
+
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
-        
+
     """
 
     # Import profile system
@@ -660,12 +660,12 @@ def build(
 def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     """
     Print detailed incremental build decision breakdown.
-    
+
     RFC: rfc-incremental-build-observability Phase 2
-    
+
     Displays a human-readable breakdown of why pages were rebuilt or skipped,
     grouped by rebuild reason. Useful for debugging cache issues.
-    
+
     Args:
         stats: BuildStats object containing incremental_decision
         cli: CLIOutput instance for formatted output
@@ -787,11 +787,11 @@ def _truncate_path(path: str, max_len: int = 25) -> str:
 def _print_explain_json(stats, *, dry_run: bool = False) -> None:
     """
     Print incremental build decision as JSON.
-    
+
     RFC: rfc-incremental-build-observability Phase 2
-    
+
     Outputs machine-readable JSON for tooling integration.
-    
+
     Args:
         stats: BuildStats object containing incremental_decision
         dry_run: Whether this was a dry-run (preview) build
@@ -801,7 +801,7 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
     from bengal.orchestration.build.results import IncrementalDecision
 
     decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
-    
+
     if decision is None:
         output = {
             "error": "No incremental decision data available",

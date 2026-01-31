@@ -72,12 +72,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.autodoc import is_autodoc_page
+from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -88,18 +88,18 @@ XREF_INDEX_VERSION = "1"
 class XRefIndexGenerator:
     """
     Generates xref.json for cross-project documentation linking.
-    
+
     Creates a JSON index that other Bengal sites can import to resolve
     [[ext:project:target]] references to pages, API docs, and CLI commands.
-    
+
     Creation:
         Direct instantiation: XRefIndexGenerator(site)
             - Requires Site instance with rendered pages
             - Called during post-processing phase
-    
+
     Attributes:
         site: Site instance with pages and configuration
-    
+
     Entry Types:
         - page: Regular content pages
         - class: Python classes from autodoc
@@ -108,11 +108,11 @@ class XRefIndexGenerator:
         - module: Python modules from autodoc
         - cli: CLI commands from autodoc
         - endpoint: REST API endpoints from autodoc
-    
+
     Example:
             >>> generator = XRefIndexGenerator(site)
             >>> path = generator.generate()  # Returns Path to xref.json
-        
+
     """
 
     def __init__(self, site: SiteLike) -> None:
@@ -402,13 +402,13 @@ class XRefIndexGenerator:
 def should_export_xref_index(site: SiteLike) -> bool:
     """
     Check if xref.json export is enabled.
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         True if external_refs.export_index is True
-        
+
     """
     external_refs = site.config.get("external_refs", {})
     if isinstance(external_refs, bool):

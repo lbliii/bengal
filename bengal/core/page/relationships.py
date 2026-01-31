@@ -33,12 +33,12 @@ if TYPE_CHECKING:
 class PageRelationshipsMixin:
     """
     Mixin providing relationship checking for pages.
-    
+
     This mixin handles:
     - Page equality checking
     - Section membership
     - Ancestor/descendant relationships
-        
+
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into

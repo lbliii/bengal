@@ -21,14 +21,14 @@ from bengal.utils.primitives.lru_cache import LRUCache
 class DirectiveCache:
     """
     LRU cache for parsed directive content.
-    
+
     Uses content hash to detect changes and reuse parsed AST.
     Implements LRU eviction to limit memory usage.
-    
+
     Thread-safe: Uses shared LRUCache with RLock for safe concurrent access.
-    
+
     Expected impact: 30-50% speedup on pages with repeated directive patterns.
-        
+
     """
 
     def __init__(self, max_size: int = 1000):
@@ -132,10 +132,10 @@ _config_lock = threading.Lock()  # Protects _directive_cache replacement in conf
 def get_cache() -> DirectiveCache:
     """
     Get the global directive cache instance.
-    
+
     Returns:
         Global DirectiveCache instance
-        
+
     """
     return _directive_cache
 
@@ -143,17 +143,17 @@ def get_cache() -> DirectiveCache:
 def configure_cache(max_size: int | None = None, enabled: bool | None = None) -> None:
     """
     Configure the global directive cache.
-    
+
     Thread-safe: Uses lock to protect global instance replacement under
     free-threading (PEP 703).
-    
+
     Args:
         max_size: Maximum cache size (None to keep current)
         enabled: Whether to enable caching (None to keep current)
-    
+
     Note:
         max_size changes require recreating the cache. This clears existing entries.
-        
+
     """
     global _directive_cache
 
@@ -180,10 +180,10 @@ def clear_cache() -> None:
 def get_cache_stats() -> dict[str, Any]:
     """
     Get statistics from the global directive cache.
-    
+
     Returns:
         Cache statistics dictionary
-        
+
     """
     return _directive_cache.stats()
 
@@ -191,16 +191,16 @@ def get_cache_stats() -> dict[str, Any]:
 def configure_for_site(site: Any) -> None:
     """
     Auto-configure directive cache based on site configuration.
-    
+
     Versioned sites benefit from directive caching because identical
     directive blocks appear across multiple versions. Cache provides
     3-5x speedup for repeated directive content.
-    
+
     Single-version sites skip caching (no benefit, adds overhead).
-    
+
     Args:
         site: Site instance with version_config and config attributes
-        
+
     """
     from bengal.utils.observability.logger import get_logger
 

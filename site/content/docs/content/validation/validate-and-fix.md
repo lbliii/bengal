@@ -3,7 +3,6 @@ title: Validate and Fix
 nav_title: Validate & Fix
 description: Run health checks and automatically fix common content issues
 weight: 10
-type: doc
 icon: wrench
 tags:
 - validation

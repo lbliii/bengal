@@ -17,7 +17,7 @@ from typing import Any, Literal
 class CLIOptionMetadata:
     """
     Metadata for CLI option or argument.
-    
+
     Attributes:
         name: Parameter name
         param_type: Type of parameter ("option" or "argument")
@@ -30,7 +30,7 @@ class CLIOptionMetadata:
         opts: Option flags (e.g., ("-v", "--verbose"))
         envvar: Environment variable name
         help_text: Help text description
-    
+
     Example:
             >>> meta = CLIOptionMetadata(
             ...     name="verbose",
@@ -40,7 +40,7 @@ class CLIOptionMetadata:
             ... )
             >>> meta.is_flag
         True
-        
+
     """
 
     name: str
@@ -60,19 +60,19 @@ class CLIOptionMetadata:
 class CLICommandMetadata:
     """
     Metadata specific to CLI commands.
-    
+
     Attributes:
         callback: Name of callback function
         option_count: Number of options
         argument_count: Number of arguments
         is_group: Whether this is a command group
         is_hidden: Whether command is hidden
-    
+
     Example:
             >>> meta = CLICommandMetadata(callback="build_cmd", option_count=3, argument_count=1)
             >>> meta.option_count
         3
-        
+
     """
 
     callback: str | None = None
@@ -86,16 +86,16 @@ class CLICommandMetadata:
 class CLIGroupMetadata:
     """
     Metadata specific to CLI command groups.
-    
+
     Attributes:
         callback: Name of callback function
         command_count: Number of subcommands
-    
+
     Example:
             >>> meta = CLIGroupMetadata(callback="cli_main", command_count=5)
             >>> meta.command_count
         5
-        
+
     """
 
     callback: str | None = None

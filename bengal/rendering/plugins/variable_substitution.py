@@ -21,64 +21,64 @@ logger = get_logger(__name__)
 class VariableSubstitutionPlugin:
     """
     Mistune plugin for safe variable substitution in markdown content.
-    
+
     ARCHITECTURE: Separation of Concerns
     =====================================
-    
+
     This plugin handles ONLY variable substitution ({{ vars }}) in markdown.
     It operates at the AST level after Mistune parses the markdown structure.
-    
+
     WHAT THIS HANDLES:
     ------------------
     ✅ {{ page.metadata.xxx }} - Access page frontmatter
     ✅ {{ site.config.xxx }} - Access site configuration
     ✅ {{ page.title }}, {{ page.date }}, etc. - Page properties
-    
+
     WHAT THIS DOESN'T HANDLE:
     --------------------------
     ❌ {% if condition %} - Conditional blocks
     ❌ {% for item %} - Loop constructs
     ❌ Complex Jinja2 logic
-    
+
     WHY: Conditionals and loops belong in TEMPLATES, not markdown.
-    
+
     Example - Using in Markdown:
         Welcome to {{ page.metadata.product_name }} version {{ page.metadata.version }}.
-    
+
         Connect to {{ page.metadata.api_url }}/users
-    
+
     Example - Escaping Syntax:
         Use {{/* page.title */}} to display the page title.
-    
+
         This renders as: Use {{ page.title }} to display the page title.
-    
+
     Example - Using Conditionals in Templates:
         <!-- templates/page.html -->
         <article>
           {% if page.metadata.beta %}
           <div class="beta-notice">Beta Feature</div>
           {% endif %}
-    
+
           {{ content }}  <!-- Markdown with {{ vars }} renders here -->
         </article>
-    
+
     KEY FEATURE: Code blocks stay literal naturally!
     ------------------------------------------------
     Since this plugin only processes text tokens (not code tokens),
     code blocks and inline code automatically preserve their content:
-    
+
         Use `{{ page.title }}` to show the title.  ← Stays literal in output
-    
+
             ```python
             # This {{ var }} stays literal too!
             print("{{ page.title }}")
             ```
-    
+
     This is the RIGHT architectural approach:
     - Single-pass parsing (fast!)
     - Natural code block handling (no escaping needed!)
     - Clear separation: content (markdown) vs logic (templates)
-        
+
     """
 
     VARIABLE_PATTERN = re.compile(r"\{\{\s*([^}]+)\s*\}\}")

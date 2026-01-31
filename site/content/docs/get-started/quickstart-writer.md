@@ -5,7 +5,6 @@ description: Create your first site and start writing content
 draft: false
 weight: 20
 lang: en
-type: doc
 tags:
 - onboarding
 - writing

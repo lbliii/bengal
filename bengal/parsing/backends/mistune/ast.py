@@ -19,18 +19,18 @@ logger = get_logger(__name__)
 def create_ast_parser(mistune_module: Any, base_plugins: list[Any] | None) -> Any:
     """
     Create an AST parser instance.
-    
+
     IMPORTANT: Uses the same plugin set as the HTML parser so directive tokens
     are present in the returned token stream. However, renderer-dependent plugins
     (like syntax highlighting) are filtered out since AST mode uses renderer=None.
-    
+
     Args:
         mistune_module: The imported mistune module
         base_plugins: List of base plugins to include
-    
+
     Returns:
         Mistune markdown instance configured for AST output
-        
+
     """
     # Filter out renderer-dependent plugins
     # Syntax highlighting modifies the renderer's block_code method,
@@ -57,29 +57,29 @@ def parse_to_ast(
 ) -> list[dict[str, Any]]:
     """
     Parse Markdown content to AST tokens.
-    
+
     Uses Mistune's built-in AST support by parsing with renderer=None.
     The AST is a list of token dictionaries representing the document structure.
-    
+
     Performance:
         - Parsing cost is similar to parse() (same tokenization)
         - AST is more memory-efficient than HTML for caching
         - Multiple outputs can be generated from single AST
-    
+
     Args:
         content: Raw Markdown content
         ast_parser: Pre-configured AST parser instance
-    
+
     Returns:
         List of AST token dictionaries
-    
+
     Example:
             >>> parse_to_ast("# Hello\n\nWorld", ast_parser)
         [
             {'type': 'heading', 'attrs': {'level': 1}, 'children': [...]},
             {'type': 'paragraph', 'children': [{'type': 'text', 'raw': 'World'}]}
         ]
-        
+
     """
     if not content:
         return []
@@ -100,22 +100,22 @@ def parse_to_ast(
 def render_ast(ast: list[dict[str, Any]]) -> str:
     """
     Render AST tokens to HTML.
-    
+
     Uses Mistune's renderer to convert AST tokens back to HTML.
     This enables parse-once, render-many patterns.
-    
+
     Args:
         ast: List of AST token dictionaries from parse_to_ast()
-    
+
     Returns:
         Rendered HTML string
-    
+
     Example:
             >>> ast = parse_to_ast("# Hello", ast_parser)
             >>> html = render_ast(ast)
             >>> print(html)
             '<h1>Hello</h1>'
-        
+
     """
     if not ast:
         return ""

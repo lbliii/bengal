@@ -110,7 +110,7 @@ from bengal.directives.registry import (
     get_known_directive_names,
     register_all,
 )
-from bengal.directives.tokens import DirectiveToken as _DirectiveToken  # noqa: F811
+from bengal.directives.tokens import DirectiveToken as _DirectiveToken
 from bengal.directives.tokens import DirectiveType
 
 if TYPE_CHECKING:
@@ -133,13 +133,13 @@ _directive_classes_cache: list[type] | None = None
 
 def _get_directive_classes() -> list[type]:
     """Return all directive classes, loading them lazily if needed.
-    
+
     This internal function backs the ``DIRECTIVE_CLASSES`` module attribute,
     caching the result after the first load to avoid repeated imports.
-    
+
     Returns:
         List of all BengalDirective subclasses.
-        
+
     """
     global _directive_classes_cache
     if _directive_classes_cache is None:
@@ -151,48 +151,48 @@ def _get_directive_classes() -> list[type]:
 # module-level __getattr__ which lazily loads all directive classes.
 
 __all__ = [
-    # Factory function for Mistune plugin (lazy-loaded)
-    "create_documentation_directives",
-    "reset_directive_instances",  # For testing only
+    "ADMONITION_TYPES",
+    "CARDS_CONTRACT",
+    "CARD_CONTRACT",
+    "CODE_BLOCK_DIRECTIVES",
+    "CODE_TABS_CONTRACT",
     # Registry API
     "DIRECTIVE_CLASSES",
     "KNOWN_DIRECTIVE_NAMES",
-    "ADMONITION_TYPES",
-    "CODE_BLOCK_DIRECTIVES",
-    "get_directive",
-    "get_known_directive_names",
-    "register_all",
-    # Base classes
-    "BengalDirective",
-    "DirectiveToken",
-    "DirectiveType",
-    "DirectiveOptions",
-    "DirectiveContract",
-    "ContractValidator",
-    "ContractViolation",
-    "FencedDirective",
-    # Preset Options
-    "StyledOptions",
-    "ContainerOptions",
-    "TitledOptions",
     # Preset Contracts
     "STEPS_CONTRACT",
     "STEP_CONTRACT",
-    "TAB_SET_CONTRACT",
     "TAB_ITEM_CONTRACT",
-    "CARDS_CONTRACT",
-    "CARD_CONTRACT",
-    "CODE_TABS_CONTRACT",
+    "TAB_SET_CONTRACT",
+    # Base classes
+    "BengalDirective",
+    "ContainerOptions",
+    "ContractValidator",
+    "ContractViolation",
+    "DirectiveContract",
     # Error handling
     "DirectiveError",
-    "format_directive_error",
+    "DirectiveOptions",
+    "DirectiveToken",
+    "DirectiveType",
+    "FencedDirective",
+    # Preset Options
+    "StyledOptions",
+    "TitledOptions",
+    "attr_str",
+    "bool_attr",
+    "build_class_string",
+    "class_attr",
+    # Factory function for Mistune plugin (lazy-loaded)
+    "create_documentation_directives",
+    "data_attrs",
     # Utilities
     "escape_html",
-    "build_class_string",
-    "bool_attr",
-    "data_attrs",
-    "attr_str",
-    "class_attr",
+    "format_directive_error",
+    "get_directive",
+    "get_known_directive_names",
+    "register_all",
+    "reset_directive_instances",  # For testing only
 ]
 
 # Lazy loading for create_documentation_directives to avoid circular imports
@@ -201,19 +201,19 @@ _factory_func: Callable[[], Callable[[Any], None]] | None = None
 
 def reset_directive_instances() -> None:
     """Reset singleton directive instances (for testing only).
-    
+
     This function is intended for use in tests to ensure clean state
     between test runs. It should not be called in production code.
-    
+
     Example:
         ::
-    
+
             from bengal.directives import reset_directive_instances
-    
+
             def test_something():
                 reset_directive_instances()  # Clear cache
                 # ... test code ...
-        
+
     """
     from bengal.directives.factory import reset_directive_instances as _reset
 
@@ -222,35 +222,35 @@ def reset_directive_instances() -> None:
 
 def create_documentation_directives() -> Callable[[Any], None]:
     """Create the documentation directives plugin for Mistune.
-    
+
     Returns a callable that registers all Bengal directives with a Mistune
     markdown instance. This is the primary entry point for enabling directive
     support in your markdown processing pipeline.
-    
+
     The actual factory is lazy-loaded on first call to avoid circular imports
     between ``bengal.directives`` and ``bengal.rendering.plugins``.
-    
+
     Returns:
         A plugin function compatible with ``mistune.create_markdown(plugins=[...])``.
-    
+
     Example:
         ::
-    
+
             import mistune
             from bengal.directives import create_documentation_directives
-    
+
             md = mistune.create_markdown(
                 plugins=[create_documentation_directives()]
             )
             html = md(":::{note}\nImportant information.\n:::")
-    
+
     Raises:
         RuntimeError: If directive registration fails.
         ImportError: If required dependencies are not available.
-    
+
     See Also:
         ``bengal.directives.factory``: Full factory implementation.
-        
+
     """
     global _factory_func
     if _factory_func is None:
@@ -264,19 +264,19 @@ def create_documentation_directives() -> Callable[[Any], None]:
 
 def __getattr__(name: str) -> list[type]:
     """Provide lazy access to module-level attributes.
-    
+
     Implements PEP 562 module ``__getattr__`` to enable lazy loading of
     ``DIRECTIVE_CLASSES``, which triggers import of all directive modules.
-    
+
     Args:
         name: The attribute name being accessed.
-    
+
     Returns:
         For ``DIRECTIVE_CLASSES``, returns a list of all directive classes.
-    
+
     Raises:
         AttributeError: If the requested attribute does not exist.
-        
+
     """
     if name == "DIRECTIVE_CLASSES":
         return _get_directive_classes()

@@ -4,9 +4,6 @@ nav_title: Operations
 description: CI/CD, automation, and site analysis
 weight: 40
 draft: false
-type: doc
-cascade:
-  type: doc
 icon: settings
 ---
 

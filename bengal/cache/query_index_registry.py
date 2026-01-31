@@ -58,20 +58,20 @@ logger = get_logger(__name__)
 class QueryIndexRegistry:
     """
     Registry for all query indexes.
-    
+
     Manages the lifecycle of query indexes:
     - Registration (built-in + custom)
     - Building (full + incremental)
     - Persistence
     - Template access via site.indexes
-    
+
     Example:
         registry = QueryIndexRegistry(site, cache_dir)
         registry.build_all(site.pages, build_cache)
-    
+
         # Template access
         blog_posts = registry.get('section').get('blog')
-        
+
     """
 
     def __init__(self, site: Site, cache_dir: Path):

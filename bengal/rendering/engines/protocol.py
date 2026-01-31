@@ -3,10 +3,10 @@ Template engine protocol definitions.
 
 .. deprecated:: 0.2.0
     Import from :mod:`bengal.protocols` instead::
-    
+
         # Old (deprecated)
         from bengal.rendering.engines.protocol import TemplateEngineProtocol
-        
+
         # New (preferred)
         from bengal.protocols import TemplateEngine, TemplateRenderer
 
@@ -34,11 +34,23 @@ from typing import TYPE_CHECKING
 # Re-export from canonical location
 from bengal.protocols.rendering import (
     EngineCapability as _EngineCapability,
+)
+from bengal.protocols.rendering import (
     TemplateEngine as _TemplateEngine,
+)
+from bengal.protocols.rendering import (
     TemplateEngineProtocol as _TemplateEngineProtocol,
+)
+from bengal.protocols.rendering import (
     TemplateEnvironment as _TemplateEnvironment,
+)
+from bengal.protocols.rendering import (
     TemplateIntrospector as _TemplateIntrospector,
+)
+from bengal.protocols.rendering import (
     TemplateRenderer as _TemplateRenderer,
+)
+from bengal.protocols.rendering import (
     TemplateValidator as _TemplateValidator,
 )
 
@@ -66,7 +78,7 @@ def __getattr__(name: str):
         "TemplateIntrospector": _TemplateIntrospector,
         "TemplateValidator": _TemplateValidator,
     }
-    
+
     if name in _exports:
         warnings.warn(
             f"Import {name} from bengal.protocols instead of "
@@ -76,16 +88,16 @@ def __getattr__(name: str):
             stacklevel=2,
         )
         return _exports[name]
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
-    "TemplateEnvironment",
     "EngineCapability",
-    "TemplateEngineProtocol",
     "TemplateEngine",
-    "TemplateRenderer",
+    "TemplateEngineProtocol",
+    "TemplateEnvironment",
     "TemplateIntrospector",
+    "TemplateRenderer",
     "TemplateValidator",
 ]

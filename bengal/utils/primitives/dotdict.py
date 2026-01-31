@@ -14,21 +14,21 @@ from typing import Any, cast
 class DotDict:
     """
     Dictionary wrapper that allows dot notation access without method name conflicts.
-    
+
     This class solves a common Jinja2 gotcha: when using dot notation
     on a regular dict, Jinja2 will access dict methods (like .items())
     instead of dictionary keys named "items".
-    
+
     Example Problem:
             >>> data = {"skills": [{"category": "Programming", "items": ["Python"]}]}
             >>> # In Jinja2 template:
             >>> # {{ skill_group.items }}  # Accesses .items() method! ❌
-    
+
     Solution with DotDict:
             >>> data = DotDict({"skills": [{"category": "Programming", "items": ["Python"]}]})
             >>> # In Jinja2 template:
             >>> # {{ skill_group.items }}  # Accesses "items" field! ✅
-    
+
     Features:
         - Dot notation: obj.key
         - Bracket notation: obj['key']
@@ -36,39 +36,39 @@ class DotDict:
         - Dict-like interface (but not inheriting from dict)
         - No method name collisions
         - Returns '' for missing keys (consistent with ParamsContext)
-    
+
     Usage:
             >>> # Create from dict
             >>> data = DotDict({"name": "Alice", "age": 30})
             >>> data.name
             'Alice'
-    
+
             >>> # Nested dicts auto-wrapped
             >>> data = DotDict({"user": {"name": "Bob"}})
             >>> data.user.name
             'Bob'
-    
+
             >>> # Lists preserved
             >>> data = DotDict({"items": ["a", "b", "c"]})
             >>> data.items  # Returns list, not a method!
         ['a', 'b', 'c']
-    
+
             >>> # Missing keys return empty string
             >>> data = DotDict({"name": "Alice"})
             >>> data.missing
             ''
-    
+
     Implementation Note:
         Unlike traditional dict subclasses, DotDict does NOT inherit from dict.
         This avoids method name collisions. We implement the dict interface
         manually to work with Jinja2 and other dict-expecting code.
-    
+
     Performance:
         Nested dictionaries are wrapped lazily and cached on first access.
         This prevents repeatedly creating new DotDict objects for the same
         nested data, which is especially important for deeply nested structures
         or when accessed in template loops.
-        
+
     """
 
     def __init__(self, data: dict[str, Any] | None = None):
@@ -234,16 +234,16 @@ class DotDict:
 def wrap_data(data: Any) -> Any:
     """
     Recursively wrap dictionaries in DotDict for clean access.
-    
+
     This is the main helper function for wrapping data loaded from
     YAML/JSON files before passing to templates.
-    
+
     Args:
         data: Data to wrap (can be dict, list, or primitive)
-    
+
     Returns:
         Wrapped data with DotDict for all dicts
-    
+
     Example:
             >>> data = {
             ...     "team": [
@@ -254,7 +254,7 @@ def wrap_data(data: Any) -> Any:
             >>> wrapped = wrap_data(data)
             >>> wrapped.team[0].skills.items  # Clean access!
         ['Python']
-        
+
     """
     if isinstance(data, dict) and not isinstance(data, DotDict):
         return DotDict.from_dict(data)

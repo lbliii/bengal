@@ -40,22 +40,22 @@ logger = get_logger(__name__)
 class RequestLogger:
     """
     Mixin providing beautiful, minimal HTTP request logging.
-    
+
     Designed to be mixed into an HTTP request handler to override default
     logging behavior. Filters out noisy requests and provides color-coded
     output for easy scanning during development.
-    
+
     Filtering Rules:
         - Skip: favicon requests, .well-known paths
         - Skip: 304 Not Modified (cache hits)
         - Skip: Successful asset loads (/assets/, /static/)
         - Skip: Optional resource 404s (search-index.json)
         - Show: All page loads, errors, and initial asset loads
-    
+
     Example:
             >>> class MyHandler(RequestLogger, SimpleHTTPRequestHandler):
             ...     pass  # Logging is automatically enhanced
-        
+
     """
 
     def log_message(self, format: str, *args: Any) -> None:
@@ -171,4 +171,3 @@ class RequestLogger:
 
         # All other error logging is handled in log_message with proper filtering
         # This prevents duplicate error messages
-        pass

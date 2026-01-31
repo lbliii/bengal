@@ -3,7 +3,6 @@ title: Add a Custom Filter
 nav_title: Custom Filter
 description: Extend Kida with your own template filters
 weight: 20
-type: doc
 draft: false
 lang: en
 tags:

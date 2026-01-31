@@ -23,25 +23,25 @@ if TYPE_CHECKING:
     from typing import Literal
 
 # Re-export for backwards compatibility
-__all__ = ["OutputCollector", "BuildOutputCollector"]
+__all__ = ["BuildOutputCollector", "OutputCollector"]
 
 
 class BuildOutputCollector:
     """Thread-safe implementation of OutputCollector for builds.
-    
+
     This collector tracks all output files written during a build,
     enabling reliable hot reload decisions in the dev server.
-    
+
     Attributes:
         output_dir: Base output directory for relative path calculation
-    
+
     Example:
             >>> collector = BuildOutputCollector(Path("/site/public"))
             >>> collector.record(Path("posts/hello.html"), OutputType.HTML, "render")
             >>> collector.record(Path("assets/style.css"), phase="asset")
             >>> collector.css_only()
         False
-        
+
     """
 
     def __init__(self, output_dir: Path | None = None) -> None:

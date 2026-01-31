@@ -45,21 +45,21 @@ if TYPE_CHECKING:
 class CategoryIndex(QueryIndex):
     """
     Index pages by category (single-valued taxonomy).
-    
+
     Unlike tags (multi-valued), categories are typically single-valued:
         category: tutorial
         category: autodoc/python
         category: guide
-    
+
     Provides O(1) lookup:
         site.indexes.category.get('tutorial')      # All tutorials
         site.indexes.category.get('autodoc/python') # All API docs
-    
+
     Common patterns:
         - Documentation: 'tutorial', 'guide', 'reference', 'howto'
         - Blog: 'tech', 'business', 'personal'
         - Recipes: 'appetizer', 'main-course', 'dessert'
-        
+
     """
 
     def __init__(self, cache_path: Path):

@@ -45,16 +45,16 @@ if TYPE_CHECKING:
 class NavScaffold:
     """
     Pre-rendered navigation scaffold with active trail data.
-    
+
     The scaffold HTML is static (no active classes) and can be cached.
     Active state is applied client-side using the provided trail data.
-    
+
     Attributes:
         html: Pre-rendered HTML of the navigation tree (static, no active state)
         active_trail: List of URLs in the active trail (current page to root)
         current_path: URL of the current page
         active_trail_json: JSON-encoded active trail for data attribute
-        
+
     """
 
     html: str
@@ -70,19 +70,19 @@ class NavScaffold:
 class NavScaffoldCache:
     """
     Thread-safe LRU cache for pre-rendered nav scaffold HTML.
-    
+
     Uses per-scaffold locking to prevent duplicate renders when multiple
     threads request the same scaffold simultaneously. Different scaffolds
     can still be rendered in parallel.
-    
+
     Caches scaffold HTML per (site, version_id, root_url) scope.
     Invalidated when site object changes (new build session).
-    
+
     Thread Safety:
         - Uses shared LRUCache with internal RLock
         - _render_locks: Per-scaffold locks to serialize renders for SAME scope
         - Different scaffolds render in parallel (no contention)
-        
+
     """
 
     _cache: LRUCache[str, str] = LRUCache(maxsize=50, name="nav_scaffold")
@@ -189,15 +189,15 @@ class NavScaffoldCache:
 class ScaffoldNodeProxy:
     """
     Proxy for NavNode that always returns False for active state.
-    
+
     Used when rendering the scaffold to produce static HTML without
     per-page active classes.
-    
+
     PERFORMANCE: Properties are cached to avoid repeated computation.
-        
+
     """
 
-    __slots__ = ("_node", "_context", "_href_cached", "_children_cached")
+    __slots__ = ("_children_cached", "_context", "_href_cached", "_node")
 
     def __init__(self, node: NavNode, context: ScaffoldContext) -> None:
         self._node = node
@@ -310,10 +310,10 @@ class ScaffoldNodeProxy:
 class ScaffoldContext:
     """
     Context that wraps NavTree for scaffold rendering.
-    
+
     Returns ScaffoldNodeProxy instances that always have inactive state,
     producing static HTML that can be cached and reused.
-        
+
     """
 
     def __init__(self, tree: NavTree, page: Page, root_node: NavNode | None = None):
@@ -341,17 +341,17 @@ def get_nav_scaffold_context(
 ) -> ScaffoldContext:
     """
     Get a scaffold context for static nav rendering.
-    
+
     The scaffold context returns proxy nodes that always have inactive state,
     producing HTML that can be cached across pages.
-    
+
     Args:
         page: Current page (used for site/version context)
         root_section: Optional section to scope navigation to
-    
+
     Returns:
         ScaffoldContext with static (inactive) node proxies
-        
+
     """
     site = getattr(page, "_site", None)
     if site is None:
@@ -376,16 +376,16 @@ def get_nav_scaffold_context(
 def get_active_trail(page: Page) -> list[str]:
     """
     Compute the active trail URLs for a page.
-    
+
     Returns a list of URLs from the current page up to the root,
     used for client-side active state application.
-    
+
     Args:
         page: Current page
-    
+
     Returns:
         List of URLs in the active trail (current page first)
-        
+
     """
     trail: list[str] = []
 
@@ -411,18 +411,18 @@ def render_scaffold_html(
 ) -> str:
     """
     Render scaffold HTML for a scope (internal helper).
-    
+
     This renders the tree-only template to a string.
     Called by get_cached_scaffold_html on cache miss.
-    
+
     Args:
         page: Page for context (site, version)
         root_section: Optional root section for scoping
         jinja_env: Jinja2 environment (required for rendering)
-    
+
     Returns:
         Rendered HTML string
-        
+
     """
     if jinja_env is None:
         return ""
@@ -453,23 +453,23 @@ def get_cached_scaffold_html(
 ) -> str:
     """
     Get cached scaffold HTML for a scope.
-    
+
     This is the main function for getting pre-rendered scaffold HTML.
     On first call for a scope, renders and caches the HTML.
     Subsequent calls return the cached HTML.
-    
+
     Args:
         page: Current page
         root_section: Optional root section for scoped navigation
         jinja_env: Jinja2 environment (from template globals)
-    
+
     Returns:
         Cached HTML string for the scaffold tree
-    
+
     Example (in template):
         {% set scaffold_html = get_cached_scaffold_html(page, root_section, _env) %}
         {{ scaffold_html | safe }}
-        
+
     """
     site = getattr(page, "_site", None)
     if site is None:
@@ -497,20 +497,20 @@ def get_nav_scaffold(
 ) -> NavScaffold:
     """
     Get navigation scaffold with active trail data.
-    
+
     This is the main entry point for scaffold-based nav rendering.
     Returns a NavScaffold with per-page active trail data.
-    
+
     Note: For cached HTML, use get_cached_scaffold_html() instead.
     This function provides trail data for JS active state application.
-    
+
     Args:
         page: Current page
         root_section: Optional section to scope navigation to
-    
+
     Returns:
         NavScaffold with active trail data
-    
+
     Example:
         {% set scaffold = get_nav_scaffold(page, root_section=root_section) %}
         <nav class="docs-nav"
@@ -519,7 +519,7 @@ def get_nav_scaffold(
              data-active-trail="{{ scaffold.active_trail_json }}">
           {{ get_cached_scaffold_html(page, root_section, _env) | safe }}
         </nav>
-        
+
     """
     current_path = getattr(page, "_path", None) or getattr(page, "href", "/")
     active_trail = get_active_trail(page)

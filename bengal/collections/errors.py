@@ -36,11 +36,11 @@ from bengal.errors import BengalContentError, ErrorCode
 class ValidationError:
     """
     A single field-level validation error.
-    
+
     Represents one validation failure for a specific frontmatter field.
     Multiple ``ValidationError`` instances may be collected into a
     :class:`ContentValidationError` for comprehensive error reporting.
-    
+
     Attributes:
         field: Name of the field that failed validation. May include array
             indexing for nested errors (e.g., ``"tags[0]"``, ``"author.name"``).
@@ -49,7 +49,7 @@ class ValidationError:
             but may be ``None`` for missing required fields.
         expected_type: Expected type as a string (e.g., ``"str"``, ``"list[str]"``).
             Included in the string representation when available.
-    
+
     Example:
             >>> error = ValidationError(
             ...     field="date",
@@ -59,7 +59,7 @@ class ValidationError:
             ... )
             >>> str(error)
         "date: Cannot parse 'not-a-date' as datetime (expected datetime)"
-        
+
     """
 
     field: str
@@ -82,10 +82,10 @@ class ValidationError:
 class ContentValidationError(BengalContentError):
     """
     Raised when content fails schema validation.
-    
+
     Aggregates multiple :class:`ValidationError` instances with file context,
     providing detailed error information for debugging and user feedback.
-    
+
     Attributes:
         path: Path to the content file that failed validation.
         errors: List of :class:`ValidationError` instances, one per field failure.
@@ -93,7 +93,7 @@ class ContentValidationError(BengalContentError):
         message: Summary error message (inherited from base class).
         suggestion: Optional suggestion for fixing the error.
         original_error: Original exception that caused this error (if any).
-    
+
     Example:
             >>> try:
             ...     validate_page(page, schema)
@@ -102,10 +102,10 @@ class ContentValidationError(BengalContentError):
         Content validation failed: content/blog/post.md
           └─ title: Required field 'title' is missing
           └─ date: Cannot parse 'not-a-date' as datetime
-    
+
     Example:
         Converting to JSON for API responses:
-    
+
             >>> error.to_dict()
         {
                 'message': 'Validation failed',
@@ -115,7 +115,7 @@ class ContentValidationError(BengalContentError):
                 {'field': 'title', 'message': 'Required field is missing', ...}
             ]
         }
-        
+
     """
 
     def __init__(
@@ -229,14 +229,14 @@ class ContentValidationError(BengalContentError):
 class CollectionNotFoundError(BengalContentError):
     """
     Raised when a referenced collection does not exist.
-    
+
     Includes the list of available collections to help users identify typos
     or configuration issues.
-    
+
     Attributes:
         collection_name: Name of the collection that was not found.
         available: List of collection names that do exist.
-    
+
     Example:
             >>> raise CollectionNotFoundError(
             ...     collection_name="blg",
@@ -244,7 +244,7 @@ class CollectionNotFoundError(BengalContentError):
             ... )
         CollectionNotFoundError: Collection not found: 'blg'
         Available collections: api, blog, docs
-        
+
     """
 
     def __init__(
@@ -284,20 +284,20 @@ class CollectionNotFoundError(BengalContentError):
 class SchemaError(BengalContentError):
     """
     Raised when a schema definition is invalid.
-    
+
     Indicates a problem with the schema class itself (e.g., invalid type hints,
     conflicting defaults), not with the content being validated against it.
-    
+
     Attributes:
         schema_name: Name of the invalid schema class.
-    
+
     Example:
             >>> raise SchemaError(
             ...     schema_name="BlogPost",
             ...     message="Field 'tags' has invalid default (mutable list)",
             ...     suggestion="Use field(default_factory=list) instead of []",
             ... )
-        
+
     """
 
     def __init__(

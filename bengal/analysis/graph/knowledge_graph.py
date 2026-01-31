@@ -62,11 +62,11 @@ from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.analysis.graph.community_detection import CommunityDetectionResults
     from bengal.analysis.graph.analyzer import GraphAnalyzer
+    from bengal.analysis.graph.community_detection import CommunityDetectionResults
+    from bengal.analysis.graph.page_rank import PageRankResults
     from bengal.analysis.graph.reporter import GraphReporter
     from bengal.analysis.links.suggestions import LinkSuggestionResults
-    from bengal.analysis.graph.page_rank import PageRankResults
     from bengal.analysis.performance.path_analysis import PathAnalysisResults
     from bengal.analysis.results import PageLayers
     from bengal.protocols import PageLike, SiteLike
@@ -80,26 +80,26 @@ __all__ = ["GraphMetrics", "KnowledgeGraph", "PageConnectivity"]
 class KnowledgeGraph:
     """
     Analyzes the connectivity structure of a Bengal site.
-    
+
     Builds a graph of all pages and their connections through:
     - Internal links (cross-references)
     - Taxonomies (tags, categories)
     - Related posts
     - Menu items
-    
+
     Provides insights for:
     - Content strategy (find orphaned pages)
     - Performance optimization (hub-first streaming)
     - Navigation design (understand structure)
     - SEO improvements (link structure)
-    
+
     Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
             >>> hubs = graph.get_hubs(threshold=10)
             >>> orphans = graph.get_orphans()
             >>> print(f"Found {len(orphans)} orphaned pages")
-        
+
     """
 
     def __init__(

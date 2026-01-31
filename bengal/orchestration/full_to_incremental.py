@@ -47,12 +47,12 @@ def run_incremental_bridge(
     site: Site, change_type: str, changed_paths: Iterable[str | Path]
 ) -> None:
     """Run a minimal incremental pass for the given site.
-    
+
     Args:
         site: Site instance
         change_type: One of "content", "template", or "config"
         changed_paths: Paths that changed (ignored for config)
-        
+
     """
     orch = IncrementalOrchestrator(site)
     orch.initialize(enabled=True)

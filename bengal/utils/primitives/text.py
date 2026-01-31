@@ -29,24 +29,24 @@ def slugify(
 ) -> str:
     """
     Convert text to URL-safe slug with Unicode support.
-    
+
     Preserves Unicode word characters (letters, digits, underscore) to support
     international content. Modern web browsers and servers handle Unicode URLs.
-    
+
     Consolidates implementations from:
     - bengal/rendering/parser.py:629 (_slugify)
     - bengal/rendering/template_functions/strings.py:92 (slugify)
     - bengal/rendering/template_functions/taxonomies.py:184 (tag_url pattern)
-    
+
     Args:
         text: Text to slugify
         unescape_html: Whether to decode HTML entities first (e.g., &amp; -> &)
         max_length: Maximum slug length (None = unlimited)
         separator: Character to use between words (default: '-')
-    
+
     Returns:
         URL-safe slug (lowercase, with Unicode word chars and separators)
-    
+
     Examples:
             >>> slugify("Hello World!")
             'hello-world'
@@ -62,11 +62,11 @@ def slugify(
             '你好世界'
             >>> slugify("Café")
             'café'
-    
+
     Note:
         Uses Python's ``\\w`` regex pattern which includes Unicode letters and digits.
         This is intentional to support international content in URLs.
-        
+
     """
     if not text:
         return ""
@@ -106,17 +106,17 @@ def slugify(
 def strip_html(text: str, decode_entities: bool = True) -> str:
     """
     Remove all HTML tags from text.
-    
+
     Consolidates implementation from:
     - bengal/rendering/template_functions/strings.py:157 (strip_html)
-    
+
     Args:
         text: HTML text to clean
         decode_entities: Whether to decode HTML entities (e.g., &lt; -> <)
-    
+
     Returns:
         Plain text with HTML tags removed
-    
+
     Examples:
             >>> strip_html("<p>Hello <strong>World</strong></p>")
             'Hello World'
@@ -124,7 +124,7 @@ def strip_html(text: str, decode_entities: bool = True) -> str:
             '<script>'
             >>> strip_html("&lt;script&gt;", decode_entities=False)
             '&lt;script&gt;'
-        
+
     """
     if not text:
         return ""
@@ -143,18 +143,18 @@ def strip_html(text: str, decode_entities: bool = True) -> str:
 def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     """
     Truncate text to specified word count.
-    
+
     Consolidates pattern from:
     - bengal/rendering/template_functions/strings.py (truncatewords)
-    
+
     Args:
         text: Text to truncate
         word_count: Maximum number of words
         suffix: Suffix to append if truncated
-    
+
     Returns:
         Truncated text with suffix if shortened
-    
+
     Examples:
             >>> truncate_words("The quick brown fox jumps", 3)
             'The quick brown...'
@@ -162,7 +162,7 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
             'Short text'
             >>> truncate_words("One two three four", 3, suffix="…")
             'One two three…'
-        
+
     """
     if not text:
         return ""
@@ -178,15 +178,15 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     """
     Truncate text to specified character length (including suffix).
-    
+
     Args:
         text: Text to truncate
         length: Maximum total length (including suffix if truncated)
         suffix: Suffix to append if truncated
-    
+
     Returns:
         Truncated text with suffix if shortened, never exceeding length
-    
+
     Examples:
             >>> truncate_chars("Hello World", 8)
             'Hello...'
@@ -194,7 +194,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
             'Short'
             >>> truncate_chars("0123456789", 10)
             '0123456...'
-        
+
     """
     if not text:
         return ""
@@ -216,21 +216,21 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
 def truncate_middle(text: str, max_length: int, separator: str = "...") -> str:
     """
     Truncate text in the middle (useful for file paths).
-    
+
     Args:
         text: Text to truncate
         max_length: Maximum total length
         separator: Separator to use in middle
-    
+
     Returns:
         Truncated text with separator in middle
-    
+
     Examples:
             >>> truncate_middle('/very/long/path/to/file.txt', 20)
             '/very/.../file.txt'
             >>> truncate_middle('short.txt', 20)
             'short.txt'
-        
+
     """
     if not text:
         return ""
@@ -253,24 +253,24 @@ def truncate_middle(text: str, max_length: int, separator: str = "...") -> str:
 def generate_excerpt(html: str, word_count: int = 50, suffix: str = "...") -> str:
     """
     Generate plain text excerpt from HTML content.
-    
+
     Combines strip_html and truncate_words for common use case.
     Consolidates pattern from:
     - bengal/postprocess/output_formats.py:674
     - Various template functions
-    
+
     Args:
         html: HTML content
         word_count: Maximum number of words
         suffix: Suffix to append if truncated
-    
+
     Returns:
         Plain text excerpt
-    
+
     Examples:
             >>> generate_excerpt("<p>Hello <strong>World</strong> from Bengal</p>", 2)
             'Hello World...'
-        
+
     """
     # Strip HTML tags and decode entities
     text = strip_html(html, decode_entities=True)
@@ -282,20 +282,20 @@ def generate_excerpt(html: str, word_count: int = 50, suffix: str = "...") -> st
 def normalize_whitespace(text: str, collapse: bool = True) -> str:
     """
     Normalize whitespace in text.
-    
+
     Args:
         text: Text to normalize
         collapse: Whether to collapse multiple spaces to single space
-    
+
     Returns:
         Text with normalized whitespace
-    
+
     Examples:
             >>> normalize_whitespace("  hello   world  ")
             'hello world'
             >>> normalize_whitespace("line1\n\n\nline2", collapse=True)
             'line1 line2'
-        
+
     """
     if not text:
         return ""
@@ -315,29 +315,29 @@ def normalize_whitespace(text: str, collapse: bool = True) -> str:
 def escape_html(text: str) -> str:
     """
     Escape HTML special characters for safe use in attributes.
-    
+
     Converts special characters to HTML entities:
     - & becomes &amp;
     - < becomes &lt;
     - > becomes &gt;
     - " becomes &quot;
     - ' becomes &#x27;
-    
+
     This function escapes apostrophes (single quotes) in addition to the
     standard characters, making the output safe for use in both single-quoted
     and double-quoted HTML attributes.
-    
+
     Consolidates implementations from:
     - bengal/directives/utils.py (escape_html)
     - bengal/directives/cards/utils.py (escape_html)
     - bengal/directives/glossary.py (_escape_html)
-    
+
     Args:
         text: Text to escape
-    
+
     Returns:
         HTML-escaped text safe for use in attribute values
-    
+
     Examples:
             >>> escape_html("<script>alert('xss')</script>")
         "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"
@@ -345,7 +345,7 @@ def escape_html(text: str) -> str:
             'Click &quot;here&quot; &amp; win &lt;prizes&gt;'
             >>> escape_html("")
             ''
-        
+
     """
     if not text:
         return ""
@@ -359,23 +359,23 @@ def escape_html(text: str) -> str:
 def unescape_html(text: str) -> str:
     """
     Unescape HTML entities.
-    
+
     Converts HTML entities back to characters:
     - &lt; becomes <
     - &gt; becomes >
     - &amp; becomes &
     - &quot; becomes "
-    
+
     Args:
         text: HTML text with entities
-    
+
     Returns:
         Unescaped text
-    
+
     Examples:
             >>> unescape_html("&lt;Hello&gt;")
             '<Hello>'
-        
+
     """
     if not text:
         return ""
@@ -386,15 +386,15 @@ def unescape_html(text: str) -> str:
 def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     """
     Return singular or plural form based on count.
-    
+
     Args:
         count: Count value
         singular: Singular form
         plural: Plural form (default: singular + 's')
-    
+
     Returns:
         Appropriate form for the count
-    
+
     Examples:
             >>> pluralize(1, 'page')
             'page'
@@ -404,7 +404,7 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
             'boxes'
             >>> pluralize(0, 'item')
             'items'
-        
+
     """
     if count == 1:
         return singular
@@ -414,13 +414,13 @@ def pluralize(count: int, singular: str, plural: str | None = None) -> str:
 def humanize_bytes(size_bytes: int) -> str:
     """
     Format bytes as human-readable string.
-    
+
     Args:
         size_bytes: Size in bytes
-    
+
     Returns:
         Human-readable string (e.g., "1.5 KB", "2.3 MB")
-    
+
     Examples:
             >>> humanize_bytes(1024)
             '1.0 KB'
@@ -428,7 +428,7 @@ def humanize_bytes(size_bytes: int) -> str:
             '1.5 KB'
             >>> humanize_bytes(1048576)
             '1.0 MB'
-        
+
     """
     units = ["B", "KB", "MB", "GB", "TB", "PB"]
     size = float(size_bytes)
@@ -448,19 +448,19 @@ def humanize_bytes(size_bytes: int) -> str:
 def humanize_number(num: int) -> str:
     """
     Format number with thousand separators.
-    
+
     Args:
         num: Number to format
-    
+
     Returns:
         Formatted string with commas
-    
+
     Examples:
             >>> humanize_number(1234567)
             '1,234,567'
             >>> humanize_number(1000)
             '1,000'
-        
+
     """
     return f"{num:,}"
 
@@ -468,24 +468,24 @@ def humanize_number(num: int) -> str:
 def humanize_slug(slug: str) -> str:
     """
     Convert slug or filename stem to human-readable title.
-    
+
     Transforms kebab-case and snake_case identifiers into
     Title Case strings suitable for display in navigation,
     page titles, and other user-facing contexts.
-    
+
     Consolidates pattern from:
     - bengal/core/page/metadata.py (title property)
     - bengal/discovery/content_discovery.py (fallback titles)
     - bengal/rendering/template_functions/navigation.py (breadcrumbs)
     - bengal/cli/helpers/menu_config.py (menu titles)
     - Various Jinja templates
-    
+
     Args:
         slug: Slug or filename stem (e.g., "my-page-name", "data_model")
-    
+
     Returns:
         Human-readable title (e.g., "My Page Name", "Data Model")
-    
+
     Examples:
             >>> humanize_slug("my-page-name")
             'My Page Name'
@@ -495,12 +495,12 @@ def humanize_slug(slug: str) -> str:
             ' Index'
             >>> humanize_slug("")
             ''
-    
+
     Note:
         This is a mechanical transformation (replace separators, title-case).
         Slashes and other characters are preserved. For semantic mappings
         (e.g., "autodoc/python" → "API Reference"), use domain-specific logic.
-        
+
     """
     if not slug:
         return ""
@@ -513,23 +513,23 @@ def format_path_for_display(
 ) -> str | None:
     """
     Format a path for user-friendly display in logs and warnings.
-    
+
     Converts absolute paths to relative paths when possible, making error
     messages and logs more readable by avoiding user-specific directory prefixes.
-    
+
     Consolidates implementation from:
     - bengal/utils/paths.py (original location)
     - bengal/core/page/__init__.py (_format_path_for_log)
-    
+
     Args:
         path: Path to format. Accepts Path objects, strings, or None.
         base_path: Base directory to make paths relative to (typically
             site.root_path). If None, falls back to showing just the
             parent directory and filename.
-    
+
     Returns:
         Formatted path string suitable for display, or None if path was None.
-    
+
     Examples:
             >>> site_root = Path("/home/user/mysite")
             >>> format_path_for_display(
@@ -537,18 +537,18 @@ def format_path_for_display(
             ...     base_path=site_root
             ... )
             'content/blog/post.md'
-    
+
             >>> # Without base_path, shows parent/filename
             >>> format_path_for_display(Path("/some/deep/path/file.md"))
             'path/file.md'
-    
+
             >>> format_path_for_display(None)
         None
-    
+
     Note:
         This function is used throughout Bengal for consistent path
         formatting in error messages, warnings, and log output.
-        
+
     """
     if path is None:
         return None

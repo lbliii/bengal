@@ -27,13 +27,13 @@ logger = get_logger(__name__)
 def normalize_and_validate_asset_path(raw_path: str) -> str:
     """
     Normalize and validate the provided asset path to prevent traversal/absolute paths.
-    
+
     Args:
         raw_path: Raw asset path from template
-    
+
     Returns:
         Sanitized asset path, or empty string if invalid
-        
+
     """
     # Convert Windows-style separators and trim whitespace
     candidate = (raw_path or "").replace("\\", "/").strip()
@@ -68,15 +68,15 @@ def compute_relative_asset_path(
 ) -> str | None:
     """
     Compute relative path from page to asset for file:// protocol.
-    
+
     Args:
         asset_path: Asset path (e.g., 'assets/css/style.css')
         page_context: Page context with output_path
         output_dir: Site output directory
-    
+
     Returns:
         Relative path string, or None if cannot compute
-        
+
     """
     if not page_context or not hasattr(page_context, "output_path") or not page_context.output_path:
         return None
@@ -96,15 +96,15 @@ def compute_relative_asset_path(
 class AssetURLMixin:
     """
     Mixin providing asset URL generation for TemplateEngine.
-    
+
     Requires these attributes on the host class:
         - site: Site instance
         - _asset_manifest_path: Path
-    
+
     Requires these methods from ManifestHelpersMixin (must come BEFORE this mixin in MRO):
         - _get_manifest_entry(logical_path: str) -> AssetManifestEntry | None
         - _warn_manifest_fallback(logical_path: str) -> None
-        
+
     """
 
     site: Any

@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 def display_warnings(stats: BuildStats) -> None:
     """
     Display grouped warnings and errors.
-    
+
     Args:
         stats: Build statistics with warnings
-        
+
     """
     if not stats.warnings:
         return

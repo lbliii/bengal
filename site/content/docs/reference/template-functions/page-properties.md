@@ -2,7 +2,6 @@
 title: Page & Section Properties
 description: Properties available on page and section objects
 weight: 60
-type: doc
 tags:
 - reference
 - properties

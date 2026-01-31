@@ -19,16 +19,16 @@ logger = get_logger(__name__)
 def is_undefined(value: Any) -> bool:
     """
     Check if a value is a Jinja2 Undefined object.
-    
+
     This is a wrapper around jinja2.is_undefined() that provides a clean API
     for template function developers.
-    
+
     Args:
         value: Value to check
-    
+
     Returns:
         True if value is Undefined, False otherwise
-    
+
     Example:
             >>> from jinja2 import Undefined
             >>> is_undefined(Undefined())
@@ -37,7 +37,7 @@ def is_undefined(value: Any) -> bool:
         False
             >>> is_undefined(None)
         False
-        
+
     """
     return jinja_is_undefined(value)
 
@@ -45,19 +45,19 @@ def is_undefined(value: Any) -> bool:
 def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
     """
     Safely get attribute from object, handling Jinja2 Undefined values.
-    
+
     This is a replacement for hasattr()/getattr() that also handles Jinja2's
     Undefined objects and returns default for missing attributes, even when
     __getattr__ is implemented.
-    
+
     Args:
         obj: Object to get attribute from
         attr: Attribute name
         default: Default value if undefined or missing
-    
+
     Returns:
         Attribute value or default
-    
+
     Example:
             >>> class Page:
             ...     title = "Hello"
@@ -65,10 +65,10 @@ def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
             'Hello'
             >>> safe_get(Page(), "missing", "Default")
             'Default'
-    
+
         # In templates with Undefined objects:
         {% set title = safe_get(page, "title", "Untitled") %}
-        
+
     """
     try:
         # Check if accessing attribute on primitive types - return default instead
@@ -119,16 +119,16 @@ def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
 def has_value(value: Any) -> bool:
     """
     Check if value is defined and not None/empty.
-    
+
     More strict than is_undefined() - also checks for None and falsy values.
     Returns False for: Undefined, None, False, 0, "", [], {}
-    
+
     Args:
         value: Value to check
-    
+
     Returns:
         True if value is defined and truthy
-    
+
     Example:
             >>> has_value("hello")
         True
@@ -142,7 +142,7 @@ def has_value(value: Any) -> bool:
         False
             >>> has_value(False)
         False
-        
+
     """
     # Check if undefined first
     if jinja_is_undefined(value):
@@ -154,15 +154,15 @@ def has_value(value: Any) -> bool:
 def safe_get_attr(obj: Any, *attrs: str, default: Any = None) -> Any:
     """
     Safely get nested attribute from object using dot notation.
-    
+
     Args:
         obj: Object to get attribute from
         *attrs: Attribute names (can be nested)
         default: Default value if any attribute is undefined/missing
-    
+
     Returns:
         Final attribute value or default
-    
+
     Example:
             >>> class User:
             ...     class Profile:
@@ -172,7 +172,7 @@ def safe_get_attr(obj: Any, *attrs: str, default: Any = None) -> Any:
             'John'
             >>> safe_get_attr(user, "profile", "missing", default="Unknown")
             'Unknown'
-        
+
     """
     current = obj
 
@@ -190,17 +190,17 @@ def safe_get_attr(obj: Any, *attrs: str, default: Any = None) -> Any:
 def ensure_defined(value: Any, default: Any = "") -> Any:
     """
     Ensure value is defined and not None, replacing Undefined/None with default.
-    
+
     This is useful in templates to ensure a value is always usable, even if
     it's missing or explicitly set to None.
-    
+
     Args:
         value: Value to check
         default: Default value to use if undefined or None (default: "")
-    
+
     Returns:
         Original value if defined and not None, default otherwise
-    
+
     Example:
             >>> ensure_defined("hello")
             'hello'
@@ -210,7 +210,7 @@ def ensure_defined(value: Any, default: Any = "") -> Any:
             'fallback'
             >>> ensure_defined(0)  # 0 is a valid value
         0
-        
+
     """
     # Replace Undefined or None with default
     if jinja_is_undefined(value) or value is None:

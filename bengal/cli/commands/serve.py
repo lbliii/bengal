@@ -115,14 +115,14 @@ def serve(
 ) -> None:
     """
     Start development server with hot reload.
-    
+
     Watches for changes in content, assets, and templates,
     automatically rebuilding the site when files are modified.
-    
+
     Version Scoping (RFC: rfc-versioned-docs-pipeline-integration):
         --version v2     Focus on single version, faster rebuilds
         --all-versions   Explicitly build all versions (default)
-        
+
     """
     # Validate conflicting flags
     if verbose and debug:

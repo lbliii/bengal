@@ -34,18 +34,18 @@ if TYPE_CHECKING:
 class PageOperationsMixin:
     """
     Mixin providing operations for pages.
-    
+
     This mixin handles:
     - Rendering with templates
     - Link validation and extraction
     - Template application
-    
+
     Attributes:
         content: Raw page content (markdown)
         rendered_html: Rendered HTML output
         links: List of links extracted from the page
         source_path: Path to the source content file
-        
+
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into

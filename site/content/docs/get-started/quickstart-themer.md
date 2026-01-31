@@ -5,7 +5,6 @@ description: Customize themes and create your own designs
 draft: false
 weight: 30
 lang: en
-type: doc
 tags:
 - onboarding
 - theming

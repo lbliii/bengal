@@ -38,16 +38,16 @@ from typing import Any
 
 class DirectiveType(Enum):
     """Known directive types for type-safe validation.
-    
+
     This enum defines all standard Bengal directive types, enabling type-safe
     comparisons and IDE autocomplete when working with directive tokens.
-    
+
     Example:
             >>> DirectiveType.STEP.value
             'step'
             >>> DirectiveType.NOTE.value
             'note'
-        
+
     """
 
     # Container directives
@@ -98,11 +98,11 @@ class DirectiveType(Enum):
 @dataclass(slots=True)
 class DirectiveToken:
     """Typed AST token for directive nodes.
-    
+
     A structured replacement for ad-hoc dictionaries like
     ``{"type": "dropdown", "attrs": {...}, "children": [...]}``.
     Provides type safety, IDE support, and consistent structure.
-    
+
     Attributes:
         type: Token type string matching the directive's ``TOKEN_TYPE``
             (e.g., ``"dropdown"``, ``"step"``, ``"tab_item"``).
@@ -110,21 +110,21 @@ class DirectiveToken:
             Defaults to empty dict.
         children: List of nested tokens (parsed child content).
             Defaults to empty list.
-    
+
     Example:
         Create a token in ``parse_directive()``::
-    
+
             token = DirectiveToken(
                 type="dropdown",
                 attrs={"title": "Details", "open": True},
                 children=parsed_children,
             )
             return token.to_dict()  # Convert for Mistune compatibility
-    
+
         Add attributes without mutation::
-    
+
             updated = token.with_attrs(id="my-dropdown")
-        
+
     """
 
     type: str

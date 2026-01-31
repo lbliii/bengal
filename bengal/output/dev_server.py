@@ -44,16 +44,16 @@ if TYPE_CHECKING:
 class DevServerOutputMixin:
     """
     Mixin providing development server specific output methods.
-    
+
     This mixin adds HTTP request logging, file change notifications,
     and server status display methods to CLIOutput. It is designed
     to be mixed into CLIOutput and relies on attributes defined there.
-    
+
     Required Attributes (from CLIOutput):
         use_rich: Whether to use Rich console output
         console: Rich Console instance for styled output
         should_show: Method to check message visibility based on level
-        
+
     """
 
     # These attributes are defined in CLIOutput

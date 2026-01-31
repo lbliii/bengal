@@ -41,8 +41,8 @@ from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION, extract_toc_st
 from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 __all__ = [
+    "TOC_EXTRACTION_VERSION",
     "RenderingPipeline",
     "WriteBehindCollector",
     "extract_toc_structure",
-    "TOC_EXTRACTION_VERSION",
 ]

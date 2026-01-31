@@ -31,14 +31,14 @@ logger = get_logger(__name__)
 class AssetValidator(BaseValidator):
     """
     Validates asset processing and optimization.
-    
+
     Checks:
     - Assets directory exists and has files
     - Asset types are present (CSS, JS, images)
     - No duplicate assets (same content, different names)
     - Asset sizes are reasonable
     - Minification hints (file size analysis)
-        
+
     """
 
     name = "Asset Processing"

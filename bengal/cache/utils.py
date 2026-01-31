@@ -45,19 +45,19 @@ if TYPE_CHECKING:
 def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear Bengal's build cache to force a clean rebuild.
-    
+
     Useful when:
     - Config changes in ways that affect output (baseurl, theme, etc.)
     - Stale cache is suspected
     - Forcing a complete regeneration
-    
+
     Args:
         site_root_path: Path to site root directory
         logger: Optional logger for debug output
-    
+
     Returns:
         True if cache was cleared, False if no cache existed
-        
+
     """
     from bengal.cache.paths import BengalPaths
 
@@ -109,19 +109,19 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
 def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear template bytecode cache.
-    
+
     Useful when:
     - Template files change but bytecode cache is stale
     - Starting dev server (ensures fresh template compilation)
     - Switching themes
-    
+
     Args:
         site_root_path: Path to site root directory
         logger: Optional logger for debug output
-    
+
     Returns:
         True if cache was cleared, False if no cache existed or error occurred
-        
+
     """
     import shutil
 
@@ -155,18 +155,18 @@ def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None
 def clear_output_directory(output_dir_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear the output directory (public/) to force complete regeneration.
-    
+
     This is necessary when build artifacts may contain stale values
     that won't be updated by incremental builds (e.g., baseurl baked
     into HTML meta tags).
-    
+
     Args:
         output_dir_path: Path to output directory (e.g., site/public)
         logger: Optional logger for debug output
-    
+
     Returns:
         True if directory was cleared, False if didn't exist or error occurred
-        
+
     """
     import shutil
 

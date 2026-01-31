@@ -44,13 +44,13 @@ logger = get_logger(__name__)
 class UnifiedConfigLoader:
     """
     Single loader for all config modes.
-    
+
     Precedence (lowest to highest):
         1. DEFAULTS (nested structure)
         2. User config (single file or directory)
         3. Environment overrides (optional)
         4. Profile overrides (optional)
-        
+
     """
 
     def __init__(self, track_origins: bool = False) -> None:
@@ -369,18 +369,18 @@ class UnifiedConfigLoader:
     ) -> ConfigSnapshot:
         """
         Load configuration and return a frozen ConfigSnapshot.
-        
+
         This is the preferred entry point for RFC: Snapshot-Enabled v2.
         Returns a frozen, typed configuration that is thread-safe by construction.
-        
+
         Args:
             site_root: Root directory of the site.
             environment: Environment name (auto-detected if None).
             profile: Profile name (optional).
-            
+
         Returns:
             Frozen ConfigSnapshot with typed sections.
-            
+
         Example:
             >>> loader = UnifiedConfigLoader()
             >>> snapshot = loader.load_snapshot(site_root)

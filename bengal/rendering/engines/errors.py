@@ -46,9 +46,9 @@ from bengal.errors import BengalRenderingError
 class TemplateError:
     """
     Represents a template validation or render error.
-    
+
     Returned by validate() method. Also raised during render_template().
-        
+
     """
 
     template: str
@@ -81,11 +81,11 @@ class TemplateError:
 class TemplateNotFoundError(BengalRenderingError):
     """
     Raised when a template cannot be found.
-    
+
     MUST be raised by render_template() when template doesn't exist.
-    
+
     Extends BengalRenderingError for consistent error handling.
-        
+
     """
 
     def __init__(

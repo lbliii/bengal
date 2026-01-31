@@ -25,12 +25,12 @@ from bengal.parsing.backends.patitas.roles.builtins.math import MathRole
 from bengal.parsing.backends.patitas.roles.builtins.reference import DocRole, RefRole
 
 __all__ = [
-    "RefRole",
-    "DocRole",
-    "KbdRole",
     "AbbrRole",
+    "DocRole",
+    "IconRole",
+    "KbdRole",
     "MathRole",
+    "RefRole",
     "SubRole",
     "SupRole",
-    "IconRole",
 ]

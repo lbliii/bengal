@@ -113,15 +113,15 @@ collections = {
 def collections(ctx: click.Context) -> None:
     """
     Manage content collections.
-    
+
     Collections provide type-safe schemas for your content's frontmatter.
     Define schemas to validate content during builds and catch errors early.
-    
+
     Commands:
       init     Generate a starter collections.py file
       list     Show defined collections and their schemas
       validate Validate content against collection schemas
-        
+
     """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
@@ -148,15 +148,15 @@ def collections(ctx: click.Context) -> None:
 def init_collections(force: bool, minimal: bool, source: str) -> None:
     """
     Generate a collections.py file with example schemas.
-    
+
     Creates a starter collections.py file at your project root with
     example schemas for blog posts and documentation pages.
-    
+
     Examples:
       bengal collections init           # Generate full template
       bengal collections init --minimal # Use built-in schemas
       bengal collections init --force   # Overwrite existing file
-        
+
     """
     cli = get_cli_output()
     root_path = Path(source).resolve()
@@ -216,10 +216,10 @@ def init_collections(force: bool, minimal: bool, source: str) -> None:
 def list_collections(config: str | None, source: str) -> None:
     """
     📋 List defined collections and their schemas.
-    
+
     Shows all collections defined in collections.py with their
     directories and schema fields.
-        
+
     """
     from dataclasses import fields, is_dataclass
 
@@ -284,10 +284,10 @@ def list_collections(config: str | None, source: str) -> None:
 def validate_collections(collection: str | None, config: str | None, source: str) -> None:
     """
     ✓ Validate content against collection schemas.
-    
+
     Validates all content files against their collection schemas,
     reporting any validation errors.
-        
+
     """
     import frontmatter  # type: ignore[import-untyped]
 

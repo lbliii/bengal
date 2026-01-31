@@ -20,20 +20,20 @@ def detect_aliases(
 ) -> dict[str, str]:
     """
     Detect simple assignment aliases at module level.
-    
+
     Patterns detected:
     - alias = original (ast.Name)
     - alias = module.original (ast.Attribute)
-    
+
     Args:
         tree: Module AST
         module_name: Current module qualified name
         defined_names: Set of names defined in this module
         expr_to_string: Function to convert AST expr to string
-    
+
     Returns:
         Dict mapping alias_name -> qualified_original
-        
+
     """
     aliases = {}
 
@@ -71,13 +71,13 @@ def detect_aliases(
 def extract_all_exports(tree: ast.Module) -> list[str] | None:
     """
     Extract __all__ exports if present in module.
-    
+
     Args:
         tree: Module AST
-    
+
     Returns:
         List of exported names, or None if __all__ not defined
-        
+
     """
     for node in tree.body:
         if isinstance(node, ast.Assign):

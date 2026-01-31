@@ -45,7 +45,7 @@ from .weighted import WeightedPage
 class SectionQueryMixin:
     """
     Page collection and retrieval.
-    
+
     This mixin handles:
     - Page listing (regular_pages, sorted_pages, regular_pages_recursive)
     - Section listing (sections alias)
@@ -53,7 +53,7 @@ class SectionQueryMixin:
     - Sorting (sort_children_by_weight)
     - Index page detection (has_index, needs_auto_index)
     - Recursive page retrieval (get_all_pages)
-        
+
     """
 
     # =========================================================================

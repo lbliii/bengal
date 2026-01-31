@@ -62,16 +62,16 @@ if TYPE_CHECKING:
 class ErrorAggregator:
     """
     Aggregates similar errors during batch processing to reduce noise.
-    
+
     Groups errors by signature (error message + context) and provides
     summary logging when threshold is exceeded.
-    
+
     Attributes:
         total_items: Total number of items being processed
         error_counts: Dictionary mapping error signatures to counts
         error_contexts: Dictionary mapping error signatures to sample contexts
         max_context_samples: Maximum number of sample contexts to keep per error type
-    
+
     Example:
             >>> aggregator = ErrorAggregator(total_items=100)
             >>> for item in items:
@@ -80,7 +80,7 @@ class ErrorAggregator:
             ...     except Exception as e:
             ...         aggregator.add_error(e, context={"item": item})
             >>> aggregator.log_summary(threshold=5, logger=logger)
-        
+
     """
 
     def __init__(
@@ -283,40 +283,40 @@ class ErrorAggregator:
 def extract_error_context(error: Exception, item: Any | None = None) -> dict[str, Any]:
     """
     Extract rich context from an exception for logging and aggregation.
-    
+
     Analyzes the exception and optional item to build a comprehensive
     context dictionary. Handles special cases for Bengal error types:
-    
+
     - **TemplateRenderError**: Extracts template name, line number, path
     - **BengalError**: Extracts file path, line number, suggestion
     - **AttributeError**: Adds actionable suggestions for common patterns
-    
+
     The returned context is suitable for structured logging and for
     feeding into ``ErrorAggregator`` for pattern detection.
-    
+
     Args:
         error: Exception that occurred during processing.
         item: Optional item being processed (Page, Asset, etc.) for
             additional context. Looks for ``source_path``, ``path``,
             and ``name`` attributes.
-    
+
     Returns:
         Dictionary with error context including:
-    
+
         - ``error``: Error message string
         - ``error_type``: Exception class name
         - ``source_path``: Path to source file (if available)
         - ``template_name``: Template name (for rendering errors)
         - ``template_line``: Line number in template (if available)
         - ``suggestion``: Actionable fix suggestion (if available)
-    
+
     Example:
             >>> try:
             ...     render_page(page)
             ... except Exception as e:
             ...     context = extract_error_context(e, page)
             ...     logger.error("rendering_failed", **context)
-        
+
     """
     context: dict[str, Any] = {
         "error": str(error),

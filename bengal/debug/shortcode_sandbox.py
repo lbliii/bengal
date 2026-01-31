@@ -51,10 +51,10 @@ logger = get_logger(__name__)
 class RenderResult:
     """
     Result of rendering a shortcode/directive to HTML.
-    
+
     Contains the rendered output, timing information, and any errors
     or warnings encountered during parsing and rendering.
-    
+
     Attributes:
         input_content: Original Markdown content that was rendered.
         html: Rendered HTML output (empty string if failed).
@@ -64,7 +64,7 @@ class RenderResult:
         warnings: List of warning messages (non-fatal issues).
         parse_time_ms: Time spent parsing markdown (milliseconds).
         render_time_ms: Time spent rendering to HTML (milliseconds).
-    
+
     Example:
             >>> result = sandbox.render("```{note}
     Hello
@@ -75,7 +75,7 @@ class RenderResult:
             ... else:
             ...     for err in result.errors:
             ...         print(f"Error: {err}")
-        
+
     """
 
     input_content: str
@@ -121,17 +121,17 @@ class RenderResult:
 class ValidationResult:
     """
     Result of directive/shortcode syntax validation.
-    
+
     Provides feedback on whether the syntax is valid, identifies the
     directive being used, and offers suggestions for fixing issues.
-    
+
     Attributes:
         content: Original content that was validated.
         valid: Whether the syntax is valid.
         directive_name: Detected directive name, or None if unrecognized.
         errors: Specific syntax errors found.
         suggestions: Helpful suggestions for fixing issues or typos.
-    
+
     Example:
             >>> result = sandbox.validate("```{notee}
     Text
@@ -139,7 +139,7 @@ class ValidationResult:
             >>> if not result.valid:
             ...     print(f"Invalid: {result.errors}")
             ...     print(f"Did you mean: {result.suggestions}")
-        
+
     """
 
     content: str
@@ -152,11 +152,11 @@ class ValidationResult:
 class ShortcodeSandbox(DebugTool):
     """
     Sandbox for testing shortcodes/directives in isolation.
-    
+
     Provides a safe environment to test MyST directive syntax and rendering
     without requiring a full site context. Useful for debugging directive
     issues, experimenting with syntax, and validating custom directives.
-    
+
     Capabilities:
         - **Isolated Rendering**: Render directives without building a site.
         - **Syntax Validation**: Check directive syntax before rendering.
@@ -164,16 +164,16 @@ class ShortcodeSandbox(DebugTool):
         - **Typo Detection**: Suggest similar directives for misspellings.
         - **Batch Testing**: Test multiple directives from a list.
         - **Directive Discovery**: List and document available directives.
-    
+
     The sandbox uses a mock context for template variables, allowing
     directives that reference page/site data to render correctly.
-    
+
     Attributes:
         name: Tool identifier ("sandbox").
         description: Brief tool description.
             DIRECTIVE_PATTERN_COLON: Regex for block directives (```{name}).
             DIRECTIVE_PATTERN_BRACE: Regex for inline directives ({name}).
-    
+
         Example:
             >>> sandbox = ShortcodeSandbox()
             >>>
@@ -191,12 +191,12 @@ class ShortcodeSandbox(DebugTool):
             >>>
             >>> # Get help for specific directive
             >>> help_text = sandbox.get_directive_help("note")
-    
+
         See Also:
             - :class:`RenderResult`: Rendering output structure.
             - :class:`ValidationResult`: Validation feedback structure.
             - :meth:`batch_test`: Test multiple directives at once.
-        
+
     """
 
     name: str = "sandbox"

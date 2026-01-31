@@ -55,25 +55,25 @@ if TYPE_CHECKING:
 class SiteContent:
     """
     Mutable content container populated during discovery.
-    
+
     Lifecycle:
         1. Created empty at Site initialization
         2. Populated during discovery phase (pages, sections, assets)
         3. Extended during taxonomy/menu phases
         4. Frozen before rendering (optional, for safety)
         5. Cleared on rebuild via clear()
-    
+
     Separation from Site:
         - Contains ONLY content data (pages, sections, assets)
         - No caches (those go in BuildState or derived properties)
         - No registries (those go in ContentRegistry)
         - No config (that goes in SiteData)
-    
+
     Thread Safety:
         - Mutations during discovery are single-threaded
         - After freeze(), reads are safe for parallel rendering
         - Dev server calls clear() before re-discovery
-    
+
     Attributes:
         pages: All pages in the site
         sections: All sections in the site
@@ -84,7 +84,7 @@ class SiteContent:
         menu_localized: Localized menus by language/name
         menu_builders_localized: Localized menu builders
         data: Data from data/ directory
-        
+
     """
 
     # Core content

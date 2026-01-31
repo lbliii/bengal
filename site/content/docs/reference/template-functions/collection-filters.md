@@ -2,7 +2,6 @@
 title: Collection Filters
 description: Filter, sort, group, and transform collections of pages or items
 weight: 10
-type: doc
 tags:
 - reference
 - filters

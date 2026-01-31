@@ -3,10 +3,10 @@ Syntax highlighting backend protocol definition.
 
 .. deprecated:: 0.2.0
     Import from :mod:`bengal.protocols` instead::
-    
+
         # Old (deprecated)
         from bengal.rendering.highlighting.protocol import HighlightBackend
-        
+
         # New (preferred)
         from bengal.protocols import HighlightService
 
@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 # Re-export from canonical location
 from bengal.protocols.rendering import (
     HighlightBackend as _HighlightBackend,
+)
+from bengal.protocols.rendering import (
     HighlightService as _HighlightService,
 )
 
@@ -47,7 +49,7 @@ def __getattr__(name: str):
         "HighlightBackend": _HighlightBackend,
         "HighlightService": _HighlightService,
     }
-    
+
     if name in _exports:
         warnings.warn(
             f"Import {name} from bengal.protocols instead of "
@@ -57,7 +59,7 @@ def __getattr__(name: str):
             stacklevel=2,
         )
         return _exports[name]
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

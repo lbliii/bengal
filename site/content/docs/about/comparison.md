@@ -2,7 +2,6 @@
 title: Key Capabilities
 description: What Bengal does
 weight: 10
-type: doc
 tags:
 - features
 - capabilities

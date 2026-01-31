@@ -57,12 +57,12 @@ def register(
 ) -> None:
     """
     Register external reference template functions.
-    
+
     Args:
         env: Kida template environment
         site: Site instance
         resolver: Optional pre-created resolver (creates one if not provided)
-        
+
     """
     # Create resolver if not provided
     if resolver is None:

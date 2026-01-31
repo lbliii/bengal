@@ -10,9 +10,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from bengal.utils.observability.logger import get_logger
-
 from bengal.parsing.backends.native_html import NativeHTMLParser
+from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -26,11 +25,11 @@ class ParserBackend:
 class ParserFactory:
     """
     Factory for HTML parsers used in Bengal.
-    
+
     Currently returns NativeHTMLParser, which is optimized for build-time
     validation and health checks. Replaced BeautifulSoup4 for performance
     (~5-10x faster for text extraction).
-        
+
     """
 
     @staticmethod

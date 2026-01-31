@@ -3,7 +3,6 @@ title: Template Functions Reference
 nav_title: Functions
 description: Complete reference for Bengal's template filters and functions
 weight: 50
-type: doc
 draft: false
 lang: en
 tags:

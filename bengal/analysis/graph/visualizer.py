@@ -63,7 +63,7 @@ _TEMPLATE_PATH = Path(__file__).parent / "templates" / "graph_visualizer.html"
 class GraphNode:
     """
     Node in the graph visualization.
-    
+
     Attributes:
         id: Unique identifier for the node
         label: Display label (page title)
@@ -76,7 +76,7 @@ class GraphNode:
         reading_time: Content depth (minutes to read)
         size: Visual size (based on connectivity + content depth)
         color: Node color (based on type or connectivity)
-        
+
     """
 
     id: str
@@ -96,12 +96,12 @@ class GraphNode:
 class GraphEdge:
     """
     Edge in the graph visualization.
-    
+
     Attributes:
         source: Source node ID
         target: Target node ID
         weight: Edge weight (link strength)
-        
+
     """
 
     source: str
@@ -112,19 +112,19 @@ class GraphEdge:
 class GraphVisualizer:
     """
     Generate interactive D3.js visualizations of knowledge graphs.
-    
+
     Creates standalone HTML files with:
     - Force-directed graph layout
     - Interactive node exploration
     - Search and filtering
     - Responsive design
     - Customizable styling
-    
+
     Example:
             >>> visualizer = GraphVisualizer(site, graph)
             >>> html = visualizer.generate_html()
             >>> Path('graph.html').write_text(html)
-        
+
     """
 
     def __init__(self, site: SiteLike, graph: KnowledgeGraph):

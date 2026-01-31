@@ -5,7 +5,6 @@ description: Define your entire site structure in one YAML file
 draft: false
 weight: 25
 lang: en
-type: doc
 tags:
 - onboarding
 - skeleton

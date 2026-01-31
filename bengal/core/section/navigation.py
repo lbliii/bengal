@@ -49,14 +49,14 @@ if TYPE_CHECKING:
 class SectionNavigationMixin:
     """
     URL generation and version-aware navigation.
-    
+
     This mixin handles:
     - URL properties (href, _path, absolute_href)
     - Subsection index URL tracking
     - Navigation children detection
     - Version-aware page/subsection filtering
     - Versioned path transformation
-        
+
     """
 
     # =========================================================================

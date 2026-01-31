@@ -118,11 +118,11 @@ class LogEvent:
 class BengalLogger:
     """
     Phase-aware structured logger for Bengal builds.
-    
+
     Tracks build phases, emits structured events, and provides
     timing information. All logs are written to both console
     and a build log file.
-        
+
     """
 
     def __init__(
@@ -162,7 +162,7 @@ class BengalLogger:
 
             with suppress(Exception):
                 log_file.parent.mkdir(parents=True, exist_ok=True)
-            self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
+            self._file_handle = open(log_file, "a", encoding="utf-8")
 
     @contextmanager
     def phase(self, name: str, **context: Any) -> Any:
@@ -586,7 +586,7 @@ _global_config: _GlobalConfig = {
 
 def _get_actual_logger(name: str) -> BengalLogger:
     """Internal helper to fetch or create the real logger instance.
-    
+
     Thread-safe: Uses double-checked locking pattern for safe concurrent
     access under free-threading (PEP 703).
     """
@@ -609,16 +609,16 @@ def _get_actual_logger(name: str) -> BengalLogger:
 class LazyLogger:
     """
     Transparent proxy for BengalLogger that tracks registry resets.
-    
+
     Module-level `logger = get_logger(__name__)` references hold this proxy.
     When `reset_loggers()` is called, the registry version increments and
     the proxy will fetch a fresh logger on next access.
-    
+
     Attributes:
         _name: The logger name to fetch.
         _real_logger: Cached reference to the actual logger.
         _version: The registry version when the logger was cached.
-        
+
     """
 
     __slots__ = ("_name", "_real_logger", "_version")
@@ -653,15 +653,15 @@ def configure_logging(
 ) -> None:
     """
     Configure global logging settings.
-    
+
     Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
-    
+
     Args:
         level: Minimum log level to emit
         log_file: Path to log file
         verbose: Show verbose output
         track_memory: Enable memory profiling (adds overhead)
-        
+
     """
     with _logger_lock:
         _global_config["level"] = level
@@ -703,30 +703,30 @@ def configure_logging(
 
                     with suppress(Exception):
                         log_file.parent.mkdir(parents=True, exist_ok=True)
-                    logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
+                    logger._file_handle = open(log_file, "a", encoding="utf-8")
 
 
 def get_logger(name: str) -> BengalLogger:
     """
     Get a logger proxy for the given name.
-    
+
     Returns a LazyLogger proxy that automatically refreshes when
     reset_loggers() is called. This ensures module-level logger
     references never become stale.
-    
+
     The proxy is cached, so calling get_logger() with the same name
     returns the same proxy instance.
-    
+
     Thread-safe: Uses double-checked locking pattern for safe concurrent
     access under free-threading (PEP 703). The fast path uses .get() to
     avoid KeyError if reset_loggers() clears the dict concurrently.
-    
+
     Args:
         name: Logger name (typically __name__)
-    
+
     Returns:
         LazyLogger proxy (type-compatible with BengalLogger)
-        
+
     """
     # Fast path: already exists (no lock needed)
     # Use .get() to avoid KeyError if reset_loggers() clears dict concurrently
@@ -743,15 +743,15 @@ def get_logger(name: str) -> BengalLogger:
 def set_console_quiet(quiet: bool = True) -> None:
     """
     Enable or disable console output for all loggers.
-    
+
     Used by live progress manager to suppress structured log events
     while preserving file logging for debugging.
-    
+
     Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
-    
+
     Args:
         quiet: If True, suppress console output; if False, enable it
-        
+
     """
     with _logger_lock:
         _global_config["quiet_console"] = quiet
@@ -763,7 +763,7 @@ def set_console_quiet(quiet: bool = True) -> None:
 
 def close_all_loggers() -> None:
     """Close all logger file handles.
-    
+
     Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
     """
     with _logger_lock:
@@ -773,7 +773,7 @@ def close_all_loggers() -> None:
 
 def reset_loggers() -> None:
     """Close all loggers, clear registry, and increment version counter.
-    
+
     Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
     """
     global _registry_version
@@ -791,7 +791,7 @@ def reset_loggers() -> None:
 
 def print_all_summaries() -> None:
     """Print timing and memory summaries from all loggers.
-    
+
     Thread-safe: Uses lock for safe concurrent access under free-threading (PEP 703).
     """
     # Merge all events (copy under lock to avoid iteration during mutation)

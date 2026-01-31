@@ -24,11 +24,11 @@ ConfigLike = "Config | dict[str, Any]"
 class ConfigValidatorWrapper(BaseValidator):
     """
     Wrapper for config validation.
-    
+
     Note: Config validation happens at load time, so by the time we get to
     health checks, the config has already been validated. This validator
     confirms that validation occurred and reports any config-related concerns.
-        
+
     """
 
     name = "Configuration"

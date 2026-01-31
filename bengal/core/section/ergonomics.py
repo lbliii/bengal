@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 class SectionErgonomicsMixin:
     """
     Theme developer helpers for common patterns.
-    
+
     This mixin handles:
     - Content pages (alias for sorted_pages without index)
     - Recent pages by date
@@ -53,7 +53,7 @@ class SectionErgonomicsMixin:
     - Word count and reading time aggregation
     - Content aggregation for analytics
     - Template application
-        
+
     """
 
     # =========================================================================

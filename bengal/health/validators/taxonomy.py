@@ -23,13 +23,13 @@ if TYPE_CHECKING:
 class TaxonomyValidator(BaseValidator):
     """
     Validates taxonomy system integrity.
-    
+
     Checks:
     - Tag pages generated for all tags
     - No orphaned tag pages (tag doesn't exist)
     - Archive pages exist for sections with content
     - Pagination pages are consistent
-        
+
     """
 
     name = "Taxonomies"

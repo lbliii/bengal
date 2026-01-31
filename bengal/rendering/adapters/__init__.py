@@ -36,15 +36,15 @@ if TYPE_CHECKING:
 
 def detect_adapter_type(env: Any) -> str:
     """Auto-detect engine type from environment class.
-    
+
     Uses class name inspection as primary detection method.
-    
+
     Args:
         env: Template environment instance (Jinja2, Kida, etc.)
-    
+
     Returns:
         Engine type string: "jinja", "kida", or "generic"
-        
+
     """
     class_name = type(env).__name__.lower()
     module_name = type(env).__module__.lower() if hasattr(type(env), "__module__") else ""
@@ -65,18 +65,18 @@ def detect_adapter_type(env: Any) -> str:
 
 def get_adapter_type(env: Any, site: SiteLike) -> str:
     """Get adapter type with config override support.
-    
+
     Args:
         env: Template environment instance
         site: Site instance for configuration
-    
+
     Returns:
         Engine type string
-    
+
     Config example:
         rendering:
           adapter: kida  # Explicit override
-        
+
     """
     # Check for explicit config override
     rendering_config = site.config.get("rendering", {}) if hasattr(site.config, "get") else {}
@@ -91,15 +91,15 @@ def get_adapter_type(env: Any, site: SiteLike) -> str:
 
 def register_context_functions(env: Any, site: SiteLike, adapter_type: str | None = None) -> None:
     """Register context-dependent template functions using the appropriate adapter.
-    
+
     These functions need access to the current page context (e.g., for i18n).
     Non-context functions are registered directly by their modules.
-    
+
     Args:
         env: Template environment instance
         site: Site instance
         adapter_type: Engine type (auto-detected if None)
-        
+
     """
     if adapter_type is None:
         adapter_type = get_adapter_type(env, site)

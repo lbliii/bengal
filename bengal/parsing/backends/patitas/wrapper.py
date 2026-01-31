@@ -18,9 +18,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from bengal.parsing.base import BaseMarkdownParser
-from bengal.parsing.backends.patitas import create_markdown, parse_to_ast
 from patitas.nodes import Block
+
+from bengal.parsing.backends.patitas import create_markdown, parse_to_ast
+from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,13 +29,13 @@ logger = get_logger(__name__)
 
 class PatitasParser(BaseMarkdownParser):
     """Parser using Patitas library (modern Markdown parser).
-    
+
     Provides:
     - O(n) guaranteed parsing (no regex backtracking)
     - Thread-safe by design (immutable AST)
     - Typed AST with frozen dataclasses
     - StringBuilder O(n) rendering
-    
+
     Supported features:
     - ATX/setext headings
     - Fenced/indented code blocks
@@ -46,14 +47,14 @@ class PatitasParser(BaseMarkdownParser):
     - Inline code
     - Hard/soft breaks
     - Raw HTML
-    
+
     Supported features (via plugins):
     - Tables (GFM)
     - Strikethrough
     - Task lists
     - Math (inline and block)
     - Cross-references ([[link]] syntax)
-        
+
     """
 
     # Default plugins to enable (matches mistune's plugins)

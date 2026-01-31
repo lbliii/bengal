@@ -1025,6 +1025,23 @@ class Site:
         return self.config.get("site", {}).get("baseurl")
 
     @property
+    def content_dir(self) -> Path:
+        """
+        Get path to the content directory.
+
+        Returns the configured content directory or defaults to root_path/content.
+
+        Returns:
+            Path to the content directory
+        """
+        content_config = self.config.get("content", {})
+        if isinstance(content_config, dict):
+            dir_name = content_config.get("dir", "content")
+        else:
+            dir_name = getattr(content_config, "dir", "content") or "content"
+        return self.root_path / dir_name
+
+    @property
     def author(self) -> str | None:
         """
         Get site author from configuration.
@@ -2419,12 +2436,69 @@ class Site:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            Uses CascadeSnapshot for immutable, thread-safe cascade resolution.
-            Page.type, Page.variant, and PageProxy.metadata resolve cascades
-            at access time via Site.cascade.resolve().
+            1. Build immutable CascadeSnapshot for thread-safe resolution
+            2. Apply cascade values to page.metadata for backward compatibility
         """
         # Build immutable cascade snapshot for thread-safe resolution
         self.build_cascade_snapshot()
+
+        # Apply cascade values to page.metadata for backward compatibility
+        # This ensures templates using page.metadata.get('cascaded_key') still work
+        self._apply_cascade_to_pages()
+
+    def _apply_cascade_to_pages(self) -> None:
+        """
+        Apply cascade values from snapshot to page.metadata.
+
+        For each page, resolves all cascade values from the snapshot and applies
+        them to page.metadata. Page-level values take precedence over cascades.
+        """
+
+        content_dir = self.root_path / "content"
+
+        for section in self.sections:
+            self._apply_cascade_to_section_pages(section, content_dir)
+
+    def _apply_cascade_to_section_pages(self, section: Section, content_dir: Path) -> None:
+        """
+        Apply cascade values to pages in a section and its subsections.
+
+        Args:
+            section: Section to process
+            content_dir: Content directory for relative path computation
+        """
+        from bengal.core.page.proxy import PageProxy
+
+        # Compute section path for cascade lookup
+        if section.path is None:
+            section_path = ""
+        else:
+            try:
+                section_path = str(section.path.relative_to(content_dir))
+            except ValueError:
+                section_path = str(section.path)
+
+        # Get all cascade values for this section
+        cascade = self.cascade.resolve_all(section_path)
+
+        if cascade:
+            for page in section.pages:
+                # Skip PageProxy objects - they resolve cascade at access time
+                if isinstance(page, PageProxy):
+                    continue
+
+                # Skip index pages - they define cascade, don't receive it
+                if page.source_path.stem in ("_index", "index"):
+                    continue
+
+                # Apply cascade values (page values take precedence)
+                for key, value in cascade.items():
+                    if key not in page.metadata:
+                        page.metadata[key] = value
+
+        # Recurse into subsections
+        for subsection in section.subsections:
+            self._apply_cascade_to_section_pages(subsection, content_dir)
 
     # =========================================================================
     # CASCADE SNAPSHOT (immutable cascade data for thread-safe access)
@@ -2464,6 +2538,9 @@ class Site:
         index pages (_index.md). The resulting snapshot is frozen and can
         be safely shared across threads.
 
+        Also extracts root-level cascade from pages not in any section
+        (like content/index.md) and applies it site-wide.
+
         Called automatically by _apply_cascades() during discovery.
         Can also be called manually to refresh the snapshot after
         incremental changes to _index.md files.
@@ -2480,8 +2557,21 @@ class Site:
         # Compute content directory
         content_dir = self.root_path / "content"
 
+        # Collect root-level cascade from pages not in any section
+        # This handles content/index.md with cascade that applies site-wide
+        pages_in_sections: set[Page] = set()
+        for section in all_sections:
+            pages_in_sections.update(section.get_all_pages(recursive=True))
+
+        root_cascade: dict[str, Any] = {}
+        for page in self.pages:
+            if page not in pages_in_sections and "cascade" in page.metadata:
+                root_cascade.update(page.metadata["cascade"])
+
         # Build and store immutable snapshot
-        self._cascade_snapshot = CascadeSnapshot.build(content_dir, all_sections)
+        self._cascade_snapshot = CascadeSnapshot.build(
+            content_dir, all_sections, root_cascade=root_cascade
+        )
 
     def _collect_all_sections(self) -> list[Section]:
         """

@@ -35,19 +35,19 @@ logger = get_logger(__name__)
 class AutodocTrackingMixin:
     """
     Track autodoc source file to page dependencies WITH hash validation.
-    
+
     This mixin adds dependency tracking for autodoc pages, enabling selective
     rebuilds when only specific Python/OpenAPI source files change. It also
     provides self-validation capabilities to detect stale autodoc sources
     even when CI cache keys are incorrect.
-    
+
     Attributes:
         autodoc_dependencies: Mapping of source_file path to set of autodoc page paths
             that are generated from that source file.
         autodoc_source_metadata: Mapping of source_file path to metadata tuple:
             (file_content_hash, mtime, {page_path: doc_content_hash}).
             The mtime-first optimization skips hash computation when mtime is unchanged.
-        
+
     """
 
     # Mixin expects these to be defined in the main dataclass
@@ -238,7 +238,7 @@ class AutodocTrackingMixin:
                     "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
                 )
             stored_hash, stored_mtime, doc_hashes = metadata
-            
+
             # Resolve path - keys are normalized relative to site PARENT
             # (since autodoc sources are typically outside site root, e.g., ../bengal/)
             if Path(source_key).is_absolute():

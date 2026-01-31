@@ -35,20 +35,29 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
+from bengal.protocols import ProgressReporter
+from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_strategy import URLStrategy
+
 from .parallel import (
     is_free_threaded,
+)
+from .parallel import (
     thread_local as _thread_local,
 )
 from .tracking import (
     clear_thread_local_pipelines,
+)
+from .tracking import (
     decrement_active_renders as _decrement_active_renders,
+)
+from .tracking import (
     get_current_generation as _get_current_generation,
+)
+from .tracking import (
     increment_active_renders as _increment_active_renders,
 )
-from bengal.protocols import ProgressReporter
-from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_strategy import URLStrategy
-from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -57,9 +66,9 @@ if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
-    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
@@ -72,36 +81,36 @@ def _is_free_threaded() -> bool:
 class RenderOrchestrator:
     """
     Orchestrates page rendering in sequential or parallel modes.
-    
+
     Handles page rendering with support for free-threaded Python for true
     parallelism. Manages thread-local rendering pipelines and integrates
     with dependency tracking for incremental builds.
-    
+
     Creation:
         Direct instantiation: RenderOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with pages populated
-    
+
     Attributes:
         site: Site instance containing pages and configuration
         _free_threaded: Whether running on free-threaded Python (GIL disabled)
         _block_cache: Cache for site-wide template blocks (Kida only)
-    
+
     Relationships:
         - Uses: RenderingPipeline for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Uses: BuildStats for build statistics collection
         - Uses: BlockCache for site-wide block caching
         - Used by: BuildOrchestrator for rendering phase
-    
+
     Thread Safety:
         Thread-safe for parallel rendering. Uses thread-local pipelines
         to avoid contention. Detects free-threaded Python automatically.
-    
+
     Examples:
         orchestrator = RenderOrchestrator(site)
         orchestrator.process(pages, parallel=True, tracker=tracker, stats=stats)
-        
+
     """
 
     def __init__(self, site: Site):
@@ -142,10 +151,10 @@ class RenderOrchestrator:
         RFC: kida-template-introspection
         """
         try:
+            from bengal.protocols import EngineCapability
             from bengal.rendering.block_cache import BlockCache
             from bengal.rendering.context import get_engine_globals
             from bengal.rendering.engines import create_engine
-            from bengal.protocols import EngineCapability
 
             engine = create_engine(self.site)
 
@@ -387,7 +396,10 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.observability.rich_console import is_live_display_active, should_use_rich
+            from bengal.utils.observability.rich_console import (
+                is_live_display_active,
+                should_use_rich,
+            )
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = (
@@ -503,7 +515,10 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.observability.rich_console import is_live_display_active, should_use_rich
+            from bengal.utils.observability.rich_console import (
+                is_live_display_active,
+                should_use_rich,
+            )
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = (
@@ -533,10 +548,10 @@ class RenderOrchestrator:
     ) -> None:
         """
         Render pages using snapshot-based WaveScheduler.
-        
+
         Uses topological wave-based rendering for cache locality and includes
         scout thread for predictive cache warming.
-        
+
         Args:
             snapshot: SiteSnapshot from build context
             pages: Pages to render (filtered to pages in snapshot)
@@ -685,7 +700,7 @@ class RenderOrchestrator:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
                 # Uses sorted_pages (heavy first) for optimal parallel scheduling
-                # 
+                #
                 # CRITICAL: Copy parent context for each task to propagate ContextVars
                 # (e.g., asset_manifest_context) to worker threads. Without this,
                 # workers start with empty context in free-threaded Python (PEP 703).
@@ -1090,11 +1105,11 @@ class RenderOrchestrator:
     def _priority_sort(self, pages: list[Page], changed_sources: set[Path] | None) -> list[Page]:
         """
         Sort pages so that explicitly changed files are at the front.
-        
+
         Args:
             pages: Pages to sort
             changed_sources: Set of paths that were explicitly changed
-            
+
         Returns:
             Prioritized list of pages
         """
@@ -1118,7 +1133,7 @@ class RenderOrchestrator:
                 # Regular pages have a source_path
                 if page.source_path and page.source_path.resolve() in resolved_changed:
                     is_priority = True
-                
+
                 # Autodoc pages might have source_path pointing to the python file
                 # If the python file is in changed_sources, it's a priority
                 if not is_priority and page.metadata.get("is_autodoc") and page.source_path:
@@ -1143,7 +1158,7 @@ class RenderOrchestrator:
             max_workers = self._get_max_workers() or 4
             priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
             normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
-            
+
             return priority_pages + normal_pages
-        
+
         return pages

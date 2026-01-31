@@ -43,17 +43,17 @@ from typing import Any
 
 class DirectiveSyntaxValidator:
     """Validate directive syntax before parsing.
-    
+
     Catches common errors early with helpful messages, avoiding expensive
     parsing and recursive markdown processing for malformed content.
-    
+
     Class Attributes:
         KNOWN_DIRECTIVES: Set of recognized directive type names.
         ADMONITION_TYPES: Subset of directives that are admonitions.
-    
+
     Example:
         Validate a specific directive::
-    
+
             errors = DirectiveSyntaxValidator.validate_directive(
                 directive_type="tabs",
                 content=directive_content,
@@ -63,7 +63,7 @@ class DirectiveSyntaxValidator:
             if errors:
                 for error in errors:
                     print(f"Validation error: {error}")
-        
+
     """
 
     KNOWN_DIRECTIVES: set[str] = {
@@ -549,25 +549,25 @@ def validate_markdown_directives(
     markdown_content: str, file_path: Path | None = None
 ) -> list[dict[str, Any]]:
     """Validate all directive blocks in a markdown file.
-    
+
     Performs both structural validation (nesting, fence matching) and
     per-directive content validation.
-    
+
     Args:
         markdown_content: Full markdown content to validate.
         file_path: Optional file path for error reporting.
-    
+
     Returns:
         List of validation result dictionaries, one per directive block plus
         any structural issues. Each result has ``valid``, ``errors``,
         ``directive_type``, ``content``, ``title``, and ``options`` keys.
-    
+
     Example:
             >>> results = validate_markdown_directives(content, Path("guide.md"))
             >>> for r in results:
             ...     if not r["valid"]:
             ...         print(f"{r['directive_type']}: {r['errors']}")
-        
+
     """
     results = []
     validator = DirectiveSyntaxValidator()
@@ -608,16 +608,16 @@ def validate_markdown_directives(
 
 def get_directive_validation_summary(validation_results: list[dict[str, Any]]) -> dict[str, Any]:
     """Summarize directive validation results.
-    
+
     Aggregates validation results into counts and a consolidated error list.
-    
+
     Args:
         validation_results: List of validation result dictionaries from
             ``validate_markdown_directives()``.
-    
+
     Returns:
         Summary dictionary::
-    
+
             {
                 "total_directives": int,
                 "valid": int,
@@ -625,13 +625,13 @@ def get_directive_validation_summary(validation_results: list[dict[str, Any]]) -
                 "errors": list[{"directive_type": str, "error": str}],
                 "has_errors": bool
             }
-    
+
     Example:
             >>> results = validate_markdown_directives(content)
             >>> summary = get_directive_validation_summary(results)
             >>> if summary["has_errors"]:
             ...     print(f"{summary['invalid']} directives have errors")
-        
+
     """
     total = len(validation_results)
     valid = sum(1 for r in validation_results if r["valid"])

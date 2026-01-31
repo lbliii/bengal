@@ -66,22 +66,22 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def meta_description(text: str, length: int = 160) -> str:
     """
     Generate meta description from text.
-    
+
     Creates SEO-friendly description by:
     - Stripping HTML
     - Truncating to length
     - Ending at sentence boundary if possible
-    
+
     Args:
         text: Source text
         length: Maximum length (default: 160 chars)
-    
+
     Returns:
         Meta description text
-    
+
     Example:
         <meta name="description" content="{{ page.content | meta_description }}">
-        
+
     """
     if not text:
         return ""
@@ -115,17 +115,17 @@ def meta_description(text: str, length: int = 160) -> str:
 def meta_keywords(tags: list[str], max_count: int = 10) -> str:
     """
     Generate meta keywords from tags.
-    
+
     Args:
         tags: List of tags/keywords
         max_count: Maximum number of keywords (default: 10)
-    
+
     Returns:
         Comma-separated keywords
-    
+
     Example:
         <meta name="keywords" content="{{ page.tags | meta_keywords }}">
-        
+
     """
     if not tags:
         return ""
@@ -145,22 +145,22 @@ def canonical_url(
 ) -> str:
     """
     Generate canonical URL for SEO.
-    
+
     For versioned documentation, canonical URLs always point to the latest version.
     This prevents duplicate content issues and consolidates SEO value.
-    
+
     Args:
         path: Page path (relative or absolute)
         base_url: Site base URL
         site: Optional site for versioning context
         page: Optional page for version detection
-    
+
     Returns:
         Full canonical URL (pointing to latest version for versioned pages)
-    
+
     Example:
         <link rel="canonical" href="{{ canonical_url(page.href, page=page) }}">
-        
+
     """
     if not path:
         return base_url or ""
@@ -207,24 +207,24 @@ def og_image(
 ) -> str:
     """
     Generate Open Graph image URL.
-    
+
     Supports three sources in priority order:
     1. Manual image path (from frontmatter)
     2. Auto-generated social card (if enabled)
     3. Empty string (no image)
-    
+
     Args:
         image_path: Relative path to image (from frontmatter)
         base_url: Site base URL
         page: Optional page for social card lookup
         social_config: Optional social card config
-    
+
     Returns:
         Full image URL for og:image, or empty string if no image
-    
+
     Example:
         <meta property="og:image" content="{{ og_image(page.metadata.get('image', ''), page) }}">
-        
+
     """
     # Priority 1: Manual image path from frontmatter
     if image_path:

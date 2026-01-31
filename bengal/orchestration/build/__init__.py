@@ -76,8 +76,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
-    from bengal.output import CLIOutput
     from bengal.orchestration.build_context import BuildContext
+    from bengal.output import CLIOutput
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
 
@@ -85,10 +85,10 @@ if TYPE_CHECKING:
 def __getattr__(name: str) -> Any:
     """
     Lazily expose optional orchestration types without creating import cycles.
-    
+
     Some tests and callers patch/inspect `bengal.orchestration.build.IncrementalOrchestrator`.
     We keep that surface stable while avoiding eager imports at module import time.
-        
+
     """
     if name == "IncrementalOrchestrator":
         from bengal.orchestration.incremental import IncrementalOrchestrator
@@ -100,7 +100,7 @@ def __getattr__(name: str) -> Any:
 class BuildOrchestrator:
     """
     Main build coordinator that orchestrates the entire build process.
-    
+
     Delegates to specialized orchestrators for each phase:
         - ContentOrchestrator: Discovery and setup
         - TaxonomyOrchestrator: Taxonomies and dynamic pages
@@ -109,7 +109,7 @@ class BuildOrchestrator:
         - AssetOrchestrator: Asset processing
         - PostprocessOrchestrator: Sitemap, RSS, validation
         - IncrementalOrchestrator: Change detection and caching
-        
+
     """
 
     def __init__(self, site: Site):
@@ -158,7 +158,7 @@ class BuildOrchestrator:
 
         # Store options for use in build phases (e.g., max_workers for WaveScheduler)
         self.options = options
-        
+
         # Extract values from options for use in build phases
         # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
         # We'll compute it when we know the page count (in rendering phase)
@@ -174,7 +174,7 @@ class BuildOrchestrator:
         changed_sources = options.changed_sources or None
         nav_changed_sources = options.nav_changed_sources or None
         structural_changed = options.structural_changed
-        
+
         # Explain mode options (RFC: rfc-incremental-build-observability Phase 2)
         explain = options.explain
         dry_run = options.dry_run
@@ -224,11 +224,11 @@ class BuildOrchestrator:
         # Shows real-time progress during the rendering phase which can take 10+ seconds
         from bengal.utils.observability.cli_progress import LiveProgressManager
         from bengal.utils.observability.rich_console import should_use_rich
-        
+
         use_live_progress = should_use_rich() and not quiet
         progress_manager = None
         reporter = None
-        
+
         if use_live_progress:
             progress_manager = LiveProgressManager(profile=profile, enabled=True)
 
@@ -318,7 +318,7 @@ class BuildOrchestrator:
         # We need cache for cleanup of deleted files and auto-mode decision
         with logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
-        
+
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
         from bengal.cache.generated_page_cache import GeneratedPageCache
@@ -349,7 +349,7 @@ class BuildOrchestrator:
 
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
-        
+
         # Store options and cache for phase-level optimizations
         self.site._last_build_options = options
         self.site._cache = self.incremental.cache
@@ -420,7 +420,7 @@ class BuildOrchestrator:
             changed_sources=changed_sources,
             nav_changed_sources=nav_changed_sources,
         )
-        
+
         if filter_result is None:
             # No changes detected - early exit
             return self.stats
@@ -486,7 +486,7 @@ class BuildOrchestrator:
         # Parse markdown content for ALL pages (including generated taxonomy pages)
         # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
         from bengal.orchestration.build import parsing
-        
+
         parsing_start = time.time()
         with self.logger.phase("parsing"):
             parsing.phase_parse_content(
@@ -498,7 +498,7 @@ class BuildOrchestrator:
         parsing_duration_ms = (time.time() - parsing_start) * 1000
         if hasattr(self.stats, "parsing_time_ms"):
             self.stats.parsing_time_ms = parsing_duration_ms
-        
+
         cli.phase("Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages")
 
         # === SNAPSHOT CREATION (after parsing, before rendering) ===
@@ -516,7 +516,7 @@ class BuildOrchestrator:
             # Store snapshot time in stats if available
             if hasattr(self.stats, "snapshot_time_ms"):
                 self.stats.snapshot_time_ms = snapshot_duration_ms
-            
+
             # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
             # This enables near-instant parsing on subsequent builds
             cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
@@ -531,10 +531,10 @@ class BuildOrchestrator:
             cli.info("  Dry-run mode: skipping rendering and output phases")
             self.stats.build_time_ms = (time.time() - build_start) * 1000
             self.stats.dry_run = True
-            
+
             # Clear build state (build complete)
             self.site.set_build_state(None)
-            
+
             return self.stats
 
         # === ASSETS PHASE GROUP (dashboard-integrated) ===
@@ -627,7 +627,7 @@ class BuildOrchestrator:
         finalization.phase_postprocess(
             self, cli, False, ctx, incremental, collector=output_collector
         )
-        
+
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
         # This enables skipping them on future builds if member content hasn't changed
         # Note: Update on ALL builds (not just incremental) to populate cache for first build
@@ -640,7 +640,7 @@ class BuildOrchestrator:
                         content_hash = entry.get("metadata_hash", "")
                         if content_hash:
                             content_hash_lookup[path_str] = content_hash
-            
+
             # Update cache for rendered tag pages
             updated_entries = 0
             tag_pages_found = 0
@@ -663,7 +663,7 @@ class BuildOrchestrator:
                             generation_time_ms=0,  # Not tracked here
                         )
                         updated_entries += 1
-            
+
             logger.info(
                 "generated_page_cache_updated",
                 entries=updated_entries,
@@ -674,7 +674,7 @@ class BuildOrchestrator:
 
         # Phase 18: Save Cache
         finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
-        
+
         # RFC: Output Cache Architecture - Save GeneratedPageCache
         if generated_page_cache:
             generated_page_cache.save()

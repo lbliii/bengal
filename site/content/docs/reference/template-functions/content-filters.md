@@ -2,7 +2,6 @@
 title: Content Filters
 description: HTML and content manipulation filters
 weight: 80
-type: doc
 tags:
 - reference
 - filters

@@ -33,8 +33,8 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache.build_cache import BuildCache
     from bengal.build.tracking import DependencyTracker
+    from bengal.cache.build_cache import BuildCache
     from bengal.core.site import Site
 
 logger = get_logger(__name__)

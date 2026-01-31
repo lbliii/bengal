@@ -19,7 +19,6 @@ logger = get_logger(__name__)
 @click.group(cls=BengalGroup)
 def engine() -> None:
     """Template engine utilities (list, info)."""
-    pass
 
 
 @engine.command("list")
@@ -38,13 +37,13 @@ def engine() -> None:
 def list_engines(verbose: bool) -> None:
     """
     📋 List available template engines.
-    
+
     Shows all built-in engines and any registered third-party engines.
-    
+
     Examples:
         bengal engine list
         bengal engine list --verbose
-        
+
     """
     cli = get_cli_output()
     from bengal.rendering.engines import _ENGINES
@@ -131,13 +130,13 @@ def list_engines(verbose: bool) -> None:
 def info(source: str, config: str | None) -> None:
     """
     Show current template engine configuration.
-    
+
     Displays the active template engine and its configuration for a site.
-    
+
     Examples:
         bengal engine info
         bengal engine info --source /path/to/site
-        
+
     """
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
@@ -188,14 +187,14 @@ def _check_engine_available(engine_name: str) -> str:
     """Check if an optional engine is available."""
     if engine_name == "mako":
         try:
-            import mako  # type: ignore[import-not-found]  # noqa: F401
+            import mako  # type: ignore[import-not-found]
 
             return "✅ Available"
         except ImportError:
             return "⚪ Not installed"
     elif engine_name == "patitas":
         try:
-            import patitas  # noqa: F401
+            import patitas
 
             return "✅ Available"
         except ImportError:

@@ -26,26 +26,26 @@ from bengal.themes.tokens import BENGAL_MASCOT, BENGAL_PALETTE
 class BengalDashboard(App[None]):
     """
     Base class for all Bengal Textual dashboards.
-    
+
     Provides consistent styling, bindings, and reactive state
     shared across Build, Serve, and Health dashboards.
-    
+
     Subclasses should:
     1. Override compose() to define layout
     2. Add custom bindings via BINDINGS class var
     3. Handle custom messages for their domain
-    
+
     Example:
         class BengalBuildDashboard(BengalDashboard):
             BINDINGS = BengalDashboard.BINDINGS + [
                 Binding("s", "stop_build", "Stop Build"),
             ]
-    
+
             def compose(self) -> ComposeResult:
                 yield Header()
                 yield ProgressBar()
                 yield Footer()
-        
+
     """
 
     # Load CSS from bengal.tcss

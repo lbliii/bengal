@@ -35,59 +35,59 @@ from typing import Any
 def get_markdown_instance(renderer: Any) -> Any | None:
     """
     Get the Markdown parser instance from a Mistune renderer.
-    
+
     Mistune renderers may have the parser instance available as either
     ``_md`` (internal attribute) or ``md`` (public attribute) depending
     on the Mistune version and configuration. This helper abstracts the
     access pattern for consistent inline markdown parsing in directives.
-    
+
     Consolidates pattern from:
         - bengal/directives/glossary.py (_parse_inline_markdown)
         - bengal/directives/steps.py (_parse_inline_markdown)
-    
+
     Args:
         renderer: Mistune renderer instance
-    
+
     Returns:
         The Markdown parser instance (with ``inline()`` method) or None
         if not available.
-    
+
     Example:
             >>> md = get_markdown_instance(renderer)
             >>> if md and hasattr(md, 'inline'):
             ...     html = md.inline("**bold** text")
-        
+
     """
     return getattr(renderer, "_md", None) or getattr(renderer, "md", None)
 
 
 def escape_html(text: str) -> str:
     """Escape HTML special characters for safe use in attributes.
-    
+
     Escapes the following characters:
         - ``&`` → ``&amp;``
         - ``<`` → ``&lt;``
         - ``>`` → ``&gt;``
         - ``"`` → ``&quot;``
         - ``'`` → ``&#x27;``
-    
+
     This is a convenience re-export of the canonical implementation.
-    
+
     Args:
         text: Raw text to escape.
-    
+
     Returns:
         HTML-escaped string safe for use in attribute values.
-    
+
     Example:
             >>> escape_html('Click "here" & win <prizes>')
             'Click &quot;here&quot; &amp; win &lt;prizes&gt;'
             >>> escape_html("")
             ''
-    
+
     See Also:
         ``bengal.utils.text.escape_html``: Canonical implementation.
-        
+
     """
     from bengal.utils.primitives.text import escape_html as _escape_html
 
@@ -96,16 +96,16 @@ def escape_html(text: str) -> str:
 
 def build_class_string(*classes: str) -> str:
     """Build a CSS class string from multiple class sources.
-    
+
     Filters out empty strings, strips whitespace, and joins with spaces.
     Useful when combining base classes with optional user-provided classes.
-    
+
     Args:
         *classes: Variable number of class strings (may include empty strings).
-    
+
     Returns:
         Space-joined class string, or empty string if no valid classes.
-    
+
     Example:
             >>> build_class_string("dropdown", "", "my-class")
             'dropdown my-class'
@@ -113,24 +113,24 @@ def build_class_string(*classes: str) -> str:
             ''
             >>> build_class_string("base", "  extra  ", "")
             'base extra'
-        
+
     """
     return " ".join(c.strip() for c in classes if c and c.strip())
 
 
 def bool_attr(name: str, value: bool) -> str:
     """Generate an HTML boolean attribute string.
-    
+
     Boolean attributes in HTML are present or absent, not ``="true"``/``="false"``.
     This function returns the attribute with a leading space when true.
-    
+
     Args:
         name: Attribute name (e.g., ``"open"``, ``"disabled"``, ``"checked"``).
         value: Whether to include the attribute.
-    
+
     Returns:
         ``" name"`` (with leading space) if value is ``True``, empty string otherwise.
-    
+
     Example:
             >>> bool_attr("open", True)
             ' open'
@@ -138,23 +138,23 @@ def bool_attr(name: str, value: bool) -> str:
             ''
             >>> f'<details{bool_attr("open", is_open)}>'
             '<details open>'  # when is_open=True
-        
+
     """
     return f" {name}" if value else ""
 
 
 def data_attrs(**attrs: Any) -> str:
     """Build ``data-*`` attribute string from keyword arguments.
-    
+
     Converts underscores in names to hyphens (``columns`` → ``data-columns``).
     Skips ``None`` and empty string values. Values are HTML-escaped.
-    
+
     Args:
         **attrs: Attribute name-value pairs. Names are prefixed with ``data-``.
-    
+
     Returns:
         Space-joined data attribute string, or empty string if no valid attrs.
-    
+
     Example:
             >>> data_attrs(columns="auto", gap="medium")
             'data-columns="auto" data-gap="medium"'
@@ -162,7 +162,7 @@ def data_attrs(**attrs: Any) -> str:
             'data-count="3"'
             >>> data_attrs()
             ''
-        
+
     """
     parts = []
     for key, value in attrs.items():
@@ -174,17 +174,17 @@ def data_attrs(**attrs: Any) -> str:
 
 def attr_str(name: str, value: str | None) -> str:
     """Generate an HTML attribute string if value is truthy.
-    
+
     Returns a formatted attribute with leading space when value is non-empty.
     The value is HTML-escaped for safe inclusion in attributes.
-    
+
     Args:
         name: Attribute name (e.g., ``"href"``, ``"src"``, ``"title"``).
         value: Attribute value (may be ``None`` or empty string).
-    
+
     Returns:
         ``' name="value"'`` (with leading space) if value is truthy, else ``""``.
-    
+
     Example:
             >>> attr_str("href", "https://example.com")
             ' href="https://example.com"'
@@ -192,7 +192,7 @@ def attr_str(name: str, value: str | None) -> str:
             ''
             >>> attr_str("title", 'Say "Hello"')
             ' title="Say &quot;Hello&quot;"'
-        
+
     """
     if value:
         return f' {name}="{escape_html(value)}"'
@@ -201,17 +201,17 @@ def attr_str(name: str, value: str | None) -> str:
 
 def class_attr(base_class: str, *extra_classes: str) -> str:
     """Build a ``class="..."`` attribute string.
-    
+
     Convenience wrapper combining ``build_class_string()`` with attribute
     formatting. Returns empty string if no classes are provided.
-    
+
     Args:
         base_class: Primary CSS class (included if non-empty).
         *extra_classes: Additional CSS classes to append.
-    
+
     Returns:
         ``' class="..."'`` (with leading space) if any classes, else ``""``.
-    
+
     Example:
             >>> class_attr("dropdown", "open", "")
             ' class="dropdown open"'
@@ -219,7 +219,7 @@ def class_attr(base_class: str, *extra_classes: str) -> str:
             ''
             >>> f'<div{class_attr("card", user_class)}>'
             '<div class="card custom">'  # when user_class="custom"
-        
+
     """
     classes = build_class_string(base_class, *extra_classes)
     if classes:

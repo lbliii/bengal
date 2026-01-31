@@ -13,8 +13,6 @@ keywords:
 - installation
 - quickstart
 category: onboarding
-cascade:
-  type: doc
 icon: arrow-clockwise
 ---
 # Get Started

@@ -61,16 +61,16 @@ if TYPE_CHECKING:
 def strip_html(text: str) -> str:
     """
     Remove HTML tags from text and normalize whitespace.
-    
+
     Delegates to bengal.utils.text.strip_html with additional whitespace
     normalization specific to output format generation.
-    
+
     Args:
         text: HTML text
-    
+
     Returns:
         Plain text with HTML tags, entities, and excess whitespace removed
-        
+
     """
     if not text:
         return ""
@@ -85,18 +85,18 @@ def strip_html(text: str) -> str:
 def generate_excerpt(text: str, length: int = 200) -> str:
     """
     Generate excerpt from text using character-based truncation.
-    
+
     Note: This uses character-based truncation for backward compatibility
     with output format generation. For word-based truncation, use
     bengal.utils.text.generate_excerpt directly.
-    
+
     Args:
         text: Source text (may contain HTML)
         length: Maximum character length
-    
+
     Returns:
         Excerpt string, truncated at word boundary with ellipsis
-        
+
     """
     if not text:
         return ""
@@ -115,14 +115,14 @@ def generate_excerpt(text: str, length: int = 200) -> str:
 def get_page_relative_url(page: PageLike, site: Any) -> str:
     """
     Get clean relative URL for page (without baseurl).
-    
+
     Args:
         page: Page to get URL for
         site: Site instance
-    
+
     Returns:
         Relative URL string (without baseurl)
-        
+
     """
     # Use _path (internal path without baseurl)
     return page._path
@@ -131,14 +131,14 @@ def get_page_relative_url(page: PageLike, site: Any) -> str:
 def get_page_public_url(page: PageLike, site: SiteLike) -> str:
     """
     Get the page's public URL including baseurl.
-    
+
     Args:
         page: Page to get URL for
         site: Site instance
-    
+
     Returns:
         Full public URL including baseurl
-        
+
     """
     # page.href already includes baseurl
     return page.href
@@ -147,14 +147,14 @@ def get_page_public_url(page: PageLike, site: SiteLike) -> str:
 def get_page_url(page: PageLike, site: Any) -> str:
     """
     Get the public URL for a page.
-    
+
     Args:
         page: Page to get URL for
         site: Site instance
-    
+
     Returns:
         Full public URL including baseurl
-        
+
     """
     # page.href already includes baseurl
     return page.href
@@ -163,13 +163,13 @@ def get_page_url(page: PageLike, site: Any) -> str:
 def get_page_json_path(page: PageLike) -> Path | None:
     """
     Get the output path for a page's JSON file.
-    
+
     Args:
         page: Page to get JSON path for
-    
+
     Returns:
         Path for the JSON file, or None if output_path not available
-        
+
     """
     output_path = getattr(page, "output_path", None)
     if not output_path:
@@ -190,13 +190,13 @@ def get_page_json_path(page: PageLike) -> Path | None:
 def get_page_txt_path(page: PageLike) -> Path | None:
     """
     Get the output path for a page's TXT file.
-    
+
     Args:
         page: Page to get TXT path for
-    
+
     Returns:
         Path for the TXT file, or None if output_path not available
-        
+
     """
     output_path = getattr(page, "output_path", None)
     if not output_path:
@@ -217,13 +217,13 @@ def get_page_txt_path(page: PageLike) -> Path | None:
 def normalize_url(url: str) -> str:
     """
     Normalize a URL for consistent comparison.
-    
+
     Args:
         url: URL to normalize
-    
+
     Returns:
         Normalized URL with consistent formatting
-        
+
     """
     if not url:
         return ""

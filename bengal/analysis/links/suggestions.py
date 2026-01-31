@@ -57,16 +57,16 @@ logger = get_logger(__name__)
 class LinkSuggestion:
     """
     A suggested link between two pages.
-    
+
     Represents a recommendation to add a link from source page to target page
     based on topic similarity, importance, and connectivity analysis.
-    
+
     Attributes:
         source: Page where the link should be added
         target: Page that should be linked to
         score: Recommendation score (0.0-1.0, higher is better)
         reasons: List of reasons why this link is suggested
-        
+
     """
 
     source: PageLike
@@ -82,14 +82,14 @@ class LinkSuggestion:
 class LinkSuggestionResults:
     """
     Results from link suggestion analysis.
-    
+
     Contains all link suggestions generated for the site, along with
     statistics and methods for querying suggestions.
-    
+
     Attributes:
         suggestions: List of all link suggestions, sorted by score
         total_suggestions: Total number of suggestions generated
-        
+
     """
 
     suggestions: list[LinkSuggestion]
@@ -122,19 +122,19 @@ class LinkSuggestionResults:
 class LinkSuggestionEngine:
     """
     Generate smart link suggestions to improve site connectivity.
-    
+
     Uses multiple signals to recommend links:
     1. Topic Similarity: Pages with shared tags/categories
     2. PageRank: Prioritize linking to important pages
     3. Navigation Value: Link to bridge pages
     4. Link Gaps: Find underlinked valuable content
-    
+
     Example:
             >>> engine = LinkSuggestionEngine(knowledge_graph)
             >>> results = engine.generate_suggestions()
             >>> for suggestion in results.get_top_suggestions(20):
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
-        
+
     """
 
     def __init__(
@@ -446,22 +446,22 @@ def suggest_links(
 ) -> LinkSuggestionResults:
     """
     Convenience function for link suggestions.
-    
+
     Args:
         graph: KnowledgeGraph with page connections
         min_score: Minimum score threshold
         max_suggestions_per_page: Max suggestions per page
-    
+
     Returns:
         LinkSuggestionResults with all suggestions
-    
+
     Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
             >>> results = suggest_links(graph)
             >>> for suggestion in results.get_top_suggestions(20):
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
-        
+
     """
     engine = LinkSuggestionEngine(
         graph, min_score=min_score, max_suggestions_per_page=max_suggestions_per_page

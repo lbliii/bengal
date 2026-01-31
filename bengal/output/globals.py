@@ -33,17 +33,17 @@ _cli_output: CLIOutput | None = None
 def get_cli_output() -> CLIOutput:
     """
     Get the global CLI output instance.
-    
+
     Returns the shared CLIOutput instance, creating a default instance
     with no profile if one hasn't been initialized via init_cli_output().
-    
+
     Returns:
         The global CLIOutput instance.
-    
+
     Example:
             >>> cli = get_cli_output()
             >>> cli.success("Operation complete")
-        
+
     """
     global _cli_output
     if _cli_output is None:
@@ -58,24 +58,24 @@ def init_cli_output(
 ) -> CLIOutput:
     """
     Initialize the global CLI output instance with settings.
-    
+
     Creates and stores a new CLIOutput instance with the specified
     configuration. Should be called early in CLI command execution
     to configure output before any messages are emitted.
-    
+
     Args:
         profile: Build profile for profile-aware formatting (Writer, Theme-Dev,
             Developer). Controls which details are shown.
         quiet: If True, suppress non-critical output (INFO and below).
         verbose: If True, show detailed output including DEBUG messages.
-    
+
     Returns:
         The newly initialized global CLIOutput instance.
-    
+
     Example:
             >>> cli = init_cli_output(profile=BuildProfile.DEVELOPER, verbose=True)
             >>> cli.header("Starting build...")
-        
+
     """
     global _cli_output
     from bengal.output.core import CLIOutput

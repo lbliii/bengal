@@ -23,17 +23,16 @@ from textual.message import Message
 class BuildEvent(Message):
     """Base class for all build-related events."""
 
-    pass
 
 
 @dataclass
 class PhaseStarted(BuildEvent):
     """
     A build phase has started.
-    
+
     Posted by the build worker when a phase begins.
     Dashboard updates progress bar and phase table.
-        
+
     """
 
     name: str
@@ -44,10 +43,10 @@ class PhaseStarted(BuildEvent):
 class PhaseProgress(BuildEvent):
     """
     Progress update within a build phase.
-    
+
     Posted periodically during rendering/asset processing.
     Dashboard updates progress bar percentage.
-        
+
     """
 
     name: str
@@ -60,10 +59,10 @@ class PhaseProgress(BuildEvent):
 class PhaseComplete(BuildEvent):
     """
     A build phase has completed.
-    
+
     Posted by the build worker when a phase finishes.
     Dashboard updates phase table with duration and status.
-        
+
     """
 
     name: str
@@ -76,10 +75,10 @@ class PhaseComplete(BuildEvent):
 class BuildComplete(BuildEvent):
     """
     The entire build has completed.
-    
+
     Posted by the build worker when all phases finish.
     Dashboard shows completion toast and final stats.
-        
+
     """
 
     success: bool
@@ -95,10 +94,10 @@ class BuildComplete(BuildEvent):
 class FileChanged(Message):
     """
     A watched file has changed.
-    
+
     Posted by the file watcher when content/assets change.
     Dashboard logs the change and triggers rebuild.
-        
+
     """
 
     path: str
@@ -109,10 +108,10 @@ class FileChanged(Message):
 class RebuildTriggered(Message):
     """
     A rebuild has been triggered by file changes.
-    
+
     Posted when the watcher initiates a rebuild.
     Dashboard starts showing build progress.
-        
+
     """
 
     changed_files: list[str]
@@ -122,10 +121,10 @@ class RebuildTriggered(Message):
 class WatcherStatus(Message):
     """
     File watcher status update.
-    
+
     Posted periodically with watcher statistics.
     Dashboard updates watcher status indicator.
-        
+
     """
 
     watching: bool

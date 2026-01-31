@@ -57,10 +57,10 @@ if TYPE_CHECKING:
 class HealthCheckStats:
     """
     Statistics about health check execution.
-    
+
     Provides observability into parallel execution performance, useful for
     diagnosing slow builds and validating that parallelization is effective.
-    
+
     Attributes:
         total_duration_ms: Wall-clock time for entire health check run
         execution_mode: Either 'parallel' or 'sequential'
@@ -68,7 +68,7 @@ class HealthCheckStats:
         worker_count: Number of worker threads used (1 for sequential)
         cpu_count: Available CPU cores on system
         sum_validator_duration_ms: Sum of individual validator durations
-        
+
     """
 
     total_duration_ms: float
@@ -118,22 +118,22 @@ class HealthCheckStats:
 class HealthCheck:
     """
     Orchestrates health check validators and produces unified health reports.
-    
+
     By default, registers all standard validators. You can disable auto-registration
     by passing auto_register=False, then manually register validators.
-    
+
     Usage:
         # Default: auto-registers all validators
         health = HealthCheck(site)
         report = health.run()
         print(report.format_console())
-    
+
         # Manual registration:
         health = HealthCheck(site, auto_register=False)
         health.register(ConfigValidator())
         health.register(OutputValidator())
         report = health.run()
-        
+
     """
 
     def __init__(self, site: SiteLike, auto_register: bool = True):
@@ -464,7 +464,7 @@ class HealthCheck:
         """
         if context:
             # Explicit context provided - validate only these files
-            return set(Path(p) for p in context)
+            return {Path(p) for p in context}
         elif incremental and cache:
             # Incremental mode - find changed files
             files_to_validate: set[Path] = set()

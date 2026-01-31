@@ -14,12 +14,12 @@ class PythonMarkdownParser(BaseMarkdownParser):
     """
     Parser using python-markdown library.
     Full-featured with all extensions.
-    
+
     Note:
         This parser uses python-markdown's codehilite extension which
         requires Pygments. For syntax highlighting without Pygments,
         use MistuneParser instead (which uses Bengal's Rosettes backend).
-        
+
     """
 
     def __init__(self) -> None:

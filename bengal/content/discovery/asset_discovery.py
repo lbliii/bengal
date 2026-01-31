@@ -33,21 +33,21 @@ logger = get_logger(__name__)
 class AssetDiscovery:
     """
     Discovers static assets (images, CSS, JS, fonts, etc.).
-    
+
     This class is responsible ONLY for finding files and creating Asset objects.
     Asset processing logic (bundling, minification, optimization) is handled
     by orchestrators.
-    
+
     Filtering Behavior:
         - Skips hidden files and directories (starting with '.')
         - Skips temporary files (.tmp extension)
         - Skips markdown files (.md extension)
         - Creates the assets directory if it doesn't exist
-    
+
     Attributes:
         assets_dir: Root directory to scan for assets
         assets: List of discovered Asset objects (populated after discover())
-    
+
     Example:
             >>> from bengal.content.discovery import AssetDiscovery
             >>> from pathlib import Path
@@ -56,7 +56,7 @@ class AssetDiscovery:
             >>> assets = discovery.discover()
             >>> for asset in assets:
             ...     print(f"{asset.source_path} -> {asset.output_path}")
-        
+
     """
 
     def __init__(self, assets_dir: Path) -> None:

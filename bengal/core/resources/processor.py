@@ -67,22 +67,22 @@ class CachedResult:
 
 class ImageProcessor:
     """Image processing with caching.
-    
+
     Uses Pillow for processing, with optional libvips for performance.
     Caches processed images in .bengal/image-cache/.
-    
+
     Thread Safety:
         Uses atomic file writes to prevent corruption during parallel builds.
         Cache reads are lock-free; writes use tempfile + rename pattern.
-    
+
     Memory Management:
         For images >10MP, uses chunked processing via PIL.Image.draft()
         to reduce peak memory usage.
-    
+
     Attributes:
         site: Site instance for configuration
         cache_dir: Path to image cache directory
-        
+
     """
 
     CACHE_DIR = ".bengal/image-cache"
@@ -121,8 +121,8 @@ class ImageProcessor:
         - Source path + mtime
         - Operation + spec
         """
-        from bengal.core.resources.types import parse_spec
         from bengal.core.resources.image import ProcessedImage
+        from bengal.core.resources.types import parse_spec
 
         try:
             # Check if source exists
@@ -533,13 +533,13 @@ class ImageProcessor:
 
 def get_cache_stats(site: Any) -> dict[str, Any]:
     """Get image cache statistics.
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         Dict with cache stats (count, size, etc.)
-        
+
     """
     cache_dir = site.root_path / ImageProcessor.CACHE_DIR
 
@@ -569,13 +569,13 @@ def get_cache_stats(site: Any) -> dict[str, Any]:
 
 def clear_cache(site: Any) -> int:
     """Clear the image cache.
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         Number of files deleted
-        
+
     """
     import shutil
 

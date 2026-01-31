@@ -2,7 +2,6 @@
 title: Debug Filters
 description: Development helpers for debugging templates
 weight: 110
-type: doc
 tags:
 - reference
 - filters

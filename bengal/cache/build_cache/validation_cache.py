@@ -28,11 +28,11 @@ if TYPE_CHECKING:
 class ValidationCacheMixin:
     """
     Mixin providing validation result caching.
-    
+
     Requires these attributes on the host class:
         - validation_results: dict[str, dict[str, list[dict[str, Any]]]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
-        
+
     """
 
     # Type hints for mixin attributes (provided by host class)

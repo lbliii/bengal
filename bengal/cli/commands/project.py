@@ -55,7 +55,7 @@ PROFILES: dict[str, dict[str, Any]] = {
 def project_cli() -> None:
     """
     Project management and setup commands.
-    
+
     Commands:
         init       Initialize project structure and content sections
         skeleton   Apply skeleton manifests to create site structure
@@ -63,9 +63,8 @@ def project_cli() -> None:
         validate   Validate configuration and directory structure
         info       Display project information and statistics
         config     View and manage configuration settings
-        
+
     """
-    pass
 
 
 @project_cli.command()
@@ -84,18 +83,18 @@ def project_cli() -> None:
 def profile(profile_name: str) -> None:
     """
     👤 Set your Bengal working profile / persona.
-    
+
     Profiles customize CLI behavior and output format based on your role:
-    
+
         dev       👨‍💻  Full debug output, performance metrics, all commands
         themer    🎨  Focus on templates, themes, component preview
         writer    ✍️  Simple UX, focus on content, minimal tech details
         ai        🤖  Machine-readable output, JSON formats
-    
+
     Examples:
         bengal project profile dev       # Switch to developer profile
         bengal project profile writer    # Switch to content writer profile
-        
+
     """
     cli = get_cli_output()
 
@@ -169,14 +168,14 @@ def profile(profile_name: str) -> None:
 def validate() -> None:
     """
     ✓ Validate Bengal project configuration and structure.
-    
+
     Checks:
         ✓ bengal.toml exists and is valid
         ✓ Required configuration fields
         ✓ Directory structure (content/, templates/, assets/)
         ✓ Theme configuration
         ✓ Content files parseable
-        
+
     """
     cli = get_cli_output()
 
@@ -270,13 +269,13 @@ def validate() -> None:
 def info() -> None:
     """
     Display project information and statistics.
-    
+
     Shows:
         - Site title, baseurl, theme
         - Content statistics (pages, sections)
         - Asset counts
         - Configuration paths
-        
+
     """
     cli = get_cli_output()
 
@@ -376,13 +375,13 @@ def info() -> None:
 def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
     """
     Manage Bengal configuration.
-    
+
     Examples:
         bengal project config                    # Show current config
         bengal project config site.title         # Get specific value
         bengal project config site.title "My Blog" --set  # Set value
         bengal project config --list             # List all options
-        
+
     """
     cli = get_cli_output()
 
@@ -443,9 +442,9 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
         if not set_value:
             if cli.use_rich:
-                cli.console.print(f"[info]{key}:[/info] {str(current)}")
+                cli.console.print(f"[info]{key}:[/info] {current!s}")
             else:
-                cli.info(f"{key}: {str(current)}")
+                cli.info(f"{key}: {current!s}")
             return
 
         # Set value

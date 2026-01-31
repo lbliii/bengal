@@ -24,17 +24,17 @@ if TYPE_CHECKING:
 
 class RefRole:
     """Handler for {ref}`target` role.
-    
+
     Creates a cross-reference to a labeled target. The target
     is resolved during rendering based on the document structure.
-    
+
     Syntax:
         {ref}`target` - Uses target as both ID and display text
         {ref}`display text <target>` - Custom display text
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("ref",)
@@ -87,17 +87,17 @@ class RefRole:
 
 class DocRole:
     """Handler for {doc}`path` role.
-    
+
     Creates a link to another document. The path is resolved
     relative to the current document.
-    
+
     Syntax:
         {doc}`/path/to/doc` - Link to document
         {doc}`display text </path/to/doc>` - Custom display text
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("doc",)

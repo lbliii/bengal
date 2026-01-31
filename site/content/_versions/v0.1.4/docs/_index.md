@@ -2,7 +2,6 @@
 title: Documentation (v1)
 description: Bengal v1.0 documentation - legacy version
 weight: 1
-type: doc
 icon: book-open
 cascade:
   type: doc

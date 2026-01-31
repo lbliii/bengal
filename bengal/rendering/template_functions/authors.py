@@ -29,12 +29,12 @@ if TYPE_CHECKING:
 class AuthorView:
     """
     Normalized view of an author for templates.
-    
+
     Consolidates author data from multiple sources:
     - site.data.authors registry
     - Page metadata/params
     - Social link extraction
-    
+
     Attributes:
         name: Author display name
         key: Author key/slug for lookups
@@ -50,7 +50,7 @@ class AuthorView:
         email: Email address
         href: URL to author page
         post_count: Number of posts by author
-        
+
     """
 
     name: str
@@ -272,25 +272,25 @@ def _extract_github(value: str) -> str:
 
 
 # Store site reference for filter access
-_site_ref: "SiteLike | None" = None
+_site_ref: SiteLike | None = None
 
 
 def author_view_filter(page: Any) -> AuthorView | None:
     """
     Convert an author page to an AuthorView.
-    
+
     Uses site.data.authors and site.indexes.author for enrichment.
-    
+
     Args:
         page: Author page object
-    
+
     Returns:
         AuthorView object or None if conversion fails
-    
+
     Example:
         {% let author = page | author_view %}
         <h1>{{ author.name }}</h1>
-        
+
     """
     if not page:
         return None
@@ -313,18 +313,18 @@ def author_view_filter(page: Any) -> AuthorView | None:
 def authors_filter(pages: Any) -> list[AuthorView]:
     """
     Convert a list of author pages to AuthorView objects.
-    
+
     Args:
         pages: List of author Page objects
-    
+
     Returns:
         List of AuthorView objects
-    
+
     Example:
         {% for author in pages | authors %}
           <a href="{{ author.href }}">{{ author.name }}</a>
         {% end %}
-        
+
     """
     if not pages:
         return []

@@ -61,10 +61,10 @@ from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
 
 __all__ = [
-    "StepsDirective",
     "StepDirective",
-    "StepsOptions",
     "StepOptions",
+    "StepsDirective",
+    "StepsOptions",
 ]
 
 logger = get_logger(__name__)
@@ -79,13 +79,13 @@ logger = get_logger(__name__)
 class StepOptions(DirectiveOptions):
     """
     Options for step directive.
-    
+
     Attributes:
         css_class: Custom CSS class for the step
         description: Lead-in text with special typography (rendered before main content)
         optional: Mark step as optional/skippable (adds visual indicator)
         duration: Estimated time for the step (e.g., "5 min", "1 hour")
-    
+
     Example:
         :::{step} Configure Settings
         :class: important-step
@@ -94,7 +94,7 @@ class StepOptions(DirectiveOptions):
         :optional:
         Content here
         :::{/step}
-        
+
     """
 
     css_class: str = ""
@@ -108,17 +108,17 @@ class StepOptions(DirectiveOptions):
 class StepDirective(BengalDirective):
     """
     Individual step directive (nested in steps).
-    
+
     Syntax:
         :::{step} Optional Title
         :class: custom-class
         Step content with **markdown** and nested directives.
         :::
-    
+
     Contract:
         MUST be nested inside a :::{steps} directive.
         If used outside steps, a warning is logged.
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["step"]
@@ -290,12 +290,12 @@ class StepDirective(BengalDirective):
 class StepsOptions(DirectiveOptions):
     """
     Options for steps container directive.
-    
+
     Attributes:
         css_class: Custom CSS class for the steps container
         style: Step style (compact, default)
         start: Start numbering from this value (default: 1)
-    
+
     Example:
         :::{steps}
         :class: installation-steps
@@ -303,7 +303,7 @@ class StepsOptions(DirectiveOptions):
         :start: 5
             ...
         :::{/steps}
-        
+
     """
 
     css_class: str = ""
@@ -319,27 +319,27 @@ class StepsOptions(DirectiveOptions):
 class StepsDirective(BengalDirective):
     """
     Steps directive for visual step-by-step guides.
-    
+
     Syntax (preferred - supports nested directives):
         ::::{steps}
         :class: custom-class
         :style: compact
-    
+
         :::{step} Step 1 Title
         Step 1 content with nested :::{tip} directives
         :::
-    
+
         :::{step} Step 2 Title
         Step 2 content
         :::
         ::::
-    
+
     Note: Parent container (steps) uses 4 colons, nested steps use 3 colons.
-    
+
     Contract:
         REQUIRES at least one :::{step} child directive.
         If no steps found, a warning is logged.
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["steps"]

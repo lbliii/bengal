@@ -43,17 +43,17 @@ from typing import Any
 class SourceInfo:
     """
     Information about a page's source file.
-    
+
     Contains metadata about the original content file including its
     location, size, modification time, and encoding.
-    
+
     Attributes:
         path: Path to the source file (relative to content directory).
         size_bytes: File size in bytes.
         line_count: Number of lines in the file.
         modified: Last modification timestamp, or None for virtual pages.
         encoding: Character encoding (default UTF-8).
-    
+
     Example:
             >>> source = SourceInfo(
             ...     path=Path("docs/guide.md"),
@@ -63,7 +63,7 @@ class SourceInfo:
             ... )
             >>> source.size_human
             '2.0 KB'
-        
+
     """
 
     path: Path
@@ -92,17 +92,17 @@ class SourceInfo:
 class TemplateInfo:
     """
     Information about a single template in the inheritance chain.
-    
+
     Represents one template file and its relationships to other templates
     via Jinja2's extends and include directives.
-    
+
     Attributes:
         name: Template filename (e.g., "page.html", "base.html").
         source_path: Absolute path to template file, or None if not resolved.
         theme: Theme name this template belongs to, or None for project templates.
         extends: Parent template name if this template extends another.
         includes: List of template names included via {% include %}.
-    
+
     Example:
             >>> template = TemplateInfo(
             ...     name="post.html",
@@ -111,7 +111,7 @@ class TemplateInfo:
             ...     extends="base.html",
             ...     includes=["partials/meta.html", "partials/comments.html"],
             ... )
-        
+
     """
 
     name: str
@@ -125,25 +125,25 @@ class TemplateInfo:
 class DependencyInfo:
     """
     All dependencies for a page, categorized by type.
-    
+
     Tracks what files a page depends on, which determines when the page
     needs to be rebuilt during incremental builds. Dependencies are
     categorized for clarity and debugging.
-    
+
     Attributes:
         content: Other content files this page depends on (e.g., section index).
         templates: Template files used to render this page.
         data: Data files (YAML, JSON, TOML) referenced by the page.
         assets: Static assets (images, CSS, JS) referenced in content.
         includes: Files included via shortcodes or directives.
-    
+
     Example:
             >>> deps = DependencyInfo(
             ...     templates=["post.html", "base.html"],
             ...     data=["authors.yaml"],
             ...     assets=["images/hero.jpg"],
             ... )
-        
+
     """
 
     content: list[str] = field(default_factory=list)
@@ -157,23 +157,23 @@ class DependencyInfo:
 class ShortcodeUsage:
     """
     Information about shortcode/directive usage in a page.
-    
+
     Tracks occurrences of a specific directive or shortcode, including
     where it appears and what arguments were used.
-    
+
     Attributes:
         name: Directive/shortcode name (e.g., "note", "admonition", "include").
         count: Total number of times this directive appears in the page.
         lines: Line numbers where each occurrence appears.
         args: Arguments passed to the directive (for the first occurrence).
-    
+
     Example:
             >>> usage = ShortcodeUsage(
             ...     name="note",
             ...     count=3,
             ...     lines=[12, 45, 89],
             ... )
-        
+
     """
 
     name: str
@@ -186,10 +186,10 @@ class ShortcodeUsage:
 class CacheInfo:
     """
     Cache status information for a page.
-    
+
     Indicates whether the page can be served from cache or needs to be
     rebuilt, along with the reason for cache misses or staleness.
-    
+
     Attributes:
         status: Cache status code: "HIT", "MISS", "STALE", or "UNKNOWN".
         reason: Explanation for MISS or STALE status (None for HIT).
@@ -197,13 +197,13 @@ class CacheInfo:
         last_hit: When the cache was last accessed (if available).
         content_cached: Whether parsed content is in cache.
         rendered_cached: Whether rendered HTML is in cache.
-    
+
     Status Meanings:
         - HIT: Page fully cached and up-to-date
         - MISS: Page not in cache, will be built from scratch
         - STALE: Page in cache but dependencies changed
         - UNKNOWN: Cache status could not be determined
-    
+
     Example:
             >>> cache = CacheInfo(
             ...     status="STALE",
@@ -214,7 +214,7 @@ class CacheInfo:
             ... )
             >>> cache.status_emoji
             '⚠️'
-        
+
     """
 
     status: str
@@ -244,17 +244,17 @@ class CacheInfo:
 class OutputInfo:
     """
     Information about a page's generated output.
-    
+
     Contains details about where the rendered HTML is written and how
     it can be accessed.
-    
+
     Attributes:
         path: Output file path relative to output directory, or None if
             not yet rendered.
         url: Public URL path for this page (e.g., "/docs/guide/").
         size_bytes: Size of rendered output in bytes, or None if not
             yet written.
-    
+
     Example:
             >>> output = OutputInfo(
             ...     path=Path("docs/guide/index.html"),
@@ -263,7 +263,7 @@ class OutputInfo:
             ... )
             >>> output.size_human
             '8.0 KB'
-        
+
     """
 
     path: Path | None
@@ -293,11 +293,11 @@ class OutputInfo:
 class Issue:
     """
     A detected issue with a page.
-    
+
     Represents a problem, warning, or informational note discovered
     during page diagnosis. Issues include actionable suggestions
     where possible.
-    
+
     Attributes:
         severity: Issue severity level: "error", "warning", or "info".
         issue_type: Category identifier (e.g., "broken_link", "missing_asset").
@@ -305,7 +305,7 @@ class Issue:
         details: Additional context-specific data about the issue.
         suggestion: Recommended action to resolve the issue.
         line: Source line number where issue was found (if applicable).
-    
+
     Example:
             >>> issue = Issue(
             ...     severity="warning",
@@ -317,7 +317,7 @@ class Issue:
             ... )
             >>> issue.severity_emoji
             '⚠️'
-        
+
     """
 
     severity: str
@@ -347,17 +347,17 @@ class Issue:
 class PerformanceInfo:
     """
     Performance timing breakdown for page building.
-    
+
     Provides detailed timing measurements for different phases of
     page processing, useful for identifying performance bottlenecks.
-    
+
     Attributes:
         total_ms: Total build time in milliseconds.
         parse_ms: Time spent parsing markdown content.
         shortcode_ms: Time spent processing directives/shortcodes.
         render_ms: Time spent rendering templates.
         breakdown: Additional phase timings by name.
-    
+
     Example:
             >>> perf = PerformanceInfo(
             ...     total_ms=45.2,
@@ -365,7 +365,7 @@ class PerformanceInfo:
             ...     shortcode_ms=8.3,
             ...     render_ms=24.4,
             ... )
-        
+
     """
 
     total_ms: float
@@ -379,11 +379,11 @@ class PerformanceInfo:
 class PageExplanation:
     """
     Complete explanation of how a page is built.
-    
+
     Aggregates all aspects of page building into a single comprehensive
     object. This is the primary output of PageExplainer and provides
     full traceability for any page.
-    
+
     Attributes:
         source: Source file information (path, size, modified).
         frontmatter: Parsed frontmatter metadata dictionary.
@@ -394,7 +394,7 @@ class PageExplanation:
         output: Output path and URL information.
         performance: Optional timing breakdown (if measured).
         issues: Optional list of detected issues (if diagnosed).
-    
+
     Example:
             >>> from bengal.debug import PageExplainer, ExplanationReporter
             >>> explainer = PageExplainer(site)
@@ -406,11 +406,11 @@ class PageExplanation:
             >>> if explanation.issues:
             ...     for issue in explanation.issues:
             ...         print(f"{issue.severity_emoji} {issue.message}")
-    
+
     See Also:
         - PageExplainer: Creates PageExplanation instances
         - ExplanationReporter: Formats for terminal display
-        
+
     """
 
     source: SourceInfo

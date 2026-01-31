@@ -87,14 +87,14 @@ class DiagnosticsCollector:
 def emit_best_effort(obj: object | None, event: DiagnosticEvent) -> None:
     """
     Emit a diagnostic event if a sink is available.
-    
+
     This is intentionally best-effort: diagnostics must never affect core behavior.
-    
+
     Resolution order:
       1) obj._diagnostics (explicit injection on some core types)
       2) obj.diagnostics (e.g., Site.diagnostics attached by orchestrators)
       3) obj._site.diagnostics (common pattern for core models linked to a Site)
-        
+
     """
     if obj is None:
         return

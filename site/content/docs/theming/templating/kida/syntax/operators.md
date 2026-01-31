@@ -3,7 +3,6 @@ title: Operators
 nav_title: Operators
 description: Pipeline, optional chaining, and null coalescing operators
 weight: 30
-type: doc
 tags:
 - reference
 - kida

@@ -30,12 +30,12 @@ logger = get_logger(__name__)
 class RESTSource(ContentSource):
     """
     Content source for REST APIs.
-    
+
     Fetches content from any REST API that returns JSON. Supports:
     - Custom headers (with environment variable expansion)
     - Configurable field mappings for content and frontmatter
     - Pagination (link header or cursor-based)
-    
+
     Configuration:
         url: str - API endpoint URL (required)
         headers: dict - Request headers (optional, supports ${ENV_VAR})
@@ -46,7 +46,7 @@ class RESTSource(ContentSource):
         pagination: dict - Pagination config (optional)
             strategy: str - "link_header" or "cursor"
             cursor_field: str - Field containing next cursor
-    
+
     Example:
             >>> source = RESTSource("blog", {
             ...     "url": "https://api.example.com/posts",
@@ -58,7 +58,7 @@ class RESTSource(ContentSource):
             ...         "tags": "categories",
             ...     },
             ... })
-        
+
     """
 
     source_type = "rest"

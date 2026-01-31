@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from bengal.config.types import SiteConfig
     from bengal.core.page.frontmatter import Frontmatter
+    from bengal.core.version import VersionConfig
 
 
 # =============================================================================
@@ -42,24 +43,24 @@ if TYPE_CHECKING:
 class PageLike(Protocol):
     """
     Protocol for page-like objects.
-    
+
     Provides a unified interface for objects that can be treated as pages
     in templates, navigation, and rendering. This enables type-safe access
     to page properties without depending on the concrete Page class.
-    
+
     Use Cases:
         - Template rendering: Functions accept PageLike for flexibility
         - Navigation building: Menu items work with any PageLike
         - Testing: Create minimal page-like objects for unit tests
-    
+
     Thread Safety:
         Implementations should be thread-safe for concurrent access
         during parallel builds.
-    
+
     Example:
             >>> def render_page(page: PageLike) -> str:
             ...     return f"<h1>{page.title}</h1>{page.content}"
-        
+
     """
 
     @property
@@ -112,6 +113,11 @@ class PageLike(Protocol):
         """Tags for taxonomy filtering."""
         ...
 
+    @property
+    def output_path(self) -> Path | None:
+        """Path where the rendered page will be written."""
+        ...
+
 
 # =============================================================================
 # Section Protocol
@@ -122,23 +128,23 @@ class PageLike(Protocol):
 class SectionLike(Protocol):
     """
     Protocol for section-like objects.
-    
+
     Provides a unified interface for content sections in templates,
     navigation, and menu building. Enables type-safe operations without
     depending on the concrete Section class.
-    
+
     Note:
         This is the canonical definition. The duplicate in
         bengal.orchestration.types has been removed.
-    
+
     Thread Safety:
         Implementations should be thread-safe for concurrent access
         during parallel builds.
-    
+
     Example:
             >>> def build_nav(section: SectionLike) -> list[dict]:
             ...     return [{"title": p.title, "href": p.href} for p in section.pages]
-        
+
     """
 
     @property
@@ -191,19 +197,19 @@ class SectionLike(Protocol):
 class SiteLike(Protocol):
     """
     Protocol for site-like objects.
-    
+
     Provides a unified interface for site operations in templates,
     rendering, and orchestration. Enables type-safe site access without
     depending on the concrete Site class.
-    
+
     Thread Safety:
         Implementations should be thread-safe for concurrent access
         during parallel builds.
-    
+
     Example:
             >>> def get_page_count(site: SiteLike) -> int:
             ...     return len(site.pages)
-        
+
     """
 
     @property
@@ -261,6 +267,21 @@ class SiteLike(Protocol):
         """Data directory contents (loaded from data/ directory)."""
         ...
 
+    @property
+    def taxonomies(self) -> dict[str, dict[str, Any]]:
+        """Collected taxonomies (tags, categories, etc.)."""
+        ...
+
+    @property
+    def version_config(self) -> VersionConfig:
+        """Site versioning configuration."""
+        ...
+
+    @property
+    def content_dir(self) -> Path:
+        """Path to the content directory."""
+        ...
+
 
 # =============================================================================
 # Navigation Protocols
@@ -271,10 +292,10 @@ class SiteLike(Protocol):
 class NavigableSection(Protocol):
     """
     Protocol for sections with navigation support.
-    
+
     Extends SectionLike with navigation-specific methods for building
     menus, breadcrumbs, and prev/next navigation.
-        
+
     """
 
     @property
@@ -312,9 +333,9 @@ class NavigableSection(Protocol):
 class QueryableSection(Protocol):
     """
     Protocol for sections with query capabilities.
-    
+
     Provides methods for retrieving pages with filtering and sorting.
-        
+
     """
 
     def get_pages(

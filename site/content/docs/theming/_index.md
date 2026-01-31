@@ -2,8 +2,6 @@
 title: Theming
 description: Templates, assets, and visual customization
 weight: 25
-cascade:
-  type: doc
 icon: palette
 ---
 # Design & Theming

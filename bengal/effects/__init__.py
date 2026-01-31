@@ -22,15 +22,14 @@ Usage:
     ...     invalidates=frozenset({"page:/page/"}),
     ... )
     >>> tracer.record(effect)
-    >>> 
+    >>>
     >>> # Query what's invalidated by changes
     >>> invalidated = tracer.invalidated_by({Path("content/page.md")})
 
 """
 
-from bengal.effects.effect import Effect
-from bengal.effects.tracer import EffectTracer, SnapshotEffectBuilder
 from bengal.effects.block_diff import BlockDiffService
+from bengal.effects.effect import Effect
 from bengal.effects.render_integration import (
     BuildEffectTracer,
     RenderEffectRecorder,
@@ -41,16 +40,17 @@ from bengal.effects.render_integration import (
     record_extra_dependency,
     record_template_include,
 )
+from bengal.effects.tracer import EffectTracer, SnapshotEffectBuilder
 
 __all__ = [
-    # Core effect types
-    "Effect",
-    "EffectTracer",
-    "SnapshotEffectBuilder",
     "BlockDiffService",
     # Integration helpers
     "BuildEffectTracer",
+    # Core effect types
+    "Effect",
+    "EffectTracer",
     "RenderEffectRecorder",
+    "SnapshotEffectBuilder",
     "enable_effect_tracing_from_config",
     "get_current_effect_context",
     "record_cascade_source",

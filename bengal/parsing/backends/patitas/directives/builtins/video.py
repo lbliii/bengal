@@ -35,9 +35,10 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -45,10 +46,10 @@ if TYPE_CHECKING:
     from patitas.stringbuilder import StringBuilder
 
 __all__ = [
-    "YouTubeDirective",
-    "VimeoDirective",
-    "TikTokDirective",
     "SelfHostedVideoDirective",
+    "TikTokDirective",
+    "VimeoDirective",
+    "YouTubeDirective",
 ]
 
 
@@ -85,24 +86,24 @@ class YouTubeOptions(DirectiveOptions):
 class YouTubeDirective:
     """
     YouTube video embed directive with privacy-enhanced mode.
-    
+
     Syntax:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
         :start: 30
         :privacy: true
         :::
-    
+
     Output:
         <div class="video-embed youtube" data-aspect="16/9">
           <iframe src="https://www.youtube-nocookie.com/embed/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on YouTube: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("youtube",)
@@ -266,23 +267,23 @@ class VimeoOptions(DirectiveOptions):
 class VimeoDirective:
     """
     Vimeo video embed directive with Do Not Track mode.
-    
+
     Syntax:
         :::{vimeo} 123456789
         :title: My Vimeo Video
         :color: ff0000
         :::
-    
+
     Output:
         <div class="video-embed vimeo" data-aspect="16/9">
           <iframe src="https://player.vimeo.com/video/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on Vimeo: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("vimeo",)
@@ -441,22 +442,22 @@ class TikTokOptions(DirectiveOptions):
 class TikTokDirective:
     """
     TikTok video embed directive.
-    
+
     Syntax:
         :::{tiktok} 7123456789012345678
         :title: Funny cat video
         :::
-    
+
     Output:
         <div class="video-embed tiktok" data-aspect="9/16">
           <iframe src="https://www.tiktok.com/embed/v2/..."
                   title="..." loading="lazy" allowfullscreen></iframe>
           <noscript><p>Watch on TikTok: ...</p></noscript>
         </div>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("tiktok",)
@@ -622,14 +623,14 @@ class SelfHostedVideoOptions(DirectiveOptions):
 class SelfHostedVideoDirective:
     """
     Self-hosted video directive using HTML5 video element.
-    
+
     Syntax:
         :::{video} /assets/demo.mp4
         :title: Product Demo
         :poster: /assets/demo-poster.jpg
         :controls: true
         :::
-    
+
     Output:
         <figure class="video-embed self-hosted">
           <video title="..." controls preload="metadata">
@@ -637,10 +638,10 @@ class SelfHostedVideoDirective:
             <p>Fallback text with download link</p>
           </video>
         </figure>
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("video",)

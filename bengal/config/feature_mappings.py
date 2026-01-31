@@ -87,16 +87,16 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
 def expand_features(config: dict[str, Any]) -> dict[str, Any]:
     """
     Expand feature toggles to detailed configuration.
-    
+
     Reads from config["features"] and expands to detailed config keys.
     Only sets values if they're not already explicitly configured.
-    
+
     Args:
         config: Configuration dictionary (will be modified in place)
-    
+
     Returns:
         Modified config dictionary (same object)
-    
+
     Examples:
             >>> config = {"features": {"rss": True, "search": True}}
             >>> expand_features(config)
@@ -105,7 +105,7 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
             "output_formats": {"site_wide": ["rss"]},
             "search": {"enabled": True, "preload": "smart"}
         }
-    
+
             >>> # Explicit config overrides feature expansion
             >>> config = {
             ...     "features": {"search": True},
@@ -113,7 +113,7 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
             ... }
             >>> expand_features(config)
         # search.preload stays "immediate" (not overridden to "smart")
-        
+
     """
     if "features" not in config:
         return config
@@ -148,21 +148,21 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
 def _set_if_missing(config: dict[str, Any], key_path: str, value: Any) -> None:
     """
     Set a nested key only if it doesn't already exist.
-    
+
     This helper preserves explicit user configuration by only setting values
     that haven't been configured. For list values, it appends unique items
     to existing lists rather than replacing them.
-    
+
     Args:
         config: Configuration dictionary to modify (mutated in place).
         key_path: Dot-separated path to the key (e.g., ``"search.enabled"``).
         value: Value to set if the key doesn't exist.
-    
+
     Behavior:
         - **Missing key**: Sets the value.
         - **Existing list + list value**: Appends unique items from value.
         - **Existing primitive/dict**: Does nothing (preserves user config).
-        
+
     """
     keys = key_path.split(".")
     existing = get_nested_key(config, key_path)
@@ -198,17 +198,17 @@ def _set_if_missing(config: dict[str, Any], key_path: str, value: Any) -> None:
 def get_available_features() -> list[str]:
     """
     Get list of available feature names.
-    
+
     Returns:
         List of feature names that can be used in config
-    
+
     Examples:
             >>> features = get_available_features()
             >>> "rss" in features
         True
             >>> "search" in features
         True
-        
+
     """
     return sorted(FEATURE_MAPPINGS.keys())
 
@@ -216,16 +216,16 @@ def get_available_features() -> list[str]:
 def get_feature_expansion(feature_name: str) -> dict[str, Any] | None:
     """
     Get the detailed config mapping for a feature.
-    
+
     Args:
         feature_name: Name of feature (e.g., "rss")
-    
+
     Returns:
         Mapping dict, or None if feature unknown
-    
+
     Examples:
             >>> get_feature_expansion("rss")
         {"generate_rss": True, "output_formats.site_wide": ["rss"]}
-        
+
     """
     return FEATURE_MAPPINGS.get(feature_name)

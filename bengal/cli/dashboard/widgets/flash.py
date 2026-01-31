@@ -28,21 +28,21 @@ if TYPE_CHECKING:
 class BuildFlash(Static):
     """
     Inline build status notifications with auto-dismiss.
-    
+
     Shows build phase, success, or error messages with appropriate styling.
     Success messages auto-dismiss after 5 seconds.
-    
+
     CSS classes:
         -building: Active build phase (orange)
         -success: Build completed successfully (green)
         -error: Build failed (red)
-    
+
     Example:
         flash = BuildFlash(id="build-flash")
         flash.show_building("Rendering")
         flash.show_success(1234)  # Shows "✓ Build complete in 1234ms"
         flash.show_error("Template error")
-        
+
     """
 
     DEFAULT_CSS = """

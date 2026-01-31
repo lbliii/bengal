@@ -24,11 +24,11 @@ from typing import Any
 class LinkKind(str, Enum):
     """
     Classification of link type.
-    
+
     Values:
         INTERNAL: Links within the same site (relative or absolute site paths)
         EXTERNAL: Links to other domains (http://, https://)
-        
+
     """
 
     INTERNAL = "internal"
@@ -38,13 +38,13 @@ class LinkKind(str, Enum):
 class LinkStatus(str, Enum):
     """
     Result status from checking a link.
-    
+
     Values:
         OK: Link is valid (2xx-3xx response or page exists)
         BROKEN: Link is broken (4xx response or page not found)
         IGNORED: Link was skipped due to ignore policy
         ERROR: Network error, timeout, or other check failure
-        
+
     """
 
     OK = "ok"
@@ -57,10 +57,10 @@ class LinkStatus(str, Enum):
 class LinkCheckResult:
     """
     Result of checking a single link.
-    
+
     Captures all information about a link check including the URL, status,
     HTTP details, and reference information for reporting.
-    
+
     Attributes:
         url: The URL that was checked
         kind: LinkKind.INTERNAL or LinkKind.EXTERNAL
@@ -73,7 +73,7 @@ class LinkCheckResult:
         ignore_reason: Why the link was ignored
         error_message: Error details if status is ERROR
         metadata: Additional data (e.g., available_anchors for broken anchor)
-        
+
     """
 
     url: str
@@ -114,10 +114,10 @@ class LinkCheckResult:
 class LinkCheckSummary:
     """
     Aggregate statistics for a link check run.
-    
+
     Used by LinkCheckOrchestrator to summarize results and determine
     pass/fail status for CI integration.
-    
+
     Attributes:
         total_checked: Total number of unique URLs checked
         ok_count: Count of OK (valid) links
@@ -125,7 +125,7 @@ class LinkCheckSummary:
         ignored_count: Count of IGNORED links
         error_count: Count of ERROR results
         duration_ms: Total check duration in milliseconds
-        
+
     """
 
     total_checked: int = 0

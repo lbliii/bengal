@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 
@@ -26,9 +26,9 @@ logger = get_logger(__name__)
 @dataclass
 class ProcessParams:
     """Parsed image processing parameters.
-    
+
     Parsed from Hugo-style spec strings like "800x600 webp q80 center".
-        
+
     """
 
     width: int | None = None
@@ -50,19 +50,19 @@ class ProcessParams:
 
 def parse_spec(spec: str) -> ProcessParams | None:
     """Parse Hugo-style spec string.
-    
+
     Args:
         spec: Spec string like "800x600 webp q80 center"
-    
+
     Returns:
         ProcessParams if valid, None if invalid
-    
+
     Examples:
             >>> parse_spec("800x600")
         ProcessParams(width=800, height=600)
             >>> parse_spec("800x webp q80")
         ProcessParams(width=800, height=None, format='webp', quality=80)
-        
+
     """
     parts = spec.split()
     params = ProcessParams()
@@ -119,10 +119,10 @@ def parse_spec(spec: str) -> ProcessParams | None:
 @dataclass
 class ProcessedImageData:
     """Data for a processed image result.
-    
+
     This is a simple data class without the source reference to avoid cycles.
     ProcessedImage in image.py wraps this with the source reference.
-        
+
     """
 
     output_path: Path

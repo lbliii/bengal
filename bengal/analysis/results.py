@@ -35,19 +35,19 @@ if TYPE_CHECKING:
 class PageLayers:
     """
     Page layers partitioned by connectivity for streaming builds.
-    
+
     Pages are partitioned into three layers based on their connectivity
     scores to enable hub-first streaming builds:
-    
+
     - Hubs: High connectivity pages (top 10%) - process first, keep in memory
     - Mid-tier: Medium connectivity pages (next 30%) - batch processing
     - Leaves: Low connectivity pages (remaining 60%) - stream and release
-    
+
     Attributes:
         hubs: High connectivity pages (top 10% by connectivity score)
         mid_tier: Medium connectivity pages (next 30%)
         leaves: Low connectivity pages (remaining 60%)
-        
+
     """
 
     hubs: list[PageLike]

@@ -50,11 +50,11 @@ MAX_INCLUDE_SIZE = 10 * 1024 * 1024  # 10 MB - prevent memory exhaustion
 class LiteralIncludeDirective(DirectivePlugin):
     """
     Literal include directive for including code files as code blocks.
-    
+
     Syntax:
             ```{literalinclude} path/to/file.py
             ```
-    
+
     Or with options:
             ```{literalinclude} path/to/file.py
             :language: python
@@ -63,14 +63,14 @@ class LiteralIncludeDirective(DirectivePlugin):
             :emphasize-lines: 7,8,9
             :linenos: true
             ```
-    
+
     Paths are resolved relative to:
     1. Current page's directory (if source_path available in state)
     2. Site root (if root_path available in state)
     3. Current working directory (fallback)
-    
+
     Security: Only allows paths within the site root to prevent path traversal.
-        
+
     """
 
     # Directive names this class registers (for health check introspection)
@@ -389,15 +389,15 @@ class LiteralIncludeDirective(DirectivePlugin):
 def render_literalinclude(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render literalinclude directive as code block.
-    
+
     Args:
         renderer: Mistune renderer
         text: Not used (content is in attrs['code'])
         **attrs: Directive attributes
-    
+
     Returns:
         HTML string
-        
+
     """
     error = attrs.get("error")
     if error:

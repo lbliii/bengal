@@ -52,31 +52,31 @@ from bengal.utils.observability.logger import LogLevel, close_all_loggers, confi
 def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> None:
     """
     🌉 Identify bridge pages and navigation bottlenecks.
-    
+
     Analyzes navigation paths to find:
     - Bridge pages (high betweenness): Pages that connect different parts of the site
     - Accessible pages (high closeness): Pages easy to reach from anywhere
     - Navigation bottlenecks: Critical pages for site navigation
-    
+
     Use path analysis to:
     - Optimize navigation structure
     - Identify critical pages
     - Improve content discoverability
     - Find navigation gaps
-    
+
     Examples:
         # Show top 20 bridge pages
         bengal bridges
-    
+
         # Show most accessible pages
         bengal bridges --metric closeness
-    
+
         # Show only betweenness centrality
         bengal bridges --metric betweenness
-    
+
         # Export as JSON
         bengal bridges --format json > bridges.json
-        
+
     """
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 

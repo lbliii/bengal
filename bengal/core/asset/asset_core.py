@@ -55,7 +55,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 class Asset:
     """
     Represents a static asset file (image, CSS, JS, etc.).
-    
+
     Attributes:
         source_path: Path to the source asset file
         output_path: Path where the asset will be copied
@@ -64,7 +64,7 @@ class Asset:
         minified: Whether the asset has been minified
         optimized: Whether the asset has been optimized
         bundled: Whether CSS @import statements have been inlined
-        
+
     """
 
     source_path: Path

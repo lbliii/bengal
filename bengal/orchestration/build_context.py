@@ -35,33 +35,33 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.cache.build_cache import BuildCache
     from bengal.build.tracking import DependencyTracker
-    from bengal.utils.observability.cli_progress import LiveProgressManager
+    from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.output import CLIOutput
-    from bengal.utils.observability.profile import BuildProfile
     from bengal.protocols import ProgressReporter
+    from bengal.utils.observability.cli_progress import LiveProgressManager
+    from bengal.utils.observability.profile import BuildProfile
 
 
 @dataclass
 class AccumulatedPageData:
     """
     Unified per-page data accumulated during rendering.
-    
+
     Contains all fields needed by:
     - PageJSONGenerator (per-page JSON files)
     - SiteIndexGenerator (index.json for search)
-    
+
     Computed once during render phase, consumed by multiple post-processing
     generators. Eliminates redundant computation and double page iteration.
-    
+
     See: plan/drafted/rfc-unified-page-data-accumulation.md
-        
+
     """
 
     # =========================================================================
@@ -126,16 +126,16 @@ class AccumulatedPageData:
 class BuildContext:
     """
     Shared build context passed across build phases.
-    
+
     This context is created at the start of build() and passed to all _phase_* methods.
     It replaces local variables that were scattered throughout the 894-line build() method.
-    
+
     Lifecycle:
         1. Created in _setup_build_context() at build start
         2. Populated incrementally as phases execute
         3. Used by all _phase_* methods for shared state
         4. (Optional) Can be used as context manager for automatic cleanup
-    
+
     Categories:
         - Core: site, stats, profile (required)
         - Cache: cache, tracker (initialized in Phase 0)
@@ -144,25 +144,25 @@ class BuildContext:
         - Incremental state: affected_tags, affected_sections, changed_page_paths
         - Output: cli, progress_manager, reporter
         - Build-scoped: build_id, _build_scoped_cache (for cross-build isolation)
-    
+
     Build-Scoped Caching (RFC: Cache Lifecycle Hardening):
         Values cached via get_cached() are scoped to this build instance.
         When used as a context manager, BUILD_START is signaled on entry
         and BUILD_END + cache cleanup on exit. This prevents cross-build
         contamination when Site objects are reused.
-    
+
     Example:
         # As context manager (recommended for new code)
         with BuildContext(site=site) as ctx:
             contexts = ctx.get_cached("global_contexts", lambda: build_contexts(site))
             # ... build operations ...
         # Automatic cleanup on exit
-    
+
         # Traditional usage (backward compatible)
         ctx = BuildContext(site=site)
         # ... build operations ...
         ctx.clear_lazy_artifacts()  # Manual cleanup
-        
+
     """
 
     # Core (required)

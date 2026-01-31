@@ -5,7 +5,6 @@ description: Build reusable site structure templates with skeleton YAML
 draft: false
 weight: 60
 lang: en
-type: doc
 tags:
 - skeleton
 - yaml

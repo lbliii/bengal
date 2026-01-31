@@ -42,12 +42,12 @@ def get_available_icons() -> list[str]:
 class IconOptions(DirectiveOptions):
     """
     Options for icon directive.
-    
+
     Attributes:
         size: Icon size in pixels
         css_class: Additional CSS classes
         aria_label: Accessibility label
-        
+
     """
 
     size: int = 24
@@ -69,21 +69,21 @@ class IconOptions(DirectiveOptions):
 class IconDirective(BengalDirective):
     """
     Icon directive for inline SVG icons.
-    
+
     Syntax:
         :::{icon} terminal
         :::
-    
+
         :::{icon} docs
         :size: 16
         :class: text-muted
         :::
-    
+
     Options:
         :size: Icon size in pixels (default: 24)
         :class: Additional CSS classes
         :aria-label: Accessibility label (default: icon name)
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["icon", "svg-icon"]

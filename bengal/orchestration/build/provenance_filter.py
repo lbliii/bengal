@@ -6,7 +6,7 @@ Provides 30x faster incremental builds with correct invalidation.
 
 Usage in build orchestrator:
     from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
-    
+
     # Replace phase_incremental_filter call with:
     filter_result = phase_incremental_filter_provenance(orchestrator, cli, incremental, ...)
 
@@ -24,8 +24,6 @@ from typing import TYPE_CHECKING
 
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
-from bengal.core.section import resolve_page_section_path
-from bengal.utils.primitives.hashing import hash_file
 from bengal.orchestration.build.results import (
     FilterResult,
     IncrementalDecision,
@@ -33,6 +31,7 @@ from bengal.orchestration.build.results import (
     SkipReasonCode,
 )
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_file
 
 logger = get_logger(__name__)
 
@@ -45,38 +44,38 @@ if TYPE_CHECKING:
 
 
 def _detect_changed_data_files(
-    cache: "BuildCache",
-    site: "Site",
+    cache: BuildCache,
+    site: Site,
 ) -> set[Path]:
     """
     Detect data files that have changed since last build.
-    
+
     Compares current data file hashes against stored fingerprints.
-    
+
     Args:
         cache: BuildCache with stored fingerprints
         site: Site instance to find data directory
-        
+
     Returns:
         Set of changed data file paths
     """
     changed: set[Path] = set()
     data_dir = site.root_path / "data"
-    
+
     if not data_dir.exists():
         return changed
-    
+
     # Scan data directory for YAML/JSON files
     for ext in ("*.yaml", "*.yml", "*.json", "*.toml"):
         for data_file in data_dir.glob(f"**/{ext}"):
             file_key = str(data_file)
             stored = cache.file_fingerprints.get(file_key)
-            
+
             if stored is None:
                 # New data file - treat as changed
                 changed.add(data_file)
                 continue
-            
+
             # Check if file changed (compare hash)
             try:
                 current_hash = hash_file(data_file)
@@ -85,57 +84,57 @@ def _detect_changed_data_files(
             except OSError:
                 # File error - treat as changed
                 changed.add(data_file)
-    
+
     if changed:
         logger.debug(
             "data_files_changed",
             count=len(changed),
             files=[str(f.name) for f in changed],
         )
-    
+
     return changed
 
 
 def _detect_changed_templates(
-    cache: "BuildCache",
-    site: "Site",
+    cache: BuildCache,
+    site: Site,
 ) -> set[Path]:
     """
     Detect template files that have changed since last build.
-    
+
     Compares current template file hashes against stored fingerprints.
-    
+
     Args:
         cache: BuildCache with stored fingerprints
         site: Site instance to find templates directory
-        
+
     Returns:
         Set of changed template file paths
     """
     changed: set[Path] = set()
     templates_dir = site.root_path / "templates"
-    
+
     if not templates_dir.exists():
         return changed
-    
+
     # Also check theme templates if theme is set
     theme_templates_dirs = []
     if hasattr(site, "theme_path") and site.theme_path:
         theme_templates = site.theme_path / "templates"
         if theme_templates.exists():
             theme_templates_dirs.append(theme_templates)
-    
+
     # Scan all template directories
     for tpl_dir in [templates_dir] + theme_templates_dirs:
         for tpl_file in tpl_dir.glob("**/*.html"):
             file_key = str(tpl_file)
             stored = cache.file_fingerprints.get(file_key)
-            
+
             if stored is None:
                 # New template - treat as changed
                 changed.add(tpl_file)
                 continue
-            
+
             # Check if file changed (compare hash)
             try:
                 current_hash = hash_file(tpl_file)
@@ -144,102 +143,102 @@ def _detect_changed_templates(
             except OSError:
                 # File error - treat as changed
                 changed.add(tpl_file)
-    
+
     if changed:
         logger.debug(
             "templates_changed",
             count=len(changed),
             files=[str(f.name) for f in changed],
         )
-    
+
     return changed
 
 
 def _get_pages_for_data_file(
-    cache: "BuildCache",
+    cache: BuildCache,
     data_file: Path,
 ) -> set[Path]:
     """
     Find pages that depend on a data file.
-    
+
     Queries the cache's dependency graph for pages that have recorded
     a dependency on the given data file.
-    
+
     Args:
         cache: BuildCache with dependency tracking
         data_file: Path to the data file
-        
+
     Returns:
         Set of page source paths that depend on this data file
     """
     dep_key = f"data:{data_file}"
     pages: set[Path] = set()
-    
+
     for page_str, deps in cache.dependencies.items():
         if dep_key in deps:
             pages.add(Path(page_str))
-    
+
     return pages
 
 
 def _get_pages_for_template(
-    cache: "BuildCache",
+    cache: BuildCache,
     template_path: Path,
 ) -> set[Path]:
     """
     Find pages that use a template.
-    
+
     Queries the cache's reverse dependency graph for pages that depend
     on the given template.
-    
+
     Args:
         cache: BuildCache with reverse dependency tracking
         template_path: Path to the template file
-        
+
     Returns:
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
     template_key = str(template_path)
-    
+
     # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
     for page_str in dependents:
         pages.add(Path(page_str))
-    
+
     # Also check forward dependencies (for completeness)
     for page_str, deps in cache.dependencies.items():
         if template_key in deps:
             pages.add(Path(page_str))
-    
+
     return pages
 
 
 def _get_taxonomy_term_pages_for_member(
-    cache: "BuildCache",
+    cache: BuildCache,
     member_path: Path,
-    site: "Site",
+    site: Site,
 ) -> set[Path]:
     """
     Find taxonomy term pages that list a member page.
-    
+
     When a member page's metadata changes (title, date, summary),
     the taxonomy term pages listing it need to be rebuilt.
-    
+
     Args:
         cache: BuildCache with taxonomy tracking
         member_path: Path to the member page that changed
         site: Site instance to find taxonomy term pages
-        
+
     Returns:
         Set of taxonomy term page paths to rebuild
     """
     term_pages: set[Path] = set()
     member_key = str(member_path)
-    
+
     # Get tags for this member page from cache
     tags = cache.page_tags.get(member_key, set())
-    
+
     for tag in tags:
         # Find the virtual taxonomy term page for this tag
         # Taxonomy term pages are virtual (no source file), but we need
@@ -247,42 +246,42 @@ def _get_taxonomy_term_pages_for_member(
         # The key format matches what track_taxonomy() uses
         tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
         term_page_key = f"_generated/tags/{tag_key}"
-        
+
         # Add the term page path (virtual)
         # For virtual pages, we use a synthetic path
         term_pages.add(Path(term_page_key))
-    
+
     return term_pages
 
 
 def _expand_forced_changed(
     forced_changed: set[Path],
-    cache: "BuildCache",
-    site: "Site",
-    pages: list["Page"],
+    cache: BuildCache,
+    site: Site,
+    pages: list[Page],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
     Expand forced_changed set to include dependency-triggered rebuilds.
-    
+
     This is the core integration for RFC: rfc-incremental-build-dependency-gaps.
-    
+
     Gap 1: Data file changes → dependent pages
     Gap 2: Member page changes → taxonomy term pages
     Gap 3: Template changes → dependent pages
-    
+
     Args:
         forced_changed: Initial set of changed paths (from file watcher or content changes)
         cache: BuildCache with dependency tracking
         site: Site instance
         pages: List of all pages (for taxonomy lookup)
-        
+
     Returns:
         Tuple of (expanded_forced_changed, reasons) where reasons maps
         page paths to lists of why they were added
     """
     expanded = set(forced_changed)
     reasons: dict[str, list[str]] = {}
-    
+
     # Gap 1: Detect data file changes
     changed_data_files = _detect_changed_data_files(cache, site)
     for data_file in changed_data_files:
@@ -293,7 +292,7 @@ def _expand_forced_changed(
                 reasons.setdefault(str(page_path), []).append(
                     f"data_file:{data_file.name}"
                 )
-    
+
     # Gap 3: Detect template changes
     changed_templates = _detect_changed_templates(cache, site)
     for template_path in changed_templates:
@@ -304,11 +303,11 @@ def _expand_forced_changed(
                 reasons.setdefault(str(page_path), []).append(
                     f"template:{template_path.name}"
                 )
-    
+
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Build a mapping of source paths to pages for efficient lookup
     page_by_source: dict[Path, Page] = {p.source_path: p for p in pages}
-    
+
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
     content_changes = [p for p in forced_changed if p.suffix == ".md"]
     for content_path in content_changes:
@@ -319,7 +318,7 @@ def _expand_forced_changed(
                 reasons.setdefault(str(term_path), []).append(
                     f"member_changed:{content_path.name}"
                 )
-    
+
     if len(expanded) > len(forced_changed):
         logger.info(
             "dependency_triggered_rebuilds",
@@ -329,14 +328,14 @@ def _expand_forced_changed(
             template_triggered=len(changed_templates),
             taxonomy_triggered=len(content_changes),
         )
-    
+
     return expanded, reasons
 
 
 def phase_incremental_filter_provenance(
-    orchestrator: "BuildOrchestrator",
-    cli: "CLIOutput",
-    cache: "BuildCache",
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    cache: BuildCache,
     incremental: bool,
     verbose: bool,
     build_start: float,
@@ -345,10 +344,10 @@ def phase_incremental_filter_provenance(
 ) -> FilterResult | None:
     """
     Phase 5: Incremental Filtering (Provenance-based).
-    
+
     Uses content-addressed provenance tracking for correct cache invalidation.
     30x faster than the old IncrementalFilterEngine approach.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -358,25 +357,25 @@ def phase_incremental_filter_provenance(
         build_start: Build start time for duration calculation
         changed_sources: Paths to treat as changed (from file watcher)
         nav_changed_sources: Navigation-affecting changes
-    
+
     Returns:
         FilterResult with pages_to_build, assets_to_process, etc.
         Returns None if build should be skipped (no changes detected)
     """
     with orchestrator.logger.phase("incremental_filtering_provenance", enabled=incremental):
         site = orchestrator.site
-        
+
         # Initialize provenance cache
         provenance_cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
         provenance_filter = ProvenanceFilter(site, provenance_cache)
-        
+
         # Combine changed sources from file watcher
         forced_changed: set[Path] = set()
         if changed_sources:
             forced_changed.update(changed_sources)
         if nav_changed_sources:
             forced_changed.update(nav_changed_sources)
-        
+
         # RFC: rfc-incremental-build-dependency-gaps
         # Expand forced_changed to include dependency-triggered rebuilds:
         # - Data file changes → dependent pages
@@ -389,12 +388,12 @@ def phase_incremental_filter_provenance(
             site,
             pages_list_for_deps,
         )
-        
+
         # Filter pages and assets
         filter_start = time.time()
         pages_list = list(site.pages)
         assets_list = list(site.assets)
-        
+
         # CRITICAL: If no pages were discovered, attempt recovery
         # This should never happen in a normal build - discovery should always find pages
         # But we can recover by re-running discovery with full discovery (bypasses cache issues)
@@ -431,7 +430,7 @@ def phase_incremental_filter_provenance(
                 )
                 orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
                 return None  # Return None to signal build failure
-            
+
             # Recovery succeeded - log success
             orchestrator.logger.info(
                 "recovery_succeeded",
@@ -439,7 +438,7 @@ def phase_incremental_filter_provenance(
                 reason="Full discovery recovered pages",
             )
             cli.success(f"✓ Recovery succeeded: Found {len(pages_list)} pages")
-            
+
             # Check if provenance cache entries match the recovered pages
             # If they match, we can keep the cache (no need to rebuild)
             # If they don't match, clear cache to force rebuild
@@ -464,7 +463,7 @@ def phase_incremental_filter_provenance(
                         # If provenance computation fails, assume mismatch
                         cache_matches = False
                         break
-            
+
             if not cache_matches or not provenance_cache._index:
                 # Cache doesn't match or is empty - clear it to force rebuild
                 orchestrator.logger.debug(
@@ -498,7 +497,7 @@ def phase_incremental_filter_provenance(
                     "Provenance cache matches - pages should be cache hits",
                     indent=1,
                 )
-        
+
         result = provenance_filter.filter(
             pages=pages_list,
             assets=assets_list,
@@ -506,14 +505,14 @@ def phase_incremental_filter_provenance(
             forced_changed=forced_changed,
         )
         filter_time_ms = (time.time() - filter_start) * 1000
-        
+
         # RFC: rfc-incremental-build-dependency-gaps - Gap 2: Taxonomy cascade
         # When content pages change, their taxonomy term pages need rebuilding.
         # Find taxonomy term pages that list any of the affected tags.
         if result.affected_tags and incremental:
             taxonomy_pages_to_add: list[Page] = []
             pages_to_build_sources = {p.source_path for p in result.pages_to_build}
-            
+
             for page in pages_list:
                 # Check if this is a taxonomy term page
                 is_taxonomy = getattr(page, "_virtual", False) and (
@@ -522,17 +521,17 @@ def phase_incremental_filter_provenance(
                     or "/tags/" in str(page.source_path)
                     or "/categories/" in str(page.source_path)
                 )
-                
+
                 if not is_taxonomy:
                     continue
-                
+
                 # Get the tag/term this page represents
                 term = (
                     page.metadata.get("_taxonomy_term")
                     or page.metadata.get("tag")
                     or page.metadata.get("title", "").lower()
                 )
-                
+
                 if term and str(term).lower() in {t.lower() for t in result.affected_tags}:
                     # This taxonomy page lists a tag that was affected
                     if page.source_path not in pages_to_build_sources:
@@ -540,7 +539,7 @@ def phase_incremental_filter_provenance(
                         dependency_reasons.setdefault(str(page.source_path), []).append(
                             f"taxonomy_cascade:tag={term}"
                         )
-            
+
             if taxonomy_pages_to_add:
                 # Create new result with taxonomy pages added
                 new_pages_to_build = list(result.pages_to_build) + taxonomy_pages_to_add
@@ -559,13 +558,13 @@ def phase_incremental_filter_provenance(
                     affected_sections=result.affected_sections,
                     changed_page_paths=result.changed_page_paths,
                 )
-                
+
                 logger.info(
                     "taxonomy_cascade_triggered",
                     affected_tags=list(result.affected_tags),
                     taxonomy_pages_added=len(taxonomy_pages_to_add),
                 )
-        
+
         # RFC: Reimagined Cascade Infrastructure
         # If any _index.md files changed, refresh the cascade snapshot.
         # This ensures pages get updated cascade values after provenance filtering.
@@ -573,7 +572,7 @@ def phase_incremental_filter_provenance(
             p.source_path.name in ("_index.md", "_index.markdown", "index.md")
             for p in result.pages_to_build
         )
-        
+
         if index_files_changed:
             # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
             site.build_cascade_snapshot()
@@ -582,17 +581,17 @@ def phase_incremental_filter_provenance(
                 reason="index_files_changed",
                 sections_with_cascade=len(site.cascade),
             )
-        
+
         # Initialize decision tracker for observability
         decision = IncrementalDecision(
             pages_to_build=result.pages_to_build,
             pages_skipped_count=result.cache_hits,
         )
-        
+
         # Track rebuild reasons
         for page in result.pages_to_build:
             page_key = str(page.source_path)
-            
+
             # Check if this page was triggered by a dependency change
             if page_key in dependency_reasons:
                 for reason in dependency_reasons[page_key]:
@@ -620,14 +619,14 @@ def phase_incremental_filter_provenance(
                     RebuildReasonCode.CONTENT_CHANGED,
                     {"provenance": "content_hash_mismatch"},
                 )
-        
+
         # Check for fingerprint cascade (CSS/JS changes)
         fingerprint_assets = [
             asset
             for asset in result.assets_to_process
             if asset.source_path.suffix.lower() in {".css", ".js"}
         ]
-        
+
         if fingerprint_assets and not result.pages_to_build:
             # Assets changed but no content changes - rebuild all pages
             # (fingerprinted URLs embedded in HTML will change)
@@ -638,21 +637,21 @@ def phase_incremental_filter_provenance(
             )
             decision.fingerprint_changes = True
             decision.asset_changes = [a.source_path.name for a in fingerprint_assets]
-            
+
             orchestrator.logger.info(
                 "fingerprint_assets_changed_forcing_page_rebuild",
                 assets_changed=len(fingerprint_assets),
                 pages_to_rebuild=len(result.pages_to_build),
             )
-        
+
         # Check if output directory is missing
         output_dir = site.output_dir
         output_assets_dir = output_dir / "assets"
-        
+
         output_html_missing = (
             not output_dir.exists() or len(list(output_dir.iterdir())) == 0
         )
-        
+
         # Check for CSS entry points instead of arbitrary file count
         # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
         css_dir = output_assets_dir / "css"
@@ -662,7 +661,7 @@ def phase_incremental_filter_provenance(
             or not any(css_dir.glob("style*.css"))
         )
         output_assets_missing = css_entry_missing
-        
+
         if (output_html_missing or output_assets_missing) and site.pages:
             # Output was cleaned but cache is warm - force full rebuild
             result = provenance_filter.filter(
@@ -670,7 +669,7 @@ def phase_incremental_filter_provenance(
                 assets=list(site.assets),
                 incremental=False,
             )
-            
+
             for page in result.pages_to_build:
                 decision.add_rebuild_reason(
                     str(page.source_path),
@@ -680,7 +679,7 @@ def phase_incremental_filter_provenance(
                         "assets_missing": output_assets_missing,
                     },
                 )
-            
+
             orchestrator.logger.info(
                 "output_missing_forcing_full_rebuild",
                 pages_count=len(result.pages_to_build),
@@ -725,7 +724,7 @@ def phase_incremental_filter_provenance(
         # Ensure decision reflects the final result after any adjustments.
         decision.pages_to_build = result.pages_to_build
         decision.pages_skipped_count = result.cache_hits
-        
+
         # Check for skip condition
         if result.is_skip:
             cli.success("✓ No changes detected - build skipped")
@@ -734,26 +733,26 @@ def phase_incremental_filter_provenance(
                 indent=1,
             )
             cli.detail(f"Provenance check: {filter_time_ms:.1f}ms", indent=1)
-            
+
             orchestrator.logger.info(
                 "no_changes_detected_provenance",
                 cached_pages=len(site.pages),
                 cached_assets=len(site.assets),
                 filter_time_ms=filter_time_ms,
             )
-            
+
             orchestrator.stats.skipped = True
             orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
             return None
-        
+
         # Update stats
         orchestrator.stats.cache_hits = result.cache_hits
         orchestrator.stats.cache_misses = result.cache_misses
-        
+
         if result.cache_hits > 0:
             avg_time_per_page = 50  # Estimated ms per page render
             orchestrator.stats.time_saved_ms = result.cache_hits * avg_time_per_page * 0.8
-        
+
         # Log results
         orchestrator.logger.info(
             "incremental_work_identified_provenance",
@@ -763,29 +762,29 @@ def phase_incremental_filter_provenance(
             cache_hit_rate=f"{result.hit_rate:.1f}%",
             filter_time_ms=filter_time_ms,
         )
-        
+
         # Verbose output
         if verbose:
             for page in result.pages_skipped:
                 decision.skip_reasons[str(page.source_path)] = SkipReasonCode.NO_CHANGES
-        
+
         decision.log_summary(orchestrator.logger)
         if verbose:
             decision.log_details(orchestrator.logger)
-        
+
         orchestrator.stats.incremental_decision = decision
-        
+
         # CLI output
         pages_msg = f"{len(result.pages_to_build)} page{'s' if len(result.pages_to_build) != 1 else ''}"
         assets_msg = f"{len(result.assets_to_process)} asset{'s' if len(result.assets_to_process) != 1 else ''}"
         skipped_msg = f"{result.cache_hits} cached"
-        
+
         cli.info(f"  Provenance build: {pages_msg}, {assets_msg} (skipped {skipped_msg})")
         cli.detail(f"Filter time: {filter_time_ms:.1f}ms ({result.hit_rate:.1f}% hit rate)", indent=1)
-        
+
         # Store provenance filter for later use (recording builds)
         orchestrator._provenance_filter = provenance_filter
-        
+
         return FilterResult(
             pages_to_build=result.pages_to_build,
             assets_to_process=result.assets_to_process,
@@ -795,20 +794,20 @@ def phase_incremental_filter_provenance(
         )
 
 
-def record_page_build(orchestrator: "BuildOrchestrator", page) -> None:
+def record_page_build(orchestrator: BuildOrchestrator, page) -> None:
     """
     Record provenance after a page is built.
-    
+
     Call this after rendering each page to update the provenance cache.
     """
     if hasattr(orchestrator, "_provenance_filter"):
         orchestrator._provenance_filter.record_build(page)
 
 
-def record_all_page_builds(orchestrator: "BuildOrchestrator", pages) -> None:
+def record_all_page_builds(orchestrator: BuildOrchestrator, pages) -> None:
     """
     Record provenance for all built pages.
-    
+
     Call this after all pages have been rendered to update the provenance cache.
     """
     if hasattr(orchestrator, "_provenance_filter"):
@@ -817,10 +816,10 @@ def record_all_page_builds(orchestrator: "BuildOrchestrator", pages) -> None:
             pf.record_build(page)
 
 
-def save_provenance_cache(orchestrator: "BuildOrchestrator") -> None:
+def save_provenance_cache(orchestrator: BuildOrchestrator) -> None:
     """
     Save the provenance cache after build completes.
-    
+
     Call this at the end of the build to persist provenance data.
     """
     if hasattr(orchestrator, "_provenance_filter"):

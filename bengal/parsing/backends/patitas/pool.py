@@ -23,13 +23,15 @@ from __future__ import annotations
 
 import os
 from collections import deque
+from collections.abc import Iterator
 from contextlib import contextmanager
 from threading import local
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.directives.cache import DirectiveCache
     from patitas.parser import Parser
+
+    from bengal.directives.cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 

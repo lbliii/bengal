@@ -26,13 +26,13 @@ logger = get_logger(__name__)
 class NavigationValidator(BaseValidator):
     """
     Validates page navigation integrity.
-    
+
     Checks:
     - next/prev links form valid chains
     - Breadcrumbs (ancestors) are valid
     - Section navigation is consistent
     - No orphaned pages in navigation
-        
+
     """
 
     name = "Navigation"
@@ -394,7 +394,7 @@ class NavigationValidator(BaseValidator):
                     details=missing_attr[:10],
                 )
             )
-        
+
         if missing_file:
             results.append(
                 CheckResult.error(
@@ -405,7 +405,7 @@ class NavigationValidator(BaseValidator):
                     details=missing_file[:10],
                 )
             )
-        
+
         if not missing_attr and not missing_file:
             results.append(CheckResult.success(f"All {len(site.pages)} pages have output_path set and exist on disk"))
 

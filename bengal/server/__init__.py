@@ -104,30 +104,30 @@ if TYPE_CHECKING:
     from bengal.server.watcher_runner import WatcherRunner as WatcherRunner
 
 __all__ = [
-    "DevServer",
-    "WatcherRunner",
-    "BuildTrigger",
     "BuildExecutor",
     "BuildRequest",
     "BuildResult",
+    "BuildTrigger",
+    "DevServer",
     "FileWatcher",
     "IgnoreFilter",
+    "WatcherRunner",
 ]
 
 
 def __getattr__(name: str) -> Any:
     """
     Lazy import pattern for server components.
-    
+
     Args:
         name: The attribute name being accessed
-    
+
     Returns:
         The requested attribute
-    
+
     Raises:
         AttributeError: If the attribute is not found
-        
+
     """
     if name == "DevServer":
         from bengal.server.dev_server import DevServer

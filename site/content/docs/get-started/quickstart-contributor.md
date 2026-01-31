@@ -5,7 +5,6 @@ description: Set up Bengal for development and start contributing
 draft: false
 weight: 40
 lang: en
-type: doc
 tags:
 - onboarding
 - contributing

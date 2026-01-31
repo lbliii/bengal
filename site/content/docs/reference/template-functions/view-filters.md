@@ -2,7 +2,6 @@
 title: View Filters
 description: Convert pages to normalized view objects for easier templating
 weight: 90
-type: doc
 tags:
 - reference
 - filters

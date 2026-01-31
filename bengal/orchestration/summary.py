@@ -54,13 +54,13 @@ if TYPE_CHECKING:
 def create_timing_breakdown_table(stats: BuildStats) -> Table:
     """
     Create a detailed timing breakdown table.
-    
+
     Args:
         stats: Build statistics
-    
+
     Returns:
         Rich Table with phase timing breakdown
-        
+
     """
     table = Table(
         title="⏱️  Build Phase Breakdown",
@@ -148,14 +148,14 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
 def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> Panel:
     """
     Create performance grade and insights panel.
-    
+
     Args:
         stats: Build statistics
         advisor: Performance advisor with analysis
-    
+
     Returns:
         Rich Panel with performance insights
-        
+
     """
     grade = advisor.get_grade()
 
@@ -199,13 +199,13 @@ def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> 
 def create_suggestions_panel(advisor: PerformanceAdvisor) -> Panel | None:
     """
     Create smart suggestions panel.
-    
+
     Args:
         advisor: Performance advisor with analysis
-    
+
     Returns:
         Rich Panel with suggestions, or None if no suggestions
-        
+
     """
     suggestions = advisor.get_top_suggestions(5)
 
@@ -256,16 +256,16 @@ def create_suggestions_panel(advisor: PerformanceAdvisor) -> Panel | None:
 def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
     """
     Create cache statistics panel (if available).
-    
+
     Shows both page-level cache stats (incremental builds) and
     block-level cache stats (Kida template introspection).
-    
+
     Args:
         stats: Build statistics
-    
+
     Returns:
         Rich Panel with cache stats, or None if not applicable
-        
+
     """
     lines = []
 
@@ -366,13 +366,13 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
 def create_content_stats_table(stats: BuildStats) -> Table:
     """
     Create content statistics table.
-    
+
     Args:
         stats: Build statistics
-    
+
     Returns:
         Rich Table with content stats
-        
+
     """
     table = Table(
         title="📊 Content Statistics",
@@ -432,14 +432,14 @@ def create_content_stats_table(stats: BuildStats) -> Table:
 def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None = None) -> None:
     """
     Display comprehensive build summary with rich formatting.
-    
+
     This is the main entry point for Phase 2 build summaries.
     Shows timing breakdown, performance analysis, and smart suggestions.
-    
+
     Args:
         stats: Build statistics
         environment: Environment info (from detect_environment())
-        
+
     """
     from bengal.analysis.performance.advisor import PerformanceAdvisor
     from bengal.utils.observability.rich_console import get_console, should_use_rich
@@ -521,10 +521,10 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
 def display_simple_summary(stats: BuildStats) -> None:
     """
     Display simple summary for writer persona (minimal output).
-    
+
     Args:
         stats: Build statistics
-        
+
     """
     from bengal.orchestration.stats import display_simple_build_stats
 

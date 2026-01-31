@@ -42,13 +42,13 @@ if TYPE_CHECKING:
 
 # Re-export for public API
 __all__ = [
-    "DirectiveValidator",
-    "DirectiveAnalyzer",
-    "KNOWN_DIRECTIVES",
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
+    "KNOWN_DIRECTIVES",
     "MAX_NESTING_DEPTH",
     "MAX_TABS_PER_BLOCK",
+    "DirectiveAnalyzer",
+    "DirectiveValidator",
 ]
 
 logger = get_logger(__name__)
@@ -57,23 +57,23 @@ logger = get_logger(__name__)
 class DirectiveValidator(BaseValidator):
     """
     Validates directive syntax and usage across the site.
-    
+
     Orchestrates validation by:
     1. Analyzing directives across all pages (DirectiveAnalyzer)
     2. Checking syntax validity (check_directive_syntax)
     3. Checking completeness (check_directive_completeness)
     4. Checking performance (check_directive_performance)
-    
+
     Checks:
     - Directive blocks are well-formed (opening and closing)
     - Required options are present
     - Tab markers are properly formatted
     - Nesting depth is reasonable
     - Performance warnings for heavy directive usage
-    
+
     Note: Rendering validation (H207) was removed - syntax validation catches
     directive problems at source level, making output scanning redundant.
-        
+
     """
 
     name = "Directives"

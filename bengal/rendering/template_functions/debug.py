@@ -31,18 +31,18 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 def debug(var: Any, pretty: bool = True) -> str:
     """
     Pretty-print variable for debugging.
-    
+
     Args:
         var: Variable to debug
         pretty: Use pretty printing (default: True)
-    
+
     Returns:
         String representation of variable
-    
+
     Example:
         {{ page | debug }}
         {{ config | debug(pretty=false) }}
-        
+
     """
     if var is None:
         return "None"
@@ -61,17 +61,17 @@ def debug(var: Any, pretty: bool = True) -> str:
 def typeof(var: Any) -> str:
     """
     Get the type of a variable.
-    
+
     Args:
         var: Variable to check
-    
+
     Returns:
         Type name as string
-    
+
     Example:
         {{ page | typeof }}  # "Page"
         {{ "hello" | typeof }}  # "str"
-        
+
     """
     return type(var).__name__
 
@@ -79,16 +79,16 @@ def typeof(var: Any) -> str:
 def inspect(obj: Any) -> str:
     """
     Inspect object attributes and methods.
-    
+
     Args:
         obj: Object to inspect
-    
+
     Returns:
         List of attributes and methods
-    
+
     Example:
         {{ page | inspect }}
-        
+
     """
     if obj is None:
         return "None"

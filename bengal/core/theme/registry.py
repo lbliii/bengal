@@ -254,13 +254,13 @@ _installed_themes_cache: LRUCache[str, dict[str, ThemePackage]] = LRUCache(
 def get_installed_themes() -> dict[str, ThemePackage]:
     """
     Discover installed themes via entry points.
-    
+
     Thread-safe: Uses LRUCache with RLock for safe concurrent access
     under free-threading (PEP 703).
-    
+
     Returns:
         Mapping of slug -> ThemePackage
-        
+
     """
     def _discover_themes() -> dict[str, ThemePackage]:
         themes: dict[str, ThemePackage] = {}
@@ -315,7 +315,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
 
         emit(None, "debug", "installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
         return themes
-    
+
     return _installed_themes_cache.get_or_set("themes", _discover_themes)
 
 

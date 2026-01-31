@@ -87,9 +87,9 @@ class Gradient:
 class BengalThrobberVisual(Visual):
     """
     Visual renderer for the throbber animation.
-    
+
     Renders a horizontal line with a cycling color gradient.
-        
+
     """
 
     gradient = Gradient.from_colors(*[Color.parse(c) for c in BENGAL_COLORS])
@@ -144,20 +144,20 @@ class BengalThrobberVisual(Visual):
 class BengalThrobber(Widget):
     """
     Animated build progress indicator with Bengal colors.
-    
+
     Shows a cycling gradient animation when active, hidden otherwise.
     Uses 15 FPS animation for smooth visuals without excessive CPU usage.
-    
+
     Attributes:
         active: When True, shows and animates. When False, hidden.
-    
+
     Example:
         throbber = BengalThrobber(id="build-throbber")
         # Start animation
         throbber.active = True
         # Stop animation
         throbber.active = False
-        
+
     """
 
     DEFAULT_CSS = """

@@ -64,15 +64,15 @@ logger = get_logger(__name__)
 class PageRankResults:
     """
     Results from PageRank computation.
-    
+
     Contains importance scores for all pages based on the link structure.
     Pages linked to by many important pages receive high scores.
-    
+
     Attributes:
         scores: Map of pages to PageRank scores (normalized, sum to 1.0)
         iterations: Number of iterations until convergence
         converged: Whether the algorithm converged within max_iterations
-        
+
     """
 
     scores: dict[PageLike, float]
@@ -122,22 +122,22 @@ class PageRankResults:
 class PageRankCalculator:
     """
     Compute PageRank scores for pages in a site graph.
-    
+
     PageRank is a link analysis algorithm that assigns numerical weights
     to pages based on their link structure. Pages that are linked to by
     many important pages receive high scores.
-    
+
     The algorithm uses an iterative approach:
     1. Initialize all pages with equal probability (1/N)
     2. Iteratively update scores based on incoming links
     3. Continue until convergence or max iterations
-    
+
     Example:
             >>> calculator = PageRankCalculator(knowledge_graph)
             >>> results = calculator.compute()
             >>> top_pages = results.get_top_pages(20)
             >>> print(f"Most important page: {top_pages[0][0].title}")
-        
+
     """
 
     def __init__(
@@ -207,7 +207,7 @@ class PageRankCalculator:
         )
 
         # Initialize: equal probability for all pages
-        scores = {page: 1.0 / N for page in pages}
+        scores = dict.fromkeys(pages, 1.0 / N)
 
         # For personalized PageRank
         if personalized and seed_pages:
@@ -215,7 +215,7 @@ class PageRankCalculator:
                 page: (1.0 / len(seed_pages) if page in seed_pages else 0.0) for page in pages
             }
         else:
-            personalization = {page: 1.0 / N for page in pages}
+            personalization = dict.fromkeys(pages, 1.0 / N)
 
         iterations_run = 0
         converged = False
@@ -309,22 +309,22 @@ def analyze_page_importance(
 ) -> list[tuple[PageLike, float]]:
     """
     Convenience function to analyze page importance.
-    
+
     Args:
         graph: KnowledgeGraph with page connections
         damping: Damping factor (default 0.85)
         top_n: Number of top pages to return
-    
+
     Returns:
         List of (page, score) tuples for top N pages
-    
+
     Example:
             >>> graph = KnowledgeGraph(site)
             >>> graph.build()
             >>> top_pages = analyze_page_importance(graph, top_n=10)
             >>> for page, score in top_pages:
             ...     print(f"{page.title}: {score:.4f}")
-        
+
     """
     calculator = PageRankCalculator(graph, damping=damping)
     results = calculator.compute()

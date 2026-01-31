@@ -49,21 +49,21 @@ logger = get_logger(__name__)
 class PathResolver:
     """
     Centralized path resolution utility.
-    
+
     All paths resolved relative to a fixed base (site root).
     Eliminates CWD-dependent behavior across the codebase.
-    
+
     Attributes:
         base: Absolute base path for resolution
-    
+
     Example:
             >>> resolver = PathResolver(Path("/home/user/site").resolve())
             >>> resolver.resolve("../bengal")
         PosixPath('/home/user/bengal')
-    
+
             >>> resolver.resolve("/absolute/path")
         PosixPath('/absolute/path')
-        
+
     """
 
     def __init__(self, base: Path) -> None:
@@ -222,20 +222,20 @@ class PathResolver:
 def resolve_path(path: str | Path, base: Path) -> Path:
     """
     Convenience function to resolve a single path.
-    
+
     For one-off resolutions without creating a resolver instance.
-    
+
     Args:
         path: Path to resolve
         base: Base path for resolution
-    
+
     Returns:
         Absolute path
-    
+
     Example:
             >>> resolve_path("content/post.md", Path("/site"))
         PosixPath('/site/content/post.md')
-        
+
     """
     resolver = PathResolver(base)
     return resolver.resolve(path)

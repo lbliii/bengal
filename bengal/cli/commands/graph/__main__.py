@@ -28,7 +28,6 @@ from .suggest import suggest
 @click.group("graph", cls=BengalGroup)
 def graph_cli() -> None:
     """Commands for analyzing the site's knowledge graph."""
-    pass
 
 
 @click.command("analyze", cls=BengalCommand)
@@ -64,7 +63,7 @@ def graph_cli() -> None:
 def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     Analyze site structure and connectivity.
-        
+
     """
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 

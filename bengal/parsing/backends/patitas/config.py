@@ -26,10 +26,11 @@ RFC: rfc-contextvar-config-implementation.md
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -37,9 +38,9 @@ if TYPE_CHECKING:
 __all__ = [
     "ParseConfig",
     "get_parse_config",
-    "set_parse_config",
-    "reset_parse_config",
     "parse_config_context",
+    "reset_parse_config",
+    "set_parse_config",
 ]
 
 

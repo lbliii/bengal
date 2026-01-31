@@ -74,31 +74,31 @@ def orphans(
 ) -> None:
     """
     List pages by connectivity level.
-    
+
     Shows pages grouped by how well they're connected:
     - 🔴 isolated: No meaningful connections (score < 0.25)
     - 🟠 lightly: Only structural links (score 0.25-1.0)
     - 🟡 adequately: Some connections (score 1.0-2.0)
     - 🟢 well: Well connected (score >= 2.0)
-    
+
     Use this command to:
     - Find truly isolated pages that need attention
     - Identify pages relying only on structural links
     - Prioritize internal linking improvements
-    
+
     Examples:
         # List isolated pages (truly orphaned)
         bengal graph orphans
-    
+
         # List lightly linked pages
         bengal graph orphans --level lightly
-    
+
         # Show all levels for full picture
         bengal graph orphans --level all
-    
+
         # Export as JSON
         bengal graph orphans --format json > orphans.json
-        
+
     """
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
 

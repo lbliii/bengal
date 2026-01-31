@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 class TrackValidator(BaseValidator):
     """
     Validates track definitions and track item references.
-    
+
     Checks:
     - Track data structure validity
     - Track items reference existing pages
     - Track pages have valid track_id
-        
+
     """
 
     name = "Tracks"

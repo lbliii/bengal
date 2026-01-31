@@ -3,7 +3,6 @@ title: Functions vs Filters Quick Reference
 nav_title: Quick Reference
 description: One-page guide to when to use functions vs filters
 weight: 25
-type: doc
 draft: false
 lang: en
 tags:

@@ -41,9 +41,10 @@ from dataclasses import dataclass, replace
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -224,12 +225,12 @@ class CodeTabItem:
 @dataclass(frozen=True, slots=True)
 class CodeTabsOptions(DirectiveOptions):
     """Options for code-tabs directive.
-    
+
     Attributes:
         sync: Sync key for tab synchronization (default: "language")
         linenos: Force line numbers on/off (None = auto for 3+ lines)
         tabs: Parsed tab items (injected by parse method)
-        
+
     """
 
     sync: str = "language"
@@ -240,23 +241,23 @@ class CodeTabsOptions(DirectiveOptions):
 class CodeTabsDirective:
     """
     Code tabs for multi-language code examples.
-    
+
     Syntax (v2 simplified):
         :::{code-tabs}
-    
+
             ```python app.py {3-4}
             def greet(name):
                 print(f"Hello, {name}!")
             ```
-    
+
             ```javascript index.js {2-3}
             function greet(name) {
                 console.log(`Hello, ${name}!`);
             }
             ```
-    
+
         :::
-    
+
     Legacy syntax (still supported):
         :::{code-tabs}
         ### Python (main.py)
@@ -265,14 +266,14 @@ class CodeTabsDirective:
                 print(f"Hello, {name}!")
             ```
         :::
-    
+
     Options:
         :sync: Sync key for tab synchronization (default: "language")
         :linenos: Force line numbers on/off (default: auto for 3+ lines)
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("code-tabs", "code_tabs")

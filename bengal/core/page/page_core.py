@@ -122,70 +122,70 @@ logger = get_logger(__name__)
 class PageCore(Cacheable):
     """
     Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
-    
+
     This is the single source of truth for all cacheable page data. All fields
     here can be serialized to JSON and stored in .bengal/page_metadata.json for
     incremental builds.
-    
+
     Attributes:
         source_path: Path to source markdown file (relative to content dir).
             Used as cache key and for file change detection.
-    
+
         title: Page title from frontmatter or filename.
             Required field, defaults to "Untitled" if not provided.
-    
+
         date: Publication date from frontmatter.
             Used for sorting, archives, and RSS feeds. None if not specified.
-    
+
         tags: List of tag strings from frontmatter.
             Used for taxonomy pages and filtering. Empty list if not specified.
-    
+
         slug: URL slug for this page.
             Overrides default slug derived from filename. None means use default.
-    
+
         weight: Sort weight within section.
             Lower numbers appear first. None means use default sorting.
-    
+
         lang: Language code for i18n (e.g., "en", "es", "fr").
             None means use site default language.
-    
+
         type: Page type from frontmatter or cascaded from section.
             Determines which layout/template to use (e.g., "doc", "post", "page").
             Cascaded from section _index.md if not specified in page frontmatter.
-    
+
         section: Section path (e.g., "content/docs" or "docs").
             Stored as path string, not Section object, for stability across rebuilds.
             None for root-level pages.
-    
+
         file_hash: SHA256 hash of source file content.
             Used for cache validation to detect file changes.
             None during initial creation, populated during caching.
-    
+
     Design Notes:
         - All fields are JSON-serializable (no object references)
         - Paths stored as strings (resolved to objects via registry on access)
         - Optional fields default to None (not all pages have all metadata)
         - No circular references (enables straightforward serialization)
         - No computed fields that require full content (those go in Page)
-    
+
     Why Strings Instead of Path Objects?
         1. JSON Serialization: Path objects cannot be directly JSON-serialized.
            Using strings allows cache files to be saved/loaded without custom handlers.
-    
+
         2. Cache Portability: String paths work across systems without Path object
            compatibility concerns (Windows vs Unix path separators handled by Path
            when converting back).
-    
+
         3. Type Consistency: PageMetadata IS PageCore (type alias). Cache expects
            strings, so PageCore must use strings for type compatibility.
-    
+
         4. Performance: String comparison for cache lookups is marginally faster
            than Path comparison (matters for incremental builds with 1000+ pages).
-    
+
         Convert at boundaries:
         - Input: Path → str when creating PageCore (Page.__post_init__)
         - Output: str → Path when using paths (PageProxy, lookups)
-    
+
     Cache Lifecycle:
         1. Page created with PageCore during discovery
         2. PageCore serialized to JSON and saved to cache
@@ -193,13 +193,13 @@ class PageCore(Cacheable):
         4. PageProxy wraps PageCore for lazy loading
         5. Templates access fields via proxy properties (no load)
         6. Full page loaded only if non-core field accessed
-    
+
     Performance:
         - PageCore is ~500 bytes per page (10 fields × ~50 bytes each)
         - 10,000 pages = ~5MB for all cores (acceptable)
         - Serialization/deserialization via asdict() is ~10µs per page
         - Memory overhead negligible vs full Page objects
-        
+
     """
 
     # Required fields

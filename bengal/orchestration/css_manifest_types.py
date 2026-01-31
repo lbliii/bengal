@@ -29,7 +29,7 @@ from typing import TypedDict
 class CSSManifest(TypedDict, total=False):
     """
     Schema for CSS manifest structure.
-    
+
     Attributes:
         core: CSS files always included (site won't render without these)
         shared: Common components used across most content types
@@ -38,7 +38,7 @@ class CSSManifest(TypedDict, total=False):
         palettes: Color theme preset files
         experimental: Opt-in experimental CSS
         version: Manifest version for cache invalidation
-        
+
     """
 
     core: list[str]
@@ -53,7 +53,7 @@ class CSSManifest(TypedDict, total=False):
 class CSSOptimizationReport(TypedDict):
     """
     Report from CSS optimization process.
-    
+
     Attributes:
         skipped: Whether optimization was skipped (no manifest)
         included_count: Number of CSS files included
@@ -64,7 +64,7 @@ class CSSOptimizationReport(TypedDict):
         features_detected: Features detected in site
         included_files: List of included CSS file paths
         excluded_files: List of excluded CSS file paths
-        
+
     """
 
     skipped: bool

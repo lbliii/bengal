@@ -53,24 +53,24 @@ MAX_INCLUDE_SIZE = 10 * 1024 * 1024  # 10 MB - prevent memory exhaustion
 class IncludeDirective(DirectivePlugin):
     """
     Include directive for including markdown files.
-    
+
     Syntax:
             ```{include} path/to/file.md
             ```
-    
+
     Or with line range:
             ```{include} path/to/file.md
             :start-line: 5
             :end-line: 20
             ```
-    
+
     Paths are resolved relative to:
     1. Current page's directory (if source_path available in state)
     2. Site root (if root_path available in state)
     3. Current working directory (fallback)
-    
+
     Security: Only allows paths within the site root to prevent path traversal.
-        
+
     """
 
     PRIORITY = BengalDirective.PRIORITY_FIRST
@@ -382,15 +382,15 @@ class IncludeDirective(DirectivePlugin):
 def render_include(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render include directive.
-    
+
     Args:
         renderer: Mistune renderer
         text: Rendered children (included markdown content)
         **attrs: Directive attributes
-    
+
     Returns:
         HTML string
-        
+
     """
     error = attrs.get("error")
 

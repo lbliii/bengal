@@ -45,14 +45,14 @@ logger = get_logger(__name__)
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register functions with template environment.
-    
+
     Registers global functions for template use: {{ get_version_target_url(page, v) }}
-    
+
     The preferred engine-agnostic approach is to use the Site method:
         {{ site.get_version_target_url(page, v) }}
-    
+
     This Site method works with any template engine, not just Jinja2.
-        
+
     """
 
     def get_version_target_url_wrapper(
@@ -108,22 +108,22 @@ def get_version_target_url(
 ) -> str:
     """
     Compute the best URL for navigating to a page in the target version.
-    
+
     Implements a fallback cascade:
     1. If exact equivalent page exists → return that URL
     2. If section index exists → return section index URL
     3. Otherwise → return version root URL
-    
+
     All returned URLs include baseurl (using href logic) for proper template use.
-    
+
     Args:
         page: Current page (may be None for edge cases)
         target_version: Target version dict with 'id', 'url_prefix', 'latest' keys
         site: Site instance
-    
+
     Returns:
         Best URL to navigate to (guaranteed to exist, includes baseurl)
-        
+
     """
     # Edge cases: return root if we don't have valid inputs
     if not page or not target_version:
@@ -184,12 +184,12 @@ def _construct_version_url(
 ) -> str:
     """
     Construct the equivalent URL in the target version.
-    
+
     URL transformations:
     - /docs/guide/ (latest) → /docs/v1/guide/ (older)
     - /docs/v1/guide/ (older) → /docs/guide/ (latest)
     - /docs/v1/guide/ (older) → /docs/v2/guide/ (other older)
-        
+
     """
     sections = site.version_config.sections if site.version_config else ["docs"]
 
@@ -238,11 +238,11 @@ def _construct_version_url(
 def _get_section_index_url(url: str) -> str | None:
     """
     Get the parent section index URL.
-    
+
     /docs/v1/guide/advanced/ → /docs/v1/guide/
     /docs/guide/advanced/ → /docs/guide/
     /docs/v1/ → None (already at root)
-        
+
     """
     if not url or url == "/":
         return None
@@ -263,10 +263,10 @@ def _get_section_index_url(url: str) -> str | None:
 def _get_version_root_url(version_id: str, is_latest: bool, site: SiteLike) -> str:
     """
     Get the root URL for a version.
-    
+
     For latest: /docs/
     For older: /docs/v1/
-        
+
     """
     sections = site.version_config.sections if site.version_config else ["docs"]
 
@@ -288,17 +288,17 @@ _VERSION_INDEX_CACHE_MAX_SIZE = 10
 def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
     """
     Build an index of page URLs by version for O(1) existence checks.
-    
+
     Uses a module-level cache keyed by site id to avoid rebuilding
     the index on every call. Cache is invalidated via invalidate_version_page_index().
-    
+
     Memory leak prevention: Cache is limited to 10 entries. When limit is reached,
     oldest entries are evicted (FIFO). This prevents unbounded growth when Site
     objects are recreated frequently (e.g., in dev server).
-    
+
     Returns:
         Dict mapping version_id to set of relative URLs
-        
+
     """
     site_id = id(site)
     if site_id in _version_page_index_cache:
@@ -334,17 +334,17 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
 def page_exists_in_version(path: str, version_id: str, site: SiteLike) -> bool:
     """
     Check if a page exists in a specific version.
-    
+
     Uses cached index for O(1) lookup.
-    
+
     Args:
         path: Page path (e.g., '/docs/guide/' or '/docs/v1/guide/')
         version_id: Version ID to check
         site: Site instance
-    
+
     Returns:
         True if page exists in that version
-        
+
     """
     if not site.versioning_enabled:
         return False
@@ -366,9 +366,9 @@ def page_exists_in_version(path: str, version_id: str, site: SiteLike) -> bool:
 def invalidate_version_page_index() -> None:
     """
     Invalidate the cached version page index.
-    
+
     Call this when pages are modified during a build.
-        
+
     """
     _version_page_index_cache.clear()
 

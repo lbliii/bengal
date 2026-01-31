@@ -78,7 +78,7 @@ class DevConfig(Protocol):
 class Config:
     """
     Configuration accessor with structured access.
-    
+
     Access patterns:
             >>> cfg = Config(loaded_dict)
             >>> cfg.site.title           # Attribute access (preferred)
@@ -91,10 +91,10 @@ class Config:
         None
             >>> cfg.site.typo            # Typos raise AttributeError!
         AttributeError: No config key 'typo' in section
-        
+
     """
 
-    __slots__ = ("_data", "__dict__")  # __dict__ needed for cached_property
+    __slots__ = ("__dict__", "_data")  # __dict__ needed for cached_property
 
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
@@ -217,19 +217,19 @@ class Config:
 class ConfigSection:
     """
     Accessor for a config section with attribute access.
-    
+
     Design decisions:
         1. Missing keys raise AttributeError (typos fail loudly)
         2. Use .get(key) for optional keys that may not exist
         3. Nested dicts become cached ConfigSection for chaining
         4. Nested sections are cached to avoid repeated object creation
-    
+
     Example:
         config.theme.syntax_highlighting.css_class_style  # Cached at each level
-        
+
     """
 
-    __slots__ = ("_data", "_path", "_cache")
+    __slots__ = ("_cache", "_data", "_path")
 
     def __init__(self, data: dict[str, Any], path: str = "") -> None:
         # Guard against non-dict data (defensive - prevents 'str' has no attribute 'keys' errors)

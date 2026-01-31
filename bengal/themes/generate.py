@@ -47,22 +47,22 @@ from bengal.themes.tokens import BENGAL_PALETTE, PALETTE_VARIANTS
 def generate_web_css() -> str:
     """
     Generate CSS custom properties from Bengal design tokens.
-    
+
     Creates a complete CSS string with :root variables for all Bengal palette
     colors, plus palette variant classes for theming support.
-    
+
     Returns:
         CSS string containing:
         - :root block with --bengal-* custom properties
         - .palette-* classes for each variant in PALETTE_VARIANTS
-    
+
     Example:
             >>> css = generate_web_css()
             >>> "--bengal-primary:" in css
         True
             >>> ".palette-blue-bengal" in css
         True
-        
+
     """
     lines = [
         "/* Generated from bengal/themes/tokens.py - DO NOT EDIT */",
@@ -124,14 +124,14 @@ def generate_web_css() -> str:
 def generate_tcss_reference() -> str:
     """
     Generate TCSS color reference as a comment block.
-    
+
     Creates a formatted comment block listing all Bengal token values for
     reference when manually editing TCSS files. Used with validate_tcss_tokens()
     to ensure terminal styles match the canonical token definitions.
-    
+
     Returns:
         Multi-line TCSS comment string with color hex values
-        
+
     """
     lines = [
         "/* Bengal Token Reference (from bengal/themes/tokens.py)",
@@ -155,25 +155,25 @@ def generate_tcss_reference() -> str:
 def write_generated_css(output_dir: Path | None = None) -> Path:
     """
     Write generated CSS custom properties to file.
-    
+
     Creates the output directory if needed and writes the generated CSS
     containing all Bengal token values as CSS custom properties.
-    
+
     Args:
         output_dir: Target directory for generated.css file. Defaults to
             bengal/themes/default/assets/css/tokens/ relative to this module.
-    
+
     Returns:
         Absolute path to the written generated.css file
-    
+
     Raises:
         BengalAssetError: If directory creation or file write fails
-    
+
     Example:
             >>> path = write_generated_css()
             >>> path.name
             'generated.css'
-        
+
     """
     if output_dir is None:
         output_dir = Path(__file__).parent / "default" / "assets" / "css" / "tokens"
@@ -209,19 +209,19 @@ def write_generated_css(output_dir: Path | None = None) -> Path:
 def validate_tcss_tokens() -> list[str]:
     """
     Validate that bengal.tcss uses correct token color values.
-    
+
     Checks the terminal dashboard TCSS file to ensure it contains the
     canonical color values from BENGAL_PALETTE. This catches drift between
     the token definitions and manually-edited TCSS styles.
-    
+
     Returns:
         List of validation error messages. Empty list indicates all
         required tokens were found in the TCSS file.
-    
+
     Note:
         Checks for primary, success, and error colors. Additional tokens
         may be added as validation requirements expand.
-        
+
     """
     tcss_path = Path(__file__).parent.parent / "cli" / "dashboard" / "bengal.tcss"
 
@@ -247,13 +247,13 @@ def validate_tcss_tokens() -> list[str]:
 def main() -> None:
     """
     CLI entry point for token generation and validation.
-    
+
     Generates web CSS from tokens and validates TCSS files. Exits with
     code 1 if validation fails, code 0 on success.
-    
+
     Raises:
         BengalAssetError: If CSS generation fails
-        
+
     """
     import sys
 

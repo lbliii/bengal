@@ -15,17 +15,17 @@ if TYPE_CHECKING:
 def feature_enabled(feature: str, theme_config: Any) -> bool:
     """
     Check if a theme feature is enabled.
-    
+
     Args:
         feature: Feature key in dotted notation (e.g., "navigation.toc")
         theme_config: Theme configuration object (from site.theme_config)
-    
+
     Returns:
         True if feature is enabled
-    
+
     Example:
         {{ 'navigation.toc' | feature_enabled(site.theme_config) }}
-        
+
     """
     if not theme_config:
         return False
@@ -35,11 +35,11 @@ def feature_enabled(feature: str, theme_config: Any) -> bool:
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
     Register theme-related template functions and filters.
-    
+
     Args:
         env: Jinja2 environment
         site: Site instance
-        
+
     """
 
     # Register feature_enabled filter

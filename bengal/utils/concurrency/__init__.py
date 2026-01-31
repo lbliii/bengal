@@ -49,31 +49,31 @@ from bengal.utils.concurrency.workers import (
 )
 
 __all__ = [
+    "Environment",
     # concurrent_locks
     "PerKeyLockManager",
     # thread_local
     "ThreadLocalCache",
     "ThreadSafeSet",
-    # async_compat
-    "run_async",
-    "install_uvloop",
-    # retry
-    "calculate_backoff",
-    "retry_with_backoff",
-    "async_retry_with_backoff",
-    # gil
-    "is_gil_disabled",
-    "has_free_threading_support",
-    "get_gil_status_message",
-    "format_gil_tip_for_cli",
+    "WorkloadProfile",
     # workers
     "WorkloadType",
-    "Environment",
-    "WorkloadProfile",
+    "async_retry_with_backoff",
+    # retry
+    "calculate_backoff",
     "detect_environment",
-    "get_optimal_workers",
-    "should_parallelize",
     "estimate_page_weight",
-    "order_by_complexity",
+    "format_gil_tip_for_cli",
+    "get_gil_status_message",
+    "get_optimal_workers",
     "get_profile",
+    "has_free_threading_support",
+    "install_uvloop",
+    # gil
+    "is_gil_disabled",
+    "order_by_complexity",
+    "retry_with_backoff",
+    # async_compat
+    "run_async",
+    "should_parallelize",
 ]

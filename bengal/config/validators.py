@@ -49,46 +49,45 @@ logger = get_logger(__name__)
 class ConfigValidationError(BengalConfigError, ValueError):
     """
     Raised when configuration validation fails.
-    
+
     This exception is raised when one or more configuration values fail
     validation. It extends both :class:`~bengal.errors.BengalConfigError`
     for consistent error handling and :class:`ValueError` for backward
     compatibility with code that catches standard value errors.
-    
+
     The error message includes the count of validation errors found.
     Detailed error messages are printed to the console before the
     exception is raised.
-        
+
     """
 
-    pass
 
 
 class ConfigValidator:
     """
     Validate configuration with helpful error messages.
-    
+
     This validator checks configuration values for type correctness, valid
     ranges, and logical consistency. It performs sensible type coercion
     where appropriate (e.g., string ``"true"`` → boolean ``True``).
-    
+
     Validation Checks:
         - **Type correctness**: Boolean, integer, and string fields.
         - **Range validation**: Numeric bounds (min/max workers, port numbers).
         - **Dependency validation**: Related field consistency (future).
-    
+
     Class Attributes:
         BOOLEAN_FIELDS: Set of field names expected to be boolean.
         INTEGER_FIELDS: Set of field names expected to be integers.
         STRING_FIELDS: Set of field names expected to be strings.
-    
+
     Example:
             >>> validator = ConfigValidator()
             >>> config = {"parallel": "yes", "max_workers": 8}
             >>> validated = validator.validate(config)
             >>> validated["parallel"]
         True
-        
+
     """
 
     # Define expected types for known fields
@@ -107,20 +106,20 @@ class ConfigValidator:
         "fast_writes",
         "fast_mode",
         "stable_section_references",
-        
+
         # Assets (after flattening from assets.*)
         "minify_assets",
         "optimize_assets",
         "fingerprint_assets",
         "pipeline_assets",
-        
+
         # Features (after flattening from features.*)
         "rss",
         "sitemap",
         "search",
         "json",
         "llm_txt",
-        
+
         # Other
         "expose_metadata_json",
     }
@@ -178,12 +177,12 @@ class ConfigValidator:
         if "features" in config and isinstance(config["features"], dict):
             features = config["features"]
             from bengal.config.defaults import BOOL_OR_DICT_KEYS
-            
+
             for key, value in features.items():
                 if key in BOOL_OR_DICT_KEYS:
                     if isinstance(value, dict):
                         errors.extend(self._validate_section(value, prefix=f"features.{key}"))
-            
+
             errors.extend(self._validate_section(features, prefix="features"))
 
         # 4. Validate assets
@@ -212,9 +211,9 @@ class ConfigValidator:
         return config
 
     def _validate_section(
-        self, 
-        section_dict: dict[str, Any], 
-        prefix: str = "", 
+        self,
+        section_dict: dict[str, Any],
+        prefix: str = "",
         is_assets: bool = False
     ) -> list[str]:
         """Validate a single configuration section."""
@@ -225,7 +224,7 @@ class ConfigValidator:
         for key, value in section_dict.items():
             # Resolve the canonical field name for lookup
             field_name = f"{key}_assets" if is_assets else key
-            
+
             if field_name in self.BOOLEAN_FIELDS:
                 # Allow None for auto-detection
                 if value is None:

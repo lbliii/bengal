@@ -68,28 +68,28 @@ from bengal.themes.tokens import (
 )
 
 __all__ = [
-    # Config models
-    "AppearanceConfig",
-    "FeatureFlags",
-    "IconConfig",
-    "ThemeConfig",
-    # Token dataclasses
-    "BengalMascots",
-    "BengalPalette",
-    "PaletteVariant",
-    # Token protocols
-    "ColorPalette",
     # Token instances
     "BENGAL_MASCOT",
     "BENGAL_PALETTE",
     "PALETTE_VARIANTS",
-    # Token utilities
-    "get_palette",
+    # Config models
+    "AppearanceConfig",
+    # Token dataclasses
+    "BengalMascots",
+    "BengalPalette",
+    # Token protocols
+    "ColorPalette",
+    "FeatureFlags",
+    "IconConfig",
     # Swizzle utilities
     "ModificationStatus",
+    "PaletteVariant",
+    "ThemeConfig",
     # Generation utilities
     "generate_tcss_reference",
     "generate_web_css",
+    # Token utilities
+    "get_palette",
     "validate_tcss_tokens",
     "write_generated_css",
 ]

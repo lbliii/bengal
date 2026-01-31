@@ -52,16 +52,16 @@ from bengal.output import CLIOutput
 def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
     """
     Upgrade Bengal to the latest version.
-    
+
     Automatically detects how Bengal was installed (uv, pip, pipx, conda)
     and runs the appropriate upgrade command.
-    
+
     Examples:
         bengal upgrade           # Interactive upgrade
         bengal upgrade -y        # Skip confirmation
         bengal upgrade --dry-run # Show command without running
         bengal upgrade --force   # Force upgrade even if on latest
-        
+
     """
     cli = CLIOutput()
 
@@ -143,7 +143,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
 def show_upgrade_notification() -> None:
     """
     Show upgrade notification if available (non-blocking).
-    
+
     Called after CLI commands complete to display a non-intrusive banner
     when a newer version is available. Designed to never fail or slow
     down the CLI.

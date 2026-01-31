@@ -100,12 +100,12 @@ _console: Console | None = None
 def should_use_emoji() -> bool:
     """
     Determine if emoji should be used in CLI output.
-    
+
     Checks the BENGAL_EMOJI environment variable. ASCII-first by default.
-    
+
     Returns:
         True if BENGAL_EMOJI=1, False otherwise
-        
+
     """
     return os.getenv("BENGAL_EMOJI", "").strip() == "1"
 
@@ -113,10 +113,10 @@ def should_use_emoji() -> bool:
 def get_console() -> Console:
     """
     Get singleton rich console instance.
-    
+
     Returns:
         Configured Console instance
-        
+
     """
     global _console
 
@@ -144,10 +144,10 @@ def get_console() -> Console:
 def should_use_rich() -> bool:
     """
     Determine if we should use rich features.
-    
+
     Returns:
         True if rich features should be enabled
-        
+
     """
     console = get_console()
 
@@ -167,10 +167,10 @@ def should_use_rich() -> bool:
 def detect_environment() -> dict[str, bool | str | int | None]:
     """
     Detect terminal and environment capabilities.
-    
+
     Gathers comprehensive information about the execution environment
     to help with debugging and adaptive output formatting.
-    
+
     Returns:
         Dictionary containing:
             - is_terminal (bool): Whether stdout is a TTY
@@ -182,13 +182,13 @@ def detect_environment() -> dict[str, bool | str | int | None]:
             - is_git_repo (bool): Whether .git directory exists
             - cpu_count (int): Number of CPU cores
             - terminal_app (str): Terminal emulator name
-    
+
     Example:
             >>> env = detect_environment()
             >>> if env["is_ci"]:
             ...     # Simplify output for CI logs
             ...     pass
-        
+
     """
     env: dict[str, bool | str | int | None] = {}
 
@@ -238,20 +238,20 @@ def reset_console() -> None:
 def is_live_display_active() -> bool:
     """
     Check if a Live display is currently active on the console.
-    
+
     This function accesses the private `_live` attribute using `getattr()`
     to safely handle cases where it might not exist, with a fallback that
     assumes no Live display is active if an exception occurs.
-    
+
     Returns:
         True if a Live display is currently active, False otherwise
-    
+
     Note:
         Tested against Rich >= 13.7.0 (as specified in pyproject.toml).
         Uses the private _live attribute since Rich does not provide a public API
         for detecting active Live displays. The getattr() call provides safe access
         with a sensible default value (None).
-        
+
     """
     console = get_console()
 

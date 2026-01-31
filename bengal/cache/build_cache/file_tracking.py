@@ -21,8 +21,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.primitives.hashing import hash_file
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
     pass
@@ -33,16 +33,16 @@ logger = get_logger(__name__)
 class FileTrackingMixin:
     """
     Mixin providing file tracking, hashing, and dependency management.
-    
+
     Requires these attributes on the host class:
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
-    
+
     Performance Optimization:
     - Added reverse_dependencies for O(1) affected pages lookup
     - get_affected_pages(): O(n) → O(1)
-        
+
     """
 
     # Type hints for mixin attributes (provided by host class)

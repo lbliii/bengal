@@ -88,7 +88,7 @@ logger = get_logger(__name__)
 class DevServer:
     """
     Development server with file watching, auto-rebuild, and serve-first startup.
-    
+
     Provides a complete development environment for Bengal sites with:
     - Serve-first startup: Serves cached content immediately for instant first paint
     - Background validation: Validates cache and hot-reloads if stale
@@ -98,14 +98,14 @@ class DevServer:
     - Stale process detection and cleanup
     - Automatic port fallback
     - Optional browser auto-open
-    
+
     The server uses serve-first when cached output exists: it starts serving
     immediately while validating in the background. If validation finds stale
     content, it triggers a hot reload. This provides instant first paint for
     returning users.
-    
+
     When no cache exists, the server falls back to build-first mode.
-    
+
     Features:
     - Serve-first startup (instant first paint when cache exists)
     - Incremental + parallel builds (5-10x faster than full builds)
@@ -113,15 +113,15 @@ class DevServer:
     - Custom 404 error pages
     - PID file tracking for stale process detection
     - Comprehensive resource cleanup on shutdown
-    
+
     Example:
         from bengal.core import Site
         from bengal.server import DevServer
-    
+
         site = Site.from_config()
         server = DevServer(site, port=5173, watch=True)
         server.start()  # Runs until Ctrl+C
-        
+
     """
 
     def __init__(

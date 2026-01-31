@@ -79,34 +79,34 @@ from bengal.parsing.backends.patitas.directives.registry import (
 )
 
 __all__ = [
-    # Protocol
-    "DirectiveHandler",
-    "DirectiveParseOnly",
-    "DirectiveRenderOnly",
-    # Options
-    "DirectiveOptions",
-    "StyledOptions",
-    "AdmonitionOptions",
-    "CodeBlockOptions",
-    "ImageOptions",
-    "FigureOptions",
-    "TabSetOptions",
-    "TabItemOptions",
-    # Contracts
-    "DirectiveContract",
-    "ContractViolation",
-    # Pre-defined contracts
-    "STEPS_CONTRACT",
-    "STEP_CONTRACT",
-    "TAB_SET_CONTRACT",
-    "TAB_ITEM_CONTRACT",
+    "DEFINITION_CONTRACT",
+    "DEFINITION_LIST_CONTRACT",
     "DROPDOWN_CONTRACT",
     "GRID_CONTRACT",
     "GRID_ITEM_CONTRACT",
-    "DEFINITION_LIST_CONTRACT",
-    "DEFINITION_CONTRACT",
+    # Pre-defined contracts
+    "STEPS_CONTRACT",
+    "STEP_CONTRACT",
+    "TAB_ITEM_CONTRACT",
+    "TAB_SET_CONTRACT",
+    "AdmonitionOptions",
+    "CodeBlockOptions",
+    "ContractViolation",
+    # Contracts
+    "DirectiveContract",
+    # Protocol
+    "DirectiveHandler",
+    # Options
+    "DirectiveOptions",
+    "DirectiveParseOnly",
     # Registry
     "DirectiveRegistry",
     "DirectiveRegistryBuilder",
+    "DirectiveRenderOnly",
+    "FigureOptions",
+    "ImageOptions",
+    "StyledOptions",
+    "TabItemOptions",
+    "TabSetOptions",
     "create_default_registry",
 ]

@@ -30,20 +30,20 @@ from typing import Any, ClassVar, Self, get_type_hints
 @dataclass(frozen=True, slots=True)
 class DirectiveOptions:
     """Base class for typed directive options.
-    
+
     Subclass this to define options for your directive. Options are
     automatically parsed from :key: value lines in the directive.
-    
+
     Type coercion is automatic based on type hints:
     - str: Used as-is
     - bool: "true", "yes", "1", "" → True; others → False
     - int: Parsed with int()
     - float: Parsed with float()
     - list[str]: Split by whitespace
-    
+
     Thread Safety:
         Frozen dataclass ensures immutability for safe sharing.
-    
+
     Example:
             >>> @dataclass(frozen=True, slots=True)
             ... class ImageOptions(DirectiveOptions):
@@ -54,7 +54,7 @@ class DirectiveOptions:
             >>> opts = ImageOptions.from_raw({"width": "800", "alt": "Photo"})
             >>> opts.width
         800
-        
+
     """
 
     # Mapping of option aliases (e.g., "class" -> "class_")
@@ -163,11 +163,11 @@ class DirectiveOptions:
 @dataclass(frozen=True, slots=True)
 class StyledOptions(DirectiveOptions):
     """Common options for styled directives.
-    
+
     Provides standard styling options that most directives support:
     - class_: Additional CSS classes
     - name: Reference ID/anchor
-        
+
     """
 
     class_: str | None = None

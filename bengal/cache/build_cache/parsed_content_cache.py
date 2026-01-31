@@ -20,12 +20,12 @@ Related Modules:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.primitives.hashing import hash_file, hash_str
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_file, hash_str
 from bengal.utils.primitives.sentinel import MISSING
 
 if TYPE_CHECKING:
@@ -37,12 +37,12 @@ logger = get_logger(__name__)
 class ParsedContentCacheMixin:
     """
     Mixin providing parsed content caching (Optimization #2).
-    
+
     Requires these attributes on the host class:
         - parsed_content: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
-        
+
     """
 
     # Type hints for mixin attributes (provided by host class)
@@ -121,7 +121,7 @@ class ParsedContentCacheMixin:
             "cascade_metadata_hash": cascade_metadata_hash,
             "template": template,
             "parser_version": parser_version,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "size_bytes": size_bytes,
         }
 

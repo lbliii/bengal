@@ -15,9 +15,8 @@ from .serve import serve
 def site_cli() -> None:
     """
     Site building and serving commands.
-        
+
     """
-    pass
 
 
 # Hidden from help (use 'bengal new site' instead)
@@ -52,13 +51,13 @@ def site_cli() -> None:
 def site_new(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """
     [DEPRECATED] Create a new Bengal site.
-    
+
     This command is deprecated. Use 'bengal new site' instead.
-    
+
     Examples:
         bengal new site my-blog
         bengal new site --template blog
-        
+
     """
     # Show deprecation warning
     cli = get_cli_output()

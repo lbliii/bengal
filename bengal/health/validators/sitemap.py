@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class SitemapValidator(BaseValidator):
     """
     Validates sitemap.xml for SEO.
-    
+
     Checks:
     - Sitemap file exists
     - XML is well-formed
@@ -33,7 +33,7 @@ class SitemapValidator(BaseValidator):
     - No duplicate URLs
     - URLs are absolute and properly formatted
     - Sitemap includes expected pages
-        
+
     """
 
     name = "Sitemap"

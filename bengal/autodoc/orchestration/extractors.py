@@ -26,10 +26,10 @@ def extract_python(
 ) -> list[DocElement]:
     """
     Extract Python API documentation.
-    
+
     RFC: rfc-build-performance-optimizations Phase 3
     Accepts optional cache for AST caching.
-    
+
     Args:
         site: Site instance
         python_config: Python autodoc configuration

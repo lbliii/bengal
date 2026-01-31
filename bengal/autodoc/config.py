@@ -46,18 +46,18 @@ from typing import Any
 def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     Load autodoc configuration from config/ directory or bengal.toml.
-    
+
     Loading priority:
     1. config/_default/autodoc.yaml (directory-based config)
     2. bengal.toml (backward compatibility)
     3. Default configuration
-    
+
     Args:
         config_path: Path to config file or directory (default: auto-detect)
-    
+
     Returns:
         Autodoc configuration dict with defaults
-        
+
     """
     # Default configuration (all disabled by default - opt-in via config)
     default_config = {
@@ -208,14 +208,14 @@ def _merge_autodoc_config(
 ) -> dict[str, Any]:
     """
     Merge autodoc configuration with defaults.
-    
+
     Args:
         default_config: Default configuration
         autodoc_config: User autodoc configuration
-    
+
     Returns:
         Merged configuration
-        
+
     """
     # Merge top-level settings (like use_html_renderer)
     for key, value in autodoc_config.items():
@@ -265,13 +265,13 @@ def _merge_autodoc_config(
 def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Extract Python autodoc configuration from full autodoc config.
-    
+
     Args:
         config: Full autodoc configuration dict from `load_autodoc_config()`
-    
+
     Returns:
         Python-specific configuration with keys like 'enabled', 'source_dirs', etc.
-        
+
     """
     return config.get("python", {})
 
@@ -279,13 +279,13 @@ def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
 def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Extract OpenAPI autodoc configuration from full autodoc config.
-    
+
     Args:
         config: Full autodoc configuration dict from `load_autodoc_config()`
-    
+
     Returns:
         OpenAPI-specific configuration with keys like 'enabled', 'spec_file', etc.
-        
+
     """
     return config.get("openapi", {})
 
@@ -293,13 +293,13 @@ def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
 def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Extract CLI autodoc configuration from full autodoc config.
-    
+
     Args:
         config: Full autodoc configuration dict from `load_autodoc_config()`
-    
+
     Returns:
         CLI-specific configuration with keys like 'enabled', 'app_module', etc.
-        
+
     """
     return config.get("cli", {})
 
@@ -307,19 +307,19 @@ def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
 def get_grouping_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Get grouping configuration from Python autodoc config.
-    
+
     Args:
         config: Full autodoc configuration dict
-    
+
     Returns:
         Grouping configuration with mode and prefix_map
-    
+
     Example:
             >>> config = load_autodoc_config()
             >>> grouping = get_grouping_config(config)
             >>> grouping["mode"]
         "off"
-        
+
     """
     python_config = get_python_config(config)
     return python_config.get("grouping", {"mode": "off", "prefix_map": {}})

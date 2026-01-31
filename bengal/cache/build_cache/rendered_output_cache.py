@@ -19,12 +19,12 @@ Related Modules:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.primitives.sentinel import MISSING
 
 if TYPE_CHECKING:
@@ -36,11 +36,11 @@ logger = get_logger(__name__)
 class RenderedOutputCacheMixin:
     """
     Mixin providing rendered output caching (Optimization #3).
-    
+
     Requires these attributes on the host class:
         - rendered_output: dict[str, dict[str, Any]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
-        
+
     """
 
     # Type hints for mixin attributes (provided by host class)
@@ -71,7 +71,7 @@ class RenderedOutputCacheMixin:
             # autodoc_element from the metadata hash.
             clean_metadata.pop("autodoc_element", None)
             # Ensure doc_content_hash stays in the dict
-        
+
         # Also remove other transient or large metadata that shouldn't affect the hash
         clean_metadata.pop("_site", None)
         clean_metadata.pop("_section", None)
@@ -125,7 +125,7 @@ class RenderedOutputCacheMixin:
             "template": template,
             "metadata_hash": metadata_hash,
             "dependencies": dependencies or [],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "size_bytes": size_bytes,
             "asset_manifest_mtime": asset_manifest_mtime,
         }

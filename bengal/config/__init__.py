@@ -83,11 +83,11 @@ from bengal.config.unified_loader import UnifiedConfigLoader
 class ConfigLoader(UnifiedConfigLoader):
     """
     Backward-compatible wrapper around UnifiedConfigLoader.
-    
+
     Legacy ConfigLoader accepted a root path during construction and then
     ``load()`` with no arguments. This wrapper preserves that workflow while
     delegating the real work to UnifiedConfigLoader.
-        
+
     """
 
     def __init__(self, root_path: Path, track_origins: bool = False) -> None:
@@ -105,20 +105,20 @@ class ConfigLoader(UnifiedConfigLoader):
 
 
 __all__ = [
-    "ConfigLoader",  # Backward compatibility alias
-    "UnifiedConfigLoader",
-    # Frozen config snapshot types (RFC: Snapshot-Enabled v2)
-    "ConfigSnapshot",
-    "SiteSection",
-    "BuildSection",
-    "DevSection",
-    "ThemeSection",
-    "ContentSection",
-    "FeaturesSection",
-    "AssetsSection",
     # Deprecation utilities
     "DEPRECATED_KEYS",
     "RENAMED_KEYS",
+    "AssetsSection",
+    "BuildSection",
+    "ConfigLoader",  # Backward compatibility alias
+    # Frozen config snapshot types (RFC: Snapshot-Enabled v2)
+    "ConfigSnapshot",
+    "ContentSection",
+    "DevSection",
+    "FeaturesSection",
+    "SiteSection",
+    "ThemeSection",
+    "UnifiedConfigLoader",
     "check_deprecated_keys",
     "get_deprecation_summary",
     "migrate_deprecated_keys",

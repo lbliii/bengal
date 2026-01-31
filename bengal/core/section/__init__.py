@@ -72,7 +72,7 @@ class Section(
 ):
     """
     Represents a folder or logical grouping of pages.
-    
+
     HASHABILITY:
     ============
     Sections are hashable based on their path (or name for virtual sections),
@@ -80,10 +80,10 @@ class Section(
     - Fast membership tests and lookups
     - Type-safe Set[Section] collections
     - Set operations for section analysis
-    
+
     Two sections with the same path are considered equal. The hash is stable
     throughout the section lifecycle because path is immutable.
-    
+
     VIRTUAL SECTIONS:
     =================
     Virtual sections represent API documentation or other dynamically-generated
@@ -92,7 +92,7 @@ class Section(
     - Are discovered via VirtualAutodocOrchestrator during build
     - Work with menu system via name-based lookups
     - Don't write intermediate markdown files
-    
+
     Attributes:
         name: Section name
         path: Path to the section directory (None for virtual sections)
@@ -102,7 +102,7 @@ class Section(
         index_page: Optional index page for the section
         parent: Parent section (if nested)
         _virtual: True if this is a virtual section (no disk directory)
-        
+
     """
 
     name: str = "root"

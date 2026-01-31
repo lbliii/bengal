@@ -28,13 +28,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import timezone
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.protocols import Cacheable
 from bengal.cache.compression import load_auto, save_compressed
+from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -53,9 +52,9 @@ class AssetReference:
 class AssetDependencyEntry(Cacheable):
     """
     Cache entry for asset dependencies.
-    
+
     Implements the Cacheable protocol for type-safe serialization.
-        
+
     """
 
     assets: set[str]  # Set of asset URLs/paths
@@ -93,13 +92,13 @@ class AssetDependencyEntry(Cacheable):
 class AssetDependencyMap:
     """
     Persistent map of page-to-asset dependencies for incremental discovery.
-    
+
     Purpose:
     - Track which assets each page references
     - Enable on-demand asset discovery
     - Skip asset discovery for unchanged pages
     - Support incremental asset fingerprinting
-    
+
     Cache Format (JSON):
     {
         "version": 1,
@@ -115,7 +114,7 @@ class AssetDependencyMap:
             }
         }
     }
-        
+
     """
 
     VERSION = 1
@@ -217,7 +216,7 @@ class AssetDependencyMap:
         """
         entry = AssetDependencyEntry(
             assets=assets,
-            tracked_at=datetime.now(timezone.utc).isoformat(),
+            tracked_at=datetime.now(UTC).isoformat(),
             is_valid=True,
         )
         self.pages[str(source_path)] = entry

@@ -39,12 +39,12 @@ from .page_core import PageCore
 
 def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) -> property:
     """Create a lazy property that delegates to _full_page.
-    
+
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         doc: Optional docstring for the property
-        
+
     """
 
     def getter(self: PageProxy) -> Any:
@@ -57,12 +57,12 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) 
 
 def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None) -> property:
     """Create a lazy property with getter and setter that delegates to _full_page.
-    
+
     Args:
         attr_name: Attribute name on the full Page object
         default: Default value if _full_page is None
         getter_doc: Optional docstring for the getter
-        
+
     """
 
     def getter(self: PageProxy) -> Any:
@@ -82,46 +82,46 @@ def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: 
 class PageProxy:
     """
     Lazy-loaded page placeholder.
-    
+
     Holds page metadata from cache and defers loading full content until
     accessed. Transparent to callers - implements Page-like interface.
-    
+
     LIFECYCLE IN INCREMENTAL BUILDS:
     ---------------------------------
     1. **Discovery** (content_discovery.py):
        - Created from cached metadata for unchanged pages
        - Has: title, date, tags, slug, _section, _site, output_path
        - Does NOT have: content, rendered_html (lazy-loaded on demand)
-    
+
     2. **Filtering** (incremental.py):
        - PageProxy objects pass through find_work_early() unchanged
        - Only modified pages become full Page objects for rendering
-    
+
     3. **Rendering** (render.py):
        - Modified pages rendered as full Page objects
        - PageProxy objects skipped (already have cached output)
-    
+
     4. **Update** (build/rendering.py Phase 15):
        - Freshly rendered Page objects REPLACE their PageProxy counterparts
        - site.pages becomes: mix of fresh Page (rebuilt) + PageProxy (cached)
-    
+
     5. **Postprocessing** (postprocess.py):
        - Iterates over site.pages (now updated with fresh Pages)
        - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
          * output_path (for finding where to write .txt/.json)
          * href, _path, permalink (for generating index.json)
          * title, date, tags (for content in output files)
-    
+
     TRANSPARENCY CONTRACT:
     ----------------------
     PageProxy must be transparent to:
     - **Templates**: Implements .href, ._path, .title, etc.
     - **Postprocessing**: Implements .output_path, metadata access
     - **Navigation**: Implements .prev, .next (via lazy load)
-    
+
     ⚠️ When adding new Page properties used by templates/postprocessing,
     MUST also add to PageProxy or handle in _ensure_loaded().
-    
+
     Usage:
         # Create from cached metadata
         page = PageProxy(
@@ -129,17 +129,17 @@ class PageProxy:
             metadata=cached_metadata,
             loader=load_page_from_disk,  # Callable that loads full page
         )
-    
+
         # Access metadata (instant, from cache)
         print(page.title)  # "My Post"
         print(page.tags)   # ["python", "web"]
-    
+
         # Access full content (triggers lazy load)
         print(page.content)  # Loads from disk and parses
-    
+
         # After first access, it's fully loaded
         assert page._lazy_loaded  # True
-        
+
     """
 
     # Site reference - set externally during content discovery
@@ -239,19 +239,46 @@ class PageProxy:
 
     @property
     def type(self) -> str | None:
-        """Get page type from cached metadata (cascaded)."""
+        """
+        Get page type from cascade snapshot or cached metadata.
+
+        Priority:
+        1. Cascade snapshot lookup (always current, even after _index.md changes)
+        2. Cached core.type (fallback for non-cascade type)
+        """
+        # 1. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come first to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
+        cascade_type = self._resolve_cascade_from_snapshot("type")
+        if cascade_type is not None:
+            return cascade_type
+
+        # 2. Fall back to cached value for non-cascade type
         return self.core.type
 
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from cached metadata (Mode).
+        Get visual variant from cascade snapshot or cached metadata (Mode).
 
-        Falls back to layout/hero_style fields in props if not set.
+        Priority:
+        1. Cascade snapshot lookup for 'variant' or 'layout' keys
+        2. Cached core.variant (fallback for non-cascade variant)
+        3. Frontmatter fallback (layout/hero_style)
         """
+        # 1. Cascade snapshot lookup (thread-safe, always current)
+        cascade_variant = self._resolve_cascade_from_snapshot("variant")
+        if cascade_variant is not None:
+            return cascade_variant
+        cascade_layout = self._resolve_cascade_from_snapshot("layout")
+        if cascade_layout is not None:
+            return cascade_layout
+
+        # 2. Fall back to cached value for non-cascade variant
         if self.core.variant:
             return self.core.variant
-        # Fallback via metadata
+
+        # 3. Frontmatter fallback
         props = self.metadata  # Triggers metadata build (but not full page)
         return props.get("layout") or props.get("hero_style")
 
@@ -342,7 +369,7 @@ class PageProxy:
         Returns cached metadata including cascaded fields like 'type'.
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
-        
+
         Cascade resolution uses the immutable CascadeSnapshot for thread-safe
         access. The snapshot is computed once per build and can be safely
         accessed from multiple render threads in free-threaded Python.
@@ -380,14 +407,14 @@ class PageProxy:
     def _resolve_cascade_from_snapshot(self, key: str) -> Any:
         """
         Resolve a cascade value using the immutable CascadeSnapshot.
-        
+
         Uses the Site's cascade snapshot for O(depth) lookup without
         needing to traverse section objects. This is thread-safe and
         works correctly in free-threaded Python.
-        
+
         Args:
             key: The cascade key to look up (e.g., "type", "layout")
-            
+
         Returns:
             The cascade value from the nearest ancestor section, or None
         """
@@ -464,7 +491,6 @@ class PageProxy:
         (they were loaded from the cache which stores relative paths).
         """
         # PageProxy paths are already relative from cache - no normalization needed
-        pass
 
     @property
     def related_posts(self) -> list[Page]:

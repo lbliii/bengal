@@ -166,21 +166,21 @@ _loaded_directives: dict[str, type[BengalDirective]] = {}
 
 def get_directive(name: str) -> type[BengalDirective] | None:
     """Get a directive class by name, loading it lazily if needed.
-    
+
     Looks up the directive in the registry and imports its module on first
     access. Results are cached for subsequent calls.
-    
+
     Args:
         name: Directive name (e.g., ``"dropdown"``, ``"tab-set"``).
-    
+
     Returns:
         The directive class if found, ``None`` if not registered or import fails.
-    
+
     Example:
             >>> DropdownDirective = get_directive("dropdown")
             >>> if DropdownDirective:
             ...     directive = DropdownDirective()
-        
+
     """
     if name in _loaded_directives:
         return _loaded_directives[name]
@@ -222,11 +222,11 @@ def get_directive(name: str) -> type[BengalDirective] | None:
 
 def register_all() -> None:
     """Pre-load all registered directives into the cache.
-    
+
     Imports all directive modules and populates ``_loaded_directives``.
     Useful for testing, inspection, or ensuring all directives are
     available before processing content in a batch.
-        
+
     """
     for name in _DIRECTIVE_MAP:
         get_directive(name)
@@ -234,13 +234,13 @@ def register_all() -> None:
 
 def get_known_directive_names() -> frozenset[str]:
     """Return all registered directive names as a frozenset.
-    
+
     This includes all directive names and their aliases (e.g., both
     ``"dropdown"`` and ``"details"`` for the dropdown directive).
-    
+
     Returns:
         Frozenset of all directive names in the registry.
-        
+
     """
     return frozenset(_DIRECTIVE_MAP.keys())
 
@@ -251,14 +251,14 @@ KNOWN_DIRECTIVE_NAMES: frozenset[str] = get_known_directive_names()
 
 def get_directive_classes() -> list[type]:
     """Return all unique directive classes.
-    
+
     Triggers ``register_all()`` to ensure all modules are imported, then
     returns deduplicated directive classes (since multiple names may map
     to the same class, e.g., ``"dropdown"`` and ``"details"``).
-    
+
     Returns:
         List of unique directive class types.
-        
+
     """
     register_all()
     # Deduplicate - multiple names may map to the same class
@@ -273,14 +273,14 @@ _registry_lock = threading.Lock()
 
 def _get_directive_classes() -> list[type]:
     """Return directive classes, loading and caching on first access.
-    
+
     Internal function backing the ``DIRECTIVE_CLASSES`` module attribute.
-    
+
     Thread-safe: Uses double-check locking pattern for safe initialization.
-    
+
     Returns:
         List of all unique directive classes.
-        
+
     """
     global _directive_classes
     # Fast path: already initialized (safe read of immutable reference)
@@ -301,19 +301,19 @@ DIRECTIVE_CLASSES: list[type] = []  # Populated on first access via __getattr__
 
 def __getattr__(name: str) -> list[type]:
     """Provide lazy access to ``DIRECTIVE_CLASSES`` via PEP 562.
-    
+
     Implements module-level ``__getattr__`` to defer loading all directive
     classes until ``DIRECTIVE_CLASSES`` is actually accessed.
-    
+
     Args:
         name: The attribute name being accessed.
-    
+
     Returns:
         For ``DIRECTIVE_CLASSES``, returns the list of all directive classes.
-    
+
     Raises:
         AttributeError: If the requested attribute does not exist.
-        
+
     """
     if name == "DIRECTIVE_CLASSES":
         return _get_directive_classes()

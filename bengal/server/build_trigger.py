@@ -72,12 +72,12 @@ logger = get_logger(__name__)
 class BuildTrigger:
     """
     Triggers builds when file changes are detected.
-    
+
     All builds are executed via BuildExecutor in a subprocess for:
     - Crash resilience (build crash doesn't kill server)
     - Clean isolation (no stale state between builds)
     - Future-ready (supports free-threaded Python)
-    
+
     Features:
         - Pre/post build hooks
         - Incremental vs full rebuild detection
@@ -85,15 +85,15 @@ class BuildTrigger:
         - Template change detection (with directory caching)
         - Autodoc source change detection
         - Live reload notification
-    
+
     Caching:
         - Frontmatter cache: (path, mtime) -> has_nav_keys (avoids re-parsing)
         - Template dirs cache: Resolved template directories (avoids exists() calls)
-    
+
     Example:
             >>> trigger = BuildTrigger(site, host="localhost", port=5173)
             >>> trigger.trigger_build(changed_paths, event_types)
-        
+
     """
 
     # Class-level caches (shared across instances for efficiency)
@@ -748,8 +748,8 @@ class BuildTrigger:
             True if incremental update is possible
         """
         try:
-            from bengal.rendering.engines import create_engine
             from bengal.protocols import EngineCapability
+            from bengal.rendering.engines import create_engine
 
             # Check if template engine supports block-level detection via capability
             engine = create_engine(self.site)

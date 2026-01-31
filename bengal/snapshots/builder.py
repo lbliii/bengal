@@ -15,9 +15,10 @@ from __future__ import annotations
 
 import hashlib
 import time
+from collections.abc import Callable
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from bengal.core.menu import MenuItem
@@ -25,10 +26,12 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
 
+from datetime import UTC
+
 from bengal.config.snapshot import ConfigSnapshot
 from bengal.snapshots.types import (
-    MenuItemSnapshot,
     NO_SECTION,
+    MenuItemSnapshot,
     PageSnapshot,
     ScoutHint,
     SectionSnapshot,
@@ -40,13 +43,13 @@ from bengal.snapshots.types import (
 def create_site_snapshot(site: Site) -> SiteSnapshot:
     """
     Create immutable snapshot from mutable site.
-    
+
     Called ONCE at end of Phase 5 (after content discovery).
     O(n) where n = total pages + sections.
-    
+
     Args:
         site: Mutable Site after content discovery
-        
+
     Returns:
         Frozen SiteSnapshot for all render operations
     """
@@ -63,13 +66,13 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
     # Phase 2: Snapshot all sections (with page refs)
     # Snapshot all sections recursively, starting from root sections
     root_sections = [s for s in site.sections if s.parent is None]
-    
+
     # If no root sections, find top-level sections (not children of others)
     if not root_sections:
         all_section_ids = {id(s) for s in site.sections}
         child_section_ids = {id(sub) for s in site.sections for sub in s.subsections}
         root_sections = [s for s in site.sections if id(s) not in child_section_ids]
-    
+
     # Snapshot all root sections and their trees
     root_snapshots: list[SectionSnapshot] = []
     for root_section in root_sections:
@@ -80,7 +83,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
             depth=1,
         )
         root_snapshots.append(root_snapshot)
-    
+
     # Also snapshot any remaining sections not yet snapshotted (handles disconnected sections)
     for section in site.sections:
         if id(section) not in section_cache:
@@ -90,13 +93,13 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
                 section_cache,
                 depth=1,
             )
-    
+
     # Phase 2.5: Set root references on all sections (post-processing)
     # Find root sections (sections with parent=None)
     root_section_snapshots = [
         s for s in section_cache.values() if s.parent is None
     ]
-    
+
     # Helper to find root section snapshot by walking up parent chain
     def find_root_snapshot(snapshot: SectionSnapshot) -> SectionSnapshot:
         """Find root section by walking up parent chain."""
@@ -106,7 +109,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
         while current.parent is not None:
             current = current.parent
         return current
-    
+
     # Update sections with root references (only if root is None)
     # Note: This is a simplified approach - root can be computed on-demand if needed
     for orig_section_id, section_snapshot in list(section_cache.items()):
@@ -137,10 +140,10 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
                     total_pages=section_snapshot.total_pages,
                 )
                 section_cache[orig_section_id] = updated
-    
+
     # Use first root as primary root (for compatibility)
     root = root_snapshots[0] if root_snapshots else None
-    
+
     # If still no root, create a minimal virtual root
     if root is None:
         from bengal.core.section import Section
@@ -177,7 +180,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
                 total_pages=root.total_pages,
             )
             section_cache[id(virtual_root)] = root
-    
+
     # Ensure all sections have root set (update any that don't)
     for orig_section_id, section_snapshot in list(section_cache.items()):
         if section_snapshot.root is None:
@@ -217,7 +220,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
         else:
             # Use NO_SECTION sentinel for pages without sections
             section_snapshot = NO_SECTION
-        
+
         # Create new snapshot with section ref (frozen, so must recreate)
         page_snapshot = PageSnapshot(
             title=page_snapshot.title,
@@ -311,20 +314,20 @@ def update_snapshot(
 ) -> SiteSnapshot:
     """
     Incrementally update snapshot for changed files.
-    
+
     O(changed) instead of O(all) by using structural sharing.
     Unchanged portions reference the same frozen objects.
-    
+
     RFC: Snapshot-Enabled v2 Opportunities (Opportunity 2)
-    
+
     Args:
         old: Previous build's snapshot
         site: Mutable Site with updated content for changed files
         changed_paths: Files that changed since last build
-        
+
     Returns:
         New snapshot with structural sharing for unchanged data
-        
+
     Performance:
         | Scenario | Full Snapshot | Incremental |
         |----------|---------------|-------------|
@@ -334,28 +337,25 @@ def update_snapshot(
     if not changed_paths:
         # No changes - return same snapshot
         return old
-    
+
     start = time.perf_counter()
-    
+
     # Build mapping from source_path to old page snapshot
     old_pages_by_path: dict[Path, PageSnapshot] = {
         p.source_path: p for p in old.pages
     }
-    
+
     # Build mapping from source_path to mutable page
     site_pages_by_path: dict[Path, Page] = {
         p.source_path: p for p in site.pages
     }
-    
+
     # Identify affected pages (directly changed)
     affected_paths: set[Path] = set()
     for changed_path in changed_paths:
-        if changed_path in old_pages_by_path:
+        if changed_path in old_pages_by_path or changed_path in site_pages_by_path:
             affected_paths.add(changed_path)
-        # Check if it's a new page
-        elif changed_path in site_pages_by_path:
-            affected_paths.add(changed_path)
-    
+
     # Also check for template changes affecting pages
     for changed_path in changed_paths:
         if changed_path.suffix in (".html", ".jinja", ".j2"):
@@ -369,10 +369,10 @@ def update_snapshot(
                     for dep_template in old.template_dependency_graph[template_name]:
                         if page_snap.template_name == dep_template:
                             affected_paths.add(page_path)
-    
+
     # Create new page snapshots for affected pages only
     new_page_cache: dict[int, PageSnapshot] = {}
-    
+
     for path, old_page in old_pages_by_path.items():
         if path in affected_paths:
             # Re-snapshot this page
@@ -383,12 +383,12 @@ def update_snapshot(
         else:
             # Reuse old snapshot (structural sharing)
             new_page_cache[id(old_page)] = old_page
-    
+
     # Add any new pages not in old snapshot
     for path, mutable_page in site_pages_by_path.items():
         if path not in old_pages_by_path:
             new_page_cache[id(mutable_page)] = _snapshot_page_initial(mutable_page, site)
-    
+
     # Identify affected sections (parents of changed pages)
     affected_section_paths: set[Path | None] = set()
     for path in affected_paths:
@@ -397,18 +397,18 @@ def update_snapshot(
             section = getattr(page, "_section", None)
             if section:
                 affected_section_paths.add(section.path)
-    
+
     # Rebuild sections if any pages changed
     # For simplicity in v1, rebuild all sections if anything changed
     # TODO: Optimize to only rebuild affected sections
     section_cache: dict[int, SectionSnapshot] = {}
-    
+
     root_sections = [s for s in site.sections if s.parent is None]
     if not root_sections:
         all_section_ids = {id(s) for s in site.sections}
         child_section_ids = {id(sub) for s in site.sections for sub in s.subsections}
         root_sections = [s for s in site.sections if id(s) not in child_section_ids]
-    
+
     for root_section in root_sections:
         _snapshot_section_recursive(
             root_section,
@@ -416,18 +416,18 @@ def update_snapshot(
             section_cache,
             depth=1,
         )
-    
+
     # Find root for the snapshot
     root_snapshots = [s for s in section_cache.values() if s.parent is None]
     root = root_snapshots[0] if root_snapshots else None
-    
+
     if root is None:
         from bengal.core.section import Section
         virtual_root = Section(name="root", path=site.root_path / "content")
         root = _snapshot_section_recursive(
             virtual_root, new_page_cache, section_cache, depth=1
         )
-    
+
     # Resolve section references on pages
     for mutable_page in site.pages:
         if id(mutable_page) in new_page_cache:
@@ -436,7 +436,7 @@ def update_snapshot(
             section_snapshot = (
                 section_cache.get(id(section)) if section else NO_SECTION
             ) or NO_SECTION
-            
+
             if page_snapshot.section != section_snapshot:
                 # Recreate with updated section ref
                 new_page_cache[id(mutable_page)] = PageSnapshot(
@@ -462,15 +462,15 @@ def update_snapshot(
                     attention_score=page_snapshot.attention_score,
                     estimated_render_ms=page_snapshot.estimated_render_ms,
                 )
-    
+
     # Reuse unchanged data structures from old snapshot
     all_pages = tuple(new_page_cache.values())
-    
+
     # Recompute scheduling if pages changed
     topological_order = _compute_topological_waves(root, all_pages)
     template_groups = _compute_template_groups(all_pages)
     attention_order = _compute_attention_order(all_pages)
-    
+
     # Reuse scout hints if templates didn't change
     template_changed = any(
         p.suffix in (".html", ".jinja", ".j2") for p in changed_paths
@@ -480,7 +480,7 @@ def update_snapshot(
         if template_changed
         else old.scout_hints
     )
-    
+
     # Reuse template snapshots if no template files changed
     if template_changed:
         templates, template_dep_graph, template_dependents = _snapshot_templates(
@@ -494,12 +494,12 @@ def update_snapshot(
         template_dependents = _rebuild_template_dependents(
             templates, template_groups
         )
-    
+
     # Reuse menus and taxonomies if structure didn't change
     # For now, rebuild them (cheap operation)
     menus = _snapshot_menus(site, new_page_cache, section_cache)
     taxonomies = _snapshot_taxonomies(site, new_page_cache)
-    
+
     # Reuse config if unchanged
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
     # Type narrowing: ensure config_dict is a dict
@@ -508,9 +508,9 @@ def update_snapshot(
     else:
         config_dict = {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
-    
+
     elapsed_ms = (time.perf_counter() - start) * 1000
-    
+
     return SiteSnapshot(
         pages=all_pages,
         regular_pages=tuple(
@@ -543,12 +543,12 @@ def _rebuild_template_dependents(
 ) -> MappingProxyType[str, tuple[PageSnapshot, ...]]:
     """Rebuild template_dependents with new page references."""
     dependents: dict[str, list[PageSnapshot]] = {}
-    
+
     for template_name in templates:
         pages = list(template_groups.get(template_name, ()))
         if pages:
             dependents[template_name] = pages
-    
+
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
 
 
@@ -578,7 +578,7 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
 
     # Get raw markdown content (for reference/debugging/incremental comparison)
     raw_content = getattr(page, "_source", "") or getattr(page, "content", "") or ""
-    
+
     # Get parsed HTML (pre-parsed during parsing phase - RFC: rfc-bengal-snapshot-engine)
     # This is what rendering should use, eliminating re-parsing during render
     parsed_html = getattr(page, "parsed_ast", "") or ""
@@ -773,10 +773,10 @@ def _resolve_navigation(
     pages_by_path: dict[Path, PageSnapshot] = {
         page.source_path: page for page in page_cache.values()
     }
-    
+
     # Sort pages by source_path for consistent ordering
     sorted_paths = sorted(pages_by_path.keys())
-    
+
     # Update pages with next/prev refs
     for idx, path in enumerate(sorted_paths):
         page = pages_by_path[path]
@@ -822,17 +822,17 @@ def _compute_topological_waves(
 ) -> tuple[tuple[PageSnapshot, ...], ...]:
     """
     Compute rendering waves following section topology.
-    
+
     Each wave contains pages from the same section that share a template.
     Processing waves in order maximizes cache locality.
-    
+
     Pages not assigned to any section are added as a final wave to ensure
     all pages get rendered.
-    
+
     Args:
         root: Root section snapshot for tree traversal
         all_pages: All page snapshots (to detect orphan pages)
-        
+
     Returns:
         Tuple of waves, where each wave is a tuple of PageSnapshots
     """
@@ -857,7 +857,7 @@ def _compute_topological_waves(
     orphan_pages = tuple(
         p for p in all_pages if p.source_path not in pages_in_sections
     )
-    
+
     # Add orphan pages as final wave (ensures all pages get rendered)
     if orphan_pages:
         waves.append(orphan_pages)
@@ -885,7 +885,7 @@ def _compute_attention_order(
 ) -> tuple[PageSnapshot, ...]:
     """
     Sort pages by attention score (importance).
-    
+
     High attention pages rendered first for faster time-to-preview.
     """
     return tuple(sorted(pages, key=lambda p: -p.attention_score))
@@ -1039,10 +1039,10 @@ def _compute_attention_score(page: Page) -> float:
     date = page.metadata.get("date")
     if date:
         try:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             if isinstance(date, datetime):
-                days_ago = (datetime.now(timezone.utc) - date).days
+                days_ago = (datetime.now(UTC) - date).days
                 score += max(0, 10.0 - days_ago / 10.0)
         except Exception:
             pass
@@ -1086,23 +1086,23 @@ def _find_index_page(pages: tuple[PageSnapshot, ...]) -> PageSnapshot | None:
 def _get_template_partials(template_name: str, site: Site) -> list[Path]:
     """
     Get partials used by template via template engine analysis.
-    
+
     Uses the site's template engine to analyze template dependencies.
     This enables scout thread to warm partials ahead of workers.
-    
+
     Args:
         template_name: Name of template to analyze
         site: Site instance (needed for template engine access)
-        
+
     Returns:
         List of Path objects for partial templates used by this template
     """
     from bengal.rendering.engines import create_engine
-    
+
     try:
         # Create engine to analyze template
         engine = create_engine(site, profile=False)
-        
+
         # Get template path
         if hasattr(engine, "get_template_path"):
             template_path = engine.get_template_path(template_name)
@@ -1118,19 +1118,19 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                     break
             if not template_path:
                 return []
-        
+
         # Use engine's template analysis if available
         partials: set[str] = set()
-        
+
         if hasattr(engine, "_track_referenced_templates"):
             # Jinja2/Kida engines have this method
             # Create a temporary cache to collect referenced templates
             referenced_cache: dict[str, set[str]] = {}
-            
+
             # Try to extract referenced templates
             if hasattr(engine, "_env"):
                 env = engine._env
-                
+
                 # Jinja2 approach
                 if hasattr(env, "parse"):
                     try:
@@ -1150,7 +1150,7 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                                 partials.add(ref)
                     except Exception:
                         pass
-                
+
                 # Kida approach (if available)
                 if hasattr(env, "get_template"):
                     try:
@@ -1169,7 +1169,7 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                                     partials.update(referenced)
                     except Exception:
                         pass
-        
+
         # Convert template names to Paths
         partial_paths: list[Path] = []
         for partial_name in partials:
@@ -1184,9 +1184,9 @@ def _get_template_partials(template_name: str, site: Site) -> list[Path]:
                     if candidate.exists():
                         partial_paths.append(candidate)
                         break
-        
+
         return partial_paths
-        
+
     except Exception:
         # Template analysis is optional - don't fail snapshot creation
         return []
@@ -1202,7 +1202,7 @@ def _snapshot_templates(
 ]:
     """
     Analyze all templates used by pages and create template snapshots.
-    
+
     Returns:
         templates: Mapping of template name to TemplateSnapshot
         dependency_graph: Reverse index - template_name → dependent template names
@@ -1210,50 +1210,50 @@ def _snapshot_templates(
     """
     templates: dict[str, TemplateSnapshot] = {}
     dependency_graph: dict[str, set[str]] = {}  # Which templates depend on this one
-    
+
     # Get all unique templates used by pages
     used_templates: set[str] = set()
     template_to_pages: dict[str, list[PageSnapshot]] = {}
-    
+
     for page in page_cache.values():
         template_name = page.template_name
         used_templates.add(template_name)
         template_to_pages.setdefault(template_name, []).append(page)
-    
+
     # Analyze each template
     for template_name in used_templates:
         template_snapshot = _analyze_template(template_name, site)
         if template_snapshot:
             templates[template_name] = template_snapshot
-            
+
             # Build reverse dependency graph
             for dep in template_snapshot.all_dependencies:
                 dependency_graph.setdefault(dep, set()).add(template_name)
-    
+
     # Convert dependency_graph values to frozensets
     dependency_graph_frozen = {
         k: frozenset(v) for k, v in dependency_graph.items()
     }
-    
+
     # Calculate transitive dependents (pages affected by template change)
     # A page is affected if its template or any ancestor template changes
     template_dependents: dict[str, list[PageSnapshot]] = {}
-    
+
     for template_name, template_snapshot in templates.items():
         # Direct pages using this template
         direct_pages = template_to_pages.get(template_name, [])
-        
+
         # Templates that extend/include this one (and their pages)
         dependent_templates = _get_transitive_dependents(
             template_name, dependency_graph_frozen
         )
-        
+
         all_affected_pages: list[PageSnapshot] = list(direct_pages)
         for dep_template in dependent_templates:
             all_affected_pages.extend(template_to_pages.get(dep_template, []))
-        
+
         template_dependents[template_name] = all_affected_pages
-    
+
     # Also add dependents for templates that are only included (not direct pages)
     for template_name in dependency_graph_frozen:
         if template_name not in template_dependents:
@@ -1265,7 +1265,7 @@ def _snapshot_templates(
                 all_affected_pages.extend(template_to_pages.get(dep_template, []))
             if all_affected_pages:
                 template_dependents[template_name] = all_affected_pages
-    
+
     return (
         MappingProxyType(templates),
         MappingProxyType(dependency_graph_frozen),
@@ -1276,7 +1276,7 @@ def _snapshot_templates(
 def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None:
     """
     Analyze a single template and create a TemplateSnapshot.
-    
+
     Uses Jinja2/Kida meta analysis to extract:
     - extends relationships
     - includes/imports
@@ -1284,15 +1284,15 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
     - macro definitions and usages
     """
     from bengal.rendering.engines import create_engine
-    
+
     try:
         engine = create_engine(site, profile=False)
-        
+
         # Get template path
         template_path = None
         if hasattr(engine, "get_template_path"):
             template_path = engine.get_template_path(template_name)
-        
+
         if not template_path:
             # Search template dirs
             for template_dir in getattr(engine, "template_dirs", []):
@@ -1300,18 +1300,18 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                 if candidate.exists():
                     template_path = candidate
                     break
-        
+
         if not template_path or not template_path.exists():
             return None
-        
+
         # Read template content for hash
         try:
             content = template_path.read_text(encoding="utf-8")
         except Exception:
             content = ""
-        
+
         content_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
-        
+
         # Parse template using Jinja2 meta (works for both Jinja2 and Kida)
         extends: str | None = None
         includes: set[str] = set()
@@ -1320,14 +1320,14 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
         macros_defined: set[str] = set()
         macros_used: set[str] = set()
         all_deps: set[str] = set()
-        
+
         if hasattr(engine, "_env"):
             env = engine._env
-            
+
             try:
                 from jinja2 import meta
                 from jinja2 import nodes as jinja_nodes
-                
+
                 # Load source
                 if hasattr(env, "loader") and env.loader:
                     try:
@@ -1337,18 +1337,18 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                             raise AttributeError("Loader does not have get_source method")
                         get_source = cast(Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]], loader.get_source)
                         source, _filename, _uptodate = get_source(env, template_name)
-                        
+
                         # Type narrowing: Jinja2 Environment has parse method
                         if not hasattr(env, "parse"):
                             raise AttributeError("Environment does not have parse method")
                         parse_method = cast(Callable[[str], Any], env.parse)
                         ast = parse_method(source)
-                        
+
                         # Find referenced templates (extends, includes, imports)
                         for ref in meta.find_referenced_templates(ast) or []:
                             if isinstance(ref, str):
                                 all_deps.add(ref)
-                        
+
                         # Walk AST for more details
                         for node in ast.body:
                             if isinstance(node, jinja_nodes.Extends):
@@ -1365,7 +1365,7 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                                 blocks.add(node.name)
                             elif isinstance(node, jinja_nodes.Macro):
                                 macros_defined.add(node.name)
-                        
+
                         # Look for macro calls in the AST
                         def find_macro_calls(node: Any) -> None:
                             if hasattr(node, "node"):
@@ -1374,22 +1374,22 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
                             if hasattr(node, "iter_child_nodes"):
                                 for child in node.iter_child_nodes():
                                     find_macro_calls(child)
-                        
+
                         find_macro_calls(ast)
-                        
+
                     except Exception:
                         pass
-                        
+
             except ImportError:
                 # Jinja2 not available, try basic parsing
                 pass
-        
+
         # Get transitive dependencies
         transitive_deps = _get_transitive_deps_for_template(
             template_name, site, all_deps
         )
         all_deps.update(transitive_deps)
-        
+
         return TemplateSnapshot(
             path=template_path,
             name=template_name,
@@ -1402,7 +1402,7 @@ def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None
             content_hash=content_hash,
             all_dependencies=frozenset(all_deps),
         )
-        
+
     except Exception:
         # Template analysis is optional - don't fail snapshot creation
         return None
@@ -1416,35 +1416,35 @@ def _get_transitive_deps_for_template(
 ) -> set[str]:
     """
     Recursively find all transitive template dependencies.
-    
+
     Prevents infinite loops with max_depth and seen set.
     """
     from bengal.rendering.engines import create_engine
-    
+
     all_deps: set[str] = set()
     seen: set[str] = {template_name}
     queue = list(direct_deps)
     depth = 0
-    
+
     try:
         engine = create_engine(site, profile=False)
         env = getattr(engine, "_env", None)
-        
+
         if not env or not hasattr(env, "loader") or not env.loader:
             return all_deps
-        
+
         from jinja2 import meta
-        
+
         while queue and depth < max_depth:
             depth += 1
             next_queue: list[str] = []
-            
+
             for dep_name in queue:
                 if dep_name in seen:
                     continue
                 seen.add(dep_name)
                 all_deps.add(dep_name)
-                
+
                 try:
                     # Type narrowing: loader and parse methods
                     loader = getattr(env, "loader", None)
@@ -1460,12 +1460,12 @@ def _get_transitive_deps_for_template(
                             next_queue.append(ref)
                 except Exception:
                     continue
-            
+
             queue = next_queue
-            
+
     except Exception:
         pass
-    
+
     return all_deps
 
 
@@ -1476,31 +1476,31 @@ def _get_transitive_dependents(
 ) -> set[str]:
     """
     Get all templates that transitively depend on the given template.
-    
+
     If template A extends B, and B extends C, then changing C affects A and B.
     """
     dependents: set[str] = set()
     seen: set[str] = {template_name}
     queue = list(dependency_graph.get(template_name, frozenset()))
     depth = 0
-    
+
     while queue and depth < max_depth:
         depth += 1
         next_queue: list[str] = []
-        
+
         for dep_name in queue:
             if dep_name in seen:
                 continue
             seen.add(dep_name)
             dependents.add(dep_name)
-            
+
             # Templates that depend on this dependent
             for further_dep in dependency_graph.get(dep_name, frozenset()):
                 if further_dep not in seen:
                     next_queue.append(further_dep)
-        
+
         queue = next_queue
-    
+
     return dependents
 
 
@@ -1510,26 +1510,26 @@ def pages_affected_by_template_change(
 ) -> set[PageSnapshot]:
     """
     Instantly determine which pages need rebuild when a template changes.
-    
+
     O(1) lookup instead of O(pages) scan.
-    
+
     Args:
         template_path: Path to the changed template
         snapshot: Current site snapshot
-        
+
     Returns:
         Set of pages that need to be re-rendered
     """
     template_name = template_path.name
-    
+
     # Direct lookup in template_dependents
     affected = set(snapshot.template_dependents.get(template_name, ()))
-    
+
     # Also check by full path for templates in theme directories
     for name, template in snapshot.templates.items():
         if template.path == template_path:
             affected.update(snapshot.template_dependents.get(name, ()))
-    
+
     return affected
 
 
@@ -1544,46 +1544,46 @@ def predict_affected(
 ) -> set[PageSnapshot]:
     """
     Fast heuristic prediction of affected pages.
-    
+
     Used for speculative rendering - start work before exact analysis completes.
-    
+
     Accuracy: ~90% (based on file type and location)
     Speed: <1ms (vs ~30ms for exact computation)
-    
+
     Args:
         file_path: Path to the changed file
         snapshot: Current site snapshot
-        
+
     Returns:
         Predicted set of affected pages
     """
     suffix = file_path.suffix.lower()
-    
+
     if suffix == ".md":
         # Content file → likely just this page
         return {p for p in snapshot.pages if p.source_path == file_path}
-    
+
     elif suffix in (".html", ".jinja", ".j2"):
         # Template → all pages using this template (use O(1) lookup)
         template_name = file_path.name
         direct = set(snapshot.template_groups.get(template_name, ()))
-        
+
         # Also check transitive dependents
         if template_name in snapshot.template_dependents:
             direct.update(snapshot.template_dependents[template_name])
-        
+
         return direct if direct else set(snapshot.pages)  # Conservative fallback
-    
+
     elif suffix in (".css", ".scss", ".sass", ".less"):
         # CSS change → could affect all pages (fingerprints change)
         # But often only pages that include this specific asset
         # Conservative: return all pages
         return set(snapshot.pages)
-    
+
     elif suffix in (".js", ".ts", ".mjs"):
         # JS change → could affect all pages
         return set(snapshot.pages)
-    
+
     elif suffix in (".yaml", ".yml", ".toml", ".json"):
         # Data/config file → could affect many pages
         # Check if it's in data/ directory
@@ -1593,11 +1593,11 @@ def predict_affected(
         else:
             # Config change - affects all pages
             return set(snapshot.pages)
-    
+
     elif suffix in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"):
         # Image - usually no page rebuild needed unless fingerprinting
         return set()
-    
+
     else:
         # Unknown → conservative (all pages)
         return set(snapshot.pages)
@@ -1606,48 +1606,48 @@ def predict_affected(
 class SpeculativeRenderer:
     """
     Speculative rendering coordinator for HMR optimization.
-    
+
     RFC: Snapshot-Enabled v2 Opportunities (Opportunity 3)
-    
+
     Uses content_hash on PageSnapshot to validate speculation after the fact.
-    
+
     Example:
         >>> renderer = SpeculativeRenderer(snapshot)
         >>> async for page in renderer.speculative_render(changed_file):
         ...     yield rendered_page
     """
-    
+
     def __init__(self, snapshot: SiteSnapshot) -> None:
         """Initialize with current snapshot."""
         self._snapshot = snapshot
         self._prediction_history: list[tuple[float, float]] = []  # (predicted, actual)
         self._confidence_threshold = 0.85  # Only speculate if confidence > 85%
-    
+
     @property
     def prediction_accuracy(self) -> float:
         """
         Historical prediction accuracy (F1-like score).
-        
+
         Returns accuracy as float 0.0-1.0 based on recent predictions.
         Balances precision (not too many wasted predictions) and recall (not too many misses).
         """
         if not self._prediction_history:
             return 0.9  # Default assumption
-        
+
         # Use last 100 predictions
         recent = self._prediction_history[-100:]
         total_predicted = sum(p for p, _ in recent)
         total_actual = sum(a for _, a in recent)
-        
+
         if total_actual == 0 and total_predicted == 0:
             return 1.0
-        
+
         if total_predicted == 0:
             return 0.0  # No predictions = bad
-        
+
         if total_actual == 0:
             return 0.0  # Predicted but nothing was needed = wasted
-        
+
         # Use harmonic mean of precision and recall (F1-like score)
         # precision = actual / predicted (what fraction of predictions were correct)
         # recall = actual / actual (we always know what was actual = 1.0 for perfect recall baseline)
@@ -1655,15 +1655,15 @@ class SpeculativeRenderer:
         # This penalizes both over-prediction and under-prediction
         accuracy = min(total_predicted, total_actual) / max(total_predicted, total_actual)
         return accuracy
-    
+
     def should_speculate(self) -> bool:
         """
         Determine if speculation should be enabled.
-        
+
         Returns True if historical accuracy exceeds confidence threshold.
         """
         return self.prediction_accuracy >= self._confidence_threshold
-    
+
     def record_prediction_result(
         self,
         predicted_count: int,
@@ -1671,37 +1671,37 @@ class SpeculativeRenderer:
     ) -> None:
         """
         Record prediction vs actual for accuracy tracking.
-        
+
         Args:
             predicted_count: Number of pages predicted to need rebuild
             actual_count: Number of pages that actually needed rebuild
         """
         self._prediction_history.append((float(predicted_count), float(actual_count)))
-        
+
         # Keep history bounded
         if len(self._prediction_history) > 1000:
             self._prediction_history = self._prediction_history[-500:]
-    
+
     def get_speculative_pages(
         self,
         file_path: Path,
     ) -> tuple[set[PageSnapshot], bool]:
         """
         Get pages to speculatively render.
-        
+
         Args:
             file_path: Changed file path
-            
+
         Returns:
             Tuple of (pages to render, is_speculative)
             If not speculating, returns (empty set, False)
         """
         if not self.should_speculate():
             return set(), False
-        
+
         predicted = predict_affected(file_path, self._snapshot)
         return predicted, True
-    
+
     def validate_speculation(
         self,
         predicted: set[PageSnapshot],
@@ -1709,22 +1709,22 @@ class SpeculativeRenderer:
     ) -> dict[str, Any]:
         """
         Validate speculation results and record for accuracy tracking.
-        
+
         Args:
             predicted: Pages that were speculatively rendered
             actual: Pages that actually needed rendering
-            
+
         Returns:
             Validation report with hits, misses, and accuracy
         """
         hits = predicted & actual
         misses = actual - predicted
         wasted = predicted - actual
-        
+
         self.record_prediction_result(len(predicted), len(actual))
-        
+
         accuracy = len(hits) / len(actual) if actual else 1.0
-        
+
         return {
             "hits": len(hits),
             "misses": len(misses),
@@ -1738,19 +1738,19 @@ class SpeculativeRenderer:
 class ShadowModeValidator:
     """
     Shadow mode for validating prediction accuracy before full enablement.
-    
+
     In shadow mode:
     1. Both prediction and exact computation run
     2. Accuracy is logged
     3. Speculative rendering only activates when confidence > 85%
-    
+
     RFC: Snapshot-Enabled v2 Opportunities (Opportunity 3)
     """
-    
+
     def __init__(self) -> None:
         """Initialize shadow mode validator."""
         self._results: list[dict[str, Any]] = []
-    
+
     def validate(
         self,
         file_path: Path,
@@ -1759,21 +1759,21 @@ class ShadowModeValidator:
     ) -> dict[str, Any]:
         """
         Run prediction in shadow mode and compare to actual.
-        
+
         Args:
             file_path: Changed file
             snapshot: Current snapshot
             actual_affected: Actual affected pages (from exact computation)
-            
+
         Returns:
             Validation result with accuracy metrics
         """
         predicted = predict_affected(file_path, snapshot)
-        
+
         hits = predicted & actual_affected
         misses = actual_affected - predicted
         wasted = predicted - actual_affected
-        
+
         result = {
             "file": str(file_path),
             "file_type": file_path.suffix,
@@ -1785,30 +1785,30 @@ class ShadowModeValidator:
             "accuracy": len(hits) / len(actual_affected) if actual_affected else 1.0,
             "precision": len(hits) / len(predicted) if predicted else 1.0,
         }
-        
+
         self._results.append(result)
         return result
-    
+
     @property
     def overall_accuracy(self) -> float:
         """Overall accuracy across all validations."""
         if not self._results:
             return 0.0
-        
+
         total_hits = sum(r["hit_count"] for r in self._results)
         total_actual = sum(r["actual_count"] for r in self._results)
-        
+
         return total_hits / total_actual if total_actual > 0 else 1.0
-    
+
     @property
     def accuracy_by_file_type(self) -> dict[str, float]:
         """Accuracy broken down by file type."""
         by_type: dict[str, list[dict[str, Any]]] = {}
-        
+
         for r in self._results:
             file_type = r["file_type"]
             by_type.setdefault(file_type, []).append(r)
-        
+
         return {
             ft: (
                 sum(r["hit_count"] for r in results) /
@@ -1816,7 +1816,7 @@ class ShadowModeValidator:
             )
             for ft, results in by_type.items()
         }
-    
+
     def get_report(self) -> dict[str, Any]:
         """Generate comprehensive accuracy report."""
         return {

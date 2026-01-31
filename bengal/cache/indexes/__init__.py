@@ -54,4 +54,4 @@ from bengal.cache.indexes.date_range_index import DateRangeIndex
 from bengal.cache.indexes.section_index import SectionIndex
 from bengal.cache.indexes.series_index import SeriesIndex
 
-__all__ = ["SectionIndex", "AuthorIndex", "CategoryIndex", "DateRangeIndex", "SeriesIndex"]
+__all__ = ["AuthorIndex", "CategoryIndex", "DateRangeIndex", "SectionIndex", "SeriesIndex"]

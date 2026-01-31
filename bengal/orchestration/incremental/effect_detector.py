@@ -19,27 +19,26 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.effects import Effect, EffectTracer
+from bengal.effects import EffectTracer
 from bengal.effects.block_diff import BlockDiffService
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.orchestration.build.results import ChangeSummary
     from bengal.snapshots.types import SiteSnapshot
 
 
 class EffectBasedDetector:
     """
     Unified change detector using the Effect system.
-    
+
     Replaces 13 detector files with one unified model.
-    
+
     Key improvements over legacy detectors:
     - Single source of truth for dependencies
     - Transitive invalidation computed automatically
     - Content-aware diffing for smarter rebuilds
     - Debug tooling via `bengal build --show-effects`
-    
+
     Usage:
         >>> detector = EffectBasedDetector(site, tracer, snapshot)
         >>> pages_to_rebuild = detector.detect_changes(changed_paths)
@@ -54,7 +53,7 @@ class EffectBasedDetector:
     ) -> None:
         """
         Initialize detector.
-        
+
         Args:
             site: Mutable Site instance (for backward compatibility)
             tracer: EffectTracer with recorded effects from previous build
@@ -64,7 +63,7 @@ class EffectBasedDetector:
         self.site = site
         self.tracer = tracer
         self._block_diff: BlockDiffService | None = None
-        
+
         if old_snapshot and new_snapshot:
             self._block_diff = BlockDiffService(old_snapshot, new_snapshot)
 
@@ -76,28 +75,28 @@ class EffectBasedDetector:
     ) -> set[Path]:
         """
         Detect pages that need rebuilding based on changed files.
-        
+
         Uses the Effect system to compute transitive invalidations.
-        
+
         Args:
             changed_paths: Files that changed since last build
             verbose: Whether to log detailed change information
-            
+
         Returns:
             Set of page source paths that need rebuilding
         """
         pages_to_rebuild: set[Path] = set()
-        
+
         # Use EffectTracer for transitive invalidation
         outputs_needing_rebuild = self.tracer.outputs_needing_rebuild(changed_paths)
-        
+
         # Map outputs back to source paths
         for output_path in outputs_needing_rebuild:
             deps = self.tracer.get_dependencies_for_output(output_path)
             for dep in deps:
                 if isinstance(dep, Path) and dep.suffix == ".md":
                     pages_to_rebuild.add(dep)
-        
+
         # Also check direct content changes
         for path in changed_paths:
             if path.suffix == ".md":
@@ -117,18 +116,18 @@ class EffectBasedDetector:
             elif path.suffix in (".css", ".scss", ".sass", ".less"):
                 # Style change - rebuild all (affects all pages)
                 pages_to_rebuild.update(self._all_page_paths())
-        
+
         return pages_to_rebuild
 
     def _should_rebuild_content(self, source_path: Path) -> bool:
         """
         Check if a content file change requires rebuild.
-        
+
         Uses content-aware diffing when available.
         """
         if self._block_diff is None:
             return True  # No diffing available, assume rebuild needed
-        
+
         result = self._block_diff.diff_page(source_path)
         return result.requires_rebuild
 
@@ -136,7 +135,7 @@ class EffectBasedDetector:
         """Get pages affected by a template change."""
         pages: set[Path] = set()
         template_name = template_path.name
-        
+
         # Check EffectTracer for pages using this template
         for effect in self.tracer.effects:
             if template_name in effect.depends_on or template_path in effect.depends_on:
@@ -144,26 +143,26 @@ class EffectBasedDetector:
                 for dep in effect.depends_on:
                     if isinstance(dep, Path) and dep.suffix == ".md":
                         pages.add(dep)
-        
+
         # Fallback: scan all pages if tracer doesn't have info
         if not pages:
             for page in self.site.pages:
                 if hasattr(page, "template") and page.template == template_name:
                     pages.add(page.source_path)
-        
+
         return pages
 
     def _pages_for_data_file(self, data_path: Path) -> set[Path]:
         """Get pages affected by a data file change."""
         pages: set[Path] = set()
-        
+
         # Check EffectTracer for pages using this data file
         for effect in self.tracer.effects:
             if data_path in effect.depends_on:
                 for dep in effect.depends_on:
                     if isinstance(dep, Path) and dep.suffix == ".md":
                         pages.add(dep)
-        
+
         return pages
 
     def _all_page_paths(self) -> set[Path]:
@@ -173,7 +172,7 @@ class EffectBasedDetector:
     def get_invalidated_cache_keys(self, changed_paths: set[Path]) -> set[str]:
         """
         Get cache keys that should be invalidated.
-        
+
         Useful for cache cleanup after incremental builds.
         """
         return self.tracer.invalidated_by(changed_paths)
@@ -194,19 +193,19 @@ def create_detector_from_build(
 ) -> EffectBasedDetector:
     """
     Create detector from a build's effect tracer.
-    
+
     Convenience function for integrating with build orchestrator.
-    
+
     Args:
         site: Site instance
         old_snapshot: Previous build's snapshot
         new_snapshot: Current snapshot
-        
+
     Returns:
         EffectBasedDetector ready for change detection
     """
     from bengal.effects import BuildEffectTracer
-    
+
     tracer = BuildEffectTracer.get_instance().tracer
     return EffectBasedDetector(
         site=site,

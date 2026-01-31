@@ -54,13 +54,13 @@ from bengal.directives.contracts import (
 )
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
-from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.hashing import hash_str
 
 __all__ = [
     "TabItemDirective",
-    "TabSetDirective",
     "TabItemOptions",
+    "TabSetDirective",
     "TabSetOptions",
 ]
 
@@ -76,13 +76,13 @@ logger = get_logger(__name__)
 class TabItemOptions(DirectiveOptions):
     """
     Options for tab-item directive.
-    
+
     Attributes:
         selected: Whether this tab is initially selected
         icon: Icon name to show next to tab label
         badge: Badge text (e.g., "New", "Beta", "Pro")
         disabled: Mark tab as disabled/unavailable
-    
+
     Example:
         :::{tab-item} Python
         :selected:
@@ -90,7 +90,7 @@ class TabItemOptions(DirectiveOptions):
         :badge: Recommended
         Content here
         :::{/tab-item}
-        
+
     """
 
     selected: bool = False
@@ -102,16 +102,16 @@ class TabItemOptions(DirectiveOptions):
 class TabItemDirective(BengalDirective):
     """
     Individual tab directive (nested in tab-set).
-    
+
     Syntax:
         :::{tab-item} Tab Title
         :selected:
         Tab content with full **markdown** support.
         :::
-    
+
     Contract:
         MUST be nested inside a :::{tab-set} directive.
-        
+
     """
 
     # Support both "tab-item" and shorter "tab" alias
@@ -180,12 +180,12 @@ class TabItemDirective(BengalDirective):
 class TabSetOptions(DirectiveOptions):
     """
     Options for tab-set directive.
-    
+
     Attributes:
         id: Unique ID for the tab set
         sync: Sync key for synchronizing tabs across multiple tab-sets
         mode: Rendering mode - "enhanced" (JS) or "css_state_machine" (URL-driven)
-    
+
     Example:
         ::::{tab-set}
         :id: my-tabs
@@ -193,7 +193,7 @@ class TabSetOptions(DirectiveOptions):
         :mode: css_state_machine
             ...
         ::::
-        
+
     """
 
     id: str = ""
@@ -204,23 +204,23 @@ class TabSetOptions(DirectiveOptions):
 class TabSetDirective(BengalDirective):
     """
     Modern MyST-style tab container directive.
-    
+
     Syntax:
         ::::{tab-set}
         :sync: my-key
-    
+
         :::{tab-item} Python
         Python content with **markdown** support.
         :::
-    
+
         :::{tab-item} JavaScript
         JavaScript content here.
         :::
         ::::
-    
+
     Contract:
         REQUIRES at least one :::{tab-item} child directive.
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["tab-set", "tabs"]
@@ -446,13 +446,13 @@ class TabItemData:
 def _extract_tab_items(text: str) -> list[TabItemData]:
     """
     Extract tab-item divs from rendered HTML, handling nested divs correctly.
-    
+
     Args:
         text: Rendered HTML containing tab-item divs
-    
+
     Returns:
         List of TabItemData with extracted attributes
-        
+
     """
     matches: list[TabItemData] = []
     pattern = re.compile(

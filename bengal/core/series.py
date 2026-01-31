@@ -50,21 +50,21 @@ from typing import Any
 class Series:
     """
     Content series with part tracking and navigation support.
-    
+
     This dataclass represents a multi-part content series with:
     - Series identification (name/slug)
     - Part positioning (current part, total parts)
     - Optional description
-    
+
     The class is frozen (immutable) for hashability and cache safety.
-    
+
     Attributes:
         name: Series name/title (required)
         part: Current part number (1-indexed)
         total: Total number of parts (optional, 0 if unknown)
         description: Series description (optional)
         slug: URL-safe identifier (auto-generated from name if not provided)
-    
+
     Example:
             >>> series = Series(
             ...     name="Building a Blog with Bengal",
@@ -76,7 +76,7 @@ class Series:
             'Building a Blog with Bengal'
             >>> series.is_first
         True
-        
+
     """
 
     name: str

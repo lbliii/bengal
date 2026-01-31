@@ -22,14 +22,14 @@ def create_index_pages(
 ) -> list[Page]:
     """
     Create index pages for sections that need them.
-    
+
     Args:
         sections: Section dictionary to process
         site: Site instance
-    
+
     Returns:
         List of created index pages (to add to main pages list)
-        
+
     """
     created_pages: list[Page] = []
 

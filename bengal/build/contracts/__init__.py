@@ -21,14 +21,14 @@ from bengal.build.contracts.results import (
 
 __all__ = [
     "CacheKey",
+    "ChangeDetectionResult",
+    "ChangeDetector",
+    "DetectionContext",
+    "RebuildReason",
+    "RebuildReasonCode",
     "asset_key",
     "content_key",
     "data_key",
     "parse_key",
     "template_key",
-    "ChangeDetector",
-    "DetectionContext",
-    "ChangeDetectionResult",
-    "RebuildReason",
-    "RebuildReasonCode",
 ]

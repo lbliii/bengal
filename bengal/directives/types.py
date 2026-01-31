@@ -40,10 +40,10 @@ if TYPE_CHECKING:
 class MistuneBlockState(Protocol):
     """
     Protocol matching mistune's BlockState interface.
-    
+
     BlockState manages parser state during block-level parsing, including
     cursor position, token buffer, and nesting depth tracking.
-        
+
     """
 
     @property
@@ -83,10 +83,10 @@ class MistuneBlockState(Protocol):
 class MistuneBlockParser(Protocol):
     """
     Protocol matching mistune's BlockParser interface.
-    
+
     BlockParser handles block-level markdown parsing, including paragraphs,
     headings, code blocks, and directives.
-        
+
     """
 
     @property
@@ -123,9 +123,9 @@ class MistuneRenderer(Protocol):
 class MistuneMarkdown(Protocol):
     """
     Protocol matching mistune's Markdown interface.
-    
+
     Used for directive registration and renderer access.
-        
+
     """
 
     @property
@@ -190,7 +190,7 @@ class StyledAttrs(DirectiveAttrs, total=False):
 
 class TitledAttrs(DirectiveAttrs, total=False):
     """Attributes for titled directives (admonitions, dropdowns).
-    
+
     Note: title is inherited from DirectiveAttrs.
     """
 
@@ -243,7 +243,7 @@ class TabItemAttrs(DirectiveAttrs, total=False):
 
 class DropdownAttrs(DirectiveAttrs, total=False):
     """Attributes for dropdown/details directives.
-    
+
     Note: title is inherited from DirectiveAttrs.
     """
 
@@ -275,7 +275,7 @@ class IncludeAttrs(DirectiveAttrs, total=False):
 
 class CardAttrs(DirectiveAttrs, total=False):
     """Attributes for card directives.
-    
+
     Note: title is inherited from DirectiveAttrs.
     """
 
@@ -295,7 +295,7 @@ class GridAttrs(DirectiveAttrs, total=False):
 
 class StepAttrs(DirectiveAttrs, total=False):
     """Attributes for step directives.
-    
+
     Note: title is inherited from DirectiveAttrs.
     """
 
@@ -369,9 +369,9 @@ class DirectiveOptionsDict(TypedDict, total=False):
 class DirectiveRenderer(Protocol):
     """
     Protocol for directive renderers.
-    
+
     Renderers convert parsed directive tokens to HTML output.
-        
+
     """
 
     def render_children(self, token: dict[str, object]) -> str:
@@ -414,37 +414,37 @@ class MistuneDirectiveRegistry(Protocol):
 
 
 __all__ = [
+    "AdmonitionAttrs",
+    "CardAttrs",
+    # Specific directive attributes
+    "CodeBlockAttrs",
+    # Contract
+    "ContractViolationDict",
+    # Base attributes
+    "DirectiveAttrs",
+    # Options
+    "DirectiveOptionsDict",
+    "DirectiveParseResult",
+    # Renderer
+    "DirectiveRenderer",
+    # Token types
+    "DirectiveToken",
+    "DropdownAttrs",
+    "EmbedAttrs",
+    "GlossaryAttrs",
+    "GridAttrs",
+    "ImageAttrs",
+    "IncludeAttrs",
+    "MermaidAttrs",
     # Mistune protocols
     "MistuneBlockParser",
     "MistuneBlockState",
+    "MistuneDirectiveRegistry",
     "MistuneMarkdown",
     "MistuneRenderer",
-    "MistuneDirectiveRegistry",
-    # Token types
-    "DirectiveToken",
-    "DirectiveParseResult",
-    # Base attributes
-    "DirectiveAttrs",
-    "StyledAttrs",
-    "TitledAttrs",
-    # Specific directive attributes
-    "CodeBlockAttrs",
-    "AdmonitionAttrs",
-    "TabSetAttrs",
-    "TabItemAttrs",
-    "DropdownAttrs",
-    "ImageAttrs",
-    "IncludeAttrs",
-    "CardAttrs",
-    "GridAttrs",
     "StepAttrs",
-    "GlossaryAttrs",
-    "MermaidAttrs",
-    "EmbedAttrs",
-    # Options
-    "DirectiveOptionsDict",
-    # Renderer
-    "DirectiveRenderer",
-    # Contract
-    "ContractViolationDict",
+    "StyledAttrs",
+    "TabItemAttrs",
+    "TabSetAttrs",
+    "TitledAttrs",
 ]

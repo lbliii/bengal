@@ -29,17 +29,17 @@ logger = get_logger(__name__)
 class CacheChecker:
     """
     Handles cache operations for the rendering pipeline.
-    
+
     Manages both rendered output cache (final HTML) and parsed content cache
     (parsed AST before template rendering) for incremental builds.
-    
+
     Attributes:
         dependency_tracker: DependencyTracker with cache access
         site: Site instance for configuration
         renderer: Renderer for template rendering
         build_stats: Optional BuildStats for metrics
         output_collector: Optional collector for hot reload tracking
-    
+
     Example:
             >>> checker = CacheChecker(
             ...     dependency_tracker=tracker,
@@ -49,7 +49,7 @@ class CacheChecker:
             ... )
             >>> if checker.try_rendered_cache(page, template):
             ...     return  # Cache hit, page already written
-        
+
     """
 
     def __init__(
@@ -170,7 +170,7 @@ class CacheChecker:
             self.build_stats.parsed_cache_hits += 1
 
         parsed_content = cached["html"]
-        
+
         # Validate cached content is not empty
         if not parsed_content:
             logger.warning(
@@ -204,7 +204,7 @@ class CacheChecker:
         html_content = self.renderer.render_content(parsed_content)
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
-        
+
         # Validate rendered HTML is not empty
         if not page.rendered_html:
             logger.warning(
@@ -306,6 +306,11 @@ class CacheChecker:
         Returns:
             True if cache should be bypassed
         """
+        # Check if page was marked for rebuild due to cascade changes
+        # This flag is set by the provenance filter when cascade sources change
+        if getattr(page, "_cascade_invalidated", False):
+            return True
+
         if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
             return False
 

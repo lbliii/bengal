@@ -26,26 +26,26 @@ if TYPE_CHECKING:
 class URLCollisionValidator(BaseValidator):
     """
     Validates that no two pages output to the same URL.
-    
+
     URL collisions cause silent overwrites where the last page to render
     wins, resulting in broken navigation and lost content. This was the
     root cause of the CLI navigation bug where the root command page
     overwrote the section index.
-    
+
     Checks:
     - No duplicate URLs among site.pages
     - Reports all collisions with source file information
     - Provides actionable fix recommendations
-    
+
     Example collision:
         URL collision: /cli/
           Page 1: __virtual__/cli/section-index.md
           Page 2: cli.md
-    
+
     Priority:
         This validator runs during health checks and catches collisions
         that may have occurred if proactive validation was bypassed.
-        
+
     """
 
     name = "URL Collisions"

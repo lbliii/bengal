@@ -34,21 +34,21 @@ if TYPE_CHECKING:
 class BaseValidator(ABC):
     """
     Abstract base class for all health check validators.
-    
+
     Validators check specific aspects of a Bengal build and return structured
     results. Each validator runs independently and should complete quickly
     (<100ms target) to enable fast feedback during development.
-    
+
     Class Attributes:
         name: Human-readable validator name (e.g., "Navigation", "Cache Integrity")
         description: Brief description of what this validator checks
         enabled_by_default: Whether validator runs unless explicitly disabled
-    
+
     Subclass Requirements:
         1. Set ``name`` class attribute to a descriptive name
         2. Implement ``validate()`` method returning list of CheckResult
         3. Return only problems - if no issues, return empty list
-    
+
     Example:
             >>> class MyValidator(BaseValidator):
             ...     name = "My System"
@@ -62,7 +62,7 @@ class BaseValidator(ABC):
             ...                 recommendation="Fix it like this"
             ...             ))
             ...         return results
-        
+
     """
 
     # Validator name (override in subclass)
@@ -116,7 +116,6 @@ class BaseValidator(ABC):
                 graph = KnowledgeGraph(site)
                 graph.build()
         """
-        pass
 
     def is_enabled(self, config: Config | dict[str, Any]) -> bool:
         """

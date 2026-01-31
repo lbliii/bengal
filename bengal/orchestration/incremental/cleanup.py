@@ -32,18 +32,18 @@ logger = get_logger(__name__)
 def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
     """
     Clean up output files for deleted source files.
-    
+
     Checks cache for source files that no longer exist and deletes
     their corresponding output files. This prevents stale content
     from remaining in the output directory after source deletion.
-    
+
     Args:
         site: Site instance for output directory access
         cache: BuildCache instance with source mappings
-    
+
     Returns:
         Count of deleted output files
-        
+
     """
     # Also clean up deleted autodoc source files
     _cleanup_deleted_autodoc_sources(site, cache)
@@ -118,15 +118,15 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
 def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
     """
     Clean up autodoc pages when their source files are deleted.
-    
+
     Checks tracked autodoc source files and removes corresponding output
     when the source no longer exists. This prevents stale autodoc pages
     from remaining when Python/OpenAPI source files are deleted.
-    
+
     Args:
         site: Site instance for output directory access
         cache: BuildCache instance with autodoc mappings
-        
+
     """
     if not hasattr(cache, "autodoc_dependencies"):
         return

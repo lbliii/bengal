@@ -24,12 +24,12 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache
     from bengal.build.tracking import DependencyTracker
-    from bengal.orchestration.build.coordinator import CacheCoordinator
+    from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.orchestration.build.coordinator import CacheCoordinator
 
 logger = get_logger(__name__)
 
@@ -37,22 +37,22 @@ logger = get_logger(__name__)
 class CacheManager:
     """
     Manages cache initialization, loading, saving, and migration.
-    
+
     Extracted from IncrementalOrchestrator to handle all cache-related
     operations in a single focused class.
-    
+
     Attributes:
         site: Site instance for cache operations
         cache: BuildCache instance (None until initialized)
         tracker: DependencyTracker instance (None until initialized)
         coordinator: CacheCoordinator instance for unified invalidation (None until initialized)
-    
+
     Example:
             >>> manager = CacheManager(site)
             >>> cache, tracker = manager.initialize(enabled=True)
             >>> # ... build operations ...
             >>> manager.save(pages_built, assets_processed)
-        
+
     """
 
     def __init__(self, site: Site) -> None:
@@ -93,8 +93,8 @@ class CacheManager:
             >>> cache, tracker = manager.initialize(enabled=True)
             >>> # Cache loaded from .bengal/cache.json if exists
         """
-        from bengal.cache import BuildCache
         from bengal.build.tracking import DependencyTracker
+        from bengal.cache import BuildCache
         from bengal.orchestration.build.coordinator import CacheCoordinator
 
         paths = self.site.paths

@@ -33,17 +33,17 @@ logger = get_logger(__name__)
 class APIDocEnhancer:
     """
     Post-processes API documentation HTML to inject badges and visual enhancements.
-    
+
     This enhancer transforms marker syntax (e.g., @async, @property) into styled
     HTML badges. It operates on already-parsed HTML, avoiding Mistune's escaping issues.
-    
+
     Markers are placed in templates after method names and get replaced with proper
     HTML during post-processing.
-    
+
     Example:
         Input:  <h4>build @async</h4>
         Output: <h4>build <span class="api-badge api-badge-async">async</span></h4>
-        
+
     """
 
     # Badge patterns: (marker_pattern, replacement)
@@ -173,10 +173,10 @@ _enhancer = None
 def get_enhancer() -> APIDocEnhancer:
     """
     Get or create the singleton APIDocEnhancer instance.
-    
+
     Returns:
         Shared APIDocEnhancer instance
-        
+
     """
     global _enhancer
     if _enhancer is None:

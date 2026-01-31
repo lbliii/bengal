@@ -27,13 +27,13 @@ def notify_build_complete(
 ) -> None:
     """
     Show build complete notification.
-    
+
     Args:
         app: The Textual app instance
         duration_ms: Build duration in milliseconds
         pages: Number of pages built
         success: Whether build succeeded
-        
+
     """
     duration_s = duration_ms / 1000
     mascot = BENGAL_MASCOT.cat if success else BENGAL_MASCOT.mouse
@@ -59,12 +59,12 @@ def notify_file_changed(
 ) -> None:
     """
     Show file changed notification.
-    
+
     Args:
         app: The Textual app instance
         path: Path to the changed file
         change_type: Type of change (created, modified, deleted)
-        
+
     """
     # Shorten path for display
     from pathlib import Path
@@ -92,11 +92,11 @@ def notify_rebuild_triggered(
 ) -> None:
     """
     Show rebuild triggered notification.
-    
+
     Args:
         app: The Textual app instance
         changed_files: Number of files that changed
-        
+
     """
     plural = "s" if changed_files != 1 else ""
     app.notify(
@@ -114,12 +114,12 @@ def notify_health_issues(
 ) -> None:
     """
     Show health issues notification.
-    
+
     Args:
         app: The Textual app instance
         errors: Number of errors found
         warnings: Number of warnings found
-        
+
     """
     total = errors + warnings
 
@@ -149,11 +149,11 @@ def notify_server_started(
 ) -> None:
     """
     Show server started notification.
-    
+
     Args:
         app: The Textual app instance
         url: Server URL
-        
+
     """
     app.notify(
         f"{BENGAL_MASCOT.cat}  Server running at {url}",
@@ -169,12 +169,12 @@ def notify_error(
 ) -> None:
     """
     Show a generic error notification.
-    
+
     Args:
         app: The Textual app instance
         message: Error message
         title: Notification title
-        
+
     """
     app.notify(
         f"{BENGAL_MASCOT.mouse}  {message}",

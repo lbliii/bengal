@@ -40,21 +40,21 @@ _thread_local = thread_local
 
 __all__ = [
     "RenderOrchestrator",
-    # Parallel utilities
-    "is_free_threaded",
-    "thread_local",
-    "get_or_create_pipeline",
-    # Tracking utilities
-    "clear_thread_local_pipelines",
-    "increment_active_renders",
-    "decrement_active_renders",
-    "get_active_render_count",
-    "increment_build_generation",
-    "get_current_generation",
+    "_decrement_active_renders",
     # Deprecated names (for backward compatibility)
     "_get_current_generation",
     "_increment_active_renders",
-    "_decrement_active_renders",
     "_is_free_threaded",
     "_thread_local",
+    # Tracking utilities
+    "clear_thread_local_pipelines",
+    "decrement_active_renders",
+    "get_active_render_count",
+    "get_current_generation",
+    "get_or_create_pipeline",
+    "increment_active_renders",
+    "increment_build_generation",
+    # Parallel utilities
+    "is_free_threaded",
+    "thread_local",
 ]

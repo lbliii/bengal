@@ -3,7 +3,6 @@ title: Kida Syntax Reference
 nav_title: Kida Syntax
 description: Complete reference for Kida template syntax, operators, and features
 weight: 60
-type: doc
 draft: false
 lang: en
 tags:

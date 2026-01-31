@@ -71,8 +71,8 @@ __all__ = [
     # Display
     "display_build_stats",
     "display_simple_build_stats",
-    "display_warnings",
     "display_template_errors",
+    "display_warnings",
     # Helpers
     "format_time",
     "show_building_indicator",

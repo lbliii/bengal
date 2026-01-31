@@ -27,19 +27,19 @@ if TYPE_CHECKING:
 
 class IconRole:
     """Handler for {icon}`name:size:class` role.
-    
+
     Renders inline SVG icons from Bengal's icon library.
     Icons are loaded via the theme-aware resolver.
-    
+
     Syntax:
         {icon}`warning` - Default size (24px)
         {icon}`terminal:16` - Custom size
         {icon}`star:24:icon-primary` - Size and CSS class
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
         Icon loading uses thread-safe resolver.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("icon", "svg-icon")

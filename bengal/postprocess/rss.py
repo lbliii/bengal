@@ -37,24 +37,24 @@ if TYPE_CHECKING:
 class RSSGenerator:
     """
     Generates RSS/Atom feeds for content syndication.
-    
+
     Creates rss.xml files with recent pages sorted by date, enabling readers
     to subscribe to site updates via RSS readers. Supports i18n per-locale feeds
     and respects page visibility settings.
-    
+
     Creation:
         Direct instantiation: RSSGenerator(site)
             - Created by PostprocessOrchestrator for RSS generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages and configuration
         logger: Logger instance for RSS generation events
-    
+
     Relationships:
         - Used by: PostprocessOrchestrator for RSS generation
         - Uses: Site for page access and configuration
-    
+
     Features:
         - Includes title, link, description for each item
         - Sorted by date (newest first)
@@ -62,11 +62,11 @@ class RSSGenerator:
         - RFC 822 date formatting
         - i18n per-locale feeds (if i18n enabled)
         - Respects page visibility (draft, rss visibility)
-    
+
     Examples:
         generator = RSSGenerator(site)
         generator.generate()  # Writes rss.xml to output directory
-        
+
     """
 
     def __init__(self, site: Any, collector: OutputCollector | None = None) -> None:

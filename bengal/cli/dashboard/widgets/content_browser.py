@@ -30,24 +30,24 @@ if TYPE_CHECKING:
 class ContentBrowser(Vertical):
     """
     Tree browser for site content (pages and sections).
-    
+
     Displays hierarchical view of:
     - Sections as expandable folders
     - Pages as leaf nodes with metadata preview
-    
+
     Features:
     - Lazy loading for large sites
     - Section/page counts in node labels
     - Selection callback for page details
-    
+
     Example:
         browser = ContentBrowser(id="content-browser")
         browser.set_site(site)
-    
+
         @browser.on_select
         def show_page_details(page: Page):
             details.update(page)
-        
+
     """
 
     DEFAULT_CSS = """

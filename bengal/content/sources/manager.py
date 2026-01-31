@@ -43,20 +43,20 @@ class CachedSource:
 class ContentLayerManager:
     """
     Manages content from multiple sources.
-    
+
     Handles:
     - Source registration (local, remote, custom)
     - Parallel async fetching
     - Disk caching with TTL and invalidation
     - Aggregation of all sources into unified content list
-    
+
     Example:
             >>> manager = ContentLayerManager(cache_dir=Path(".bengal/content_cache"))
             >>> manager.register_source("docs", "local", {"directory": "content/docs"})
             >>> manager.register_source("blog", "notion", {"database_id": "abc123"})
             >>> entries = manager.fetch_all_sync()
             >>> print(f"Fetched {len(entries)} content entries")
-        
+
     """
 
     def __init__(

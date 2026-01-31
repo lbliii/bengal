@@ -3,7 +3,6 @@ title: Create a Custom Template
 nav_title: Custom Template
 description: Build a custom template from scratch using Kida syntax
 weight: 10
-type: doc
 draft: false
 lang: en
 tags:

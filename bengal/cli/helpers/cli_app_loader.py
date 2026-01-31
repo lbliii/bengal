@@ -26,24 +26,24 @@ def load_cli_app(
 ) -> Any:
     """
     Load a CLI application from a module path.
-    
+
     Args:
         app_path: Module path in format "module.path:attribute_name"
                   (e.g., "bengal.cli:main")
         cli: Optional CLIOutput instance (creates new if not provided)
-    
+
     Returns:
         The CLI application object (typically a Click group or command)
-    
+
     Raises:
         click.Abort: If loading fails
-    
+
     Example:
         @click.command()
         def my_command():
             app = load_cli_app("bengal.cli:main")
             # ... use app ...
-        
+
     """
     if cli is None:
         cli = get_cli_output()

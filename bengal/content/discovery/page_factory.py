@@ -40,19 +40,19 @@ logger = get_logger(__name__)
 class PageInitializer:
     """
     Ensures pages are correctly initialized with all required references.
-    
+
     Used by orchestrators after creating pages to validate they're ready for use.
     This helps catch configuration errors early rather than during URL generation
     or template rendering.
-    
+
     Validation Checks:
         - Page has `_site` reference set (or sets it automatically)
         - Page has `output_path` set to an absolute path
         - Page URL generation works correctly
-    
+
     Attributes:
         site: Site object to associate with pages
-    
+
     Example:
             >>> from bengal.content.discovery.page_factory import PageInitializer
             >>>
@@ -67,7 +67,7 @@ class PageInitializer:
             ...         page.output_path = self.site.output_dir / "path" / "index.html"
             ...         self.initializer.ensure_initialized(page)  # Validate!
             ...         return page
-        
+
     """
 
     def __init__(self, site: Site):

@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 class MenuValidator(BaseValidator):
     """
     Validates navigation menu structure.
-    
+
     Checks:
     - Menu items exist and have valid URLs
     - No orphaned menu items (parent doesn't exist)
     - No circular references
     - Menu weights are sensible
-        
+
     """
 
     name = "Navigation Menus"

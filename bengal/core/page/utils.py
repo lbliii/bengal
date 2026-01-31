@@ -87,20 +87,20 @@ def separate_standard_and_custom_fields(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Separate standard frontmatter fields from custom props.
-    
+
     Standard fields are extracted to PageCore fields.
     Custom fields go into props.
-    
+
     Note: For markdown files, frontmatter should be flat (no props: nesting).
     The props: key is primarily for skeleton manifests (bengal skeleton apply),
     where it helps group custom data separately from structural fields.
-    
+
     Args:
         metadata: Full frontmatter metadata dict (will be modified in place)
-    
+
     Returns:
         Tuple of (standard_fields_dict, custom_props_dict)
-    
+
     Example:
             >>> # Markdown file (flat)
             >>> metadata = {"title": "Page", "icon": "code"}
@@ -109,7 +109,7 @@ def separate_standard_and_custom_fields(
         {'title': 'Page'}
             >>> props
         {'icon': 'code'}
-    
+
             >>> # Skeleton manifest (can use props:)
             >>> metadata = {"type": "doc", "props": {"icon": "code"}}
             >>> standard, props = separate_standard_and_custom_fields(metadata.copy())
@@ -117,7 +117,7 @@ def separate_standard_and_custom_fields(
         {'type': 'doc'}
             >>> props
         {'icon': 'code'}
-        
+
     """
     # Work with a copy to avoid mutating original
     metadata = metadata.copy()
@@ -157,10 +157,10 @@ def create_synthetic_page(
 ) -> SimpleNamespace:
     """
     Create a synthetic page object (SimpleNamespace) that mimics the Page interface.
-    
+
     Used for special pages like 404, search, and sitemap which don't have
     backing markdown files but need to be rendered using theme templates.
-    
+
     Args:
         title: Page title
         description: Page description
@@ -173,10 +173,10 @@ def create_synthetic_page(
         tags: List of tags
         keywords: List of keywords
         content: Page content
-    
+
     Returns:
         SimpleNamespace object with Page-like attributes
-        
+
     """
     # Derive slug from URL or title
     slug = url.strip("/").split("/")[-1] if url else title.lower().replace(" ", "-")

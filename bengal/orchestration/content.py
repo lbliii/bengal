@@ -49,11 +49,10 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.asset import Asset
+    from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -62,13 +61,13 @@ logger = get_logger(__name__)
 class ContentOrchestrator:
     """
     Handles content and asset discovery.
-    
+
     Responsibilities:
         - Discover content (pages and sections)
         - Discover assets (site and theme)
         - Set up page/section references for navigation
         - Apply cascading frontmatter from sections to pages
-        
+
     """
 
     def __init__(self, site: Site):
@@ -579,14 +578,14 @@ class ContentOrchestrator:
         # Optimization: Skip asset discovery if only content files changed
         options = getattr(self.site, "_last_build_options", None)
         cache = getattr(self.site, "_cache", None)
-        
+
         if options and options.incremental and options.changed_sources and not options.structural_changed:
             content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
             non_content_changes = [
-                s for s in options.changed_sources 
+                s for s in options.changed_sources
                 if s.suffix.lower() not in content_extensions
             ]
-            
+
             if not non_content_changes and cache and hasattr(cache, "discovered_assets") and cache.discovered_assets:
                 from bengal.core.asset import Asset
                 self.site.assets = []
@@ -948,5 +947,5 @@ class ContentOrchestrator:
             Path to theme assets or None if not found
         """
         from bengal.services.theme import get_theme_assets_dir
-        
+
         return get_theme_assets_dir(self.site.root_path, self.site.theme)

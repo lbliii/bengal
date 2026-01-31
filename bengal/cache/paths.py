@@ -66,22 +66,22 @@ STATE_DIR_NAME = ".bengal"
 class BengalPaths:
     """
     Accessor for all .bengal directory paths.
-    
+
     Provides a unified interface for accessing all paths within the
     Bengal state directory. Use this class instead of hardcoding
     ".bengal" strings throughout the codebase.
-    
+
     Attributes:
         root: Project root path
         state_dir: Path to .bengal directory
-    
+
     Example:
             >>> paths = BengalPaths(Path("/my/site"))
             >>> paths.build_cache
         PosixPath('/my/site/.bengal/cache.json')
             >>> paths.logs_dir
         PosixPath('/my/site/.bengal/logs')
-        
+
     """
 
     def __init__(self, root: Path) -> None:
@@ -121,7 +121,7 @@ class BengalPaths:
     @property
     def generated_page_cache(self) -> Path:
         """Generated page cache file (.bengal/generated_page_cache.json or .json.zst).
-        
+
         RFC: Output Cache Architecture - Caches rendered output for generated pages.
         """
         return self.state_dir / "generated_page_cache.json"
@@ -129,7 +129,7 @@ class BengalPaths:
     @property
     def content_hash_registry(self) -> Path:
         """Content hash registry file (.bengal/content_hashes.json or .json.zst).
-        
+
         RFC: Output Cache Architecture - Central registry for all content hashes.
         """
         return self.state_dir / "content_hashes.json"
@@ -277,17 +277,17 @@ class BengalPaths:
 def migrate_template_cache(paths: BengalPaths, output_dir: Path) -> bool:
     """
     Migrate template cache from old location to new location.
-    
+
     Old location: output_dir/.bengal-cache/templates/
     New location: .bengal/templates/
-    
+
     Args:
         paths: BengalPaths instance for the site
         output_dir: Output directory (e.g., public/)
-    
+
     Returns:
         True if migration was performed, False if not needed
-        
+
     """
     import shutil
 

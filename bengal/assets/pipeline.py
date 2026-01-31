@@ -72,10 +72,10 @@ logger = get_logger(__name__)
 class PipelineConfig:
     """
     Configuration for the Node-based asset pipeline.
-    
+
     Populated from site configuration and passed to NodePipeline. All boolean
     flags default to sensible values when the pipeline is enabled.
-    
+
     Attributes:
         root_path: Site root directory containing assets/ and themes/.
         theme_name: Active theme name for locating theme assets, or None.
@@ -86,7 +86,7 @@ class PipelineConfig:
         bundle_js: Whether to bundle JavaScript/TypeScript files.
         esbuild_target: Target environment for esbuild (e.g. 'es2018', 'esnext').
         sourcemaps: Whether to generate source maps for debugging.
-        
+
     """
 
     root_path: Path
@@ -104,18 +104,18 @@ class PipelineConfig:
 class NodePipeline:
     """
     Thin wrapper over Node CLIs for asset compilation.
-    
+
     Orchestrates SCSS compilation, PostCSS transforms, and JavaScript bundling
     by invoking external CLI tools. Designed to fail gracefully with clear
     error messages when required tools are not installed.
-    
+
     The pipeline writes compiled files to a temporary directory, which is then
     processed by AssetOrchestrator for fingerprinting and deployment.
-    
+
     Attributes:
         config: Pipeline configuration settings.
         temp_out_dir: Temporary directory for compiled output files.
-    
+
     Example:
             >>> config = PipelineConfig(
             ...     root_path=Path("/site"),
@@ -130,7 +130,7 @@ class NodePipeline:
             ... )
             >>> pipeline = NodePipeline(config)
             >>> compiled_files = pipeline.build()
-        
+
     """
 
     def __init__(self, config: PipelineConfig) -> None:
@@ -523,21 +523,21 @@ class NodePipeline:
 def from_site(site: Site) -> NodePipeline:
     """
     Factory to create a NodePipeline from site configuration.
-    
+
     Extracts pipeline settings from the site's ``[assets]`` config section
     and creates a configured NodePipeline instance.
-    
+
     Args:
         site: Site instance with loaded configuration.
-    
+
     Returns:
         Configured NodePipeline ready to run.
-    
+
     Example:
             >>> from bengal.assets.pipeline import from_site
             >>> pipeline = from_site(site)
             >>> compiled_files = pipeline.build()
-        
+
     """
     assets_cfg = (
         site.config.get("assets", {}) if isinstance(site.config.get("assets"), dict) else {}

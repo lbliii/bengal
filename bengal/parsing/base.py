@@ -10,15 +10,15 @@ class BaseMarkdownParser(ABC):
     """
     Abstract base class for Markdown parsers.
     All parser implementations must implement this interface.
-    
+
     AST Support (Phase 3):
         Parsers may optionally support true AST output via:
         - parse_to_ast(): Parse content to AST tokens
         - render_ast(): Render AST tokens to HTML
         - supports_ast: Property indicating AST support
-    
+
         See: plan/active/rfc-content-ast-architecture.md
-        
+
     """
 
     @property
@@ -46,7 +46,6 @@ class BaseMarkdownParser(ABC):
         Returns:
             Parsed HTML content
         """
-        pass
 
     @abstractmethod
     def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
@@ -60,7 +59,6 @@ class BaseMarkdownParser(ABC):
         Returns:
             Tuple of (parsed HTML, table of contents HTML)
         """
-        pass
 
     def parse_to_ast(self, content: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
         """

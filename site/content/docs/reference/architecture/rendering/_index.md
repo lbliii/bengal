@@ -3,8 +3,6 @@ title: Rendering Pipeline
 nav_title: Rendering
 description: How Bengal transforms Markdown to HTML
 weight: 20
-cascade:
-  type: doc
 icon: arrow-clockwise
 ---
 # Rendering Pipeline

@@ -87,7 +87,7 @@ from typing import Any
 class ActionableSuggestion:
     """
     A structured, actionable suggestion for fixing an error.
-    
+
     Attributes:
         fix: Short one-line fix description
         explanation: Longer explanation of what went wrong
@@ -97,7 +97,7 @@ class ActionableSuggestion:
         check_files: Files to investigate for this error
         related_codes: Related error codes
         grep_patterns: Patterns to search for in codebase
-        
+
     """
 
     fix: str
@@ -601,14 +601,14 @@ _SUGGESTIONS: dict[str, dict[str, ActionableSuggestion]] = {
 def get_suggestion(category: str, error_key: str) -> ActionableSuggestion | None:
     """
     Get actionable suggestion for an error.
-    
+
     Args:
         category: Error category (directive, config, template, etc.)
         error_key: Specific error identifier
-    
+
     Returns:
         ActionableSuggestion if found, None otherwise
-        
+
     """
     if category not in _SUGGESTIONS:
         return None
@@ -619,14 +619,14 @@ def get_suggestion(category: str, error_key: str) -> ActionableSuggestion | None
 def get_suggestion_dict(category: str, error_key: str) -> dict[str, Any] | None:
     """
     Get suggestion as dictionary.
-    
+
     Args:
         category: Error category
         error_key: Specific error identifier
-    
+
     Returns:
         Dict with 'fix', 'explanation', and optional 'docs_url', or None
-        
+
     """
     suggestion = get_suggestion(category, error_key)
     if not suggestion:
@@ -648,15 +648,15 @@ def enhance_error_context(
 ) -> dict[str, Any]:
     """
     Enhance error context dict with actionable suggestion.
-    
+
     Args:
         context: Existing error context dict
         category: Error category
         error_key: Specific error identifier
-    
+
     Returns:
         Context dict with 'suggestion' added if available
-        
+
     """
     suggestion = get_suggestion(category, error_key)
     if suggestion:
@@ -675,15 +675,15 @@ def format_suggestion(
 ) -> str | None:
     """
     Format suggestion as a string for logging.
-    
+
     Args:
         category: Error category
         error_key: Specific error identifier
         include_snippets: Whether to include code snippets
-    
+
     Returns:
         Formatted suggestion string or None
-        
+
     """
     suggestion = get_suggestion(category, error_key)
     if not suggestion:
@@ -704,14 +704,14 @@ def format_suggestion(
 def format_suggestion_full(category: str, error_key: str) -> str | None:
     """
     Format full suggestion with all details.
-    
+
     Args:
         category: Error category
         error_key: Specific error identifier
-    
+
     Returns:
         Fully formatted suggestion string or None
-        
+
     """
     suggestion = get_suggestion(category, error_key)
     if not suggestion:
@@ -751,16 +751,16 @@ _ATTRIBUTE_ERROR_PATTERNS: dict[str, tuple[str, str]] = {
 def get_attribute_error_suggestion(error_msg: str) -> str | None:
     """
     Get actionable suggestion for AttributeError based on error message.
-    
+
     Pattern-matches the error message against known migrations and returns
     a formatted suggestion string.
-    
+
     Args:
         error_msg: The error message from AttributeError
-    
+
     Returns:
         Formatted suggestion string or None if no match
-        
+
     """
     for pattern, (category, key) in _ATTRIBUTE_ERROR_PATTERNS.items():
         if pattern in error_msg:
@@ -773,13 +773,13 @@ def get_attribute_error_suggestion(error_msg: str) -> str | None:
 def get_all_suggestions_for_category(category: str) -> dict[str, ActionableSuggestion]:
     """
     Get all suggestions for a category.
-    
+
     Args:
         category: Error category
-    
+
     Returns:
         Dictionary of error_key -> ActionableSuggestion
-        
+
     """
     return _SUGGESTIONS.get(category, {})
 
@@ -787,13 +787,13 @@ def get_all_suggestions_for_category(category: str) -> dict[str, ActionableSugge
 def search_suggestions(query: str) -> list[tuple[str, str, ActionableSuggestion]]:
     """
     Search suggestions by keyword.
-    
+
     Args:
         query: Search query (searches fix, explanation, and patterns)
-    
+
     Returns:
         List of (category, key, suggestion) tuples matching query
-        
+
     """
     if not query or not query.strip():
         return []

@@ -39,21 +39,21 @@ if TYPE_CHECKING:
 class SeriesIndex(QueryIndex):
     """
     Index pages by series.
-    
+
     Supports series metadata from frontmatter:
         series:
           name: "Building a Blog with Bengal"
           part: 1
           total: 5
-    
+
     Provides O(1) lookup:
         site.indexes.series.get('Building a Blog with Bengal')
-    
+
     Metadata includes:
         - total: Total parts in series
         - description: Series description
         - slug: URL-safe series identifier
-        
+
     """
 
     def __init__(self, cache_path: Path):

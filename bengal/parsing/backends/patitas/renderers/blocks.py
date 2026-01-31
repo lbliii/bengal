@@ -8,8 +8,7 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from patitas.nodes import (
     Block,

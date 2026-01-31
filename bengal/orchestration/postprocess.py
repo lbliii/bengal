@@ -34,8 +34,8 @@ from bengal.protocols import ProgressReporter
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
-    from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
@@ -62,34 +62,34 @@ _print_lock = Lock()
 class PostprocessOrchestrator:
     """
     Orchestrates post-processing tasks after page rendering.
-    
+
     Handles sitemap generation, RSS feeds, link validation, special pages,
     and output format generation. Supports parallel execution for performance
     and incremental build optimization.
-    
+
     Creation:
         Direct instantiation: PostprocessOrchestrator(site)
             - Created by BuildOrchestrator during build
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with rendered pages and configuration
-    
+
     Relationships:
         - Uses: SitemapGenerator for sitemap generation
         - Uses: RSSGenerator for RSS feed generation
         - Uses: OutputFormatsGenerator for JSON/TXT/LLM output
         - Uses: SpecialPagesGenerator for 404 and other special pages
         - Used by: BuildOrchestrator for post-processing phase
-    
+
     Thread Safety:
         Thread-safe for parallel task execution. Uses thread-safe locks
         for output operations.
-    
+
     Examples:
         orchestrator = PostprocessOrchestrator(site)
         orchestrator.run(parallel=True, incremental=False)
-        
+
     """
 
     def __init__(self, site: Site):
@@ -168,7 +168,7 @@ class PostprocessOrchestrator:
         # - Social cards: Only needed for production (OG images don't change during dev)
         # - RSS: Regenerated on content rebuild (not layout changes)
         # - Redirects: Regenerated on full builds (aliases rarely change)
-        
+
         # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
         if self.site.config.get("generate_sitemap", True):
             tasks.append(("sitemap", self._generate_sitemap))

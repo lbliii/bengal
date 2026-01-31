@@ -55,21 +55,21 @@ if TYPE_CHECKING:
 class ExplanationReporter:
     """
     Format and display page explanations in terminal.
-    
+
     Uses Rich library for colorful, well-formatted terminal output.
     Designed for quick scanning and visual clarity.
-    
+
     Creation:
         Direct instantiation: ExplanationReporter(console=None)
             - Uses provided Console or creates new one
-    
+
     Attributes:
         console: Rich Console instance for output
-    
+
     Examples:
         reporter = ExplanationReporter()
         reporter.print(explanation)
-        
+
     """
 
     def __init__(self, console: Console | None = None) -> None:

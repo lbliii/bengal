@@ -52,29 +52,29 @@ RESERVED_NAMESPACES: dict[str, dict[str, Any]] = {
 def get_reserved_namespaces(site_config: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
     """
     Get all reserved namespaces including dynamically configured prefixes.
-    
+
     Returns the base reserved namespaces plus any additional namespaces
     configured through autodoc settings in the site configuration.
-    
+
     Args:
         site_config: Site configuration dictionary. If provided, autodoc
             prefixes are extracted and added to the reserved namespaces.
-    
+
     Returns:
         Dictionary mapping namespace prefixes to ownership metadata.
         Each entry contains ``"owner"`` (string) and ``"priority"`` (int).
-    
+
     Example:
             >>> namespaces = get_reserved_namespaces()
             >>> namespaces["tags"]
         {'owner': 'taxonomy', 'priority': 40}
-    
+
             >>> # With autodoc configuration
             >>> config = {"autodoc": {"python": {"enabled": True, "output_prefix": "api/python"}}}
             >>> namespaces = get_reserved_namespaces(config)
             >>> "api" in namespaces
         True
-        
+
     """
     namespaces = dict(RESERVED_NAMESPACES)
 
@@ -104,22 +104,22 @@ def is_reserved_namespace(
 ) -> tuple[bool, str | None]:
     """
     Check if a URL falls within a reserved namespace.
-    
+
     Examines the first path segment of the URL to determine if it matches
     any reserved namespace prefix.
-    
+
     Args:
         url: URL to check (e.g., ``"/tags/python/"``, ``"/search/"``).
             Leading and trailing slashes are normalized.
         site_config: Site configuration dictionary. If provided, includes
             dynamically configured autodoc namespaces in the check.
-    
+
     Returns:
         Tuple of ``(is_reserved, owner_name)``:
             - ``is_reserved``: ``True`` if the URL is in a reserved namespace.
             - ``owner_name``: The owner identifier (e.g., ``"taxonomy"``),
               or ``None`` if not reserved.
-    
+
     Example:
             >>> is_reserved_namespace("/tags/python/")
         (True, 'taxonomy')
@@ -127,7 +127,7 @@ def is_reserved_namespace(
         (False, None)
             >>> is_reserved_namespace("/search/")
         (True, 'special_pages')
-        
+
     """
     # Normalize URL: remove leading/trailing slashes, get first segment
     url = url.strip("/")

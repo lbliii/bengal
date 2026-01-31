@@ -51,14 +51,14 @@ class RenderStats:
 class WaveScheduler:
     """
     Optimized parallel renderer with template-first batching.
-    
+
     Default strategy groups pages by template to maximize cache locality.
     When all pages using the same template are rendered together:
-    
+
     1. Kida's template cache returns the same compiled Template object
     2. The compiled Python code object stays in CPU instruction cache
     3. Filter/test lookups hit warm dict caches
-    
+
     Uses snapshot for pre-computed data, renders actual Page objects.
     """
 
@@ -90,10 +90,10 @@ class WaveScheduler:
         self._page_map: dict[Path, Page] = {}
         for page in site.pages:
             self._page_map[page.source_path] = page
-        
+
         # Pre-build shared context (same for all pages) - major optimization
         self._shared_context: dict[str, Any] | None = None
-        
+
         # Progress tracking (thread-safe counter for parallel rendering)
         self._pages_rendered = 0
         self._progress_lock = threading.Lock()
@@ -101,33 +101,33 @@ class WaveScheduler:
     def _build_shared_context(self) -> dict[str, Any]:
         """
         Pre-build context that's identical for all pages.
-        
+
         This includes site, config, menus, theme - values that don't change
         between pages. Building once and reusing saves ~10-15% render time.
         """
         if self._shared_context is not None:
             return self._shared_context
-        
+
         from bengal.rendering.context import _get_global_contexts
-        
+
         # Get cached global contexts (site, config, theme wrappers)
         self._shared_context = _get_global_contexts(self.site)
-        
+
         # Add snapshot reference if available
         if self.snapshot:
             self._shared_context["_snapshot"] = self.snapshot
-        
+
         return self._shared_context
 
     def render_all(self, pages_to_build: list[Page]) -> RenderStats:
         """
         Render pages using the configured strategy.
-        
+
         Default is template-first batching for CPU cache optimization.
-        
+
         Args:
             pages_to_build: List of actual Page objects to render
-            
+
         Returns:
             RenderStats with rendering statistics
         """
@@ -138,14 +138,14 @@ class WaveScheduler:
     def _render_template_first(self, pages_to_build: list[Page]) -> RenderStats:
         """
         Render pages grouped by template for cache locality.
-        
+
         This strategy maximizes cache efficiency by rendering all pages
         using the same template together before moving to the next:
-        
+
         - Kida's template cache hits (same Template object reused)
         - Python bytecode stays in CPU instruction cache
         - Filter/test dict lookups hit warm caches
-        
+
         Performance: ~20-30% faster than random order on template-heavy sites.
         """
         from bengal.rendering.pipeline import RenderingPipeline
@@ -158,7 +158,7 @@ class WaveScheduler:
         pages_to_render = [
             p for p in pages_to_build if p.source_path in self._page_map
         ]
-        
+
         if not pages_to_render:
             if pages_to_build:
                 logger.warning(
@@ -167,13 +167,13 @@ class WaveScheduler:
                     pages_in_snapshot=len(self._page_map),
                 )
             return stats
-        
+
         # Reset progress counter
         total_pages = len(pages_to_render)
         self._pages_rendered = 0
         last_progress_update = time.time()
         progress_update_interval = 0.1  # Update every 100ms (throttled for performance)
-        
+
         # Pre-process: Set output paths
         for page in pages_to_render:
             if not page.output_path:
@@ -181,7 +181,7 @@ class WaveScheduler:
 
         # Build shared context once (major optimization)
         shared_context = self._build_shared_context()
-        
+
         # Create template engine
         from bengal.rendering.engines import create_engine
         profile_templates = (
@@ -203,9 +203,9 @@ class WaveScheduler:
                     or "page.html"
                 )
                 templates_to_precompile.add(template_name)
-            
+
             # Type guard: hasattr check ensures precompile_templates exists
-            precompile_method = getattr(template_engine, "precompile_templates")
+            precompile_method = template_engine.precompile_templates
             precompiled = precompile_method(list(templates_to_precompile))
             logger.debug(
                 "templates_precompiled",
@@ -222,12 +222,12 @@ class WaveScheduler:
         try:
             # Group pages by template using snapshot's pre-computed groups
             template_to_pages: dict[str, list[Page]] = {}
-            
+
             # Build attention lookup from snapshot
             attention_by_path: dict[Path, float] = {}
             for page_snap in self.snapshot.pages:
                 attention_by_path[page_snap.source_path] = page_snap.attention_score
-            
+
             for page in pages_to_render:
                 # Get template name from page or default
                 template_name = (
@@ -252,7 +252,7 @@ class WaveScheduler:
                 template_to_pages.keys(),
                 key=lambda t: -len(template_to_pages[t])
             )
-            
+
             logger.debug(
                 "template_first_batching",
                 templates=len(sorted_templates),
@@ -269,9 +269,9 @@ class WaveScheduler:
                     batch_pages = template_to_pages[template_name]
                     if not batch_pages:
                         continue
-                    
+
                     batch_start = time.perf_counter()
-                    
+
                     # Signal scout to warm this template
                     if scout:
                         scout._worker_wave = template_idx + 1
@@ -303,12 +303,12 @@ class WaveScheduler:
                         try:
                             rendered_page = future.result()
                             stats.pages_rendered += 1
-                            
+
                             # Update progress (thread-safe)
                             with self._progress_lock:
                                 self._pages_rendered += 1
                                 current_count = self._pages_rendered
-                            
+
                             # Throttle progress updates
                             if self._progress_manager:
                                 now = time.time()
@@ -336,7 +336,7 @@ class WaveScheduler:
                                     last_progress_update = now
                         except Exception as e:
                             stats.errors.append((page.source_path, e))
-                    
+
                     batch_time = (time.perf_counter() - batch_start) * 1000
                     stats.template_batches[template_name] = len(batch_pages)
                     stats.batch_times_ms[template_name] = batch_time
@@ -351,7 +351,7 @@ class WaveScheduler:
             if scout:
                 scout.stop()
                 scout.join(timeout=1.0)
-            
+
             if self._write_behind:
                 stats.files_written = self._write_behind.flush_and_close()
 
@@ -360,7 +360,7 @@ class WaveScheduler:
     def _render_topological_waves(self, pages_to_build: list[Page]) -> RenderStats:
         """
         Render pages using topological waves (section order).
-        
+
         This strategy groups pages by section for content-based locality,
         useful when sections have interdependencies.
         """
@@ -373,20 +373,20 @@ class WaveScheduler:
         pages_to_render = [
             p for p in pages_to_build if p.source_path in self._page_map
         ]
-        
+
         if not pages_to_render and pages_to_build:
             logger.warning(
                 "no_pages_in_snapshot",
                 pages_requested=len(pages_to_build),
                 pages_in_snapshot=len(self._page_map),
             )
-        
+
         # Reset progress counter
         total_pages = len(pages_to_render)
         self._pages_rendered = 0
         last_progress_update = time.time()
         progress_update_interval = 0.1  # Update every 100ms (throttled for performance)
-        
+
         for page in pages_to_render:
             if not page.output_path:
                 page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
@@ -414,7 +414,7 @@ class WaveScheduler:
 
             waves: dict[int, list[Page]] = {}
             orphan_pages: list[Page] = []
-            
+
             for page in pages_to_render:
                 wave_idx = page_to_wave.get(page.source_path)
                 if wave_idx is not None:
@@ -423,7 +423,7 @@ class WaveScheduler:
                     waves[wave_idx].append(page)
                 else:
                     orphan_pages.append(page)
-            
+
             if orphan_pages:
                 max_wave = max(waves.keys()) if waves else -1
                 waves[max_wave + 1] = orphan_pages
@@ -467,12 +467,12 @@ class WaveScheduler:
                         try:
                             rendered_page = future.result()
                             stats.pages_rendered += 1
-                            
+
                             # Update progress (thread-safe)
                             with self._progress_lock:
                                 self._pages_rendered += 1
                                 current_count = self._pages_rendered
-                            
+
                             # Throttle progress updates
                             if self._progress_manager:
                                 now = time.time()
@@ -511,7 +511,7 @@ class WaveScheduler:
             if scout:
                 scout.stop()
                 scout.join(timeout=1.0)
-            
+
             if self._write_behind:
                 stats.files_written = self._write_behind.flush_and_close()
 

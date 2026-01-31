@@ -68,22 +68,22 @@ from bengal.core.theme.resolution import (
 )
 
 __all__ = [
+    # Theme compatibility
+    "FEATURE_SUPPORT",
     # Theme configuration
     "Theme",
     # Theme discovery
     "ThemePackage",
-    "get_installed_themes",
-    "get_theme_package",
+    "_read_theme_extends",  # Internal helper (used by CLI)
+    "check_theme_compatibility",
     "clear_theme_cache",
+    "format_compatibility_warning",
+    "get_engine_capabilities",
+    "get_installed_themes",
+    "get_minimum_engine_level",
+    "get_theme_package",
+    "iter_theme_asset_dirs",
     # Theme resolution
     "resolve_theme_chain",
     "resolve_theme_templates_path",
-    "iter_theme_asset_dirs",
-    "_read_theme_extends",  # Internal helper (used by CLI)
-    # Theme compatibility
-    "FEATURE_SUPPORT",
-    "check_theme_compatibility",
-    "get_engine_capabilities",
-    "get_minimum_engine_level",
-    "format_compatibility_warning",
 ]

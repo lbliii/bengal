@@ -44,13 +44,13 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.lru_cache import LRUCache
 
 __all__ = [
-    "render_svg_icon",
-    "get_icon_svg",
     "ICON_MAP",
-    "render_icon",
-    "icon_exists",
-    "warn_missing_icon",
     "get_available_icons",
+    "get_icon_svg",
+    "icon_exists",
+    "render_icon",
+    "render_svg_icon",
+    "warn_missing_icon",
 ]
 
 logger = get_logger(__name__)
@@ -69,13 +69,13 @@ _svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(
 def get_icon_svg(name: str) -> str | None:
     """
     Get raw SVG content for an icon.
-    
+
     Args:
         name: Icon name (e.g., "terminal", "search", "info")
-    
+
     Returns:
         Raw SVG string, or None if not found
-        
+
     """
     return icon_resolver.load_icon(name)
 
@@ -99,34 +99,34 @@ def render_svg_icon(
 ) -> str:
     """
     Render an SVG icon for use in directives.
-    
+
     Uses LRU caching to avoid repeated regex processing for identical
     icon render calls. Typical hit rate >95% for navigation icons.
-    
+
     Thread-safe: Uses LRUCache with RLock for safe concurrent access
     under free-threading (PEP 703).
-    
+
     Applies ICON_MAP to resolve semantic names (e.g., "alert" -> "warning")
     before loading the icon file.
-    
+
     Args:
         name: Icon name (e.g., "terminal", "search", "info", "alert")
         size: Icon size in pixels (default: 20)
         css_class: Additional CSS classes
         aria_label: Accessibility label
-    
+
     Returns:
         Inline SVG HTML string, or empty string if icon not found
-    
+
     Example:
             >>> render_svg_icon("terminal", size=16, css_class="button-icon")
             '<svg width="16" height="16" class="bengal-icon icon-terminal button-icon" ...'
             >>> render_svg_icon("alert")  # Maps to "warning" icon
             '<svg ...'
-        
+
     """
     key = (name, size, css_class, aria_label)
-    
+
     def _render_impl() -> str:
         # Map semantic name to actual icon name (e.g., "alert" -> "warning")
         icon_name = ICON_MAP.get(name, name)
@@ -159,7 +159,7 @@ def render_svg_icon(
         )
 
         return svg_modified
-    
+
     return _svg_icon_cache.get_or_set(key, _render_impl)
 
 
@@ -237,17 +237,17 @@ ICON_MAP: dict[str, str] = {
 def render_icon(name: str, size: int = 20) -> str:
     """
     Render an icon by name, preferring Phosphor SVG icons.
-    
+
     This function maps common icon names to Phosphor icons and always
     attempts to render SVG first. Only returns empty string if icon not found.
-    
+
     Args:
         name: Icon name (semantic name like "book", "rocket", etc.)
         size: Icon size in pixels
-    
+
     Returns:
         HTML for icon (SVG only, empty string if not found)
-        
+
     """
     if not name:
         return ""
@@ -301,9 +301,9 @@ def render_icon(name: str, size: int = 20) -> str:
 def clear_icon_cache() -> None:
     """
     Clear both the resolver cache and the render cache.
-    
+
     Useful for testing or when icons are modified during development.
-        
+
     """
     icon_resolver.clear_cache()
     _svg_icon_cache.clear()
@@ -319,21 +319,21 @@ def clear_icon_cache() -> None:
 def icon_exists(name: str) -> bool:
     """
     Check if an icon exists in the icon library.
-    
+
     This checks both direct icon names and mapped names from ICON_MAP.
-    
+
     Args:
         name: Icon name to check
-    
+
     Returns:
         True if icon exists, False otherwise
-    
+
     Example:
             >>> icon_exists("info")
         True
             >>> icon_exists("nonexistent-icon")
         False
-        
+
     """
     if not name:
         return False
@@ -352,19 +352,19 @@ def warn_missing_icon(
 ) -> None:
     """
     Log a warning for a missing icon with helpful context.
-    
+
     This centralizes icon warning logic so all directives can use it
     without duplicating code.
-    
+
     Args:
         icon_name: The icon name that was not found
         directive: Name of the directive using the icon (e.g., "dropdown", "card")
         context: Additional context like element title for locating the issue
-    
+
     Example:
             >>> warn_missing_icon("bad-icon", directive="dropdown", context="My Section")
         # Logs: icon_not_found icon=bad-icon directive=dropdown context=My Section
-        
+
     """
     logger.warning(
         "icon_not_found",
@@ -379,18 +379,18 @@ def warn_missing_icon(
 def get_available_icons() -> list[str]:
     """
     Get list of all available icon names.
-    
+
     Returns both the raw icon file names and the semantic aliases
     from ICON_MAP.
-    
+
     Returns:
         Sorted list of available icon names
-    
+
     Example:
             >>> icons = get_available_icons()
             >>> "info" in icons
         True
-        
+
     """
     # Get raw icon names from resolver
     raw_icons = set(icon_resolver.get_available_icons())

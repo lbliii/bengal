@@ -31,31 +31,31 @@ from typing import Any
 from bengal.protocols import ProgressReporter
 
 # Re-export for backwards compatibility
-__all__ = ["ProgressReporter", "NoopReporter", "LiveProgressReporterAdapter"]
+__all__ = ["LiveProgressReporterAdapter", "NoopReporter", "ProgressReporter"]
 
 
 class NoopReporter:
     """
     No-op progress reporter implementation.
-    
+
     Provides safe default implementation that does nothing, suitable for tests
     and quiet modes. All methods are no-ops that return immediately.
-    
+
     Creation:
         Direct instantiation: NoopReporter()
             - Created as default reporter when no progress reporting needed
             - Safe for tests and quiet build modes
-    
+
     Relationships:
         - Implements: ProgressReporter protocol
         - Used by: BuildOrchestrator as default reporter
         - Used in: Tests and quiet build modes
-    
+
     Examples:
         reporter = NoopReporter()
         reporter.start_phase("rendering")  # No-op
         reporter.update_phase("rendering", current=5)  # No-op
-        
+
     """
 
     def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None:
@@ -79,28 +79,28 @@ class NoopReporter:
 class LiveProgressReporterAdapter:
     """
     Adapter to bridge LiveProgressManager to ProgressReporter protocol.
-    
+
     Provides adapter pattern implementation that bridges LiveProgressManager
     to the ProgressReporter protocol. Delegates phase methods directly and
     prints simple lines for log() messages.
-    
+
     Creation:
         Direct instantiation: LiveProgressReporterAdapter(live_progress_manager)
             - Created by BuildOrchestrator when using LiveProgressManager
             - Requires LiveProgressManager instance
-    
+
     Attributes:
         _pm: LiveProgressManager instance being adapted
-    
+
     Relationships:
         - Implements: ProgressReporter protocol
         - Uses: LiveProgressManager for actual progress reporting
         - Used by: BuildOrchestrator for progress reporting
-    
+
     Examples:
         adapter = LiveProgressReporterAdapter(live_progress_manager)
         adapter.start_phase("rendering")  # Delegates to _pm.start_phase()
-        
+
     """
 
     def __init__(self, live_progress_manager: Any):

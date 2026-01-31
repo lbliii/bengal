@@ -51,11 +51,11 @@ from bengal.errors import BengalRenderingError, ErrorCode
 @dataclass(frozen=True)
 class DirectiveContract:
     """Define valid nesting relationships for a directive.
-    
+
     Contracts specify which parent directives are allowed, which children
     are required, and constraints on child types and counts. Invalid
     nesting is detected at parse time with helpful warning messages.
-    
+
     Attributes:
         requires_parent: Tuple of allowed parent directive types. The directive
             must be nested inside one of these. Empty tuple means root-level is OK.
@@ -66,29 +66,29 @@ class DirectiveContract:
         allowed_children: Whitelist of allowed child types. Empty tuple allows any.
         disallowed_children: Blacklist of forbidden child types. Takes precedence
             over ``allowed_children``.
-    
+
     Example:
         Child directive that must be inside a parent::
-    
+
             CONTRACT = DirectiveContract(
                 requires_parent=("steps",),
             )
-    
+
         Parent directive that must contain specific children::
-    
+
             CONTRACT = DirectiveContract(
                 requires_children=("step",),
                 min_children=1,
                 allowed_children=("step", "blank_line"),
             )
-    
+
         Tabs with required items::
-    
+
             CONTRACT = DirectiveContract(
                 requires_children=("tab_item",),
                 min_children=1,
             )
-        
+
     """
 
     # Parent requirements
@@ -136,12 +136,12 @@ class DirectiveContract:
 @dataclass
 class ContractViolation:
     """Represent a contract violation detected during parsing.
-    
+
     Violations capture details about invalid nesting for:
         - Logging as warnings (default behavior)
         - Raising as errors (strict mode)
         - Reporting in health checks
-    
+
     Attributes:
         directive: The directive type that was validated (e.g., ``"step"``).
         violation_type: Type identifier for structured logging (e.g.,
@@ -150,7 +150,7 @@ class ContractViolation:
         expected: What was expected (list of types, count, or description).
         found: What was actually found (type name, list, or count).
         location: Source file location (e.g., ``"content/guide.md"``).
-        
+
     """
 
     directive: str
@@ -187,21 +187,21 @@ class ContractViolation:
 
 class ContractValidator:
     """Validate directive nesting against contracts.
-    
+
     Provides static methods for validating parent context and child
     requirements. Used by ``BengalDirective.parse()`` to enforce
     contracts during markdown parsing.
-    
+
     Validation Checks:
         1. **Parent validation**: Verify the directive is inside an allowed parent.
         2. **Required children**: Verify required child types are present.
         3. **Child count**: Verify ``min_children`` and ``max_children`` constraints.
         4. **Allowed children**: Verify children are in the whitelist (if specified).
         5. **Disallowed children**: Verify no blacklisted children are present.
-    
+
     Example:
         Using the validator in a directive's parse method::
-    
+
             def parse(self, block, m, state):
                 # Validate parent context
                 if self.CONTRACT and self.CONTRACT.has_parent_requirement:
@@ -211,9 +211,9 @@ class ContractValidator:
                     )
                     for v in violations:
                         self.logger.warning(v.violation_type, **v.to_log_dict())
-    
+
                 # ... parse children ...
-    
+
                 # Validate children
                 if self.CONTRACT and self.CONTRACT.has_child_requirement:
                     violations = ContractValidator.validate_children(
@@ -221,7 +221,7 @@ class ContractValidator:
                     )
                     for v in violations:
                         self.logger.warning(v.violation_type, **v.to_log_dict())
-        
+
     """
 
     @staticmethod

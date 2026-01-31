@@ -150,20 +150,20 @@ from bengal.debug.shortcode_sandbox import (
 def __getattr__(name: str) -> Any:
     """
     Lazy import for optional components with heavier dependencies.
-    
+
     PageExplainer and ExplanationReporter are loaded lazily because they
     have additional dependencies (Rich library, regex patterns) that may
     not be needed for basic debug tool usage.
-    
+
     Args:
         name: Attribute name being accessed.
-    
+
     Returns:
         The requested class if available.
-    
+
     Raises:
         AttributeError: If the requested attribute does not exist.
-        
+
     """
     if name == "PageExplainer":
         from bengal.debug.explainer import PageExplainer
@@ -177,48 +177,48 @@ def __getattr__(name: str) -> Any:
 
 
 __all__ = [
+    "BuildDelta",
+    # Build comparison
+    "BuildDeltaAnalyzer",
+    "BuildHistory",
+    "BuildSnapshot",
+    "CacheInfo",
+    "ConfigComparisonResult",
+    "ConfigDiff",
+    # Config inspector
+    "ConfigInspector",
+    # Content migration
+    "ContentMigrator",
+    "DebugFinding",
+    "DebugRegistry",
+    "DebugReport",
+    # Debug infrastructure
+    "DebugTool",
+    "DependencyGraph",
+    "DependencyInfo",
+    "DependencyNode",
+    # Dependency visualization
+    "DependencyVisualizer",
+    "ExplanationReporter",
+    # Incremental debugging
+    "IncrementalBuildDebugger",
+    "KeyExplanation",
+    "MoveOperation",
+    "MovePreview",
+    "OutputInfo",
+    "PageDraft",
     # Page explanation
     "PageExplainer",
     "PageExplanation",
-    "ExplanationReporter",
-    "SourceInfo",
-    "TemplateInfo",
-    "DependencyInfo",
-    "ShortcodeUsage",
-    "CacheInfo",
-    "OutputInfo",
-    # Debug infrastructure
-    "DebugTool",
-    "DebugReport",
-    "DebugFinding",
-    "DebugRegistry",
-    "Severity",
-    # Incremental debugging
-    "IncrementalBuildDebugger",
-    "RebuildReason",
     "RebuildExplanation",
-    # Build comparison
-    "BuildDeltaAnalyzer",
-    "BuildSnapshot",
-    "BuildDelta",
-    "BuildHistory",
-    # Dependency visualization
-    "DependencyVisualizer",
-    "DependencyGraph",
-    "DependencyNode",
-    # Content migration
-    "ContentMigrator",
-    "MoveOperation",
-    "MovePreview",
-    "PageDraft",
+    "RebuildReason",
     "Redirect",
+    "RenderResult",
+    "Severity",
     # Shortcode sandbox
     "ShortcodeSandbox",
-    "RenderResult",
+    "ShortcodeUsage",
+    "SourceInfo",
+    "TemplateInfo",
     "ValidationResult",
-    # Config inspector
-    "ConfigInspector",
-    "ConfigDiff",
-    "ConfigComparisonResult",
-    "KeyExplanation",
 ]

@@ -3,7 +3,6 @@ title: Performance Benchmarks
 nav_title: Benchmarks
 description: Measured build times for Bengal across different site sizes and configurations
 weight: 15
-type: doc
 tags:
 - performance
 - benchmarks

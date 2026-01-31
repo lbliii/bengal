@@ -39,21 +39,21 @@ logger = get_logger(__name__)
 class Hydrator:
     """
     Materializes a Skeleton definition into actual files on disk.
-    
+
     The hydrator walks the skeleton's component tree and creates the
     corresponding directory structure and markdown files. It supports:
     - Cascade inheritance for type/variant propagation
     - Frontmatter generation from component properties
     - Dry-run mode for previewing changes
     - Force mode to overwrite existing files
-    
+
     Attributes:
         root_path: Target directory for file generation
         dry_run: If True, only log what would be done
         force: If True, overwrite existing files
         created_files: List of files created during apply()
         skipped_files: List of existing files that were skipped
-        
+
     """
 
     def __init__(self, root_path: Path, dry_run: bool = False, force: bool = False):

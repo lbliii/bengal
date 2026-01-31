@@ -65,17 +65,17 @@ def rewrite_font_urls_with_fingerprints(
 ) -> bool:
     """
     Rewrite font URLs in fonts.css to use fingerprinted filenames.
-    
+
     After asset fingerprinting, font files have content-hashed names for
     cache busting (e.g., ``fonts/outfit-400.6c18d579.woff2``). This function
     updates the generated fonts.css to reference these fingerprinted names
     instead of the original filenames.
-    
+
     Args:
         fonts_css_path: Absolute path to fonts.css in output directory.
         asset_manifest: Asset manifest dict with 'assets' key mapping
             logical paths to fingerprinted output paths. Expected structure::
-    
+
                 {
                     "assets": {
                         "fonts/outfit-400.woff2": {
@@ -83,17 +83,17 @@ def rewrite_font_urls_with_fingerprints(
                         }
                     }
                 }
-    
+
     Returns:
         True if fonts.css was modified, False if no changes were needed
         (file doesn't exist, no font assets in manifest, or URLs already match).
-    
+
     Example:
             >>> manifest = {"assets": {"fonts/inter-400.woff2": {"output_path": "assets/fonts/inter-400.abc123.woff2"}}}
             >>> updated = rewrite_font_urls_with_fingerprints(Path("public/assets/fonts.css"), manifest)
             >>> print(updated)
         True
-        
+
     """
     if not fonts_css_path.exists():
         return False
@@ -138,16 +138,16 @@ def rewrite_font_urls_with_fingerprints(
 class FontHelper:
     """
     Main interface for font processing in Bengal.
-    
+
     Coordinates font downloading and CSS generation based on the ``[fonts]``
     configuration section in bengal.toml. Handles caching to avoid redundant
     downloads and writes.
-    
+
     Attributes:
         config: Font configuration dictionary from bengal.toml.
         downloader: GoogleFontsDownloader instance for fetching font files.
         generator: FontCSSGenerator instance for creating @font-face CSS.
-    
+
     Example:
             >>> config = {
             ...     "primary": "Inter:400,600,700",
@@ -157,11 +157,11 @@ class FontHelper:
             >>> css_path = helper.process(Path("output/assets"))
             >>> print(css_path)
         output/assets/fonts.css
-    
+
     See Also:
         GoogleFontsDownloader: Font file downloading.
         FontCSSGenerator: CSS generation.
-        
+
     """
 
     def __init__(self, font_config: dict[str, Any]) -> None:

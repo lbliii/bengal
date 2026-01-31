@@ -47,22 +47,22 @@ if TYPE_CHECKING:
 class VersionResolver:
     """
     Resolves versioned content paths and manages shared content.
-    
+
     This class handles the mapping between source paths, logical paths, and
     output paths for versioned documentation. It also manages shared content
     that appears in all versions.
-    
+
     Responsibilities:
         - Determine which version a content path belongs to
         - Resolve shared content paths for each version
         - Compute output paths with version prefixes
         - Handle cross-version content linking
-    
+
     Attributes:
         version_config: Site versioning configuration
         root_path: Site root directory
         enabled: Whether versioning is enabled (read-only property)
-    
+
     Example:
             >>> from bengal.content.versioning import VersionResolver
             >>> from bengal.core.version import VersionConfig
@@ -82,7 +82,7 @@ class VersionResolver:
             >>> # Resolve cross-version link
             >>> url = resolver.resolve_cross_version_link("[[v2:guide]]", current_version)
             >>> print(url)  # "/docs/v2/guide/"
-        
+
     """
 
     def __init__(

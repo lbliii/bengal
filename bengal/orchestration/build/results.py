@@ -146,14 +146,14 @@ class IncrementalDecision:
 class ConfigCheckResult:
     """
     Result of configuration check phase.
-    
+
     Determines whether incremental builds are still valid after
     checking for configuration changes.
-    
+
     Attributes:
         incremental: Whether incremental build should proceed (False if config changed)
         config_changed: Whether configuration file was modified
-        
+
     """
 
     incremental: bool
@@ -169,17 +169,17 @@ class ConfigCheckResult:
 class FilterResult:
     """
     Result of incremental filtering phase.
-    
+
     Contains the work items and change information determined during
     Phase 5: Incremental Filtering.
-    
+
     Attributes:
         pages_to_build: Pages that need rendering (changed or dependent)
         assets_to_process: Assets that need processing
         affected_tags: Tags that have changed (triggers taxonomy rebuild)
         changed_page_paths: Source paths of changed pages
         affected_sections: Sections with changes (None if all sections affected)
-        
+
     """
 
     pages_to_build: list[Page]
@@ -201,17 +201,17 @@ class FilterResult:
 class ChangeSummary:
     """
     Summary of changes detected during incremental build.
-    
+
     Used for verbose logging and debugging. Contains lists of paths
     that changed, organized by change type.
-    
+
     Attributes:
         modified_content: Source paths of modified content files
         modified_assets: Paths of modified asset files
         modified_templates: Paths of modified template files
         taxonomy_changes: Tag slugs that have taxonomy changes
         extra_changes: Additional dynamic change types (e.g., "Cascade changes", "Navigation changes")
-        
+
     """
 
     modified_content: list[Path] = field(default_factory=list)

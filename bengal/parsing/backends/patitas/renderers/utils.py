@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape as html_escape
-from html import unescape as html_unescape
 
 
 @dataclass(frozen=True, slots=True)

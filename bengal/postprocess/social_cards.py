@@ -76,7 +76,7 @@ def _is_free_threading() -> bool:
 class SocialCardConfig:
     """
     Configuration for social card generation.
-    
+
     Attributes:
         enabled: Whether social cards are enabled
         template: Template style (default, minimal, documentation)
@@ -91,7 +91,7 @@ class SocialCardConfig:
         format: Image format (png or jpg)
         quality: JPEG quality (1-100)
         cache: Whether to cache generated cards
-        
+
     """
 
     enabled: bool = False  # Disabled by default (Pillow not thread-safe in free-threading Python)
@@ -113,19 +113,19 @@ class SocialCardConfig:
 def parse_social_cards_config(config: Config | dict[str, Any]) -> SocialCardConfig:
     """
     Parse [social_cards] section from bengal.toml.
-    
+
     Args:
         config: Full site configuration dictionary
-    
+
     Returns:
         SocialCardConfig with parsed values or defaults
-    
+
     Example:
             >>> config = {"social_cards": {"enabled": True, "template": "minimal"}}
             >>> sc_config = parse_social_cards_config(config)
             >>> sc_config.template
             'minimal'
-        
+
     """
     social_config = config.get("social_cards", {})
 
@@ -154,13 +154,13 @@ def parse_social_cards_config(config: Config | dict[str, Any]) -> SocialCardConf
 def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     """
     Convert hex color to RGB tuple.
-    
+
     Args:
         hex_color: Hex color string (e.g., "#ffffff" or "ffffff")
-    
+
     Returns:
         RGB tuple (r, g, b)
-        
+
     """
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
@@ -169,35 +169,35 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
 class SocialCardGenerator:
     """
     Generates social card (Open Graph) images for pages.
-    
+
     Creates 1200x630px PNG images with page title, description, and site
     branding for social media preview cards. Supports multiple templates
     and content-based caching.
-    
+
     Creation:
         Direct instantiation: SocialCardGenerator(site, config)
             - Created by PostprocessOrchestrator for card generation
             - Requires Site instance with rendered pages
-    
+
     Attributes:
         site: Site instance with pages and configuration
         config: SocialCardConfig with styling options
         _cache: Hash cache for incremental generation
         _cache_lock: Thread-safe cache access
-    
+
     Relationships:
         - Used by: PostprocessOrchestrator for post-processing phase
         - Uses: Site for page access and configuration
         - Uses: Pillow for image generation
-    
+
     Thread Safety:
         Uses sequential generation for Pillow thread-safety.
         Font loading is cached for performance.
-    
+
     Examples:
         generator = SocialCardGenerator(site, config)
         count = generator.generate_all(site.pages, output_dir)
-        
+
     """
 
     def __init__(self, site: SiteLike, config: SocialCardConfig) -> None:
@@ -864,17 +864,17 @@ class SocialCardGenerator:
 def get_social_card_path(page: Page, config: SocialCardConfig, base_path: str = "") -> str | None:
     """
     Get the path to a page's generated social card.
-    
+
     Used by SEO template functions to inject og:image meta tag.
-    
+
     Args:
         page: Page to get card path for
         config: SocialCardConfig for output directory
         base_path: Base path prefix (e.g., site baseurl)
-    
+
     Returns:
         Path to social card image, or None if page has manual image or disabled
-        
+
     """
     # Manual image takes precedence
     if page.metadata.get("image"):

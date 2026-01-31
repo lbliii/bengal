@@ -54,25 +54,25 @@ logger = get_logger(__name__)
 def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
     """
     Get href for any object. Prefer obj.href directly.
-    
+
     This is the recommended way to get URLs in template functions and filters.
     The returned URL includes baseurl and is ready for use in href attributes.
-    
+
     Args:
         obj: Page, Section, Asset, NavNodeProxy, or dict-like object with href/_path
-    
+
     Returns:
         Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
-    
+
     Example:
         # In template function
         return href_for(related_page, site)  # Returns "/bengal/docs/related/"
-    
+
     Note:
         For Page/Section/Asset objects, prefer obj.href directly, which already
         includes baseurl. This function is useful for handling various
         page-like objects consistently.
-        
+
     """
     # Use href property
     return obj.href
@@ -81,27 +81,27 @@ def href_for(obj: PageLike | Mapping[str, Any] | Any, site: SiteLike) -> str:
 def with_baseurl(path: str, site: SiteLike) -> str:
     """
     Apply baseurl prefix to a site-relative path.
-    
+
     Converts a site_path (without baseurl) to a public URL (with baseurl).
-    
+
     Args:
         path: Site-relative path starting with '/' (e.g., "/docs/page/")
         site: Site instance for baseurl config lookup
-    
+
     Returns:
         Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
-    
+
     Example:
         # Convert site_path to public URL
         public_url = with_baseurl("/docs/getting-started/", site)
         # Returns "/bengal/docs/getting-started/" when baseurl="/bengal"
-    
+
     Note:
         Handles all baseurl formats:
         - Path-only: "/bengal" → "/bengal/docs/page/"
         - Absolute: "https://example.com" → "https://example.com/docs/page/"
         - Empty: "" → "/docs/page/" (no change)
-        
+
     """
     # Ensure path starts with '/'
     if not path.startswith("/"):
@@ -141,14 +141,14 @@ def with_baseurl(path: str, site: SiteLike) -> str:
 def filter_dateformat(date: datetime | str | None, format: str = "%Y-%m-%d") -> str:
     """
     Format a date using strftime.
-    
+
     Args:
         date: Date to format
         format: strftime format string
-    
+
     Returns:
         Formatted date string
-        
+
     """
     if date is None:
         return ""

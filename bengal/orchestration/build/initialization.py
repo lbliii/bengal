@@ -10,43 +10,36 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.section import resolve_page_section_path
 from bengal.orchestration.build.results import (
     ConfigCheckResult,
-    FilterResult,
-    IncrementalDecision,
-    RebuildReasonCode,
-    SkipReasonCode,
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
-    from bengal.orchestration.build.results import ChangeSummary
-    from bengal.output import CLIOutput
     from bengal.orchestration.build_context import BuildContext
+    from bengal.output import CLIOutput
 
 
 def _check_autodoc_output_missing(
-    orchestrator: "BuildOrchestrator", cache: "BuildCache"
+    orchestrator: BuildOrchestrator, cache: BuildCache
 ) -> bool:
     """
     Check if autodoc output directories are missing.
-    
+
     This handles warm CI builds where the .bengal cache is restored but
     site/public/api/ (or other autodoc output) was not cached and is empty.
     The cache might think nothing changed (source files unchanged), but the
     virtual pages need to be regenerated.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cache: BuildCache for checking autodoc dependencies
-    
+
     Returns:
         True if autodoc output is missing and needs regeneration
-        
+
     """
     # Skip if no autodoc dependencies tracked (nothing to check)
     if not hasattr(cache, "autodoc_dependencies") or not cache.autodoc_dependencies:
@@ -100,28 +93,28 @@ def _check_autodoc_output_missing(
     return False
 
 
-def _check_special_pages_missing(orchestrator: "BuildOrchestrator") -> bool:
+def _check_special_pages_missing(orchestrator: BuildOrchestrator) -> bool:
     """
     Check if special pages (graph, search) are missing from output.
-    
+
     This handles warm CI builds where the .bengal cache is restored but
     special pages (graph/, search/) were not cached and are missing.
     The cache thinks nothing changed, but special pages need to be generated.
-    
+
     Only checks when main output exists (index.html) - if output is completely
     missing, other checks already handle forcing a full rebuild.
-    
+
     Args:
         orchestrator: Build orchestrator instance
-    
+
     Returns:
         True if any enabled special page is missing from output
-        
+
     """
     from bengal.config.defaults import get_feature_config
 
     output_dir = orchestrator.site.output_dir
-    
+
     # Skip this check if output doesn't exist yet - the main output_html_missing
     # check will handle triggering a full rebuild
     if not output_dir.exists() or not (output_dir / "index.html").exists():
@@ -149,20 +142,20 @@ def _check_special_pages_missing(orchestrator: "BuildOrchestrator") -> bool:
 def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     """
     Phase 1: Font Processing.
-    
+
     Downloads Google Fonts and generates CSS if configured in site config.
     This runs before asset discovery so font CSS is available.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
-    
+
     Side effects:
         - Creates assets/ directory if needed
         - Downloads font files to assets/fonts/
         - Generates font CSS file
         - Updates orchestrator.stats.fonts_time_ms
-        
+
     """
     if "fonts" not in orchestrator.site.config:
         return
@@ -174,10 +167,10 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
         # Check if any changed source is NOT a content file
         content_extensions = {".md", ".markdown", ".html", ".txt", ".ipynb"}
         non_content_changes = [
-            s for s in options.changed_sources 
+            s for s in options.changed_sources
             if s.suffix.lower() not in content_extensions
         ]
-        
+
         fonts_css = orchestrator.site.root_path / "assets" / "fonts.css"
         if not non_content_changes and fonts_css.exists():
             orchestrator.logger.debug("fonts_skipped", reason="only_content_changed")
@@ -224,26 +217,26 @@ def phase_template_validation(
 ) -> list[Any]:
     """
     Phase 1.5: Template Validation (optional).
-    
+
     Proactively validates all template syntax before rendering begins.
     This catches template errors early, providing faster feedback.
-    
+
     Only runs if `[build] validate_templates = true` in site config.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         strict: Whether to fail build on template errors
-    
+
     Returns:
         List of TemplateRenderError objects found during validation.
         Empty list if validation is disabled or all templates are valid.
-    
+
     Side effects:
         - Creates TemplateEngine for validation
         - Adds errors to orchestrator.stats.template_errors
         - May fail build if strict mode and errors found
-        
+
     """
     # Check if template validation is enabled
     validate_templates = orchestrator.site.config.get("validate_templates", False)
@@ -329,14 +322,14 @@ def phase_discovery(
 ) -> None:
     """
     Phase 2: Content Discovery.
-    
+
     Discovers all content files in the content/ directory and creates Page objects.
     For incremental builds, uses cached page metadata for lazy loading.
-    
+
     When build_context is provided, raw file content is cached during discovery
     for later use by validators (build-integrated validation), eliminating
     ~4 seconds of redundant disk I/O during health checks.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -345,14 +338,14 @@ def phase_discovery(
                       When provided, enables build-integrated validation optimization.
         build_cache: Optional BuildCache for registering autodoc dependencies.
                     When provided, enables selective autodoc rebuilds.
-    
+
     Side effects:
         - Populates orchestrator.site.pages with discovered pages
         - Populates orchestrator.site.sections with discovered sections
         - Updates orchestrator.stats.discovery_time_ms
         - Caches file content in build_context (if provided)
         - Registers autodoc dependencies in build_cache (if provided)
-        
+
     """
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
@@ -446,14 +439,14 @@ def phase_discovery(
 def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
     """
     Phase 3: Cache Discovery Metadata.
-    
+
     Saves page discovery metadata to cache for future incremental builds.
     This enables lazy loading of unchanged pages.
-    
+
     Side effects:
         - Normalizes page core paths to relative
         - Persists page metadata to .bengal/page_metadata.json
-        
+
     """
     with orchestrator.logger.phase("cache_discovery_metadata", enabled=True):
         try:
@@ -488,23 +481,23 @@ def phase_config_check(
 ) -> ConfigCheckResult:
     """
     Phase 4: Config Check and Cleanup.
-    
+
     Checks if config file changed (forces full rebuild) and cleans up deleted files.
-    
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         cache: Build cache
         incremental: Whether this is an incremental build
-    
+
     Returns:
         ConfigCheckResult with incremental flag (may be False if config changed)
         and config_changed flag.
-    
+
     Side effects:
         - Cleans up output files for deleted source files
         - Clears cache if config changed
-        
+
     """
     # Check if config changed (forces full rebuild)
     # Note: We check this even on full builds to populate the cache

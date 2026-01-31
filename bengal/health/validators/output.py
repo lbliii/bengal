@@ -19,14 +19,14 @@ if TYPE_CHECKING:
 class OutputValidator(BaseValidator):
     """
     Validates build output quality.
-    
+
     Checks:
     - Page sizes (detect suspiciously small pages)
     - Asset presence (CSS/JS files)
     - Output directory structure
-    
+
     Implements HasStats protocol for observability.
-        
+
     """
 
     name = "Output"

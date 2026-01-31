@@ -26,7 +26,6 @@ def format_time(ms: float) -> str:
 def show_building_indicator(text: str = "Building") -> None:
     """Show a building indicator (minimal - header is shown by build orchestrator)."""
     # Note: The build orchestrator shows the full header with border, so we don't duplicate it here
-    pass
 
 
 def show_error(message: str, show_art: bool = True) -> None:
@@ -45,10 +44,10 @@ def show_welcome() -> None:
 
 def show_clean_success(output_dir: str) -> None:
     """Show clean success message using CLI output system.
-    
+
     Note: This is now only used for --force mode (when there's no prompt).
     Regular clean uses inline success message after prompt confirmation.
-        
+
     """
     # Create CLI output instance (simple, no profile needed for clean)
     cli = CLIOutput(quiet=False, verbose=False)
@@ -64,15 +63,15 @@ def show_clean_success(output_dir: str) -> None:
 def display_template_errors(stats: BuildStats) -> None:
     """
     Display all collected template errors cleanly after build completes.
-    
+
     This function is called after rendering finishes to show all errors
     in a clean, non-interleaved format. Errors are collected during
     rendering via build_stats.add_template_error() and deduplicated
     via the ErrorDeduplicator.
-    
+
     Args:
         stats: Build statistics with template errors
-        
+
     """
     if not stats.template_errors:
         return

@@ -36,10 +36,10 @@ _render_cache = threading.local()
 def _get_render_cache() -> dict[str, Page | None]:
     """
     Get per-render cache for get_page() results (thread-safe).
-    
+
     Returns:
         Thread-local dict mapping normalized paths to Page objects (or None for misses).
-        
+
     """
     if not hasattr(_render_cache, "pages"):
         _render_cache.pages = {}
@@ -49,13 +49,13 @@ def _get_render_cache() -> dict[str, Page | None]:
 def clear_get_page_cache() -> None:
     """
     Clear per-render cache for get_page() results.
-    
+
     Called at the start of each page render by RenderingPipeline.process_page().
     Thread-safe: only clears the cache for the current thread.
-    
+
     See Also:
         bengal/rendering/pipeline/core.py: RenderingPipeline.process_page()
-        
+
     """
     if hasattr(_render_cache, "pages"):
         _render_cache.pages.clear()
@@ -64,19 +64,19 @@ def clear_get_page_cache() -> None:
 def _normalize_cache_key(path: str) -> str:
     """
     Normalize path to canonical form for cache key.
-    
+
     Ensures all path variants resolve to the same cache entry:
     - "./foo.md" -> "foo.md"
     - "content/foo.md" -> "foo.md"
     - "foo\bar.md" -> "foo/bar.md" (Windows paths)
     - "foo.md" -> "foo.md"
-    
+
     Args:
         path: Raw path from template
-    
+
     Returns:
         Normalized path suitable for cache key
-        
+
     """
     # Normalize path separators (Windows -> Unix)
     normalized = path.replace("\\", "/")
@@ -95,14 +95,14 @@ def _normalize_cache_key(path: str) -> str:
 def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     """
     Ensure a page is parsed if it hasn't been parsed yet.
-    
+
     This is used when pages are accessed via get_page() from templates
     (e.g., track item pages) and need to be parsed on-demand.
-    
+
     Args:
         page: Page to parse if needed
         site: Site instance for parser access
-        
+
     """
     # Skip if already parsed
     if hasattr(page, "parsed_ast") and page.parsed_ast is not None:
@@ -242,7 +242,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 error_type=type(e).__name__,
                 action="skipping_enhancement",
             )
-            pass  # Enhancement is optional, don't fail if it errors
+            # Enhancement is optional, don't fail if it errors
 
     except Exception as e:
         logger.warning(
@@ -258,14 +258,14 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
 def _build_lookup_maps(site: SiteLike) -> None:
     """
     Build page lookup maps on the site object if not already built.
-    
+
     Creates two maps for O(1) page lookups:
     - 'full': Full source path (str) -> Page
     - 'relative': Content-relative path (str) -> Page
-    
+
     Args:
         site: Site instance to build maps on
-        
+
     """
     # Type narrowing: _page_lookup_maps may not be on SiteLike protocol
     page_lookup_maps = getattr(site, "_page_lookup_maps", None)
@@ -301,22 +301,22 @@ def _build_lookup_maps(site: SiteLike) -> None:
 def page_exists(path: str, site: SiteLike) -> bool:
     """
     Check if a page exists without loading it.
-    
+
     Uses cached lookup maps for O(1) existence check.
     More efficient than get_page() when you only need existence.
-    
+
     Args:
         path: Page path (e.g., 'guides/setup.md' or 'guides/setup')
         site: Site instance
-    
+
     Returns:
         True if page exists, False otherwise
-    
+
     Example:
         {% if page_exists('guides/advanced') %}
           <a href="/guides/advanced/">Advanced Guide</a>
         {% endif %}
-        
+
     """
     if not path:
         return False

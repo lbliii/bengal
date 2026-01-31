@@ -2,7 +2,6 @@
 title: Navigation Functions
 description: Functions for navigating sections and checking page existence
 weight: 20
-type: doc
 tags:
 - reference
 - functions

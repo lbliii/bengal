@@ -53,14 +53,14 @@ if TYPE_CHECKING:
 class PageMetadataMixin:
     """
     Mixin providing metadata properties and type checking for pages.
-    
+
     This mixin handles:
     - Basic properties: title, date, slug, url
     - Type checking: is_home, is_section, is_page, kind
     - Simple metadata: description, draft, keywords
     - Component Model: type, variant, props
     - TOC access: toc_items (lazy evaluation)
-        
+
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
@@ -460,41 +460,43 @@ class PageMetadataMixin:
     @property
     def type(self) -> str | None:
         """
-        Get page type from frontmatter, core, cascade engine, or cascade snapshot.
+        Get page type from frontmatter, cascade snapshot, or core.
 
         Component Model: Identity.
-        
+
         Priority:
         1. Explicit frontmatter value (page defines its own type)
-        2. Cascade-set value via CascadeEngine (metadata["type"] if in _cascade_keys)
-        3. Core metadata (cached value from previous build)
-        4. Cascade snapshot lookup (immutable, thread-safe fallback)
+        2. Cascade snapshot lookup (immutable, thread-safe, always current)
+        3. Core metadata (cached value - fallback for non-cascade type)
 
         Returns:
             Page type or None
         """
-        # 1. Check explicit frontmatter (non-cascaded)
-        cascade_keys = self.metadata.get("_cascade_keys", [])
-        if "type" in self.metadata and "type" not in cascade_keys:
-            return self.metadata.get("type")
-        
-        # 2. Check cascade-set value (via CascadeEngine for backward compat)
-        if "type" in cascade_keys and "type" in self.metadata:
-            return self.metadata.get("type")
-        
-        # 3. Fall back to core (cached) value
-        if self.core is not None and self.core.type:
-            return self.core.type
-        
-        # 4. Cascade snapshot lookup (thread-safe, always current)
+        # 1. Check explicit frontmatter (page defines its own type)
+        # This takes precedence over cascade
+        if "type" in self.metadata:
+            # If this page has a cascade key set, skip - let snapshot handle it
+            cascade_keys = self.metadata.get("_cascade_keys", [])
+            if "type" not in cascade_keys:
+                return self.metadata.get("type")
+
+        # 2. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come before core to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
         if self._site and self._section:
             try:
                 content_dir = self._site.root_path / "content"
                 section_path = str(self._section.path.relative_to(content_dir))
-                return self._site.cascade.resolve(section_path, "type")
+                cascade_value = self._site.cascade.resolve(section_path, "type")
+                if cascade_value is not None:
+                    return cascade_value
             except (ValueError, AttributeError):
                 pass
-        
+
+        # 3. Fall back to core (cached) value for non-cascade type
+        if self.core is not None and self.core.type:
+            return self.core.type
+
         return self.metadata.get("type")
 
     @property
@@ -512,36 +514,31 @@ class PageMetadataMixin:
     @property
     def variant(self) -> str | None:
         """
-        Get visual variant from frontmatter, core, cascade engine, or cascade snapshot.
+        Get visual variant from frontmatter, cascade snapshot, or core.
 
         Normalizes 'layout' and 'hero_style' into the Component Model 'variant'.
 
         Component Model: Mode.
-        
+
         Priority:
         1. Explicit frontmatter value (page defines its own variant)
-        2. Cascade-set value via CascadeEngine (metadata["variant"] if in _cascade_keys)
-        3. Core metadata (cached value from previous build)
-        4. Cascade snapshot lookup for 'variant' or 'layout' keys
-        5. Frontmatter fallback (layout/hero_style)
+        2. Cascade snapshot lookup for 'variant' or 'layout' keys
+        3. Core metadata (cached value - fallback for non-cascade variant)
+        4. Frontmatter fallback (layout/hero_style)
 
         Returns:
             Variant string or None
         """
-        # 1. Check explicit frontmatter (non-cascaded)
-        cascade_keys = self.metadata.get("_cascade_keys", [])
-        if "variant" in self.metadata and "variant" not in cascade_keys:
-            return self.metadata.get("variant")
-        
-        # 2. Check cascade-set value (via CascadeEngine for backward compat)
-        if "variant" in cascade_keys and "variant" in self.metadata:
-            return self.metadata.get("variant")
-        
-        # 3. Fall back to core (cached) value
-        if self.core is not None and self.core.variant:
-            return self.core.variant
-        
-        # 4. Cascade snapshot lookup (thread-safe, always current)
+        # 1. Check explicit frontmatter (page defines its own variant)
+        # This takes precedence over cascade
+        if "variant" in self.metadata:
+            cascade_keys = self.metadata.get("_cascade_keys", [])
+            if "variant" not in cascade_keys:
+                return self.metadata.get("variant")
+
+        # 2. Cascade snapshot lookup (thread-safe, always current)
+        # This MUST come before core to ensure incremental builds pick up
+        # cascade changes from modified _index.md files
         if self._site and self._section:
             try:
                 content_dir = self._site.root_path / "content"
@@ -556,7 +553,11 @@ class PageMetadataMixin:
             except (ValueError, AttributeError):
                 pass
 
-        # 5. Fallbacks from frontmatter
+        # 3. Fall back to core (cached) value for non-cascade variant
+        if self.core is not None and self.core.variant:
+            return self.core.variant
+
+        # 4. Fallbacks from frontmatter
         return self.metadata.get("layout") or self.metadata.get("hero_style")
 
     @property

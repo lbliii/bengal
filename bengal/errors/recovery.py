@@ -97,23 +97,23 @@ def with_error_recovery(
 ) -> T:
     """
     Execute operation with error recovery.
-    
+
     In strict mode, re-raises exceptions immediately. In production mode,
     attempts recovery via on_error callback or continues with warning.
-    
+
     Args:
         operation: Function to execute
         on_error: Recovery function (returns fallback value)
         error_types: Exception types to catch
         strict_mode: If True, re-raise instead of recovering
         logger: Logger instance for warnings
-    
+
     Returns:
         Result of operation or recovery function
-    
+
     Raises:
         Exception: If strict_mode=True or no recovery function provided
-    
+
     Example:
             >>> from bengal.errors import with_error_recovery
             >>>
@@ -127,7 +127,7 @@ def with_error_recovery(
             ...     strict_mode=strict_mode,
             ...     logger=logger,
             ... )
-        
+
     """
     try:
         return operation()
@@ -161,22 +161,22 @@ def error_recovery_context(
 ):
     """
     Context manager for error recovery.
-    
+
     Suppresses exceptions in production mode, allowing execution to continue.
     In strict mode, exceptions are re-raised immediately.
-    
+
     Args:
         operation_name: Name of operation for logging
         strict_mode: If True, re-raise instead of suppressing
         logger: Logger instance for warnings
-    
+
     Example:
             >>> from bengal.errors import error_recovery_context
             >>>
             >>> with error_recovery_context("processing files", strict_mode=strict_mode, logger=logger):
             ...     for file in files:
             ...         process_file(file)  # Errors logged but don't stop loop
-        
+
     """
     try:
         yield
@@ -206,20 +206,20 @@ def recover_file_processing[T](
 ) -> T | None:
     """
     Execute file processing operation with recovery.
-    
+
     Convenience function for file processing loops that need to continue
     on errors while collecting them for reporting.
-    
+
     Args:
         file_path: Path to file being processed (for error context)
         operation: Function to execute
         strict_mode: If True, re-raise instead of recovering
         logger: Logger instance for warnings
         build_stats: BuildStats instance for error collection (optional)
-    
+
     Returns:
         Result of operation or None if error occurred and recovered
-    
+
     Example:
             >>> from bengal.errors import recover_file_processing
             >>>
@@ -233,7 +233,7 @@ def recover_file_processing[T](
             ...     )
             ...     if result:
             ...         processed.append(result)
-        
+
     """
     try:
         return operation()

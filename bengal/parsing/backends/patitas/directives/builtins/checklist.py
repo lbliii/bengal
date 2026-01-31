@@ -33,9 +33,10 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
+
+from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -55,13 +56,13 @@ __all__ = ["ChecklistDirective"]
 class ChecklistOptions(DirectiveOptions):
     """
     Typed options for checklist directive.
-    
+
     Attributes:
         style: Visual style (default, numbered, minimal)
         show_progress: Display completion percentage for task lists
         compact: Tighter spacing between items
         css_class: Additional CSS classes
-        
+
     """
 
     style: str = "default"
@@ -78,7 +79,7 @@ class ChecklistOptions(DirectiveOptions):
 class ChecklistDirective:
     """
     Checklist directive for styled lists with progress tracking.
-    
+
     Syntax:
         :::{checklist} Optional Title
         :style: numbered
@@ -89,7 +90,7 @@ class ChecklistDirective:
         - [x] Completed item
         - [ ] Unchecked item
         :::
-    
+
     Options:
         :style: Visual style
             - default: Standard bullet list styling
@@ -98,10 +99,10 @@ class ChecklistDirective:
         :show-progress: Show completion bar for task lists
         :compact: Tighter spacing between items
         :class: Additional CSS classes
-    
+
     Thread Safety:
         Stateless handler. Safe for concurrent use.
-        
+
     """
 
     names: ClassVar[tuple[str, ...]] = ("checklist",)

@@ -57,9 +57,9 @@ if TYPE_CHECKING:
 class BuildSnapshot:
     """
     Snapshot of a build state for comparison.
-    
+
     Captures key metrics and file lists from a build for delta analysis.
-    
+
     Attributes:
         timestamp: When the build occurred
         build_time_ms: Total build time
@@ -70,7 +70,7 @@ class BuildSnapshot:
         phase_times: Timing by phase (discovery, rendering, etc.)
         config_hash: Hash of configuration at build time
         metadata: Additional build metadata
-        
+
     """
 
     timestamp: datetime
@@ -194,10 +194,10 @@ class BuildSnapshot:
 class BuildDelta:
     """
     Difference between two builds.
-    
+
     Captures what changed between builds including added/removed pages,
     timing changes, and configuration differences.
-    
+
     Attributes:
         before: The earlier build snapshot
         after: The later build snapshot
@@ -207,7 +207,7 @@ class BuildDelta:
         time_change_pct: Percentage change in build time
         phase_changes: Changes in phase timings
         config_changed: Whether configuration hash changed
-        
+
     """
 
     before: BuildSnapshot
@@ -390,23 +390,23 @@ class BuildDelta:
 class BuildHistory:
     """
     Tracks build history for trend analysis.
-    
+
     Stores snapshots of builds over time to enable trend analysis,
     baseline comparisons, and performance regression detection.
     History is persisted to disk and automatically pruned to
     max_snapshots.
-    
+
     Attributes:
         storage_path: Path to JSON file storing history.
         max_snapshots: Maximum number of snapshots to retain.
         snapshots: List of BuildSnapshot in chronological order.
-    
+
     Example:
             >>> history = BuildHistory(max_snapshots=100)
             >>> history.add(current_snapshot)
             >>> trend = history.compute_trend()
             >>> print(f"Avg build time: {trend['avg_build_time_ms']:.0f}ms")
-        
+
     """
 
     def __init__(self, storage_path: Path | None = None, max_snapshots: int = 50):
@@ -510,20 +510,20 @@ class BuildHistory:
 class BuildDeltaAnalyzer(DebugTool):
     """
     Debug tool for comparing builds and explaining changes.
-    
+
     Helps understand what changed between builds, why build times
     changed, and track build evolution over time.
-    
+
     Creation:
         Direct instantiation or via DebugRegistry:
             analyzer = BuildDeltaAnalyzer(site=site, cache=cache)
-    
+
     Example:
             >>> analyzer = BuildDeltaAnalyzer(cache=cache)
             >>> # Compare current build to previous
             >>> delta = analyzer.compare_to_previous()
             >>> print(delta.format_detailed())
-        
+
     """
 
     name = "delta"

@@ -107,20 +107,20 @@ PORTABLE_ALTERNATIVES: dict[str, str] = {
 
 def check_theme_compatibility(theme: ThemeConfig | dict[str, Any], engine: str) -> list[str]:
     """Check if theme is compatible with engine, return missing features.
-    
+
     Args:
         theme: Theme configuration (ThemeConfig object or dict)
         engine: Engine type ("jinja", "kida", "generic")
-    
+
     Returns:
         List of feature names that theme requires but engine doesn't support.
         Empty list means theme is fully compatible.
-    
+
     Example:
             >>> missing = check_theme_compatibility(theme, "kida")
             >>> if missing:
             ...     print(f"Incompatible features: {missing}")
-        
+
     """
     # Extract engine config from theme
     if hasattr(theme, "get"):
@@ -147,31 +147,31 @@ def check_theme_compatibility(theme: ThemeConfig | dict[str, Any], engine: str) 
 
 def get_engine_capabilities(engine: str) -> dict[str, bool]:
     """Get full capability matrix for an engine.
-    
+
     Args:
         engine: Engine type ("jinja", "kida", "generic")
-    
+
     Returns:
         Dict mapping feature name -> bool (supported)
-    
+
     Example:
             >>> caps = get_engine_capabilities("kida")
             >>> caps["namespace_mutation"]
         False
-        
+
     """
     return dict(FEATURE_SUPPORT.get(engine, FEATURE_SUPPORT["generic"]))
 
 
 def get_portable_alternative(feature: str) -> str | None:
     """Get portable alternative for a non-portable feature.
-    
+
     Args:
         feature: Feature name
-    
+
     Returns:
         String describing portable alternative, or None if none available
-        
+
     """
     return PORTABLE_ALTERNATIVES.get(feature)
 
@@ -180,20 +180,20 @@ def validate_theme_portability(
     theme: ThemeConfig | dict[str, Any],
 ) -> dict[str, list[str]]:
     """Validate theme portability across all engines.
-    
+
     Args:
         theme: Theme configuration
-    
+
     Returns:
         Dict mapping engine -> list of unsupported features
         Empty dict for each engine means fully portable
-    
+
     Example:
             >>> issues = validate_theme_portability(theme)
             >>> for engine, missing in issues.items():
             ...     if missing:
             ...         print(f"{engine}: missing {missing}")
-        
+
     """
     issues: dict[str, list[str]] = {}
     for engine in FEATURE_SUPPORT:
@@ -205,16 +205,16 @@ def validate_theme_portability(
 
 def get_minimum_engine_level(theme: ThemeConfig | dict[str, Any]) -> str:
     """Determine minimum engine compatibility level for theme.
-    
+
     Args:
         theme: Theme configuration
-    
+
     Returns:
         Minimum compatibility level:
         - "portable": Works with all engines
         - "jinja2-compatible": Requires Jinja2-compatible features
         - "jinja2-only": Requires Jinja2-specific features
-        
+
     """
     # Extract engine config from theme
     if hasattr(theme, "get"):
@@ -248,14 +248,14 @@ def get_minimum_engine_level(theme: ThemeConfig | dict[str, Any]) -> str:
 
 def format_compatibility_warning(missing_features: list[str], engine: str) -> str:
     """Format a user-friendly warning message for incompatible features.
-    
+
     Args:
         missing_features: List of unsupported feature names
         engine: Target engine name
-    
+
     Returns:
         Formatted warning message with alternatives
-        
+
     """
     if not missing_features:
         return ""
@@ -280,13 +280,13 @@ def format_compatibility_warning(missing_features: list[str], engine: str) -> st
 
 
 __all__ = [
-    "FEATURE_SUPPORT",
     "FEATURE_CATEGORIES",
+    "FEATURE_SUPPORT",
     "PORTABLE_ALTERNATIVES",
     "check_theme_compatibility",
+    "format_compatibility_warning",
     "get_engine_capabilities",
+    "get_minimum_engine_level",
     "get_portable_alternative",
     "validate_theme_portability",
-    "get_minimum_engine_level",
-    "format_compatibility_warning",
 ]

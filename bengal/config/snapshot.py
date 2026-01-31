@@ -35,7 +35,7 @@ from typing import Any, Literal
 class SiteSection:
     """
     Typed accessor for site.* config section.
-    
+
     Attributes:
         title: Site title displayed in navigation and page titles
         baseurl: Base URL prefix for all links (e.g., "/docs/")
@@ -55,7 +55,7 @@ class SiteSection:
 class BuildSection:
     """
     Typed accessor for build.* config section.
-    
+
     Attributes:
         output_dir: Directory where generated site is written
         content_dir: Directory containing markdown content
@@ -105,7 +105,7 @@ class BuildSection:
 class DevSection:
     """
     Typed accessor for dev.* config section.
-    
+
     Attributes:
         cache_templates: Cache compiled templates in dev server
         watch_backend: Watch for backend changes in dev server
@@ -123,7 +123,7 @@ class DevSection:
 class ThemeSection:
     """
     Typed accessor for theme.* config section.
-    
+
     Attributes:
         name: Theme name (must exist in themes/)
         default_appearance: Default color scheme (light/dark/system)
@@ -155,7 +155,7 @@ class ThemeSection:
 class ContentSection:
     """
     Typed accessor for content.* config section.
-    
+
     Attributes:
         default_type: Default page type for content
         excerpt_length: Maximum excerpt length in characters
@@ -187,7 +187,7 @@ class ContentSection:
 class FeaturesSection:
     """
     Typed accessor for features.* config section.
-    
+
     Controls which output formats and features are generated.
     """
 
@@ -202,7 +202,7 @@ class FeaturesSection:
 class AssetsSection:
     """
     Typed accessor for assets.* config section.
-    
+
     Attributes:
         minify: Minify CSS/JS assets
         optimize: Optimize images
@@ -220,12 +220,12 @@ class AssetsSection:
 class ConfigSnapshot:
     """
     Frozen, typed configuration snapshot.
-    
+
     Created once at load time, used throughout build.
     Thread-safe by construction (frozen dataclass).
-    
+
     RFC: Snapshot-Enabled v2 Opportunities (Opportunity 6)
-    
+
     Access patterns:
         >>> config.site.title          # Typed attribute access
         'My Site'
@@ -280,12 +280,12 @@ class ConfigSnapshot:
     def from_dict(cls, data: dict[str, Any]) -> ConfigSnapshot:
         """
         Create frozen config snapshot from loaded dict.
-        
+
         Applies defaults and creates typed section objects.
-        
+
         Args:
             data: Raw configuration dictionary (from UnifiedConfigLoader)
-            
+
         Returns:
             Frozen ConfigSnapshot with typed sections
         """
@@ -450,12 +450,12 @@ class ConfigSnapshot:
 
 
 __all__ = [
-    "ConfigSnapshot",
-    "SiteSection",
-    "BuildSection",
-    "DevSection",
-    "ThemeSection",
-    "ContentSection",
-    "FeaturesSection",
     "AssetsSection",
+    "BuildSection",
+    "ConfigSnapshot",
+    "ContentSection",
+    "DevSection",
+    "FeaturesSection",
+    "SiteSection",
+    "ThemeSection",
 ]

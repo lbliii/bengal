@@ -3,7 +3,6 @@ title: Build Profiles
 nav_title: Profiles
 description: Configure Bengal for different workflows with built-in profiles
 weight: 10
-type: doc
 icon: user
 tags:
 - profiles

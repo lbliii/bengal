@@ -32,4 +32,4 @@ from __future__ import annotations
 from .image import ImageResource, ProcessedImage
 from .types import ProcessParams, parse_spec
 
-__all__ = ["ImageResource", "ProcessedImage", "ProcessParams", "parse_spec"]
+__all__ = ["ImageResource", "ProcessParams", "ProcessedImage", "parse_spec"]

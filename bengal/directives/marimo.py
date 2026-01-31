@@ -21,35 +21,35 @@ logger = get_logger(__name__)
 class MarimoCellDirective(DirectivePlugin):
     """
     Marimo cell directive for executable Python code blocks.
-    
+
     Syntax:
             ```{marimo}
             import pandas as pd
             pd.DataFrame({"x": [1, 2, 3]})
             ```
-    
+
     Options:
         :show-code: true/false - Display source code (default: true)
         :cache: true/false - Cache execution results (default: true)
         :label: str - Cell identifier for caching and cross-references
-    
+
     Features:
     - Execute Python code at build time
     - Render outputs (text, tables, plots, etc.)
     - Cache results for fast rebuilds
     - Show/hide source code
     - Graceful error handling
-    
+
     Example:
             ```{marimo}
             :show-code: false
             :label: sales-data
-    
+
             import pandas as pd
             data = pd.read_csv("sales.csv")
             data.head()
             ```
-        
+
     """
 
     # Directive names this class registers (for health check introspection)
@@ -65,7 +65,7 @@ class MarimoCellDirective(DirectivePlugin):
         """Check if Marimo is installed."""
         if self._marimo_available is None:
             try:
-                import marimo  # type: ignore[import-not-found]  # noqa: F401
+                import marimo  # type: ignore[import-not-found]
 
                 self._marimo_available = True
             except ImportError:
@@ -233,16 +233,16 @@ class MarimoCellDirective(DirectivePlugin):
 def render_marimo_cell(renderer: Any, html: str, cell_id: int, label: str = "") -> str:
     """
     Render Marimo cell HTML output.
-    
+
     Args:
         renderer: Mistune HTML renderer
         html: Cell HTML content
         cell_id: Numeric cell identifier
         label: Optional cell label
-    
+
     Returns:
         Wrapped HTML with cell container
-        
+
     """
     label_attr = f' data-label="{label}"' if label else ""
     return f'<div class="marimo-cell" data-cell-id="{cell_id}"{label_attr}>\n{html}\n</div>'

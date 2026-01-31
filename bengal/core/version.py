@@ -68,14 +68,14 @@ from typing import Any
 class VersionBanner:
     """
     Banner configuration for version pages.
-    
+
     Displays a notice on pages for older/deprecated versions.
-    
+
     Attributes:
         type: Banner type ('info', 'warning', 'danger')
         message: Custom message to display
         show_latest_link: Whether to show link to latest version
-        
+
     """
 
     type: str = "warning"
@@ -87,14 +87,14 @@ class VersionBanner:
 class GitBranchPattern:
     """
     Pattern for matching Git branches/tags to versions.
-    
+
     Attributes:
         pattern: Glob pattern to match (e.g., "release/*", "v*")
         version_from: How to extract version ("branch", "tag", or regex)
         strip_prefix: Prefix to remove from branch name for version ID
         latest: Whether matching branches should be marked as latest
         name: Explicit branch name (alternative to pattern)
-    
+
     Example:
             >>> pattern = GitBranchPattern(
             ...     pattern="release/*",
@@ -102,7 +102,7 @@ class GitBranchPattern:
             ...     strip_prefix="release/",
             ... )
             >>> # Matches: release/0.1.6 → version "0.1.6"
-        
+
     """
 
     pattern: str = ""
@@ -132,14 +132,14 @@ class GitBranchPattern:
 class GitVersionConfig:
     """
     Git-specific versioning configuration.
-    
+
     Attributes:
         branches: List of branch patterns to match
         tags: List of tag patterns to match
         default_branch: Branch to use as "latest" (default: main)
         cache_worktrees: Whether to cache git worktrees for speed
         parallel_builds: Number of parallel version builds
-    
+
     Example:
             >>> config = GitVersionConfig(
             ...     branches=[
@@ -147,7 +147,7 @@ class GitVersionConfig:
             ...         GitBranchPattern(pattern="release/*", strip_prefix="release/"),
             ...     ],
             ... )
-        
+
     """
 
     branches: list[GitBranchPattern] = field(default_factory=list)
@@ -161,7 +161,7 @@ class GitVersionConfig:
 class Version:
     """
     Represents a single documentation version.
-    
+
     Attributes:
         id: Version identifier (e.g., 'v3', 'v2.1', '1.0')
         source: Source directory relative to content root
@@ -171,13 +171,13 @@ class Version:
         deprecated: Whether this version is deprecated
         release_date: Optional release date for this version
         end_of_life: Optional end-of-life date
-    
+
     Design Notes:
         - id is used in URLs and config references
         - source is the content directory path (relative to content root)
         - label is for display in version selector
         - latest determines URL structure (no prefix for latest)
-        
+
     """
 
     id: str
@@ -240,10 +240,10 @@ class Version:
 class VersionConfig:
     """
     Site-wide versioning configuration.
-    
+
     Manages multiple documentation versions, aliases, and shared content.
     Supports two modes: folder-based (default) and git-based.
-    
+
     Attributes:
         enabled: Whether versioning is enabled
         mode: Versioning mode ('folder' or 'git')
@@ -253,7 +253,7 @@ class VersionConfig:
         shared: Paths to shared content included in all versions
         url_config: URL generation configuration
         git_config: Git-specific configuration (for git mode)
-    
+
     Example (Folder Mode):
             >>> config = VersionConfig(
             ...     enabled=True,
@@ -263,7 +263,7 @@ class VersionConfig:
             ...     ],
             ...     aliases={"latest": "v3", "stable": "v3", "lts": "v2"},
             ... )
-    
+
     Example (Git Mode):
             >>> config = VersionConfig(
             ...     enabled=True,
@@ -275,7 +275,7 @@ class VersionConfig:
             ...         ],
             ...     ),
             ... )
-        
+
     """
 
     enabled: bool = False

@@ -99,24 +99,24 @@ from bengal.protocols.build import BuildPhase
 class ErrorSeverity(Enum):
     """
     Error severity classification.
-    
+
     Determines how errors are handled and whether the build can continue.
     Severity levels affect logging, aggregation, and user presentation.
-    
+
     Levels (highest to lowest):
-    
+
     - **FATAL** - Build cannot continue at all. Raises immediately.
     - **ERROR** - This item failed, but build may continue with others.
     - **WARNING** - Something is off but recoverable. Item processed.
     - **HINT** - Suggestion for improvement. No functional impact.
-    
+
     Example:
             >>> severity = ErrorSeverity.ERROR
             >>> severity.can_continue
         True
             >>> severity.should_aggregate
         True
-        
+
     """
 
     FATAL = "fatal"  # Build cannot continue at all
@@ -151,12 +151,12 @@ class ErrorSeverity(Enum):
 class RelatedFile:
     """
     A file related to an error for debugging context.
-    
+
     Attributes:
         role: What role this file plays (e.g., "template", "page", "config")
         path: Path to the file
         line_number: Optional line number of interest
-        
+
     """
 
     role: str
@@ -174,10 +174,10 @@ class RelatedFile:
 class ErrorDebugPayload:
     """
     Machine-parseable debug context for AI troubleshooting.
-    
+
     This provides structured data that can be immediately used
     to investigate errors programmatically.
-        
+
     """
 
     # What was being processed
@@ -234,11 +234,11 @@ class ErrorDebugPayload:
 class ErrorContext:
     """
     Standardized error context for enriching exceptions.
-    
+
     Captures all available context about where and why an error occurred,
     including build phase, related files, and debug payload. Used by
     ``enrich_error()`` to add context to exceptions.
-    
+
     Attributes:
         file_path: Path to the file where the error occurred.
         line_number: Line number in the file.
@@ -258,7 +258,7 @@ class ErrorContext:
         template_context_keys: Available template context variable names.
         config_keys_accessed: Config keys being accessed (for config errors).
         debug_payload: Full machine-readable debug context.
-    
+
     Example:
             >>> context = ErrorContext(
             ...     file_path=Path("content/post.md"),
@@ -268,7 +268,7 @@ class ErrorContext:
             ...     suggestion="Check YAML syntax",
             ... )
             >>> context.add_related_file("config", "config/_default/site.yaml")
-        
+
     """
 
     # Location info
@@ -359,18 +359,18 @@ def enrich_error(
 ) -> BengalError:
     """
     Enrich exception with standardized context.
-    
+
     If error is already a BengalError, adds missing context fields.
     Otherwise, wraps error in a new BengalError instance.
-    
+
     Args:
         error: Exception to enrich
         context: Error context to add
         error_class: Class to use for wrapping (defaults to BengalError)
-    
+
     Returns:
         Enriched BengalError instance
-    
+
     Example:
             >>> from bengal.errors import BengalError, ErrorContext, enrich_error
             >>>
@@ -384,7 +384,7 @@ def enrich_error(
             ...     )
             ...     enriched = enrich_error(e, context)
             ...     raise enriched
-        
+
     """
     from bengal.errors.exceptions import BengalError as BaseBengalError
 
@@ -433,16 +433,16 @@ def enrich_error(
 def get_context_from_exception(error: Exception) -> ErrorContext:
     """
     Extract error context from an exception if available.
-    
+
     Attempts to extract file_path, line_number, and other context
     from various exception types.
-    
+
     Args:
         error: Exception to extract context from
-    
+
     Returns:
         ErrorContext with any available information
-        
+
     """
     context = ErrorContext()
 
@@ -490,18 +490,18 @@ def create_rendering_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for rendering errors.
-    
+
     Convenience function for the common case of rendering errors.
-    
+
     Args:
         page_path: Path to the page being rendered
         template_name: Name of the template being used
         template_line: Line number in template where error occurred
         context_vars: Template context variable names available
-    
+
     Returns:
         Pre-configured ErrorContext for rendering
-        
+
     """
     context = ErrorContext(
         file_path=Path(page_path) if isinstance(page_path, str) else page_path,
@@ -534,14 +534,14 @@ def create_discovery_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for discovery errors.
-    
+
     Args:
         file_path: Path to file being discovered
         operation: Operation being performed
-    
+
     Returns:
         Pre-configured ErrorContext for discovery
-        
+
     """
     return ErrorContext(
         file_path=Path(file_path) if isinstance(file_path, str) else file_path,
@@ -565,14 +565,14 @@ def create_config_context(
 ) -> ErrorContext:
     """
     Create an ErrorContext for config errors.
-    
+
     Args:
         config_file: Path to config file
         config_key: Config key being accessed
-    
+
     Returns:
         Pre-configured ErrorContext for config
-        
+
     """
     context = ErrorContext(
         file_path=Path(config_file) if isinstance(config_file, str) else config_file,

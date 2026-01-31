@@ -72,19 +72,19 @@ if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
 
 __all__ = [
-    # Data wrappers
-    "SmartDict",
-    "ParamsContext",
-    "CascadingParamsContext",
-    # Site wrappers
-    "SiteContext",
-    "ThemeContext",
-    "ConfigContext",
-    # Section types (from snapshots - no wrapper needed)
-    "SectionSnapshot",
     "NO_SECTION",
+    "CascadingParamsContext",
+    "ConfigContext",
     # Menu wrapper
     "MenusContext",
+    "ParamsContext",
+    # Section types (from snapshots - no wrapper needed)
+    "SectionSnapshot",
+    # Site wrappers
+    "SiteContext",
+    # Data wrappers
+    "SmartDict",
+    "ThemeContext",
     # Context builders
     "build_page_context",
     "build_special_page_context",
@@ -141,16 +141,16 @@ except ImportError:
 def _create_global_contexts(site: SiteLike) -> dict[str, Any]:
     """
     Create fresh global context wrappers for a site.
-    
+
     Helper function that creates the actual context wrapper objects.
     Used by both _get_global_contexts (global cache) and build-scoped caching.
-    
+
     Args:
         site: Site instance to wrap
-    
+
     Returns:
         Dict with context wrappers: site, config, theme, menus
-        
+
     """
     theme_obj = site.theme_config if hasattr(site, "theme_config") else None
     return {
@@ -167,27 +167,27 @@ def _get_global_contexts(
 ) -> dict[str, Any]:
     """
     Get or create cached global context wrappers for a site.
-    
+
     Global contexts (site, config, theme, menus) are stateless wrappers
     that don't change between page renders. Caching them eliminates
     repeated object allocation overhead.
-    
+
     If build_context is provided, uses build-scoped caching (RFC: Cache Lifecycle
     Hardening). This ensures cache is isolated to the current build and
     automatically cleared when the build completes, preventing cross-build
     contamination.
-    
+
     Thread-safe: Uses appropriate locking for safe concurrent access.
-    
+
     Args:
         site: Site instance to wrap
         build_context: Optional BuildContext for build-scoped caching.
                        If provided, cache is scoped to this build.
                        If None, uses global module-level cache (legacy behavior).
-    
+
     Returns:
         Dict with cached context wrappers: site, config, theme, menus
-        
+
     """
     # If build_context provided, use build-scoped caching (preferred)
     if build_context is not None:
@@ -213,11 +213,11 @@ def _get_global_contexts(
 def clear_global_context_cache() -> None:
     """
     Clear the global context cache.
-    
+
     Call this between builds or when site configuration changes.
-    
+
     Thread-safe: Clears under lock.
-        
+
     """
     _clear_global_context_cache()
 
@@ -225,10 +225,10 @@ def clear_global_context_cache() -> None:
 def get_engine_globals(site: SiteLike) -> dict[str, Any]:
     """
     Get all engine-agnostic globals for template engine initialization.
-    
+
     This is the SINGLE SOURCE OF TRUTH for engine globals.
     Use this in Jinja, Kida, and any future engines.
-    
+
     Shared globals include:
         - site: SiteContext wrapper for safe {{ site.title }} access
         - config: ConfigContext wrapper for safe {{ config.key }} access
@@ -239,30 +239,30 @@ def get_engine_globals(site: SiteLike) -> dict[str, Any]:
         - versioning_enabled: Whether versioning is active
         - versions: List of available versions
         - getattr: Python's getattr for safe attribute access
-    
+
     Engine-specific globals (url_for, get_menu, get_menu_lang, breadcrumbs)
     must still be added by each engine after calling this function.
-    
+
     Implementation Notes:
         - Cached and thread-safe via _get_global_contexts()
         - Uses local imports for metadata to prevent circular dependencies
-    
+
     Args:
         site: Site instance
-    
+
     Returns:
         Dict of globals to merge into engine's globals
-    
+
     Example:
         from bengal.rendering.context import get_engine_globals
-    
+
         # In engine initialization:
         env.globals.update(get_engine_globals(site))
-    
+
         # Then add engine-specific globals:
         env.globals["url_for"] = self._url_for
         env.globals["get_menu"] = self._get_menu
-        
+
     """
     # Reuse existing cached contexts (site, config, theme, menus)
     # This leverages the existing id(site) cache for performance.
@@ -305,15 +305,15 @@ def build_page_context(
 ) -> dict[str, Any]:
     """
     Build complete template context for any page type.
-    
+
     This is the SINGLE SOURCE OF TRUTH for all template contexts.
     All rendering paths must use this function.
-    
+
     Used by:
     - Renderer.render_page() for regular pages
     - RenderingPipeline._render_autodoc_page() for autodoc pages
     - SpecialPagesGenerator for 404/search/graph pages
-    
+
     Args:
         page: Page object or SimpleNamespace (synthetic pages)
         site: Site instance
@@ -324,14 +324,14 @@ def build_page_context(
         subsections: Override subsections list
         extra: Additional context variables
         snapshot: Optional SiteSnapshot for lock-free rendering (RFC: rfc-bengal-snapshot-engine)
-    
+
     Returns:
         Complete template context dict with all wrappers applied
-    
+
     Example:
         context = build_page_context(page, site, content=html)
         rendered = template.render(**context)
-        
+
     """
     # Get metadata - works for both Page and SimpleNamespace
     metadata = getattr(page, "metadata", {}) or {}
@@ -344,7 +344,7 @@ def build_page_context(
     # Resolve section to SectionSnapshot (no wrapper needed)
     # SectionSnapshot has params property and __bool__ for template compatibility
     section_snapshot: SectionSnapshot | None = None
-    
+
     if snapshot and resolved_section:
         # Find section snapshot by matching path or name
         for sec_snap in snapshot.sections:
@@ -466,19 +466,19 @@ def build_special_page_context(
 ) -> dict[str, Any]:
     """
     Build context for special pages (404, search, graph).
-    
+
     Creates a synthetic page and builds full context.
-    
+
     Args:
         title: Page title
         description: Page description
         url: Page URL
         site: Site instance
         extra: Additional context variables
-    
+
     Returns:
         Complete template context
-        
+
     """
     from bengal.core.page.utils import create_synthetic_page
 

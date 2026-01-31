@@ -3,7 +3,6 @@ title: Functions
 nav_title: Functions
 description: Reusable template components that automatically access outer variables
 weight: 40
-type: doc
 tags:
 - reference
 - kida

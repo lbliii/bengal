@@ -38,19 +38,19 @@ if TYPE_CHECKING:
 class PageContentMixin:
     """
     Mixin providing AST-based content properties for pages.
-    
+
     This mixin handles content representation across multiple formats:
     - AST (Abstract Syntax Tree) - structural representation (Phase 3)
     - HTML - rendered for display (via .content property)
     - Plain text - for search indexing and LLM
-    
+
     All properties use lazy evaluation with caching for performance.
-    
+
     Key Properties:
         content: Rendered HTML content (template-ready, display output)
         html: Alias for content (rendered HTML)
         _source: Raw markdown source (internal use, via PageComputedMixin)
-        
+
     """
 
     # Fields from Page that this mixin accesses

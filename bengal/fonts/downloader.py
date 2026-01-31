@@ -53,17 +53,17 @@ logger = get_logger(__name__)
 class FontVariant:
     """
     Represents a specific font variant (family + weight + style combination).
-    
+
     Each FontVariant corresponds to a single downloadable font file from
     Google Fonts. The variant includes all metadata needed to generate
     @font-face CSS rules.
-    
+
     Attributes:
         family: Font family name as displayed (e.g., "Inter", "Playfair Display").
         weight: Numeric font weight (100-900, typically 400 for regular, 700 for bold).
         style: Font style, either "normal" or "italic".
         url: Direct URL to the font file on Google's CDN (.woff2 or .ttf).
-    
+
     Example:
             >>> variant = FontVariant("Inter", 400, "normal", "https://fonts.gstatic.com/...")
             >>> print(variant.filename)
@@ -71,7 +71,7 @@ class FontVariant:
             >>> variant_italic = FontVariant("Inter", 400, "italic", "https://...")
             >>> print(variant_italic.filename)
         inter-400-italic.woff2
-        
+
     """
 
     family: str
@@ -101,23 +101,23 @@ class FontVariant:
 class GoogleFontsDownloader:
     """
     Downloads font files from Google Fonts for self-hosting.
-    
+
     Uses the Google Fonts CSS2 API to discover font file URLs, then downloads
     the actual .woff2 (or .ttf) files. No API key is required—the CSS API is
     public and the User-Agent header determines the returned font format.
-    
+
     The downloader handles:
         - Building properly formatted CSS API URLs
         - Parsing CSS to extract font file URLs
         - SSL certificate issues on macOS (automatic fallback)
         - Atomic file writes to prevent corruption
         - Both WOFF2 (for web) and TTF (for image generation) formats
-    
+
     Attributes:
         BASE_URL: Google Fonts CSS2 API endpoint.
         USER_AGENT_WOFF2: Modern browser user-agent that requests woff2 format.
         USER_AGENT_TTF: Legacy user-agent that requests ttf format.
-    
+
     Example:
             >>> downloader = GoogleFontsDownloader()
             >>> variants = downloader.download_font(
@@ -128,11 +128,11 @@ class GoogleFontsDownloader:
             ... )
             >>> len(variants)
         6
-    
+
     Note:
         The User-Agent string determines the font format Google returns.
         Modern browsers get WOFF2, legacy browsers get TTF.
-        
+
     """
 
     BASE_URL = "https://fonts.googleapis.com/css2"

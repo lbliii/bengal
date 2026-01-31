@@ -48,9 +48,9 @@ __all__ = [
     # Protocol
     "RoleHandler",
     "RoleParseOnly",
-    "RoleRenderOnly",
     # Registry
     "RoleRegistry",
     "RoleRegistryBuilder",
+    "RoleRenderOnly",
     "create_default_registry",
 ]

@@ -3,7 +3,6 @@ title: Kida Architecture
 nav_title: Architecture
 description: Compilation pipeline, AST structure, and rendering implementation
 weight: 15
-type: doc
 draft: false
 lang: en
 tags:

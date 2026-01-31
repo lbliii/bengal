@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 
 def register_context_functions(env: Any, site: SiteLike) -> None:
     """Register context-dependent template functions for Kida.
-    
+
     Strategy: Context-aware function factory
-    
+
     Static functions are registered immediately. Page-dependent functions
     are created via a factory that's called at render time with the page.
-    
+
     Args:
         env: Kida Environment instance
         site: Site instance
-        
+
     """
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (
@@ -114,18 +114,18 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
 
 def inject_page_context(env: Any, page: Any = None) -> None:
     """Inject page-aware functions into environment globals before rendering.
-    
+
     Called by KidaTemplateEngine.render_template():
-    
+
         def render_template(self, name, context):
             page = context.get("page")
             inject_page_context(self._env, page)
             return template.render(context)
-    
+
     Args:
         env: Kida Environment instance
         page: Current page being rendered
-        
+
     """
     if hasattr(env, "_page_aware_factory"):
         page_functions = env._page_aware_factory(page)

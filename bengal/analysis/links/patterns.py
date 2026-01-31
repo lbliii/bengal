@@ -34,7 +34,7 @@ logger = get_logger(__name__)
 class LinkPatternReport:
     """
     Report of link pattern analysis.
-    
+
     Attributes:
         total_internal_links: Count of all internal links
         total_external_links: Count of all external links
@@ -43,7 +43,7 @@ class LinkPatternReport:
         section_traffic: Estimated traffic per section
         recommended_prerender: Paths recommended for prerender
         recommended_prefetch: Paths recommended for prefetch
-        
+
     """
 
     total_internal_links: int = 0
@@ -69,15 +69,15 @@ class LinkPatternReport:
 class LinkPatternAnalyzer:
     """
     Analyzes link patterns across a site.
-    
+
     Uses the site's content graph and page metadata to identify
     navigation patterns and recommend speculation strategies.
-    
+
     Example usage:
         analyzer = LinkPatternAnalyzer(site)
         report = analyzer.analyze()
         print(f"Hot paths: {report.hot_paths}")
-        
+
     """
 
     def __init__(self, site: SiteLike):
@@ -219,13 +219,13 @@ class LinkPatternAnalyzer:
 def analyze_link_patterns(site: SiteLike) -> LinkPatternReport:
     """
     Convenience function to analyze link patterns.
-    
+
     Args:
         site: The Bengal site instance
-    
+
     Returns:
         LinkPatternReport with analysis results
-        
+
     """
     analyzer = LinkPatternAnalyzer(site)
     return analyzer.analyze()

@@ -51,33 +51,33 @@ logger = get_logger(__name__)
 class IncrementalOrchestrator:
     """
     Orchestrates incremental build logic for efficient rebuilds.
-    
+
     Coordinates cache management, change detection, dependency tracking, and
     selective rebuilding using the unified EffectBasedDetector. Uses file hashes,
     dependency graphs, and taxonomy indexes to minimize rebuild work.
-    
+
     Component Delegation:
         - CacheManager: Cache loading, saving, and migration
         - EffectBasedDetector: Unified change detection (replaces old pipeline)
         - cleanup: Deleted file cleanup
-    
+
     Creation:
         Direct instantiation: IncrementalOrchestrator(site)
             - Created by BuildOrchestrator when incremental builds enabled
             - Requires Site instance with content populated
-    
+
     Attributes:
         site: Site instance for incremental builds
         cache: BuildCache instance for build state persistence
         tracker: DependencyTracker instance for dependency graph construction
         _cache_manager: CacheManager instance for cache operations
         _detector: EffectBasedDetector instance for change detection
-    
+
     Example:
             >>> orchestrator = IncrementalOrchestrator(site)
             >>> cache, tracker = orchestrator.initialize(enabled=True)
             >>> pages, assets, summary = orchestrator.find_work_early()
-        
+
     """
 
     def __init__(self, site: Site) -> None:
@@ -492,12 +492,7 @@ class IncrementalOrchestrator:
             if cached_hash is not None and cached_hash != current_hash:
                 # Find section for this _index.md and mark all its pages
                 for section in self.site.sections:
-                    if hasattr(section, "index_page") and section.index_page is page:
-                        if hasattr(section, "pages"):
-                            for section_page in section.pages:
-                                nav_rebuild.add(section_page.source_path)
-                        break
-                    elif hasattr(section, "path") and section.path == path.parent:
+                    if (hasattr(section, "index_page") and section.index_page is page) or (hasattr(section, "path") and section.path == path.parent):
                         if hasattr(section, "pages"):
                             for section_page in section.pages:
                                 nav_rebuild.add(section_page.source_path)

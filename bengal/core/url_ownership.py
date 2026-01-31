@@ -62,17 +62,17 @@ if TYPE_CHECKING:
 class URLClaim:
     """
     Immutable record of URL ownership claim.
-    
+
     Represents a single producer's claim to a URL, including ownership
     metadata and priority for conflict resolution.
-    
+
     Attributes:
         owner: Owner identifier (e.g., "content", "autodoc:python", "taxonomy")
         source: Source file path or qualified name
         priority: Priority level (higher = wins conflicts)
         version: Version identifier if applicable (None for unversioned)
         lang: Language code if applicable (None for monolingual)
-        
+
     """
 
     owner: str
@@ -94,12 +94,12 @@ class URLClaim:
 class URLCollisionError(BengalContentError):
     """
     Exception raised when URL collision detected at claim time.
-    
+
     Provides detailed diagnostics including both claims, priority comparison,
     and suggested fixes.
-    
+
     Extends BengalContentError for consistent error handling.
-        
+
     """
 
     def __init__(
@@ -167,16 +167,16 @@ class URLCollisionError(BengalContentError):
 class URLRegistry:
     """
     Central authority for URL claims with claim-time enforcement.
-    
+
     Maintains a registry of all URL claims and enforces ownership policy
     at claim time (before file writes). Provides priority-based conflict
     resolution and diagnostic error messages.
-    
+
     Usage:
         registry = URLRegistry()
         registry.claim("/about/", owner="content", source="content/about.md", priority=100)
         url = registry.claim_output_path(output_path, site=site, owner="taxonomy", source="tags/python", priority=40)
-        
+
     """
 
     def __init__(self) -> None:

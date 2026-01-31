@@ -46,26 +46,26 @@ T = TypeVar("T", bound="Cacheable")
 class ProgressReporter(Protocol):
     """
     Protocol for reporting build progress and user-facing messages.
-    
+
     Defines interface for progress reporting implementations. Used throughout
     the build system for consistent progress reporting across CLI, server, and
     test contexts.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. All methods may be called
         concurrently from multiple threads during parallel builds.
-    
+
     Implementations:
         - NoopReporter: No-op implementation for tests
         - LiveProgressReporterAdapter: Adapter for LiveProgressManager
         - CLI implementations: Rich progress bars for CLI
-    
+
     Example:
             >>> def report_progress(reporter: ProgressReporter):
             ...     reporter.start_phase("rendering")
             ...     reporter.update_phase("rendering", current=5, total=10)
             ...     reporter.complete_phase("rendering")
-        
+
     """
 
     def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None:
@@ -100,29 +100,29 @@ class ProgressReporter(Protocol):
 class Cacheable(Protocol):
     """
     Protocol for types that can be cached to disk.
-    
+
     Types implementing this protocol can be automatically serialized to JSON
     and deserialized, with type checker validation.
-    
+
     Contract Requirements:
         1. JSON Primitives Only: to_cache_dict() must return only JSON-serializable
            types: str, int, float, bool, None, list, dict.
-    
+
         2. Type Conversion: Complex types must be converted:
            - datetime → ISO-8601 string (via datetime.isoformat())
            - Path → str (via str(path))
            - set → sorted list (for stability)
-    
+
         3. No Object References: Never serialize live objects (Page, Section, Asset).
            Use stable identifiers (usually string paths) instead.
-    
+
         4. Round-trip Invariant: T.from_cache_dict(obj.to_cache_dict()) must
            reconstruct an equivalent object (== by fields).
-    
+
     Thread Safety:
         to_cache_dict() and from_cache_dict() MUST be thread-safe.
         They may be called concurrently during parallel cache operations.
-    
+
     Example:
             >>> @dataclass
             ... class TagEntry(Cacheable):
@@ -135,7 +135,7 @@ class Cacheable(Protocol):
             ...     @classmethod
             ...     def from_cache_dict(cls, data: dict[str, Any]) -> 'TagEntry':
             ...         return cls(tag_slug=data['tag_slug'], page_paths=data['page_paths'])
-        
+
     """
 
     def to_cache_dict(self) -> dict[str, Any]:
@@ -174,20 +174,20 @@ class Cacheable(Protocol):
 class OutputCollector(Protocol):
     """
     Protocol for collecting output writes during build.
-    
+
     Implementations track files written during a build, enabling
     reliable hot reload decisions and build verification.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. All methods may be called
         concurrently from multiple threads during parallel builds.
-    
+
     Example:
             >>> collector.record(Path("posts/hello.html"), OutputType.HTML, "render")
             >>> collector.record(Path("assets/style.css"), phase="asset")
             >>> collector.css_only()
         False
-        
+
     """
 
     def record(
@@ -244,28 +244,28 @@ class OutputCollector(Protocol):
 class ContentSourceProtocol(Protocol):
     """
     Protocol interface for content sources.
-    
+
     This is the Protocol version of ContentSource ABC for cases
     where duck typing is preferred over inheritance.
-    
+
     Enables loading content from different backends:
     - Filesystem (default)
     - Git repositories (for versioned docs)
     - Remote APIs (headless CMS)
     - In-memory (testing)
-    
+
     Note:
         The existing ContentSource ABC remains for implementations
         that prefer inheritance. Both satisfy this protocol.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. fetch_all() and fetch_one()
         may be called concurrently during parallel builds.
-    
+
     Example:
             >>> async for entry in source.fetch_all():
             ...     print(entry.title)
-        
+
     """
 
     @property
@@ -296,24 +296,24 @@ class ContentSourceProtocol(Protocol):
 class OutputTarget(Protocol):
     """
     Abstract interface for build output.
-    
+
     Enables writing to different backends:
     - Filesystem (default)
     - In-memory (testing, preview)
     - S3/Cloud storage (deployment)
     - ZIP archive (distribution)
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. The write() and copy()
         methods will be called concurrently by multiple render threads
         when Bengal is configured with parallel=true.
-    
+
     Example:
             >>> target.mkdir("posts")
             >>> target.write("posts/hello.html", "<h1>Hello</h1>")
             >>> target.exists("posts/hello.html")
         True
-        
+
     """
 
     @property

@@ -17,8 +17,6 @@ keywords:
 - examples
 - bengal
 category: guide
-cascade:
-  type: doc
 icon: book-open
 card_color: orange
 ---

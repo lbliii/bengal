@@ -48,7 +48,7 @@ __all__ = [
 class AsciinemaOptions(DirectiveOptions):
     """
     Options for Asciinema terminal recording embed.
-    
+
     Attributes:
         title: Required - Accessible title for recording (ARIA label)
         cols: Terminal columns (default: 80)
@@ -61,7 +61,7 @@ class AsciinemaOptions(DirectiveOptions):
         idle_time_limit: Max idle time between frames in seconds
         start_at: Start playback at specific time (seconds or MM:SS)
         css_class: Additional CSS classes
-    
+
     Example:
         :::{asciinema} 590029
         :title: Installation Demo
@@ -70,7 +70,7 @@ class AsciinemaOptions(DirectiveOptions):
         :speed: 1.5
         :autoplay: true
         :::
-        
+
     """
 
     title: str = ""
@@ -95,10 +95,10 @@ class AsciinemaOptions(DirectiveOptions):
 class AsciinemaDirective(BengalDirective):
     """
     Asciinema terminal recording embed directive.
-    
+
     Embeds asciinema.org terminal recordings with customizable playback options.
     Uses official script-based embed with noscript fallback.
-    
+
     Syntax:
         :::{asciinema} recording_id
         :title: Installation Demo
@@ -107,7 +107,7 @@ class AsciinemaDirective(BengalDirective):
         :speed: 1.5
         :autoplay: true
         :::
-    
+
     Options:
         :title: (required) Accessible title for recording
         :cols: Terminal columns (default: 80)
@@ -120,7 +120,7 @@ class AsciinemaDirective(BengalDirective):
         :idle-time-limit: Max idle time between frames in seconds
         :start-at: Start playback at specific time
         :class: Additional CSS classes
-    
+
     Output:
         <figure class="asciinema-embed" role="img" aria-label="...">
           <script id="asciicast-..." src="https://asciinema.org/a/....js"
@@ -129,16 +129,16 @@ class AsciinemaDirective(BengalDirective):
             <a href="https://asciinema.org/a/...">View recording: ...</a>
           </noscript>
         </figure>
-    
+
     Security:
         - Recording ID validated (numeric only)
         - All data attributes properly escaped
-    
+
     Accessibility:
         - ARIA role="img" with aria-label
         - Noscript fallback with link
         - Recommend providing transcript for complex recordings
-        
+
     """
 
     NAMES: ClassVar[list[str]] = ["asciinema"]

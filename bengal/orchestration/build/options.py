@@ -32,14 +32,14 @@ type PhaseCompleteCallback = Callable[[str, float, str], None]
 class BuildOptions:
     """
     Configuration options for site builds.
-    
+
     Consolidates all build parameters into a single object, replacing
     the 11-parameter signature of BuildOrchestrator.build().
-    
+
     **Preferred Usage**: Use :func:`bengal.config.build_options_resolver.resolve_build_options`
     to create BuildOptions with proper precedence (CLI > config > DEFAULTS).
     Direct instantiation is supported for backward compatibility and testing.
-    
+
     Attributes:
         force_sequential: If True, force sequential processing (bypasses auto-detection).
             Use --no-parallel CLI flag to set this. Default: False (auto-detect via should_parallelize).
@@ -58,7 +58,7 @@ class BuildOptions:
         changed_sources: Set of paths to content files that changed (for dev server)
         nav_changed_sources: Set of paths to nav-affecting files that changed
         structural_changed: Whether structural changes occurred (file create/delete/move)
-    
+
     Example:
             >>> # Preferred: Use resolver for proper precedence
             >>> from bengal.config.build_options_resolver import resolve_build_options, CLIFlags
@@ -72,7 +72,7 @@ class BuildOptions:
             ...     strict=True,
             ...     incremental=False,
             ... )
-        
+
     """
 
     # Build behavior
