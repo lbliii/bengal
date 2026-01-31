@@ -20,6 +20,7 @@ except ImportError as e:
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
+from bengal.content.utils.http_errors import raise_http_error
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -105,36 +106,17 @@ class RESTSource(ContentSource):
 
             while url:
                 async with session.get(url) as resp:
-                    if resp.status == 404:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        error = BengalDiscoveryError(
-                            f"REST API endpoint not found: {url}",
-                            code=ErrorCode.D011,
-                            suggestion="Verify the API URL is correct and the endpoint exists",
+                    if resp.status in (401, 403, 404):
+                        raise_http_error(
+                            resp.status,
+                            "REST API endpoint",
+                            url,
+                            suggestion={
+                                401: "Check API credentials and authentication headers",
+                                403: "Check API permissions and access rights",
+                                404: "Verify the API URL is correct and the endpoint exists",
+                            }.get(resp.status),
                         )
-                        record_error(error)
-                        raise error
-                    if resp.status == 401:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        error = BengalDiscoveryError(
-                            f"Authentication failed for REST API: {url}",
-                            code=ErrorCode.D010,
-                            suggestion="Check API credentials and authentication headers",
-                        )
-                        record_error(error)
-                        raise error
-                    if resp.status == 403:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        error = BengalDiscoveryError(
-                            f"Access denied to REST API: {url}",
-                            code=ErrorCode.D010,
-                            suggestion="Check API permissions and access rights",
-                        )
-                        record_error(error)
-                        raise error
                     resp.raise_for_status()
                     data = await resp.json()
 

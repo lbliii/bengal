@@ -16,15 +16,13 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.content.utils.constants import CONTENT_EXTENSIONS
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.section import Section
 
 logger = get_logger(__name__)
-
-# Content file extensions
-CONTENT_EXTENSIONS = {".md", ".markdown", ".rst", ".txt"}
 
 
 class DirectoryWalker:

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 import frontmatter  # type: ignore[import-untyped]
 
+from bengal.content.utils.frontmatter import extract_content_skip_frontmatter
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -141,7 +142,7 @@ class ContentParser:
             suggestion="Fix frontmatter YAML syntax",
         )
 
-        content = self._extract_content_skip_frontmatter(file_content)
+        content = extract_content_skip_frontmatter(file_content)
 
         from bengal.utils.primitives.text import humanize_slug
 
@@ -196,8 +197,9 @@ class ContentParser:
         """
         Extract content, skipping broken frontmatter section.
 
-        Frontmatter is between --- delimiters at start of file.
-        If parsing failed, skip the section entirely.
+        .. deprecated::
+            Use ``bengal.content.utils.frontmatter.extract_content_skip_frontmatter``
+            directly for new code.
 
         Args:
             file_content: Full file content
@@ -205,23 +207,7 @@ class ContentParser:
         Returns:
             Content without frontmatter section
         """
-        # Check if file starts with frontmatter delimiter
-        if not file_content.startswith("---"):
-            return file_content.strip()
-
-        parts = file_content.split("---", 2)
-
-        if len(parts) >= 3:
-            # Normal case: parts[0] is empty (before first ---), parts[1] is frontmatter, parts[2] is content
-            return parts[2].strip()
-        elif len(parts) == 2:
-            # Edge case: File starts with --- but has no closing ---
-            # parts[0] is empty, parts[1] is everything after the first ---
-            # Since there's no closing delimiter, treat the whole thing as content
-            # (minus the leading ---)
-            return parts[1].strip()
-        else:
-            return file_content.strip()
+        return extract_content_skip_frontmatter(file_content)
 
     def validate_against_collection(
         self, file_path: Path, metadata: dict[str, Any]

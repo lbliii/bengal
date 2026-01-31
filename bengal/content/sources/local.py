@@ -21,55 +21,12 @@ from typing import Any
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
+from bengal.content.utils.frontmatter import parse_frontmatter as _parse_frontmatter
+from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.hashing import hash_str
 
 logger = get_logger(__name__)
-
-
-def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
-    """
-    Parse YAML frontmatter from content.
-
-    Args:
-        content: Raw file content with optional frontmatter
-
-    Returns:
-        Tuple of (frontmatter dict, body content)
-
-    """
-    if not content.startswith("---"):
-        return {}, content
-
-    try:
-        # Find end of frontmatter
-        end_idx = content.find("---", 3)
-        if end_idx == -1:
-            return {}, content
-
-        frontmatter_str = content[3:end_idx].strip()
-        body = content[end_idx + 3 :].strip()
-
-        # Parse YAML
-        import yaml
-
-        frontmatter = yaml.safe_load(frontmatter_str) or {}
-        return frontmatter, body
-
-    except Exception as e:
-        from bengal.errors import BengalContentError, ErrorCode, record_error
-
-        # Record but continue - graceful degradation
-        error = BengalContentError(
-            "Failed to parse frontmatter in content",
-            code=ErrorCode.N001,
-            suggestion="Check YAML syntax in frontmatter block",
-            original_error=e,
-        )
-        record_error(error)
-        logger.warning(f"Failed to parse frontmatter: {e}")
-        return {}, content
 
 
 class LocalSource(ContentSource):
@@ -276,7 +233,7 @@ class LocalSource(ContentSource):
 
         # Generate slug from path
         rel_path = path.relative_to(self.directory)
-        slug = self._path_to_slug(rel_path)
+        slug = path_to_slug(rel_path)
 
         return ContentEntry(
             id=str(rel_path),
@@ -315,28 +272,6 @@ class LocalSource(ContentSource):
 
         # Fallback to original fnmatch loop (O(p) per file)
         return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self.exclude_patterns)
-
-    def _path_to_slug(self, rel_path: Path) -> str:
-        """
-        Convert relative path to URL slug.
-
-        Args:
-            rel_path: Path relative to source directory
-
-        Returns:
-            URL-friendly slug
-        """
-        # Remove extension
-        slug = str(rel_path.with_suffix(""))
-
-        # Normalize separators
-        slug = to_posix(slug)
-
-        # Handle index files
-        if slug.endswith("/index") or slug == "index":
-            slug = slug.rsplit("/index", 1)[0] or "index"
-
-        return slug
 
     async def get_last_modified(self) -> datetime | None:
         """

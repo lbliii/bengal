@@ -37,6 +37,8 @@ except ImportError:
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
+from bengal.content.utils.http_errors import raise_http_error
+from bengal.content.utils.slugify import title_to_slug
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -179,36 +181,17 @@ class NotionSource(ContentSource):
                     body["sorts"] = self.sorts
 
                 async with session.post(url, json=body) as resp:
-                    if resp.status == 404:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        not_found_error = BengalDiscoveryError(
-                            f"Notion database not found: {self.database_id}",
-                            code=ErrorCode.D011,
-                            suggestion="Verify database ID is correct and database is shared with the integration",
+                    if resp.status in (401, 403, 404):
+                        raise_http_error(
+                            resp.status,
+                            "Notion database",
+                            self.database_id,
+                            suggestion={
+                                401: "Check NOTION_TOKEN is valid and database is shared with the integration",
+                                403: "Ensure the integration has been added to the database with 'Add connections'",
+                                404: "Verify database ID is correct and database is shared with the integration",
+                            }.get(resp.status),
                         )
-                        record_error(not_found_error)
-                        raise not_found_error
-                    if resp.status == 401:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        auth_error = BengalDiscoveryError(
-                            "Invalid Notion token or database not shared with integration",
-                            code=ErrorCode.D010,
-                            suggestion="Check NOTION_TOKEN is valid and database is shared with the integration at https://www.notion.so/my-integrations",
-                        )
-                        record_error(auth_error)
-                        raise auth_error
-                    if resp.status == 403:
-                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
-
-                        access_error = BengalDiscoveryError(
-                            f"Access denied to Notion database: {self.database_id}",
-                            code=ErrorCode.D010,
-                            suggestion="Ensure the integration has been added to the database with 'Add connections'",
-                        )
-                        record_error(access_error)
-                        raise access_error
                     resp.raise_for_status()
                     data = await resp.json()
 
@@ -300,7 +283,7 @@ class NotionSource(ContentSource):
 
         # Generate slug from title or ID
         title = frontmatter.get("title", "")
-        slug = self._title_to_slug(title) if title else page_id.replace("-", "")
+        slug = title_to_slug(title) if title else page_id.replace("-", "")
 
         # Parse last edited time
         last_modified = None
@@ -592,20 +575,3 @@ class NotionSource(ContentSource):
                     frontmatter[fm_key] = status_obj.get("name")
 
         return frontmatter
-
-    def _title_to_slug(self, title: str) -> str:
-        """
-        Convert title to URL-friendly slug.
-
-        Args:
-            title: Page title
-
-        Returns:
-            URL-friendly slug
-        """
-        import re
-
-        slug = title.lower()
-        slug = re.sub(r"[^\w\s-]", "", slug)
-        slug = re.sub(r"[-\s]+", "-", slug)
-        return slug.strip("-")
