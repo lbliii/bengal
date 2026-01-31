@@ -301,12 +301,13 @@
   /**
    * Documentation Navigation Enhancement
    *
-   * Uses native <details>/<summary> elements for expand/collapse (no JS needed).
-   * This function only handles enhancement: ensuring parent details elements
-   * are opened when they contain the active page (for deep links/bookmarks).
+   * Uses native <details>/<summary> for expand/collapse (no JS required for toggle).
+   * CSS :has() syncs visibility of sibling items with details[open] state.
    *
+   * This function provides a JS fallback for ensuring parent details elements
+   * are opened when they contain the active page (for deep links/bookmarks).
    * The template already sets `open` attribute on active trail items via Jinja,
-   * but this provides a JS fallback for dynamic scenarios.
+   * but this provides a fallback for dynamic scenarios.
    */
   function setupDocsNavigation() {
     // Find the active navigation link
@@ -323,10 +324,10 @@
     // If the active link is a section group link (section index page),
     // ensure its parent details is open
     if (activeLink.classList.contains('docs-nav-group-link')) {
-      const summary = activeLink.closest('summary.docs-nav-group-summary');
-      if (summary) {
-        const details = summary.parentElement;
-        if (details && details.tagName === 'DETAILS') {
+      const group = activeLink.closest('.docs-nav-group');
+      if (group) {
+        const details = group.querySelector(':scope > .docs-nav-details');
+        if (details) {
           details.setAttribute('open', '');
         }
       }
@@ -335,8 +336,13 @@
     // Walk up the DOM and ensure all parent <details> elements are open
     let parent = activeLink.parentElement;
     while (parent) {
-      if (parent.tagName === 'DETAILS' && parent.classList.contains('docs-nav-group')) {
-        parent.setAttribute('open', '');
+      if (parent.classList?.contains('docs-nav-group') &&
+          !parent.classList.contains('docs-nav-group--root') &&
+          !parent.classList.contains('docs-nav-group--leaf')) {
+        const details = parent.querySelector(':scope > .docs-nav-details');
+        if (details) {
+          details.setAttribute('open', '');
+        }
       }
       parent = parent.parentElement;
     }

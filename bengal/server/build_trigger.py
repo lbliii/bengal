@@ -51,6 +51,7 @@ from __future__ import annotations
 import contextlib
 import re
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -190,6 +191,13 @@ class BuildTrigger:
 
             # Trigger another build if changes were queued during this build
             if queued_changes:
+                # Stabilization delay: Give browsers time to fetch updated assets
+                # before the next build potentially replaces them again.
+                # This prevents CSS disappearing during rapid edit sequences.
+                # 100ms is enough for most browser requests to complete while
+                # keeping the feedback loop fast.
+                time.sleep(0.1)
+
                 logger.info(
                     "build_queued_changes_triggering",
                     queued_count=len(queued_changes),

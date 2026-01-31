@@ -8,6 +8,7 @@ Features:
 - Automatic live reload script injection into HTML responses
 - Custom 404.html page support (serves user's error page if present)
 - Rebuild-aware directory listing (shows "rebuilding" page during builds)
+- Build-aware CSS/JS caching (serves cached assets during builds)
 - HTML response caching for rapid navigation
 - Cache-busting headers for development
 
@@ -467,7 +468,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         Request routing (in priority order):
         1. /__bengal_reload__ → SSE endpoint (long-lived connection)
         2. *.html files → Inject live reload script, serve with cache
-        3. Other files → Default SimpleHTTPRequestHandler behavior
+        3. CSS/JS assets → Build-aware caching (serves from cache during builds)
+        4. Other files → Default SimpleHTTPRequestHandler behavior
         """
         request_start = time.time()
         status_code = 200  # Default, updated based on response
@@ -482,7 +484,14 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             # Try to serve HTML with injected live reload script
             # If not HTML or injection fails, fall back to normal file serving
             if not self.serve_html_with_live_reload():
-                super().do_GET()
+                # Check build state for asset caching
+                with BengalRequestHandler._build_lock:
+                    building = BengalRequestHandler._build_in_progress
+
+                # Try build-aware asset serving for CSS/JS
+                # This ensures assets remain available during atomic file rewrites
+                if not self.serve_asset_with_cache(building):
+                    super().do_GET()
         except Exception:
             status_code = 500
             raise

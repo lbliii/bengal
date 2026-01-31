@@ -79,43 +79,38 @@ per-call overhead of {% include %} (context copy, template lookup).
   </div>
 </div>
 
-{# ===== EXPANDABLE NODE (depth > 0) - Accessible button toggle ===== #}
-    {# Note: Previously used <details>/<summary> but that required nesting <a> inside <summary>,
-       which violates HTML content model (no interactive content inside summary).
-       Now uses button + aria-expanded pattern for proper accessibility. #}
+{# ===== EXPANDABLE NODE (depth > 0) - CSS-only accessible toggle ===== #}
+    {# Uses <details>/<summary> for native toggle + CSS :has() to control sibling visibility.
+       The <a> link is OUTSIDE <summary> (as a sibling), avoiding nested interactive elements.
+       CSS Grid arranges: [toggle] [icon] [link] on first row, [items] spanning full width below. #}
     {% case true, _ %}
-    {% let group_id = 'nav-' ~ (item_href | default(item_title, true) | slugify) ~ '-' ~ depth %}
-    <div class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'data-open' | safe if is_in_trail else '' }}>
-      <div class="docs-nav-group-header">
-        <button type="button"
-                class="docs-nav-toggle"
-                aria-expanded="{{ 'true' if is_in_trail else 'false' }}"
-                aria-controls="{{ group_id }}"
-                aria-label="Toggle {{ item_title }} section">
+    <div class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
+      <details class="docs-nav-details" {{ 'open' | safe if is_in_trail else '' }}>
+        <summary class="docs-nav-toggle" aria-label="Toggle {{ item_title }} section">
           <span class="docs-nav-caret">
             {{ icon('caret-right', size=14) }}
           </span>
-        </button>
+        </summary>
+      </details>
 
-        {% if show_nav_icons %}
-        {% spaceless %}
-        <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
-          {{ icon(item_icon ?? 'folder', size=16) }}
-        </span>
-        {% end %}
-        {% end %}
+      {% if show_nav_icons %}
+      {% spaceless %}
+      <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+        {{ icon(item_icon ?? 'folder', size=16) }}
+      </span>
+      {% end %}
+      {% end %}
 
-        {% if item_href %}
-        <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
-          {{ 'aria-current="page"' | safe if is_current else '' }}>
-          {{ item_title }}
-        </a>
-        {% else %}
-        <span class="docs-nav-group-link">{{ item_title }}</span>
-        {% end %}
-      </div>
+      {% if item_href %}
+      <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
+        {{ 'aria-current="page"' | safe if is_current else '' }}>
+        {{ item_title }}
+      </a>
+      {% else %}
+      <span class="docs-nav-group-link">{{ item_title }}</span>
+      {% end %}
 
-      <div id="{{ group_id }}" class="docs-nav-group-items" {{ '' if is_in_trail else 'hidden' | safe }}>
+      <div class="docs-nav-group-items">
         {% for child in item_children %}
         {{ nav_node(child, depth + 1) }}
         {% end %}

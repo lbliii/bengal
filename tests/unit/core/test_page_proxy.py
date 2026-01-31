@@ -469,3 +469,162 @@ class TestPageProxyPlainText:
 
         # Should handle None gracefully
         assert proxy.plain_text == ""
+
+
+class TestPageProxyCascadePriority:
+    """Tests for cascade priority in metadata resolution.
+
+    These tests verify that cascade values (from parent _index.md files)
+    take priority over stale cached values in PageCore, ensuring pages
+    correctly inherit types like 'doc' from their section.
+    """
+
+    def test_metadata_returns_cascade_type_over_core_type(self):
+        """Verify page.metadata.get('type') returns cascade value over core value.
+
+        This is the critical test for the cascade priority fix. When a page has
+        both a core.type (from cache) and a cascade type (from parent _index.md),
+        the cascade value should win.
+        """
+        from unittest.mock import MagicMock
+
+        # Create metadata with a "stale" core type
+        metadata = PageMetadata(
+            source_path="content/docs/guide.md",
+            title="Guide",
+            date=None,
+            tags=[],
+            section="content/docs",
+            slug="guide",
+            type="page",  # Stale cached type
+        )
+
+        def empty_loader(source_path):
+            return None
+
+        proxy = PageProxy(
+            source_path=Path("content/docs/guide.md"),
+            metadata=metadata,
+            loader=empty_loader,
+        )
+
+        # Mock the site with a cascade snapshot that returns "doc"
+        mock_site = MagicMock()
+        mock_site.cascade.resolve.return_value = "doc"
+        proxy._site = mock_site
+
+        # The metadata property should return cascade "doc" not core "page"
+        assert proxy.metadata.get("type") == "doc"
+
+        # Verify cascade was consulted
+        mock_site.cascade.resolve.assert_called()
+
+    def test_type_property_matches_metadata_type(self):
+        """Verify page.type and page.metadata.get('type') are consistent.
+
+        This ensures that both access paths return the same value,
+        avoiding bugs where templates use one path and get different
+        results than code using the other.
+        """
+        from unittest.mock import MagicMock
+
+        metadata = PageMetadata(
+            source_path="content/docs/intro.md",
+            title="Intro",
+            date=None,
+            tags=[],
+            section="content/docs",
+            slug="intro",
+            type="page",  # Core type
+        )
+
+        def empty_loader(source_path):
+            return None
+
+        proxy = PageProxy(
+            source_path=Path("content/docs/intro.md"),
+            metadata=metadata,
+            loader=empty_loader,
+        )
+
+        # Mock cascade to return a different type
+        mock_site = MagicMock()
+        mock_site.cascade.resolve.return_value = "doc"
+        proxy._site = mock_site
+
+        # Both access paths should return the same value
+        assert proxy.type == proxy.metadata.get("type")
+        assert proxy.type == "doc"
+
+    def test_metadata_falls_back_to_core_when_no_cascade(self):
+        """Verify metadata uses core.type when cascade returns None.
+
+        Pages with explicit frontmatter type that aren't covered by
+        cascade should still get their core type.
+        """
+        from unittest.mock import MagicMock
+
+        metadata = PageMetadata(
+            source_path="content/standalone.md",
+            title="Standalone",
+            date=None,
+            tags=[],
+            section=None,
+            slug="standalone",
+            type="landing",  # Explicit type, not from cascade
+        )
+
+        def empty_loader(source_path):
+            return None
+
+        proxy = PageProxy(
+            source_path=Path("content/standalone.md"),
+            metadata=metadata,
+            loader=empty_loader,
+        )
+
+        # Mock cascade to return None (no cascade for this page)
+        mock_site = MagicMock()
+        mock_site.cascade.resolve.return_value = None
+        proxy._site = mock_site
+
+        # Should fall back to core type
+        assert proxy.metadata.get("type") == "landing"
+        assert proxy.type == "landing"
+
+    def test_metadata_variant_uses_cascade_priority(self):
+        """Verify variant field also uses cascade priority."""
+        from unittest.mock import MagicMock
+
+        metadata = PageMetadata(
+            source_path="content/docs/page.md",
+            title="Page",
+            date=None,
+            tags=[],
+            section="content/docs",
+            slug="page",
+            variant="default",  # Core variant
+        )
+
+        def empty_loader(source_path):
+            return None
+
+        proxy = PageProxy(
+            source_path=Path("content/docs/page.md"),
+            metadata=metadata,
+            loader=empty_loader,
+        )
+
+        # Mock cascade to return different variant
+        mock_site = MagicMock()
+
+        def cascade_resolve(section_path, key):
+            if key == "variant":
+                return "sidebar"
+            return None
+
+        mock_site.cascade.resolve.side_effect = cascade_resolve
+        proxy._site = mock_site
+
+        # Cascade variant should take priority
+        assert proxy.metadata.get("variant") == "sidebar"

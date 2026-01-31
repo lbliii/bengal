@@ -224,6 +224,7 @@ class LiveReloadMixin:
     Methods:
         handle_sse(): Handle the /__bengal_reload__ SSE endpoint
         serve_html_with_live_reload(): Serve HTML with injected reload script
+        serve_asset_with_cache(): Serve CSS/JS with build-aware caching
 
     Type Declarations:
         The mixin declares types for attributes provided by SimpleHTTPRequestHandler
@@ -238,6 +239,9 @@ class LiveReloadMixin:
         _html_cache: LRU cache for injected HTML responses
         _html_cache_max_size: Maximum number of pages to keep in cache
         _html_cache_lock: Thread lock protecting the cache
+        _asset_cache: LRU cache for CSS/JS assets (serves during builds)
+        _asset_cache_max_size: Maximum number of assets to keep in cache
+        _asset_cache_lock: Thread lock protecting the asset cache
 
     Example:
             >>> class CustomHandler(LiveReloadMixin, SimpleHTTPRequestHandler):
@@ -263,6 +267,13 @@ class LiveReloadMixin:
     _html_cache: dict[tuple[str, float], bytes] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
+
+    # Cache for CSS/JS assets - enables serving during builds when files are being rewritten
+    # Key: relative_path (e.g., "assets/css/style.css"), Value: (content_bytes, content_type)
+    # This cache persists across builds and is updated after each successful file serve
+    _asset_cache: dict[str, tuple[bytes, str]] = {}
+    _asset_cache_max_size = 30  # Keep last 30 assets (CSS/JS files)
+    _asset_cache_lock = threading.Lock()
 
     # NOTE: Do NOT add stub methods here for send_response, send_header, etc.!
     # Python MRO resolves this mixin BEFORE SimpleHTTPRequestHandler, so stubs
@@ -532,6 +543,151 @@ class LiveReloadMixin:
             Modified response with live reload script injected
         """
         return inject_live_reload_into_response(response)
+
+    def _is_cacheable_asset(self, url_path: str) -> bool:
+        """
+        Check if a URL path is a cacheable asset (CSS/JS).
+
+        These assets are cached to enable serving during builds when
+        files may be temporarily unavailable due to atomic rewrites.
+
+        Args:
+            url_path: URL path (e.g., "/assets/css/style.css")
+
+        Returns:
+            True if the path is a CSS or JS file in the assets directory.
+        """
+        path_lower = url_path.lower()
+        # Only cache CSS/JS files in assets directory
+        if "/assets/" not in path_lower:
+            return False
+        return path_lower.endswith(".css") or path_lower.endswith(".js")
+
+    def _get_content_type(self, url_path: str) -> str:
+        """Get content type for a file path."""
+        path_lower = url_path.lower()
+        if path_lower.endswith(".css"):
+            return "text/css; charset=utf-8"
+        if path_lower.endswith(".js"):
+            return "application/javascript; charset=utf-8"
+        return "application/octet-stream"
+
+    def serve_asset_with_cache(self: HTTPHandlerProtocol, build_in_progress: bool) -> bool:
+        """
+        Serve CSS/JS assets with build-aware caching.
+
+        This method provides resilient asset serving during builds:
+        1. If file exists and readable → serve it and update cache
+        2. If file unavailable during build → serve from cache
+        3. If no cache available → return False (fall through to 404)
+
+        The cache ensures CSS/JS remains available even during the brief
+        window when atomic file writes are replacing the output files.
+
+        Args:
+            build_in_progress: Whether a build is currently active
+
+        Returns:
+            True if the asset was served (from file or cache).
+            False if not a cacheable asset or no cache available.
+
+        Thread Safety:
+            Uses _asset_cache_lock for thread-safe cache access.
+        """
+        # Check if this is a cacheable asset
+        if not self._is_cacheable_asset(self.path):
+            return False
+
+        # Normalize path for cache key (strip query params and leading slash)
+        cache_key = self.path.split("?")[0].lstrip("/")
+        content_type = self._get_content_type(self.path)
+
+        # Resolve the actual file path
+        file_path = self.translate_path(self.path)
+        if file_path is None:
+            return False
+
+        file_path_obj = Path(file_path)
+        cls = type(self)
+
+        # Try to read the file
+        content: bytes | None = None
+        try:
+            if file_path_obj.exists() and file_path_obj.is_file():
+                content = file_path_obj.read_bytes()
+        except (OSError, PermissionError) as e:
+            # File might be mid-write or locked
+            logger.debug(
+                "asset_read_failed_during_build",
+                path=self.path,
+                error=str(e),
+                build_in_progress=build_in_progress,
+            )
+            content = None
+
+        if content is not None:
+            # Successfully read file - serve it and update cache
+            with cls._asset_cache_lock:
+                cls._asset_cache[cache_key] = (content, content_type)
+                # LRU eviction
+                if len(cls._asset_cache) > cls._asset_cache_max_size:
+                    first_key = next(iter(cls._asset_cache))
+                    del cls._asset_cache[first_key]
+
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.end_headers()
+            self.wfile.write(content)
+            return True
+
+        # File unavailable - try to serve from cache if build is in progress
+        if build_in_progress:
+            with cls._asset_cache_lock:
+                cached = cls._asset_cache.get(cache_key)
+
+            if cached is not None:
+                cached_content, cached_type = cached
+                logger.info(
+                    "asset_served_from_cache_during_build",
+                    path=self.path,
+                    cache_key=cache_key,
+                    size=len(cached_content),
+                )
+                self.send_response(200)
+                self.send_header("Content-Type", cached_type)
+                self.send_header("Content-Length", str(len(cached_content)))
+                # Add header indicating this was served from cache
+                self.send_header("X-Bengal-Cache", "hit-during-build")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+                self.end_headers()
+                self.wfile.write(cached_content)
+                return True
+
+            # No cache available during build - log warning
+            logger.warning(
+                "asset_unavailable_during_build_no_cache",
+                path=self.path,
+                cache_key=cache_key,
+            )
+
+        # Fall through to default handling (will likely 404)
+        return False
+
+    @classmethod
+    def clear_asset_cache(cls) -> None:
+        """
+        Clear the asset cache.
+
+        Called after builds complete to ensure fresh assets are served.
+        The cache will be repopulated on the next request for each asset.
+        """
+        with cls._asset_cache_lock:
+            cache_size = len(cls._asset_cache)
+            cls._asset_cache.clear()
+        if cache_size > 0:
+            logger.debug("asset_cache_cleared", entries=cache_size)
 
 
 def shutdown_sse_clients() -> None:

@@ -375,6 +375,13 @@ class PageProxy:
         Cascade resolution uses the immutable CascadeSnapshot for thread-safe
         access. The snapshot is computed once per build and can be safely
         accessed from multiple render threads in free-threaded Python.
+
+        Priority for cascade-eligible keys (type, layout, variant):
+        1. Cascade snapshot value (always current, even after _index.md changes)
+        2. Explicit frontmatter value from core (fallback)
+
+        This matches the priority order of the `type`, `layout`, and `variant`
+        properties to ensure consistent behavior.
         """
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
@@ -385,8 +392,18 @@ class PageProxy:
         cached_metadata: dict[str, Any] = {
             "weight": self.core.weight if self.core.weight is not None else float("inf"),
         }
-        if self.core.type:
-            cached_metadata["type"] = self.core.type
+
+        # Cascade resolution FIRST for cascade-eligible keys (thread-safe, always current)
+        # This MUST come before adding core values to ensure incremental builds
+        # pick up cascade changes from modified _index.md files.
+        # Uses the section path stored in core to avoid needing section object.
+        cascade_keys = ("type", "layout", "variant")
+        for key in cascade_keys:
+            cascade_value = self._resolve_cascade_from_snapshot(key)
+            if cascade_value is not None:
+                cached_metadata[key] = cascade_value
+
+        # Add non-cascade fields from core (these don't have cascade inheritance)
         if self.core.tags:
             cached_metadata["tags"] = self.core.tags
         if self.core.date:
@@ -395,14 +412,14 @@ class PageProxy:
             cached_metadata["slug"] = self.core.slug
         if self.core.lang:
             cached_metadata["lang"] = self.core.lang
-        # Cascade resolution via immutable snapshot (thread-safe, always current)
-        # Uses the section path stored in core to avoid needing section object
-        cascade_keys = ("type", "layout", "variant")
-        for key in cascade_keys:
-            if key not in cached_metadata or cached_metadata.get(key) is None:
-                cascade_value = self._resolve_cascade_from_snapshot(key)
-                if cascade_value is not None:
-                    cached_metadata[key] = cascade_value
+
+        # Fall back to core values for cascade keys ONLY if cascade didn't provide them
+        # This handles pages with explicit frontmatter type that aren't in cascade
+        # Note: PageCore only has 'type' and 'variant', not 'layout' (layout is cascade-only)
+        if "type" not in cached_metadata and self.core.type:
+            cached_metadata["type"] = self.core.type
+        if "variant" not in cached_metadata and self.core.variant:
+            cached_metadata["variant"] = self.core.variant
 
         return cached_metadata
 
