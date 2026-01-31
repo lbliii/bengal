@@ -14,6 +14,7 @@ from typing import Any
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import clean_md_path
 
 logger = get_logger(__name__)
 
@@ -162,7 +163,7 @@ def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | 
 
     # Path lookup
     if "/" in link or link.endswith(".md"):
-        clean_path = link.replace(".md", "").strip("/")
+        clean_path = clean_md_path(link)
         return xref_index.get("by_path", {}).get(clean_path)
 
     # Slug lookup

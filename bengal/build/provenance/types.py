@@ -9,13 +9,15 @@ Core types:
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, NewType
 
 from bengal.build.contracts.keys import CacheKey
+from bengal.utils.primitives.hashing import hash_bytes, hash_str
+from bengal.utils.primitives.hashing import hash_dict as _hash_dict
+from bengal.utils.primitives.hashing import hash_file as _hash_file
 
 # Type-safe content hash (prevents mixing with regular strings)
 ContentHash = NewType("ContentHash", str)
@@ -24,27 +26,22 @@ ContentHash = NewType("ContentHash", str)
 def hash_content(content: str | bytes, truncate: int = 16) -> ContentHash:
     """Compute content hash (SHA256, truncated)."""
     if isinstance(content, str):
-        content = content.encode("utf-8")
-    full_hash = hashlib.sha256(content).hexdigest()
-    return ContentHash(full_hash[:truncate])
+        return ContentHash(hash_str(content, truncate=truncate))
+    return ContentHash(hash_bytes(content, truncate=truncate))
 
 
 def hash_file(path: Path, truncate: int = 16) -> ContentHash:
     """Compute file content hash."""
     try:
-        content = path.read_bytes()
-        return hash_content(content, truncate)
-    except (OSError, IOError):
+        return ContentHash(_hash_file(path, truncate=truncate))
+    except OSError:
         # File doesn't exist or can't be read
         return ContentHash("_missing_")
 
 
 def hash_dict(data: dict[str, Any], truncate: int = 16) -> ContentHash:
     """Compute hash of dictionary (for config, metadata)."""
-    import json
-
-    serialized = json.dumps(data, sort_keys=True, default=str)
-    return hash_content(serialized, truncate)
+    return ContentHash(_hash_dict(data, truncate=truncate))
 
 
 @dataclass(frozen=True, slots=True)

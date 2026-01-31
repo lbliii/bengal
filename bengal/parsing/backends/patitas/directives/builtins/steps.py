@@ -57,6 +57,7 @@ from bengal.parsing.backends.patitas.directives.contracts import (
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
+from bengal.utils.primitives.text import slugify_id
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -216,12 +217,7 @@ class StepDirective:
     @staticmethod
     def _slugify(text: str) -> str:
         """Convert text to URL-safe slug for anchor IDs."""
-        slug = text.lower().strip()
-        slug = re.sub(r"[\s_]+", "-", slug)
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        slug = slug.strip("-")
-        return slug or "step"
+        return slugify_id(text, default="step")
 
 
 class StepsDirective:

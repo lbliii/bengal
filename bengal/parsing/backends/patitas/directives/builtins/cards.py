@@ -146,7 +146,130 @@ def _render_icon(icon_name: str, card_title: str = "") -> str:
 
         return icon_html or ""
     except ImportError:
-        return ""  # Graceful fallback if icons not available
+        return ""
+
+
+def _resolve_link(link: str, xref_index: dict[str, Any]) -> tuple[str, Any]:
+    """Resolve a link reference to a URL and page object.
+
+    Handles explicit prefixes:
+    - id:page-id -> Look up by page ID in xref_index["by_id"]
+    - path:/docs/page/ -> Look up by path in xref_index["by_path"]
+    - slug:page-slug -> Look up by slug in xref_index["by_slug"]
+
+    And implicit resolution (no prefix):
+    - Links containing "/" but not starting with "http" -> try by_path
+    - Other links -> try by_slug
+
+    Args:
+        link: Link string (may include id:, path:, or slug: prefix)
+        xref_index: Cross-reference index with by_id, by_path, by_slug dicts
+
+    Returns:
+        Tuple of (resolved_url, page_object or None)
+    """
+    if not link:
+        return "", None
+
+    # Check for explicit prefixes
+    if link.startswith("id:"):
+        page_id = link[3:]
+        by_id = xref_index.get("by_id", {})
+        page = by_id.get(page_id)
+        if page:
+            # Get URL from page object - try href first (canonical), then url
+            url = getattr(page, "href", None) or getattr(page, "url", "")
+            return url, page
+        return link, None  # Return original if not found
+
+    if link.startswith("path:"):
+        page_path = link[5:]
+        by_path = xref_index.get("by_path", {})
+        page = by_path.get(page_path)
+        if page:
+            url = getattr(page, "href", None) or getattr(page, "url", "")
+            return url, page
+        return link, None
+
+    if link.startswith("slug:"):
+        page_slug = link[5:]
+        by_slug = xref_index.get("by_slug", {})
+        pages = by_slug.get(page_slug, [])
+        if pages:
+            page = pages[0] if isinstance(pages, list) else pages
+            url = getattr(page, "href", None) or getattr(page, "url", "")
+            return url, page
+        return link, None
+
+    # Skip external URLs (http://, https://, //, etc.)
+    if link.startswith(("http://", "https://", "//", "mailto:", "tel:")):
+        return link, None
+
+    # Skip absolute URLs that start with /
+    if link.startswith("/"):
+        return link, None
+
+    # Implicit resolution: try path first for links containing "/"
+    if "/" in link:
+        by_path = xref_index.get("by_path", {})
+        page = by_path.get(link)
+        if page:
+            url = getattr(page, "href", None) or getattr(page, "url", "")
+            return url, page
+
+    # Implicit resolution: try slug for simple strings
+    by_slug = xref_index.get("by_slug", {})
+    pages = by_slug.get(link, [])
+    if pages:
+        page = pages[0] if isinstance(pages, list) else pages
+        url = getattr(page, "href", None) or getattr(page, "url", "")
+        return url, page
+
+    # Return original link if no resolution found
+    return link, None
+
+
+def _pull_from_page(
+    page: Any, pull_fields: list[str], title: str, description: str, icon: str
+) -> tuple[str, str, str]:
+    """Pull data from a linked page based on pull_fields.
+
+    Args:
+        page: Page object to pull data from
+        pull_fields: List of fields to pull (title, description, icon)
+        title: Current title (may be overwritten)
+        description: Current description (may be overwritten)
+        icon: Current icon (may be overwritten)
+
+    Returns:
+        Tuple of (title, description, icon) with pulled values
+    """
+    for field in pull_fields:
+        field = field.lower().strip()
+
+        if field == "title" and not title:
+            # Pull title from page
+            pulled_title = getattr(page, "title", "")
+            if pulled_title:
+                title = pulled_title
+
+        elif field == "description" and not description:
+            # Pull description from page metadata
+            metadata = getattr(page, "metadata", {})
+            if isinstance(metadata, dict):
+                pulled_desc = metadata.get("description", "")
+                if pulled_desc:
+                    description = pulled_desc
+
+        elif field == "icon" and not icon:
+            # Pull icon from page metadata
+            metadata = getattr(page, "metadata", {})
+            if isinstance(metadata, dict):
+                pulled_icon = metadata.get("icon", "")
+                if pulled_icon:
+                    icon = pulled_icon
+
+    return title, description, icon
 
 
 # =============================================================================
@@ -362,8 +485,17 @@ class CardDirective:
         node: Directive[CardOptions],
         rendered_children: str,
         sb: StringBuilder,
+        *,
+        xref_index: dict[str, Any] | None = None,
     ) -> None:
-        """Render individual card to HTML."""
+        """Render individual card to HTML.
+
+        Args:
+            node: The card directive AST node
+            rendered_children: Pre-rendered child content
+            sb: StringBuilder to append output
+            xref_index: Optional cross-reference index for link resolution
+        """
         opts = node.options  # Direct typed access!
 
         # Title comes from node.title (directive title)
@@ -376,11 +508,24 @@ class CardDirective:
         image = opts.image
         footer = opts.footer
         layout = opts.layout
+        pull_fields = [f.strip() for f in opts.pull.split(",") if f.strip()]
+
+        # Resolve link and pull data from linked page if xref_index is available
+        resolved_link = link
+        linked_page = None
+        if link and xref_index:
+            resolved_link, linked_page = _resolve_link(link, xref_index)
+
+        # Pull data from linked page
+        if linked_page and pull_fields:
+            title, description, icon = _pull_from_page(
+                linked_page, pull_fields, title, description, icon
+            )
 
         # Card wrapper (link or div)
-        if link:
+        if resolved_link:
             card_tag = "a"
-            card_attrs_str = f' href="{html_escape(link)}"'
+            card_attrs_str = f' href="{html_escape(resolved_link)}"'
         else:
             card_tag = "div"
             card_attrs_str = ""

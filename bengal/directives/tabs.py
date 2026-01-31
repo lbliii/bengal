@@ -56,6 +56,7 @@ from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
+from bengal.utils.primitives.text import slugify_id
 
 __all__ = [
     "TabItemDirective",
@@ -416,14 +417,7 @@ class TabSetDirective(BengalDirective):
 
     def _slugify(self, text: str) -> str:
         """Convert text to URL-safe slug."""
-        import re
-
-        # Lowercase, replace spaces with hyphens, remove non-alphanumeric
-        slug = text.lower().strip()
-        slug = re.sub(r"\s+", "-", slug)
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        return slug.strip("-") or "tab"
+        return slugify_id(text, default="tab")
 
 
 # =============================================================================

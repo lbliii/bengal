@@ -23,6 +23,7 @@ from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -60,7 +61,7 @@ def compute_element_urls(
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = get_openapi_path(element).strip("/").replace("/", "-")
+            path = path_to_slug(get_openapi_path(element))
             url_path = f"{prefix}/endpoints/{method}-{path}"
         elif element.element_type == "openapi_schema":
             url_path = f"{prefix}/schemas/{element.name}"
@@ -351,7 +352,7 @@ def get_element_metadata(
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = get_openapi_path(element).strip("/").replace("/", "-")
+            path = path_to_slug(get_openapi_path(element))
             return (
                 "autodoc/openapi/endpoint",
                 f"{prefix}/endpoints/{method}-{path}",

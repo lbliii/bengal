@@ -139,3 +139,114 @@ def validate_url(url: str) -> bool:
 
     # No multiple consecutive slashes (except after protocol)
     return not re.search(r"(?<!:)/{2,}", url)
+
+
+def split_url_path(url: str) -> list[str]:
+    """
+    Split a URL path into its component segments.
+
+    Strips leading/trailing slashes and splits on '/'. Returns empty list
+    for root or empty URLs.
+
+    Consolidates the common pattern:
+        url.strip("/").split("/")
+
+    Found in:
+    - bengal/analysis/content_intelligence.py
+    - bengal/analysis/links/patterns.py
+    - bengal/postprocess/xref_index.py
+    - bengal/postprocess/speculation.py
+    - bengal/rendering/template_functions/navigation/breadcrumbs.py
+    - bengal/rendering/pipeline/json_accumulator.py
+
+    Args:
+        url: URL path to split (e.g., "/api/bengal/core/")
+
+    Returns:
+        List of path segments
+
+    Examples:
+        >>> split_url_path("/api/bengal/core/")
+        ['api', 'bengal', 'core']
+        >>> split_url_path("api/bengal")
+        ['api', 'bengal']
+        >>> split_url_path("/")
+        []
+        >>> split_url_path("")
+        []
+        >>> split_url_path("single")
+        ['single']
+
+    """
+    stripped = url.strip("/")
+    return stripped.split("/") if stripped else []
+
+
+def clean_md_path(path: str) -> str:
+    """
+    Clean a markdown file path for URL use.
+
+    Removes the .md extension and strips leading/trailing slashes.
+
+    Consolidates the common pattern:
+        path.replace(".md", "").strip("/")
+
+    Found in:
+    - bengal/analysis/graph/builder.py
+    - bengal/rendering/template_functions/crossref.py
+    - bengal/rendering/plugins/cross_references.py
+
+    Args:
+        path: File path potentially ending in .md (e.g., "docs/guide.md")
+
+    Returns:
+        Cleaned path without .md extension
+
+    Examples:
+        >>> clean_md_path("docs/guide.md")
+        'docs/guide'
+        >>> clean_md_path("/api/reference.md/")
+        'api/reference'
+        >>> clean_md_path("api/reference")
+        'api/reference'
+        >>> clean_md_path("README.md")
+        'README'
+
+    """
+    return path.replace(".md", "").strip("/")
+
+
+def path_to_slug(path: str) -> str:
+    """
+    Convert a URL path to a slug by replacing slashes with hyphens.
+
+    Strips leading/trailing slashes and converts all internal slashes
+    to hyphens for use as IDs or file prefixes.
+
+    Consolidates the common pattern:
+        path.strip("/").replace("/", "-")
+
+    Found in:
+    - bengal/autodoc/orchestration/page_builders.py
+    - bengal/rendering/template_functions/openapi.py
+    - bengal/postprocess/xref_index.py
+    - bengal/postprocess/social_cards.py
+
+    Args:
+        path: URL path (e.g., "/api/bengal/core/")
+
+    Returns:
+        Hyphenated slug (e.g., "api-bengal-core")
+
+    Examples:
+        >>> path_to_slug("/api/bengal/core/")
+        'api-bengal-core'
+        >>> path_to_slug("api/bengal")
+        'api-bengal'
+        >>> path_to_slug("/")
+        ''
+        >>> path_to_slug("single")
+        'single'
+
+    """
+    return path.strip("/").replace("/", "-")

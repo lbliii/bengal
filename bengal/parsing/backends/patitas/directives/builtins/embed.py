@@ -40,6 +40,7 @@ from urllib.parse import quote
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
+from bengal.directives.utils import clean_soundcloud_path
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 if TYPE_CHECKING:
@@ -955,16 +956,8 @@ class SoundCloudDirective:
             children=tuple(children),
         )
 
-    def _clean_path(self, url_path: str) -> str:
-        """Clean and normalize a SoundCloud URL path."""
-        cleaned = url_path
-        if cleaned.startswith("https://soundcloud.com/"):
-            cleaned = cleaned[23:]
-        elif cleaned.startswith("soundcloud.com/"):
-            cleaned = cleaned[15:]
-        if "?" in cleaned:
-            cleaned = cleaned.split("?")[0]
-        return cleaned
+    # Use canonical implementation from bengal.directives.utils
+    _clean_path = staticmethod(clean_soundcloud_path)
 
     def render(
         self,

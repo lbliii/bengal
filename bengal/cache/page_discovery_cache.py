@@ -43,14 +43,14 @@ Related:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.cache.compression import load_auto, save_compressed
+from bengal.cache.utils import PersistentCacheMixin, compute_validity_stats
 from bengal.core.page.page_core import PageCore
+from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -63,32 +63,33 @@ PageMetadata = PageCore
 
 
 @dataclass
-class PageDiscoveryCacheEntry:
+class PageDiscoveryCacheEntry(Cacheable):
     """Cache entry with metadata and validity information."""
 
     metadata: PageMetadata
     cached_at: str  # ISO timestamp when cached
     is_valid: bool = True  # Whether cache entry is still valid
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "metadata": self.metadata.to_cache_dict(),
             "cached_at": self.cached_at,
             "is_valid": self.is_valid,
         }
 
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry:
-        # PageMetadata = PageCore, so PageCore.from_cache_dict works
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> PageDiscoveryCacheEntry:
+        """Deserialize from cache dictionary (Cacheable protocol)."""
         metadata = PageCore.from_cache_dict(data["metadata"])
-        return PageDiscoveryCacheEntry(
+        return cls(
             metadata=metadata,
             cached_at=data["cached_at"],
             is_valid=data.get("is_valid", True),
         )
 
 
-class PageDiscoveryCache:
+class PageDiscoveryCache(PersistentCacheMixin):
     """
     Persistent cache for page metadata enabling lazy page loading.
 
@@ -100,6 +101,7 @@ class PageDiscoveryCache:
 
     Cache Format (JSON):
     {
+        "version": 1,
         "pages": {
             "content/index.md": {
                 "metadata": {
@@ -117,6 +119,7 @@ class PageDiscoveryCache:
 
     """
 
+    VERSION = 1
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
@@ -130,83 +133,39 @@ class PageDiscoveryCache:
             cache_path = Path(self.CACHE_FILE)
         self.cache_path = Path(cache_path)
         self.pages: dict[str, PageDiscoveryCacheEntry] = {}
-        self._load_from_disk()
+        self._load_cache()
 
-    def _load_from_disk(self) -> None:
-        """Load cache from disk if it exists."""
-        # load_auto handles both .json.zst and .json formats
-        compressed_path = self.cache_path.with_suffix(".json.zst")
-        if not compressed_path.exists() and not self.cache_path.exists():
-            logger.debug("page_discovery_cache_not_found", path=str(self.cache_path))
-            return
+    # =========================================================================
+    # PersistentCacheMixin implementation
+    # =========================================================================
 
-        try:
-            # load_auto tries .json.zst first, falls back to .json
-            data = load_auto(self.cache_path)
+    def _deserialize(self, data: dict[str, Any]) -> None:
+        """Deserialize loaded data into cache state."""
+        for path_str, entry_data in data.get("pages", {}).items():
+            self.pages[path_str] = PageDiscoveryCacheEntry.from_cache_dict(entry_data)
 
-            # Load cache entries (no version check - just fail and rebuild if format changed)
-            for path_str, entry_data in data.get("pages", {}).items():
-                self.pages[path_str] = PageDiscoveryCacheEntry.from_dict(entry_data)
+        logger.info(
+            "page_discovery_cache_loaded",
+            entries=len(self.pages),
+        )
 
-            logger.info(
-                "page_discovery_cache_loaded",
-                entries=len(self.pages),
-                path=str(self.cache_path),
-            )
-        except Exception as e:
-            from bengal.errors import (
-                BengalCacheError,
-                ErrorCode,
-                ErrorContext,
-                enrich_error,
-                record_error,
-            )
+    def _serialize(self) -> dict[str, Any]:
+        """Serialize cache state for saving."""
+        return {
+            "pages": {path: entry.to_cache_dict() for path, entry in self.pages.items()},
+        }
 
-            # Enrich error with context
-            context = ErrorContext(
-                file_path=self.cache_path,
-                operation="loading page discovery cache",
-                suggestion="Cache file may be corrupted. It will be rebuilt automatically.",
-                original_error=e,
-                error_code=ErrorCode.A003,  # cache_read_error
-            )
-            enriched = enrich_error(e, context, BengalCacheError)
-            record_error(enriched, file_path=str(self.cache_path))
-            logger.warning(
-                "page_discovery_cache_load_failed",
-                error=str(enriched),
-                path=str(self.cache_path),
-                error_code=ErrorCode.A003.value,
-            )
-            self.pages = {}
+    def _on_version_mismatch(self) -> None:
+        """Clear state on version mismatch."""
+        self.pages = {}
 
     def save_to_disk(self) -> None:
         """Save cache to disk."""
-        try:
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        self._save_cache()
 
-            data = {
-                "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
-            }
-
-            # Save as compressed .json.zst format (save_compressed handles atomic writes and default=str)
-            compressed_path = self.cache_path.with_suffix(".json.zst")
-            save_compressed(data, compressed_path)
-
-            logger.info(
-                "page_discovery_cache_saved",
-                entries=len(self.pages),
-                path=str(self.cache_path),
-            )
-        except Exception as e:
-            from bengal.errors import ErrorCode
-
-            logger.error(
-                "page_discovery_cache_save_failed",
-                error=str(e),
-                path=str(self.cache_path),
-                error_code=ErrorCode.A004.value,  # cache_write_error
-            )
+    # =========================================================================
+    # Metadata operations
+    # =========================================================================
 
     def has_metadata(self, source_path: Path) -> bool:
         """
@@ -259,6 +218,10 @@ class PageDiscoveryCache:
         )
         self.pages[metadata.source_path] = entry
 
+    # =========================================================================
+    # Invalidation
+    # =========================================================================
+
     def invalidate(self, source_path: Path) -> None:
         """
         Mark a cache entry as invalid.
@@ -278,6 +241,10 @@ class PageDiscoveryCache:
     def clear(self) -> None:
         """Clear all cache entries."""
         self.pages.clear()
+
+    # =========================================================================
+    # Query helpers
+    # =========================================================================
 
     def get_valid_entries(self) -> dict[str, PageMetadata]:
         """
@@ -318,6 +285,10 @@ class PageDiscoveryCache:
 
         return metadata.file_hash == current_file_hash
 
+    # =========================================================================
+    # Statistics
+    # =========================================================================
+
     def stats(self) -> dict[str, int]:
         """
         Get cache statistics.
@@ -325,12 +296,8 @@ class PageDiscoveryCache:
         Returns:
             Dictionary with cache stats (total, valid, invalid)
         """
-        valid = sum(1 for e in self.pages.values() if e.is_valid)
-        invalid = len(self.pages) - valid
-
-        return {
-            "total_entries": len(self.pages),
-            "valid_entries": valid,
-            "invalid_entries": invalid,
-            "cache_size_bytes": len(json.dumps([e.to_dict() for e in self.pages.values()])),
-        }
+        return compute_validity_stats(
+            entries=self.pages,
+            is_valid=lambda e: e.is_valid,
+            serialize=lambda e: e.to_cache_dict(),
+        )

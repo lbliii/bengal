@@ -20,7 +20,7 @@ Related Modules:
 
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 
 def to_posix(path: str | Path) -> str:
@@ -51,7 +51,7 @@ def to_posix(path: str | Path) -> str:
         treats backslashes as literal characters, not path separators.
 
     """
-    if isinstance(path, Path):
-        return path.as_posix()
-    # Explicit replace for strings - PurePosixPath doesn't convert backslashes
+    # Always use str().replace() to ensure backslashes are converted on all platforms.
+    # path.as_posix() doesn't convert backslashes on POSIX systems because they're
+    # treated as valid filename characters, not directory separators.
     return str(path).replace("\\", "/")

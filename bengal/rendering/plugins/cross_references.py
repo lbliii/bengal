@@ -19,6 +19,7 @@ from re import Match
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import clean_md_path
 
 if TYPE_CHECKING:
     from bengal.core.version import VersionConfig
@@ -447,7 +448,7 @@ class CrossReferencePlugin:
         # Track cross-version dependency for incremental rebuilds
         if self._cross_version_tracker is not None and self.current_source_page is not None:
             # Normalize path for tracking (remove anchor, clean up)
-            track_path = path.split("#")[0].replace(".md", "").strip("/")
+            track_path = clean_md_path(path.split("#")[0])
             self._cross_version_tracker(
                 self.current_source_page,
                 version_id,
@@ -490,7 +491,7 @@ class CrossReferencePlugin:
             anchor_fragment = f"#{anchor_fragment}"
 
         # Try to find the page in xref_index to get title for link text
-        clean_path = path.replace(".md", "").strip("/")
+        clean_path = clean_md_path(path)
         page = self.xref_index.get("by_path", {}).get(clean_path)
 
         # Build URL with version prefix

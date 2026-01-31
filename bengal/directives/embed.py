@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING, ClassVar
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.directives.utils import clean_soundcloud_path
 
 if TYPE_CHECKING:
     from bengal.directives.types import DirectiveRenderer, MistuneBlockState
@@ -1071,16 +1072,8 @@ class SoundCloudDirective(BengalDirective):
             return f"Invalid SoundCloud path: {url_path!r}. Expected format: username/track-name"
         return None
 
-    def _clean_path(self, url_path: str) -> str:
-        """Clean and normalize a SoundCloud URL path."""
-        cleaned = url_path
-        if cleaned.startswith("https://soundcloud.com/"):
-            cleaned = cleaned[23:]
-        elif cleaned.startswith("soundcloud.com/"):
-            cleaned = cleaned[15:]
-        if "?" in cleaned:
-            cleaned = cleaned.split("?")[0]
-        return cleaned
+    # Use canonical implementation from bengal.directives.utils
+    _clean_path = staticmethod(clean_soundcloud_path)
 
     def parse_directive(
         self,

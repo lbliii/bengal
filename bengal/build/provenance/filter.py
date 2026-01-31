@@ -27,6 +27,7 @@ from bengal.build.provenance.types import (
     hash_dict,
     hash_file,
 )
+from bengal.utils.io.json_compat import JSONDecodeError, dump as json_dump, load as json_load
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -319,23 +320,17 @@ class ProvenanceFilter:
 
     def _load_asset_hashes(self) -> None:
         """Load asset hashes from disk."""
-        import json
-
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
-        if asset_cache_path.exists():
-            try:
-                data = json.loads(asset_cache_path.read_text())
-                self._asset_hashes = {CacheKey(k): ContentHash(v) for k, v in data.items()}
-            except (json.JSONDecodeError, KeyError):
-                self._asset_hashes = {}
+        try:
+            data = json_load(asset_cache_path)
+            self._asset_hashes = {CacheKey(k): ContentHash(v) for k, v in data.items()}
+        except (FileNotFoundError, JSONDecodeError, KeyError):
+            self._asset_hashes = {}
 
     def _save_asset_hashes(self) -> None:
-        """Save asset hashes to disk."""
-        import json
-
+        """Save asset hashes to disk (atomic write for crash safety)."""
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
-        asset_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        asset_cache_path.write_text(json.dumps(dict(self._asset_hashes), indent=2))
+        json_dump(dict(self._asset_hashes), asset_cache_path)
 
     def _get_file_hash(self, path: Path) -> ContentHash:
         """Get file hash from session cache or compute it (thread-safe)."""

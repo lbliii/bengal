@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.directives.utils import ensure_badge_base_class
 from bengal.utils.observability.logger import get_logger
 
 __all__ = ["BadgeDirective", "BadgeOptions"]
@@ -98,33 +99,8 @@ class BadgeDirective(BengalDirective):
             children=[],  # Badges don't have children
         )
 
-    @staticmethod
-    def _ensure_base_class(css_class: str) -> str:
-        """
-        Ensure the badge has a base class (badge or api-badge).
-
-        Handles cases like "badge-secondary", "badge-danger", "api-badge", etc.
-        """
-        if not css_class:
-            return "badge badge-secondary"
-
-        classes = css_class.split()
-
-        # Check if base class is already present
-        has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
-
-        if not has_base_badge:
-            # Determine which base class to use
-            if any(cls.startswith("api-badge") for cls in classes):
-                classes.insert(0, "api-badge")
-            elif any(cls.startswith("badge-") for cls in classes):
-                classes.insert(0, "badge")
-            else:
-                classes.insert(0, "badge")
-
-            return " ".join(classes)
-
-        return css_class
+    # Use canonical implementation from bengal.directives.utils
+    _ensure_base_class = staticmethod(ensure_badge_base_class)
 
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
         """

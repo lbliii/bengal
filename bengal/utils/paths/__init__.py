@@ -21,7 +21,14 @@ Example:
 from bengal.utils.paths.normalize import to_posix
 from bengal.utils.paths.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths.paths import BengalPaths, LegacyBengalPaths
-from bengal.utils.paths.url_normalization import join_url_paths, normalize_url, validate_url
+from bengal.utils.paths.url_normalization import (
+    clean_md_path,
+    join_url_paths,
+    normalize_url,
+    path_to_slug,
+    split_url_path,
+    validate_url,
+)
 from bengal.utils.paths.url_strategy import URLStrategy
 
 __all__ = [
@@ -29,9 +36,12 @@ __all__ = [
     "LegacyBengalPaths",
     "PathResolver",
     "URLStrategy",
+    "clean_md_path",
     "join_url_paths",
     "normalize_url",
+    "path_to_slug",
     "resolve_path",
+    "split_url_path",
     "to_posix",
     "validate_url",
 ]

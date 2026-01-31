@@ -59,6 +59,7 @@ from bengal.directives.contracts import (
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import slugify_id
 
 __all__ = [
     "StepDirective",
@@ -262,23 +263,8 @@ class StepDirective(BengalDirective):
 
     @staticmethod
     def _slugify(text: str) -> str:
-        """
-        Convert text to URL-safe slug for anchor IDs.
-
-        Converts to lowercase, replaces spaces with hyphens,
-        removes non-alphanumeric characters except hyphens.
-        """
-        # Convert to lowercase and strip
-        slug = text.lower().strip()
-        # Replace spaces and underscores with hyphens
-        slug = re.sub(r"[\s_]+", "-", slug)
-        # Remove anything that isn't alphanumeric or hyphen
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        # Collapse multiple hyphens
-        slug = re.sub(r"-+", "-", slug)
-        # Strip leading/trailing hyphens
-        slug = slug.strip("-")
-        return slug or "step"
+        """Convert text to URL-safe slug for anchor IDs."""
+        return slugify_id(text, default="step")
 
 
 # =============================================================================

@@ -61,6 +61,7 @@ from bengal.utils.primitives.text import (
     normalize_whitespace,
     pluralize,
     slugify,
+    slugify_id,
     strip_html,
     truncate_chars,
     truncate_middle,
@@ -106,6 +107,7 @@ __all__ = [
     "pluralize",
     # text
     "slugify",
+    "slugify_id",
     "strip_html",
     "time_ago",
     "truncate_chars",

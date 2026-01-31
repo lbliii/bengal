@@ -103,6 +103,14 @@ class DirectiveRendererMixin:
             if "render_child_directive" in sig.parameters:
                 kwargs["render_child_directive"] = self._render_block
 
+            # Pass xref_index for directives that resolve cross-references (cards, etc.)
+            if "xref_index" in sig.parameters:
+                kwargs["xref_index"] = getattr(self, "_xref_index", None)
+
+            # Pass site context for directives that need site-wide information
+            if "site" in sig.parameters:
+                kwargs["site"] = getattr(self, "_site", None)
+
             handler.render(node, rendered_children, result_sb, **kwargs)
 
             result = result_sb.build()

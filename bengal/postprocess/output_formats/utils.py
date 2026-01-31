@@ -49,6 +49,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import normalize_url as _normalize_url_base
 from bengal.utils.primitives.text import normalize_whitespace
 from bengal.utils.primitives.text import strip_html as _strip_html_base
 
@@ -216,18 +217,23 @@ def get_page_txt_path(page: PageLike) -> Path | None:
 
 def normalize_url(url: str) -> str:
     """
-    Normalize a URL for consistent comparison.
+    Normalize a URL for consistent comparison (strips trailing slashes).
+
+    Uses the canonical normalize_url with ensure_trailing_slash=False
+    for URL matching/comparison purposes.
 
     Args:
         url: URL to normalize
 
     Returns:
-        Normalized URL with consistent formatting
+        Normalized URL without trailing slash (except for root "/")
 
     """
     if not url:
         return ""
     url = url.strip()
-    if not url.startswith(("http://", "https://", "/")):
-        url = "/" + url
-    return url.rstrip("/") or "/"
+    # Use canonical implementation without trailing slash for comparison
+    normalized = _normalize_url_base(url, ensure_trailing_slash=False)
+    # For consistency with original behavior, return empty for empty input
+    # (canonical returns "/" for empty, but this is filtered in usage anyway)
+    return normalized

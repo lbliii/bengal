@@ -13,7 +13,6 @@ Thread Safety:
 
 from __future__ import annotations
 
-import json
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +24,7 @@ from bengal.build.provenance.types import (
     Provenance,
     ProvenanceRecord,
 )
+from bengal.utils.io.json_compat import JSONDecodeError, dump as json_dump, load as json_load
 
 
 @dataclass
@@ -80,24 +80,22 @@ class ProvenanceCache:
     def _load_index(self) -> None:
         """Load page → hash index."""
         index_path = self.cache_dir / "index.json"
-        if index_path.exists():
-            try:
-                data = json.loads(index_path.read_text())
-                self._index = {
-                    CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()
-                }
-            except (json.JSONDecodeError, KeyError):
-                self._index = {}
+        try:
+            data = json_load(index_path)
+            self._index = {
+                CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()
+            }
+        except (FileNotFoundError, JSONDecodeError, KeyError):
+            self._index = {}
 
     def _load_subvenance(self) -> None:
         """Load reverse index (input → pages)."""
         subvenance_path = self.cache_dir / "subvenance.json"
-        if subvenance_path.exists():
-            try:
-                data = json.loads(subvenance_path.read_text())
-                self._subvenance = {ContentHash(k): set(v) for k, v in data.items()}
-            except (json.JSONDecodeError, KeyError):
-                self._subvenance = {}
+        try:
+            data = json_load(subvenance_path)
+            self._subvenance = {ContentHash(k): set(v) for k, v in data.items()}
+        except (FileNotFoundError, JSONDecodeError, KeyError):
+            self._subvenance = {}
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
         """Load a provenance record by hash."""
@@ -107,16 +105,13 @@ class ProvenanceCache:
 
         # Load from disk
         record_path = self._records_dir / f"{combined_hash}.json"
-        if record_path.exists():
-            try:
-                data = json.loads(record_path.read_text())
-                record = ProvenanceRecord.from_dict(data)
-                self._records[combined_hash] = record
-                return record
-            except (json.JSONDecodeError, KeyError):
-                return None
-
-        return None
+        try:
+            data = json_load(record_path)
+            record = ProvenanceRecord.from_dict(data)
+            self._records[combined_hash] = record
+            return record
+        except (FileNotFoundError, JSONDecodeError, KeyError):
+            return None
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:
         """Get provenance record for a page (thread-safe)."""
@@ -181,9 +176,10 @@ class ProvenanceCache:
             self._dirty = True
 
         # File write outside lock (I/O can be slow)
+        # Uses atomic write for crash safety
         record_path = self._records_dir / f"{record.provenance.combined_hash}.json"
         if not record_path.exists():
-            record_path.write_text(json.dumps(record.to_dict(), indent=2))
+            json_dump(record.to_dict(), record_path)
 
     def store_batch(self, records: list[ProvenanceRecord]) -> None:
         """Store multiple provenance records efficiently (thread-safe)."""
@@ -221,9 +217,10 @@ class ProvenanceCache:
             self._dirty = True
 
         # File writes outside lock (I/O can be slow)
+        # Uses atomic write for crash safety
         for record_path, record in records_to_write:
             if not record_path.exists():  # Re-check after releasing lock
-                record_path.write_text(json.dumps(record.to_dict(), indent=2))
+                json_dump(record.to_dict(), record_path)
 
     def get_affected_by(self, input_hash: ContentHash) -> set[CacheKey]:
         """
@@ -265,23 +262,15 @@ class ProvenanceCache:
             self._dirty = False
 
         # File writes outside lock
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # Uses atomic write for crash safety (json_dump creates parent dirs)
 
         # Save page index
         index_path = self.cache_dir / "index.json"
-        index_path.write_text(
-            json.dumps(
-                {
-                    "version": 1,
-                    "pages": index_copy,
-                },
-                indent=2,
-            )
-        )
+        json_dump({"version": 1, "pages": index_copy}, index_path)
 
         # Save subvenance index
         subvenance_path = self.cache_dir / "subvenance.json"
-        subvenance_path.write_text(json.dumps(subvenance_copy, indent=2))
+        json_dump(subvenance_copy, subvenance_path)
 
     def stats(self) -> dict[str, Any]:
         """Get store statistics (thread-safe)."""

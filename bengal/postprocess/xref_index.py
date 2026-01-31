@@ -75,6 +75,7 @@ from bengal import __version__
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -226,7 +227,7 @@ class XRefIndexGenerator:
 
         if not entry_key:
             # Generate key from URL path
-            entry_key = page_url.strip("/").replace("/", "-") or "index"
+            entry_key = path_to_slug(page_url) or "index"
 
         # Build entry
         entry: dict[str, Any] = {

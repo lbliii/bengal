@@ -56,6 +56,7 @@ from bengal.parsing.backends.patitas.directives.contracts import (
     DirectiveContract,
 )
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
+from bengal.utils.primitives.text import slugify_id
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -371,12 +372,7 @@ class TabSetDirective:
 
     def _slugify(self, text: str) -> str:
         """Convert text to URL-safe slug."""
-        # Lowercase, replace spaces with hyphens, remove non-alphanumeric
-        slug = text.lower().strip()
-        slug = re.sub(r"\s+", "-", slug)
-        slug = re.sub(r"[^a-z0-9-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        return slug.strip("-") or "tab"
+        return slugify_id(text, default="tab")
 
 
 def _extract_tab_items(text: str) -> list[TabItemData]:

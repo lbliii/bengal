@@ -52,6 +52,7 @@ from typing import TYPE_CHECKING, Any
 from PIL import Image, ImageDraw, ImageFont
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
@@ -463,7 +464,7 @@ class SocialCardGenerator:
         # e.g., /docs/about/concepts/ → docs-about-concepts.png
         url_path = getattr(page, "_path", None) or "/"
         # Strip leading/trailing slashes and convert to slug format
-        slug = url_path.strip("/").replace("/", "-") or "index"
+        slug = path_to_slug(url_path) or "index"
 
         ext = "jpg" if self.config.format == "jpg" else "png"
         return output_dir / f"{slug}.{ext}"
@@ -891,7 +892,7 @@ def get_social_card_path(page: Page, config: SocialCardConfig, base_path: str = 
 
     # Build path using page URL path (same logic as _get_output_path)
     url_path = getattr(page, "_path", None) or "/"
-    slug = url_path.strip("/").replace("/", "-") or "index"
+    slug = path_to_slug(url_path) or "index"
 
     ext = "jpg" if config.format == "jpg" else "png"
     output_dir = config.output_dir.lstrip("/")
