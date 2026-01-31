@@ -130,6 +130,8 @@ class Site:
     output_dir: Path = field(default_factory=lambda: Path("public"))
     build_time: datetime | None = None
     taxonomies: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Cross-reference index for internal linking (built during rendering)
+    xref_index: dict[str, Any] = field(default_factory=dict)
     menu: dict[str, list[MenuItem]] = field(default_factory=dict)
     menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
     # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}.
@@ -603,11 +605,7 @@ class Site:
         self.menu_builders_localized = {}
 
         # Indices (rebuilt from pages)
-        if hasattr(self, "xref_index"):
-            from contextlib import suppress
-
-            with suppress(Exception):
-                self.xref_index: dict[str, Any] = {}
+        self.xref_index = {}
 
         # Cached properties
         self.invalidate_page_caches()

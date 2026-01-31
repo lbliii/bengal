@@ -111,12 +111,30 @@ select = [
     "PERF", # perflint - performance anti-patterns
     "C4",   # unnecessary comprehensions/list()/dict() calls
     "RUF",  # Ruff-specific (unused noqa, mutable class defaults, etc.)
+    "PT",   # flake8-pytest-style - pytest best practices
+]
+ignore = [
+    "E501",    # line too long - handled by formatter, manual review for long strings
+    "RUF001",  # ambiguous unicode in string (intentional × symbols, em-dashes)
+    "RUF002",  # ambiguous unicode in docstring (intentional typography)
+    "RUF003",  # ambiguous unicode in comment (intentional typography)
 ]
 
 # Per-file ignore rules
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]   # Allow unused imports in __init__ files
 "tests/**/*.py" = ["S101"] # Allow assert in tests
+# Jinja test functions use test_ prefix by convention (not pytest tests)
+"bengal/rendering/template_tests.py" = ["PT028"]
+# LRUCache.keys() returns list[K], not a dict - SIM118 false positive
+"bengal/rendering/template_functions/navigation/scaffold.py" = ["SIM118"]
+# PT017: These tests verify "either success or graceful failure" pattern
+# PT012/SIM117: Context manager exception tests use nested structure intentionally
+"tests/integration/test_error_recovery.py" = ["PT017"]
+"tests/integration/test_config_system_integration.py" = ["PT017"]
+"tests/integration/warm_build/test_data_files.py" = ["PT017"]
+"tests/unit/rendering/test_asset_manifest_contextvar.py" = ["PT012", "SIM117"]
+"tests/unit/rendering/parsers/test_patitas/test_contextvar_config.py" = ["PT012", "SIM117"]
 
 [tool.ty.environment]
 python-version = "3.14"

@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from bengal.config.types import SiteConfig
     from bengal.core.page.frontmatter import Frontmatter
+    from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
 
 
@@ -268,6 +269,11 @@ class SiteLike(Protocol):
         ...
 
     @property
+    def menu(self) -> dict[str, Any]:
+        """Navigation menus configuration."""
+        ...
+
+    @property
     def taxonomies(self) -> dict[str, dict[str, Any]]:
         """Collected taxonomies (tags, categories, etc.)."""
         ...
@@ -278,8 +284,31 @@ class SiteLike(Protocol):
         ...
 
     @property
+    def versioning_enabled(self) -> bool:
+        """Whether versioned documentation is enabled."""
+        ...
+
+    @property
     def content_dir(self) -> Path:
         """Path to the content directory."""
+        ...
+
+    @property
+    def theme_config(self) -> Theme:
+        """Theme configuration object."""
+        ...
+
+    @property
+    def xref_index(self) -> dict[str, Any]:
+        """Cross-reference index for internal linking."""
+        ...
+
+    def get_page_path_map(self) -> dict[str, PageLike]:
+        """Get cached page path lookup map for O(1) page resolution."""
+        ...
+
+    def get_section_by_path(self, path: Path | str) -> SectionLike | None:
+        """Look up a section by its path (O(1) operation)."""
         ...
 
 
