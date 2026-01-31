@@ -166,9 +166,8 @@ def get_section_by_path(snapshot: SiteSnapshot, path: Path) -> SectionSnapshot |
     return None
 
 
-def get_section_by_url(snapshot: SiteSnapshot, url: str) -> SectionSnapshot | None:
-    """Alias for get_section."""
-    return get_section(snapshot, url)
+# Alias for API discoverability
+get_section_by_url = get_section
 
 
 def get_page(snapshot: SiteSnapshot, href: str) -> PageSnapshot | None:
@@ -205,9 +204,8 @@ def get_page_by_path(snapshot: SiteSnapshot, path: Path) -> PageSnapshot | None:
     return None
 
 
-def get_page_by_url(snapshot: SiteSnapshot, url: str) -> PageSnapshot | None:
-    """Alias for get_page."""
-    return get_page(snapshot, url)
+# Alias for API discoverability
+get_page_by_url = get_page
 
 
 def get_pages_by_tag(snapshot: SiteSnapshot, tag: str) -> list[PageSnapshot]:

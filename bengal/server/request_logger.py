@@ -133,7 +133,7 @@ class RequestLogger:
         )
 
         # Get timestamp
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = get_timestamp()
 
         # Use CLIOutput for consistent formatting
         cli = CLIOutput()

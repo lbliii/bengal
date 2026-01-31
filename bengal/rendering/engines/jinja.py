@@ -32,7 +32,8 @@ from bengal.rendering.template_engine.environment import (
 )
 from bengal.rendering.template_engine.manifest import ManifestHelpersMixin
 from bengal.rendering.template_engine.menu import MenuHelpersMixin
-from bengal.rendering.template_engine.url_helpers import href_for, with_baseurl
+from bengal.rendering.template_engine.url_helpers import href_for
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.rendering.template_profiler import (
     ProfiledTemplate,
     TemplateProfiler,
@@ -516,14 +517,12 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         # If page has _path, use it to apply baseurl (for MockPage and similar)
         # Otherwise, use href property which should already include baseurl
         if hasattr(page, "_path") and page._path:
-            from bengal.rendering.template_engine.url_helpers import with_baseurl
-
-            return with_baseurl(page._path, self.site)
+            return apply_baseurl(page._path, self.site)
         return href_for(page, self.site)
 
     def _with_baseurl(self, path: str) -> str:
         """Apply base URL prefix to a path."""
-        return with_baseurl(path, self.site)
+        return apply_baseurl(path, self.site)
 
 
 def clear_template_locks() -> None:

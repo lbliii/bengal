@@ -38,6 +38,12 @@ from bengal.snapshots.types import (
     SiteSnapshot,
     TemplateSnapshot,
 )
+from bengal.snapshots.utils import (
+    compute_content_hash,
+    compute_page_hash,
+    resolve_template_name,
+    update_frozen,
+)
 
 
 def create_site_snapshot(site: Site) -> SiteSnapshot:
@@ -114,30 +120,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
         if section_snapshot.root is None:
             root_ref = find_root_snapshot(section_snapshot)
             if root_ref != section_snapshot.root:
-                updated = SectionSnapshot(
-                    name=section_snapshot.name,
-                    title=section_snapshot.title,
-                    nav_title=section_snapshot.nav_title,
-                    href=section_snapshot.href,
-                    path=section_snapshot.path,
-                    pages=section_snapshot.pages,
-                    sorted_pages=section_snapshot.sorted_pages,
-                    regular_pages=section_snapshot.regular_pages,
-                    subsections=section_snapshot.subsections,
-                    sorted_subsections=section_snapshot.sorted_subsections,
-                    parent=section_snapshot.parent,
-                    root=root_ref,
-                    index_page=section_snapshot.index_page,
-                    metadata=section_snapshot.metadata,
-                    icon=section_snapshot.icon,
-                    weight=section_snapshot.weight,
-                    depth=section_snapshot.depth,
-                    hierarchy=section_snapshot.hierarchy,
-                    is_virtual=section_snapshot.is_virtual,
-                    template_name=section_snapshot.template_name,
-                    total_pages=section_snapshot.total_pages,
-                )
-                section_cache[orig_section_id] = updated
+                section_cache[orig_section_id] = update_frozen(section_snapshot, root=root_ref)
 
     # Use first root as primary root (for compatibility)
     root = root_snapshots[0] if root_snapshots else None
@@ -153,31 +136,9 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
             section_cache,
             depth=1,
         )
-        # Update root reference on virtual root
+        # Update root reference on virtual root (root points to itself)
         if root.root is None:
-            root = SectionSnapshot(
-                name=root.name,
-                title=root.title,
-                nav_title=root.nav_title,
-                href=root.href,
-                path=root.path,
-                pages=root.pages,
-                sorted_pages=root.sorted_pages,
-                regular_pages=root.regular_pages,
-                subsections=root.subsections,
-                sorted_subsections=root.sorted_subsections,
-                parent=root.parent,
-                root=root,  # Root points to itself
-                index_page=root.index_page,
-                metadata=root.metadata,
-                icon=root.icon,
-                weight=root.weight,
-                depth=root.depth,
-                hierarchy=root.hierarchy,
-                is_virtual=root.is_virtual,
-                template_name=root.template_name,
-                total_pages=root.total_pages,
-            )
+            root = update_frozen(root, root=root)
             section_cache[id(virtual_root)] = root
 
     # Ensure all sections have root set (update any that don't)
@@ -188,30 +149,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
                 if section_snapshot.parent is not None
                 else root
             )
-            updated = SectionSnapshot(
-                name=section_snapshot.name,
-                title=section_snapshot.title,
-                nav_title=section_snapshot.nav_title,
-                href=section_snapshot.href,
-                path=section_snapshot.path,
-                pages=section_snapshot.pages,
-                sorted_pages=section_snapshot.sorted_pages,
-                regular_pages=section_snapshot.regular_pages,
-                subsections=section_snapshot.subsections,
-                sorted_subsections=section_snapshot.sorted_subsections,
-                parent=section_snapshot.parent,
-                root=root_ref,
-                index_page=section_snapshot.index_page,
-                metadata=section_snapshot.metadata,
-                icon=section_snapshot.icon,
-                weight=section_snapshot.weight,
-                depth=section_snapshot.depth,
-                hierarchy=section_snapshot.hierarchy,
-                is_virtual=section_snapshot.is_virtual,
-                template_name=section_snapshot.template_name,
-                total_pages=section_snapshot.total_pages,
-            )
-            section_cache[orig_section_id] = updated
+            section_cache[orig_section_id] = update_frozen(section_snapshot, root=root_ref)
 
     # Phase 3: Resolve section references on pages
     for page in site.pages:
@@ -224,31 +162,8 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
             # Use NO_SECTION sentinel for pages without sections
             section_snapshot = NO_SECTION
 
-        # Create new snapshot with section ref (frozen, so must recreate)
-        page_snapshot = PageSnapshot(
-            title=page_snapshot.title,
-            href=page_snapshot.href,
-            source_path=page_snapshot.source_path,
-            output_path=page_snapshot.output_path,
-            template_name=page_snapshot.template_name,
-            content=page_snapshot.content,
-            parsed_html=page_snapshot.parsed_html,
-            toc=page_snapshot.toc,
-            toc_items=page_snapshot.toc_items,
-            excerpt=page_snapshot.excerpt,
-            metadata=page_snapshot.metadata,
-            tags=page_snapshot.tags,
-            categories=page_snapshot.categories,
-            reading_time=page_snapshot.reading_time,
-            word_count=page_snapshot.word_count,
-            content_hash=page_snapshot.content_hash,
-            section=section_snapshot,
-            next_page=page_snapshot.next_page,
-            prev_page=page_snapshot.prev_page,
-            attention_score=page_snapshot.attention_score,
-            estimated_render_ms=page_snapshot.estimated_render_ms,
-        )
-        page_cache[id(page)] = page_snapshot
+        # Update snapshot with section ref
+        page_cache[id(page)] = update_frozen(page_snapshot, section=section_snapshot)
 
     # Phase 4: Resolve navigation (next/prev)
     _resolve_navigation(page_cache, site)
@@ -432,29 +347,9 @@ def update_snapshot(
             ) or NO_SECTION
 
             if page_snapshot.section != section_snapshot:
-                # Recreate with updated section ref
-                new_page_cache[id(mutable_page)] = PageSnapshot(
-                    title=page_snapshot.title,
-                    href=page_snapshot.href,
-                    source_path=page_snapshot.source_path,
-                    output_path=page_snapshot.output_path,
-                    template_name=page_snapshot.template_name,
-                    content=page_snapshot.content,
-                    parsed_html=page_snapshot.parsed_html,
-                    toc=page_snapshot.toc,
-                    toc_items=page_snapshot.toc_items,
-                    excerpt=page_snapshot.excerpt,
-                    metadata=page_snapshot.metadata,
-                    tags=page_snapshot.tags,
-                    categories=page_snapshot.categories,
-                    reading_time=page_snapshot.reading_time,
-                    word_count=page_snapshot.word_count,
-                    content_hash=page_snapshot.content_hash,
-                    section=section_snapshot,
-                    next_page=page_snapshot.next_page,
-                    prev_page=page_snapshot.prev_page,
-                    attention_score=page_snapshot.attention_score,
-                    estimated_render_ms=page_snapshot.estimated_render_ms,
+                # Update with new section ref
+                new_page_cache[id(mutable_page)] = update_frozen(
+                    page_snapshot, section=section_snapshot
                 )
 
     # Reuse unchanged data structures from old snapshot
@@ -562,7 +457,7 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
             output_path = site.output_dir / "index.html"
 
     # Determine template name
-    template_name = _determine_template(page, site)
+    template_name = resolve_template_name(page)
 
     # Get raw markdown content (for reference/debugging/incremental comparison)
     raw_content = getattr(page, "_source", "") or getattr(page, "content", "") or ""
@@ -585,7 +480,7 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
     word_count = getattr(page, "word_count", 0) or 0
 
     # Compute content hash
-    content_hash = _compute_content_hash(page)
+    content_hash = compute_page_hash(page)
 
     # Compute attention score
     attention_score = _compute_attention_score(page)
@@ -714,28 +609,12 @@ def _snapshot_section_recursive(
     # Update total_pages to include subsections
     total = len(pages) + sum(s.total_pages for s in subsections)
 
-    # Recreate with subsections (frozen, can't mutate)
-    snapshot = SectionSnapshot(
-        name=snapshot.name,
-        title=snapshot.title,
-        nav_title=snapshot.nav_title,
-        href=snapshot.href,
-        path=snapshot.path,
-        pages=snapshot.pages,
-        sorted_pages=snapshot.sorted_pages,
-        regular_pages=snapshot.regular_pages,
+    # Update with subsections (frozen, can't mutate)
+    snapshot = update_frozen(
+        snapshot,
         subsections=subsections,
         sorted_subsections=sorted_subsections,
-        parent=snapshot.parent,
-        root=None,  # Set after full tree built
         index_page=index_page,
-        metadata=snapshot.metadata,
-        icon=snapshot.icon,
-        weight=snapshot.weight,
-        depth=snapshot.depth,
-        hierarchy=snapshot.hierarchy,
-        is_virtual=snapshot.is_virtual,
-        template_name=snapshot.template_name,
         total_pages=total,
     )
 
@@ -766,31 +645,10 @@ def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: Site) -> None
             # Find original page in cache by source_path
             for orig_id, orig_page in list(page_cache.items()):
                 if orig_page.source_path == path:
-                    # Create new snapshot with navigation (frozen, so must recreate)
-                    updated = PageSnapshot(
-                        title=page.title,
-                        href=page.href,
-                        source_path=page.source_path,
-                        output_path=page.output_path,
-                        template_name=page.template_name,
-                        content=page.content,
-                        parsed_html=page.parsed_html,
-                        toc=page.toc,
-                        toc_items=page.toc_items,
-                        excerpt=page.excerpt,
-                        metadata=page.metadata,
-                        tags=page.tags,
-                        categories=page.categories,
-                        reading_time=page.reading_time,
-                        word_count=page.word_count,
-                        content_hash=page.content_hash,
-                        section=page.section,
-                        next_page=next_page,
-                        prev_page=prev_page,
-                        attention_score=page.attention_score,
-                        estimated_render_ms=page.estimated_render_ms,
+                    # Update snapshot with navigation refs
+                    page_cache[orig_id] = update_frozen(
+                        page, next_page=next_page, prev_page=prev_page
                     )
-                    page_cache[orig_id] = updated
                     break
 
 
@@ -972,28 +830,6 @@ def _snapshot_taxonomies(
 
 
 # Helper functions
-
-
-def _determine_template(page: Page, site: Site) -> str:
-    """Determine template name for page."""
-    # Check page metadata
-    template = page.metadata.get("template") or page.metadata.get("layout")
-    if template:
-        return str(template)
-
-    # Check page type
-    page_type = getattr(page, "type", None) or page.metadata.get("type")
-    if page_type:
-        return str(page_type)
-
-    # Default template
-    return "page.html"
-
-
-def _compute_content_hash(page: Page) -> str:
-    """Compute content hash for incremental builds."""
-    content = getattr(page, "content", "") or ""
-    return hashlib.sha256(content.encode()).hexdigest()
 
 
 def _compute_attention_score(page: Page) -> float:

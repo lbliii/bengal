@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.template_engine.url_helpers import with_baseurl
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -127,12 +127,12 @@ def get_version_target_url(
     """
     # Edge cases: return root if we don't have valid inputs
     if not page or not target_version:
-        return with_baseurl("/", site)
+        return apply_baseurl("/", site)
 
     if not site.versioning_enabled:
         # Versioning not enabled, return current page URL with baseurl
         site_path = getattr(page, "_path", None) or "/"
-        return with_baseurl(site_path, site)
+        return apply_baseurl(site_path, site)
 
     target_version_id = target_version.get("id", "")
     target_is_latest = target_version.get("latest", False)
@@ -141,7 +141,7 @@ def get_version_target_url(
     # Same version - no change needed, but still apply baseurl
     if current_version_id == target_version_id:
         site_path = getattr(page, "_path", None) or "/"
-        return with_baseurl(site_path, site)
+        return apply_baseurl(site_path, site)
 
     # Get the current page URL
     current_url = getattr(page, "_path", None) or "/"
@@ -153,7 +153,7 @@ def get_version_target_url(
 
     # Check if the target page exists
     if page_exists_in_version(target_url, target_version_id, site):
-        return with_baseurl(target_url, site)
+        return apply_baseurl(target_url, site)
 
     # Fallback 1: Try parent directories progressively (preserve location better)
     # This helps retain user's position in the hierarchy
@@ -163,16 +163,16 @@ def get_version_target_url(
         if parent_url == "/":
             break
         if page_exists_in_version(parent_url, target_version_id, site):
-            return with_baseurl(parent_url, site)
+            return apply_baseurl(parent_url, site)
 
     # Fallback 2: Try section index (original fallback)
     section_index_url = _get_section_index_url(target_url)
     if section_index_url and page_exists_in_version(section_index_url, target_version_id, site):
-        return with_baseurl(section_index_url, site)
+        return apply_baseurl(section_index_url, site)
 
     # Fallback 3: Version root
     version_root = _get_version_root_url(target_version_id, target_is_latest, site)
-    return with_baseurl(version_root, site)
+    return apply_baseurl(version_root, site)
 
 
 def _construct_version_url(

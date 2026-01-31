@@ -27,10 +27,11 @@ The .href property automatically includes baseurl when configured.
 
 HELPER FUNCTIONS:
 -----------------
-- href_for(obj, site): Get public URL for any page-like object (preferred)
-- with_baseurl(path, site): Apply baseurl to a site-relative path
+- href_for(obj): Get public URL for any page-like object (preferred)
+- apply_baseurl(path, site): Use bengal.rendering.utils.url.apply_baseurl
 
 Related Modules:
+- bengal.rendering.utils.url: Canonical location for apply_baseurl
 - bengal.core.nav_tree: NavNodeProxy provides .href (with baseurl) and ._path (without)
 - bengal.core.page: Page.href includes baseurl, Page._path does not
 - bengal.core.section: Same pattern as Page
@@ -42,17 +43,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-# Re-export apply_baseurl as with_baseurl for backward compatibility
-from bengal.rendering.utils.url import apply_baseurl as with_baseurl
-
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
 
-# Re-export for backward compatibility
 __all__ = [
     "filter_dateformat",
     "href_for",
-    "with_baseurl",
 ]
 
 
@@ -65,13 +61,14 @@ def href_for(obj: PageLike | Any, site: Any = None) -> str:
 
     Args:
         obj: Page, Section, Asset, NavNodeProxy, or dict-like object with href/_path
+        site: Unused, kept for backward compatibility
 
     Returns:
         Public URL with baseurl prefix (e.g., "/bengal/docs/page/")
 
     Example:
         # In template function
-        return href_for(related_page, site)  # Returns "/bengal/docs/related/"
+        return href_for(related_page)  # Returns "/bengal/docs/related/"
 
     Note:
         For Page/Section/Asset objects, prefer obj.href directly, which already

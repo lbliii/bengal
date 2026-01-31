@@ -298,7 +298,12 @@ class TestAssetCaching:
 
     def test_get_content_type_unknown(self, mixin_instance):
         """Test content type for unknown extensions."""
-        assert mixin_instance._get_content_type("/assets/other.txt") == "application/octet-stream"
+        # .txt is now recognized as text/plain, so use a truly unknown extension
+        assert mixin_instance._get_content_type("/assets/other.xyz") == "application/octet-stream"
+
+    def test_get_content_type_txt(self, mixin_instance):
+        """Test content type for text files."""
+        assert mixin_instance._get_content_type("/assets/readme.txt") == "text/plain; charset=utf-8"
 
     def test_asset_cache_storage(self):
         """Test that asset cache can store and retrieve content."""

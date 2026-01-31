@@ -21,7 +21,7 @@ from bengal.autodoc.utils import (
 )
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.rendering.template_engine.url_helpers import with_baseurl
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
 
@@ -74,7 +74,7 @@ def compute_element_urls(
     element._path = f"/{url_path}/"
 
     # Set href (public URL with baseurl)
-    element.href = with_baseurl(element._path, site)
+    element.href = apply_baseurl(element._path, site)
 
     # Recursively process children
     for child in element.children:

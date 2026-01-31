@@ -24,7 +24,7 @@ import re
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from bengal.rendering.jinja_utils import has_value, safe_get
+from bengal.rendering.utils.safe_access import has_value, safe_get
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment

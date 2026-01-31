@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.utils.url import apply_baseurl as with_baseurl
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -148,7 +148,7 @@ class AssetURLMixin:
         # In dev server mode, prefer stable URLs without fingerprints
         try:
             if self.site.dev_mode:
-                return with_baseurl(f"/assets/{safe_asset_path}", self.site)
+                return apply_baseurl(f"/assets/{safe_asset_path}", self.site)
         except Exception as e:
             logger.debug(
                 "dev_server_asset_url_failed",
@@ -160,7 +160,7 @@ class AssetURLMixin:
         # Use manifest for fingerprinted asset resolution
         manifest_entry = self._get_manifest_entry(safe_asset_path)
         if manifest_entry:
-            return with_baseurl(f"/{manifest_entry.output_path}", self.site)
+            return apply_baseurl(f"/{manifest_entry.output_path}", self.site)
 
         # Warn if manifest exists but entry missing
         if getattr(self, "_asset_manifest_present", False):
@@ -169,10 +169,10 @@ class AssetURLMixin:
         # Fallback: check output directory for fingerprinted files
         fingerprinted = self._find_fingerprinted_asset(safe_asset_path)
         if fingerprinted:
-            return with_baseurl(f"/assets/{fingerprinted}", self.site)
+            return apply_baseurl(f"/assets/{fingerprinted}", self.site)
 
         # Final fallback: return direct asset path
-        return with_baseurl(f"/assets/{safe_asset_path}", self.site)
+        return apply_baseurl(f"/assets/{safe_asset_path}", self.site)
 
     def _asset_url_file_protocol(self, safe_asset_path: str, page_context: Any) -> str:
         """

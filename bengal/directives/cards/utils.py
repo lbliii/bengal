@@ -182,9 +182,9 @@ def resolve_link_url(renderer: Any, link: str) -> str:
     if link.startswith("/"):
         site = getattr(renderer, "_site", None)
         if site:
-            from bengal.rendering.template_engine.url_helpers import with_baseurl
+            from bengal.rendering.utils.url import apply_baseurl
 
-            return with_baseurl(link, site)
+            return apply_baseurl(link, site)
         return link
 
     # Try to resolve as page reference

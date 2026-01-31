@@ -261,9 +261,7 @@ class ReloadController:
             True if notification should be suppressed, False otherwise.
         """
         now = self._now_ms()
-        if now - self._last_notify_time_ms < self._min_interval_ms:
-            return True
-        return False
+        return now - self._last_notify_time_ms < self._min_interval_ms
 
     def _record_notification(self) -> None:
         """Record that a notification was sent (for throttling)."""

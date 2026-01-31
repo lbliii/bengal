@@ -16,9 +16,10 @@ Key Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from bengal.services.utils import get_bengal_dir
 
 if TYPE_CHECKING:
     from bengal.config.snapshot import ConfigSnapshot
@@ -133,11 +134,9 @@ def get_theme_assets_dir(root_path: Path, theme_name: str | None) -> Path | None
         return site_theme_dir
 
     # Check Bengal's bundled themes
-    bengal_dir = _get_bengal_dir()
-    if bengal_dir:
-        bundled_theme_dir = bengal_dir / "themes" / theme_name / "assets"
-        if bundled_theme_dir.exists():
-            return bundled_theme_dir
+    bundled_theme_dir = get_bengal_dir() / "themes" / theme_name / "assets"
+    if bundled_theme_dir.exists():
+        return bundled_theme_dir
 
     return None
 
@@ -161,21 +160,13 @@ def get_theme_assets_chain(root_path: Path, theme_name: str | None) -> list[Path
     if not theme_name:
         return []
 
+    from bengal.core.theme import iter_theme_asset_dirs, resolve_theme_chain
+
+    chain = resolve_theme_chain(root_path, theme_name)
     dirs: list[Path] = []
 
-    try:
-        from bengal.core.theme import iter_theme_asset_dirs, resolve_theme_chain
-
-        chain = resolve_theme_chain(root_path, theme_name)
-
-        for name in reversed(chain):
-            for d in iter_theme_asset_dirs(root_path, [name]):
-                dirs.append(d)
-    except Exception:
-        # Fallback: just check the main theme
-        assets_dir = get_theme_assets_dir(root_path, theme_name)
-        if assets_dir:
-            dirs.append(assets_dir)
+    for name in reversed(chain):
+        dirs.extend(iter_theme_asset_dirs(root_path, [name]))
 
     return dirs
 
@@ -196,49 +187,22 @@ def get_theme_templates_chain(root_path: Path, theme_name: str | None) -> list[P
     if not theme_name:
         return []
 
+    from bengal.core.theme import resolve_theme_chain
+
+    chain = resolve_theme_chain(root_path, theme_name)
     dirs: list[Path] = []
+    bengal_dir = get_bengal_dir()
 
-    try:
-        from bengal.core.theme import resolve_theme_chain
-
-        chain = resolve_theme_chain(root_path, theme_name)
-
-        for name in reversed(chain):
-            # Check site's themes directory
-            site_dir = root_path / "themes" / name / "templates"
-            if site_dir.exists():
-                dirs.append(site_dir)
-                continue
-
-            # Check Bengal's bundled themes
-            bengal_dir = _get_bengal_dir()
-            if bengal_dir:
-                bundled_dir = bengal_dir / "themes" / name / "templates"
-                if bundled_dir.exists():
-                    dirs.append(bundled_dir)
-    except Exception:
-        # Fallback: just check the main theme
-        site_dir = root_path / "themes" / theme_name / "templates"
+    for name in reversed(chain):
+        # Check site's themes directory first
+        site_dir = root_path / "themes" / name / "templates"
         if site_dir.exists():
             dirs.append(site_dir)
-        else:
-            bengal_dir = _get_bengal_dir()
-            if bengal_dir:
-                bundled_dir = bengal_dir / "themes" / theme_name / "templates"
-                if bundled_dir.exists():
-                    dirs.append(bundled_dir)
+            continue
+
+        # Check Bengal's bundled themes
+        bundled_dir = bengal_dir / "themes" / name / "templates"
+        if bundled_dir.exists():
+            dirs.append(bundled_dir)
 
     return dirs
-
-
-@lru_cache(maxsize=1)
-def _get_bengal_dir() -> Path | None:
-    """Get Bengal package directory (cached)."""
-    try:
-        import bengal
-
-        if bengal.__file__:
-            return Path(bengal.__file__).parent
-    except Exception:
-        pass
-    return None

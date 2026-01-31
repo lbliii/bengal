@@ -4,10 +4,6 @@ URL manipulation utilities for rendering.
 Provides the single source of truth for URL operations including
 baseurl application and path normalization.
 
-This module consolidates implementations from:
-- bengal/rendering/urls.py (apply_baseurl)
-- bengal/rendering/template_engine/url_helpers.py (with_baseurl)
-
 Usage:
     from bengal.rendering.utils.url import apply_baseurl
 
