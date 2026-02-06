@@ -28,7 +28,7 @@ from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -60,7 +60,7 @@ class InternalLinkChecker:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         ignore_policy: IgnorePolicy | None = None,
     ):
         """

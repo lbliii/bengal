@@ -40,7 +40,7 @@ from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -85,7 +85,7 @@ class WriteBehindCollector:
 
     def __init__(
         self,
-        site: Site | None = None,
+        site: SiteLike | None = None,
         max_queue_size: int = 500,
         num_writers: int | None = None,
         dev_mode: bool | None = None,

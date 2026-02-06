@@ -52,13 +52,13 @@ if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 logger = get_logger(__name__)
 
 
-def determine_output_path(page: Page, site: Site) -> Path:
+def determine_output_path(page: Page, site: SiteLike) -> Path:
     """
     Determine the output path for a page.
 
@@ -115,7 +115,7 @@ def determine_template(page: Page) -> str:
 
 def write_output(
     page: Page,
-    site: Site,
+    site: SiteLike,
     dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
     write_behind: WriteBehindCollector | None = None,
@@ -213,7 +213,7 @@ def write_output(
 
 def _track_and_record(
     page: Page,
-    site: Site,
+    site: SiteLike,
     dependency_tracker: DependencyTracker | None,
     collector: OutputCollector | None,
 ) -> None:
@@ -245,7 +245,7 @@ def _track_and_record(
         collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
-def format_html(html: str, page: Page, site: Site) -> str:
+def format_html(html: str, page: Page, site: SiteLike) -> str:
     """
     Format HTML output (minify/pretty) with content hash embedding.
 
