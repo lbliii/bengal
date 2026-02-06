@@ -101,8 +101,8 @@ class TestContextVarManager:
 
         thread1.start()
         thread2.start()
-        thread1.join()
-        thread2.join()
+        thread1.join(timeout=10)
+        thread2.join(timeout=10)
 
         # Each thread sees its own value
         assert results["t1"] == "value1"
@@ -187,8 +187,8 @@ class TestThreadLocalPool:
 
         thread1.start()
         thread2.start()
-        thread1.join()
-        thread2.join()
+        thread1.join(timeout=10)
+        thread2.join(timeout=10)
 
         # Each thread has 1 item in its pool
         assert results["t1"] == 1

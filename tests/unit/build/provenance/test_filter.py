@@ -249,7 +249,7 @@ class TestProvenanceFilterThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
 
@@ -290,7 +290,7 @@ class TestProvenanceFilterThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
 

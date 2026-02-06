@@ -180,7 +180,7 @@ class TestEffectTracerThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert len(errors) == 0
         assert len(tracer.effects) == 400
@@ -218,8 +218,8 @@ class TestEffectTracerThreadSafety:
         writer_thread.start()
         reader_thread.start()
 
-        writer_thread.join()
-        reader_thread.join()
+        writer_thread.join(timeout=10)
+        reader_thread.join(timeout=10)
 
         assert len(errors) == 0
 

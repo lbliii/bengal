@@ -443,7 +443,7 @@ class TestThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Each thread should have seen its own page
         for i in range(3):

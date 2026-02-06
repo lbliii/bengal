@@ -45,7 +45,7 @@ class TestBlockCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         # Block should exist (content from whichever thread won)
@@ -111,7 +111,7 @@ class TestBlockCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors
         stats = cache.get_stats()
@@ -150,7 +150,7 @@ class TestBlockCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors during reads: {errors}"
 
@@ -185,7 +185,7 @@ class TestIconThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         # All threads should have rendered icons (40 total = 10 threads × 4 icons)
@@ -213,7 +213,7 @@ class TestIconThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         # Cache should have been used (high hit rate after initial miss)
@@ -243,7 +243,7 @@ class TestAssetTrackerThreadSafety:
             for t in threads:
                 t.start()
             for t in threads:
-                t.join()
+                t.join(timeout=10)
 
         assert not errors
         assets = tracker.get_assets()
@@ -285,7 +285,7 @@ class TestAssetTrackerThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
 
@@ -360,6 +360,6 @@ class TestRendererCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"

@@ -396,7 +396,7 @@ class TestCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Check for errors
         assert not errors, f"Thread errors: {errors}"
@@ -439,8 +439,8 @@ class TestCacheThreadSafety:
         t2 = threading.Thread(target=thread2_work)
         t1.start()
         t2.start()
-        t1.join()
-        t2.join()
+        t1.join(timeout=10)
+        t2.join(timeout=10)
 
         # Thread1's cache should be empty after clear
         assert thread1_value_after_clear is None

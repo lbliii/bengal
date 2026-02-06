@@ -303,7 +303,7 @@ class TestContentCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # No errors should occur from race conditions
         assert len(errors) == 0
@@ -335,7 +335,7 @@ class TestContentCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # No errors should occur
         assert len(errors) == 0

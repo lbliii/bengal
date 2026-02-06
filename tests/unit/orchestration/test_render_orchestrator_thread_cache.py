@@ -59,7 +59,7 @@ class TestBuildGenerationCounter:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         gen_after = get_current_generation()
         expected_increment = num_threads * increments_per_thread

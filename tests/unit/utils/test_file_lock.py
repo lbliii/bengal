@@ -58,7 +58,7 @@ class TestFileLock:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # All should acquire successfully
         assert len(acquired_locks) == 3
@@ -89,8 +89,8 @@ class TestFileLock:
 
         t1.start()
         t2.start()
-        t1.join()
-        t2.join()
+        t1.join(timeout=10)
+        t2.join(timeout=10)
 
         # Both should eventually acquire
         assert len(results) == 2
@@ -129,7 +129,7 @@ class TestFileLock:
 
         # Release the holder
         can_release.set()
-        holder.join()
+        holder.join(timeout=10)
 
     def test_lock_creates_parent_directory(self, tmp_path: Path) -> None:
         """Test that lock file parent directory is created if needed."""
@@ -175,7 +175,7 @@ class TestIsLocked:
             assert is_locked(test_file) is True
         finally:
             can_release.set()
-            holder.join()
+            holder.join(timeout=10)
 
     def test_returns_false_for_nonexistent_lock(self, tmp_path: Path) -> None:
         """Test that is_locked returns False when lock file doesn't exist."""
@@ -293,7 +293,7 @@ class TestBuildCacheWithLocking:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # All should complete without errors
         assert len(errors) == 0
@@ -349,8 +349,8 @@ class TestBuildCacheWithLocking:
 
         writer.start()
         reader.start()
-        writer.join()
-        reader.join()
+        writer.join(timeout=10)
+        reader.join(timeout=10)
 
         # Read should complete without errors
         assert len(errors) == 0

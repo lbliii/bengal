@@ -31,6 +31,7 @@ Usage:
     >>> section = get_section(site, "/docs/")
 """
 
+from bengal.services.live_query import LiveQueryService
 from bengal.services.data import (
     DataService,
     get_data,
@@ -60,6 +61,7 @@ __all__ = [
     # Data services
     "DataService",
     # Query services
+    "LiveQueryService",
     "QueryService",
     # Theme services
     "ThemeService",

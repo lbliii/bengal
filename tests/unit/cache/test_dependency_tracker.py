@@ -378,7 +378,7 @@ class TestCrossVersionDependencies:
 
         # Wait for all threads
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # No errors should have occurred
         assert len(errors) == 0
