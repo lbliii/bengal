@@ -16,14 +16,14 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import join_url_paths
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
 
 def create_python_sections(
     elements: list[DocElement],
-    site: Site,
+    site: SiteLike,
     resolve_output_prefix: Callable[..., Any],
 ) -> dict[str, Section]:
     """
@@ -128,7 +128,7 @@ def create_python_sections(
 
 def create_cli_sections(
     elements: list[DocElement],
-    site: Site,
+    site: SiteLike,
     resolve_output_prefix: Callable[..., Any],
 ) -> dict[str, Section]:
     """
@@ -254,7 +254,7 @@ def create_cli_sections(
 
 def create_openapi_sections(
     elements: list[DocElement],
-    site: Site,
+    site: SiteLike,
     resolve_output_prefix: Callable[..., Any],
     _existing_sections: dict[str, Section] | None = None,
 ) -> dict[str, Section]:

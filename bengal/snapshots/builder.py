@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.protocols import PageLike
+    from bengal.protocols import PageLike, SiteLike
 
 from datetime import UTC
 
@@ -422,7 +422,7 @@ def _rebuild_template_dependents(
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
 
 
-def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
+def _snapshot_page_initial(page: Page, site: SiteLike) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
 
@@ -609,7 +609,7 @@ def _snapshot_section_recursive(
     return snapshot
 
 
-def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: Site) -> None:
+def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> None:
     """Resolve next/prev navigation links."""
     # Create mapping from source_path to page snapshot for lookup
     pages_by_path: dict[Path, PageSnapshot] = {
@@ -746,7 +746,7 @@ def _compute_scout_hints(
 
 
 def _snapshot_menus(
-    site: Site,
+    site: SiteLike,
     page_cache: dict[int, PageSnapshot],
     section_cache: dict[int, SectionSnapshot],
 ) -> MappingProxyType[str, tuple[MenuItemSnapshot, ...]]:
@@ -799,7 +799,7 @@ def _snapshot_menu_item(
 
 
 def _snapshot_taxonomies(
-    site: Site,
+    site: SiteLike,
     page_cache: dict[int, PageSnapshot],
 ) -> MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]]:
     """Snapshot taxonomies from site."""

@@ -77,7 +77,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -135,7 +135,7 @@ class SiteLlmTxtGenerator:
         self.site = site
         self.separator_width = separator_width
 
-    def generate(self, pages: list[Page]) -> Path:
+    def generate(self, pages: list[PageLike]) -> Path:
         """
         Generate site-wide llm-full.txt with streaming write.
 

@@ -45,10 +45,10 @@ from bengal.cli.helpers import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
-def get_input_globs(site: Site) -> list[tuple[str, str]]:
+def get_input_globs(site: SiteLike) -> list[tuple[str, str]]:
     """
     Return list of (glob_pattern, source_description) tuples.
 

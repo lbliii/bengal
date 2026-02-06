@@ -13,7 +13,10 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.protocols import SiteLike
 
 from jinja2 import (
     ChoiceLoader,
@@ -41,7 +44,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
+def resolve_theme_chain(active_theme: str | None, site: SiteLike) -> list[str]:
     """
     Resolve theme inheritance chain starting from the active theme.
 
@@ -83,7 +86,7 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
     return [t for t in chain if t != "default"]
 
 
-def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
+def _resolve_theme_templates_path(theme_name: str, site: SiteLike) -> Path | None:
     """
     Resolve the templates directory path for a theme.
 
@@ -124,7 +127,7 @@ def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
     return None
 
 
-def read_theme_extends(theme_name: str, site: Any) -> str | None:
+def read_theme_extends(theme_name: str, site: SiteLike) -> str | None:
     """
     Read theme.toml for 'extends' from site, installed, or bundled theme path.
 

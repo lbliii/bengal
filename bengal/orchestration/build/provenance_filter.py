@@ -38,14 +38,14 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
+    from bengal.protocols import SiteLike
 
 
 def _detect_changed_data_files(
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Detect data files that have changed since last build.
@@ -97,7 +97,7 @@ def _detect_changed_data_files(
 
 def _detect_changed_templates(
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Detect template files that have changed since last build.
@@ -217,7 +217,7 @@ def _get_pages_for_template(
 def _get_taxonomy_term_pages_for_member(
     cache: BuildCache,
     member_path: Path,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Find taxonomy term pages that list a member page.
@@ -257,7 +257,7 @@ def _get_taxonomy_term_pages_for_member(
 def _expand_forced_changed(
     forced_changed: set[Path],
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
     pages: list[Page],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """

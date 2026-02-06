@@ -40,7 +40,7 @@ _warned_icons: set[str] = set()
 # Site instance for theme config access (set during registration)
 # Thread-safe: protected by _site_lock for concurrent access
 _site_lock = threading.Lock()
-_site_instance: Site | None = None
+_site_instance: SiteLike | None = None
 
 
 def _get_mapped_icon_name(name: str) -> str:
