@@ -36,7 +36,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
 # Placeholder for content injection
@@ -122,7 +122,7 @@ class ContentCache:
 
     def store_shell(
         self,
-        page: Page,
+        page: PageLike,
         rendered_html: str,
         template_name: str,
     ) -> bool:
@@ -161,7 +161,7 @@ class ContentCache:
 
     def get_shell(
         self,
-        page: Page,
+        page: PageLike,
         template_name: str,
         metadata: dict[str, Any],
     ) -> PageShell | None:

@@ -49,8 +49,8 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.query_index import QueryIndex
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -132,7 +132,7 @@ class QueryIndexRegistry:
 
     def build_all(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> None:
@@ -173,7 +173,7 @@ class QueryIndexRegistry:
 
     def update_incremental(
         self,
-        changed_pages: list[Page],
+        changed_pages: list[PageLike],
         build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> dict[str, set[str]]:

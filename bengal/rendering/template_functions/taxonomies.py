@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 
 
 # Store site reference for filter access
-_site_ref: Site | None = None
+_site_ref: SiteLike | None = None
 
 
 @dataclass(frozen=True, slots=True)
