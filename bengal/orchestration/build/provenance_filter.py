@@ -559,23 +559,24 @@ def phase_incremental_filter_provenance(
                     taxonomy_pages_added=len(taxonomy_pages_to_add),
                 )
 
-        # RFC: Reimagined Cascade Infrastructure
-        # If any _index.md files changed, refresh the cascade snapshot.
-        # Page.metadata returns CascadeView that automatically uses the new snapshot.
-        index_files_changed = any(
-            p.source_path.name in ("_index.md", "_index.markdown", "index.md")
-            for p in result.pages_to_build
-        )
-
-        if index_files_changed:
-            # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
-            # Page.metadata property returns CascadeView that references site.cascade
-            # Cache key includes cascade id, so new snapshot = new CascadeView on access
-            site.build_cascade_snapshot()
-            logger.debug(
-                "cascade_snapshot_refreshed",
-                reason="index_files_changed",
-                sections_with_cascade=len(site.cascade),
+        # Cascade snapshot sanity check.
+        #
+        # The cascade snapshot is built during Phase 2 (discovery) by
+        # _apply_cascades() → site.build_cascade_snapshot().  It should
+        # ALWAYS be populated by the time we reach filtering.  If it's
+        # empty despite sections having cascade data, that signals a
+        # discovery bug — log a warning so we can diagnose it.
+        #
+        # Previously this code conditionally rebuilt the snapshot when
+        # _index.md files changed, but that is now handled correctly by
+        # discovery itself: changed _index.md files are loaded fresh
+        # (not from cache) because their fingerprint won't match, so the
+        # snapshot built during discovery already contains the fresh data.
+        if site.sections and len(site.cascade) == 0:
+            logger.warning(
+                "cascade_snapshot_empty_after_discovery",
+                sections_count=len(site.sections),
+                hint="discovery may not have built the cascade snapshot correctly",
             )
 
         # Initialize decision tracker for observability

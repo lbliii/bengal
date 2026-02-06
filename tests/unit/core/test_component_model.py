@@ -62,7 +62,7 @@ class TestPageMetadataComponentModel:
     def test_legacy_normalization_hero_style(self, tmp_path: Path) -> None:
         """Test that hero_style maps to variant."""
         page = Page(
-            source_path=tmp_path / "test.md", metadata={"hero_style": "comic", "title": "Test"}
+            source_path=tmp_path / "test.md", _raw_metadata={"hero_style": "comic", "title": "Test"}
         )
         assert page.variant == "comic"
         assert page.core.variant == "comic"
@@ -71,7 +71,7 @@ class TestPageMetadataComponentModel:
         """Test that explicit variant beats legacy fields."""
         page = Page(
             source_path=tmp_path / "test.md",
-            metadata={"variant": "modern", "layout": "old-grid", "title": "Test"},
+            _raw_metadata={"variant": "modern", "layout": "old-grid", "title": "Test"},
         )
         assert page.variant == "modern"
         assert page.core.variant == "modern"

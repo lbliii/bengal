@@ -19,6 +19,7 @@ versioning.py: SiteVersioningMixin (version support)
 caches.py: SiteCachesMixin (page cache management)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
 cascade.py: SiteCascadeMixin (cascade metadata)
+lifecycle.py: SiteLifecycleMixin (warm rebuild state reset)
 operations.py: SiteOperationsMixin (build/serve/clean)
 section_registry.py: SiteSectionRegistryMixin (section lookups)
 validation.py: SiteValidationMixin (URL validation)
@@ -73,6 +74,7 @@ from .data_loading import SiteDataMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
 from .helpers import SiteHelpersMixin
+from .lifecycle import SiteLifecycleMixin
 from .operations import SiteOperationsMixin
 from .properties import SitePropertiesMixin
 from .section_registry import SiteSectionRegistryMixin
@@ -99,6 +101,7 @@ class Site(
     SiteCachesMixin,
     SiteDiscoveryMixin,
     SiteCascadeMixin,
+    SiteLifecycleMixin,
     SiteOperationsMixin,
     SiteSectionRegistryMixin,
     SiteValidationMixin,

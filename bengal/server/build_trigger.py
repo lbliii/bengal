@@ -277,34 +277,11 @@ class BuildTrigger:
             from bengal.orchestration.build.options import BuildOptions
             from bengal.utils.observability.profile import BuildProfile
 
-            # Reset site's mutable state before each build
-            # This keeps config/theme warm but lets the build rediscover content
-            # The build will use disk cache for unchanged pages (PageProxy)
-            self.site.pages = []
-            self.site.sections = []
-            self.site.assets = []
-            self.site.taxonomies = {}
-            self.site.menu = {}
-            self.site.menu_builders = {}
-            self.site.menu_localized = {}
-            self.site.menu_builders_localized = {}
-            self.site.xref_index = {}
-            # Invalidate any cached properties
-            if hasattr(self.site, 'invalidate_page_caches'):
-                self.site.invalidate_page_caches()
-            if hasattr(self.site, 'invalidate_regular_pages_cache'):
-                self.site.invalidate_regular_pages_cache()
-
-            # Clear content registry (unfreezes and clears entries for re-discovery)
-            # This is critical: the registry is frozen after the first build,
-            # and must be unfrozen before the next build can register content
-            self.site.registry.clear()
-
-            # Reset URL registry and reconnect with content registry
-            from bengal.core.url_ownership import URLRegistry
-
-            self.site.url_registry = URLRegistry()
-            self.site.registry.url_ownership = self.site.url_registry
+            # Reset all per-build mutable state in one call.
+            # Site.prepare_for_rebuild() is the single source of truth for what
+            # must be reset between warm builds — including cascade snapshot,
+            # content registry, page caches, and URL registry.
+            self.site.prepare_for_rebuild()
 
             build_opts = BuildOptions(
                 force_sequential=False,  # Auto-detect based on page count
