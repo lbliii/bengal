@@ -534,6 +534,25 @@ class BuildOrchestrator:
             snapshot_cache = SnapshotCache(cache_dir)
             snapshot_cache.save(site_snapshot)
 
+            # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
+            # Services operate on the frozen snapshot for thread-safe rendering.
+            # Instantiated once per build, available via build context.
+            from bengal.services.query import QueryService
+            from bengal.services.theme import ThemeService
+
+            early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
+            early_ctx.theme_service = ThemeService(
+                root_path=self.site.root_path,
+                theme_name=self.site.theme,
+            )
+            # DataService instantiation deferred — only when data/ dir exists
+            try:
+                from bengal.services.data import DataService
+
+                early_ctx.data_service = DataService.from_root(self.site.root_path)
+            except Exception:
+                pass  # data/ dir may not exist; service remains None
+
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
         # In dry-run mode, we skip rendering, assets, postprocessing, and health

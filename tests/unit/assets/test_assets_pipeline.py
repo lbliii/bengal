@@ -11,6 +11,7 @@ class DummySite:
         self.config = config
         self.theme = theme
         self.output_dir = root_path / "public"
+        self.build_state = None
         self._paths: BengalPaths | None = None
 
     @property

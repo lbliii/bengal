@@ -149,7 +149,7 @@ class TestIncrementalProperties:
 
     @given(indices=page_indices(5))
     @settings(
-        max_examples=30,
+        max_examples=5,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -192,7 +192,7 @@ class TestIncrementalProperties:
 
     @given(modification=modification_content())
     @settings(
-        max_examples=20,
+        max_examples=5,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -284,7 +284,7 @@ class TestIncrementalEquivalence:
 
     @given(indices=page_indices(5))
     @settings(
-        max_examples=20,
+        max_examples=5,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )

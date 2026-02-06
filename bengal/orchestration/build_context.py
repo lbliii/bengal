@@ -211,6 +211,12 @@ class BuildContext:
     # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
     snapshot: Any = None  # SiteSnapshot (lazy import to avoid circular)
 
+    # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
+    # These provide O(1) lookups on immutable data for thread-safe rendering.
+    query_service: Any = None  # QueryService (lazy import to avoid circular)
+    theme_service: Any = None  # ThemeService (lazy import to avoid circular)
+    data_service: Any = None  # DataService (lazy import to avoid circular)
+
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
 
