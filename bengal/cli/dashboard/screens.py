@@ -20,6 +20,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Log, Static
 
+from bengal.protocols.capabilities import has_action_rebuild, has_config_changed_signal
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -45,7 +47,7 @@ class BengalScreen(Screen):
     def on_mount(self) -> None:
         """Subscribe to config changes when mounted."""
         # Subscribe to config signal if app supports it
-        if hasattr(self.app, "config_changed_signal"):
+        if has_config_changed_signal(self.app):
             self.app.config_changed_signal.subscribe(self, self.on_config_changed)
 
     def on_config_changed(self, data: tuple[str, object]) -> None:
@@ -610,7 +612,7 @@ class ServeScreen(BengalScreen):
         self.set_timer(
             0.1,
             lambda: self.app.screen.action_rebuild()
-            if hasattr(self.app.screen, "action_rebuild")
+            if has_action_rebuild(self.app.screen)
             else None,
         )
 

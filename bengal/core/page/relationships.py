@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.protocols.capabilities import has_walk
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -104,7 +106,7 @@ class PageRelationshipsMixin:
             return False
 
         # Check if other page is in this section or subsections
-        return other._section in self.walk() if hasattr(self, "walk") else False
+        return other._section in self.walk() if has_walk(self) else False
 
     def is_descendant(self, other: Page) -> bool:
         """

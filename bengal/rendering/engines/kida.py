@@ -33,6 +33,7 @@ from kida.environment import (
 
 from bengal.errors import BengalRenderingError
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
+from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
@@ -797,7 +798,7 @@ class KidaTemplateEngine:
             >>> engine.clear_template_cache()  # Clear all
             >>> engine.clear_template_cache(["base.html", "page.html"])  # Specific
         """
-        if hasattr(self._env, "clear_template_cache"):
+        if has_clear_template_cache(self._env):
             self._env.clear_template_cache(names)
 
     def precompile_templates(self, template_names: list[str] | None = None) -> int:
