@@ -495,7 +495,7 @@ class RenderingPipeline:
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
-            # Type narrowing: check if parser supports context methods (MistuneParser)
+            # Type narrowing: check if parser supports context methods (PatitasParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):

@@ -18,7 +18,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
     Note:
         This parser uses python-markdown's codehilite extension which
         requires Pygments. For syntax highlighting without Pygments,
-        use MistuneParser instead (which uses Bengal's Rosettes backend).
+        use PatitasParser instead (which uses Bengal's Rosettes backend).
 
     """
 

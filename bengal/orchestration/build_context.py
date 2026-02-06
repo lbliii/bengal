@@ -250,7 +250,7 @@ class BuildContext:
     _accumulated_assets: list[tuple[Path, set[str]]] = field(default_factory=list, repr=False)
     _accumulated_assets_lock: Lock = field(default_factory=Lock, repr=False)
 
-    # Unified Page Data Accumulation (replaces _accumulated_page_json)
+    # Unified Page Data Accumulation
     # Populated during rendering, consumed by PageJSONGenerator and SiteIndexGenerator
     # Eliminates redundant computation and double page iteration (~350ms savings)
     # See: plan/drafted/rfc-unified-page-data-accumulation.md

@@ -1,7 +1,7 @@
 """PatitasParser wrapper implementing BaseMarkdownParser.
 
 Provides Bengal integration by implementing the BaseMarkdownParser interface.
-This allows Patitas to be used as a drop-in replacement for MistuneParser.
+This allows Patitas to be used as a drop-in replacement for legacy parsers.
 
 Usage:
     parser = PatitasParser()
