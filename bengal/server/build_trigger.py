@@ -744,6 +744,7 @@ class BuildTrigger:
 
         import bengal
 
+        assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
         root_path = getattr(self.site, "root_path", None)
 
