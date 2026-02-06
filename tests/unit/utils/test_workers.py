@@ -163,13 +163,13 @@ class TestGetOptimalWorkers:
         assert result <= 2
 
     def test_ci_caps_mixed(self) -> None:
-        """CI mode caps mixed workers at 2."""
+        """CI mode caps mixed workers at 4 (increased for free-threaded Python)."""
         result = get_optimal_workers(
             100,
             workload_type=WorkloadType.MIXED,
             environment=Environment.CI,
         )
-        assert result <= 2
+        assert result <= 4
 
     def test_ci_io_bound_more_workers(self) -> None:
         """CI mode allows more workers for I/O-bound work."""
@@ -532,7 +532,7 @@ class TestIntegration:
 
             # Get optimal workers
             workers = get_optimal_workers(100, workload_type=WorkloadType.MIXED)
-            assert workers == 2  # CI caps at 2
+            assert workers <= 4  # CI caps at 4 (free-threaded Python)
 
     def test_full_workflow_local(self) -> None:
         """Full workflow in local environment."""
