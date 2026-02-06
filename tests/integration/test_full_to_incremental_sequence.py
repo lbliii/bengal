@@ -277,21 +277,3 @@ class TestIncrementalBuildRegression:
             f"BUG: Incremental build thought config changed when it didn't (got {stats.cache_misses} misses)"
         )
 
-
-# TODO: Add property-based tests for incremental builds
-# @settings(max_examples=50)
-# @given(st.data())
-# def test_incremental_change_invariant(data, site_with_assets):
-#     """Property-based test for incremental change detection."""
-#     # Stateful: Simulate changes
-#     change_type = data.draw(st.one_of(st.just("content"), st.just("template"), st.just("config")))
-#     changed_paths = data.draw(st.sets(st.text(min_size=1)))
-#
-#     # Use updated orchestrator
-#     site = create_test_site(site_with_assets)
-#     orch = IncrementalOrchestrator(site)
-#     orch.initialize(enabled=True)
-#     orch.process(change_type, set(changed_paths))
-#
-#     # Invariant: If changed, total_pages > 0 and outputs exist
-#     assert orch.tracker.is_stale() == (len(changed_paths) > 0)

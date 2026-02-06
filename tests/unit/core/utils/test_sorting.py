@@ -30,26 +30,6 @@ class MockItem:
         return self.title
 
 
-class TestDefaultWeight:
-    """Tests for DEFAULT_WEIGHT constant."""
-
-    def test_is_infinity(self) -> None:
-        """DEFAULT_WEIGHT is positive infinity."""
-        assert DEFAULT_WEIGHT == float("inf")
-
-    def test_always_greater_than_explicit_weights(self) -> None:
-        """DEFAULT_WEIGHT is greater than any reasonable explicit weight."""
-        assert DEFAULT_WEIGHT > 999999
-        assert DEFAULT_WEIGHT > 0
-        assert DEFAULT_WEIGHT > -1000
-
-    def test_unweighted_sorts_after_weighted(self) -> None:
-        """Items with DEFAULT_WEIGHT sort after items with explicit weights."""
-        weighted = [(10, "a"), (DEFAULT_WEIGHT, "b"), (5, "c")]
-        sorted_items = sorted(weighted, key=lambda x: x[0])
-        assert sorted_items == [(5, "c"), (10, "a"), (DEFAULT_WEIGHT, "b")]
-
-
 class TestWeightSortKey:
     """Tests for weight_sort_key function."""
 

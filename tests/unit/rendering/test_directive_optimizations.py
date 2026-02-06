@@ -208,14 +208,6 @@ class TestContractValidationSkipping:
         # Should still parse (validation is warning, not error)
         assert "step" in result.lower() or "Step 1" in result
 
-    def test_validation_can_be_disabled(self):
-        """Validation can be disabled via state.env."""
-        # This test verifies the code path exists, but we can't easily test
-        # without modifying Mistune's state.env, which is internal
-        # The implementation is verified by code review
-        assert True  # Placeholder - actual test would require mocking state.env
-
-
 class TestBackwardsCompatibility:
     """Test that optimizations maintain backwards compatibility."""
 
