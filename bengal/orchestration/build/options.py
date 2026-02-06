@@ -91,6 +91,9 @@ class BuildOptions:
     dry_run: bool = False
     explain_json: bool = False
 
+    # Effect tracing visualization (RFC: bengal-v2-architecture Phase 5)
+    show_effects: bool = False
+
     # Profiling
     profile: BuildProfile | None = None
     profile_templates: bool = False

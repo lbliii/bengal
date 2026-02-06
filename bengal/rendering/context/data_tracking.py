@@ -205,6 +205,11 @@ class TrackedData:
                 current_page = tracker.current_page.value
                 tracker.track_data_file(current_page, data_file)
 
+                # RFC: bengal-v2-architecture Phase 5 — record for unified effect tracing
+                from bengal.effects.render_integration import record_data_file_access
+
+                record_data_file_access(data_file)
+
         return value
 
     def _resolve_data_file(self, key: str, data_dir: Path) -> Path | None:

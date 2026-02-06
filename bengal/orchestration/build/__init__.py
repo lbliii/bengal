@@ -553,6 +553,40 @@ class BuildOrchestrator:
             except Exception:
                 pass  # data/ dir may not exist; service remains None
 
+            # === EFFECT TRACING (RFC: bengal-v2-architecture Phase 5) ===
+            # Enable unified effect tracing and pre-populate from snapshot.
+            # Effects record (outputs, depends_on, invalidates) for each page,
+            # replacing 13 bespoke detector classes with one declarative model.
+            from bengal.effects import BuildEffectTracer, SnapshotEffectBuilder
+
+            # Enable the global effect tracer based on config
+            # Default: always enable (opt-out via build.effect_tracing: false)
+            build_cfg = self.site.config.get("build", {})
+            effect_tracing_enabled = True
+            if isinstance(build_cfg, dict) and build_cfg.get("effect_tracing") is False:
+                effect_tracing_enabled = False
+
+            if effect_tracing_enabled:
+                build_effect_tracer = BuildEffectTracer.get_instance()
+                build_effect_tracer.clear()  # Fresh for this build
+                build_effect_tracer.enable()
+
+                # Pre-populate effects from snapshot (all pages get baseline effects)
+                # This gives the EffectTracer a complete dependency graph even before
+                # render-time recording enriches it with template includes, data files, etc.
+                tracer = SnapshotEffectBuilder.from_snapshot(site_snapshot)
+                # Merge pre-built effects into the global build tracer
+                build_effect_tracer.tracer.record_batch(tracer.effects)
+
+                # Store on BuildContext for access throughout the pipeline
+                early_ctx.effect_tracer = build_effect_tracer.tracer
+
+                logger.info(
+                    "effect_tracing_enabled",
+                    pre_populated_effects=len(build_effect_tracer.tracer.effects),
+                    pages=len(site_snapshot.pages),
+                )
+
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
         # In dry-run mode, we skip rendering, assets, postprocessing, and health
@@ -562,8 +596,9 @@ class BuildOrchestrator:
             self.stats.build_time_ms = (time.time() - build_start) * 1000
             self.stats.dry_run = True
 
-            # Clear build state (build complete)
+            # Clear build state and effect tracer (build complete)
             self.site.set_build_state(None)
+            BuildEffectTracer.reset()
 
             return self.stats
 
@@ -787,8 +822,11 @@ class BuildOrchestrator:
 
             save_provenance_cache(self)
 
-        # Clear build state (build complete)
+        # Clear build state and effect tracer (build complete)
         self.site.set_build_state(None)
+        from bengal.effects import BuildEffectTracer as _BET
+
+        _BET.reset()
 
         return self.stats
 
