@@ -38,7 +38,7 @@ from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -174,7 +174,7 @@ class QueryIndex(ABC):
         self._load_from_disk()
 
     @abstractmethod
-    def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]:
+    def extract_keys(self, page: PageLike) -> list[tuple[str, dict[str, Any]]]:
         """
         Extract index keys from a page.
 
@@ -201,7 +201,7 @@ class QueryIndex(ABC):
             return []
         """
 
-    def update_page(self, page: Page, build_cache: BuildCache) -> set[str]:
+    def update_page(self, page: PageLike, build_cache: BuildCache) -> set[str]:
         """
         Update index for a single page.
 

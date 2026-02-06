@@ -62,13 +62,10 @@ from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
 
-# Import mixins
-from .caches import SiteCachesMixin
+# Import mixins (reduced from 12 to 4 — RFC: bengal-v2-architecture Phase 3)
 from .config_normalized import SiteNormalizedConfigMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
-from .lifecycle import SiteLifecycleMixin
-from .operations import SiteOperationsMixin
 from .properties import SitePropertiesMixin
 from .versioning import SiteVersioningMixin
 
@@ -89,10 +86,7 @@ class Site(
     SitePropertiesMixin,
     SiteNormalizedConfigMixin,
     SiteVersioningMixin,
-    SiteCachesMixin,
     SiteDiscoveryMixin,
-    SiteLifecycleMixin,
-    SiteOperationsMixin,
 ):
     """
     Represents the entire website and orchestrates the build process.

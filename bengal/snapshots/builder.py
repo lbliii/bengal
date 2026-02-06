@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 from datetime import UTC
 
@@ -818,7 +819,7 @@ def _snapshot_taxonomies(
 # Helper functions
 
 
-def _compute_attention_score(page: Page) -> float:
+def _compute_attention_score(page: PageLike) -> float:
     """Compute attention score for priority scheduling."""
     score = 0.0
 
@@ -845,7 +846,7 @@ def _compute_attention_score(page: Page) -> float:
     return score
 
 
-def _estimate_render_time(page: Page) -> float:
+def _estimate_render_time(page: PageLike) -> float:
     """Estimate render time in milliseconds."""
     # Simple heuristic: base time + word count factor
     base_ms = 10.0

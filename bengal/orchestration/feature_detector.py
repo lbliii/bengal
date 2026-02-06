@@ -27,8 +27,8 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 
 class FeatureDetector:
@@ -100,7 +100,7 @@ class FeatureDetector:
 
         return features
 
-    def detect_features_in_page(self, page: Page) -> set[str]:
+    def detect_features_in_page(self, page: PageLike) -> set[str]:
         """
         Detect features in a page object.
 

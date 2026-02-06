@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 
 @dataclass
@@ -273,7 +274,7 @@ class ProvenanceFilter:
             changed_page_paths=changed_page_paths,
         )
 
-    def record_build(self, page: Page, output_hash: ContentHash | None = None) -> None:
+    def record_build(self, page: PageLike, output_hash: ContentHash | None = None) -> None:
         """
         Record provenance after a page is built (thread-safe).
 
@@ -351,7 +352,7 @@ class ProvenanceFilter:
                 self._file_hashes[path] = computed
             return self._file_hashes[path]
 
-    def _get_cascade_sources(self, page: Page) -> list[Path]:
+    def _get_cascade_sources(self, page: PageLike) -> list[Path]:
         """
         Get all _index.md files that contribute cascade metadata to this page.
 
@@ -437,7 +438,7 @@ class ProvenanceFilter:
 
         return sources
 
-    def _compute_provenance_fast(self, page: Page) -> Provenance | None:
+    def _compute_provenance_fast(self, page: PageLike) -> Provenance | None:
         """
         Fast-path provenance computation for simple content pages.
 
@@ -499,7 +500,7 @@ class ProvenanceFilter:
                 self._computed_provenance[page_path] = provenance
             return self._computed_provenance[page_path]
 
-    def _compute_provenance(self, page: Page) -> Provenance:
+    def _compute_provenance(self, page: PageLike) -> Provenance:
         """Compute provenance for a page based on its inputs.
 
         Handles both real content pages and virtual pages:
@@ -634,7 +635,7 @@ class ProvenanceFilter:
                 self._computed_provenance[page_path] = provenance
             return self._computed_provenance[page_path]
 
-    def _get_page_key(self, page: Page) -> CacheKey:
+    def _get_page_key(self, page: PageLike) -> CacheKey:
         """Get canonical page key for cache lookups."""
         return content_key(page.source_path, self.site.root_path)
 
@@ -708,7 +709,7 @@ class ProvenanceFilter:
 
     def _collect_affected(
         self,
-        page: Page,
+        page: PageLike,
         affected_tags: set[str],
         affected_sections: set[str],
     ) -> None:

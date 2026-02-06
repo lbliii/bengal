@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Literal
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 PageType = Literal["home", "list", "single"]
 
 
-def classify_page(page: Page) -> PageType:
+def classify_page(page: PageLike) -> PageType:
     """
     Classify a page for template resolution.
 

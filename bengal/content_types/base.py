@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.page import Page
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike
 
 
 class ContentTypeStrategy:
@@ -91,7 +91,7 @@ class ContentTypeStrategy:
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: list[PageLike]) -> list[Page]:
         """
         Sort pages for display in list views.
 
@@ -118,7 +118,7 @@ class ContentTypeStrategy:
 
         return sorted(pages, key=weight_title_key)
 
-    def filter_display_pages(self, pages: list[Page], index_page: Page | None = None) -> list[Page]:
+    def filter_display_pages(self, pages: list[PageLike], index_page: PageLike | None = None) -> list[Page]:
         """
         Filter which pages to show in list views.
 
@@ -178,7 +178,7 @@ class ContentTypeStrategy:
         threshold = config.get("pagination", {}).get("threshold", 20)
         return page_count > threshold
 
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+    def get_template(self, page: PageLike | None = None, template_engine: Any | None = None) -> str:
         """
         Determine which template to use for a page.
 

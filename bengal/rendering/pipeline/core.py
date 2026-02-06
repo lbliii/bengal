@@ -30,13 +30,13 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
-
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
+    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
+    from bengal.protocols import PageLike
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -277,7 +277,7 @@ class RenderingPipeline:
             logger.debug("api_doc_enhancer_init_failed", error=str(e))
             self._api_doc_enhancer = None
 
-    def process_page(self, page: Page) -> None:
+    def process_page(self, page: PageLike) -> None:
         """
         Process a single page through the entire rendering pipeline.
 
@@ -462,7 +462,7 @@ class RenderingPipeline:
         # Pre-compute plain_text cache
         _ = page.plain_text
 
-    def _should_generate_toc(self, page: Page) -> bool:
+    def _should_generate_toc(self, page: PageLike) -> bool:
         """Determine if TOC should be generated for this page."""
         if page.metadata.get("toc") is False:
             return False
@@ -621,7 +621,7 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: Page, tracked_assets: set[str] | None = None) -> None:
+    def _accumulate_asset_deps(self, page: PageLike, tracked_assets: set[str] | None = None) -> None:
         """
         Accumulate asset dependencies during rendering.
 
@@ -659,7 +659,7 @@ class RenderingPipeline:
         if assets:
             self.build_context.accumulate_page_assets(page.source_path, assets)
 
-    def _build_variable_context(self, page: Page) -> dict[str, Any]:
+    def _build_variable_context(self, page: PageLike) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
             ParamsContext,
@@ -738,11 +738,11 @@ class RenderingPipeline:
 
         return f"{base_version}-toc{TOC_EXTRACTION_VERSION}"
 
-    def _write_output(self, page: Page) -> None:
+    def _write_output(self, page: PageLike) -> None:
         """Write rendered page to output directory (backward compatibility wrapper)."""
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
-    def _preprocess_content(self, page: Page) -> str:
+    def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
         if page.metadata.get("preprocess") is False:
             return page._source

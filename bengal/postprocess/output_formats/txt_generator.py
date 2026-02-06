@@ -72,7 +72,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -128,7 +128,7 @@ class PageTxtGenerator:
         self.site = site
         self.separator_width = separator_width
 
-    def generate(self, pages: list[Page]) -> int:
+    def generate(self, pages: list[PageLike]) -> int:
         """
         Generate TXT files for all pages.
 
@@ -164,7 +164,7 @@ class PageTxtGenerator:
         logger.info("page_txt_generated", count=count)
         return count
 
-    def page_to_llm_text(self, page: Page) -> str:
+    def page_to_llm_text(self, page: PageLike) -> str:
         """
         Convert page to LLM-friendly text format.
 

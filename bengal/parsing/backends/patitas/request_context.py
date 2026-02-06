@@ -31,6 +31,7 @@ from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 __all__ = [
     "RequestContext",
@@ -186,7 +187,7 @@ def reset_request_context(token: Token[RequestContext | None] | None = None) -> 
 def request_context(
     source_file: Path | None = None,
     source_content: str = "",
-    page: Page | None = None,
+    page: PageLike | None = None,
     site: Site | None = None,
     error_handler: Callable[[Exception, str], None] | None = None,
     strict_mode: bool = False,

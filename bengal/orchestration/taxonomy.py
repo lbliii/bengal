@@ -83,6 +83,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import PageLike
 
 
 class TaxonomyOrchestrator:
@@ -110,7 +111,7 @@ class TaxonomyOrchestrator:
         self.parallel = parallel
         self.url_strategy = URLStrategy()
 
-    def _is_eligible_for_taxonomy(self, page: Page) -> bool:
+    def _is_eligible_for_taxonomy(self, page: PageLike) -> bool:
         """
         Check if a page is eligible for taxonomy collection.
 

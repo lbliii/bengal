@@ -26,10 +26,13 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -303,7 +306,7 @@ class Renderer:
 
         return result
 
-    def render_page(self, page: Page, content: str | None = None) -> str:
+    def render_page(self, page: PageLike, content: str | None = None) -> str:
         """
         Render a complete page with template.
 
@@ -502,7 +505,7 @@ class Renderer:
             # Fallback to simple HTML
             return self._render_fallback(page, content)
 
-    def _add_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """
         Add special context variables for generated pages (archives, tags, etc.).
 
@@ -533,7 +536,7 @@ class Renderer:
             self._add_tag_index_generated_page_context(page, context)
             return
 
-    def _add_archive_like_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_archive_like_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """
         Add context for archive/reference/blog-like generated pages.
 
@@ -583,7 +586,7 @@ class Renderer:
             }
         )
 
-    def _add_tag_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_tag_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """Add context for an individual tag page."""
         tag_name = page.metadata.get("_tag")
         tag_slug = page.metadata.get("_tag_slug")
@@ -703,7 +706,7 @@ class Renderer:
             }
         )
 
-    def _add_tag_index_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_tag_index_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """Add context for the tag index page."""
         tags = page.metadata.get("_tags", {})
 
@@ -725,7 +728,7 @@ class Renderer:
             }
         )
 
-    def _get_template_name(self, page: Page) -> str:
+    def _get_template_name(self, page: PageLike) -> str:
         """
         Determine which template to use for a page.
 
@@ -844,7 +847,7 @@ class Renderer:
             return site_section.get("title", "Site")
         return config.get("title", "Site")
 
-    def _render_fallback(self, page: Page, content: str) -> str:
+    def _render_fallback(self, page: PageLike, content: str) -> str:
         """
         Render a fallback HTML page with basic styling.
 
