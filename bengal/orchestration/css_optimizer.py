@@ -226,7 +226,11 @@ class CSSOptimizer:
         features: set[str] = set()
 
         # 1. Start with auto-detected features from discovery
-        if hasattr(self.site, "features_detected"):
+        # Prefer BuildState (fresh each build), fall back to Site field
+        _bs = getattr(self.site, "build_state", None)
+        if _bs is not None:
+            features.update(_bs.features_detected)
+        elif hasattr(self.site, "features_detected"):
             features.update(self.site.features_detected)
 
         # 2. Add explicit config overrides

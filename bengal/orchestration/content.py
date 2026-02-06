@@ -281,9 +281,12 @@ class ContentOrchestrator:
         logger.debug("xref_index_built", index_size=len(self.site.xref_index.get("by_path", {})))
 
         breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
-        # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
-        # This is ephemeral, per-build-only state.
-        self.site._discovery_breakdown_ms = breakdown_ms
+        # Store on BuildState (fresh each build) for consumption by phase_discovery.
+        _bs = self.site.build_state
+        if _bs is not None:
+            _bs.discovery_timing_ms = breakdown_ms
+        else:
+            self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
@@ -945,18 +948,23 @@ class ContentOrchestrator:
 
             # Detect features in page content
             features = detector.detect_features_in_page(page)
-            self.site.features_detected.update(features)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = self.site.build_state
+            target = _bs.features_detected if _bs is not None else self.site.features_detected
+            target.update(features)
 
         # Also check config for explicitly enabled features
         config = self.site.config
+        _bs = self.site.build_state
+        target = _bs.features_detected if _bs is not None else self.site.features_detected
 
         # Search enabled?
         if config.get("search", {}).get("enabled", False):
-            self.site.features_detected.add("search")
+            target.add("search")
 
         # Graph enabled?
         if config.get("graph", {}).get("enabled", False):
-            self.site.features_detected.add("graph")
+            target.add("graph")
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

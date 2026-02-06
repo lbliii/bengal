@@ -154,18 +154,23 @@ class SiteDiscoveryMixin:
 
             # Detect features in page content
             features = detector.detect_features_in_page(page)
-            self.features_detected.update(features)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = getattr(self, "_current_build_state", None)
+            target = _bs.features_detected if _bs is not None else self.features_detected
+            target.update(features)
 
         # Also check config for explicitly enabled features
         config = self.config
+        _bs = getattr(self, "_current_build_state", None)
+        target = _bs.features_detected if _bs is not None else self.features_detected
 
         # Search enabled?
         if config.get("search", {}).get("enabled", False):
-            self.features_detected.add("search")
+            target.add("search")
 
         # Graph enabled?
         if config.get("graph", {}).get("enabled", False):
-            self.features_detected.add("graph")
+            target.add("graph")
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
