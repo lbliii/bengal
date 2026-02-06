@@ -45,7 +45,7 @@ from bengal.snapshots.utils import (
 )
 
 
-def create_site_snapshot(site: Site) -> SiteSnapshot:
+def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     """
     Create immutable snapshot from mutable site.
 
@@ -421,7 +421,7 @@ def _rebuild_template_dependents(
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
 
 
-def _snapshot_page_initial(page: Page, site: SiteLike) -> PageSnapshot:
+def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
 
@@ -818,7 +818,7 @@ def _snapshot_taxonomies(
 # Helper functions
 
 
-def _compute_attention_score(page: Page) -> float:
+def _compute_attention_score(page: PageLike) -> float:
     """Compute attention score for priority scheduling."""
     score = 0.0
 
@@ -845,7 +845,7 @@ def _compute_attention_score(page: Page) -> float:
     return score
 
 
-def _estimate_render_time(page: Page) -> float:
+def _estimate_render_time(page: PageLike) -> float:
     """Estimate render time in milliseconds."""
     # Simple heuristic: base time + word count factor
     base_ms = 10.0
@@ -874,7 +874,7 @@ def _find_index_page(pages: tuple[PageSnapshot, ...]) -> PageSnapshot | None:
     return None
 
 
-def _get_template_partials(template_name: str, site: Site) -> list[Path]:
+def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
     """
     Get partials used by template via template engine analysis.
 
@@ -1063,7 +1063,7 @@ def _snapshot_templates(
     )
 
 
-def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None:
+def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | None:
     """
     Analyze a single template and create a TemplateSnapshot.
 

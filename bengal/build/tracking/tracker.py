@@ -34,7 +34,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class CacheInvalidator:
@@ -133,7 +133,7 @@ class DependencyTracker:
 
     """
 
-    def __init__(self, cache: BuildCache, site: Site | None = None) -> None:
+    def __init__(self, cache: BuildCache, site: SiteLike | None = None) -> None:
         """
         Initialize the dependency tracker.
 

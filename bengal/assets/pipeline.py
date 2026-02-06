@@ -64,7 +64,7 @@ from bengal.assets._discovery import discover_files, unique_paths
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -516,7 +516,7 @@ class NodePipeline:
             )
 
 
-def from_site(site: Site) -> NodePipeline:
+def from_site(site: SiteLike) -> NodePipeline:
     """
     Factory to create a NodePipeline from site configuration.
 

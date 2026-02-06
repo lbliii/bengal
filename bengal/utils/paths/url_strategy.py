@@ -39,7 +39,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.protocols import SectionLike, SiteLike
 
 
@@ -379,7 +378,7 @@ class URLStrategy:
         return url
 
     @staticmethod
-    def make_virtual_path(site: Site, *parts: str) -> Path:
+    def make_virtual_path(site: SiteLike, *parts: str) -> Path:
         """
         Create virtual source path for generated pages.
 

@@ -60,7 +60,7 @@ from bengal.utils.primitives.lru_cache import LRUCache
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 
 @dataclass(slots=True)
@@ -236,7 +236,7 @@ class NavTree:
         return NavTreeContext(self, page, mark_active_trail=mark_active_trail, root_node=root_node)
 
     @classmethod
-    def build(cls, site: Site, version_id: str | None = None) -> NavTree:
+    def build(cls, site: SiteLike, version_id: str | None = None) -> NavTree:
         """
         Build a NavTree from the site's section hierarchy.
 
@@ -287,7 +287,7 @@ class NavTree:
         )
 
     @classmethod
-    def _should_exclude_from_nav(cls, page: Page) -> bool:
+    def _should_exclude_from_nav(cls, page: PageLike) -> bool:
         """
         Determine if a page should be excluded from navigation.
 
@@ -700,7 +700,7 @@ class NavTreeCache:
     _site: Site | None = None
 
     @classmethod
-    def get(cls, site: Site, version_id: str | None = None) -> NavTree:
+    def get(cls, site: SiteLike, version_id: str | None = None) -> NavTree:
         """
         Get a cached NavTree or build it if missing.
 
