@@ -91,6 +91,13 @@ class BuildState:
     current_language: str | None = None
     current_version: str | None = None
 
+    # Cascade snapshot — immutable cascade data for this build.
+    # Built during discovery by _apply_cascades() -> site.build_cascade_snapshot().
+    # Accessed via site.cascade bridge property.
+    # Being on BuildState means it is structurally fresh each build,
+    # eliminating the "forgot to reset _cascade_snapshot" class of bugs.
+    cascade_snapshot: Any = None
+
     # Discovery results
     features_detected: set[str] = field(default_factory=set)
     discovery_timing_ms: dict[str, float] = field(default_factory=dict)
