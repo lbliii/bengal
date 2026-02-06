@@ -17,6 +17,7 @@ from bengal.services.data import (
     get_data,
     get_data_file,
     load_data_directory,
+    scan_data_directory,
 )
 from bengal.services.query import (
     QueryService,
@@ -59,4 +60,5 @@ __all__ = [
     "get_theme_assets_dir",
     "get_theme_templates_chain",
     "load_data_directory",
+    "scan_data_directory",
 ]

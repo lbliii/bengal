@@ -124,32 +124,31 @@ class DataService:
         return get_data_file(file_path)
 
 
-def load_data_directory(root_path: Path) -> DataSnapshot:
+def scan_data_directory(root_path: Path) -> tuple[dict[str, Any], set[Path]]:
     """
-    Load all data files from the data/ directory.
+    Scan data/ directory and load all data files into a nested dict.
 
-    Pure function: loads files, returns frozen snapshot.
+    Pure function that does the actual file scanning. Returns raw mutable
+    data structures. Use load_data_directory() for a frozen DataSnapshot,
+    or wrap the result yourself (e.g., in DotDict for template access).
 
     Supports YAML, JSON, and TOML files. Files are loaded into
     a nested structure based on their path in the data/ directory.
 
     Example:
-        data/resume.yaml → result["resume"]
-        data/team/members.json → result["team"]["members"]
+        data/resume.yaml -> result["resume"]
+        data/team/members.json -> result["team"]["members"]
 
     Args:
         root_path: Site root path
 
     Returns:
-        DataSnapshot with loaded data
+        Tuple of (nested data dict, set of source file paths that were loaded)
     """
     data_dir = root_path / "data"
 
     if not data_dir.exists():
-        return DataSnapshot(
-            data=MappingProxyType({}),
-            source_files=frozenset(),
-        )
+        return {}, set()
 
     data: dict[str, Any] = {}
     source_files: set[Path] = set()
@@ -182,8 +181,25 @@ def load_data_directory(root_path: Path) -> DataSnapshot:
             # Skip files that fail to load
             pass
 
+    return data, source_files
+
+
+def load_data_directory(root_path: Path) -> DataSnapshot:
+    """
+    Load all data files from the data/ directory.
+
+    Pure function: loads files, returns frozen snapshot.
+
+    Args:
+        root_path: Site root path
+
+    Returns:
+        DataSnapshot with loaded data
+    """
+    data, source_files = scan_data_directory(root_path)
+
     return DataSnapshot(
-        data=freeze_dict(data),
+        data=freeze_dict(data) if data else MappingProxyType({}),
         source_files=frozenset(source_files),
     )
 
