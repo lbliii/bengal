@@ -72,7 +72,7 @@ from bengal.utils.paths.normalize import to_posix
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 @dataclass(frozen=True, slots=True)
@@ -364,7 +364,7 @@ class CascadeSnapshot:
     def build(
         cls,
         content_dir: Path,
-        sections: list[Section],
+        sections: list[SectionLike],
         root_cascade: dict[str, Any] | None = None,
     ) -> CascadeSnapshot:
         """

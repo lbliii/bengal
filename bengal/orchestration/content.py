@@ -52,8 +52,8 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
     from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -290,7 +290,7 @@ class ContentOrchestrator:
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
-    ) -> tuple[list[Page], list[Section]]:
+    ) -> tuple[list[Page], list[SectionLike]]:
         """
         Generate virtual autodoc pages if enabled.
 

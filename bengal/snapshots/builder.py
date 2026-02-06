@@ -23,9 +23,8 @@ from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
     from bengal.core.menu import MenuItem
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 from datetime import UTC
 
@@ -498,7 +497,7 @@ def _snapshot_page_initial(page: Page, site: SiteLike) -> PageSnapshot:
 
 
 def _snapshot_section_recursive(
-    section: Section,
+    section: SectionLike,
     page_cache: dict[int, PageSnapshot],
     section_cache: dict[int, SectionSnapshot],
     depth: int,
