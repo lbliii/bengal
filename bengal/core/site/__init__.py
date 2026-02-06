@@ -759,48 +759,12 @@ class Site(
         """
         Build the immutable cascade snapshot from all sections.
 
-        This scans all sections and extracts cascade metadata from their
-        index pages (_index.md). The resulting snapshot is frozen and can
-        be safely shared across threads.
-
-        Also extracts root-level cascade from pages not in any section
-        (like content/index.md) and applies it site-wide.
-
-        Storage:
-            - During builds: stored on BuildState (primary, structurally fresh)
-            - Always: stored on _cascade_snapshot (fallback for tests/CLI)
-
-        Called automatically by _apply_cascades() during discovery.
-        Can also be called manually to refresh the snapshot after
-        incremental changes to _index.md files.
-
-        Example:
-            >>> site.build_cascade_snapshot()
-            >>> print(f"Cascade data for {len(site.cascade)} sections")
+        Delegates to bengal.core.cascade_snapshot.build_cascade_from_content()
+        and stores the result on BuildState (primary) and _cascade_snapshot (fallback).
         """
-        from bengal.core.cascade_snapshot import CascadeSnapshot
+        from bengal.core.cascade_snapshot import build_cascade_from_content
 
-        # Gather all sections including subsections
-        all_sections = self._collect_all_sections()
-
-        # Compute content directory
-        content_dir = self.root_path / "content"
-
-        # Collect root-level cascade from pages not in any section
-        # This handles content/index.md with cascade that applies site-wide
-        pages_in_sections: set[Any] = set()
-        for section in all_sections:
-            pages_in_sections.update(section.get_all_pages(recursive=True))
-
-        root_cascade: dict[str, Any] = {}
-        for page in self.pages:
-            if page not in pages_in_sections and "cascade" in page.metadata:
-                root_cascade.update(page.metadata["cascade"])
-
-        # Build immutable snapshot
-        snapshot = CascadeSnapshot.build(
-            content_dir, all_sections, root_cascade=root_cascade
-        )
+        snapshot = build_cascade_from_content(self.root_path, self.sections, self.pages)
 
         # Store on BuildState if available (primary path during builds)
         if self._current_build_state is not None:
@@ -808,24 +772,6 @@ class Site(
 
         # Always store locally for non-build access (tests, CLI)
         self._cascade_snapshot = snapshot
-
-    def _collect_all_sections(self) -> list[Section]:
-        """
-        Collect all sections including nested subsections.
-
-        Returns:
-            Flat list of all Section objects in the site.
-        """
-        all_sections: list[Section] = []
-
-        def collect_recursive(sections: list[Section]) -> None:
-            for section in sections:
-                all_sections.append(section)
-                if section.subsections:
-                    collect_recursive(section.subsections)
-
-        collect_recursive(self.sections)
-        return all_sections
 
     # =========================================================================
     # PAGE CACHES (delegated to PageCacheManager)

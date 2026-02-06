@@ -532,3 +532,67 @@ class CascadeSnapshot:
         """Check if a section has cascade data defined."""
         normalized = self._normalize_section_path(section_path)
         return normalized in self._data
+
+
+# =========================================================================
+# Standalone builder (extracted from Site.build_cascade_snapshot)
+# =========================================================================
+
+
+def collect_all_sections(sections: list[Any]) -> list[Any]:
+    """
+    Flatten a section tree into a list including all nested subsections.
+
+    Args:
+        sections: Top-level section list (each may have .subsections)
+
+    Returns:
+        Flat list of all sections
+    """
+    result: list[Any] = []
+
+    def _recurse(items: list[Any]) -> None:
+        for section in items:
+            result.append(section)
+            if section.subsections:
+                _recurse(section.subsections)
+
+    _recurse(sections)
+    return result
+
+
+def build_cascade_from_content(
+    root_path: Path,
+    sections: list[Any],
+    pages: list[Any],
+) -> CascadeSnapshot:
+    """
+    Build an immutable CascadeSnapshot from site content.
+
+    Standalone function that replaces the bulk of Site.build_cascade_snapshot().
+    Gathers all sections (including nested), computes root-level cascade from
+    pages outside sections, and delegates to CascadeSnapshot.build().
+
+    Args:
+        root_path: Site root path
+        sections: Top-level section list
+        pages: All pages
+
+    Returns:
+        Frozen CascadeSnapshot ready for thread-safe access
+    """
+    all_sections = collect_all_sections(sections)
+    content_dir = root_path / "content"
+
+    # Collect root-level cascade from pages not in any section
+    # (handles content/index.md with cascade that applies site-wide)
+    pages_in_sections: set[Any] = set()
+    for section in all_sections:
+        pages_in_sections.update(section.get_all_pages(recursive=True))
+
+    root_cascade: dict[str, Any] = {}
+    for page in pages:
+        if page not in pages_in_sections and "cascade" in page.metadata:
+            root_cascade.update(page.metadata["cascade"])
+
+    return CascadeSnapshot.build(content_dir, all_sections, root_cascade=root_cascade)
