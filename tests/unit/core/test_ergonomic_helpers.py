@@ -88,7 +88,7 @@ class TestSitePagesBySection:
         blog_page = Page(
             source_path=tmp_path / "blog/post.md",
             _raw_content="Blog post",
-            metadata={"title": "Blog Post"},
+            _raw_metadata={"title": "Blog Post"},
         )
         # Pages need site reference for _section lookup
         blog_page._site = mock_site
@@ -97,7 +97,7 @@ class TestSitePagesBySection:
         docs_page = Page(
             source_path=tmp_path / "docs/guide.md",
             _raw_content="Guide",
-            metadata={"title": "Guide"},
+            _raw_metadata={"title": "Guide"},
         )
         docs_page._site = mock_site
         docs_page._section = docs_section
@@ -126,7 +126,7 @@ class TestSitePagesBySection:
         page_without_section = Page(
             source_path=tmp_path / "content/orphan.md",
             _raw_content="Orphan",
-            metadata={"title": "Orphan"},
+            _raw_metadata={"title": "Orphan"},
         )
         # Page without _section set (no site, no section path)
 
@@ -147,17 +147,17 @@ class TestSectionRecentPages:
         old_page = Page(
             source_path=tmp_path / "blog/old.md",
             _raw_content="Old",
-            metadata={"title": "Old Post", "date": datetime(2025, 1, 1)},
+            _raw_metadata={"title": "Old Post", "date": datetime(2025, 1, 1)},
         )
         new_page = Page(
             source_path=tmp_path / "blog/new.md",
             _raw_content="New",
-            metadata={"title": "New Post", "date": datetime(2025, 12, 1)},
+            _raw_metadata={"title": "New Post", "date": datetime(2025, 12, 1)},
         )
         mid_page = Page(
             source_path=tmp_path / "blog/mid.md",
             _raw_content="Mid",
-            metadata={"title": "Mid Post", "date": datetime(2025, 6, 1)},
+            _raw_metadata={"title": "Mid Post", "date": datetime(2025, 6, 1)},
         )
 
         section.pages = [old_page, new_page, mid_page]
@@ -176,12 +176,12 @@ class TestSectionRecentPages:
         dated_page = Page(
             source_path=tmp_path / "blog/dated.md",
             _raw_content="Dated",
-            metadata={"title": "Dated Post", "date": datetime(2025, 1, 1)},
+            _raw_metadata={"title": "Dated Post", "date": datetime(2025, 1, 1)},
         )
         undated_page = Page(
             source_path=tmp_path / "blog/undated.md",
             _raw_content="Undated",
-            metadata={"title": "Undated Post"},
+            _raw_metadata={"title": "Undated Post"},
         )
 
         section.pages = [dated_page, undated_page]
@@ -199,7 +199,7 @@ class TestSectionRecentPages:
             Page(
                 source_path=tmp_path / f"blog/post{i}.md",
                 _raw_content=f"Post {i}",
-                metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
+                _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
             )
             for i in range(5)
         ]
@@ -216,7 +216,7 @@ class TestSectionRecentPages:
         undated_page = Page(
             source_path=tmp_path / "blog/undated.md",
             _raw_content="Undated",
-            metadata={"title": "Undated"},
+            _raw_metadata={"title": "Undated"},
         )
         section.pages = [undated_page]
 
@@ -232,7 +232,7 @@ class TestSectionRecentPages:
             Page(
                 source_path=tmp_path / f"blog/post{i}.md",
                 _raw_content=f"Post {i}",
-                metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
+                _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
             )
             for i in range(15)
         ]
@@ -253,12 +253,12 @@ class TestSectionContentPages:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             _raw_content="Page 1",
-            metadata={"title": "Page 1", "weight": 10},
+            _raw_metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             _raw_content="Page 2",
-            metadata={"title": "Page 2", "weight": 1},
+            _raw_metadata={"title": "Page 2", "weight": 1},
         )
         section.pages = [page1, page2]
 
@@ -275,7 +275,7 @@ class TestSectionContentPages:
         page = Page(
             source_path=tmp_path / "docs/page.md",
             _raw_content="Page",
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         section.pages = [page]
 
@@ -296,12 +296,12 @@ class TestSectionPagesWithTag:
         python_page = Page(
             source_path=tmp_path / "blog/python.md",
             _raw_content="Python post",
-            metadata={"title": "Python Post", "tags": ["python", "tutorial"]},
+            _raw_metadata={"title": "Python Post", "tags": ["python", "tutorial"]},
         )
         javascript_page = Page(
             source_path=tmp_path / "blog/js.md",
             _raw_content="JS post",
-            metadata={"title": "JS Post", "tags": ["javascript"]},
+            _raw_metadata={"title": "JS Post", "tags": ["javascript"]},
         )
         section.pages = [python_page, javascript_page]
 
@@ -317,7 +317,7 @@ class TestSectionPagesWithTag:
         page = Page(
             source_path=tmp_path / "blog/post.md",
             _raw_content="Post",
-            metadata={"title": "Post", "tags": ["Python"]},  # Capital P
+            _raw_metadata={"title": "Post", "tags": ["Python"]},  # Capital P
         )
         section.pages = [page]
 
@@ -334,7 +334,7 @@ class TestSectionPagesWithTag:
         page = Page(
             source_path=tmp_path / "blog/post.md",
             _raw_content="Post",
-            metadata={"title": "Post", "tags": ["python"]},
+            _raw_metadata={"title": "Post", "tags": ["python"]},
         )
         section.pages = [page]
 
@@ -349,12 +349,12 @@ class TestSectionPagesWithTag:
         page_with_tags = Page(
             source_path=tmp_path / "blog/tagged.md",
             _raw_content="Tagged",
-            metadata={"title": "Tagged", "tags": ["python"]},
+            _raw_metadata={"title": "Tagged", "tags": ["python"]},
         )
         page_without_tags = Page(
             source_path=tmp_path / "blog/untagged.md",
             _raw_content="Untagged",
-            metadata={"title": "Untagged"},  # No tags
+            _raw_metadata={"title": "Untagged"},  # No tags
         )
         section.pages = [page_with_tags, page_without_tags]
 

@@ -58,7 +58,7 @@ def test_tag_page_does_not_trigger_root_index_logic(renderer):
     tag_page = Page(
         Path("tags/mytag/index.md"),
         "",
-        metadata={
+        _raw_metadata={
             "type": "tag",
             "_tag": "mytag",
             "_tag_slug": "mytag",

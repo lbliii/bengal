@@ -48,7 +48,7 @@ class TestTagContextRobustness:
         tag_page = Page(
             Path("tags/t1/index.html"),
             "",
-            metadata={
+            _raw_metadata={
                 "type": "tag",
                 "_tag": "t1",
                 "_tag_slug": "t1",
@@ -74,7 +74,7 @@ class TestTagContextRobustness:
         tag_page = Page(
             Path("tags/t1/index.html"),
             "",
-            metadata={
+            _raw_metadata={
                 "type": "tag",
                 "_tag": "t1",
                 "_tag_slug": "t1",
@@ -114,7 +114,7 @@ class TestTagContextResolution:
         tag_page = Page(
             Path("tags/t1/index.html"),
             "",
-            metadata={"type": "tag", "_tag": "t1", "_tag_slug": "t1", "_generated": True},
+            _raw_metadata={"type": "tag", "_tag": "t1", "_tag_slug": "t1", "_generated": True},
         )
 
         context = {}
@@ -140,7 +140,7 @@ class TestTagContextPagination:
         tag_page = Page(
             Path("tags/t1/index.html"),
             "",
-            metadata={
+            _raw_metadata={
                 "type": "tag",
                 "_tag": "t1",
                 "_tag_slug": "t1",

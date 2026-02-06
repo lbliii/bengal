@@ -44,7 +44,7 @@ class TestPageHashability:
         # Mutate various fields
         page._raw_content = "New content"
         page.rendered_html = "<p>Rendered</p>"
-        page.metadata = {"title": "New Title", "tags": ["python"]}
+        page._raw_metadata = {"title": "New Title", "tags": ["python"]}
         page.tags = ["python", "tutorial"]
         page.toc = "<nav>TOC</nav>"
         page.output_path = tmp_path / "public/post/index.html"
@@ -88,7 +88,7 @@ class TestPageHashability:
         # Mutate the page
         page._raw_content = "Changed"
         page.tags = ["new-tag"]
-        page.metadata = {"updated": True}
+        page._raw_metadata = {"updated": True}
 
         # Should still be findable
         assert page in pages
@@ -294,7 +294,7 @@ class TestPageHashStability:
 
         # Modify everything except source_path
         page._raw_content = "Different"
-        page.metadata = {}
+        page._raw_metadata = {}
         page.rendered_html = "Different"
         page.tags = []
 

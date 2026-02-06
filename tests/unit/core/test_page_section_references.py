@@ -44,7 +44,7 @@ def test_section_reference_survives_recreation(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     temp_site.sections = [blog]
@@ -90,7 +90,7 @@ def test_page_url_stable_across_rebuilds(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1", "slug": "post-1"},
+        _raw_metadata={"title": "Post 1", "slug": "post-1"},
     )
 
     temp_site.sections = [blog]
@@ -138,7 +138,7 @@ def test_proxy_url_without_forcing_load(temp_site):
         page = Page(
             source_path=source_path,
             _raw_content="Content from disk",
-            metadata={"title": "Post 1"},
+            _raw_metadata={"title": "Post 1"},
         )
         page._site = temp_site
         return page
@@ -186,7 +186,7 @@ def test_section_setter_stores_path(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     temp_site.sections = [blog]
@@ -206,7 +206,7 @@ def test_missing_section_counter_gated_warnings(temp_site, caplog):
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     page._site = temp_site
@@ -235,7 +235,7 @@ def test_section_none_handling(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     page._site = temp_site
@@ -264,7 +264,7 @@ def test_proxy_section_property_delegate(temp_site):
         page = Page(
             source_path=source_path,
             _raw_content="Content from disk",
-            metadata={"title": "Post 1"},
+            _raw_metadata={"title": "Post 1"},
         )
         page._site = temp_site
         page._section = blog
@@ -315,7 +315,7 @@ def test_page_parent_property_uses_section(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     temp_site.sections = [blog]
@@ -351,7 +351,7 @@ def test_page_ancestors_uses_section(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "docs" / "guides" / "intro.md",
         _raw_content="Content",
-        metadata={"title": "Introduction"},
+        _raw_metadata={"title": "Introduction"},
     )
 
     temp_site.sections = [docs]
@@ -499,7 +499,7 @@ def test_mixed_regular_and_virtual_sections(temp_site):
     blog_post = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Blog content",
-        metadata={"title": "Post 1"},
+        _raw_metadata={"title": "Post 1"},
     )
 
     api_page = Page.create_virtual(
@@ -530,7 +530,7 @@ def test_virtual_section_setter_clears_both_references(temp_site):
     page = Page(
         source_path=temp_site.root_path / "content" / "test.md",
         _raw_content="Content",
-        metadata={"title": "Test"},
+        _raw_metadata={"title": "Test"},
     )
 
     # First set to virtual section

@@ -94,7 +94,7 @@ class TestPageComputedMixin:
 
         page = _create_minimal_page()
         page._raw_content = "x" * 500  # Long content
-        page.metadata = {}
+        page._raw_metadata = {}
 
         result = page.meta_description
         assert len(result) <= 161  # 160 + potential ellipsis

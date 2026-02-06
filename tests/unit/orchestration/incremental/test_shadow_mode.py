@@ -33,12 +33,12 @@ def mock_site(tmp_path):
         Page(
             source_path=tmp_path / "content/page1.md",
             _raw_content="Content 1",
-            metadata={"title": "Page 1"},
+            _raw_metadata={"title": "Page 1"},
         ),
         Page(
             source_path=tmp_path / "content/page2.md",
             _raw_content="Content 2",
-            metadata={"title": "Page 2"},
+            _raw_metadata={"title": "Page 2"},
         ),
     ]
     site.assets = []

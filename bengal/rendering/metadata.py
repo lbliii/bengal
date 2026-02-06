@@ -172,7 +172,11 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
                 i18n_info.get("defaultLanguage"),
                 tuple(i18n_info.get("languages") or []),
             )
-            cached = site._bengal_template_metadata_cache
+            _bs = getattr(site, "build_state", None)
+            cached = (
+                getattr(_bs, "template_metadata_cache", None) if _bs is not None
+                else getattr(site, "_bengal_template_metadata_cache", None)
+            )
             if (
                 isinstance(cached, dict)
                 and cached.get("key") == cache_key
@@ -242,6 +246,11 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
 
     if not getattr(site, "dev_mode", False):
         with suppress(Exception):
-            site._bengal_template_metadata_cache = {"key": cache_key, "metadata": result}
+            cache_val = {"key": cache_key, "metadata": result}
+            _bs = getattr(site, "build_state", None)
+            if _bs is not None:
+                _bs.template_metadata_cache = cache_val
+            else:
+                site._bengal_template_metadata_cache = cache_val
 
     return result

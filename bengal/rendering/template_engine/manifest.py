@@ -145,8 +145,14 @@ class ManifestHelpersMixin:
         """
         # Suppress duplicates across the entire build if possible (parallel rendering
         # creates one TemplateEngine per worker thread).
-        global_set = getattr(self.site, "_asset_manifest_fallbacks_global", None)
-        global_lock = getattr(self.site, "_asset_manifest_fallbacks_lock", None)
+        # Prefer BuildState (fresh each build) for the fallback set.
+        _bs = getattr(self.site, "build_state", None)
+        if _bs is not None:
+            global_set = getattr(_bs, "asset_manifest_fallbacks", None)
+            global_lock = _bs.get_lock("asset_manifest_fallbacks")
+        else:
+            global_set = getattr(self.site, "_asset_manifest_fallbacks_global", None)
+            global_lock = getattr(self.site, "_asset_manifest_fallbacks_lock", None)
         if isinstance(global_set, set) and global_lock is not None:
             try:
                 with global_lock:

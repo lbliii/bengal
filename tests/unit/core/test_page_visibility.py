@@ -21,7 +21,7 @@ class TestHiddenShorthand:
         page = Page(
             source_path=Path("content/test.md"),
             _raw_content="Test content",
-            metadata={"title": "Test"},
+            _raw_metadata={"title": "Test"},
         )
 
         assert page.hidden is False
@@ -31,7 +31,7 @@ class TestHiddenShorthand:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret content",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.hidden is True
@@ -41,7 +41,7 @@ class TestHiddenShorthand:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret content",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         visibility = page.visibility
@@ -62,7 +62,7 @@ class TestVisibilityObject:
         page = Page(
             source_path=Path("content/test.md"),
             _raw_content="Test content",
-            metadata={"title": "Test"},
+            _raw_metadata={"title": "Test"},
         )
 
         visibility = page.visibility
@@ -79,7 +79,7 @@ class TestVisibilityObject:
         page = Page(
             source_path=Path("content/archive.md"),
             _raw_content="Archive content",
-            metadata={
+            _raw_metadata={
                 "title": "Archive",
                 "visibility": {
                     "listings": False,  # Exclude from listings
@@ -99,7 +99,7 @@ class TestVisibilityObject:
         page = Page(
             source_path=Path("content/internal.md"),
             _raw_content="Internal content",
-            metadata={
+            _raw_metadata={
                 "title": "Internal",
                 "visibility": {
                     "menu": False,
@@ -131,7 +131,7 @@ class TestInListingsProperty:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.in_listings is True
@@ -141,7 +141,7 @@ class TestInListingsProperty:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.in_listings is False
@@ -151,7 +151,7 @@ class TestInListingsProperty:
         page = Page(
             source_path=Path("content/draft.md"),
             _raw_content="Draft",
-            metadata={"title": "Draft", "draft": True},
+            _raw_metadata={"title": "Draft", "draft": True},
         )
 
         assert page.in_listings is False
@@ -161,7 +161,7 @@ class TestInListingsProperty:
         page = Page(
             source_path=Path("content/archive.md"),
             _raw_content="Archive",
-            metadata={
+            _raw_metadata={
                 "title": "Archive",
                 "visibility": {"listings": False},
             },
@@ -178,7 +178,7 @@ class TestInSitemapProperty:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.in_sitemap is True
@@ -188,7 +188,7 @@ class TestInSitemapProperty:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.in_sitemap is False
@@ -198,7 +198,7 @@ class TestInSitemapProperty:
         page = Page(
             source_path=Path("content/draft.md"),
             _raw_content="Draft",
-            metadata={"title": "Draft", "draft": True},
+            _raw_metadata={"title": "Draft", "draft": True},
         )
 
         assert page.in_sitemap is False
@@ -212,7 +212,7 @@ class TestInSearchProperty:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.in_search is True
@@ -222,7 +222,7 @@ class TestInSearchProperty:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.in_search is False
@@ -236,7 +236,7 @@ class TestInRssProperty:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.in_rss is True
@@ -246,7 +246,7 @@ class TestInRssProperty:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.in_rss is False
@@ -260,7 +260,7 @@ class TestRobotsMeta:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.robots_meta == "index, follow"
@@ -270,7 +270,7 @@ class TestRobotsMeta:
         page = Page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
-            metadata={"title": "Secret", "hidden": True},
+            _raw_metadata={"title": "Secret", "hidden": True},
         )
 
         assert page.robots_meta == "noindex, nofollow"
@@ -280,7 +280,7 @@ class TestRobotsMeta:
         page = Page(
             source_path=Path("content/nofollow.md"),
             _raw_content="Content",
-            metadata={
+            _raw_metadata={
                 "title": "NoFollow",
                 "visibility": {"robots": "noindex"},
             },
@@ -297,7 +297,7 @@ class TestShouldRenderInEnvironment:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post content",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.should_render_in_environment(is_production=False) is True
@@ -308,7 +308,7 @@ class TestShouldRenderInEnvironment:
         page = Page(
             source_path=Path("content/wip.md"),
             _raw_content="WIP content",
-            metadata={
+            _raw_metadata={
                 "title": "WIP",
                 "visibility": {"render": "local"},
             },
@@ -322,7 +322,7 @@ class TestShouldRenderInEnvironment:
         page = Page(
             source_path=Path("content/template.md"),
             _raw_content="Template content",
-            metadata={
+            _raw_metadata={
                 "title": "Template",
                 "visibility": {"render": "never"},
             },
@@ -340,7 +340,7 @@ class TestShouldRenderProperty:
         page = Page(
             source_path=Path("content/post.md"),
             _raw_content="Post",
-            metadata={"title": "Post"},
+            _raw_metadata={"title": "Post"},
         )
 
         assert page.should_render is True
@@ -350,7 +350,7 @@ class TestShouldRenderProperty:
         page = Page(
             source_path=Path("content/wip.md"),
             _raw_content="WIP",
-            metadata={
+            _raw_metadata={
                 "title": "WIP",
                 "visibility": {"render": "local"},
             },
@@ -363,7 +363,7 @@ class TestShouldRenderProperty:
         page = Page(
             source_path=Path("content/template.md"),
             _raw_content="Template",
-            metadata={
+            _raw_metadata={
                 "title": "Template",
                 "visibility": {"render": "never"},
             },
@@ -380,7 +380,7 @@ class TestVisibilityWithDraft:
         page = Page(
             source_path=Path("content/draft.md"),
             _raw_content="Draft",
-            metadata={
+            _raw_metadata={
                 "title": "Draft",
                 "draft": True,
                 "visibility": {

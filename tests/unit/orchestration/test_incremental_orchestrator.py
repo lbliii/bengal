@@ -156,7 +156,7 @@ class TestIncrementalOrchestrator:
         nav_page = Page(
             source_path=nav_path,
             _raw_content="Content",
-            metadata=metadata,
+            _raw_metadata=metadata,
             _site=site,
             _section_path=section.path,
         )

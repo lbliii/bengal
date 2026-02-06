@@ -329,7 +329,7 @@ class TestPageInitializer:
         archive_page = Page(
             source_path=tmp_path / ".bengal" / "generated" / "archives" / "blog" / "index.md",
             _raw_content="",
-            metadata={
+            _raw_metadata={
                 "title": "Blog",
                 "template": "archive.html",
                 "type": "archive",
@@ -353,7 +353,7 @@ class TestPageInitializer:
         tag_page = Page(
             source_path=tmp_path / ".bengal" / "generated" / "tags" / "python" / "index.md",
             _raw_content="",
-            metadata={
+            _raw_metadata={
                 "title": "Posts tagged Python",
                 "template": "tag.html",
                 "type": "tag",
@@ -381,7 +381,7 @@ class TestPageInitializer:
             / "page_2"
             / "index.md",
             _raw_content="",
-            metadata={
+            _raw_metadata={
                 "title": "Blog - Page 2",
                 "template": "archive.html",
                 "type": "archive",

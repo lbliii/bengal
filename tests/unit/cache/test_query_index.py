@@ -34,7 +34,7 @@ def sample_page():
     page = Page(
         source_path=Path("content/blog/test-post.md"),
         _raw_content="Test content",
-        metadata={
+        _raw_metadata={
             "title": "Test Post",
             "author": "Jane Smith",
             "category": "tutorial",
@@ -145,7 +145,7 @@ class TestAuthorIndex:
         page = Page(
             source_path=Path("test.md"),
             _raw_content="Test",
-            metadata={
+            _raw_metadata={
                 "author": {
                     "name": "Bob Jones",
                     "email": "bob@example.com",
@@ -166,7 +166,7 @@ class TestAuthorIndex:
         page = Page(
             source_path=Path("test.md"),
             _raw_content="Test",
-            metadata={"authors": ["Alice Chen", "Bob Jones"]},
+            _raw_metadata={"authors": ["Alice Chen", "Bob Jones"]},
         )
 
         index = AuthorIndex(Path("test.json"))
@@ -193,7 +193,7 @@ class TestCategoryIndex:
         page = Page(
             source_path=Path("test.md"),
             _raw_content="Test",
-            metadata={"category": "  API Reference  "},  # with whitespace
+            _raw_metadata={"category": "  API Reference  "},  # with whitespace
         )
 
         index = CategoryIndex(Path("test.json"))
@@ -331,12 +331,12 @@ class TestIncrementalUpdates:
         page1 = Page(
             source_path=Path("post1.md"),
             _raw_content="Test",
-            metadata={"author": "Jane Smith"},
+            _raw_metadata={"author": "Jane Smith"},
         )
         page2 = Page(
             source_path=Path("post2.md"),
             _raw_content="Test",
-            metadata={"author": "Jane Smith"},
+            _raw_metadata={"author": "Jane Smith"},
         )
 
         index.update_page(page1, build_cache)
@@ -365,7 +365,7 @@ class TestQueryIndexThreadSafety:
                     page = Page(
                         source_path=Path(f"post-{thread_id}-{i}.md"),
                         _raw_content="Test",
-                        metadata={"author": f"Author {thread_id}"},
+                        _raw_metadata={"author": f"Author {thread_id}"},
                     )
                     index.update_page(page, build_cache)
             except Exception as e:
@@ -395,7 +395,7 @@ class TestQueryIndexThreadSafety:
             page = Page(
                 source_path=Path(f"initial-{i}.md"),
                 _raw_content="Test",
-                metadata={"author": f"Author {i % 3}"},
+                _raw_metadata={"author": f"Author {i % 3}"},
             )
             index.update_page(page, build_cache)
 
@@ -420,7 +420,7 @@ class TestQueryIndexThreadSafety:
                     page = Page(
                         source_path=Path(f"new-post-{i}.md"),
                         _raw_content="Test",
-                        metadata={"author": f"Author {i % 3}"},
+                        _raw_metadata={"author": f"Author {i % 3}"},
                     )
                     index.update_page(page, build_cache)
             except Exception as e:
@@ -451,7 +451,7 @@ class TestQueryIndexInvariantViolation:
         page = Page(
             source_path=Path("post1.md"),
             _raw_content="Test",
-            metadata={"author": "Jane"},
+            _raw_metadata={"author": "Jane"},
         )
         index.update_page(page, build_cache)
 

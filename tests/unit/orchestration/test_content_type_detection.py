@@ -32,7 +32,7 @@ class TestContentTypeDetection:
     def test_explicit_content_type_override(self, orchestrator):
         """Test that explicit content_type in metadata takes precedence."""
         section = Section(
-            name="docs", path=Path("/content/docs"), _raw_metadata={"content_type": "custom"}
+            name="docs", path=Path("/content/docs"), metadata={"content_type": "custom"}
         )
 
         content_type = orchestrator._detect_content_type(section)
@@ -311,7 +311,7 @@ class TestPaginationDecision:
 
     def test_explicit_pagination_override(self, orchestrator):
         """Test explicit pagination metadata overrides heuristics."""
-        section = Section(name="docs", path=Path("/content/docs"), _raw_metadata={"paginate": True})
+        section = Section(name="docs", path=Path("/content/docs"), metadata={"paginate": True})
 
         # Even with few pages, explicit override should enable pagination
         for i in range(5):

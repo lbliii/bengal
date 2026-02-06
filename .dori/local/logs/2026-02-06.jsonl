@@ -1,0 +1,1 @@
+{"schema_version": "2.0", "event_id": "9ea3c7b8-459e-41ca-9964-c5b5d36fe69a", "event_type": "config_loaded", "timestamp": "2026-02-06T10:10:18.354443", "agent": {"name": "dori", "version": "0.1.0"}, "context": {}, "payload": {"action": "loaded", "path": "/Users/llane/Documents/github/python/bengal/.dori/config.yaml"}}

@@ -22,7 +22,7 @@ def sample_page():
     page = Page(
         source_path=Path("content/blog/post.md"),
         _raw_content="# My Post\n\nContent here.",
-        metadata={
+        _raw_metadata={
             "title": "My Post",
             "date": "2025-01-15",
             "tags": ["python", "web"],

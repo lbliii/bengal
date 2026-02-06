@@ -45,7 +45,7 @@ def sample_pages(temp_site):
         page = Page(
             source_path=Path(f"content/blog/post{i}.md"),
             _raw_content=f"Post {i}",
-            metadata={
+            _raw_metadata={
                 "title": f"Post {i}",
                 "author": "Jane Smith",
                 "category": "tutorial",
@@ -61,7 +61,7 @@ def sample_pages(temp_site):
         page = Page(
             source_path=Path(f"content/docs/doc{i}.md"),
             _raw_content=f"Doc {i}",
-            metadata={
+            _raw_metadata={
                 "title": f"Doc {i}",
                 "author": "Bob Jones",
                 "category": "guide",
@@ -171,7 +171,7 @@ class TestQueryIndexRegistry:
 
         # Modify one page
         changed_page = sample_pages[0]
-        changed_page.metadata["author"] = "Alice Chen"  # Change author
+        changed_page._raw_metadata["author"] = "Alice Chen"  # Change author
 
         # Incremental update
         affected = registry.update_incremental([changed_page], build_cache)
@@ -234,7 +234,7 @@ class TestQueryIndexRegistry:
         page1 = Page(
             source_path=Path("content/post.md"),
             _raw_content="Test",
-            metadata={"title": "Post", "author": "Jane"},
+            _raw_metadata={"title": "Post", "author": "Jane"},
         )
         page1._section = Section(name="blog", path=Path("content/blog"))
         pages.append(page1)
@@ -243,7 +243,7 @@ class TestQueryIndexRegistry:
         page2 = Page(
             source_path=Path("tags/python.md"),
             _raw_content="Tag page",
-            metadata={"title": "Python", "_generated": True},
+            _raw_metadata={"title": "Python", "_generated": True},
         )
         pages.append(page2)
 

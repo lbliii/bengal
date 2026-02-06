@@ -20,7 +20,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
-            metadata={"title": "Docs Index"},
+            _raw_metadata={"title": "Docs Index"},
         )
 
         section.add_page(underscore_index)
@@ -36,7 +36,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
-            metadata={"title": "Docs Index"},
+            _raw_metadata={"title": "Docs Index"},
         )
 
         section.add_page(regular_index)
@@ -52,7 +52,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
-            metadata={"title": "Index"},
+            _raw_metadata={"title": "Index"},
         )
         section.add_page(regular_index)
 
@@ -60,7 +60,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
-            metadata={"title": "Underscore Index"},
+            _raw_metadata={"title": "Underscore Index"},
         )
 
         collector = DiagnosticsCollector()
@@ -87,7 +87,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
-            metadata={"title": "Underscore Index"},
+            _raw_metadata={"title": "Underscore Index"},
         )
         section.add_page(underscore_index)
 
@@ -95,7 +95,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
-            metadata={"title": "Index"},
+            _raw_metadata={"title": "Index"},
         )
 
         collector = DiagnosticsCollector()
@@ -119,12 +119,12 @@ class TestIndexFileCollision:
         page1 = Page(
             source_path=Path("/content/docs/guide.md"),
             _raw_content="Guide content",
-            metadata={"title": "Guide"},
+            _raw_metadata={"title": "Guide"},
         )
         page2 = Page(
             source_path=Path("/content/docs/tutorial.md"),
             _raw_content="Tutorial content",
-            metadata={"title": "Tutorial"},
+            _raw_metadata={"title": "Tutorial"},
         )
 
         section.add_page(page1)

@@ -301,8 +301,8 @@ class TestFormatStats:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages that all reference each other
-        page1 = Page(source_path=tmp_path / "p1.md", _raw_content="", _raw__raw_metadata={"title": "Page 1"})
-        page2 = Page(source_path=tmp_path / "p2.md", _raw_content="", _raw__raw_metadata={"title": "Page 2"})
+        page1 = Page(source_path=tmp_path / "p1.md", _raw_content="", _raw_metadata={"title": "Page 1"})
+        page2 = Page(source_path=tmp_path / "p2.md", _raw_content="", _raw_metadata={"title": "Page 2"})
         page1.related_posts = [page2]
         page2.related_posts = [page1]
 

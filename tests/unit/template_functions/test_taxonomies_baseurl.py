@@ -162,7 +162,7 @@ languages = ["en", "fr"]
 
         # Create a French page to provide language context
         page = Page(source_path=Path("content/fr/post.md"))
-        page.metadata = {"title": "Post", "lang": "fr"}
+        page._raw_metadata = {"title": "Post", "lang": "fr"}
         page.output_path = site_dir / "public" / "fr" / "post" / "index.html"
         page._site = site
         # Set lang as a direct attribute (used by tag_url_with_site)
@@ -213,7 +213,7 @@ languages = ["en", "es"]
 
         # Create an English page (default language, no subdir)
         page = Page(source_path=Path("content/post.md"))
-        page.metadata = {"title": "Post", "lang": "en"}
+        page._raw_metadata = {"title": "Post", "lang": "en"}
         page.output_path = site_dir / "public" / "post" / "index.html"
         page._site = site
         # Set lang as a direct attribute (used by tag_url_with_site)
@@ -304,7 +304,7 @@ tags: ["api", "core"]
 
         # Create page object for API reference
         page = Page(source_path=Path("content/api/module.md"))
-        page.metadata = {"title": "module", "type": "python-module", "tags": ["api", "core"]}
+        page._raw_metadata = {"title": "module", "type": "python-module", "tags": ["api", "core"]}
         page.output_path = site_dir / "public" / "api" / "module" / "index.html"
         page._site = site
 
@@ -355,7 +355,7 @@ tags: ["cli", "build"]
 
         # Create page object for CLI reference
         page = Page(source_path=Path("content/cli/build.md"))
-        page.metadata = {"title": "build", "type": "autodoc/cli", "tags": ["cli", "build"]}
+        page._raw_metadata = {"title": "build", "type": "autodoc/cli", "tags": ["cli", "build"]}
         page.output_path = site_dir / "public" / "cli" / "build" / "index.html"
         page._site = site
 

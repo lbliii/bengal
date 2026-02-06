@@ -49,7 +49,7 @@ class TestPageHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/getting-started.md"),
-            metadata={"title": "Getting Started"},
+            _raw_metadata={"title": "Getting Started"},
             output_path=Path("/site/public/docs/getting-started/index.html"),
         )
         page._site = site
@@ -64,7 +64,7 @@ class TestPageHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page._site = site
@@ -81,7 +81,7 @@ class TestPageHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page._site = site
@@ -95,7 +95,7 @@ class TestPageHrefPath:
 
         page2 = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page2._site = site2
@@ -105,7 +105,7 @@ class TestPageHrefPath:
         """Test href falls back correctly when output_path not set."""
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
 
         # Should use slug-based fallback
@@ -179,7 +179,7 @@ class TestNavNodeHrefPath:
         # Create a page with site reference
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         page._site = site
 
@@ -207,7 +207,7 @@ class TestNavNodeHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         page._site = site
 
@@ -236,7 +236,7 @@ class TestNavNodeHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         page._site = site
 
@@ -299,7 +299,7 @@ class TestPageProxyHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page._site = site
@@ -331,7 +331,7 @@ class TestPageProxyHrefPath:
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page._site = site
@@ -369,7 +369,7 @@ class TestHrefPathConsistency:
         # Page
         page = Page(
             source_path=Path("/content/docs/page.md"),
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
         )
         page._site = site
@@ -400,7 +400,7 @@ class TestHrefPathConsistency:
         tree = NavTree(root=root, version_id=None)
         page_mock = Page(
             source_path=Path("/content/test.md"),
-            metadata={"title": "Test"},
+            _raw_metadata={"title": "Test"},
         )
         page_mock._site = site
         context = NavTreeContext(tree, page_mock, mark_active_trail=False)

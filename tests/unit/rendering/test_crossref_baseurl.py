@@ -23,7 +23,7 @@ class TestRefWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("docs/install.md"))
-        page.metadata = {"title": "Installation"}
+        page._raw_metadata = {"title": "Installation"}
         page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
         page._site = site
 
@@ -48,7 +48,7 @@ class TestRefWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("api/module.md"))
-        page.metadata = {"title": "Module API"}
+        page._raw_metadata = {"title": "Module API"}
         page.output_path = tmp_path / "public" / "api" / "module" / "index.html"
         page._site = site
 
@@ -68,7 +68,7 @@ class TestRefWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("docs/about.md"))
-        page.metadata = {"title": "About"}
+        page._raw_metadata = {"title": "About"}
         page.output_path = tmp_path / "public" / "docs" / "about" / "index.html"
         page._site = site
 
@@ -93,7 +93,7 @@ class TestAnchorWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("docs/guide.md"))
-        page.metadata = {"title": "Guide"}
+        page._raw_metadata = {"title": "Guide"}
         page.output_path = tmp_path / "public" / "docs" / "guide" / "index.html"
         page._site = site
 
@@ -113,7 +113,7 @@ class TestAnchorWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("tutorial.md"))
-        page.metadata = {"title": "Tutorial"}
+        page._raw_metadata = {"title": "Tutorial"}
         page.output_path = tmp_path / "public" / "tutorial" / "index.html"
         page._site = site
 
@@ -136,7 +136,7 @@ class TestAnchorWithBaseUrl:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("faq.md"))
-        page.metadata = {"title": "FAQ"}
+        page._raw_metadata = {"title": "FAQ"}
         page.output_path = tmp_path / "public" / "faq" / "index.html"
         page._site = site
 
@@ -258,7 +258,7 @@ output_dir = "public"
 
         # Create a page and add to index
         page = Page(source_path=Path("api/reference.md"))
-        page.metadata = {"title": "API Reference"}
+        page._raw_metadata = {"title": "API Reference"}
         page.output_path = site_dir / "public" / "api" / "reference" / "index.html"
         page._site = site
 

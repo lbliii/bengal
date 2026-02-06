@@ -124,7 +124,7 @@ class TestPageMetaDescription:
         page = Page(
             source_path=tmp_path / "test.md",
             _raw_content="Some long content here that would be truncated",
-            metadata={"description": "Custom description"},
+            _raw_metadata={"description": "Custom description"},
         )
 
         assert page.meta_description == "Custom description"

@@ -25,7 +25,7 @@ def test_url_cache_cleared_after_output_path_set():
     page = Page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
-        metadata={"title": "Release 0.1.0"},
+        _raw_metadata={"title": "Release 0.1.0"},
     )
     page._site = site
 
@@ -63,7 +63,7 @@ def test_url_correct_when_output_path_set_first():
     page = Page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
-        metadata={"title": "Release 0.1.0"},
+        _raw_metadata={"title": "Release 0.1.0"},
     )
     page._site = site
 
@@ -81,7 +81,7 @@ def test_url_fallback_without_output_path():
     page = Page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
-        metadata={"title": "Release 0.1.0"},
+        _raw_metadata={"title": "Release 0.1.0"},
     )
     # No site or output_path set
 
@@ -99,7 +99,7 @@ def test_numeric_filename_with_section():
     page = Page(
         source_path=Path("/tmp/content/releases/0.1.2.md"),
         _raw_content="Test",
-        metadata={"title": "Release 0.1.2"},
+        _raw_metadata={"title": "Release 0.1.2"},
     )
     page._site = site
     page.output_path = Path("/tmp/public/releases/0.1.2/index.html")

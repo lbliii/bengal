@@ -18,21 +18,21 @@ def site_with_structure(tmp_path):
     hub = Page(
         source_path=tmp_path / "hub.md",
         _raw_content="# Hub",
-        metadata={"title": "Hub Page", "tags": ["important"]},
+        _raw_metadata={"title": "Hub Page", "tags": ["important"]},
     )
 
     # Create pages that link to hub
     page1 = Page(
         source_path=tmp_path / "page1.md",
         _raw_content="# Page 1",
-        metadata={"title": "Page 1", "tags": ["python"]},
+        _raw_metadata={"title": "Page 1", "tags": ["python"]},
     )
     page1.related_posts = [hub]
 
     page2 = Page(
         source_path=tmp_path / "page2.md",
         _raw_content="# Page 2",
-        metadata={"title": "Page 2", "tags": ["python"]},
+        _raw_metadata={"title": "Page 2", "tags": ["python"]},
     )
     page2.related_posts = [hub]
 
@@ -40,13 +40,13 @@ def site_with_structure(tmp_path):
     orphan1 = Page(
         source_path=tmp_path / "orphan1.md",
         _raw_content="# Orphan 1",
-        metadata={"title": "Orphan 1", "tags": ["tutorial"]},
+        _raw_metadata={"title": "Orphan 1", "tags": ["tutorial"]},
     )
 
     orphan2 = Page(
         source_path=tmp_path / "orphan2.md",
         _raw_content="# Orphan 2",
-        metadata={"title": "Orphan 2", "tags": ["tutorial"]},
+        _raw_metadata={"title": "Orphan 2", "tags": ["tutorial"]},
     )
 
     site.pages = [hub, page1, page2, orphan1, orphan2]
@@ -175,13 +175,13 @@ class TestAutodocFiltering:
         regular = Page(
             source_path=tmp_path / "regular.md",
             _raw_content="# Regular",
-            metadata={"title": "Regular", "type": "doc"},
+            _raw_metadata={"title": "Regular", "type": "doc"},
         )
 
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
             _raw_content="# API",
-            metadata={"title": "API", "type": "autodoc-python"},
+            _raw_metadata={"title": "API", "type": "autodoc-python"},
         )
 
         site.pages = [regular, autodoc]
@@ -201,13 +201,13 @@ class TestAutodocFiltering:
         regular = Page(
             source_path=tmp_path / "regular.md",
             _raw_content="# Regular",
-            metadata={"title": "Regular"},
+            _raw_metadata={"title": "Regular"},
         )
 
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
             _raw_content="# API",
-            metadata={"title": "API", "type": "autodoc-python"},
+            _raw_metadata={"title": "API", "type": "autodoc-python"},
         )
 
         site.pages = [regular, autodoc]
@@ -227,25 +227,25 @@ class TestAutodocFiltering:
         api_ref = Page(
             source_path=tmp_path / "api.md",
             _raw_content="",
-            metadata={"type": "autodoc-python"},
+            _raw_metadata={"type": "autodoc-python"},
         )
 
         python_module = Page(
             source_path=tmp_path / "module.md",
             _raw_content="",
-            metadata={"type": "python-module"},
+            _raw_metadata={"type": "python-module"},
         )
 
         api_path = Page(
             source_path=tmp_path / "content" / "api" / "test.md",
             _raw_content="",
-            metadata={},
+            _raw_metadata={},
         )
 
         regular = Page(
             source_path=tmp_path / "regular.md",
             _raw_content="",
-            metadata={"type": "doc"},
+            _raw_metadata={"type": "doc"},
         )
 
         # Test the utility function directly
@@ -265,13 +265,13 @@ class TestLinkExtraction:
         page1 = Page(
             source_path=tmp_path / "page1.md",
             _raw_content="# Page 1\n\nSee [Page 2](page2.md)",
-            metadata={"title": "Page 1"},
+            _raw_metadata={"title": "Page 1"},
         )
 
         page2 = Page(
             source_path=tmp_path / "page2.md",
             _raw_content="# Page 2",
-            metadata={"title": "Page 2"},
+            _raw_metadata={"title": "Page 2"},
         )
 
         site.pages = [page1, page2]

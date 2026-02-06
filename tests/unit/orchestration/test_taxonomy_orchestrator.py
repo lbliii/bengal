@@ -31,7 +31,7 @@ def mock_site():
         Page(
             source_path=Path("/fake/site/content/post1.md"),
             _raw_content="Post 1",
-            metadata={
+            _raw_metadata={
                 "title": "Post 1",
                 "tags": ["python", "testing"],
                 "date": datetime(2024, 1, 1),
@@ -40,7 +40,7 @@ def mock_site():
         Page(
             source_path=Path("/fake/site/content/post2.md"),
             _raw_content="Post 2",
-            metadata={
+            _raw_metadata={
                 "title": "Post 2",
                 "tags": ["python", "django"],
                 "date": datetime(2024, 1, 2),
@@ -49,7 +49,7 @@ def mock_site():
         Page(
             source_path=Path("/fake/site/content/post3.md"),
             _raw_content="Post 3",
-            metadata={"title": "Post 3", "tags": ["testing"], "date": datetime(2024, 1, 3)},
+            _raw_metadata={"title": "Post 3", "tags": ["testing"], "date": datetime(2024, 1, 3)},
         ),
     ]
 
