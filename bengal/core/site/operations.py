@@ -41,12 +41,6 @@ class SiteOperationsMixin:
     _theme_obj: Any
     _current_build_state: BuildState | None
     _page_lookup_maps: dict[str, dict[str, Any]] | None
-    _bengal_theme_chain_cache: dict[str, Any] | None
-    _bengal_template_dirs_cache: dict[str, Any] | None
-    _bengal_template_metadata_cache: dict[str, Any] | None
-    _discovery_breakdown_ms: dict[str, float] | None
-    _asset_manifest_fallbacks_global: set[str]
-    features_detected: set[str]
 
     # These methods/properties are provided by other mixins or the main Site class:
     # - invalidate_page_caches(): from SiteCachesMixin
@@ -205,14 +199,17 @@ class SiteOperationsMixin:
         # Reset theme if needed (will be reloaded on first access)
         self._theme_obj = None
 
-        # Legacy per-build fields (primary path is now BuildState)
+        # Legacy per-build fields (primary path is now BuildState).
+        # These may not exist as dataclass fields, so guard with hasattr.
         self._page_lookup_maps = None
         self._bengal_theme_chain_cache = None
         self._bengal_template_dirs_cache = None
         self._bengal_template_metadata_cache = None
         self._discovery_breakdown_ms = None
-        self._asset_manifest_fallbacks_global.clear()
-        self.features_detected.clear()
+        if hasattr(self, "_asset_manifest_fallbacks_global"):
+            self._asset_manifest_fallbacks_global.clear()
+        if hasattr(self, "features_detected"):
+            self.features_detected.clear()
 
         # Clear Kida adapter's asset manifest cache (used for fingerprint resolution)
         if hasattr(self, "_kida_asset_manifest_cache"):

@@ -228,7 +228,7 @@ def create_jinja_environment(
     _bs = getattr(site, "build_state", None)
     cached = (
         getattr(_bs, "template_dirs_cache", None) if _bs is not None
-        else site._bengal_template_dirs_cache
+        else getattr(site, "_bengal_template_dirs_cache", None)
     )
     if not auto_reload and isinstance(cached, dict) and cached.get("key") == cache_key:
         cached_dirs = cached.get("template_dirs")
@@ -247,7 +247,7 @@ def create_jinja_environment(
         # Prefer BuildState cache (fresh each build), fall back to Site field
         theme_chain_cached = (
             getattr(_bs, "theme_chain_cache", None) if _bs is not None
-            else site._bengal_theme_chain_cache
+            else getattr(site, "_bengal_theme_chain_cache", None)
         )
         if (
             not auto_reload

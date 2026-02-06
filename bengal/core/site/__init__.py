@@ -225,7 +225,16 @@ class Site(
     _template_parser: Any = field(default=None, repr=False, init=False)
 
     # =========================================================================
-    # RUNTIME CACHES (Phase B: Formalized from dynamic injection)
+    # RUNTIME CACHES — LEGACY FALLBACK FIELDS
+    #
+    # Primary path for these caches is now BuildState (structurally fresh
+    # each build). These Site fields exist as fallback for code paths
+    # that run outside of builds (tests, CLI health checks, etc.).
+    #
+    # Template caches (theme_chain, template_dirs, template_metadata) and
+    # discovery state (features_detected, discovery_timing_ms) have been
+    # moved to BuildState. Consumers check BuildState first, falling back
+    # to these fields via getattr.
     # =========================================================================
 
     # --- Asset Manifest State ---
@@ -238,29 +247,18 @@ class Site(
     # Lock for thread-safe fallback set access (initialized in __post_init__)
     _asset_manifest_fallbacks_lock: Any = field(default=None, repr=False, init=False)
 
-    # --- Template Environment Caches ---
-    # Theme chain cache for template resolution
+    # --- Legacy Template Environment Caches (primary: BuildState) ---
     _bengal_theme_chain_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
-
-    # Template directories cache
     _bengal_template_dirs_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
-
-    # Template metadata cache
     _bengal_template_metadata_cache: dict[str, Any] | None = field(
         default=None, repr=False, init=False
     )
 
-    # --- Discovery State ---
-    # Discovery timing breakdown (set by ContentOrchestrator)
+    # --- Legacy Discovery State (primary: BuildState) ---
     _discovery_breakdown_ms: dict[str, float] | None = field(default=None, repr=False, init=False)
-
-    # Features detected during content discovery (mermaid, graph, data_tables, etc.)
-    # Used by CSSOptimizer to include only CSS for features actually in use.
     features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
-    # --- Cascade Snapshot ---
-    # Immutable cascade data computed once per build for thread-safe access.
-    # See: bengal/core/cascade_snapshot.py
+    # --- Cascade Snapshot (primary: BuildState, bridge: site.cascade property) ---
     _cascade_snapshot: Any = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
