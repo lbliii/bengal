@@ -50,11 +50,7 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
 
     version: str | None = None
     try:
-        if engine == "mistune":
-            import mistune
-
-            version = getattr(mistune, "__version__", None)
-        elif engine in ("python-markdown", "markdown", "python_markdown"):
+        if engine in ("python-markdown", "markdown", "python_markdown"):
             import markdown
 
             version = getattr(markdown, "__version__", None)

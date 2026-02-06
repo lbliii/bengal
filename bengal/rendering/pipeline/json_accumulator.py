@@ -57,53 +57,6 @@ class JsonAccumulator:
         self._page_json_generator: Any = None
         self._page_json_generator_opts: tuple[bool, bool] | None = None
 
-    def accumulate_json_data(self, page: PageLike) -> None:
-        """
-        Accumulate JSON data during rendering for post-processing optimization.
-
-        Legacy method - prefer accumulate_unified_page_data() for new code.
-
-        Args:
-            page: Page to accumulate data for
-        """
-        if not (self.build_context and self.site):
-            return
-
-        output_formats_config = self.site.config.get("output_formats", {})
-        if not output_formats_config.get("enabled", True):
-            return
-
-        per_page = output_formats_config.get("per_page", ["json", "llm_txt"])
-        if "json" not in per_page:
-            return
-
-        try:
-            from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
-            from bengal.postprocess.output_formats.utils import get_page_json_path
-
-            json_path = get_page_json_path(page)
-            if json_path:
-                options = output_formats_config.get("options", {})
-                include_html = options.get("include_html_content", False)
-                include_text = options.get("include_plain_text", True)
-
-                # Reuse per-pipeline generator instance for speed.
-                opts = (include_html, include_text)
-                if self._page_json_generator is None or self._page_json_generator_opts != opts:
-                    self._page_json_generator = PageJSONGenerator(self.site, graph_data=None)
-                    self._page_json_generator_opts = opts
-
-                page_data = self._page_json_generator.page_to_json(
-                    page, include_html=include_html, include_text=include_text
-                )
-                self.build_context.accumulate_page_json(json_path, page_data)
-        except Exception as e:
-            logger.debug(
-                "json_accumulation_failed",
-                page=str(page.source_path),
-                error=str(e)[:100],
-            )
-
     def accumulate_unified_page_data(self, page: PageLike) -> None:
         """
         Accumulate unified page data during rendering.

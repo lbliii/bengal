@@ -718,13 +718,6 @@ class RenderingPipeline:
         parser_name = type(self.parser).__name__
 
         match parser_name:
-            case "MistuneParser":
-                try:
-                    import mistune
-
-                    base_version = f"mistune-{mistune.__version__}"
-                except (ImportError, AttributeError):
-                    base_version = "mistune-unknown"
             case "PythonMarkdownParser":
                 try:
                     import markdown

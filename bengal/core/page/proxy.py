@@ -305,15 +305,6 @@ class PageProxy:
         """Get redirect aliases from cached metadata."""
         return self.core.aliases or []
 
-    def _parse_date(self, date_str: str) -> datetime | None:
-        """Parse ISO date string to datetime (deprecated, use date property)."""
-        if not date_str:
-            return None
-        try:
-            return datetime.fromisoformat(date_str)
-        except (ValueError, TypeError):
-            return None
-
     def _ensure_loaded(self) -> None:
         """Load full page content if not already loaded."""
         if self._lazy_loaded:

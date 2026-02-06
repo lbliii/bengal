@@ -263,9 +263,6 @@ class OutputFormatsGenerator:
                     for data in accumulated_data
                     if data.full_json_data is not None
                 ]
-            # Fallback to legacy method if unified accumulator not populated
-            elif self.build_context and self.build_context.has_accumulated_json:
-                accumulated_json = self.build_context.get_accumulated_json()
             count = json_gen.generate(pages, accumulated_json=accumulated_json)
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)

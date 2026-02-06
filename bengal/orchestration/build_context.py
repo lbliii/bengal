@@ -244,14 +244,6 @@ class BuildContext:
     _page_contents: dict[str, str] = field(default_factory=dict, repr=False)
     _content_cache_lock: Lock = field(default_factory=Lock, repr=False)
 
-    # Accumulated JSON data - populated during rendering, consumed in post-processing
-    # Eliminates double iteration of pages (saves ~500-700ms on large sites)
-    # See: plan/active/rfc-postprocess-optimization.md
-    _accumulated_page_json: list[tuple[Any, dict[str, Any]]] = field(
-        default_factory=list, repr=False
-    )
-    _accumulated_json_lock: Lock = field(default_factory=Lock, repr=False)
-
     # Accumulated Asset Dependencies (Inline Asset Extraction)
     # Eliminates double iteration in phase_track_assets (saves ~5-6s on large sites)
     # See: changelog.md (Inline Asset Extraction)
@@ -588,100 +580,6 @@ class BuildContext:
         """
         with self._content_cache_lock:
             return len(self._page_contents) > 0
-
-    # =========================================================================
-    # Accumulated JSON Data Methods (Post-Processing Optimization)
-    # =========================================================================
-    # These methods enable JSON data to be accumulated during rendering
-    # instead of being computed again in post-processing, eliminating
-    # double iteration and saving ~500-700ms on large sites.
-    # See: plan/active/rfc-postprocess-optimization.md
-
-    def accumulate_page_json(self, json_path: Any, page_data: dict[str, Any]) -> None:
-        """
-        Accumulate JSON data for a page during rendering (thread-safe).
-
-        Call this during rendering phase to store JSON data for later
-        use in post-processing. This eliminates redundant computation
-        and double iteration of pages.
-
-        Args:
-            json_path: Path where JSON file should be written
-            page_data: Pre-computed JSON data dictionary
-
-        Example:
-            # During rendering phase
-            json_path = get_page_json_path(page)
-            page_data = build_page_json_data(page)
-            if build_context:
-                build_context.accumulate_page_json(json_path, page_data)
-        """
-        with self._accumulated_json_lock:
-            self._accumulated_page_json.append((json_path, page_data))
-
-    def get_accumulated_json(self) -> list[tuple[Any, dict[str, Any]]]:
-        """
-        Get all accumulated JSON data for post-processing.
-
-        .. deprecated::
-            Use :meth:`get_accumulated_page_data` instead. This method will be
-            removed in a future version.
-
-        Returns a copy to avoid thread safety issues when iterating.
-
-        Returns:
-            List of (json_path, page_data) tuples
-
-        Example:
-            # In post-processing phase
-            accumulated = build_context.get_accumulated_json()
-            for json_path, page_data in accumulated:
-                write_json(json_path, page_data)
-        """
-        import warnings
-
-        warnings.warn(
-            "get_accumulated_json() is deprecated, use get_accumulated_page_data() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        with self._accumulated_json_lock:
-            return list(self._accumulated_page_json)
-
-    def clear_accumulated_json(self) -> None:
-        """
-        Clear accumulated JSON data to free memory.
-
-        Call this after post-processing phase completes to release memory
-        used by accumulated JSON data.
-        """
-        with self._accumulated_json_lock:
-            self._accumulated_page_json.clear()
-
-    @property
-    def has_accumulated_json(self) -> bool:
-        """
-        Check if accumulated JSON data exists.
-
-        .. deprecated::
-            Use :attr:`has_accumulated_page_data` instead. This property will be
-            removed in a future version.
-
-        Post-processing can use this to decide whether to use accumulated
-        data or fall back to computing from pages.
-
-        Returns:
-            True if accumulated JSON data exists
-        """
-        import warnings
-
-        warnings.warn(
-            "has_accumulated_json is deprecated, use has_accumulated_page_data instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        with self._accumulated_json_lock:
-            return len(self._accumulated_page_json) > 0
 
     # =========================================================================
     # Accumulated Asset Dependencies (Inline Asset Extraction)

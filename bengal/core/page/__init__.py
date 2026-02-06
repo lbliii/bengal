@@ -136,7 +136,7 @@ class Page(
         source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
         metadata: Frontmatter metadata (title, date, tags, etc.)
-        parsed_ast: Abstract Syntax Tree from parsed content
+        parsed_ast: Rendered HTML content (legacy name; stores HTML, not an AST)
         rendered_html: Rendered HTML output
         output_path: Path where the rendered page will be written
         links: List of links found in the page
