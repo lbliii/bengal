@@ -8,15 +8,12 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
-
-if TYPE_CHECKING:
-    from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 
 
 # Directives that depend on page context and should NOT be cached
@@ -43,7 +40,7 @@ class DirectiveRendererMixin:
     - _render_block(node, sb): method
     """
 
-    def _render_directive(self: HtmlRendererProtocol, node: Directive, sb: StringBuilder) -> None:
+    def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
         """Render a directive block.
 
         Uses registered handler if available, otherwise falls back to default.
@@ -137,7 +134,7 @@ class DirectiveRendererMixin:
             self._directive_cache.put("directive_html", cache_key, result)
         sb.append(result)
 
-    def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:
+    def _directive_ast_cache_key(self, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.
 
         Creates a lightweight hash of the directive's structure:

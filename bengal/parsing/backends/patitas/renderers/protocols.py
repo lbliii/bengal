@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class HtmlRendererProtocol(Protocol):
     """Protocol for HtmlRenderer, used by block/directive mixins.
 
-    Defines the interface that mixin methods expect when using `self: HtmlRendererProtocol`.
+    Defines the interface that mixin classes depend on.
     This breaks the circular import between html.py and the mixin modules.
     """
 

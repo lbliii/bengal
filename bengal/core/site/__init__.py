@@ -16,10 +16,7 @@ Package Structure:
 properties.py: SitePropertiesMixin (config accessors)
 config_normalized.py: SiteNormalizedConfigMixin (normalized config)
 versioning.py: SiteVersioningMixin (version support)
-caches.py: SiteCachesMixin (page cache management)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
-lifecycle.py: SiteLifecycleMixin (warm rebuild state reset)
-operations.py: SiteOperationsMixin (build/serve/clean)
 factory.py: Factory functions (from_config, for_testing)
 
 Key Features:
