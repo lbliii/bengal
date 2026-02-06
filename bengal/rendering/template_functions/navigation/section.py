@@ -11,8 +11,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SectionLike, SiteLike
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 
 def get_section(path: str, site: SiteLike) -> SectionLike | None:
@@ -44,7 +43,7 @@ def get_section(path: str, site: SiteLike) -> SectionLike | None:
     return site.get_section_by_path(normalized)
 
 
-def section_pages(path: str, site: SiteLike, recursive: bool = False) -> list[Page]:
+def section_pages(path: str, site: SiteLike, recursive: bool = False) -> list[PageLike]:
     """
     Get pages in a section.
 

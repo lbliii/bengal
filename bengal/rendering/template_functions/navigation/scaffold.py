@@ -35,11 +35,8 @@ from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from bengal.core.nav_tree import NavNode, NavTree
-    from bengal.core.page import Page
-    from bengal.protocols import SectionLike, SiteLike
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 
 @dataclass
@@ -317,7 +314,7 @@ class ScaffoldContext:
 
     """
 
-    def __init__(self, tree: NavTree, page: Page, root_node: NavNode | None = None):
+    def __init__(self, tree: NavTree, page: PageLike, root_node: NavNode | None = None):
         self.tree = tree
         self.page = page
         self._root_node = root_node or tree.root
@@ -337,7 +334,7 @@ class ScaffoldContext:
 
 
 def get_nav_scaffold_context(
-    page: Page,
+    page: PageLike,
     root_section: SectionLike | None = None,
 ) -> ScaffoldContext:
     """
@@ -374,7 +371,7 @@ def get_nav_scaffold_context(
     return ScaffoldContext(tree, page, root_node=root_node)
 
 
-def get_active_trail(page: Page) -> list[str]:
+def get_active_trail(page: PageLike) -> list[str]:
     """
     Compute the active trail URLs for a page.
 
@@ -406,7 +403,7 @@ def get_active_trail(page: Page) -> list[str]:
 
 
 def render_scaffold_html(
-    page: Page,
+    page: PageLike,
     root_section: SectionLike | None = None,
     jinja_env: Any | None = None,
 ) -> str:
@@ -448,7 +445,7 @@ def render_scaffold_html(
 
 
 def get_cached_scaffold_html(
-    page: Page,
+    page: PageLike,
     root_section: SectionLike | None = None,
     jinja_env: Any | None = None,
 ) -> str:
@@ -493,7 +490,7 @@ def get_cached_scaffold_html(
 
 
 def get_nav_scaffold(
-    page: Page,
+    page: PageLike,
     root_section: SectionLike | None = None,
 ) -> NavScaffold:
     """

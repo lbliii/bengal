@@ -36,8 +36,7 @@ from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -56,7 +55,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """
 
     def get_version_target_url_wrapper(
-        page: Page | None, target_version: dict[str, Any] | None
+        page: PageLike | None, target_version: dict[str, Any] | None
     ) -> str:
         """
         Get the best URL for a page in the target version.
@@ -104,7 +103,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 
 
 def get_version_target_url(
-    page: Page | None, target_version: dict[str, Any] | None, site: SiteLike
+    page: PageLike | None, target_version: dict[str, Any] | None, site: SiteLike
 ) -> str:
     """
     Compute the best URL for navigating to a page in the target version.

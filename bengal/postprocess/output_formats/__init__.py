@@ -35,7 +35,6 @@ from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike, SiteLike
 
@@ -339,7 +338,7 @@ class OutputFormatsGenerator:
         if generated:
             logger.info("output_formats_complete", formats=generated)
 
-    def _filter_pages(self) -> list[Page]:
+    def _filter_pages(self) -> list[PageLike]:
         """
         Filter pages based on exclusion rules.
 

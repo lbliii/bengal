@@ -37,8 +37,7 @@ from bengal.health.utils import relative_path
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -133,7 +132,7 @@ class LinkValidator:
 
         return paths
 
-    def validate_page_links(self, page: Page, site: Any | None = None) -> list[str]:
+    def validate_page_links(self, page: PageLike, site: Any | None = None) -> list[str]:
         """
         Validate all links in a page.
 
@@ -216,7 +215,7 @@ class LinkValidator:
 
         return self.broken_links
 
-    def _is_valid_link(self, link: str, page: Page) -> bool:
+    def _is_valid_link(self, link: str, page: PageLike) -> bool:
         """
         Check if a link is valid.
 
@@ -372,7 +371,7 @@ class LinkValidator:
 
         return is_valid
 
-    def _validate_relative_md_link(self, link_path: str, page: Page) -> bool:
+    def _validate_relative_md_link(self, link_path: str, page: PageLike) -> bool:
         """
         Validate a relative link to a .md file by resolving against source path.
 
@@ -567,7 +566,7 @@ class LinkValidatorWrapper(BaseValidator):
 
 
 # Convenience function for direct validation
-def validate_links(page: Page, site: SiteLike | None = None) -> list[str]:
+def validate_links(page: PageLike, site: SiteLike | None = None) -> list[str]:
     """
     Validate all links in a page.
 

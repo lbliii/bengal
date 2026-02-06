@@ -67,8 +67,7 @@ from bengal.rendering.template_functions.navigation.tree import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SectionLike, SiteLike, TemplateEnvironment
+    from bengal.protocols import PageLike, SectionLike, SiteLike, TemplateEnvironment
 
 
 __all__ = [
@@ -115,7 +114,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         """Wrapper with site closure."""
         return get_section(path, site)
 
-    def section_pages_wrapper(path: str, recursive: bool = False) -> list[Page]:
+    def section_pages_wrapper(path: str, recursive: bool = False) -> list[PageLike]:
         """Wrapper with site closure."""
         return section_pages(path, site, recursive)
 
