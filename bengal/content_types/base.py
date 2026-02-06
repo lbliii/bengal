@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 class ContentTypeStrategy:
@@ -275,7 +275,7 @@ class ContentTypeStrategy:
         """
         return None
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """
         Determine if this strategy applies to a section based on heuristics.
 

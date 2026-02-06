@@ -24,8 +24,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.registry import ContentRegistry
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
 
 
 @dataclass(slots=True)
@@ -76,11 +76,11 @@ class LiveQueryService:
         """Get page by output URL (O(1) via ContentRegistry)."""
         return self._registry.get_page_by_url(url)
 
-    def get_section(self, url: str) -> Section | None:
+    def get_section(self, url: str) -> SectionLike | None:
         """Get section by URL (O(1) via ContentRegistry)."""
         return self._registry.get_section_by_url(url)
 
-    def get_section_by_path(self, path: Path) -> Section | None:
+    def get_section_by_path(self, path: Path) -> SectionLike | None:
         """Get section by path (O(1) via ContentRegistry)."""
         return self._registry.get_section(path)
 

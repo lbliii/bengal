@@ -23,8 +23,8 @@ from bengal.directives.tokens import DirectiveToken
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.section import Section
     from bengal.directives.types import DirectiveRenderer, MistuneBlockState
+    from bengal.protocols import SectionLike
 
 logger = get_logger(__name__)
 
@@ -506,7 +506,7 @@ class RelatedDirective(BengalDirective):
 # =============================================================================
 
 
-def _get_section_url(section: Section) -> str:
+def _get_section_url(section: SectionLike) -> str:
     """Get URL for a section (includes baseurl)."""
     # Section.href includes baseurl - use it directly
     if hasattr(section, "href"):

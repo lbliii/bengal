@@ -17,11 +17,11 @@ from bengal.core.nav_tree import NavTreeCache, NavTreeContext
 if TYPE_CHECKING:
     from bengal.core.nav_tree import NavNodeProxy
     from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 def get_nav_tree(
-    page: Page, mark_active_trail: bool = True, root_section: Section | None = None
+    page: Page, mark_active_trail: bool = True, root_section: SectionLike | None = None
 ) -> list[NavNodeProxy]:
     """
     Build navigation tree with active trail marking.
@@ -82,7 +82,7 @@ def get_nav_tree(
     return ctx["root"].children
 
 
-def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeContext:
+def get_nav_context(page: Page, root_section: SectionLike | None = None) -> NavTreeContext:
     """
     Get the full NavTreeContext for advanced navigation use cases.
 

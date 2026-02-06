@@ -149,6 +149,26 @@ class PageLike(Protocol):
         """Structured table of contents items."""
         ...
 
+    @property
+    def slug(self) -> str:
+        """URL slug derived from filename or frontmatter."""
+        ...
+
+    @property
+    def is_virtual(self) -> bool:
+        """Whether this is a virtual (generated) page."""
+        ...
+
+    @property
+    def template_name(self) -> str:
+        """Template to use for rendering."""
+        ...
+
+    @property
+    def type(self) -> str:
+        """Page type (e.g., 'page', 'post', 'api')."""
+        ...
+
 
 # =============================================================================
 # Section Protocol

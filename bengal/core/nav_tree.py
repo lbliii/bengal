@@ -59,8 +59,8 @@ from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
 
 
 @dataclass(slots=True)
@@ -83,7 +83,7 @@ class NavNode:
     weight: int = 0
     children: list[NavNode] = field(default_factory=list)
     page: Page | None = None
-    section: Section | None = None
+    section: SectionLike | None = None
 
     # State flags (populated by NavTreeContext)
     is_index: bool = False
@@ -335,7 +335,7 @@ class NavTree:
         return is_autodoc_page(page)
 
     @classmethod
-    def _build_node_recursive(cls, section: Section, version_id: str | None, depth: int) -> NavNode:
+    def _build_node_recursive(cls, section: SectionLike, version_id: str | None, depth: int) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
         node_url = getattr(section, "_path", None) or f"/{section.name}/"

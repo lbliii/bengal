@@ -12,11 +12,10 @@ from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
-    from bengal.protocols import SiteLike
+    from bengal.protocols import SectionLike, SiteLike
 
 
-def get_section(path: str, site: SiteLike) -> Section | None:
+def get_section(path: str, site: SiteLike) -> SectionLike | None:
     """
     Get a section by its path.
 

@@ -39,8 +39,7 @@ if TYPE_CHECKING:
 
     from bengal.core.nav_tree import NavNode, NavTree
     from bengal.core.page import Page
-    from bengal.core.section import Section
-    from bengal.protocols import SiteLike
+    from bengal.protocols import SectionLike, SiteLike
 
 
 @dataclass
@@ -339,7 +338,7 @@ class ScaffoldContext:
 
 def get_nav_scaffold_context(
     page: Page,
-    root_section: Section | None = None,
+    root_section: SectionLike | None = None,
 ) -> ScaffoldContext:
     """
     Get a scaffold context for static nav rendering.
@@ -408,7 +407,7 @@ def get_active_trail(page: Page) -> list[str]:
 
 def render_scaffold_html(
     page: Page,
-    root_section: Section | None = None,
+    root_section: SectionLike | None = None,
     jinja_env: Any | None = None,
 ) -> str:
     """
@@ -450,7 +449,7 @@ def render_scaffold_html(
 
 def get_cached_scaffold_html(
     page: Page,
-    root_section: Section | None = None,
+    root_section: SectionLike | None = None,
     jinja_env: Any | None = None,
 ) -> str:
     """
@@ -495,7 +494,7 @@ def get_cached_scaffold_html(
 
 def get_nav_scaffold(
     page: Page,
-    root_section: Section | None = None,
+    root_section: SectionLike | None = None,
 ) -> NavScaffold:
     """
     Get navigation scaffold with active trail data.

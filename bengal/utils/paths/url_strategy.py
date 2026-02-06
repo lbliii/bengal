@@ -39,8 +39,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
 
 
 class URLStrategy:
@@ -231,7 +231,7 @@ class URLStrategy:
         return rel_path
 
     @staticmethod
-    def compute_archive_output_path(section: Section, page_num: int, site: Site) -> Path:
+    def compute_archive_output_path(section: SectionLike, page_num: int, site: Site) -> Path:
         """
         Compute output path for a section archive page.
 

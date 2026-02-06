@@ -68,8 +68,7 @@ from bengal.rendering.template_functions.navigation.tree import (
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import SectionLike, SiteLike, TemplateEnvironment
 
 
 __all__ = [
@@ -112,7 +111,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         return combine_track_toc_items(track_items, get_page_func)
 
     # Convenience wrappers for section lookups
-    def get_section_wrapper(path: str) -> Section | None:
+    def get_section_wrapper(path: str) -> SectionLike | None:
         """Wrapper with site closure."""
         return get_section(path, site)
 

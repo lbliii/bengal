@@ -54,7 +54,7 @@ from .utils import (
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 class BlogStrategy(ContentTypeStrategy):
@@ -91,7 +91,7 @@ class BlogStrategy(ContentTypeStrategy):
         """
         return sorted(pages, key=date_key, reverse=True)
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """
         Detect blog sections by name patterns or date-heavy content.
 
@@ -168,7 +168,7 @@ class DocsStrategy(ContentTypeStrategy):
         """
         return sorted(pages, key=weight_title_key)
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """Detect documentation sections by common naming patterns."""
         return section_name_matches(section, ("docs", "documentation", "guides", "reference"))
 
@@ -215,7 +215,7 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         """
         return list(pages)  # No resorting
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """
         Detect API sections by name patterns or autodoc page metadata.
 
@@ -278,7 +278,7 @@ class CliReferenceStrategy(ContentTypeStrategy):
         """
         return list(pages)
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """
         Detect CLI sections by name patterns or command page metadata.
 
@@ -342,7 +342,7 @@ class TutorialStrategy(ContentTypeStrategy):
         """
         return sorted(pages, key=weight_title_key)
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """Detect tutorial sections by common naming patterns."""
         return section_name_matches(section, ("tutorials", "guides", "how-to"))
 
@@ -387,7 +387,7 @@ class ChangelogStrategy(ContentTypeStrategy):
             reverse=True,
         )
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """Detect changelog sections by common naming patterns."""
         return section_name_matches(
             section, ("changelog", "releases", "release-notes", "releasenotes", "changes")
@@ -430,7 +430,7 @@ class TrackStrategy(ContentTypeStrategy):
         """
         return sorted(pages, key=weight_title_key)
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """Detect track sections by exact name match."""
         return section_name_matches(section, ("tracks",))
 
