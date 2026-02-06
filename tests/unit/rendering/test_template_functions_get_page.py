@@ -122,7 +122,7 @@ class TestGetPageFunction:
         get_page = env.globals["get_page"]
 
         assert get_page("") is None
-        assert get_page(None) is None  # type: ignore
+        assert get_page(None) is None
 
     def test_get_page_path_normalization(self, site_with_content: Site):
         """Test Windows/Unix path separator normalization."""

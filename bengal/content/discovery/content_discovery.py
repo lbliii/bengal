@@ -490,7 +490,7 @@ class ContentDiscovery:
     def _check_yaml_extensions(self) -> None:
         """Check for PyYAML C extensions (performance hint)."""
         try:
-            import yaml  # type: ignore[import-untyped]
+            import yaml
 
             has_libyaml = getattr(yaml, "__with_libyaml__", False)
             if not has_libyaml:

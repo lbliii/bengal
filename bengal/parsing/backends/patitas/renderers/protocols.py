@@ -14,7 +14,7 @@ from patitas.nodes import Block, Inline
 from patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
-    from bengal.directives.cache import DirectiveCache
+    from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.utils import HeadingInfo
 

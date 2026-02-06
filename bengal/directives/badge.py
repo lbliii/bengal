@@ -72,7 +72,7 @@ class BadgeDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: BadgeOptions,  # type: ignore[override]
+        options: BadgeOptions,
         content: str,
         children: list[Any],
         state: Any,

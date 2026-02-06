@@ -137,7 +137,7 @@ def _render_icon(icon_name: str, card_title: str = "") -> str:
 
     """
     try:
-        from bengal.directives._icons import render_icon, warn_missing_icon
+        from bengal.icons.svg import render_icon, warn_missing_icon
 
         icon_html = render_icon(icon_name, size=20)
 
@@ -652,7 +652,7 @@ class ChildCardsDirective:
             sb: StringBuilder for output
             page_context: Page object from renderer (for section/children access)
         """
-        from bengal.directives.cards.utils import (
+        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
             collect_children,
             render_child_card,
         )

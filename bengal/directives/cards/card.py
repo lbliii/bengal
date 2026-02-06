@@ -108,7 +108,7 @@ class CardDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: CardOptions,  # type: ignore[override]
+        options: CardOptions,
         content: str,
         children: list[Any],
         state: Any,

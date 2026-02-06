@@ -305,7 +305,7 @@ class SitePropertiesMixin:
 
             config_dict: dict[str, Any]
             if hasattr(self.config, "raw"):
-                config_dict = self.config.raw  # type: ignore[union-attr]
+                config_dict = self.config.raw
             elif isinstance(self.config, dict):
                 config_dict = self.config
             else:

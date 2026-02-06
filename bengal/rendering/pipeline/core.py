@@ -141,7 +141,7 @@ class RenderingPipeline:
         self.site = site
 
         # Auto-enable directive cache for versioned sites (3-5x speedup on repeated directives)
-        from bengal.directives.cache import configure_for_site
+        from bengal.cache.directive_cache import configure_for_site
 
         configure_for_site(site)
 

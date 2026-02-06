@@ -95,7 +95,7 @@ class IconDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: IconOptions,  # type: ignore[override]
+        options: IconOptions,
         content: str,
         children: list[Any],
         state: Any,

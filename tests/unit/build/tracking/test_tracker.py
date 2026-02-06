@@ -242,7 +242,7 @@ class TestTaxonomyTracking:
     ) -> None:
         """track_taxonomy skips None tags."""
         page_path = Path("content/post.md")
-        tags = {"python", None, "web"}  # type: ignore[arg-type]
+        tags = {"python", None, "web"}
 
         tracker.track_taxonomy(page_path, tags)
 

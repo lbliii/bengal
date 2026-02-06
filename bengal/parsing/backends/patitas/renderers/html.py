@@ -59,7 +59,7 @@ from bengal.parsing.backends.patitas.renderers.utils import (
 )
 
 if TYPE_CHECKING:
-    from bengal.directives.cache import DirectiveCache
+    from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
 
 

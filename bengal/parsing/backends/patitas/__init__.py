@@ -617,7 +617,7 @@ class Markdown:
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
         """
-        from bengal.directives.cache import get_cache
+        from bengal.cache.directive_cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled (auto-enabled for versioned sites)
@@ -691,7 +691,7 @@ class Markdown:
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
         """
-        from bengal.directives.cache import get_cache
+        from bengal.cache.directive_cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled

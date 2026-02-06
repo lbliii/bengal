@@ -31,7 +31,7 @@ from jinja2 import (
 try:
     from jinja2 import ChainableUndefined
 except ImportError:
-    ChainableUndefined = StrictUndefined  # type: ignore[misc, assignment]
+    ChainableUndefined = StrictUndefined
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.core.theme import get_theme_package

@@ -26,7 +26,7 @@ class DummyHandler(BengalRequestHandler):
         self.requestline = "GET /index.html HTTP/1.1"
 
     # Bypass filesystem translation and return our test file path
-    def translate_path(self, path: str) -> str:  # type: ignore[override]
+    def translate_path(self, path: str) -> str:
         return self._file_path
 
     # Stub HTTP response methods for testing

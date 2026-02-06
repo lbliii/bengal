@@ -158,7 +158,7 @@ class AsciinemaDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: AsciinemaOptions,  # type: ignore[override]
+        options: AsciinemaOptions,
         content: str,
         children: list[Any],
         state: Any,

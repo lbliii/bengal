@@ -68,7 +68,7 @@ class RubricDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: RubricOptions,  # type: ignore[override]
+        options: RubricOptions,
         content: str,
         children: list[Any],
         state: Any,

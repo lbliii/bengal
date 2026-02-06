@@ -62,9 +62,9 @@ class MenusContext:
                 result: list[dict[str, Any]] = []
                 for item in localized:
                     if hasattr(item, "to_dict"):
-                        result.append(item.to_dict())  # type: ignore[attr-defined]
+                        result.append(item.to_dict())
                     else:
-                        result.append(item)  # type: ignore[arg-type]
+                        result.append(item)
                 self._cache[cache_key] = result
                 return self._cache[cache_key]
 
@@ -73,9 +73,9 @@ class MenusContext:
         result: list[dict[str, Any]] = []
         for item in menu:
             if hasattr(item, "to_dict"):
-                result.append(item.to_dict())  # type: ignore[attr-defined]
+                result.append(item.to_dict())
             else:
-                result.append(item)  # type: ignore[arg-type]
+                result.append(item)
         self._cache[cache_key] = result
         return self._cache[cache_key]
 

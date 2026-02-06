@@ -89,7 +89,7 @@ class BuildDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: BuildOptions,  # type: ignore[override]
+        options: BuildOptions,
         content: str,
         children: list[Any],
         state: Any,

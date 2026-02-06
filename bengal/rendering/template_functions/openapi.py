@@ -96,7 +96,7 @@ class EndpointView:
     @classmethod
     def from_doc_element(cls, el: DocElementLike, consolidated: bool) -> EndpointView:
         """Create from DocElement (consolidated or individual mode)."""
-        meta: OpenAPIEndpointMetadata = el.typed_metadata  # type: ignore[assignment]
+        meta: OpenAPIEndpointMetadata = el.typed_metadata
 
         # Generate anchor ID from operationId or path
         anchor_id = meta.operation_id or _generate_anchor_id(meta.method, meta.path)

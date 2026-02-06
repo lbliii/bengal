@@ -80,7 +80,7 @@ def _render_dropdown_icon(icon_name: str, dropdown_title: str = "") -> str:
 
     """
     try:
-        from bengal.directives._icons import (
+        from bengal.icons.svg import (
             ICON_MAP,
             render_svg_icon,
             warn_missing_icon,

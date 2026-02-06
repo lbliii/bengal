@@ -239,7 +239,7 @@ class BengalCommand(click.Command):
                 cli.subheader("Arguments:", trailing_blank=False)
                 for param in arguments:
                     name = param.human_readable_name.upper()
-                    help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
+                    help_text = getattr(param, "help", "") or ""
                     if cli.use_rich:
                         cli.console.print(f"  [info]{name:<20}[/info] {help_text}")
                     else:
@@ -340,7 +340,7 @@ class BengalGroup(click.Group):
             cli.subheader("Options:", trailing_blank=False)
             for param in self.params:
                 opts = "/".join(param.opts)
-                help_text = getattr(param, "help", "") or ""  # type: ignore[attr-defined]
+                help_text = getattr(param, "help", "") or ""
                 cli.console.print(f"  [info]{opts:<20}[/info] {help_text}")
             cli.blank()
 

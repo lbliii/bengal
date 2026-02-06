@@ -157,7 +157,7 @@ invalid-assignment = "warn"          # Allows incremental typing improvements
 invalid-type-arguments = "warn"      # Generics constraints too strict
 not-subscriptable = "warn"           # Protocol objects missing __getitem__
 invalid-method-override = "warn"     # Liskov violations - review later
-unused-ignore-comment = "ignore"     # Hide stale type: ignore comments
+unused-ignore-comment = "warn"       # Flag stale type: ignore comments for cleanup
 
 # Relax remaining rules to unblock CI - fix incrementally
 unresolved-reference = "warn"        # Missing imports - fix these properly

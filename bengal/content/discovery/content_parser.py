@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 
 from bengal.content.utils.frontmatter import extract_content_skip_frontmatter
 from bengal.utils.observability.logger import get_logger

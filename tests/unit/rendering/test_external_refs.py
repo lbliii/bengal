@@ -280,7 +280,7 @@ class TestIndexCache:
             def read(self) -> bytes:
                 return b'{"entries":{}}'
 
-        def fake_urlopen(request, timeout=10):  # type: ignore[override]
+        def fake_urlopen(request, timeout=10):
             captured.update(request.headers)
             return _Response()
 

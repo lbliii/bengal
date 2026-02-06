@@ -508,7 +508,7 @@ class CodeTabsDirective:
     def _get_language_icon(self, lang: str, size: int = 16) -> str:
         """Get icon HTML for a language."""
         try:
-            from bengal.directives._icons import icon_exists, render_svg_icon
+            from bengal.icons.svg import icon_exists, render_svg_icon
 
             normalized = lang.lower().strip()
             icon_name = LANGUAGE_ICONS.get(normalized, LANGUAGE_ICONS["_default"])
@@ -521,7 +521,7 @@ class CodeTabsDirective:
     def _get_copy_icon(self, size: int = 16) -> str:
         """Get copy icon HTML."""
         try:
-            from bengal.directives._icons import render_svg_icon
+            from bengal.icons.svg import render_svg_icon
 
             return render_svg_icon("copy", size=size, css_class="copy-icon")
         except ImportError:

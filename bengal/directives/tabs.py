@@ -129,7 +129,7 @@ class TabItemDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: TabItemOptions,  # type: ignore[override]
+        options: TabItemOptions,
         content: str,
         children: list[Any],
         state: Any,
@@ -237,7 +237,7 @@ class TabSetDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: TabSetOptions,  # type: ignore[override]
+        options: TabSetOptions,
         content: str,
         children: list[Any],
         state: Any,

@@ -16,6 +16,6 @@ Example:
     >>> svg_content = resolver.load_icon("warning")
 """
 
-from bengal.icons import resolver
+from bengal.icons import resolver, svg
 
-__all__ = ["resolver"]
+__all__ = ["resolver", "svg"]

@@ -78,7 +78,7 @@ class ChildCardsDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ChildCardsOptions,  # type: ignore[override]
+        options: ChildCardsOptions,
         content: str,
         children: list[Any],
         state: Any,

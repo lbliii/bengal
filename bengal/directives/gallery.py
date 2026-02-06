@@ -138,7 +138,7 @@ class GalleryDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: GalleryOptions,  # type: ignore[override]
+        options: GalleryOptions,
         content: str,
         children: list[Any],
         state: Any,

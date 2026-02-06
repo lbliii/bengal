@@ -608,7 +608,7 @@ class SchemaValidator:
                 # Pass max_depth to nested validator
                 # Type cast: we've already verified expected is a dataclass via is_dataclass()
                 nested_validator = SchemaValidator(
-                    expected,  # type: ignore[arg-type]
+                    expected,
                     strict=self.strict,
                     max_depth=self.max_depth,
                 )

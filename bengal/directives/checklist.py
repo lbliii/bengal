@@ -107,7 +107,7 @@ class ChecklistDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ChecklistOptions,  # type: ignore[override]
+        options: ChecklistOptions,
         content: str,
         children: list[Any],
         state: Any,

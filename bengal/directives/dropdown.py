@@ -115,7 +115,7 @@ class DropdownDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: DropdownOptions,  # type: ignore[override]
+        options: DropdownOptions,
         content: str,
         children: list[Any],
         state: Any,

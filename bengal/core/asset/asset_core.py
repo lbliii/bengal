@@ -430,7 +430,7 @@ class Asset:
         if self.source_path.name.endswith(".min.js"):
             return
         try:
-            from jsmin import jsmin  # type: ignore[import-untyped]
+            from jsmin import jsmin
 
             with open(self.source_path, encoding="utf-8") as f:
                 js_content = f.read()

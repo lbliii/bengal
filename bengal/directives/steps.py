@@ -132,7 +132,7 @@ class StepDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: StepOptions,  # type: ignore[override]
+        options: StepOptions,
         content: str,
         children: list[Any],
         state: Any,
@@ -306,7 +306,7 @@ class StepsDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: StepsOptions,  # type: ignore[override]
+        options: StepsOptions,
         content: str,
         children: list[Any],
         state: Any,

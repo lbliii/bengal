@@ -117,7 +117,7 @@ class AdmonitionDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: AdmonitionOptions,  # type: ignore[override]
+        options: AdmonitionOptions,
         content: str,
         children: list[Any],
         state: Any,

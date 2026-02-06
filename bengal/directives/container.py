@@ -83,7 +83,7 @@ class ContainerDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ContainerOptions,  # type: ignore[override]
+        options: ContainerOptions,
         content: str,
         children: list[Any],
         state: Any,

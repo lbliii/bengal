@@ -114,7 +114,7 @@ class SinceDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: SinceOptions,  # type: ignore[override]
+        options: SinceOptions,
         content: str,
         children: list[Any],
         state: Any,

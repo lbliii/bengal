@@ -159,7 +159,7 @@ class FigureDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: FigureOptions,  # type: ignore[override]
+        options: FigureOptions,
         content: str,
         children: list[Any],
         state: Any,
@@ -383,7 +383,7 @@ class AudioDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: AudioOptions,  # type: ignore[override]
+        options: AudioOptions,
         content: str,
         children: list[Any],
         state: Any,

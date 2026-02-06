@@ -505,7 +505,7 @@ class CodeTabsDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: CodeTabsOptions,  # type: ignore[override]
+        options: CodeTabsOptions,
         content: str,
         children: list[Any],
         state: Any,

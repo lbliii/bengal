@@ -130,7 +130,7 @@ class TargetDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: TargetOptions,  # type: ignore[override]
+        options: TargetOptions,
         content: str,
         children: list[Any],
         state: Any,

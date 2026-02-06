@@ -111,7 +111,7 @@ class ButtonDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ButtonOptions,  # type: ignore[override]
+        options: ButtonOptions,
         content: str,
         children: list[Any],
         state: Any,

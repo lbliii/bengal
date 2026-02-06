@@ -103,7 +103,7 @@ class ExampleLabelDirective(BengalDirective):
     def parse_directive(
         self,
         title: str,
-        options: ExampleLabelOptions,  # type: ignore[override]
+        options: ExampleLabelOptions,
         content: str,
         children: list[Any],
         state: Any,

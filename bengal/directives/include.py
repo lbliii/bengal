@@ -135,9 +135,9 @@ class IncludeDirective(DirectivePlugin):
         env_attr = getattr(state, "env", None)
         if env_attr is None:
             env: dict[str, object] = {}
-            state.env = env  # type: ignore[attr-defined]
+            state.env = env
         else:
-            env = env_attr  # type: ignore[assignment]
+            env = env_attr
         depth_value = env.get("_include_depth", 0)
         current_depth: int = depth_value if isinstance(depth_value, int) else 0
         if current_depth >= MAX_INCLUDE_DEPTH:
