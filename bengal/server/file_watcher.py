@@ -122,10 +122,14 @@ class WatchfilesWatcher:
         def watch_filter(change_type: watchfiles.Change, path: str) -> bool:
             return not self.ignore_filter(Path(path))
 
+        # Disable watchfiles' built-in debounce (default 1600ms) since
+        # WatcherRunner already handles debouncing. This eliminates ~1.6s
+        # of redundant delay between file detection and rebuild.
         async for changes in watchfiles.awatch(
             *self.paths,
             watch_filter=watch_filter,
             stop_event=self.stop_event,
+            debounce=0,
         ):
             paths = {Path(path) for (_, path) in changes}
             event_types = {change_type_map.get(change, "modified") for (change, _) in changes}

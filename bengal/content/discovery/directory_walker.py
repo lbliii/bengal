@@ -20,7 +20,7 @@ from bengal.content.utils.constants import CONTENT_EXTENSIONS
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 logger = get_logger(__name__)
 
@@ -203,7 +203,7 @@ class DirectoryWalker:
     def walk_directory(
         self,
         directory: Path,
-        parent_section: Section | None = None,
+        parent_section: SectionLike | None = None,
     ) -> Iterator[tuple[Path, bool]]:
         """
         Walk a directory and yield content items.
