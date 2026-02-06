@@ -538,13 +538,8 @@ class BuildOrchestrator:
             # Services operate on the frozen snapshot for thread-safe rendering.
             # Instantiated once per build, available via build context.
             from bengal.services.query import QueryService
-            from bengal.services.theme import ThemeService
 
             early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
-            early_ctx.theme_service = ThemeService(
-                root_path=self.site.root_path,
-                theme_name=self.site.theme,
-            )
             # DataService instantiation deferred — only when data/ dir exists
             try:
                 from bengal.services.data import DataService

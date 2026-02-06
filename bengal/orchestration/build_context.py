@@ -214,7 +214,6 @@ class BuildContext:
     # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
     # These provide O(1) lookups on immutable data for thread-safe rendering.
     query_service: Any = None  # QueryService (lazy import to avoid circular)
-    theme_service: Any = None  # ThemeService (lazy import to avoid circular)
     data_service: Any = None  # DataService (lazy import to avoid circular)
 
     # Timing (build start time for duration calculation)

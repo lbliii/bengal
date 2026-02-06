@@ -3,7 +3,7 @@ Service functions for Bengal SSG.
 
 Pure functions and service classes that operate on SiteSnapshot:
 - QueryService → query.py (O(1) page/section lookups)
-- ThemeService → theme.py (theme resolution)
+- theme.py → pure functions for theme resolution
 - DataService → data.py (data directory loading)
 
 Usage:
@@ -32,7 +32,6 @@ from bengal.services.query import (
     get_section_by_url,
 )
 from bengal.services.theme import (
-    ThemeService,
     get_theme_assets_chain,
     get_theme_assets_dir,
     get_theme_templates_chain,
@@ -44,7 +43,6 @@ __all__ = [
     # Query services
     "QueryService",
     # Theme services
-    "ThemeService",
     "get_children_pages",
     "get_data",
     "get_data_file",

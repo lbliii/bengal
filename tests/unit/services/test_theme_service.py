@@ -1,19 +1,13 @@
 """
-Unit tests for ThemeService.
+Unit tests for theme resolution pure functions.
 
-RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
-
-Tests theme resolution via pure functions that operate on
-root_path + theme_name instead of mutable Site.
+Tests theme asset and template resolution via pure functions
+that operate on root_path + theme_name.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock
-
-import pytest
 
 from bengal.services.theme import (
-    ThemeService,
     get_theme_assets_chain,
     get_theme_assets_dir,
     get_theme_templates_chain,
@@ -121,100 +115,3 @@ class TestGetThemeTemplatesChain:
             assert expected in result
 
 
-class TestThemeService:
-    """Tests for ThemeService class."""
-
-    def test_create_with_path_and_theme(self, tmp_path: Path) -> None:
-        """ThemeService can be created with root_path and theme_name."""
-        service = ThemeService(root_path=tmp_path, theme_name="test")
-        assert service.root_path == tmp_path
-        assert service.theme_name == "test"
-
-    def test_get_assets_dir(self, tmp_path: Path) -> None:
-        """ThemeService.get_assets_dir delegates to get_theme_assets_dir."""
-        # Create site theme
-        site_theme_assets = tmp_path / "themes" / "custom" / "assets"
-        site_theme_assets.mkdir(parents=True)
-
-        service = ThemeService(root_path=tmp_path, theme_name="custom")
-        result = service.get_assets_dir()
-        assert result == site_theme_assets
-
-    def test_get_assets_chain(self, tmp_path: Path) -> None:
-        """ThemeService.get_assets_chain delegates to get_theme_assets_chain."""
-        site_theme_assets = tmp_path / "themes" / "custom" / "assets"
-        site_theme_assets.mkdir(parents=True)
-
-        service = ThemeService(root_path=tmp_path, theme_name="custom")
-        result = service.get_assets_chain()
-        assert isinstance(result, list)
-
-    def test_get_templates_chain(self, tmp_path: Path) -> None:
-        """ThemeService.get_templates_chain delegates to get_theme_templates_chain."""
-        site_theme_templates = tmp_path / "themes" / "custom" / "templates"
-        site_theme_templates.mkdir(parents=True)
-
-        service = ThemeService(root_path=tmp_path, theme_name="custom")
-        result = service.get_templates_chain()
-        assert site_theme_templates in result
-
-    def test_no_theme_returns_none_or_empty(self, tmp_path: Path) -> None:
-        """ThemeService with no theme returns None/empty from methods."""
-        service = ThemeService(root_path=tmp_path, theme_name=None)
-        assert service.get_assets_dir() is None
-        assert service.get_assets_chain() == []
-        assert service.get_templates_chain() == []
-
-    def test_from_config_snapshot(self, tmp_path: Path) -> None:
-        """ThemeService.from_config creates service from ConfigSnapshot."""
-        mock_config = MagicMock()
-        mock_config.theme = MagicMock()
-        mock_config.theme.name = "test-theme"
-
-        service = ThemeService.from_config(tmp_path, mock_config)
-        assert service.root_path == tmp_path
-        assert service.theme_name == "test-theme"
-
-    def test_from_config_snapshot_no_theme(self, tmp_path: Path) -> None:
-        """ThemeService.from_config handles ConfigSnapshot without theme."""
-        mock_config = MagicMock()
-        mock_config.theme = None
-
-        service = ThemeService.from_config(tmp_path, mock_config)
-        assert service.theme_name is None
-
-    def test_from_site_snapshot(self, tmp_path: Path) -> None:
-        """ThemeService.from_snapshot creates service from SiteSnapshot."""
-        mock_snapshot = MagicMock()
-        mock_snapshot.root_path = tmp_path
-        mock_snapshot.config_snapshot = MagicMock()
-        mock_snapshot.config_snapshot.theme = MagicMock()
-        mock_snapshot.config_snapshot.theme.name = "snapshot-theme"
-
-        service = ThemeService.from_snapshot(mock_snapshot)
-        assert service.root_path == tmp_path
-        assert service.theme_name == "snapshot-theme"
-
-    def test_from_site_snapshot_no_config(self, tmp_path: Path) -> None:
-        """ThemeService.from_snapshot handles SiteSnapshot without config."""
-        mock_snapshot = MagicMock()
-        mock_snapshot.root_path = tmp_path
-        mock_snapshot.config_snapshot = None
-
-        service = ThemeService.from_snapshot(mock_snapshot)
-        assert service.theme_name is None
-
-
-class TestThemeServiceFrozen:
-    """Tests verifying ThemeService is immutable."""
-
-    def test_is_frozen_dataclass(self, tmp_path: Path) -> None:
-        """ThemeService is a frozen dataclass."""
-        service = ThemeService(root_path=tmp_path, theme_name="test")
-        with pytest.raises(AttributeError):
-            service.theme_name = "different"  # type: ignore[misc]
-
-    def test_has_slots(self, tmp_path: Path) -> None:
-        """ThemeService uses slots for memory efficiency."""
-        service = ThemeService(root_path=tmp_path, theme_name="test")
-        assert hasattr(service, "__slots__") or hasattr(ThemeService, "__slots__")
