@@ -498,7 +498,7 @@ class BengalServeDashboard(BengalDashboard):
         changes_log.clear()
         self.changes.clear()
 
-    async def action_quit(self) -> None:
+    def action_quit(self) -> None:
         """Quit the dashboard and stop the server."""
         if self._stop_event:
             self._stop_event.set()
