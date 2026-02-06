@@ -1,20 +1,22 @@
 """
 Build lifecycle mixin for Site.
 
-Provides prepare_for_rebuild() — the SINGLE SOURCE OF TRUTH for all mutable
-per-build state that must be reset between warm rebuilds in the dev server.
+Provides prepare_for_rebuild() — the SINGLE SOURCE OF TRUTH for content and
+derived-content state that must be reset between warm rebuilds in the dev server.
 
 Architecture:
     The dev server keeps a single Site object alive across rebuilds (warm builds)
     to preserve expensive-to-compute immutable state (config, theme, paths).
-    Between builds, all per-build mutable state must be reset cleanly.
+    Between builds, content and derived structures must be reset cleanly.
 
-    Before this mixin existed, the reset logic lived inline in BuildTrigger,
-    manually enumerating each field. This caused bugs when new fields were added
-    but not included in the reset (e.g., _cascade_snapshot, which caused layout
-    cascade to be silently lost on hot reload).
+    Per-build ephemeral state (cascade snapshot, template caches, features_detected,
+    discovery timing) now lives on BuildState, which is created fresh for each build.
+    This eliminates the class of bugs where we "forgot to reset field X" — the
+    structural freshness of BuildState handles it automatically.
 
-    Now, Site owns its own reset contract. BuildTrigger calls a single method.
+    prepare_for_rebuild() only resets CONTENT (pages, sections, assets), DERIVED
+    STRUCTURES (taxonomies, menus, xref), PAGE CACHES, and REGISTRIES. Everything
+    else is either immutable across builds or structurally fresh via BuildState.
 
 Usage:
     # In BuildTrigger (dev server):
@@ -26,7 +28,8 @@ Usage:
 
 Related:
     bengal/server/build_trigger.py: Calls prepare_for_rebuild() before warm builds
-    bengal/core/site/cascade.py: Cascade snapshot reset handled here
+    bengal/orchestration/build_state.py: Per-build state (cascade, caches, features)
+    bengal/core/site/cascade.py: Cascade bridge property delegates to BuildState
     bengal/core/site/caches.py: Page cache invalidation delegated to existing methods
 """
 
@@ -43,9 +46,8 @@ class SiteLifecycleMixin:
     """
     Mixin providing build lifecycle management for Site.
 
-    Centralizes per-build state reset to prevent stale data bugs during
-    warm rebuilds in the dev server. Every piece of mutable per-build state
-    is reset here — nowhere else.
+    Centralizes content/derived-content reset for warm rebuilds.
+    Per-build ephemeral state lives on BuildState (structurally fresh).
     """
 
     # These attributes are defined on the Site dataclass or other mixins
@@ -58,40 +60,41 @@ class SiteLifecycleMixin:
     menu_builders: dict[str, Any]
     menu_localized: dict[str, dict[str, Any]]
     menu_builders_localized: dict[str, dict[str, Any]]
-    features_detected: set[str]
+    # Legacy fields kept for backward compat; primary path is BuildState
     _cascade_snapshot: Any
     _affected_tags: set[str]
     _page_lookup_maps: dict[str, Any] | None
-    _discovery_breakdown_ms: dict[str, float] | None
 
     def prepare_for_rebuild(self) -> None:
         """
-        Reset all mutable per-build state for a warm rebuild.
+        Reset content and derived-content state for a warm rebuild.
 
         Called by BuildTrigger before each warm build to ensure clean state
         while preserving config, theme, paths, and other immutable state that
         is expensive to recompute.
 
-        This method is the SINGLE SOURCE OF TRUTH for per-build state reset.
-        If you add new mutable per-build state to Site, add its reset here.
-
-        What IS reset (per-build, changes every build):
-            - pages, sections, assets (content)
-            - taxonomies, menus, xref_index (derived content)
-            - _cascade_snapshot (cascade metadata)
+        What IS reset here (content and derived structures):
+            - pages, sections, assets (rediscovered every build)
+            - taxonomies, menus, xref_index (rebuilt from content)
             - page caches (regular_pages, generated_pages, etc.)
             - content registry and URL registry
-            - features_detected, affected_tags, page_lookup_maps
-            - discovery breakdown timing
+            - _cascade_snapshot fallback (primary is on BuildState)
+            - _affected_tags, _page_lookup_maps (legacy fallback fields)
 
-        What is NOT reset (immutable across builds):
+        What is handled by BuildState (structurally fresh each build):
+            - cascade_snapshot (primary — site.cascade delegates to BuildState)
+            - features_detected, discovery_timing_ms
+            - template caches (theme_chain, template_dirs, template_metadata)
+            - asset_manifest_previous, asset_manifest_fallbacks
+            - current_language, current_version (render context)
+
+        What is NOT reset (immutable/persistent across builds):
             - root_path, config, theme, output_dir (configuration)
             - _theme_obj, _paths, _config_hash (derived config)
             - version_config (versioning setup)
             - data (data/ directory — reloaded during discovery if changed)
             - dev_mode (runtime flag)
-            - _asset_manifest_previous (needed for incremental asset comparison)
-            - template caches (theme chain, template dirs, metadata)
+            - build_time (overwritten at build start)
 
         Example:
             # Dev server warm rebuild:
@@ -100,8 +103,8 @@ class SiteLifecycleMixin:
 
         See Also:
             bengal/server/build_trigger.py: Where this is called
-            bengal/core/site/caches.py: Page cache invalidation
-            bengal/core/site/cascade.py: Cascade snapshot management
+            bengal/orchestration/build_state.py: Per-build ephemeral state
+            bengal/core/site/cascade.py: Cascade bridge to BuildState
         """
         # =================================================================
         # Content (rediscovered every build)
@@ -121,24 +124,17 @@ class SiteLifecycleMixin:
         self.xref_index = {}
 
         # =================================================================
-        # Cascade snapshot — CRITICAL
+        # Cascade snapshot — local fallback
         #
-        # Must be reset to None so that:
-        # 1. No stale cascade data survives from the previous build
-        # 2. The cascade property returns CascadeSnapshot.empty() until
-        #    _apply_cascades() rebuilds it during discovery
-        # 3. CascadeView cache keys (keyed by id(snapshot)) are invalidated
-        #    when the new snapshot is built (different object = different id)
-        #
-        # Previously this was NOT reset, causing layout cascade to silently
-        # fall back to empty values during hot reload.
+        # The primary cascade path now goes through BuildState (structurally
+        # fresh each build). This reset is a safety net for the local
+        # fallback path used by tests and CLI health checks.
         # =================================================================
         self._cascade_snapshot = None
 
         # =================================================================
         # Page caches (must be invalidated when pages change)
         # =================================================================
-        # Delegate to existing cache invalidation methods
         if hasattr(self, "invalidate_page_caches"):
             self.invalidate_page_caches()
         if hasattr(self, "invalidate_regular_pages_cache"):
@@ -158,9 +154,10 @@ class SiteLifecycleMixin:
             self.registry.url_ownership = self.url_registry
 
         # =================================================================
-        # Discovery state
+        # Legacy per-build fields (primary path is now BuildState)
+        #
+        # These are kept as safety nets for code paths that haven't
+        # been migrated to use BuildState yet.
         # =================================================================
-        self.features_detected = set()
         self._affected_tags = set()
         self._page_lookup_maps = None
-        self._discovery_breakdown_ms = None

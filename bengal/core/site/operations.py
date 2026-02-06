@@ -157,11 +157,18 @@ class SiteOperationsMixin:
         This method is intended for long-lived Site instances (e.g., dev server)
         to avoid stale object references across rebuilds.
 
+        Most per-build state (cascade, template caches, features_detected,
+        discovery timing) now lives on BuildState which is structurally fresh
+        each build. This method only needs to reset content, derived structures,
+        registries, and legacy fields.
+
         Persistence contract:
-        - Persist: root_path, config, theme, output_dir, build_time
-        - Clear: pages, sections, assets
-        - Clear derived: taxonomies, menu, menu_builders, xref_index (if present)
-        - Clear caches: cached page lists
+        - Persist: root_path, config, theme, output_dir, build_time, dev_mode
+        - Clear: pages, sections, assets (content)
+        - Clear derived: taxonomies, menu, xref_index
+        - Clear caches: page caches
+        - Clear registries: content registry, URL registry
+        - Handled by BuildState: cascade, template caches, features, discovery timing
         """
         emit_diagnostic(self, "debug", "site_reset_ephemeral_state", site_root=str(self.root_path))
 
@@ -195,32 +202,28 @@ class SiteOperationsMixin:
         # Reset query registry (clear cached_property)
         self.__dict__.pop("indexes", None)
 
-        # Reset lookup maps
-        self._page_lookup_maps = None
-
         # Reset theme if needed (will be reloaded on first access)
         self._theme_obj = None
 
-        # Runtime caches (Phase B fields)
+        # Legacy per-build fields (primary path is now BuildState)
+        self._page_lookup_maps = None
         self._bengal_theme_chain_cache = None
         self._bengal_template_dirs_cache = None
         self._bengal_template_metadata_cache = None
         self._discovery_breakdown_ms = None
         self._asset_manifest_fallbacks_global.clear()
+        self.features_detected.clear()
 
         # Clear Kida adapter's asset manifest cache (used for fingerprint resolution)
         if hasattr(self, "_kida_asset_manifest_cache"):
             delattr(self, "_kida_asset_manifest_cache")
 
-        # CSS optimization state
-        self.features_detected.clear()
-
-        # Clear thread-local rendering caches (Phase B formalization)
+        # Clear thread-local rendering caches
         from bengal.rendering.pipeline.thread_local import get_created_dirs
 
         get_created_dirs().clear()
 
-        # Clear thread-local asset manifest context (RFC: rfc-global-build-state-dependencies)
+        # Clear thread-local asset manifest context
         from bengal.rendering.assets import reset_asset_manifest
 
         reset_asset_manifest()
