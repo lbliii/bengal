@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
 class WorkloadType(Enum):
@@ -282,7 +283,7 @@ def should_parallelize(
     return not (total_work_estimate is not None and total_work_estimate < 5000)
 
 
-def estimate_page_weight(page: Page) -> float:
+def estimate_page_weight(page: PageLike) -> float:
     """
     Estimate relative complexity of a page for worker scheduling.
 

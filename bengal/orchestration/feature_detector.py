@@ -99,7 +99,7 @@ class FeatureDetector:
 
         return features
 
-    def detect_features_in_page(self, page: Page) -> set[str]:
+    def detect_features_in_page(self, page: PageLike) -> set[str]:
         """
         Detect features in a page object.
 

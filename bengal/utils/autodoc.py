@@ -15,10 +15,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
-def is_autodoc_page(page: Page | Any) -> bool:
+def is_autodoc_page(page: PageLike | Any) -> bool:
     """
     Check if a page is autodoc-generated.
 
