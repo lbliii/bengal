@@ -190,7 +190,9 @@ class PageContentMixin:
         """
         Render AST tokens to HTML.
 
-        Internal method used when true AST is available (Phase 3).
+        Internal method for future AST-based pipeline (Phase 3).
+        Currently returns empty string — Patitas renders directly to HTML
+        and does not populate _ast_cache.
 
         Returns:
             Rendered HTML string
@@ -198,26 +200,14 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        try:
-            # Mistune 3.x requires HTMLRenderer instance and BlockState
-            from mistune.core import BlockState
-            from mistune.renderers.html import HTMLRenderer
-
-            renderer = HTMLRenderer()
-            state = BlockState()
-            # Cast to expected type - ASTNode TypedDicts are dict subtypes
-            return renderer(cast(list[dict[str, Any]], self._ast_cache), state)
-        except (ImportError, AttributeError, Exception) as e:
-            # Fallback to empty string if rendering fails
-            emit_diagnostic(
-                self,
-                "debug",
-                "page_ast_to_html_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="returning_empty_string",
-            )
-            return ""
+        # Future: implement AST-to-HTML rendering when AST pipeline lands
+        emit_diagnostic(
+            self,
+            "debug",
+            "page_ast_to_html_not_implemented",
+            action="returning_empty_string",
+        )
+        return ""
 
     def _extract_text_from_ast(self) -> str:
         """
