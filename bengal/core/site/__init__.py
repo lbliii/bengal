@@ -18,13 +18,8 @@ config_normalized.py: SiteNormalizedConfigMixin (normalized config)
 versioning.py: SiteVersioningMixin (version support)
 caches.py: SiteCachesMixin (page cache management)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
-cascade.py: SiteCascadeMixin (cascade metadata)
 lifecycle.py: SiteLifecycleMixin (warm rebuild state reset)
 operations.py: SiteOperationsMixin (build/serve/clean)
-section_registry.py: SiteSectionRegistryMixin (section lookups)
-validation.py: SiteValidationMixin (URL validation)
-helpers.py: SiteHelpersMixin (ergonomic methods)
-data_loading.py: SiteDataMixin (data directory loading)
 factory.py: Factory functions (from_config, for_testing)
 
 Key Features:
@@ -49,6 +44,7 @@ bengal.cache.build_cache: Build state persistence
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -68,17 +64,12 @@ from bengal.icons import resolver as icon_resolver
 
 # Import mixins
 from .caches import SiteCachesMixin
-from .cascade import SiteCascadeMixin
 from .config_normalized import SiteNormalizedConfigMixin
-from .data_loading import SiteDataMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
-from .helpers import SiteHelpersMixin
 from .lifecycle import SiteLifecycleMixin
 from .operations import SiteOperationsMixin
 from .properties import SitePropertiesMixin
-from .section_registry import SiteSectionRegistryMixin
-from .validation import SiteValidationMixin
 from .versioning import SiteVersioningMixin
 
 if TYPE_CHECKING:
@@ -100,13 +91,8 @@ class Site(
     SiteVersioningMixin,
     SiteCachesMixin,
     SiteDiscoveryMixin,
-    SiteCascadeMixin,
     SiteLifecycleMixin,
     SiteOperationsMixin,
-    SiteSectionRegistryMixin,
-    SiteValidationMixin,
-    SiteHelpersMixin,
-    SiteDataMixin,
 ):
     """
     Represents the entire website and orchestrates the build process.
@@ -447,6 +433,570 @@ class Site(
             site = Site.for_testing(config={'site': {'title': 'Test'}})
         """
         return for_testing(cls, root_path, config)
+
+    # =========================================================================
+    # HELPERS (inlined from SiteHelpersMixin)
+    # =========================================================================
+
+    def get_section_by_name(self, name: str) -> Section | None:
+        """
+        Get a section by its name.
+
+        Searches top-level sections for a matching name. Returns the first
+        match or None if not found.
+
+        Args:
+            name: Section name to find (e.g., 'blog', 'docs', 'api')
+
+        Returns:
+            Section if found, None otherwise
+
+        Example:
+            {% set blog = site.get_section_by_name('blog') %}
+            {% if blog %}
+              {{ blog.title }} has {{ blog.pages | length }} posts
+            {% endif %}
+        """
+        for section in self.sections:
+            if section.name == name:
+                return section
+        return None
+
+    def pages_by_section(self, section_name: str) -> list[Page]:
+        """
+        Get all pages belonging to a section by name.
+
+        Filters site.pages to return only pages whose section matches
+        the given name. Useful for archive and taxonomy templates.
+
+        Args:
+            section_name: Section name to filter by (e.g., 'blog', 'docs')
+
+        Returns:
+            List of pages in that section (empty list if section not found)
+
+        Example:
+            {% set blog_posts = site.pages_by_section('blog') %}
+            {% for post in blog_posts %}
+              <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        result: list[Page] = []
+        for p in self.pages:
+            section = getattr(p, "_section", None)
+            if section is not None and section.name == section_name:
+                result.append(p)
+        return result
+
+    def get_version_target_url(
+        self, page: Page | None, target_version: dict[str, Any] | None
+    ) -> str:
+        """
+        Get the best URL for a page in the target version.
+
+        Computes a fallback cascade at build time:
+        1. If exact equivalent page exists → return that URL
+        2. If section index exists → return section index URL
+        3. Otherwise → return version root URL
+
+        This is engine-agnostic and works with any template engine (Jinja2,
+        Mako, or any BYORenderer).
+
+        Args:
+            page: Current page object (may be None for edge cases)
+            target_version: Target version dict with 'id', 'url_prefix', 'latest' keys
+
+        Returns:
+            Best URL to navigate to (guaranteed to exist, never 404)
+
+        Example (Jinja2):
+            {% for v in versions %}
+            <option data-target="{{ site.get_version_target_url(page, v) }}">
+              {{ v.label }}
+            </option>
+            {% endfor %}
+
+        Example (Mako):
+            % for v in versions:
+            <option data-target="${site.get_version_target_url(page, v)}">
+              ${v['label']}
+            </option>
+            % endfor
+        """
+        # Delegate to core logic (engine-agnostic pure Python)
+        from bengal.rendering.template_functions.version_url import (
+            get_version_target_url as _get_version_target_url,
+        )
+
+        return _get_version_target_url(page, target_version, self)  # type: ignore[arg-type]
+
+    def __repr__(self) -> str:
+        pages = len(self.pages)
+        sections = len(self.sections)
+        assets = len(self.assets)
+        return f"Site(pages={pages}, sections={sections}, assets={assets})"
+
+    # =========================================================================
+    # VALIDATION (inlined from SiteValidationMixin)
+    # =========================================================================
+
+    def validate_no_url_collisions(self, *, strict: bool = False) -> list[str]:
+        """
+        Detect when multiple pages output to the same URL.
+
+        This method catches URL collisions early during the build process,
+        preventing silent overwrites that cause broken navigation.
+
+        Uses URLRegistry if available for enhanced ownership context, otherwise
+        falls back to page iteration if URLRegistry is not available.
+
+        Args:
+            strict: If True, raise ValueError on collision instead of warning.
+                   Set to True when site config has strict_mode=True.
+
+        Returns:
+            List of collision warning messages (empty if no collisions)
+
+        Raises:
+            ValueError: If strict=True and collisions are detected
+
+        Example:
+            >>> collisions = site.validate_no_url_collisions()
+            >>> if collisions:
+            ...     for msg in collisions:
+            ...         print(f"Warning: {msg}")
+
+        Note:
+            This is a proactive check during Phase 12 (Update Pages List) that
+            catches issues before they cause broken navigation.
+
+        See Also:
+            - bengal/health/validators/url_collisions.py: Health check validator
+        """
+        collisions: list[str] = []
+
+        # Use registry if available (provides ownership context)
+        if hasattr(self, "url_registry") and self.url_registry:
+            # Check for duplicate URLs in pages (registry tracks all claims, including non-page)
+            urls_seen: dict[str, str] = {}  # url -> source description
+
+            for page in self.pages:
+                url = page._path
+                source = str(getattr(page, "source_path", page.title))
+
+                if url in urls_seen:
+                    # Get ownership context from registry
+                    claim = self.url_registry.get_claim(url)
+                    owner_info = (
+                        f" ({claim.owner}, priority {claim.priority})" if claim else ""
+                    )
+
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}{owner_info}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
+        else:
+            # Fallback: iterate pages
+            urls_seen = {}  # url -> source description
+
+            for page in self.pages:
+                url = page._path
+                source = str(getattr(page, "source_path", page.title))
+
+                if url in urls_seen:
+                    msg = (
+                        f"URL collision detected: {url}\n"
+                        f"  Already claimed by: {urls_seen[url]}\n"
+                        f"  Also claimed by: {source}\n"
+                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
+                    )
+                    collisions.append(msg)
+
+                    # Emit diagnostic for orchestrators to surface
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "url_collision",
+                        url=url,
+                        first_source=urls_seen[url],
+                        second_source=source,
+                    )
+                else:
+                    urls_seen[url] = source
+
+        if collisions and strict:
+            from bengal.errors import BengalContentError, ErrorCode
+
+            raise BengalContentError(
+                "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
+                code=ErrorCode.D005,
+                suggestion=(
+                    "Check for duplicate slugs, conflicting autodoc output, "
+                    "or use different URLs for conflicting pages"
+                ),
+            )
+
+        return collisions
+
+    # =========================================================================
+    # DATA LOADING (inlined from SiteDataMixin)
+    # =========================================================================
+
+    def _load_data_directory(self) -> DotDict:
+        """
+        Load all data files from the data/ directory into site.data.
+
+        Supports YAML, JSON, and TOML files. Files are loaded into a nested
+        structure based on their path in the data/ directory.
+
+        Example:
+            data/resume.yaml → site.data.resume
+            data/team/members.json → site.data.team.members
+
+        Returns:
+            DotDict with loaded data accessible via dot notation
+        """
+        from bengal.utils.io.file_io import load_data_file
+        from bengal.utils.primitives.dotdict import DotDict, wrap_data
+
+        data_dir = self.root_path / "data"
+
+        if not data_dir.exists():
+            emit_diagnostic(self, "debug", "data_directory_not_found", path=str(data_dir))
+            return DotDict()
+
+        emit_diagnostic(self, "debug", "loading_data_directory", path=str(data_dir))
+
+        data: dict[str, Any] = {}
+        supported_extensions = [".json", ".yaml", ".yml", ".toml"]
+
+        for file_path in data_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+
+            if file_path.suffix not in supported_extensions:
+                continue
+
+            relative = file_path.relative_to(data_dir)
+            parts = list(relative.with_suffix("").parts)
+
+            try:
+                content = load_data_file(
+                    file_path, on_error="return_empty", caller="site_data_loader"
+                )
+
+                current = data
+                for part in parts[:-1]:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+
+                current[parts[-1]] = content
+
+                if parts[-1] == "tracks" and isinstance(content, dict):
+                    self._validate_tracks_structure(content)
+
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    "data_file_loaded",
+                    file=str(relative),
+                    key=".".join(parts),
+                    size=len(str(content)) if content else 0,
+                )
+
+            except Exception as e:
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    "data_file_load_failed",
+                    file=str(relative),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        wrapped_data: DotDict = wrap_data(data)
+
+        if data:
+            emit_diagnostic(
+                self,
+                "debug",
+                "data_directory_loaded",
+                files_loaded=len(list(data_dir.rglob("*.*"))),
+                top_level_keys=list(data.keys()) if isinstance(data, dict) else [],
+            )
+
+        return wrapped_data
+
+    def _validate_tracks_structure(self, tracks_data: dict[str, Any]) -> None:
+        """Validate tracks.yaml structure during data loading."""
+        if not isinstance(tracks_data, dict):
+            emit_diagnostic(
+                self,
+                "warning",
+                "tracks.yaml root must be a dictionary",
+                event="tracks_invalid_structure",
+            )
+            return
+
+        for track_id, track in tracks_data.items():
+            if not isinstance(track, dict):
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' must be a dictionary",
+                    event="track_invalid_structure",
+                    track_id=track_id,
+                )
+                continue
+
+            if "items" not in track:
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' is missing required 'items' field",
+                    event="track_missing_items",
+                    track_id=track_id,
+                )
+                continue
+
+            if not isinstance(track["items"], list):
+                emit_diagnostic(
+                    self,
+                    "warning",
+                    f"Track '{track_id}' has 'items' field that is not a list",
+                    event="track_items_not_list",
+                    track_id=track_id,
+                )
+                continue
+
+            if len(track["items"]) == 0:
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    f"Track '{track_id}' has no items",
+                    event="track_empty_items",
+                    track_id=track_id,
+                )
+
+    # =========================================================================
+    # SECTION REGISTRY (inlined from SiteSectionRegistryMixin)
+    # =========================================================================
+
+    def get_section_by_path(self, path: Path | str) -> Section | None:
+        """
+        Look up a section by its path (O(1) operation).
+
+        Args:
+            path: Section path (absolute, relative to content/, or relative to root)
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        if isinstance(path, str):
+            path = Path(path)
+
+        if not path.is_absolute():
+            content_relative = self.root_path / "content" / path
+            if content_relative.exists():
+                path = content_relative
+            else:
+                root_relative = self.root_path / path
+                if root_relative.exists():
+                    path = root_relative
+
+        section = self.registry.get_section(path)
+
+        if section is None:
+            emit_diagnostic(
+                self,
+                "debug",
+                "section_not_found_in_registry",
+                path=str(path),
+                registry_size=self.registry.section_count,
+            )
+
+        return section
+
+    def get_section_by_url(self, url: str) -> Section | None:
+        """
+        Look up a section by its relative URL (O(1) operation).
+
+        Args:
+            url: Section relative URL (e.g., "/api/", "/api/core/")
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        section = self.registry.get_section_by_url(url)
+
+        if section is None:
+            emit_diagnostic(
+                self,
+                "debug",
+                "section_not_found_in_url_registry",
+                url=url,
+                registry_size=self.registry.section_count,
+            )
+
+        return section
+
+    def register_sections(self) -> None:
+        """
+        Build the section registry for path-based and URL-based lookups.
+
+        Populates ContentRegistry with all sections (recursive).
+        Must be called after discover_content().
+        """
+        start = time.time()
+
+        self.registry._sections_by_path.clear()
+        self.registry._sections_by_url.clear()
+
+        for section in self.sections:
+            self.registry.register_sections_recursive(section)
+
+        self.registry.increment_epoch()
+
+        elapsed_ms = (time.time() - start) * 1000
+
+        emit_diagnostic(
+            self,
+            "debug",
+            "section_registry_built",
+            sections=self.registry.section_count,
+            elapsed_ms=f"{elapsed_ms:.2f}",
+            avg_us_per_section=f"{(elapsed_ms * 1000 / self.registry.section_count):.2f}"
+            if self.registry.section_count
+            else "0",
+        )
+
+    # =========================================================================
+    # CASCADE (inlined from SiteCascadeMixin)
+    # =========================================================================
+
+    @property
+    def cascade(self) -> Any:
+        """
+        Get the immutable cascade snapshot for this build.
+
+        Resolution order:
+            1. BuildState.cascade_snapshot (during builds — structurally fresh)
+            2. Local _cascade_snapshot (outside builds — tests, CLI)
+            3. Empty snapshot (graceful fallback)
+
+        The cascade snapshot provides thread-safe access to cascade metadata
+        without locks. It is computed once at build start and can be safely
+        accessed from multiple render threads in free-threaded Python.
+
+        Returns:
+            CascadeSnapshot instance (empty if not yet built)
+
+        Example:
+            >>> page_type = site.cascade.resolve("docs/guide", "type")
+            >>> all_cascade = site.cascade.resolve_all("docs/guide")
+        """
+        # During builds: delegate to BuildState (structurally fresh each build)
+        if self._current_build_state is not None:
+            snapshot = self._current_build_state.cascade_snapshot
+            if snapshot is not None:
+                return snapshot
+
+        # Outside builds (tests, CLI): use local fallback
+        if self._cascade_snapshot is not None:
+            return self._cascade_snapshot
+
+        # Return empty snapshot for graceful fallback
+        from bengal.core.cascade_snapshot import CascadeSnapshot
+
+        return CascadeSnapshot.empty()
+
+    def build_cascade_snapshot(self) -> None:
+        """
+        Build the immutable cascade snapshot from all sections.
+
+        This scans all sections and extracts cascade metadata from their
+        index pages (_index.md). The resulting snapshot is frozen and can
+        be safely shared across threads.
+
+        Also extracts root-level cascade from pages not in any section
+        (like content/index.md) and applies it site-wide.
+
+        Storage:
+            - During builds: stored on BuildState (primary, structurally fresh)
+            - Always: stored on _cascade_snapshot (fallback for tests/CLI)
+
+        Called automatically by _apply_cascades() during discovery.
+        Can also be called manually to refresh the snapshot after
+        incremental changes to _index.md files.
+
+        Example:
+            >>> site.build_cascade_snapshot()
+            >>> print(f"Cascade data for {len(site.cascade)} sections")
+        """
+        from bengal.core.cascade_snapshot import CascadeSnapshot
+
+        # Gather all sections including subsections
+        all_sections = self._collect_all_sections()
+
+        # Compute content directory
+        content_dir = self.root_path / "content"
+
+        # Collect root-level cascade from pages not in any section
+        # This handles content/index.md with cascade that applies site-wide
+        pages_in_sections: set[Any] = set()
+        for section in all_sections:
+            pages_in_sections.update(section.get_all_pages(recursive=True))
+
+        root_cascade: dict[str, Any] = {}
+        for page in self.pages:
+            if page not in pages_in_sections and "cascade" in page.metadata:
+                root_cascade.update(page.metadata["cascade"])
+
+        # Build immutable snapshot
+        snapshot = CascadeSnapshot.build(
+            content_dir, all_sections, root_cascade=root_cascade
+        )
+
+        # Store on BuildState if available (primary path during builds)
+        if self._current_build_state is not None:
+            self._current_build_state.cascade_snapshot = snapshot
+
+        # Always store locally for non-build access (tests, CLI)
+        self._cascade_snapshot = snapshot
+
+    def _collect_all_sections(self) -> list[Section]:
+        """
+        Collect all sections including nested subsections.
+
+        Returns:
+            Flat list of all Section objects in the site.
+        """
+        all_sections: list[Section] = []
+
+        def collect_recursive(sections: list[Section]) -> None:
+            for section in sections:
+                all_sections.append(section)
+                if section.subsections:
+                    collect_recursive(section.subsections)
+
+        collect_recursive(self.sections)
+        return all_sections
 
 
 __all__ = [
