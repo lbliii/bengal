@@ -296,17 +296,10 @@ class SnapshotEffectBuilder:
         """
         Build effects for all pages in the snapshot.
 
-        Pre-populates cascade sources and template dependencies for each page,
-        providing the EffectTracer with a complete baseline dependency graph.
-        Render-time recording enriches this with dynamically discovered deps.
-
         Returns:
             EffectTracer with all page effects recorded
         """
         effects: list[Effect] = []
-
-        # Build page → section path mapping for cascade resolution
-        page_section_map = self._build_page_section_map()
 
         for page in self._snapshot.pages:
             # Get template includes from template snapshot
@@ -315,9 +308,6 @@ class SnapshotEffectBuilder:
                 template_snap = self._snapshot.templates[page.template_name]
                 template_includes = template_snap.all_dependencies
 
-            # Resolve cascade sources (parent _index.md files)
-            cascade_sources = self._resolve_cascade_sources(page, page_section_map)
-
             # Create effect for this page
             effect = Effect.for_page_render(
                 source_path=page.source_path,
@@ -325,65 +315,11 @@ class SnapshotEffectBuilder:
                 template_name=page.template_name,
                 template_includes=template_includes,
                 page_href=page.href,
-                cascade_sources=frozenset(cascade_sources) if cascade_sources else None,
             )
             effects.append(effect)
 
         self._tracer.record_batch(effects)
         return self._tracer
-
-    def _build_page_section_map(self) -> dict[Path, list[Path]]:
-        """
-        Build a mapping from page source_path to section _index.md paths.
-
-        Walks the section hierarchy to find all _index.md files that
-        contribute cascade metadata to each page.
-
-        Returns:
-            Dict mapping page source_path to list of cascade source paths
-        """
-        page_sections: dict[Path, list[Path]] = {}
-
-        def _process_section(
-            section: Any,
-            parent_index_paths: list[Path],
-        ) -> None:
-            """Recursively process sections and map pages to their cascade sources."""
-            # Build cascade source list for this section
-            section_index_paths = list(parent_index_paths)
-            if section.path is not None:
-                index_path = section.path / "_index.md"
-                section_index_paths.append(index_path)
-
-            # Map all pages in this section to cascade sources
-            for page in section.pages:
-                page_sections[page.source_path] = section_index_paths
-
-            # Recurse into subsections
-            for subsection in section.subsections:
-                _process_section(subsection, section_index_paths)
-
-        # Start from root section
-        _process_section(self._snapshot.root_section, [])
-
-        return page_sections
-
-    def _resolve_cascade_sources(
-        self,
-        page: Any,
-        page_section_map: dict[Path, list[Path]],
-    ) -> list[Path]:
-        """
-        Get cascade source _index.md paths for a page.
-
-        Args:
-            page: PageSnapshot to resolve cascade sources for
-            page_section_map: Pre-built mapping from page → section index paths
-
-        Returns:
-            List of _index.md paths that cascade to this page
-        """
-        return page_section_map.get(page.source_path, [])
 
     @classmethod
     def from_snapshot(cls, snapshot: SiteSnapshot) -> EffectTracer:

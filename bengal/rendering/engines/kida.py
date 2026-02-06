@@ -327,11 +327,6 @@ class KidaTemplateEngine:
             # Track all templates in the inheritance chain (extends/includes)
             self._track_referenced_templates(name)
 
-        # RFC: bengal-v2-architecture Phase 5 — record template for unified effect tracing
-        from bengal.effects.render_integration import record_template_include
-
-        record_template_include(name)
-
         try:
             template = self._env.get_template(name)
 
@@ -529,11 +524,6 @@ class KidaTemplateEngine:
                     ref_path = self.get_template_path(ref_name)
                     if ref_path:
                         self._dependency_tracker.track_partial(ref_path)
-
-                    # RFC: bengal-v2-architecture Phase 5 — record include for effect tracing
-                    from bengal.effects.render_integration import record_template_include
-
-                    record_template_include(ref_name)
 
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)

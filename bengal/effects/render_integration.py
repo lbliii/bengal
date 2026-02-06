@@ -23,7 +23,7 @@ from bengal.effects.tracer import EffectTracer
 from bengal.effects.utils import frozenset_or_none
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+    from bengal.core.page import Page
 
 
 # Thread-local storage for effect context
@@ -121,7 +121,7 @@ class RenderEffectRecorder:
     def __init__(
         self,
         tracer: EffectTracer,
-        page: PageLike,
+        page: Page,
         template_name: str,
     ) -> None:
         """
@@ -231,7 +231,7 @@ class BuildEffectTracer:
         """Disable effect tracing."""
         self._enabled = False
 
-    def record_page_render(self, page: PageLike, template_name: str) -> RenderEffectRecorder | None:
+    def record_page_render(self, page: Page, template_name: str) -> RenderEffectRecorder | None:
         """
         Get recorder for page rendering (if enabled).
 

@@ -160,11 +160,6 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                 logger.debug("tracked_template_dependency", template=name, path=str(template_path))
             self._track_referenced_templates(name)
 
-        # RFC: bengal-v2-architecture Phase 5 — record template for unified effect tracing
-        from bengal.effects.render_integration import record_template_include
-
-        record_template_include(name)
-
         # Add site to context
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
@@ -508,12 +503,6 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         for ref_path in resolved_paths:
             with contextlib.suppress(Exception):
                 self._dependency_tracker.track_partial(ref_path)
-
-        # RFC: bengal-v2-architecture Phase 5 — record includes for unified effect tracing
-        from bengal.effects.render_integration import record_template_include
-
-        for ref_name in seen:
-            record_template_include(ref_name)
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """Resolve theme inheritance chain."""

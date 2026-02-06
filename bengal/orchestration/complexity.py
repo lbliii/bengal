@@ -34,7 +34,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.protocols import PageLike
 
 __all__ = [
     "ComplexityScore",
@@ -145,7 +144,7 @@ def estimate_complexity(content: str) -> ComplexityScore:
     )
 
 
-def _get_content_safe(page: PageLike) -> str:
+def _get_content_safe(page: Page) -> str:
     """Get page content without triggering lazy loads on PageProxy.
 
     For PageProxy instances where content isn't loaded, returns empty

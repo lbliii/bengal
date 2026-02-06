@@ -17,8 +17,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.orchestration.build_context import BuildContext
-    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -57,7 +57,7 @@ class JsonAccumulator:
         self._page_json_generator: Any = None
         self._page_json_generator_opts: tuple[bool, bool] | None = None
 
-    def accumulate_json_data(self, page: PageLike) -> None:
+    def accumulate_json_data(self, page: Page) -> None:
         """
         Accumulate JSON data during rendering for post-processing optimization.
 
@@ -104,7 +104,7 @@ class JsonAccumulator:
                 error=str(e)[:100],
             )
 
-    def accumulate_unified_page_data(self, page: PageLike) -> None:
+    def accumulate_unified_page_data(self, page: Page) -> None:
         """
         Accumulate unified page data during rendering.
 
@@ -196,7 +196,7 @@ class JsonAccumulator:
                 error=str(e)[:100],
             )
 
-    def extract_enhanced_metadata(self, page: PageLike) -> dict[str, Any]:
+    def extract_enhanced_metadata(self, page: Page) -> dict[str, Any]:
         """
         Extract enhanced metadata fields for SiteIndexGenerator.
 
@@ -292,7 +292,7 @@ class JsonAccumulator:
 
         return enhanced
 
-    def build_full_json_data(self, page: PageLike) -> dict[str, Any]:
+    def build_full_json_data(self, page: Page) -> dict[str, Any]:
         """
         Build full JSON data for per-page JSON files.
 

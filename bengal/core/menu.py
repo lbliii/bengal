@@ -44,7 +44,7 @@ from bengal.core.diagnostics import DiagnosticsSink
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+    from bengal.core.page import Page
 from bengal.errors import BengalContentError, ErrorCode
 
 
@@ -428,7 +428,7 @@ class MenuBuilder:
             self.items.append(item)
             self._track_item(item)
 
-    def add_from_page(self, page: PageLike, menu_name: str, menu_config: dict[str, Any]) -> None:
+    def add_from_page(self, page: Page, menu_name: str, menu_config: dict[str, Any]) -> None:
         """
         Add a page to menu based on frontmatter metadata.
 

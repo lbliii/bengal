@@ -25,7 +25,10 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+<<<<<<< HEAD
     from bengal.protocols import PageLike, SiteLike
+=======
+>>>>>>> parent of e7dd203d (core: remove 8 Site mixins total, reduce inheritance from 12 to 4)
 
 from datetime import UTC
 
@@ -819,7 +822,7 @@ def _snapshot_taxonomies(
 # Helper functions
 
 
-def _compute_attention_score(page: PageLike) -> float:
+def _compute_attention_score(page: Page) -> float:
     """Compute attention score for priority scheduling."""
     score = 0.0
 
@@ -846,7 +849,7 @@ def _compute_attention_score(page: PageLike) -> float:
     return score
 
 
-def _estimate_render_time(page: PageLike) -> float:
+def _estimate_render_time(page: Page) -> float:
     """Estimate render time in milliseconds."""
     # Simple heuristic: base time + word count factor
     base_ms = 10.0

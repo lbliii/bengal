@@ -1,17 +1,37 @@
 """
 Service functions for Bengal SSG.
 
-Pure functions and service classes that operate on SiteSnapshot:
-- QueryService → query.py (O(1) page/section lookups)
-- ThemeService → theme.py (theme resolution)
-- DataService → data.py (data directory loading)
+RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
+
+Replaces 7 Site mixins with pure functions that operate on SiteSnapshot:
+- ThemeService → theme.py
+- QueryService → query.py
+- DataService → data.py
+
+Key Benefits:
+- Pure functions: no hidden state, easier to test
+- Operates on immutable SiteSnapshot: thread-safe by construction
+- Explicit dependencies: functions declare what they need
+- Testable in isolation: no need for full Site instance
+
+Migration Path:
+1. Services implemented with both Site and SiteSnapshot support
+2. Site mixins delegate to services (compatibility layer)
+3. New code uses services directly with SiteSnapshot
+4. Eventually mixins can be deprecated
 
 Usage:
-    >>> from bengal.services import get_section, get_page
+    >>> from bengal.services import get_section, get_page, get_theme_assets
+    >>>
+    >>> # With SiteSnapshot
     >>> section = get_section(snapshot, "/docs/")
     >>> page = get_page(snapshot, "/docs/getting-started/")
+    >>>
+    >>> # With Site (compatibility)
+    >>> section = get_section(site, "/docs/")
 """
 
+from bengal.services.live_query import LiveQueryService
 from bengal.services.data import (
     DataService,
     get_data,
@@ -41,6 +61,7 @@ __all__ = [
     # Data services
     "DataService",
     # Query services
+    "LiveQueryService",
     "QueryService",
     # Theme services
     "ThemeService",

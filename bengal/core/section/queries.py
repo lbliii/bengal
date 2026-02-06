@@ -40,7 +40,6 @@ if TYPE_CHECKING:
     from bengal.core.diagnostics import DiagnosticEvent
     from bengal.core.page import Page, PageProxy
     from bengal.core.section import Section
-    from bengal.protocols import PageLike
 
 from .weighted import WeightedPage
 
@@ -145,7 +144,7 @@ class SectionQueryMixin:
             {% endfor %}
         """
 
-        def is_index_page(p: PageLike) -> bool:
+        def is_index_page(p: Page) -> bool:
             return p.source_path.stem in ("_index", "index")
 
         weighted = [

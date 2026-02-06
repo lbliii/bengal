@@ -155,11 +155,6 @@ from bengal.utils.observability.logger import close_all_loggers, print_all_summa
     help="Preview build without writing files (shows what WOULD happen)",
 )
 @click.option(
-    "--show-effects",
-    is_flag=True,
-    help="Show effect tracing statistics after build (dependency graph summary)",
-)
-@click.option(
     "--log-file",
     type=click.Path(),
     help="Write detailed logs to file (default: .bengal/logs/build.log)",
@@ -201,7 +196,6 @@ def build(
     explain: bool,
     explain_json: bool,
     dry_run: bool,
-    show_effects: bool,
     log_file: str,
     build_version: str | None,
     all_versions: bool,
@@ -571,7 +565,7 @@ def build(
             build_opts = BuildOptions(
                 force_sequential=build_options.force_sequential,
                 incremental=incremental,
-                verbose=profile_config.get("verbose_console_logs", False) or full_output or explain or show_effects,
+                verbose=profile_config.get("verbose_console_logs", False) or full_output or explain,
                 quiet=quiet,
                 profile=build_profile,
                 memory_optimized=memory_optimized,
@@ -581,7 +575,6 @@ def build(
                 explain=explain,
                 dry_run=dry_run,
                 explain_json=explain_json,
-                show_effects=show_effects,
             )
             stats = site.build(options=build_opts)
 
@@ -591,10 +584,6 @@ def build(
                     _print_explain_json(stats, dry_run=dry_run)
                 else:
                     _print_explain_output(stats, cli, dry_run=dry_run)
-
-            # Display effect tracing statistics if requested (RFC: bengal-v2-architecture Phase 5)
-            if show_effects:
-                _print_effect_stats(cli)
 
             # Display template profiling report if enabled
             if profile_templates and not quiet:
@@ -655,54 +644,6 @@ def build(
     finally:
         # Always close log file handles
         close_all_loggers()
-
-
-def _print_effect_stats(cli) -> None:
-    """
-    Print effect tracing statistics after a build.
-
-    RFC: bengal-v2-architecture Phase 5
-
-    Shows the number of effects recorded, unique dependencies, outputs,
-    and a breakdown by operation type.
-    """
-    from bengal.effects import BuildEffectTracer
-
-    tracer = BuildEffectTracer.get_instance()
-    if not tracer.enabled:
-        cli.info("  Effect tracing: disabled (set build.effect_tracing: true in config)")
-        return
-
-    stats = tracer.get_statistics()
-    cli.blank()
-    cli.info("Effect Tracing Statistics:")
-    cli.detail(f"Total effects:       {stats.get('total_effects', 0)}", indent=1, icon="  ")
-    cli.detail(f"Unique dependencies: {stats.get('unique_dependencies', 0)}", indent=1, icon="  ")
-    cli.detail(f"Unique outputs:      {stats.get('unique_outputs', 0)}", indent=1, icon="  ")
-    cli.detail(f"Cache keys:          {stats.get('cache_keys', 0)}", indent=1, icon="  ")
-
-    by_operation = stats.get("by_operation", {})
-    if by_operation:
-        cli.detail("By operation:", indent=1, icon="  ")
-        for op, count in sorted(by_operation.items(), key=lambda x: -x[1]):
-            cli.detail(f"  {op}: {count}", indent=2, icon="  ")
-
-    # Show dependency graph summary
-    dep_graph = tracer.tracer.to_dependency_graph()
-    if dep_graph:
-        # Count unique dependency types
-        all_deps: set[str] = set()
-        for deps in dep_graph.values():
-            all_deps.update(deps)
-
-        template_deps = sum(1 for d in all_deps if d.endswith((".html", ".jinja", ".j2")))
-        content_deps = sum(1 for d in all_deps if d.endswith(".md"))
-        other_deps = len(all_deps) - template_deps - content_deps
-
-        cli.detail("Dependency types:", indent=1, icon="  ")
-        cli.detail(f"  Templates: {template_deps}", indent=2, icon="  ")
-        cli.detail(f"  Content:   {content_deps}", indent=2, icon="  ")
-        cli.detail(f"  Other:     {other_deps}", indent=2, icon="  ")
 
 
 def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:

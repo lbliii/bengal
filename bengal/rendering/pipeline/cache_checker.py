@@ -21,7 +21,6 @@ from bengal.utils.primitives.sentinel import is_missing
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.protocols import PageLike
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -238,7 +237,7 @@ class CacheChecker:
 
         return True
 
-    def cache_parsed_content(self, page: PageLike, template: str, parser_version: str) -> None:
+    def cache_parsed_content(self, page: Page, template: str, parser_version: str) -> None:
         """
         Store parsed content in cache for next build.
 
@@ -273,7 +272,7 @@ class CacheChecker:
             ast=cached_ast,
         )
 
-    def cache_rendered_output(self, page: PageLike, template: str) -> None:
+    def cache_rendered_output(self, page: Page, template: str) -> None:
         """
         Store rendered output in cache for next build.
 
@@ -302,7 +301,7 @@ class CacheChecker:
             output_dir=output_dir,
         )
 
-    def should_bypass_cache(self, page: PageLike, changed_sources: set[Path]) -> bool:
+    def should_bypass_cache(self, page: Page, changed_sources: set[Path]) -> bool:
         """
         Determine if cache should be bypassed for this page.
 

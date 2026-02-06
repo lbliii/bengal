@@ -28,8 +28,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import PageLike
 
 
 class PathRegistry:
@@ -74,7 +74,7 @@ class PathRegistry:
             site.output_dir if hasattr(site, "output_dir") else site.root_path / "public"
         )
 
-    def canonical_source(self, page: PageLike) -> Path:
+    def canonical_source(self, page: Page) -> Path:
         """
         Get the canonical source path for any page.
 
@@ -112,7 +112,7 @@ class PathRegistry:
             # Fallback: path not under content dir (shouldn't happen)
             return page.source_path
 
-    def cache_key(self, page: PageLike) -> str:
+    def cache_key(self, page: Page) -> str:
         """
         Get the string cache key for a page.
 
@@ -157,7 +157,7 @@ class PathRegistry:
         """
         return self._generated_dir / taxonomy / term / "index.md"
 
-    def output_path(self, page: PageLike) -> Path:
+    def output_path(self, page: Page) -> Path:
         """
         Get the output path for a page.
 

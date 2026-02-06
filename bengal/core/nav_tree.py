@@ -60,7 +60,7 @@ from bengal.utils.primitives.lru_cache import LRUCache
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import PageLike, SectionLike
+    from bengal.protocols import SectionLike
 
 
 @dataclass(slots=True)
@@ -221,7 +221,7 @@ class NavTree:
 
     def context(
         self,
-        page: PageLike,
+        page: Page,
         *,
         mark_active_trail: bool = True,
         root_node: NavNode | None = None,
@@ -287,7 +287,7 @@ class NavTree:
         )
 
     @classmethod
-    def _should_exclude_from_nav(cls, page: PageLike) -> bool:
+    def _should_exclude_from_nav(cls, page: Page) -> bool:
         """
         Determine if a page should be excluded from navigation.
 
@@ -408,7 +408,7 @@ class NavTreeContext:
     def __init__(
         self,
         tree: NavTree,
-        page: PageLike,
+        page: Page,
         *,
         mark_active_trail: bool = True,
         root_node: NavNode | None = None,

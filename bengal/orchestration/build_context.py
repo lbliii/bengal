@@ -217,12 +217,6 @@ class BuildContext:
     theme_service: Any = None  # ThemeService (lazy import to avoid circular)
     data_service: Any = None  # DataService (lazy import to avoid circular)
 
-    # Effect Tracer — unified dependency tracking (RFC: bengal-v2-architecture Phase 5)
-    # Records Effect(outputs, depends_on, invalidates) during each build phase.
-    # Pre-populated from SnapshotEffectBuilder, enriched by render-time recording.
-    # Used by EffectBasedDetector for incremental rebuild decisions.
-    effect_tracer: Any = None  # EffectTracer (lazy import to avoid circular)
-
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
 

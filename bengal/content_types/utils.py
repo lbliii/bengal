@@ -18,13 +18,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SectionLike
+    from bengal.core.page import Page
+    from bengal.protocols import SectionLike
 
 
 # ─── Sorting Keys ─────────────────────────────────────────────────────────────
 
 
-def weight_title_key(page: PageLike) -> tuple[int, str]:
+def weight_title_key(page: Page) -> tuple[int, str]:
     """
     Sort key for weight ascending, then title alphabetical.
 
@@ -43,7 +44,7 @@ def weight_title_key(page: PageLike) -> tuple[int, str]:
     return (page.metadata.get("weight", 999999), page.title.lower())
 
 
-def date_key(page: PageLike) -> datetime:
+def date_key(page: Page) -> datetime:
     """
     Sort key for date-based ordering.
 

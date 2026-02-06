@@ -17,12 +17,15 @@ import threading
 import time
 from dataclasses import fields
 from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.protocols import PageLike
 
 # Re-export PageLike for backwards compatibility
 __all__ = ["PageLike"]
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
 
 
 # =============================================================================
@@ -62,7 +65,7 @@ def compute_content_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 
-def compute_page_hash(page: PageLike) -> str:
+def compute_page_hash(page: Page) -> str:
     """
     Compute content hash from Page object.
 
@@ -106,7 +109,7 @@ def update_frozen[T](instance: T, **updates: Any) -> T:
 # =============================================================================
 
 
-def resolve_template_name(page: PageLike, default: str = "page.html") -> str:
+def resolve_template_name(page: Page, default: str = "page.html") -> str:
     """
     Determine template name for a page.
 

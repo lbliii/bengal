@@ -51,13 +51,14 @@ from bengal.utils.paths.url_strategy import URLStrategy
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.output import OutputCollector
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.core.page import Page
+    from bengal.protocols import SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 logger = get_logger(__name__)
 
 
-def determine_output_path(page: PageLike, site: SiteLike) -> Path:
+def determine_output_path(page: Page, site: SiteLike) -> Path:
     """
     Determine the output path for a page.
 
@@ -74,7 +75,7 @@ def determine_output_path(page: PageLike, site: SiteLike) -> Path:
     return URLStrategy.compute_regular_page_output_path(page, site)
 
 
-def determine_template(page: PageLike) -> str:
+def determine_template(page: Page) -> str:
     """
     Determine which template will be used for this page.
 
@@ -113,7 +114,7 @@ def determine_template(page: PageLike) -> str:
 
 
 def write_output(
-    page: PageLike,
+    page: Page,
     site: SiteLike,
     dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
@@ -211,7 +212,7 @@ def write_output(
 
 
 def _track_and_record(
-    page: PageLike,
+    page: Page,
     site: SiteLike,
     dependency_tracker: DependencyTracker | None,
     collector: OutputCollector | None,
@@ -244,7 +245,7 @@ def _track_and_record(
         collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
-def format_html(html: str, page: PageLike, site: SiteLike) -> str:
+def format_html(html: str, page: Page, site: SiteLike) -> str:
     """
     Format HTML output (minify/pretty) with content hash embedding.
 
