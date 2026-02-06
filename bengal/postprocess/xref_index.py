@@ -78,7 +78,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug, split_url_path
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -182,7 +182,7 @@ class XRefIndexGenerator:
 
         return output_path
 
-    def _add_page_entries(self, entries: dict[str, Any], page: Page) -> None:
+    def _add_page_entries(self, entries: dict[str, Any], page: PageLike) -> None:
         """
         Add entries for a page to the index.
 
@@ -213,7 +213,7 @@ class XRefIndexGenerator:
         else:
             self._add_content_page_entry(entries, page, page_url)
 
-    def _add_content_page_entry(self, entries: dict[str, Any], page: Page, page_url: str) -> None:
+    def _add_content_page_entry(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
         """
         Add a content page entry to the index.
 
@@ -249,7 +249,7 @@ class XRefIndexGenerator:
         if (custom_id := page.metadata.get("id")) and custom_id != entry_key:
             entries[custom_id] = entry
 
-    def _add_autodoc_entries(self, entries: dict[str, Any], page: Page, page_url: str) -> None:
+    def _add_autodoc_entries(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
         """
         Add autodoc entries from a page to the index.
 
@@ -275,7 +275,7 @@ class XRefIndexGenerator:
             self._add_content_page_entry(entries, page, page_url)
 
     def _add_python_autodoc_entries(
-        self, entries: dict[str, Any], page: Page, page_url: str
+        self, entries: dict[str, Any], page: PageLike, page_url: str
     ) -> None:
         """
         Add Python autodoc entries (classes, functions, methods).
@@ -332,7 +332,7 @@ class XRefIndexGenerator:
                     "summary": page.metadata.get("description", "")[:200] or None,
                 }
 
-    def _add_cli_autodoc_entries(self, entries: dict[str, Any], page: Page, page_url: str) -> None:
+    def _add_cli_autodoc_entries(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
         """
         Add CLI autodoc entries (commands, subcommands).
 
@@ -366,7 +366,7 @@ class XRefIndexGenerator:
                 entries[page.title.lower().replace(" ", "-")] = entry
 
     def _add_openapi_autodoc_entries(
-        self, entries: dict[str, Any], page: Page, page_url: str
+        self, entries: dict[str, Any], page: PageLike, page_url: str
     ) -> None:
         """
         Add OpenAPI autodoc entries (endpoints).

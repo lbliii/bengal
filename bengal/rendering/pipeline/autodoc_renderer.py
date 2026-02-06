@@ -28,8 +28,7 @@ from bengal.utils.paths.url_normalization import path_to_slug
 if TYPE_CHECKING:
     from kida.template import Template
 
-    from bengal.core.page import Page
-    from bengal.protocols import TemplateEngine
+    from bengal.protocols import PageLike, TemplateEngine
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -115,7 +114,7 @@ class AutodocRenderer:
                 elif "openapi" in self._autodoc_config:
                     self._doc_type = "openapi"
 
-    def process_virtual_page(self, page: Page) -> None:
+    def process_virtual_page(self, page: PageLike) -> None:
         """
         Process a virtual page with pre-rendered HTML content.
 
@@ -193,7 +192,7 @@ class AutodocRenderer:
             is_complete_page=is_complete_page,
         )
 
-    def _render_autodoc_page(self, page: Page) -> None:
+    def _render_autodoc_page(self, page: PageLike) -> None:
         """
         Render an autodoc page using the site's template engine.
 

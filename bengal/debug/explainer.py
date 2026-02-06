@@ -58,7 +58,7 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
@@ -165,7 +165,7 @@ class PageExplainer:
 
         return explanation
 
-    def _find_page(self, page_path: str) -> Page | None:
+    def _find_page(self, page_path: str) -> PageLike | None:
         """
         Find a page by path.
 
@@ -203,7 +203,7 @@ class PageExplainer:
 
         return None
 
-    def _get_source_info(self, page: Page) -> SourceInfo:
+    def _get_source_info(self, page: PageLike) -> SourceInfo:
         """
         Get source file information for a page.
 
@@ -258,7 +258,7 @@ class PageExplainer:
             encoding="UTF-8",
         )
 
-    def _resolve_template_chain(self, page: Page) -> list[TemplateInfo]:
+    def _resolve_template_chain(self, page: PageLike) -> list[TemplateInfo]:
         """
         Resolve the complete template inheritance chain.
 
@@ -297,7 +297,7 @@ class PageExplainer:
 
         return chain
 
-    def _get_template_name(self, page: Page) -> str | None:
+    def _get_template_name(self, page: PageLike) -> str | None:
         """
         Determine the template name for a page.
 
@@ -433,7 +433,7 @@ class PageExplainer:
         matches = re.findall(r'{%\s*include\s*["\']([^"\']+)["\']\s*%}', content)
         return matches
 
-    def _get_dependencies(self, page: Page) -> DependencyInfo:
+    def _get_dependencies(self, page: PageLike) -> DependencyInfo:
         """
         Collect all dependencies for a page.
 
@@ -531,7 +531,7 @@ class PageExplainer:
 
         return assets
 
-    def _get_shortcode_usage(self, page: Page) -> list[ShortcodeUsage]:
+    def _get_shortcode_usage(self, page: PageLike) -> list[ShortcodeUsage]:
         """
         Extract shortcode/directive usage statistics from page content.
 
@@ -562,7 +562,7 @@ class PageExplainer:
 
         return sorted(usages.values(), key=lambda x: -x.count)
 
-    def _get_cache_status(self, page: Page) -> CacheInfo:
+    def _get_cache_status(self, page: PageLike) -> CacheInfo:
         """
         Determine cache status for a page.
 
@@ -630,7 +630,7 @@ class PageExplainer:
             rendered_cached=rendered_cached,
         )
 
-    def _get_output_info(self, page: Page) -> OutputInfo:
+    def _get_output_info(self, page: PageLike) -> OutputInfo:
         """
         Get output information for a page.
 
@@ -662,7 +662,7 @@ class PageExplainer:
             size_bytes=size_bytes,
         )
 
-    def _diagnose_issues(self, page: Page) -> list[Issue]:
+    def _diagnose_issues(self, page: PageLike) -> list[Issue]:
         """
         Diagnose potential issues with a page.
 

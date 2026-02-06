@@ -30,13 +30,12 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
-
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
+    from bengal.protocols import PageLike
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -277,7 +276,7 @@ class RenderingPipeline:
             logger.debug("api_doc_enhancer_init_failed", error=str(e))
             self._api_doc_enhancer = None
 
-    def process_page(self, page: Page) -> None:
+    def process_page(self, page: PageLike) -> None:
         """
         Process a single page through the entire rendering pipeline.
 
@@ -320,7 +319,7 @@ class RenderingPipeline:
             # Always reset tracker context, even on exceptions
             reset_current_tracker(tracker_token)
 
-    def _process_page_impl(self, page: Page) -> None:
+    def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
@@ -412,7 +411,7 @@ class RenderingPipeline:
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
 
-    def _parse_content(self, page: Page) -> None:
+    def _parse_content(self, page: PageLike) -> None:
         """Parse page content through markdown parser.
 
         Uses deferred (parallel) syntax highlighting on Python 3.14t for
@@ -462,7 +461,7 @@ class RenderingPipeline:
         # Pre-compute plain_text cache
         _ = page.plain_text
 
-    def _should_generate_toc(self, page: Page) -> bool:
+    def _should_generate_toc(self, page: PageLike) -> bool:
         """Determine if TOC should be generated for this page."""
         if page.metadata.get("toc") is False:
             return False
@@ -475,7 +474,7 @@ class RenderingPipeline:
         likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
-    def _parse_with_context_aware_parser(self, page: Page, need_toc: bool) -> None:
+    def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
         if page.metadata.get("preprocess") is False:
             # Inject source_path into metadata for cross-version dependency tracking
@@ -539,7 +538,7 @@ class RenderingPipeline:
         page.parsed_ast = parsed_content
         page.toc = toc
 
-    def _parse_with_legacy(self, page: Page, need_toc: bool) -> None:
+    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using legacy python-markdown parser."""
         content = self._preprocess_content(page)
         if need_toc and hasattr(self.parser, "parse_with_toc"):
@@ -554,14 +553,14 @@ class RenderingPipeline:
         page.parsed_ast = parsed_content
         page.toc = toc
 
-    def _enhance_api_docs(self, page: Page) -> None:
+    def _enhance_api_docs(self, page: PageLike) -> None:
         """Enhance API documentation with badges."""
         enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
             page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
 
-    def _render_and_write(self, page: Page, template: str) -> None:
+    def _render_and_write(self, page: PageLike, template: str) -> None:
         """Render template and write output.
 
         RFC: rfc-build-performance-optimizations Phase 2
@@ -621,7 +620,7 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: Page, tracked_assets: set[str] | None = None) -> None:
+    def _accumulate_asset_deps(self, page: PageLike, tracked_assets: set[str] | None = None) -> None:
         """
         Accumulate asset dependencies during rendering.
 
@@ -659,7 +658,7 @@ class RenderingPipeline:
         if assets:
             self.build_context.accumulate_page_assets(page.source_path, assets)
 
-    def _build_variable_context(self, page: Page) -> dict[str, Any]:
+    def _build_variable_context(self, page: PageLike) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
             ParamsContext,
@@ -738,11 +737,11 @@ class RenderingPipeline:
 
         return f"{base_version}-toc{TOC_EXTRACTION_VERSION}"
 
-    def _write_output(self, page: Page) -> None:
+    def _write_output(self, page: PageLike) -> None:
         """Write rendered page to output directory (backward compatibility wrapper)."""
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
-    def _preprocess_content(self, page: Page) -> str:
+    def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
         if page.metadata.get("preprocess") is False:
             return page._source
