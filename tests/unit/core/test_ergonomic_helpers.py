@@ -1,5 +1,5 @@
 """
-Tests for ergonomic helper methods on Site and Section.
+Tests for ergonomic helper methods on Section.
 
 These methods simplify common template patterns by providing
 intuitive method calls instead of verbose filter chains.
@@ -9,132 +9,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
 
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.core.site import Site
-
-
-class TestSiteGetSectionByName:
-    """Tests for Site.get_section_by_name()."""
-
-    def test_returns_section_when_found(self, tmp_path: Path) -> None:
-        """Returns the section when name matches."""
-        site = Site(root_path=tmp_path, config={})
-        blog_section = Section(name="blog", path=tmp_path / "content/blog")
-        docs_section = Section(name="docs", path=tmp_path / "content/docs")
-        site.sections = [blog_section, docs_section]
-
-        result = site.get_section_by_name("blog")
-
-        assert result is blog_section
-
-    def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
-        """Returns None when no section matches the name."""
-        site = Site(root_path=tmp_path, config={})
-        docs_section = Section(name="docs", path=tmp_path / "content/docs")
-        site.sections = [docs_section]
-
-        result = site.get_section_by_name("blog")
-
-        assert result is None
-
-    def test_returns_none_for_empty_sections(self, tmp_path: Path) -> None:
-        """Returns None when site has no sections."""
-        site = Site(root_path=tmp_path, config={})
-        site.sections = []
-
-        result = site.get_section_by_name("any")
-
-        assert result is None
-
-    def test_returns_first_match_when_duplicates_exist(self, tmp_path: Path) -> None:
-        """Returns first matching section if duplicates exist (edge case)."""
-        site = Site(root_path=tmp_path, config={})
-        section1 = Section(name="blog", path=tmp_path / "content/blog1")
-        section2 = Section(name="blog", path=tmp_path / "content/blog2")
-        site.sections = [section1, section2]
-
-        result = site.get_section_by_name("blog")
-
-        assert result is section1
-
-
-class TestSitePagesBySection:
-    """Tests for Site.pages_by_section()."""
-
-    def test_returns_pages_in_section(self, tmp_path: Path) -> None:
-        """Returns only pages belonging to the specified section."""
-        # Create a mock site with registry (needed for _section property lookup)
-        mock_site = Mock(spec=Site)
-        mock_site._mock_sections = {}
-        mock_site.registry = Mock()
-        mock_site.registry.epoch = 0
-        mock_site.registry.register_section = Mock(
-            side_effect=lambda s: mock_site._mock_sections.update({s.path: s})
-        )
-
-        blog_section = Section(name="blog", path=tmp_path / "blog")
-        docs_section = Section(name="docs", path=tmp_path / "docs")
-
-        # Register sections with mock lookup
-        mock_site.registry.register_section(blog_section)
-        mock_site.registry.register_section(docs_section)
-        mock_site.get_section_by_path = Mock(
-            side_effect=lambda path: mock_site._mock_sections.get(path)
-        )
-
-        blog_page = Page(
-            source_path=tmp_path / "blog/post.md",
-            _raw_content="Blog post",
-            _raw_metadata={"title": "Blog Post"},
-        )
-        # Pages need site reference for _section lookup
-        blog_page._site = mock_site
-        blog_page._section = blog_section
-
-        docs_page = Page(
-            source_path=tmp_path / "docs/guide.md",
-            _raw_content="Guide",
-            _raw_metadata={"title": "Guide"},
-        )
-        docs_page._site = mock_site
-        docs_page._section = docs_section
-
-        # Now create the real Site for testing pages_by_section()
-        site = Site(root_path=tmp_path, config={})
-        site.pages = [blog_page, docs_page]
-
-        result = site.pages_by_section("blog")
-
-        assert len(result) == 1
-        assert result[0] is blog_page
-
-    def test_returns_empty_for_nonexistent_section(self, tmp_path: Path) -> None:
-        """Returns empty list when section doesn't exist."""
-        site = Site(root_path=tmp_path, config={})
-        site.pages = []
-
-        result = site.pages_by_section("nonexistent")
-
-        assert result == []
-
-    def test_handles_pages_without_section(self, tmp_path: Path) -> None:
-        """Skips pages that don't have a _section attribute."""
-        site = Site(root_path=tmp_path, config={})
-        page_without_section = Page(
-            source_path=tmp_path / "content/orphan.md",
-            _raw_content="Orphan",
-            _raw_metadata={"title": "Orphan"},
-        )
-        # Page without _section set (no site, no section path)
-
-        site.pages = [page_without_section]
-
-        result = site.pages_by_section("blog")
-
-        assert result == []
 
 
 class TestSectionRecentPages:

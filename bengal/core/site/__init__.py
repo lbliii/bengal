@@ -16,10 +16,7 @@ Package Structure:
 properties.py: SitePropertiesMixin (config accessors)
 config_normalized.py: SiteNormalizedConfigMixin (normalized config)
 versioning.py: SiteVersioningMixin (version support)
-caches.py: SiteCachesMixin (page cache management)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
-lifecycle.py: SiteLifecycleMixin (warm rebuild state reset)
-operations.py: SiteOperationsMixin (build/serve/clean)
 factory.py: Factory functions (from_config, for_testing)
 
 Key Features:
@@ -435,58 +432,8 @@ class Site(
         return for_testing(cls, root_path, config)
 
     # =========================================================================
-    # HELPERS (inlined from SiteHelpersMixin)
+    # HELPERS
     # =========================================================================
-
-    def get_section_by_name(self, name: str) -> Section | None:
-        """
-        Get a section by its name.
-
-        Searches top-level sections for a matching name. Returns the first
-        match or None if not found.
-
-        Args:
-            name: Section name to find (e.g., 'blog', 'docs', 'api')
-
-        Returns:
-            Section if found, None otherwise
-
-        Example:
-            {% set blog = site.get_section_by_name('blog') %}
-            {% if blog %}
-              {{ blog.title }} has {{ blog.pages | length }} posts
-            {% endif %}
-        """
-        for section in self.sections:
-            if section.name == name:
-                return section
-        return None
-
-    def pages_by_section(self, section_name: str) -> list[Page]:
-        """
-        Get all pages belonging to a section by name.
-
-        Filters site.pages to return only pages whose section matches
-        the given name. Useful for archive and taxonomy templates.
-
-        Args:
-            section_name: Section name to filter by (e.g., 'blog', 'docs')
-
-        Returns:
-            List of pages in that section (empty list if section not found)
-
-        Example:
-            {% set blog_posts = site.pages_by_section('blog') %}
-            {% for post in blog_posts %}
-              <article>{{ post.title }}</article>
-            {% endfor %}
-        """
-        result: list[Page] = []
-        for p in self.pages:
-            section = getattr(p, "_section", None)
-            if section is not None and section.name == section_name:
-                result.append(p)
-        return result
 
     def get_version_target_url(
         self, page: Page | None, target_version: dict[str, Any] | None
