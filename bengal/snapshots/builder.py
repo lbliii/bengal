@@ -25,10 +25,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-<<<<<<< HEAD
     from bengal.protocols import PageLike, SiteLike
-=======
->>>>>>> parent of e7dd203d (core: remove 8 Site mixins total, reduce inheritance from 12 to 4)
 
 from datetime import UTC
 

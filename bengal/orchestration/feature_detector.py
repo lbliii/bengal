@@ -27,12 +27,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-<<<<<<< HEAD
     from bengal.protocols import PageLike, SiteLike
-=======
-    from bengal.core.page import Page
-    from bengal.core.site import Site
->>>>>>> parent of e7dd203d (core: remove 8 Site mixins total, reduce inheritance from 12 to 4)
 
 
 class FeatureDetector:
