@@ -998,6 +998,483 @@ class Site(
         collect_recursive(self.sections)
         return all_sections
 
+    # =========================================================================
+    # PAGE CACHES (inlined from SiteCachesMixin)
+    # =========================================================================
+
+    @property
+    def regular_pages(self) -> list[Page]:
+        """
+        Get only regular content pages (excludes generated taxonomy/archive pages).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of regular Page objects (excludes tag pages, archive pages, etc.)
+
+        Example:
+            {% for page in site.regular_pages %}
+                <article>{{ page.title }}</article>
+            {% endfor %}
+        """
+        if self._regular_pages_cache is not None:
+            return self._regular_pages_cache
+
+        self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
+        return self._regular_pages_cache
+
+    @property
+    def generated_pages(self) -> list[Page]:
+        """
+        Get only generated pages (taxonomy, archive, pagination pages).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of generated Page objects (tag pages, archive pages, pagination, etc.)
+
+        Example:
+            # Check if any tag pages need rebuilding
+            for page in site.generated_pages:
+                if page.metadata.get("type") == "tag":
+                    # ... process tag page
+        """
+        if self._generated_pages_cache is not None:
+            return self._generated_pages_cache
+
+        self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
+        return self._generated_pages_cache
+
+    @property
+    def listable_pages(self) -> list[Page]:
+        """
+        Get pages that should appear in listings (excludes hidden pages).
+
+        This property respects the visibility system:
+        - Excludes pages with `hidden: true`
+        - Excludes pages with `visibility.listings: false`
+        - Excludes draft pages
+
+        Use this for:
+        - "Recent posts" sections
+        - Archive pages
+        - Category/tag listings
+        - Any public-facing page list
+
+        Use `site.pages` when you need ALL pages including hidden ones
+        (e.g., for sitemap generation where you filter separately).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of Page objects that should appear in public listings
+
+        Example:
+            {% set posts = site.listable_pages | where('section', 'blog') %}
+            {% for post in posts | sort_by('date', reverse=true) | limit(5) %}
+                <article>{{ post.title }}</article>
+            {% endfor %}
+        """
+        if self._listable_pages_cache is not None:
+            return self._listable_pages_cache
+
+        self._listable_pages_cache = [p for p in self.pages if p.in_listings]
+        return self._listable_pages_cache
+
+    def get_page_path_map(self) -> dict[str, Page]:
+        """
+        Get cached page path lookup map for O(1) page resolution.
+
+        Cache is automatically invalidated when page count changes,
+        covering add/remove operations in dev server.
+
+        Returns:
+            Dictionary mapping source_path strings to Page objects
+
+        Example:
+            page_map = site.get_page_path_map()
+            page = page_map.get("content/posts/my-post.md")
+        """
+        current_version = len(self.pages)
+        if self._page_path_map is None or self._page_path_map_version != current_version:
+            self._page_path_map = {str(p.source_path): p for p in self.pages}
+            self._page_path_map_version = current_version
+        return self._page_path_map
+
+    @property
+    def page_by_source_path(self) -> dict[Path, Page]:
+        """
+        O(1) page lookup by source path (site-level cache).
+
+        Provides centralized page lookup cache shared across all consumers
+        (CascadeTracker, RebuildFilter, ContentOrchestrator). Built lazily
+        on first access, invalidated when pages change.
+
+        Returns:
+            Dictionary mapping source Path to Page objects
+
+        Performance:
+            - First access: O(P) to build cache
+            - Subsequent access: O(1)
+            - Replaces 3 separate O(P) builds with 1 shared build
+
+        Example:
+            page = site.page_by_source_path.get(source_path)
+
+        See Also:
+            get_page_path_map(): String-based path map (for template functions)
+            invalidate_page_caches(): Clears this cache
+        """
+        if self._page_by_source_path_cache is None:
+            self._page_by_source_path_cache = {p.source_path: p for p in self.pages}
+        return self._page_by_source_path_cache
+
+    def invalidate_page_caches(self) -> None:
+        """
+        Invalidate cached page lists when pages are modified.
+
+        Call this after:
+        - Adding/removing pages
+        - Modifying page metadata (especially _generated flag or visibility)
+        - Any operation that changes the pages list
+
+        This ensures cached properties (regular_pages, generated_pages, listable_pages,
+        page_path_map, page_by_source_path) will recompute on next access.
+        """
+        self._regular_pages_cache = None
+        self._generated_pages_cache = None
+        self._listable_pages_cache = None
+        self._page_path_map = None
+        self._page_path_map_version = -1
+        self._page_by_source_path_cache = None
+
+    def invalidate_regular_pages_cache(self) -> None:
+        """
+        Invalidate the regular_pages cache.
+
+        Call this after modifying the pages list or page metadata that affects
+        the _generated flag. More specific than invalidate_page_caches() if you
+        only need to invalidate regular_pages.
+
+        See Also:
+            invalidate_page_caches(): Invalidate all page caches at once
+        """
+        self._regular_pages_cache = None
+
+    # =========================================================================
+    # LIFECYCLE (inlined from SiteLifecycleMixin)
+    # =========================================================================
+
+    def prepare_for_rebuild(self) -> None:
+        """
+        Reset content and derived-content state for a warm rebuild.
+
+        Called by BuildTrigger before each warm build to ensure clean state
+        while preserving config, theme, paths, and other immutable state that
+        is expensive to recompute.
+
+        What IS reset here (content and derived structures):
+            - pages, sections, assets (rediscovered every build)
+            - taxonomies, menus, xref_index (rebuilt from content)
+            - page caches (regular_pages, generated_pages, etc.)
+            - content registry and URL registry
+            - _cascade_snapshot fallback (primary is on BuildState)
+            - _affected_tags, _page_lookup_maps (legacy fallback fields)
+
+        What is handled by BuildState (structurally fresh each build):
+            - cascade_snapshot (primary — site.cascade delegates to BuildState)
+            - features_detected, discovery_timing_ms
+            - template caches (theme_chain, template_dirs, template_metadata)
+            - asset_manifest_previous, asset_manifest_fallbacks
+            - current_language, current_version (render context)
+
+        What is NOT reset (immutable/persistent across builds):
+            - root_path, config, theme, output_dir (configuration)
+            - _theme_obj, _paths, _config_hash (derived config)
+            - version_config (versioning setup)
+            - data (data/ directory — reloaded during discovery if changed)
+            - dev_mode (runtime flag)
+            - build_time (overwritten at build start)
+
+        Example:
+            # Dev server warm rebuild:
+            site.prepare_for_rebuild()
+            site.build(options)
+
+        See Also:
+            bengal/server/build_trigger.py: Where this is called
+            bengal/orchestration/build_state.py: Per-build ephemeral state
+            bengal/core/site/cascade.py: Cascade bridge to BuildState
+        """
+        # =================================================================
+        # Content (rediscovered every build)
+        # =================================================================
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        # =================================================================
+        # Derived content (rebuilt from content every build)
+        # =================================================================
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+        self.xref_index = {}
+
+        # =================================================================
+        # Cascade snapshot — local fallback
+        #
+        # The primary cascade path now goes through BuildState (structurally
+        # fresh each build). This reset is a safety net for the local
+        # fallback path used by tests and CLI health checks.
+        # =================================================================
+        self._cascade_snapshot = None
+
+        # =================================================================
+        # Page caches (must be invalidated when pages change)
+        # =================================================================
+        if hasattr(self, "invalidate_page_caches"):
+            self.invalidate_page_caches()
+        if hasattr(self, "invalidate_regular_pages_cache"):
+            self.invalidate_regular_pages_cache()
+
+        # =================================================================
+        # Content registry (unfreezes and clears for re-discovery)
+        # =================================================================
+        if hasattr(self, "registry"):
+            self.registry.clear()
+
+        # URL registry (fresh registry for new build)
+        from bengal.core.url_ownership import URLRegistry
+
+        self.url_registry = URLRegistry()
+        if hasattr(self, "registry"):
+            self.registry.url_ownership = self.url_registry
+
+        # =================================================================
+        # Legacy per-build fields (primary path is now BuildState)
+        #
+        # These are kept as safety nets for code paths that haven't
+        # been migrated to use BuildState yet.
+        # =================================================================
+        self._affected_tags = set()
+        self._page_lookup_maps = None
+
+    # =========================================================================
+    # OPERATIONS (inlined from SiteOperationsMixin)
+    # =========================================================================
+
+    def build(
+        self,
+        options: BuildOptions,
+    ) -> BuildStats:
+        """
+        Build the entire site.
+
+        Delegates to BuildOrchestrator for actual build process.
+
+        Args:
+            options: BuildOptions dataclass with all build configuration.
+
+        Returns:
+            BuildStats object with build statistics
+
+        Example:
+            >>> from bengal.orchestration.build.options import BuildOptions
+            >>> options = BuildOptions(strict=True)
+            >>> stats = site.build(options)
+        """
+        from bengal.orchestration import BuildOrchestrator
+
+        orchestrator = BuildOrchestrator(self)
+        return orchestrator.build(options)
+
+    def serve(
+        self,
+        host: str = "localhost",
+        port: int = 5173,
+        watch: bool = True,
+        auto_port: bool = True,
+        open_browser: bool = False,
+        version_scope: str | None = None,
+    ) -> None:
+        """
+        Start a development server.
+
+        Args:
+            host: Server host
+            port: Server port
+            watch: Whether to watch for file changes and rebuild
+            auto_port: Whether to automatically find an available port if the specified one is
+                       in use
+            open_browser: Whether to automatically open the browser
+            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
+                If None, all versions are rebuilt on changes.
+        """
+        from bengal.server.dev_server import DevServer
+
+        server = DevServer(
+            self,
+            host=host,
+            port=port,
+            watch=watch,
+            auto_port=auto_port,
+            open_browser=open_browser,
+            version_scope=version_scope,
+        )
+        server.start()
+
+    def clean(self) -> None:
+        """
+        Clean the output directory by removing all generated files.
+
+        Useful for starting fresh or troubleshooting build issues.
+
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.clean()  # Remove all files in public/
+            >>> site.build()  # Rebuild from scratch
+        """
+        if self.output_dir.exists():
+            # Use debug level to avoid noise in clean command output
+            emit_diagnostic(self, "debug", "cleaning_output_dir", path=str(self.output_dir))
+            self._rmtree_robust(self.output_dir)
+            emit_diagnostic(self, "debug", "output_dir_cleaned", path=str(self.output_dir))
+        else:
+            emit_diagnostic(self, "debug", "output_dir_does_not_exist", path=str(self.output_dir))
+
+    @staticmethod
+    def _rmtree_robust(path: Path, max_retries: int = 3) -> None:
+        """
+        Remove directory tree with retry logic for transient filesystem errors.
+
+        Delegates to bengal.utils.file_io.rmtree_robust for the actual
+        implementation.
+
+        Args:
+            path: Directory to remove
+            max_retries: Number of retry attempts (default 3)
+
+        Raises:
+            OSError: If deletion fails after all retries
+        """
+        from bengal.utils.io.file_io import rmtree_robust
+
+        rmtree_robust(path, max_retries=max_retries, caller="site")
+
+    def reset_ephemeral_state(self) -> None:
+        """
+        Clear ephemeral/derived state that should not persist between builds.
+
+        This method is intended for long-lived Site instances (e.g., dev server)
+        to avoid stale object references across rebuilds.
+
+        Most per-build state (cascade, template caches, features_detected,
+        discovery timing) now lives on BuildState which is structurally fresh
+        each build. This method only needs to reset content, derived structures,
+        registries, and legacy fields.
+
+        Persistence contract:
+        - Persist: root_path, config, theme, output_dir, build_time, dev_mode
+        - Clear: pages, sections, assets (content)
+        - Clear derived: taxonomies, menu, xref_index
+        - Clear caches: page caches
+        - Clear registries: content registry, URL registry
+        - Handled by BuildState: cascade, template caches, features, discovery timing
+        """
+        emit_diagnostic(self, "debug", "site_reset_ephemeral_state", site_root=str(self.root_path))
+
+        # Content to be rediscovered
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        # Derived structures (contain object references)
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+
+        # Indices (rebuilt from pages)
+        self.xref_index = {}
+
+        # Cached properties
+        self.invalidate_page_caches()
+
+        # Clear content registry (includes section registries and URL ownership)
+        self.registry.clear()
+
+        # Reset URL registry and reconnect with content registry
+        from bengal.core.url_ownership import URLRegistry
+
+        self.url_registry = URLRegistry()
+        self.registry.url_ownership = self.url_registry
+
+        # Reset query registry (clear cached_property)
+        self.__dict__.pop("indexes", None)
+
+        # Reset theme if needed (will be reloaded on first access)
+        self._theme_obj = None
+
+        # Legacy per-build fields (primary path is now BuildState).
+        # These may not exist as dataclass fields, so guard with hasattr.
+        self._page_lookup_maps = None
+        self._bengal_theme_chain_cache = None
+        self._bengal_template_dirs_cache = None
+        self._bengal_template_metadata_cache = None
+        self._discovery_breakdown_ms = None
+        if hasattr(self, "_asset_manifest_fallbacks_global"):
+            self._asset_manifest_fallbacks_global.clear()
+        if hasattr(self, "features_detected"):
+            self.features_detected.clear()
+
+        # Clear Kida adapter's asset manifest cache (used for fingerprint resolution)
+        if hasattr(self, "_kida_asset_manifest_cache"):
+            delattr(self, "_kida_asset_manifest_cache")
+
+        # Clear thread-local rendering caches
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
+        get_created_dirs().clear()
+
+        # Clear thread-local asset manifest context
+        from bengal.rendering.assets import reset_asset_manifest
+
+        reset_asset_manifest()
+
+    @property
+    def build_state(self) -> BuildState | None:
+        """
+        Current build state (None outside build context).
+
+        Returns:
+            BuildState during build execution, None otherwise
+
+        Example:
+            if site.build_state:
+                lock = site.build_state.get_lock("asset_write")
+        """
+        return self._current_build_state
+
+    def set_build_state(self, state: BuildState | None) -> None:
+        """
+        Set current build state (called by BuildOrchestrator).
+
+        Args:
+            state: BuildState to set, or None to clear
+
+        Note:
+            This is called internally by BuildOrchestrator at build start/end.
+            Do not call directly unless implementing custom build coordination.
+        """
+        self._current_build_state = state
+
 
 __all__ = [
     "Site",
