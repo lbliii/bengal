@@ -119,6 +119,36 @@ class PageLike(Protocol):
         """Path where the rendered page will be written."""
         ...
 
+    @property
+    def description(self) -> str:
+        """Page description from frontmatter."""
+        ...
+
+    @property
+    def word_count(self) -> int:
+        """Word count of content."""
+        ...
+
+    @property
+    def reading_time(self) -> int:
+        """Estimated reading time in minutes."""
+        ...
+
+    @property
+    def excerpt(self) -> str:
+        """Content excerpt/summary."""
+        ...
+
+    @property
+    def toc(self) -> str:
+        """Rendered table of contents HTML."""
+        ...
+
+    @property
+    def toc_items(self) -> list[Any]:
+        """Structured table of contents items."""
+        ...
+
 
 # =============================================================================
 # Section Protocol
@@ -148,6 +178,8 @@ class SectionLike(Protocol):
 
     """
 
+    # --- Identity ---
+
     @property
     def name(self) -> str:
         """Section name (directory name)."""
@@ -168,6 +200,8 @@ class SectionLike(Protocol):
         """URL path to section (e.g., '/docs/')."""
         ...
 
+    # --- Content ---
+
     @property
     def pages(self) -> list[PageLike]:
         """Pages directly in this section."""
@@ -186,6 +220,33 @@ class SectionLike(Protocol):
     @property
     def index_page(self) -> PageLike | None:
         """Index page for this section (_index.md or index.md)."""
+        ...
+
+    # --- Metadata & Navigation ---
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Section metadata dict (from _index.md frontmatter or cascade)."""
+        ...
+
+    @property
+    def nav_title(self) -> str:
+        """Navigation-specific title (falls back to title)."""
+        ...
+
+    @property
+    def icon(self) -> str | None:
+        """Icon identifier for navigation (e.g., 'book', 'code')."""
+        ...
+
+    @property
+    def is_virtual(self) -> bool:
+        """Whether this is a virtual section (no directory on disk)."""
+        ...
+
+    @property
+    def regular_pages(self) -> list[PageLike]:
+        """Non-index pages in this section."""
         ...
 
 
@@ -301,6 +362,21 @@ class SiteLike(Protocol):
     @property
     def xref_index(self) -> dict[str, Any]:
         """Cross-reference index for internal linking."""
+        ...
+
+    @property
+    def regular_pages(self) -> list[PageLike]:
+        """Non-generated, non-index pages."""
+        ...
+
+    @property
+    def versions(self) -> list[Any]:
+        """Available documentation versions."""
+        ...
+
+    @property
+    def build_time(self) -> datetime | None:
+        """Build timestamp."""
         ...
 
     def get_page_path_map(self) -> dict[str, PageLike]:
