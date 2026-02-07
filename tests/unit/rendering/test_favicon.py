@@ -6,7 +6,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.config.loader import ConfigLoader
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
 
@@ -28,15 +27,10 @@ baseurl = ""
 
 @pytest.fixture
 def mock_site(temp_site_dir):
-    config_loader = ConfigLoader(temp_site_dir)
-    config = config_loader.load()
-    # The template expects config.site.favicon structure
-    # Wrap the flat config in a "site" key for template compatibility
-    # Include favicon: None to satisfy Kida strict mode
-    site_config = config.copy()
-    site_config["favicon"] = None  # Explicit None for strict mode
-    wrapped_config = {"site": site_config}
-    site = Site(root_path=temp_site_dir, config=wrapped_config)
+    config = {
+        "site": {"title": "Test Site", "baseurl": "", "favicon": None},
+    }
+    site = Site(root_path=temp_site_dir, config=config)
     # Point to default theme for template loading
     bengal_root = Path(__file__).parent.parent.parent.parent / "bengal"
     site.theme_dir = bengal_root / "themes" / "default"

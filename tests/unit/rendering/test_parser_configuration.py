@@ -235,7 +235,7 @@ class TestConfigIntegration:
 
     def test_showcase_site_uses_mistune(self, tmp_path):
         """Test that a site with [markdown] parser = mistune uses Mistune."""
-        from bengal.config.loader import ConfigLoader
+        from bengal.config import ConfigLoader
 
         # Create a test config like showcase site
         config_content = """

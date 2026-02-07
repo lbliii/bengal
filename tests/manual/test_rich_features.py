@@ -69,7 +69,7 @@ def test_pretty_print_config():
     print("=" * 60)
 
     try:
-        from bengal.config.loader import pretty_print_config
+        from bengal.config import pretty_print_config
 
         test_config = {
             "site": {

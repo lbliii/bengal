@@ -58,6 +58,7 @@ See Also:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from bengal.config.deprecation import (
     DEPRECATED_KEYS,
@@ -102,6 +103,34 @@ class ConfigLoader(UnifiedConfigLoader):
     ):
         target_root = Path(site_root) if site_root is not None else self._root_path
         return super().load(target_root, environment=environment, profile=profile)
+
+
+def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
+    """Pretty print configuration using Rich formatting (pprint fallback)."""
+    try:
+        from rich.pretty import pprint as rich_pprint
+
+        from bengal.utils.observability.rich_console import get_console, should_use_rich
+
+        if should_use_rich():
+            console = get_console()
+            console.print()
+            console.print(f"[bold cyan]{title}[/bold cyan]")
+            console.print()
+            rich_pprint(config, console=console, expand_all=True)
+            console.print()
+        else:
+            import pprint
+
+            print(f"\n{title}:\n")
+            pprint.pprint(config, width=100, compact=False)
+            print()
+    except ImportError:
+        import pprint
+
+        print(f"\n{title}:\n")
+        pprint.pprint(config, width=100, compact=False)
+        print()
 
 
 __all__ = [
