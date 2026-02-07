@@ -23,11 +23,6 @@ def test_wave_scheduler_renders_pages(site, tmp_path):
     # Create snapshot from discovered pages
     snapshot = create_site_snapshot(site)
 
-    # Create mock tracker with no cache (to force rendering)
-    tracker = MagicMock()
-    # Don't set cache attribute at all - CacheChecker checks hasattr
-    if hasattr(tracker, "cache"):
-        delattr(tracker, "cache")
     stats = MagicMock()
 
     # Create build context
@@ -36,7 +31,6 @@ def test_wave_scheduler_renders_pages(site, tmp_path):
     build_context = BuildContext(
         site=site,
         pages=site.pages,
-        tracker=tracker,
         stats=stats,
     )
     build_context.snapshot = snapshot
@@ -45,7 +39,6 @@ def test_wave_scheduler_renders_pages(site, tmp_path):
     scheduler = WaveScheduler(
         snapshot=snapshot,
         site=site,
-        tracker=tracker,
         quiet=True,
         stats=stats,
         build_context=build_context,
@@ -91,8 +84,6 @@ def test_wave_scheduler_topological_order(site, build_site):
         return original_process_page(self, page)
 
     with patch.object(RenderingPipeline, "process_page", track_process_page):
-        tracker = MagicMock()
-        tracker.cache = None
         stats = MagicMock()
 
         from bengal.orchestration.build_context import BuildContext
@@ -100,7 +91,6 @@ def test_wave_scheduler_topological_order(site, build_site):
         build_context = BuildContext(
             site=site,
             pages=site.pages,
-            tracker=tracker,
             stats=stats,
         )
         build_context.snapshot = snapshot
@@ -108,7 +98,6 @@ def test_wave_scheduler_topological_order(site, build_site):
         scheduler = WaveScheduler(
             snapshot=snapshot,
             site=site,
-            tracker=tracker,
             quiet=True,
             stats=stats,
             build_context=build_context,
@@ -132,8 +121,6 @@ def test_wave_scheduler_sets_output_paths(site, build_site):
     for page in site.pages:
         page.output_path = None
 
-    tracker = MagicMock()
-    tracker.cache = None
     stats = MagicMock()
 
     from bengal.orchestration.build_context import BuildContext
@@ -141,7 +128,6 @@ def test_wave_scheduler_sets_output_paths(site, build_site):
     build_context = BuildContext(
         site=site,
         pages=site.pages,
-        tracker=tracker,
         stats=stats,
     )
     build_context.snapshot = snapshot
@@ -149,7 +135,6 @@ def test_wave_scheduler_sets_output_paths(site, build_site):
     scheduler = WaveScheduler(
         snapshot=snapshot,
         site=site,
-        tracker=tracker,
         quiet=True,
         stats=stats,
         build_context=build_context,
@@ -171,8 +156,6 @@ def test_wave_scheduler_handles_errors(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    tracker = MagicMock()
-    tracker.cache = None
     stats = MagicMock()
 
     from bengal.orchestration.build_context import BuildContext
@@ -180,7 +163,6 @@ def test_wave_scheduler_handles_errors(site, build_site):
     build_context = BuildContext(
         site=site,
         pages=site.pages,
-        tracker=tracker,
         stats=stats,
     )
     build_context.snapshot = snapshot
@@ -188,7 +170,6 @@ def test_wave_scheduler_handles_errors(site, build_site):
     scheduler = WaveScheduler(
         snapshot=snapshot,
         site=site,
-        tracker=tracker,
         quiet=True,
         stats=stats,
         build_context=build_context,

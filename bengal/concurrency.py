@@ -101,17 +101,20 @@ Locks acquired during parallel page rendering.
 |                                               |        | are available from snapshot)               |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavScaffoldCache._lock (class-level)          | Lock   | Site-change invalidation of scaffold cache |
-|   rendering/.../navigation/scaffold.py:87     |        |                                            |
+|   rendering/.../navigation/scaffold.py:87     |        | (reduced contention — NavTree lookup is    |
+|                                               |        |  now lock-free via pre-computed trees)     |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavScaffoldCache._render_locks                | PKL*   | Per-scaffold render serialization          |
-|   rendering/.../navigation/scaffold.py:88     |        |                                            |
+|   rendering/.../navigation/scaffold.py:88     |        | (reduced contention — NavTree lookup is    |
+|                                               |        |  now lock-free via pre-computed trees)     |
 +-----------------------------------------------+--------+--------------------------------------------+
 | _context_lock (module-level)                  | Lock   | _global_context_cache dict                 |
 |   rendering/context/__init__.py:118           |        | (FALLBACK ONLY — eagerly populated on      |
 |                                               |        |  BuildContext before parallel rendering)    |
 +-----------------------------------------------+--------+--------------------------------------------+
 | _config_lock (module-level)                   | Lock   | _directive_cache global replacement        |
-|   cache/directive_cache.py:129                |        |                                            |
+|   cache/directive_cache.py:129                |        | (FALLBACK ONLY — configure_for_site()      |
+|                                               |        |  called before parallel rendering starts)  |
 +-----------------------------------------------+--------+--------------------------------------------+
 | BuildState._locks["asset_manifest_fallbacks"] | Lock   | Fallback warning dedup set (via get_lock)  |
 |   orchestration/build_state.py:148            |        |                                            |
@@ -471,13 +474,13 @@ simultaneously.
    are available, falling back to lock-based build for backward compatibility.
 
 2. **Pre-compute tag pages and top-level content in snapshot builder** (eliminates
-   1 lock).  Add ``top_level_pages``, ``top_level_sections``, and a tag-pages
-   mapping to ``SiteSnapshot``.  Renderer reads these directly instead of
-   lazy-computing under lock.
+   1 lock).  ✅ DONE — ``SiteSnapshot.top_level_pages``, ``top_level_sections``,
+   ``tag_pages`` pre-computed in snapshot builder.  Renderer reads from snapshot
+   (lock-free) before falling back to lazy computation under lock.
 
 3. **Create global context wrappers during snapshot phase** (eliminates 1 lock).
-   Store pre-built ``SiteContext``, ``ConfigContext``, ``ThemeContext``,
-   ``MenusContext`` alongside the snapshot.
+   ✅ DONE — Eagerly populated on ``BuildContext`` before parallel rendering.
+   ``_context_lock`` is never contended during rendering.
 
 4. **Pre-load icons at snapshot time** (eliminates 1 lock, optional).
    Formalize the existing ``preload=True`` path into the snapshot lifecycle.

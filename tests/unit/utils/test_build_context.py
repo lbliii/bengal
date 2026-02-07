@@ -28,9 +28,8 @@ class TestBuildContextInitialization:
         assert ctx.stats is None
         assert ctx.profile is None
 
-        # Cache/tracking default to None
+        # Cache defaults to None
         assert ctx.cache is None
-        assert ctx.tracker is None
 
         # Build mode flags have defaults
         assert ctx.incremental is False

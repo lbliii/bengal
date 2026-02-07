@@ -541,6 +541,13 @@ class BuildOrchestrator:
 
             _get_global_contexts(self.site, build_context=early_ctx)
 
+            # Configure directive cache before parallel rendering (eliminates
+            # _config_lock contention — configure_for_site() only needs to
+            # run once, and doing it here ensures no racing during rendering)
+            from bengal.cache.directive_cache import configure_for_site
+
+            configure_for_site(self.site)
+
             # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
             # This enables near-instant parsing on subsequent builds
             cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
