@@ -7,18 +7,22 @@ Page bundles keep content and assets together in a directory:
 
 This module provides:
 - BundleType enum for bundle classification
-- PageBundleMixin for Page integration
+- Free functions for bundle detection and resource discovery
 - PageResources collection for accessing co-located files
 - PageResource for individual resource files
 
+Functions accept explicit parameters (source_path, url) instead of
+accessing them through mixin self-reference.
+
 Example:
-    >>> page = Page(source_path=Path("posts/my-post/index.md"))
-    >>> page.bundle_type
-<BundleType.LEAF: 'leaf'>
-    >>> page.is_bundle
-True
-    >>> hero = page.resources.get_match("hero.*")
-    >>> hero.as_image().fill("800x600 webp")
+    >>> from bengal.core.page.bundle import get_bundle_type, get_resources
+    >>> get_bundle_type(Path("posts/my-post/index.md"))
+    <BundleType.LEAF: 'leaf'>
+    >>> resources = get_resources(Path("posts/my-post/index.md"), "/posts/my-post/")
+    >>> hero = resources.get_match("hero.*")
+
+See Also:
+- bengal/core/page/__init__.py: Page class that wraps these functions as properties
 
 """
 
@@ -28,12 +32,8 @@ import fnmatch
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
+from typing import Any
 
 # MIME type category mappings
 _TYPE_EXTENSIONS: dict[str, set[str]] = {
@@ -312,100 +312,94 @@ class PageResources:
         return name in self._by_name
 
 
-class PageBundleMixin:
-    """Mixin providing bundle detection and resource access for Page.
+def get_bundle_type(source_path: Path) -> BundleType:
+    """Determine bundle type from file structure.
 
-    Add to Page's inheritance chain to enable:
-    - bundle_type: BundleType classification
-    - is_bundle: Quick check for leaf bundle
-    - resources: PageResources collection
+    - index.md in directory → LEAF (has resources)
+    - _index.md in directory → BRANCH (section, no resources)
+    - standalone .md file → NONE
 
-    Required attributes on host class:
-    - source_path: Path to the source markdown file
-    - url: Page URL (for resource permalinks)
+    Args:
+        source_path: Path to the source markdown file
 
+    Returns:
+        BundleType enum value
     """
+    name = source_path.name.lower()
 
-    # These will be defined on the host Page class
-    source_path: Path
-    url: str
+    if name == "index.md":
+        return BundleType.LEAF
+    elif name == "_index.md":
+        return BundleType.BRANCH
+    else:
+        return BundleType.NONE
 
-    @cached_property
-    def bundle_type(self) -> BundleType:
-        """Determine bundle type from file structure.
 
-        - index.md in directory → LEAF (has resources)
-        - _index.md in directory → BRANCH (section, no resources)
-        - standalone .md file → NONE
+def is_leaf_bundle(source_path: Path) -> bool:
+    """True if this page is a leaf bundle with resources.
 
-        Returns:
-            BundleType enum value
-        """
-        name = self.source_path.name.lower()
+    Only leaf bundles (index.md) have co-located resources.
+    Branch bundles (_index.md) are section indexes without resources.
 
-        if name == "index.md":
-            return BundleType.LEAF
-        elif name == "_index.md":
-            return BundleType.BRANCH
-        else:
-            return BundleType.NONE
+    Args:
+        source_path: Path to the source markdown file
+    """
+    return get_bundle_type(source_path) == BundleType.LEAF
 
-    @property
-    def is_bundle(self) -> bool:
-        """True if this page is a leaf bundle with resources.
 
-        Only leaf bundles (index.md) have co-located resources.
-        Branch bundles (_index.md) are section indexes without resources.
-        """
-        return self.bundle_type == BundleType.LEAF
+def is_branch_bundle(source_path: Path) -> bool:
+    """True if this page is a branch bundle (section index).
 
-    @property
-    def is_branch_bundle(self) -> bool:
-        """True if this page is a branch bundle (section index)."""
-        return self.bundle_type == BundleType.BRANCH
+    Args:
+        source_path: Path to the source markdown file
+    """
+    return get_bundle_type(source_path) == BundleType.BRANCH
 
-    @cached_property
-    def resources(self) -> PageResources:
-        """Get resources co-located with this page.
 
-        For leaf bundles (index.md in directory), returns all
-        non-markdown files in the same directory.
+def get_resources(source_path: Path, url: str) -> PageResources:
+    """Get resources co-located with a page bundle.
 
-        Returns empty PageResources for non-bundles (not an error).
+    For leaf bundles (index.md in directory), returns all
+    non-markdown files in the same directory.
 
-        Returns:
-            PageResources collection (empty if not a bundle)
+    Returns empty PageResources for non-bundles (not an error).
 
-        Example:
-            >>> page.resources.get_match("hero.*")
-            >>> page.resources.by_type("image")
-        """
-        if not self.is_bundle:
-            return PageResources([])
+    Args:
+        source_path: Path to the source markdown file
+        url: Page URL (for resource permalinks)
 
-        bundle_dir = self.source_path.parent
+    Returns:
+        PageResources collection (empty if not a bundle)
 
-        if not bundle_dir.exists() or not bundle_dir.is_dir():
-            return PageResources([])
+    Example:
+        >>> get_resources(Path("posts/my-post/index.md"), "/posts/my-post/")
+    """
+    if not is_leaf_bundle(source_path):
+        return PageResources([])
 
-        resources: list[PageResource] = []
+    bundle_dir = source_path.parent
 
-        for path in bundle_dir.iterdir():
-            if not path.is_file():
-                continue
+    if not bundle_dir.exists() or not bundle_dir.is_dir():
+        return PageResources([])
 
-            # Skip content files
-            if path.suffix.lower() in _CONTENT_EXTENSIONS:
-                continue
+    resources: list[PageResource] = []
 
-            resources.append(
-                PageResource(
-                    path=path,
-                    page_url=getattr(self, "url", "/"),
-                )
+    for path in bundle_dir.iterdir():
+        if not path.is_file():
+            continue
+
+        # Skip content files
+        if path.suffix.lower() in _CONTENT_EXTENSIONS:
+            continue
+
+        resources.append(
+            PageResource(
+                path=path,
+                page_url=url,
             )
+        )
 
-        # Sort by name for deterministic ordering
-        resources.sort(key=lambda r: r.name)
+    # Sort by name for deterministic ordering
+    resources.sort(key=lambda r: r.name)
 
-        return PageResources(resources)
+    return PageResources(resources)

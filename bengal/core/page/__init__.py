@@ -15,6 +15,7 @@ metadata.py: PageMetadataMixin (frontmatter access)
 navigation.py: Free functions for navigation and hierarchy
 computed.py: PageComputedMixin (derived properties)
 content.py: PageContentMixin (AST, TOC, excerpts)
+bundle.py: Free functions for bundle detection and resource access
 relationships.py: PageRelationshipsMixin (prev/next, related)
 proxy.py: PageProxy for lazy loading
 utils.py: Field separation utilities
@@ -49,6 +50,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -67,7 +69,7 @@ if TYPE_CHECKING:
 # that is mixed into the Page class for API convenience.
 from bengal.rendering.page_operations import PageOperationsMixin
 
-from .bundle import BundleType, PageBundleMixin, PageResource, PageResources
+from .bundle import BundleType, PageResource, PageResources
 from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
@@ -84,7 +86,6 @@ class Page(
     PageRelationshipsMixin,
     PageOperationsMixin,
     PageContentMixin,
-    PageBundleMixin,
 ):
     """
     Represents a single content page.
@@ -765,6 +766,34 @@ class Page(
         from bengal.core.page.navigation import get_ancestors
 
         return get_ancestors(self._section)
+
+    # ------------------------------------------------------------------
+    # Bundle properties (delegate to free functions in bundle.py)
+    # ------------------------------------------------------------------
+
+    @cached_property
+    def bundle_type(self) -> BundleType:
+        """Bundle type classification (LEAF, BRANCH, or NONE)."""
+        from bengal.core.page.bundle import get_bundle_type
+
+        return get_bundle_type(self.source_path)
+
+    @property
+    def is_bundle(self) -> bool:
+        """True if this page is a leaf bundle with resources."""
+        return self.bundle_type == BundleType.LEAF
+
+    @property
+    def is_branch_bundle(self) -> bool:
+        """True if this page is a branch bundle (section index)."""
+        return self.bundle_type == BundleType.BRANCH
+
+    @cached_property
+    def resources(self) -> PageResources:
+        """Get resources co-located with this page bundle."""
+        from bengal.core.page.bundle import get_resources
+
+        return get_resources(self.source_path, getattr(self, "url", "/"))
 
 
 __all__ = [
