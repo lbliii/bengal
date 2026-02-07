@@ -172,7 +172,7 @@ class KidaTemplateEngine:
                     if resolved and resolved.exists():
                         dirs.append(resolved)
                         continue
-            except Exception:
+            except (ImportError, AttributeError, OSError):
                 pass
 
             # Bundled theme directory
@@ -394,7 +394,7 @@ class KidaTemplateEngine:
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
             ) from e
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — catch-all for arbitrary template/filter errors
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
@@ -449,7 +449,7 @@ class KidaTemplateEngine:
                 message=f"Template string render error: {e}",
                 original_error=e,
             ) from e
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — catch-all for arbitrary template/filter errors
             raise BengalRenderingError(
                 message=f"Template string render error: {e}",
                 original_error=e,
@@ -467,7 +467,7 @@ class KidaTemplateEngine:
         try:
             self._env.get_template(name)
             return True
-        except Exception:
+        except (KidaTemplateNotFoundError, OSError):
             return False
 
     def get_template_path(self, name: str) -> Path | None:
@@ -528,7 +528,7 @@ class KidaTemplateEngine:
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)
 
-            except Exception:
+            except (AttributeError, TypeError, KeyError, OSError):
                 # Template analysis is optional - don't fail the build
                 continue
 
