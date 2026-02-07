@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BuildState:
     """
     Immutable build configuration passed across build phases.

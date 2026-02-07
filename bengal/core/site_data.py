@@ -44,7 +44,7 @@ from bengal.core.utils.config import get_site_value
 from bengal.core.version import VersionConfig
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SiteData:
     """
     Immutable site configuration and paths.

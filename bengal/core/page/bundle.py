@@ -65,7 +65,7 @@ class BundleType(Enum):
     BRANCH = "branch"  # Branch bundle (_index.md)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PageResource:
     """Single resource co-located with a page bundle.
 

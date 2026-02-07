@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class URLClaim:
     """
     Immutable record of URL ownership claim.

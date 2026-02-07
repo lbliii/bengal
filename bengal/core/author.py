@@ -51,7 +51,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Author:
     """
     Content author with structured metadata.

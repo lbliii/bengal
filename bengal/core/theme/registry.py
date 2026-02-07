@@ -37,7 +37,7 @@ from bengal.core.diagnostics import emit
 from bengal.utils.primitives.lru_cache import LRUCache
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ThemePackage:
     slug: str
     package: str  # importable package providing the theme resources (e.g., "bengal_themes.acme")

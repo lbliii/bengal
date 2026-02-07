@@ -54,7 +54,7 @@ from typing import Literal, Protocol
 type DiagnosticLevel = Literal["debug", "info", "warning", "error"]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DiagnosticEvent:
     """A structured diagnostic emitted by core models."""
 
