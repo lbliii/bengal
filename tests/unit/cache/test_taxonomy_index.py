@@ -372,7 +372,7 @@ class TestTaxonomyIndexThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety violations: {errors}"
 
@@ -419,7 +419,7 @@ class TestTaxonomyIndexThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety violations: {errors}"
         assert read_count[0] > 0, "Reads should have occurred"

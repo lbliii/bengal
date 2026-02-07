@@ -88,7 +88,6 @@ _registry: ContentRegistry | None
 _current_build_state: BuildState | None
 _paths: Any
 _dev_menu_metadata: dict[str, Any] | None
-_affected_tags: set[str]
 _page_lookup_maps: dict[str, dict[str, Page]] | None
 _last_build_stats: dict[str, Any] | None
 _template_parser: Any

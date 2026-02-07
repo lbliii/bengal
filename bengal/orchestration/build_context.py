@@ -211,6 +211,11 @@ class BuildContext:
     # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
     snapshot: Any = None  # SiteSnapshot (lazy import to avoid circular)
 
+    # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
+    # These provide O(1) lookups on immutable data for thread-safe rendering.
+    query_service: Any = None  # QueryService (lazy import to avoid circular)
+    data_service: Any = None  # DataService (lazy import to avoid circular)
+
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
 
@@ -239,21 +244,13 @@ class BuildContext:
     _page_contents: dict[str, str] = field(default_factory=dict, repr=False)
     _content_cache_lock: Lock = field(default_factory=Lock, repr=False)
 
-    # Accumulated JSON data - populated during rendering, consumed in post-processing
-    # Eliminates double iteration of pages (saves ~500-700ms on large sites)
-    # See: plan/active/rfc-postprocess-optimization.md
-    _accumulated_page_json: list[tuple[Any, dict[str, Any]]] = field(
-        default_factory=list, repr=False
-    )
-    _accumulated_json_lock: Lock = field(default_factory=Lock, repr=False)
-
     # Accumulated Asset Dependencies (Inline Asset Extraction)
     # Eliminates double iteration in phase_track_assets (saves ~5-6s on large sites)
     # See: changelog.md (Inline Asset Extraction)
     _accumulated_assets: list[tuple[Path, set[str]]] = field(default_factory=list, repr=False)
     _accumulated_assets_lock: Lock = field(default_factory=Lock, repr=False)
 
-    # Unified Page Data Accumulation (replaces _accumulated_page_json)
+    # Unified Page Data Accumulation
     # Populated during rendering, consumed by PageJSONGenerator and SiteIndexGenerator
     # Eliminates redundant computation and double page iteration (~350ms savings)
     # See: plan/drafted/rfc-unified-page-data-accumulation.md
@@ -421,6 +418,71 @@ class BuildContext:
         self.clear_build_scoped_cache()
 
     # =========================================================================
+    # Section Snapshot Lookup (PERF: O(1) instead of O(S))
+    # =========================================================================
+    # Section lookup by path/name is called per page during rendering.
+    # Without caching, this is O(S) per page = O(S*P) total.
+    # With cached maps, it's O(1) per page = O(P) total.
+
+    def get_section_snapshot(self, section: Any) -> Any:
+        """
+        Get SectionSnapshot for a section using O(1) cached lookup.
+
+        PERF: Builds lookup maps once per build, then uses dict lookups.
+        Replaces O(S) iteration over snapshot.sections with O(1) dict access.
+
+        Args:
+            section: Section object with path or name attribute, or None
+
+        Returns:
+            SectionSnapshot if found, NO_SECTION sentinel otherwise
+        """
+        from bengal.snapshots.types import NO_SECTION, SectionSnapshot
+
+        if section is None:
+            return NO_SECTION
+
+        # Already a SectionSnapshot - return as-is
+        if isinstance(section, SectionSnapshot):
+            return section
+
+        # No snapshot available - return sentinel
+        if self.snapshot is None:
+            return NO_SECTION
+
+        # Get or build cached lookup maps
+        section_maps = self.get_cached(
+            "section_snapshot_maps",
+            lambda: self._build_section_maps(),
+        )
+
+        # Try path lookup first (more specific)
+        section_path = getattr(section, "path", None)
+        if section_path and section_path in section_maps["by_path"]:
+            return section_maps["by_path"][section_path]
+
+        # Fall back to name lookup
+        section_name = getattr(section, "name", "")
+        if section_name and section_name in section_maps["by_name"]:
+            return section_maps["by_name"][section_name]
+
+        return NO_SECTION
+
+    def _build_section_maps(self) -> dict[str, dict[Any, Any]]:
+        """Build section lookup maps from snapshot (called once per build)."""
+        by_path: dict[Any, Any] = {}
+        by_name: dict[str, Any] = {}
+
+        if self.snapshot:
+            for sec_snap in self.snapshot.sections:
+                if sec_snap.path:
+                    by_path[sec_snap.path] = sec_snap
+                if sec_snap.name:
+                    by_name[sec_snap.name] = sec_snap
+
+        return {"by_path": by_path, "by_name": by_name}
+
+    # =========================================================================
     # Content Cache Methods (Build-Integrated Validation)
     # =========================================================================
     # These methods enable validators to use cached content instead of re-reading
@@ -518,100 +580,6 @@ class BuildContext:
         """
         with self._content_cache_lock:
             return len(self._page_contents) > 0
-
-    # =========================================================================
-    # Accumulated JSON Data Methods (Post-Processing Optimization)
-    # =========================================================================
-    # These methods enable JSON data to be accumulated during rendering
-    # instead of being computed again in post-processing, eliminating
-    # double iteration and saving ~500-700ms on large sites.
-    # See: plan/active/rfc-postprocess-optimization.md
-
-    def accumulate_page_json(self, json_path: Any, page_data: dict[str, Any]) -> None:
-        """
-        Accumulate JSON data for a page during rendering (thread-safe).
-
-        Call this during rendering phase to store JSON data for later
-        use in post-processing. This eliminates redundant computation
-        and double iteration of pages.
-
-        Args:
-            json_path: Path where JSON file should be written
-            page_data: Pre-computed JSON data dictionary
-
-        Example:
-            # During rendering phase
-            json_path = get_page_json_path(page)
-            page_data = build_page_json_data(page)
-            if build_context:
-                build_context.accumulate_page_json(json_path, page_data)
-        """
-        with self._accumulated_json_lock:
-            self._accumulated_page_json.append((json_path, page_data))
-
-    def get_accumulated_json(self) -> list[tuple[Any, dict[str, Any]]]:
-        """
-        Get all accumulated JSON data for post-processing.
-
-        .. deprecated::
-            Use :meth:`get_accumulated_page_data` instead. This method will be
-            removed in a future version.
-
-        Returns a copy to avoid thread safety issues when iterating.
-
-        Returns:
-            List of (json_path, page_data) tuples
-
-        Example:
-            # In post-processing phase
-            accumulated = build_context.get_accumulated_json()
-            for json_path, page_data in accumulated:
-                write_json(json_path, page_data)
-        """
-        import warnings
-
-        warnings.warn(
-            "get_accumulated_json() is deprecated, use get_accumulated_page_data() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        with self._accumulated_json_lock:
-            return list(self._accumulated_page_json)
-
-    def clear_accumulated_json(self) -> None:
-        """
-        Clear accumulated JSON data to free memory.
-
-        Call this after post-processing phase completes to release memory
-        used by accumulated JSON data.
-        """
-        with self._accumulated_json_lock:
-            self._accumulated_page_json.clear()
-
-    @property
-    def has_accumulated_json(self) -> bool:
-        """
-        Check if accumulated JSON data exists.
-
-        .. deprecated::
-            Use :attr:`has_accumulated_page_data` instead. This property will be
-            removed in a future version.
-
-        Post-processing can use this to decide whether to use accumulated
-        data or fall back to computing from pages.
-
-        Returns:
-            True if accumulated JSON data exists
-        """
-        import warnings
-
-        warnings.warn(
-            "has_accumulated_json is deprecated, use has_accumulated_page_data instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        with self._accumulated_json_lock:
-            return len(self._accumulated_page_json) > 0
 
     # =========================================================================
     # Accumulated Asset Dependencies (Inline Asset Extraction)

@@ -565,24 +565,3 @@ class TestAssetCacheConcurrency:
             # Restore original max size and clean up
             LiveReloadMixin._asset_cache_max_size = original_max
             LiveReloadMixin._asset_cache.clear()
-
-
-# Integration test example (requires more setup)
-@pytest.mark.skip(reason="Requires full server setup - placeholder for future implementation")
-class TestLiveReloadIntegration:
-    """Integration tests for live reload (to be implemented)."""
-
-    def test_server_starts_and_serves_with_live_reload(self):
-        """Test that server starts and injects live reload script."""
-        # TODO: Implement with actual server startup
-        pass
-
-    def test_sse_connection_establishes(self):
-        """Test that SSE connection can be established."""
-        # TODO: Implement with actual SSE client
-        pass
-
-    def test_file_change_triggers_notification(self):
-        """Test that file changes trigger browser reload notification."""
-        # TODO: Implement with file watching and SSE
-        pass

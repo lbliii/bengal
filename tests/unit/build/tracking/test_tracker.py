@@ -27,7 +27,7 @@ def mock_cache() -> MagicMock:
     cache.dependencies = {}
     cache.add_dependency = MagicMock()
     cache.update_file = MagicMock()
-    cache.add_taxonomy_dependency = MagicMock()
+    cache.taxonomy_index = MagicMock()
     cache.is_changed = MagicMock(return_value=False)
     return cache
 
@@ -235,19 +235,19 @@ class TestTaxonomyTracking:
         tracker.track_taxonomy(page_path, tags)
 
         # Should call add_taxonomy_dependency for each tag
-        assert mock_cache.add_taxonomy_dependency.call_count == 2
+        assert mock_cache.taxonomy_index.add_taxonomy_dependency.call_count == 2
 
     def test_track_taxonomy_skips_none(
         self, tracker: DependencyTracker, mock_cache: MagicMock
     ) -> None:
         """track_taxonomy skips None tags."""
         page_path = Path("content/post.md")
-        tags = {"python", None, "web"}  # type: ignore[arg-type]
+        tags = {"python", None, "web"}
 
         tracker.track_taxonomy(page_path, tags)
 
         # Should only call for non-None tags
-        assert mock_cache.add_taxonomy_dependency.call_count == 2
+        assert mock_cache.taxonomy_index.add_taxonomy_dependency.call_count == 2
 
     def test_get_term_pages_for_member(self, tracker: DependencyTracker) -> None:
         """get_term_pages_for_member returns term page keys."""
@@ -443,7 +443,7 @@ class TestThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Each thread should have seen its own page
         for i in range(3):

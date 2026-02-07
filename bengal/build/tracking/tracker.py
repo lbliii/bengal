@@ -34,7 +34,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 class CacheInvalidator:
@@ -133,7 +133,7 @@ class DependencyTracker:
 
     """
 
-    def __init__(self, cache: BuildCache, site: Site | None = None) -> None:
+    def __init__(self, cache: BuildCache, site: SiteLike | None = None) -> None:
         """
         Initialize the dependency tracker.
 
@@ -377,7 +377,7 @@ class DependencyTracker:
                 continue
             # Normalize tag (convert to str for int/bool/date types)
             tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
-            self.cache.add_taxonomy_dependency(tag_key, page_path)
+            self.cache.taxonomy_index.add_taxonomy_dependency(tag_key, page_path)
 
             # NEW: Record reverse mapping (page → term pages that list it)
             # When this page changes, term pages need to be rebuilt

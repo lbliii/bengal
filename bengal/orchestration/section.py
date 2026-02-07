@@ -55,8 +55,8 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
 
 
 class SectionOrchestrator:
@@ -142,7 +142,7 @@ class SectionOrchestrator:
 
         logger.info("section_finalization_complete", archives_created=archive_count)
 
-    def _finalize_recursive_filtered(self, section: Section, affected_sections: set[str]) -> int:
+    def _finalize_recursive_filtered(self, section: SectionLike, affected_sections: set[str]) -> int:
         """
         Recursively finalize only affected sections (incremental optimization).
 
@@ -182,7 +182,7 @@ class SectionOrchestrator:
 
         return archive_count
 
-    def _needs_finalization(self, section: Section) -> bool:
+    def _needs_finalization(self, section: SectionLike) -> bool:
         """
         Check if a section or any of its subsections needs finalization.
 
@@ -207,7 +207,7 @@ class SectionOrchestrator:
         # Recursively check subsections
         return any(self._needs_finalization(subsection) for subsection in section.subsections)
 
-    def _finalize_recursive(self, section: Section) -> int:
+    def _finalize_recursive(self, section: SectionLike) -> int:
         """
         Recursively finalize a section and its subsections.
 
@@ -230,7 +230,7 @@ class SectionOrchestrator:
         if not section.index_page:
             # Generate archive index
             archive_page = self._create_archive_index(section)
-            section.index_page = archive_page
+            section.index_page = archive_page  # type: ignore[assignment]
             self.site.pages.append(archive_page)
             archive_count += 1
 
@@ -250,7 +250,7 @@ class SectionOrchestrator:
 
         return archive_count
 
-    def _detect_content_type(self, section: Section) -> str:
+    def _detect_content_type(self, section: SectionLike) -> str:
         """
         Detect what kind of content this section contains.
 
@@ -265,7 +265,7 @@ class SectionOrchestrator:
         """
         return detect_content_type(section, self.site.config)
 
-    def _should_paginate(self, section: Section, content_type: str) -> bool:
+    def _should_paginate(self, section: SectionLike, content_type: str) -> bool:
         """
         Determine if section should have pagination.
 
@@ -304,7 +304,7 @@ class SectionOrchestrator:
         strategy = get_strategy(content_type)
         return strategy.get_template()
 
-    def _prepare_posts_list(self, section: Section, content_type: str) -> list[Page]:
+    def _prepare_posts_list(self, section: SectionLike, content_type: str) -> list[Page]:
         """
         Prepare the posts list for a section using content type strategy.
 
@@ -325,7 +325,7 @@ class SectionOrchestrator:
         # Sort according to content type
         return strategy.sort_pages(filtered_pages)
 
-    def _create_archive_index(self, section: Section) -> Page:
+    def _create_archive_index(self, section: SectionLike) -> Page:
         """
         Create an auto-generated index page for a section.
 
@@ -388,7 +388,7 @@ class SectionOrchestrator:
             )
 
         # Create archive page
-        archive_page = Page(source_path=virtual_path, _raw_content="", metadata=metadata)
+        archive_page = Page(source_path=virtual_path, _raw_content="", _raw_metadata=metadata)
 
         # Mark as virtual page (attribute, not just metadata)
         archive_page._virtual = True
@@ -412,7 +412,7 @@ class SectionOrchestrator:
 
         return archive_page
 
-    def _enrich_existing_index(self, section: Section) -> None:
+    def _enrich_existing_index(self, section: SectionLike) -> None:
         """
         Enrich an existing user-created index page with section context.
 
@@ -437,11 +437,11 @@ class SectionOrchestrator:
             "tutorial",
             "changelog",
         ):
-            # Add section context metadata if not already present
-            if "_section" not in index_page.metadata:
-                index_page.metadata["_section"] = section
+            # Add section context using explicit attributes (metadata is immutable)
+            if index_page._section is None:
+                index_page._section = section
 
-            if "_posts" not in index_page.metadata:
+            if index_page._posts is None:
                 # Use content type strategy to filter and sort pages
                 from bengal.content_types.registry import get_strategy
 
@@ -456,23 +456,21 @@ class SectionOrchestrator:
                 # Sort according to content type
                 sorted_pages = strategy.sort_pages(filtered_pages)
 
-                index_page.metadata["_posts"] = sorted_pages
+                index_page._posts = sorted_pages
 
-            if "_subsections" not in index_page.metadata:
-                index_page.metadata["_subsections"] = section.subsections
+            if index_page._subsections is None:
+                index_page._subsections = section.subsections
 
             # Add pagination if appropriate and not already present
-            if "_paginator" not in index_page.metadata and self._should_paginate(
-                section, page_type
-            ):
+            if index_page._paginator is None and self._should_paginate(section, page_type):
                 from bengal.utils.pagination import Paginator
 
                 paginator = Paginator(
                     items=section.pages,
                     per_page=self.site.config.get("pagination", {}).get("per_page", 10),
                 )
-                index_page.metadata["_paginator"] = paginator
-                index_page.metadata["_page_num"] = 1
+                index_page._paginator = paginator
+                index_page._page_num = 1
 
             logger.debug(
                 "section_index_enriched",
@@ -493,7 +491,7 @@ class SectionOrchestrator:
             errors.extend(self._validate_recursive(section))
         return errors
 
-    def _validate_recursive(self, section: Section) -> list[str]:
+    def _validate_recursive(self, section: SectionLike) -> list[str]:
         """
         Recursively validate a section and its subsections.
 

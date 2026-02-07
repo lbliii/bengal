@@ -13,8 +13,7 @@ from kida import Markup
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -26,7 +25,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def ref_with_site(path: str, text: str | None = None) -> Markup:
         return ref(path, site.xref_index, site.baseurl or "", text)
 
-    def doc_with_site(path: str) -> Page | None:
+    def doc_with_site(path: str) -> PageLike | None:
         return doc(path, site.xref_index)
 
     def anchor_with_site(heading: str, page_path: str | None = None) -> Markup:
@@ -148,7 +147,7 @@ def ref(path: str, index: dict[str, Any], baseurl: str = "", text: str | None = 
     return Markup(f'<a href="{url}">{link_text}</a>')
 
 
-def doc(path: str, index: dict[str, Any]) -> Page | None:
+def doc(path: str, index: dict[str, Any]) -> PageLike | None:
     """
     Get page object by path.
 

@@ -16,16 +16,19 @@ Architecture:
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.utils.pagination import Paginator
 
 from .page_core import PageCore
 
@@ -169,6 +172,12 @@ class PageProxy:
         self._related_posts_cache: list[Page] | None = None
         self._site = None  # Site reference - set externally
 
+        # Section index page caches (set during section finalization, avoid forcing load)
+        self._posts_cache: list[Page] | None = None
+        self._subsections_cache: list[Any] | None = None
+        self._paginator_cache: Paginator[Page] | None = None
+        self._page_num_cache: int | None = None
+
         # Path-based section reference (stable across rebuilds)
         # Initialized from core.section if available
         self._section_path: Path | None = Path(self.core.section) if self.core.section else None
@@ -177,9 +186,12 @@ class PageProxy:
         # Stored in _pending_output_path to avoid forcing lazy load
         self._pending_output_path: Path | None = None
 
-        # Eager cascade merge: cached metadata with cascade values applied
-        self._metadata_cache: dict[str, Any] | None = None
-        self._cascade_applied: bool = False
+        # Cache for CascadeView (invalidated when site/section changes)
+        self._metadata_view_cache: CascadeView | None = None
+        self._metadata_view_cache_key: tuple[int, str] | None = None
+
+        # Raw frontmatter from PageCore (for fallback and CascadeView construction)
+        self._raw_metadata: dict[str, Any] = self._build_raw_metadata_from_core()
 
     # ============================================================================
     # PageCore Property Delegates - Expose cached metadata without lazy load
@@ -295,15 +307,6 @@ class PageProxy:
         """Get redirect aliases from cached metadata."""
         return self.core.aliases or []
 
-    def _parse_date(self, date_str: str) -> datetime | None:
-        """Parse ISO date string to datetime (deprecated, use date property)."""
-        if not date_str:
-            return None
-        try:
-            return datetime.fromisoformat(date_str)
-        except (ValueError, TypeError):
-            return None
-
     def _ensure_loaded(self) -> None:
         """Load full page content if not already loaded."""
         if self._lazy_loaded:
@@ -345,96 +348,104 @@ class PageProxy:
     _source = _lazy_property("_source", default="", doc="Raw markdown source (lazy-loaded).")
 
     @property
-    def metadata(self) -> dict[str, Any]:
+    def metadata(self) -> Mapping[str, Any]:
         """
-        Get metadata dict with cascade values eagerly merged.
+        Return combined frontmatter + cascade metadata as CascadeView.
 
-        Returns cached metadata including cascaded fields like 'type'.
-        This allows templates to check page.metadata.get("type") without
-        triggering a full page load.
+        This property provides dict-like access to page metadata. Values come from:
+        1. Page frontmatter (from PageCore, always takes precedence)
+        2. Cascade from parent sections (inherited values)
 
-        After the eager cascade merge, page.metadata.get("type") and page.type
-        return the same value - eliminating the duality between access patterns.
+        The CascadeView is immutable and resolves values on access, ensuring
+        cascade values are always current even during incremental builds.
 
-        The metadata is built once and cached. Cascade values are applied
-        on first access when _site is available.
+        Returns:
+            CascadeView combining frontmatter and cascade, or raw metadata dict
+            if cascade is not yet available (during early construction).
         """
-        # If fully loaded, use full page metadata (more complete)
+        # If fully loaded, use full page metadata (delegates to its CascadeView)
         if self._lazy_loaded and self._full_page:
             return self._full_page.metadata
 
-        # Build and cache metadata if not already done
-        if self._metadata_cache is None:
-            self._metadata_cache = self._build_metadata_from_core()
+        # During early construction or without site, return raw metadata
+        if self._site is None:
+            return self._raw_metadata
 
-        # Apply cascade on first access when _site is available
-        self._ensure_cascade_applied()
+        # Get cascade snapshot from site
+        cascade = getattr(self._site, "cascade", None)
+        if cascade is None or not isinstance(cascade, CascadeSnapshot):
+            return self._raw_metadata
 
-        return self._metadata_cache
+        # Get section path for cascade lookup
+        section_path = ""
+        if self._section_path:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section_path.relative_to(content_dir))
+            except (ValueError, AttributeError):
+                section_path = str(self._section_path)
 
-    def _build_metadata_from_core(self) -> dict[str, Any]:
+        # Check cache validity (cascade id + section path)
+        cache_key = (id(cascade), section_path)
+        if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+            return self._metadata_view_cache
+
+        # Create and cache new CascadeView
+        view = CascadeView.for_page(
+            frontmatter=self._raw_metadata,
+            section_path=section_path,
+            snapshot=cascade,
+        )
+        self._metadata_view_cache = view
+        self._metadata_view_cache_key = cache_key
+        return view
+
+    def _build_raw_metadata_from_core(self) -> dict[str, Any]:
         """
-        Build metadata dict from cached PageCore fields.
+        Build raw frontmatter dict from cached PageCore fields.
 
-        This creates the initial metadata dict before cascade is applied.
-        Frontmatter values from core are included; cascade will be applied
-        on top (with frontmatter taking precedence).
+        This creates the frontmatter dict used by CascadeView. These are
+        the page's own values that take precedence over cascade.
+
+        Also includes the 'cascade' block for _index.md files - this is critical
+        for incremental builds where the cascade snapshot needs to read cascade
+        data from cached PageProxy index pages.
         """
         # Always include weight with sortable default (None → infinity for sort-last)
-        cached_metadata: dict[str, Any] = {
+        raw_metadata: dict[str, Any] = {
             "weight": self.core.weight if self.core.weight is not None else float("inf"),
         }
 
         # Add non-cascade fields from core
         if self.core.tags:
-            cached_metadata["tags"] = self.core.tags
+            raw_metadata["tags"] = self.core.tags
         if self.core.date:
-            cached_metadata["date"] = self.core.date
+            raw_metadata["date"] = self.core.date
         if self.core.slug:
-            cached_metadata["slug"] = self.core.slug
+            raw_metadata["slug"] = self.core.slug
         if self.core.lang:
-            cached_metadata["lang"] = self.core.lang
+            raw_metadata["lang"] = self.core.lang
 
         # Add frontmatter values for cascade-eligible keys
         # These take precedence over cascade (frontmatter wins)
         if self.core.type:
-            cached_metadata["type"] = self.core.type
+            raw_metadata["type"] = self.core.type
         if self.core.variant:
-            cached_metadata["variant"] = self.core.variant
+            raw_metadata["variant"] = self.core.variant
 
-        return cached_metadata
+        # Add custom props
+        if self.core.props:
+            raw_metadata.update(self.core.props)
 
-    def _ensure_cascade_applied(self) -> None:
-        """
-        Apply cascade values to proxy metadata on first access.
+        # Include cascade block for _index.md files
+        # This is essential for incremental builds: when the cascade snapshot is
+        # being built, it reads section.index_page.metadata.get("cascade", {}).
+        # For PageProxy index pages, this falls back to _raw_metadata, so we must
+        # include the cascade data here.
+        if self.core.cascade:
+            raw_metadata["cascade"] = self.core.cascade
 
-        Uses CascadeSnapshot.apply_to_page() to merge cascade values.
-        Frontmatter values take precedence over cascade.
-        """
-        if getattr(self, "_cascade_applying", False):
-            return
-        cascade_invalidated = getattr(self, "_cascade_invalidated", False)
-        if self._cascade_applied and not cascade_invalidated:
-            return
-
-        if cascade_invalidated and self._metadata_cache is not None:
-            # Remove previously cascaded keys so a refreshed snapshot can reapply.
-            cascade_keys = self._metadata_cache.get("_cascade_keys", [])
-            for key in cascade_keys:
-                self._metadata_cache.pop(key, None)
-            self._metadata_cache.pop("_cascade_keys", None)
-            self._cascade_applied = False
-
-        if self._site and self._site.cascade and self._metadata_cache is not None:
-            content_dir = self._site.root_path / "content"
-            self._cascade_applying = True
-            try:
-                self._site.cascade.apply_to_page(self, content_dir)
-                self._cascade_applied = True
-                if cascade_invalidated:
-                    self._cascade_invalidated = False
-            finally:
-                self._cascade_applying = False
+        return raw_metadata
 
     rendered_html = _lazy_property_with_setter(
         "rendered_html", default="", getter_doc="Rendered HTML (lazy-loaded)."
@@ -473,8 +484,8 @@ class PageProxy:
                 # Also update pending to keep them in sync
                 self._pending_output_path = value
 
-    parsed_ast = _lazy_property_with_setter(
-        "parsed_ast", default=None, getter_doc="Parsed AST (lazy-loaded)."
+    html_content = _lazy_property_with_setter(
+        "html_content", default=None, getter_doc="HTML content (lazy-loaded)."
     )
     plain_text = _lazy_property(
         "plain_text",
@@ -528,6 +539,89 @@ class PageProxy:
         if self._full_page:
             self._full_page.related_posts = value
 
+    # ============================================================================
+    # Section Index Page Properties - Used by section finalization
+    # ============================================================================
+    # These properties store section context (_posts, _subsections, _paginator)
+    # for index pages. They allow setting on proxy without forcing a full load,
+    # which is critical for incremental builds where index pages may be PageProxy.
+
+    @property
+    def _posts(self) -> list[Page] | None:
+        """Get posts list for section index pages."""
+        if self._posts_cache is not None:
+            return self._posts_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._posts
+        return None
+
+    @_posts.setter
+    def _posts(self, value: list[Page] | None) -> None:
+        """Set posts list for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._posts_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._posts = value
+
+    @property
+    def _subsections(self) -> list[Any] | None:
+        """Get subsections list for section index pages."""
+        if self._subsections_cache is not None:
+            return self._subsections_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._subsections
+        return None
+
+    @_subsections.setter
+    def _subsections(self, value: list[Any] | None) -> None:
+        """Set subsections list for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._subsections_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._subsections = value
+
+    @property
+    def _paginator(self) -> Paginator[Page] | None:
+        """Get paginator for section index pages."""
+        if self._paginator_cache is not None:
+            return self._paginator_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._paginator
+        return None
+
+    @_paginator.setter
+    def _paginator(self, value: Paginator[Page] | None) -> None:
+        """Set paginator for section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._paginator_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._paginator = value
+
+    @property
+    def _page_num(self) -> int | None:
+        """Get page number for paginated section index pages."""
+        if self._page_num_cache is not None:
+            return self._page_num_cache
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._page_num
+        return None
+
+    @_page_num.setter
+    def _page_num(self, value: int | None) -> None:
+        """Set page number for paginated section index pages."""
+        if not self._lazy_loaded and self._full_page is None:
+            self._page_num_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page._page_num = value
+
     translation_key = _lazy_property("translation_key", default=None, doc="Translation key.")
     href = _lazy_property("href", default="/", doc="URL path with baseurl (lazy-loaded).")
     _path = _lazy_property("_path", default="/", doc="Site-relative path without baseurl.")
@@ -559,7 +653,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def parent(self) -> Any:
+    def parent(self) -> Section | None:
         """
         Get the parent section of this page.
 
@@ -685,7 +779,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def _section(self) -> Any | None:
+    def _section(self) -> Section | None:
         """
         Get the section this page belongs to (lazy lookup via path).
 
@@ -710,7 +804,7 @@ class PageProxy:
         return self._site.get_section_by_path(self._section_path)
 
     @_section.setter
-    def _section(self, value: Any) -> None:
+    def _section(self, value: Section | None) -> None:
         """
         Set the section this page belongs to (stores path, not object).
 
@@ -740,7 +834,7 @@ class PageProxy:
         """Hash based on source_path (same as Page)."""
         return hash(self.source_path)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Equality based on source_path."""
         if isinstance(other, PageProxy):
             return self.source_path == other.source_path
@@ -771,7 +865,7 @@ class PageProxy:
         }
 
     @classmethod
-    def from_page(cls, page: Page, metadata: Any) -> PageProxy:
+    def from_page(cls, page: Page, metadata: PageCore) -> PageProxy:
         """Create proxy from full page (for testing)."""
 
         # This is mainly for testing - normally you'd create from metadata

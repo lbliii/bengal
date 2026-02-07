@@ -75,10 +75,10 @@ class BadgePlugin:
         Register the plugin with Mistune.
 
         Badge substitution happens in parser.py after HTML is generated.
-        This method is required for Mistune plugin interface but does nothing.
+        This method is required for the parser plugin interface but does nothing.
         """
-        # Badge plugin doesn't modify mistune internals
-        # It's called manually by MistuneParser after HTML generation
+        # Badge plugin doesn't modify parser internals
+        # It's called manually by the parser after HTML generation
         return md
 
     def _substitute_badges(self, html: str) -> str:

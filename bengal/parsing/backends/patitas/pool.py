@@ -30,7 +30,7 @@ from bengal.parsing.backends.patitas.utils.pool import ThreadLocalPool
 if TYPE_CHECKING:
     from patitas.parser import Parser
 
-    from bengal.directives.cache import DirectiveCache
+    from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 

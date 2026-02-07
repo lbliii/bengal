@@ -234,6 +234,13 @@ class PageCore(Cacheable):
     # Versioning (from discovery or frontmatter)
     version: str | None = None  # Version ID (e.g., 'v3', 'v2')
 
+    # Cascade data (from _index.md frontmatter only)
+    # This stores the cascade block that should apply to child pages.
+    # Only populated for _index.md files; regular pages don't define cascade.
+    # Essential for incremental builds: without this, cascade data is lost when
+    # _index.md files are loaded from cache as PageProxy.
+    cascade: dict[str, Any] = field(default_factory=dict)
+
     def __post_init__(self) -> None:
         """
         Validate and normalize fields after initialization.
@@ -331,6 +338,7 @@ class PageCore(Cacheable):
             "file_hash": self.file_hash,
             "aliases": self.aliases,
             "version": self.version,
+            "cascade": self.cascade,
         }
 
     @classmethod
@@ -363,4 +371,5 @@ class PageCore(Cacheable):
             file_hash=data.get("file_hash"),
             aliases=data.get("aliases", []),
             version=data.get("version"),
+            cascade=data.get("cascade", {}),
         )

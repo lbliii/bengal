@@ -380,7 +380,7 @@ class TestProvenanceCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
 
@@ -438,7 +438,7 @@ class TestProvenanceCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
 
@@ -474,7 +474,7 @@ class TestProvenanceCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
         assert all(r is True for r in results)
@@ -511,7 +511,7 @@ class TestProvenanceCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
         # All results should have 10 pages
@@ -548,7 +548,7 @@ class TestProvenanceCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
 

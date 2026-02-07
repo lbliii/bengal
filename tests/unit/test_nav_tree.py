@@ -130,7 +130,7 @@ class TestNavTree:
         page1 = Page(
             source_path=tmp_path / "content" / "docs" / "page1.md",
             _raw_content="# Page 1",
-            metadata={"title": "Page 1", "weight": 1},
+            _raw_metadata={"title": "Page 1", "weight": 1},
         )
         page1._site = site
         page1.__dict__["_path"] = "/docs/page1/"
@@ -138,7 +138,7 @@ class TestNavTree:
         page2 = Page(
             source_path=tmp_path / "content" / "docs" / "page2.md",
             _raw_content="# Page 2",
-            metadata={"title": "Page 2", "weight": 2},
+            _raw_metadata={"title": "Page 2", "weight": 2},
         )
         page2._site = site
         page2.__dict__["_path"] = "/docs/page2/"
@@ -146,7 +146,7 @@ class TestNavTree:
         page3 = Page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
             _raw_content="# Post 1",
-            metadata={"title": "Post 1"},
+            _raw_metadata={"title": "Post 1"},
         )
         page3._site = site
         page3.__dict__["_path"] = "/blog/post1/"
@@ -185,7 +185,7 @@ class TestNavTree:
         page_v1 = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
             _raw_content="# Guide",
-            metadata={"title": "Guide"},
+            _raw_metadata={"title": "Guide"},
         )
         page_v1.__dict__["_path"] = "/v1/docs/guide/"
         page_v1.version = "v1"
@@ -197,7 +197,7 @@ class TestNavTree:
         page_v2 = Page(
             source_path=tmp_path / "content" / "_versions" / "v2" / "docs" / "guide.md",
             _raw_content="# Guide",
-            metadata={"title": "Guide"},
+            _raw_metadata={"title": "Guide"},
         )
         page_v2.__dict__["_path"] = "/v2/docs/guide/"
         page_v2.version = "v2"
@@ -264,7 +264,7 @@ class TestNavTree:
         index_page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "_index.md",
             _raw_content="# Docs",
-            metadata={"title": "Docs"},
+            _raw_metadata={"title": "Docs"},
         )
         index_page.__dict__["_path"] = "/docs/"
         index_page.version = "v1"
@@ -324,7 +324,7 @@ class TestNavTree:
         page_v1 = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
             _raw_content="# Guide",
-            metadata={"title": "Guide"},
+            _raw_metadata={"title": "Guide"},
         )
         page_v1.__dict__["_path"] = "/docs/v1/guide/"
         page_v1.version = "v1"
@@ -391,7 +391,7 @@ class TestNavTree:
         page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
             _raw_content="# Page",
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         page.__dict__["_path"] = "/docs/guide/page/"
         page.version = "v1"
@@ -509,7 +509,7 @@ class TestNavTreeContext:
         root_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_content="# Docs",
-            metadata={"title": "Docs"},
+            _raw_metadata={"title": "Docs"},
         )
         root_page._site = site
         root_page.__dict__["_path"] = "/docs/"
@@ -518,7 +518,7 @@ class TestNavTreeContext:
         sub_page = Page(
             source_path=tmp_path / "content" / "docs" / "guide" / "page.md",
             _raw_content="# Page",
-            metadata={"title": "Page"},
+            _raw_metadata={"title": "Page"},
         )
         sub_page._site = site
         sub_page.__dict__["_path"] = "/docs/guide/page/"
@@ -617,7 +617,7 @@ class TestNavNodeProxy:
         page = Page(source_path=page_path)
         page._site = site
         page._section = section
-        page.metadata = {"title": "Getting Started"}
+        page._raw_metadata = {"title": "Getting Started"}
         # Simulate output path being set
         page.output_path = tmp_path / "public" / "docs" / "getting-started" / "index.html"
         site.output_dir = tmp_path / "public"
@@ -682,7 +682,7 @@ class TestNavNodeProxy:
         page_path.write_text("---\ntitle: Test\n---\n")
         page = Page(source_path=page_path)
         page._site = site
-        page.metadata = {"title": "Test"}
+        page._raw_metadata = {"title": "Test"}
         page.__dict__["_path"] = "/docs/test/"
 
         section.add_page(page)

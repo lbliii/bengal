@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols import PageLike, SectionLike
 
 
 class ContentTypeStrategy:
@@ -178,7 +178,7 @@ class ContentTypeStrategy:
         threshold = config.get("pagination", {}).get("threshold", 20)
         return page_count > threshold
 
-    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+    def get_template(self, page: PageLike | None = None, template_engine: Any | None = None) -> str:
         """
         Determine which template to use for a page.
 
@@ -275,7 +275,7 @@ class ContentTypeStrategy:
         """
         return None
 
-    def detect_from_section(self, section: Section) -> bool:
+    def detect_from_section(self, section: SectionLike) -> bool:
         """
         Determine if this strategy applies to a section based on heuristics.
 

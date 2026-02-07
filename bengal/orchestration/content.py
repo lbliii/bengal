@@ -52,8 +52,8 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
     from bengal.orchestration.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -281,13 +281,16 @@ class ContentOrchestrator:
         logger.debug("xref_index_built", index_size=len(self.site.xref_index.get("by_path", {})))
 
         breakdown_ms["total"] = (time.perf_counter() - overall_start) * 1000
-        # Store on Site for consumption by phase_discovery (CLI details) and debug logs.
-        # This is ephemeral, per-build-only state.
-        self.site._discovery_breakdown_ms = breakdown_ms
+        # Store on BuildState (fresh each build) for consumption by phase_discovery.
+        _bs = self.site.build_state
+        if _bs is not None:
+            _bs.discovery_timing_ms = breakdown_ms
+        else:
+            self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
-    ) -> tuple[list[Page], list[Section]]:
+    ) -> tuple[list[Page], list[SectionLike]]:
         """
         Generate virtual autodoc pages if enabled.
 
@@ -361,9 +364,9 @@ class ContentOrchestrator:
                     and cached_payload.get("autodoc_config_hash") == current_cfg_hash
                 ):
                     changed = False
-                    if hasattr(cache, "get_autodoc_source_files"):
+                    if hasattr(cache, "autodoc_tracker"):
                         try:
-                            for source in cache.get_autodoc_source_files():
+                            for source in cache.autodoc_tracker.get_autodoc_source_files():
                                 src_path = _resolve_autodoc_source(Path(source))
                                 if _is_external_autodoc_source(src_path):
                                     continue
@@ -380,9 +383,9 @@ class ContentOrchestrator:
                             pages, sections, run_result = orchestrator.generate_from_cache_payload(
                                 cached_payload
                             )
-                            # Register autodoc dependencies with build_cache so has_autodoc_tracking is True
+                            # Register autodoc dependencies with build_cache so autodoc_tracker is populated
                             if build_cache is not None and hasattr(
-                                build_cache, "add_autodoc_dependency"
+                                build_cache, "autodoc_tracker"
                             ):
                                 from bengal.utils.primitives.hashing import hash_file
 
@@ -402,7 +405,7 @@ class ContentOrchestrator:
                                     source_hash = hash_file(src_path)
                                     source_mtime = src_path.stat().st_mtime
                                     for page_path, content_hash in page_hashes.items():
-                                        build_cache.add_autodoc_dependency(
+                                        build_cache.autodoc_tracker.add_autodoc_dependency(
                                             source_file,
                                             page_path,
                                             site_root=self.site.root_path,
@@ -437,7 +440,7 @@ class ContentOrchestrator:
 
             # Register autodoc dependencies with build_cache for selective rebuilds
             # CRITICAL: Pass source_hash and source_mtime for incremental detection.
-            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
+            if build_cache is not None and hasattr(build_cache, "autodoc_tracker"):
                 from bengal.utils.primitives.hashing import hash_file
 
                 for source_file, page_hashes in run_result.autodoc_dependencies.items():
@@ -462,7 +465,7 @@ class ContentOrchestrator:
                         continue
 
                     for page_path, content_hash in page_hashes.items():
-                        build_cache.add_autodoc_dependency(
+                        build_cache.autodoc_tracker.add_autodoc_dependency(
                             source_file,
                             page_path,
                             site_root=self.site.root_path,
@@ -670,7 +673,7 @@ class ContentOrchestrator:
 
     def _apply_cascades(self) -> None:
         """
-        Apply cascading metadata from sections to their child pages and subsections.
+        Build cascade snapshot for view-based resolution.
 
         Section _index.md files can define metadata that automatically applies to all
         descendant pages. This allows setting common metadata at the section level
@@ -691,20 +694,17 @@ class ContentOrchestrator:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            1. Builds immutable CascadeSnapshot for thread-safe resolution
-            2. Applies cascade values to page.metadata for backward compatibility
+            Builds immutable CascadeSnapshot with pre-merged cascade per section.
+            Page.metadata property returns CascadeView that resolves frontmatter + cascade.
+            No mutation of page.metadata needed - resolution happens on access.
         """
-        # Build immutable cascade snapshot for thread-safe resolution
-        # This snapshot is used by Page/PageProxy for O(depth) cascade lookups
+        # Build immutable cascade snapshot with pre-merged data for O(1) resolution
+        # Page/PageProxy.metadata property returns CascadeView using this snapshot
         self.site.build_cascade_snapshot()
         logger.debug(
             "cascade_snapshot_built",
             sections_with_cascade=len(self.site.cascade),
         )
-
-        # Apply cascade values to page.metadata for backward compatibility
-        # This ensures templates using page.metadata.get('cascaded_key') still work
-        self.site._apply_cascade_to_pages()
 
     def _check_weight_metadata(self) -> None:
         """
@@ -948,18 +948,23 @@ class ContentOrchestrator:
 
             # Detect features in page content
             features = detector.detect_features_in_page(page)
-            self.site.features_detected.update(features)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = self.site.build_state
+            target = _bs.features_detected if _bs is not None else self.site.features_detected
+            target.update(features)
 
         # Also check config for explicitly enabled features
         config = self.site.config
+        _bs = self.site.build_state
+        target = _bs.features_detected if _bs is not None else self.site.features_detected
 
         # Search enabled?
         if config.get("search", {}).get("enabled", False):
-            self.site.features_detected.add("search")
+            target.add("search")
 
         # Graph enabled?
         if config.get("graph", {}).get("enabled", False):
-            self.site.features_detected.add("graph")
+            target.add("graph")
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

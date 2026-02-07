@@ -186,7 +186,7 @@ class TestThreadIsolation:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Check for errors
         assert not errors, f"Errors occurred: {errors}"
@@ -225,7 +225,7 @@ class TestThreadIsolation:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Check for errors
         assert not errors, f"Errors occurred: {errors}"
@@ -249,7 +249,7 @@ class TestThreadIsolation:
 
         thread = threading.Thread(target=worker)
         thread.start()
-        thread.join()
+        thread.join(timeout=10)
 
         # Main thread should still have its original context
         manifest = get_asset_manifest()
@@ -275,7 +275,7 @@ class TestThreadIsolation:
         for fp in ["first", "second", "third"]:
             t = threading.Thread(target=worker, args=(fp,))
             t.start()
-            t.join()
+            t.join(timeout=10)
 
         # Each should have seen its own fingerprint
         assert results == ["first", "second", "third"]

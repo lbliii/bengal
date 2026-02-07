@@ -119,7 +119,7 @@ class TestBuildContextContentCache:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread errors: {errors}"
         assert ctx.content_cache_size == 500  # 5 threads * 100 items

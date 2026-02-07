@@ -372,7 +372,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.site.assets = [MagicMock()]
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.get_all_tags.return_value = {}
+        cache.taxonomy_index.get_all_tags.return_value = {}
 
         # Mock find_work_early to return subset
         changed_page = MagicMock()
@@ -422,7 +422,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.site.assets = [MagicMock()]
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.get_all_tags.return_value = {}
+        cache.taxonomy_index.get_all_tags.return_value = {}
 
         orchestrator.incremental.find_work_early.return_value = ([], [], ChangeSummary())
 
@@ -440,7 +440,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.site.assets = []
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.get_all_tags.return_value = {}
+        cache.taxonomy_index.get_all_tags.return_value = {}
 
         changed_page = MagicMock()
         changed_page.metadata = {}
@@ -472,7 +472,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.site.assets = []
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.get_all_tags.return_value = {}
+        cache.taxonomy_index.get_all_tags.return_value = {}
 
         changed_page = MagicMock()
         changed_page.metadata = {}
@@ -503,7 +503,7 @@ class TestPhaseIncrementalFilter:
         orchestrator.site.assets = []
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
-        cache.get_all_tags.return_value = {}
+        cache.taxonomy_index.get_all_tags.return_value = {}
 
         # One page changed
         changed_page = MagicMock()

@@ -41,12 +41,13 @@ def phase_postprocess(
         collector: Optional output collector for hot reload tracking
 
     """
-    # Post-processing doesn't use parallel processing
-    with orchestrator.logger.phase("postprocessing", parallel=False):
+    # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
+    # Tasks are independent and thread-safe, so parallel execution is safe
+    with orchestrator.logger.phase("postprocessing", parallel=parallel):
         postprocess_start = time.time()
 
         orchestrator.postprocess.run(
-            parallel=False,
+            parallel=parallel,
             progress_manager=None,
             build_context=ctx,
             incremental=incremental,

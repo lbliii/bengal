@@ -108,7 +108,7 @@ class TestParallelWriteErrorHandling:
                 "If missing, writes may not have completed before return."
             )
 
-    def test_write_count_accurate_with_failures(self, tmp_path: Path, mocker) -> None:
+    def test_write_count_accurate_with_failures(self, tmp_path: Path, monkeypatch) -> None:
         """Verify write count is accurate when some writes fail."""
         output_dir = tmp_path / "public"
         output_dir.mkdir()
@@ -140,7 +140,7 @@ class TestParallelWriteErrorHandling:
                     raise PermissionError(f"Simulated failure for {self}")
             return original_mkdir(self, *args, **kwargs)
 
-        mocker.patch.object(Path, "mkdir", selective_mkdir)
+        monkeypatch.setattr(Path, "mkdir", selective_mkdir)
 
         generator = PageJSONGenerator(mock_site)
         count = generator.generate(pages)
@@ -356,7 +356,7 @@ class TestParallelWriteErrorHandling:
         page.href = url
         page._path = url
         page.content = content
-        page.parsed_ast = content
+        page.html_content = content
         page.plain_text = content
         page.output_path = output_path
         page.tags = tags or []

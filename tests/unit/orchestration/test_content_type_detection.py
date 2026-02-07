@@ -108,7 +108,7 @@ class TestContentTypeDetection:
             page = Page(
                 source_path=Path(f"/content/docs/module{i}.md"),
                 _raw_content="API docs",
-                metadata={"type": "python-module"},
+                _raw_metadata={"type": "python-module"},
             )
             section.add_page(page)
 
@@ -124,7 +124,7 @@ class TestContentTypeDetection:
             page = Page(
                 source_path=Path(f"/content/commands/cmd{i}.md"),
                 _raw_content="Command docs",
-                metadata={"type": "command"},
+                _raw_metadata={"type": "command"},
             )
             section.add_page(page)
 
@@ -140,7 +140,7 @@ class TestContentTypeDetection:
             page = Page(
                 source_path=Path(f"/content/articles/post{i}.md"),
                 _raw_content="Post content",
-                metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
+                _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
             )
             section.add_page(page)
 
@@ -156,13 +156,13 @@ class TestContentTypeDetection:
             page = Page(
                 source_path=Path(f"/content/docs/dated{i}.md"),
                 _raw_content="Content",
-                metadata={"date": datetime(2025, 1, i + 1)},
+                _raw_metadata={"date": datetime(2025, 1, i + 1)},
             )
             section.add_page(page)
 
         for i in range(3):
             page = Page(
-                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", metadata={}
+                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", _raw_metadata={}
             )
             section.add_page(page)
 
@@ -179,7 +179,7 @@ class TestContentTypeDetection:
             page = Page(
                 source_path=Path(f"/content/random/page{i}.md"),
                 _raw_content="Content",
-                metadata={"title": f"Page {i}"},
+                _raw_metadata={"title": f"Page {i}"},
             )
             section.add_page(page)
 
@@ -268,7 +268,7 @@ class TestPaginationDecision:
         # Add many pages
         for i in range(100):
             page = Page(
-                source_path=Path(f"/content/api/page{i}.md"), _raw_content="Content", metadata={}
+                source_path=Path(f"/content/api/page{i}.md"), _raw_content="Content", _raw_metadata={}
             )
             section.add_page(page)
 
@@ -288,7 +288,7 @@ class TestPaginationDecision:
             page = Page(
                 source_path=Path(f"/content/blog/post{i}.md"),
                 _raw_content="Content",
-                metadata={"date": datetime(2025, 1, 1)},
+                _raw_metadata={"date": datetime(2025, 1, 1)},
             )
             section.add_page(page)
 
@@ -303,7 +303,7 @@ class TestPaginationDecision:
             page = Page(
                 source_path=Path(f"/content/blog/post{i}.md"),
                 _raw_content="Content",
-                metadata={"date": datetime(2025, 1, 1)},
+                _raw_metadata={"date": datetime(2025, 1, 1)},
             )
             section.add_page(page)
 
@@ -316,7 +316,7 @@ class TestPaginationDecision:
         # Even with few pages, explicit override should enable pagination
         for i in range(5):
             page = Page(
-                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", metadata={}
+                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", _raw_metadata={}
             )
             section.add_page(page)
 

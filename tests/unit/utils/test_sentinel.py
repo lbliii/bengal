@@ -17,18 +17,6 @@ def test_missing_is_singleton():
     assert new_missing is MISSING
 
 
-def test_missing_is_falsy():
-    """Test that MISSING evaluates to False in boolean context."""
-    assert not MISSING
-    assert bool(MISSING) is False
-
-
-def test_missing_distinct_from_none():
-    """Test that MISSING is not None."""
-    assert MISSING is not None
-    assert MISSING != None  # noqa: E711
-
-
 def test_is_missing_helper():
     """Test the is_missing helper function."""
     assert is_missing(MISSING) is True

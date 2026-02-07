@@ -15,6 +15,8 @@ from bengal.parsing import PatitasParser
 
 # python-markdown is optional (patitas is default)
 try:
+    import markdown as _markdown_mod  # noqa: F401
+
     from bengal.parsing import PythonMarkdownParser
 
     HAS_MARKDOWN = True

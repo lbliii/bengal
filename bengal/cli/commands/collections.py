@@ -289,7 +289,7 @@ def validate_collections(collection: str | None, config: str | None, source: str
     reporting any validation errors.
 
     """
-    import frontmatter  # type: ignore[import-untyped]
+    import frontmatter
 
     from bengal.collections import SchemaValidator, load_collections
 

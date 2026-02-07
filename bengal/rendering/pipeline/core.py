@@ -30,13 +30,13 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
-
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
+    from bengal.cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
+    from bengal.protocols import PageLike
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -81,6 +81,8 @@ class RenderingPipeline:
         site: Site instance with config and xref_index
         parser: Thread-local markdown parser (cached per thread)
         dependency_tracker: Optional DependencyTracker for incremental builds
+        build_cache: Optional BuildCache for direct cache access (resolved from
+            build_cache or dependency_tracker.cache)
         quiet: Whether to suppress per-page output
         build_stats: Optional BuildStats for error collection
 
@@ -117,6 +119,7 @@ class RenderingPipeline:
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
         write_behind: WriteBehindCollector | None = None,
+        build_cache: BuildCache | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -138,11 +141,13 @@ class RenderingPipeline:
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
             write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
+            build_cache: Optional BuildCache for direct cache access. If None,
+                falls back to dependency_tracker.cache for backward compatibility.
         """
         self.site = site
 
         # Auto-enable directive cache for versioned sites (3-5x speedup on repeated directives)
-        from bengal.directives.cache import configure_for_site
+        from bengal.cache.directive_cache import configure_for_site
 
         configure_for_site(site)
 
@@ -159,6 +164,11 @@ class RenderingPipeline:
         self.parser = injected_parser or get_thread_parser(markdown_engine)
 
         self.dependency_tracker = dependency_tracker
+
+        # Direct cache access: prefer explicit build_cache, fall back to dependency_tracker.cache
+        self.build_cache = build_cache or (
+            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+        )
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
@@ -214,6 +224,13 @@ class RenderingPipeline:
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
+        # Debug: Warn if output collector is missing (hot reload won't track outputs)
+        if build_context and not self._output_collector:
+            logger.warning(
+                "output_collector_missing_in_pipeline",
+                has_build_context=bool(build_context),
+            )
+
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
         # NOTE: Must be computed before helper modules that need it (cache_checker, etc.)
@@ -229,6 +246,7 @@ class RenderingPipeline:
             build_stats=build_stats,
             output_collector=self._output_collector,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
         self._json_accumulator = JsonAccumulator(site, build_context)
         self._autodoc_renderer = AutodocRenderer(
@@ -239,10 +257,18 @@ class RenderingPipeline:
             output_collector=self._output_collector,
             build_stats=build_stats,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
 
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
         self._html_transformer = HybridHTMLTransformer(baseurl=getattr(site, "baseurl", "") or "")
+
+        # PERF: Cache build config flags to avoid repeated dict lookups per page
+        # These flags are immutable during a build, so caching is safe.
+        build_cfg = site.config.get("build", {}) or {}
+        self._fast_writes = build_cfg.get("fast_writes", False)
+        self._fast_mode = build_cfg.get("fast_mode", False)
+        self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
@@ -263,7 +289,7 @@ class RenderingPipeline:
             logger.debug("api_doc_enhancer_init_failed", error=str(e))
             self._api_doc_enhancer = None
 
-    def process_page(self, page: Page) -> None:
+    def process_page(self, page: PageLike) -> None:
         """
         Process a single page through the entire rendering pipeline.
 
@@ -306,7 +332,7 @@ class RenderingPipeline:
             # Always reset tracker context, even on exceptions
             reset_current_tracker(tracker_token)
 
-    def _process_page_impl(self, page: Page) -> None:
+    def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
@@ -368,7 +394,7 @@ class RenderingPipeline:
         # Full pipeline execution
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
         # This avoids redundant parsing when using WaveScheduler with pre-parsed content
-        if not page.parsed_ast:
+        if not page.html_content:
             self._parse_content(page)
         self._enhance_api_docs(page)
         # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
@@ -398,7 +424,7 @@ class RenderingPipeline:
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
 
-    def _parse_content(self, page: Page) -> None:
+    def _parse_content(self, page: PageLike) -> None:
         """Parse page content through markdown parser.
 
         Uses deferred (parallel) syntax highlighting on Python 3.14t for
@@ -423,12 +449,12 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
-            if page.parsed_ast:
-                page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
+            if page.html_content:
+                page.html_content = flush_deferred_highlighting(page.html_content)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
-            page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
+            page.html_content = self._html_transformer.transform(page.html_content or "")
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -440,7 +466,7 @@ class RenderingPipeline:
                 and self.parser._var_plugin
                 and self.parser._var_plugin.escaped_placeholders  # type: ignore[union-attr]
             ):
-                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)  # type: ignore[union-attr]
+                page.html_content = self.parser._var_plugin.restore_placeholders(page.html_content)  # type: ignore[union-attr]
             # fmt: on
         finally:
             disable_deferred_highlighting()
@@ -448,7 +474,7 @@ class RenderingPipeline:
         # Pre-compute plain_text cache
         _ = page.plain_text
 
-    def _should_generate_toc(self, page: Page) -> bool:
+    def _should_generate_toc(self, page: PageLike) -> bool:
         """Determine if TOC should be generated for this page."""
         if page.metadata.get("toc") is False:
             return False
@@ -461,7 +487,7 @@ class RenderingPipeline:
         likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
-    def _parse_with_context_aware_parser(self, page: Page, need_toc: bool) -> None:
+    def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
         if page.metadata.get("preprocess") is False:
             # Inject source_path into metadata for cross-version dependency tracking
@@ -482,7 +508,7 @@ class RenderingPipeline:
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
-            # Type narrowing: check if parser supports context methods (MistuneParser)
+            # Type narrowing: check if parser supports context methods (PatitasParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
@@ -522,10 +548,10 @@ class RenderingPipeline:
                         error=str(e),
                     )
 
-        page.parsed_ast = parsed_content
+        page.html_content = parsed_content
         page.toc = toc
 
-    def _parse_with_legacy(self, page: Page, need_toc: bool) -> None:
+    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using legacy python-markdown parser."""
         content = self._preprocess_content(page)
         if need_toc and hasattr(self.parser, "parse_with_toc"):
@@ -537,17 +563,17 @@ class RenderingPipeline:
         if page.metadata.get("preprocess") is False:
             parsed_content = escape_template_syntax_in_html(parsed_content)
 
-        page.parsed_ast = parsed_content
+        page.html_content = parsed_content
         page.toc = toc
 
-    def _enhance_api_docs(self, page: Page) -> None:
+    def _enhance_api_docs(self, page: PageLike) -> None:
         """Enhance API documentation with badges."""
         enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
-            page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
+            page.html_content = enhancer.enhance(page.html_content or "", page_type)
 
-    def _render_and_write(self, page: Page, template: str) -> None:
+    def _render_and_write(self, page: PageLike, template: str) -> None:
         """Render template and write output.
 
         RFC: rfc-build-performance-optimizations Phase 2
@@ -556,11 +582,11 @@ class RenderingPipeline:
         RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
         Optionally records effects for unified dependency tracking.
         """
-        # Allow empty parsed_ast - pages like home pages, section indexes, and
+        # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
-        if page.parsed_ast is None:
-            page.parsed_ast = ""  # Ensure it's a string, not None
+        if page.html_content is None:
+            page.html_content = ""  # Ensure it's a string, not None
 
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
@@ -577,11 +603,11 @@ class RenderingPipeline:
             # Use effect recorder context if enabled
             if effect_recorder:
                 with effect_recorder:
-                    html_content = self.renderer.render_content(page.parsed_ast or "")
+                    html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     page.rendered_html = format_html(page.rendered_html, page, self.site)
             else:
-                html_content = self.renderer.render_content(page.parsed_ast or "")
+                html_content = self.renderer.render_content(page.html_content or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
                 page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -598,6 +624,7 @@ class RenderingPipeline:
             self.dependency_tracker,
             collector=self._output_collector,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
 
         # Accumulate unified page data during rendering (JSON + search index)
@@ -607,7 +634,7 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: Page, tracked_assets: set[str] | None = None) -> None:
+    def _accumulate_asset_deps(self, page: PageLike, tracked_assets: set[str] | None = None) -> None:
         """
         Accumulate asset dependencies during rendering.
 
@@ -645,7 +672,7 @@ class RenderingPipeline:
         if assets:
             self.build_context.accumulate_page_assets(page.source_path, assets)
 
-    def _build_variable_context(self, page: Page) -> dict[str, Any]:
+    def _build_variable_context(self, page: PageLike) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
             ParamsContext,
@@ -662,15 +689,20 @@ class RenderingPipeline:
             snapshot = getattr(self.build_context, "snapshot", None)
 
         # Resolve section to SectionSnapshot (no wrapper needed)
+        # PERF: Use BuildContext cached lookup for O(1) instead of O(S) iteration
         section_for_context: SectionSnapshot = NO_SECTION
-        if snapshot and section:
-            # Find section snapshot
-            for sec_snap in snapshot.sections:
-                if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
-                    section, "name", ""
-                ):
-                    section_for_context = sec_snap
-                    break
+        if section:
+            if self.build_context:
+                # O(1) cached lookup via BuildContext
+                section_for_context = self.build_context.get_section_snapshot(section)
+            elif snapshot:
+                # Fallback: O(S) iteration (when no build_context available)
+                for sec_snap in snapshot.sections:
+                    if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
+                        section, "name", ""
+                    ):
+                        section_for_context = sec_snap
+                        break
 
         # Get cached global contexts (site/config are stateless wrappers)
         global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]
@@ -700,13 +732,6 @@ class RenderingPipeline:
         parser_name = type(self.parser).__name__
 
         match parser_name:
-            case "MistuneParser":
-                try:
-                    import mistune
-
-                    base_version = f"mistune-{mistune.__version__}"
-                except (ImportError, AttributeError):
-                    base_version = "mistune-unknown"
             case "PythonMarkdownParser":
                 try:
                     import markdown
@@ -719,11 +744,17 @@ class RenderingPipeline:
 
         return f"{base_version}-toc{TOC_EXTRACTION_VERSION}"
 
-    def _write_output(self, page: Page) -> None:
+    def _write_output(self, page: PageLike) -> None:
         """Write rendered page to output directory (backward compatibility wrapper)."""
-        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        write_output(
+            page,
+            self.site,
+            self.dependency_tracker,
+            collector=self._output_collector,
+            build_cache=self.build_cache,
+        )
 
-    def _preprocess_content(self, page: Page) -> str:
+    def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
         if page.metadata.get("preprocess") is False:
             return page._source

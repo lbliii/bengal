@@ -18,14 +18,13 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols import PageLike, SectionLike
 
 
 # ─── Sorting Keys ─────────────────────────────────────────────────────────────
 
 
-def weight_title_key(page: Page) -> tuple[int, str]:
+def weight_title_key(page: PageLike) -> tuple[int, str]:
     """
     Sort key for weight ascending, then title alphabetical.
 
@@ -44,7 +43,7 @@ def weight_title_key(page: Page) -> tuple[int, str]:
     return (page.metadata.get("weight", 999999), page.title.lower())
 
 
-def date_key(page: Page) -> datetime:
+def date_key(page: PageLike) -> datetime:
     """
     Sort key for date-based ordering.
 
@@ -67,7 +66,7 @@ def date_key(page: Page) -> datetime:
 # ─── Detection Helpers ────────────────────────────────────────────────────────
 
 
-def section_name_matches(section: Section, patterns: Iterable[str]) -> bool:
+def section_name_matches(section: SectionLike, patterns: Iterable[str]) -> bool:
     """
     Check if section name matches any pattern (case-insensitive).
 
@@ -86,7 +85,7 @@ def section_name_matches(section: Section, patterns: Iterable[str]) -> bool:
 
 
 def has_dated_pages(
-    section: Section,
+    section: SectionLike,
     threshold: float = 0.6,
     sample_size: int = 5,
 ) -> bool:
@@ -115,7 +114,7 @@ def has_dated_pages(
 
 
 def has_page_type_metadata(
-    section: Section,
+    section: SectionLike,
     type_values: Iterable[str],
     sample_size: int = 3,
     substring_match: bool = False,

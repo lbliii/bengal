@@ -7,11 +7,13 @@ Provides methods for discovering pages, sections, and assets.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.protocols.core import SiteLike
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.registry import ContentRegistry
@@ -29,7 +31,7 @@ class SiteDiscoveryMixin:
 
     # These attributes are defined on the Site dataclass
     root_path: Path
-    config: Any
+    config: Config | dict[str, Any]
     theme: str | None
     pages: list[Page]
     sections: list[Section]
@@ -107,13 +109,17 @@ class SiteDiscoveryMixin:
                 continue
 
             # Compute output path using centralized strategy for regular pages
-            page.output_path = URLStrategy.compute_regular_page_output_path(page, self)
+            page.output_path = URLStrategy.compute_regular_page_output_path(
+                page, cast(SiteLike, self)
+            )
 
             # Claim URL in registry for ownership enforcement
             # Priority 100 = user content (highest priority)
             if hasattr(self, "url_registry") and self.url_registry:
                 try:
-                    url = URLStrategy.url_from_output_path(page.output_path, self)
+                    url = URLStrategy.url_from_output_path(
+                        page.output_path, cast(SiteLike, self)
+                    )
                     source = str(getattr(page, "source_path", page.title))
                     version = getattr(page, "version", None)
                     lang = getattr(page, "lang", None)
@@ -154,18 +160,23 @@ class SiteDiscoveryMixin:
 
             # Detect features in page content
             features = detector.detect_features_in_page(page)
-            self.features_detected.update(features)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = getattr(self, "_current_build_state", None)
+            target = _bs.features_detected if _bs is not None else self.features_detected
+            target.update(features)
 
         # Also check config for explicitly enabled features
         config = self.config
+        _bs = getattr(self, "_current_build_state", None)
+        target = _bs.features_detected if _bs is not None else self.features_detected
 
         # Search enabled?
         if config.get("search", {}).get("enabled", False):
-            self.features_detected.add("search")
+            target.add("search")
 
         # Graph enabled?
         if config.get("graph", {}).get("enabled", False):
-            self.features_detected.add("graph")
+            target.add("graph")
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
@@ -354,7 +365,7 @@ class SiteDiscoveryMixin:
 
     def _apply_cascades(self) -> None:
         """
-        Apply cascading metadata from sections to their child pages and subsections.
+        Build cascade snapshot for view-based resolution.
 
         Section _index.md files can define metadata that automatically applies to all
         descendant pages. This allows setting common metadata (like type, version, or
@@ -375,56 +386,10 @@ class SiteDiscoveryMixin:
         define their own values (page values take precedence over cascaded values).
 
         Implementation:
-            1. Build immutable CascadeSnapshot for thread-safe resolution
-            2. Apply cascade values to page.metadata for backward compatibility
+            Builds immutable CascadeSnapshot with pre-merged cascade per section.
+            Page.metadata property returns CascadeView that resolves frontmatter + cascade.
+            No mutation of page.metadata needed - resolution happens on access.
         """
-        # Build immutable cascade snapshot for thread-safe resolution
+        # Build immutable cascade snapshot with pre-merged data for O(1) resolution
+        # Page/PageProxy.metadata property returns CascadeView using this snapshot
         self.build_cascade_snapshot()
-
-        # Apply cascade values to page.metadata for backward compatibility
-        # This ensures templates using page.metadata.get('cascaded_key') still work
-        self._apply_cascade_to_pages()
-
-    def _apply_cascade_to_pages(self) -> None:
-        """
-        Apply cascade values from snapshot to page.metadata.
-
-        For each page, resolves all cascade values from the snapshot and applies
-        them to page.metadata. Page-level values take precedence over cascades.
-        """
-
-        content_dir = self.root_path / "content"
-
-        for section in self.sections:
-            self._apply_cascade_to_section_pages(section, content_dir)
-
-    def _apply_cascade_to_section_pages(self, section: Section, content_dir: Path) -> None:
-        """
-        Apply cascade values to pages in a section and its subsections.
-
-        Uses CascadeSnapshot.apply_to_page() to merge cascade values into
-        page.metadata, creating a single source of truth. After this,
-        page.metadata.get("type") and page.type return the same value.
-
-        Index pages receive cascade from PARENT sections but not from their
-        own section's cascade (which they define).
-
-        Args:
-            section: Section to process
-            content_dir: Content directory for relative path computation
-        """
-        from bengal.core.page.proxy import PageProxy
-
-        for page in section.pages:
-            # Skip PageProxy objects - they handle cascade on first metadata access
-            if isinstance(page, PageProxy):
-                continue
-
-            # Apply cascade values using the new eager merge method
-            # This handles frontmatter precedence and _cascade_keys tracking
-            # Note: Index pages also receive cascade from parent sections
-            self.cascade.apply_to_page(page, content_dir)
-
-        # Recurse into subsections
-        for subsection in section.subsections:
-            self._apply_cascade_to_section_pages(subsection, content_dir)

@@ -41,7 +41,7 @@ class TestTemplateSelection:
         """Helper to set up a page with a mock section and site registry."""
         from bengal.core.site import Site
 
-        page = Page(source_path=source_path, metadata=metadata)
+        page = Page(source_path=source_path, _raw_metadata=metadata)
         section = MockSection(
             name=section_name, title=section_name, path=Path(f"/content/{section_name}")
         )
@@ -221,7 +221,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["page.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/about.md"), metadata={})
+        page = Page(source_path=Path("/content/about.md"), _raw_metadata={})
         # No section set
 
         # Test
@@ -404,6 +404,6 @@ class TestTemplateMocking:
 
     def test_page_creation(self):
         """Test page creation for testing."""
-        page = Page(source_path=Path("/content/test.md"), metadata={"title": "Test"})
+        page = Page(source_path=Path("/content/test.md"), _raw_metadata={"title": "Test"})
         assert page.source_path.name == "test.md"
         assert page.metadata["title"] == "Test"

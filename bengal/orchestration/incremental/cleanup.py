@@ -100,8 +100,8 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
         # Remove from file_fingerprints (file_hashes is a compatibility property)
         if source_path_str in cache.file_fingerprints:
             del cache.file_fingerprints[source_path_str]
-        if source_path_str in cache.page_tags:
-            del cache.page_tags[source_path_str]
+        if source_path_str in cache.taxonomy_index.page_tags:
+            del cache.taxonomy_index.page_tags[source_path_str]
         if source_path_str in cache.parsed_content:
             del cache.parsed_content[source_path_str]
 
@@ -128,11 +128,11 @@ def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
         cache: BuildCache instance with autodoc mappings
 
     """
-    if not hasattr(cache, "autodoc_dependencies"):
+    if not hasattr(cache, "autodoc_tracker"):
         return
 
     try:
-        source_files = list(cache.get_autodoc_source_files())
+        source_files = list(cache.autodoc_tracker.get_autodoc_source_files())
     except (TypeError, AttributeError):
         return
 
@@ -153,7 +153,7 @@ def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
 
     for source_file in deleted_sources:
         # Get affected autodoc pages before removing from cache
-        affected_pages = cache.remove_autodoc_source(source_file)
+        affected_pages = cache.autodoc_tracker.remove_autodoc_source(source_file)
 
         # Remove output files for affected pages
         for page_path in affected_pages:

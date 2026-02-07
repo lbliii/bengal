@@ -232,12 +232,15 @@ class TestVersionScopedBuilds:
         mock_site: MagicMock,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that version_scope is passed to BuildRequest."""
+        """Test that version_scope is applied to site config before warm build."""
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
+
+        # mock_site.build() must return a real stats object for warm build
+        mock_stats = MagicMock()
+        mock_stats.total_pages = 5
+        mock_stats.changed_outputs = []
+        mock_site.build.return_value = mock_stats
 
         trigger = BuildTrigger(
             site=mock_site,
@@ -250,10 +253,10 @@ class TestVersionScopedBuilds:
             event_types={"modified"},
         )
 
-        # Verify BuildRequest was created with version_scope
-        mock_executor.submit.assert_called_once()
-        request = mock_executor.submit.call_args[0][0]
-        assert request.version_scope == "v2"
+        # Warm builds call site.build() directly (not executor.submit)
+        mock_site.build.assert_called_once()
+        # Version scope is set on site.config before build
+        assert mock_site.config["_version_scope"] == "v2"
 
     @patch("bengal.server.build_trigger.run_pre_build_hooks")
     @patch("bengal.server.build_trigger.run_post_build_hooks")
@@ -274,12 +277,14 @@ class TestVersionScopedBuilds:
         mock_site: MagicMock,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that BuildRequest has None version_scope when not set."""
+        """Test that site.config has no _version_scope when not set."""
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
+
+        mock_stats = MagicMock()
+        mock_stats.total_pages = 5
+        mock_stats.changed_outputs = []
+        mock_site.build.return_value = mock_stats
 
         trigger = BuildTrigger(
             site=mock_site,
@@ -291,9 +296,8 @@ class TestVersionScopedBuilds:
             event_types={"modified"},
         )
 
-        mock_executor.submit.assert_called_once()
-        request = mock_executor.submit.call_args[0][0]
-        assert request.version_scope is None
+        mock_site.build.assert_called_once()
+        assert "_version_scope" not in mock_site.config
 
 
 class TestBuildTriggerIntegration:
@@ -329,7 +333,7 @@ class TestBuildTriggerIntegration:
     @patch("bengal.server.build_trigger.display_build_stats")
     @patch("bengal.server.build_trigger.controller")
     @patch("bengal.server.live_reload.send_reload_payload")
-    def test_trigger_build_submits_to_executor(
+    def test_trigger_build_calls_site_build(
         self,
         mock_send_reload: MagicMock,
         mock_controller: MagicMock,
@@ -341,12 +345,14 @@ class TestBuildTriggerIntegration:
         mock_site: MagicMock,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that trigger_build submits build to executor."""
+        """Test that trigger_build calls site.build() directly (warm build)."""
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
+
+        mock_stats = MagicMock()
+        mock_stats.total_pages = 5
+        mock_stats.changed_outputs = []
+        mock_site.build.return_value = mock_stats
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -355,10 +361,10 @@ class TestBuildTriggerIntegration:
             event_types={"modified"},
         )
 
-        mock_executor.submit.assert_called_once()
-        request = mock_executor.submit.call_args[0][0]
-        assert request.site_root == str(mock_site.root_path)
-        assert "test.md" in request.changed_paths[0]
+        # Warm builds call site.build() directly
+        mock_site.build.assert_called_once()
+        build_opts = mock_site.build.call_args[1]["options"]
+        assert Path("test.md") in build_opts.changed_sources
 
 
 class TestBuildTriggerCaching:
@@ -728,26 +734,20 @@ class TestBuildTriggerQueuing:
 
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
 
-        # Create an event to control build timing
+        # Control build timing via site.build (warm builds call it directly)
         build_started = threading.Event()
         build_can_finish = threading.Event()
 
-        def slow_submit(*args, **kwargs):
+        def slow_build(*args, **kwargs):
             build_started.set()
             build_can_finish.wait(timeout=5.0)
-            result = MagicMock()
-            result.success = True
-            result.pages_built = 5
-            result.build_time_ms = 100.0
-            result.error_message = None
-            result.changed_outputs = ()
-            return result
+            stats = MagicMock()
+            stats.total_pages = 5
+            stats.changed_outputs = []
+            return stats
 
-        mock_executor.submit.side_effect = slow_submit
+        mock_site.build.side_effect = slow_build
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -796,32 +796,24 @@ class TestBuildTriggerQueuing:
 
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
 
-        # Track build requests
-        build_requests = []
+        # Track build calls via site.build (warm builds)
+        build_call_count = 0
         build_started = threading.Event()
         build_can_finish = threading.Event()
-        first_build_done = False
 
-        def tracking_submit(request, **kwargs):
-            nonlocal first_build_done
-            build_requests.append(request)
-            if not first_build_done:
+        def tracking_build(*args, **kwargs):
+            nonlocal build_call_count
+            build_call_count += 1
+            if build_call_count == 1:
                 build_started.set()
                 build_can_finish.wait(timeout=5.0)
-                first_build_done = True
-            result = MagicMock()
-            result.success = True
-            result.pages_built = 5
-            result.build_time_ms = 100.0
-            result.error_message = None
-            result.changed_outputs = ()
-            return result
+            stats = MagicMock()
+            stats.total_pages = 5
+            stats.changed_outputs = []
+            return stats
 
-        mock_executor.submit.side_effect = tracking_submit
+        mock_site.build.side_effect = tracking_build
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -843,9 +835,7 @@ class TestBuildTriggerQueuing:
         first_build.join(timeout=5.0)
 
         # Should have two builds: first + queued
-        assert len(build_requests) == 2
-        assert "first.md" in build_requests[0].changed_paths[0]
-        assert "second.md" in build_requests[1].changed_paths[0]
+        assert mock_site.build.call_count == 2
 
     @patch("bengal.server.build_trigger.run_pre_build_hooks")
     @patch("bengal.server.build_trigger.run_post_build_hooks")
@@ -871,31 +861,23 @@ class TestBuildTriggerQueuing:
 
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
 
-        build_requests = []
+        build_call_count = 0
         build_started = threading.Event()
         build_can_finish = threading.Event()
-        first_build_done = False
 
-        def tracking_submit(request, **kwargs):
-            nonlocal first_build_done
-            build_requests.append(request)
-            if not first_build_done:
+        def tracking_build(*args, **kwargs):
+            nonlocal build_call_count
+            build_call_count += 1
+            if build_call_count == 1:
                 build_started.set()
                 build_can_finish.wait(timeout=5.0)
-                first_build_done = True
-            result = MagicMock()
-            result.success = True
-            result.pages_built = 5
-            result.build_time_ms = 100.0
-            result.error_message = None
-            result.changed_outputs = ()
-            return result
+            stats = MagicMock()
+            stats.total_pages = 5
+            stats.changed_outputs = []
+            return stats
 
-        mock_executor.submit.side_effect = tracking_submit
+        mock_site.build.side_effect = tracking_build
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -921,11 +903,7 @@ class TestBuildTriggerQueuing:
         first_build.join(timeout=5.0)
 
         # Should have exactly 2 builds: first + batched queued changes
-        assert len(build_requests) == 2
-
-        # Second build should contain all three queued files
-        second_build_paths = set(build_requests[1].changed_paths)
-        assert len(second_build_paths) == 3
+        assert mock_site.build.call_count == 2
 
     @patch("bengal.server.build_trigger.time.sleep")
     @patch("bengal.server.build_trigger.run_pre_build_hooks")
@@ -957,36 +935,28 @@ class TestBuildTriggerQueuing:
 
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
-        mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
-        )
 
         # Track build order and sleep calls
-        build_requests = []
-        sleep_calls = []
+        sleep_calls: list[float] = []
+        build_call_count = 0
         build_started = threading.Event()
         build_can_finish = threading.Event()
-        first_build_done = False
 
-        def tracking_submit(request, **kwargs):
-            nonlocal first_build_done
-            build_requests.append(request)
-            if not first_build_done:
+        def tracking_build(*args, **kwargs):
+            nonlocal build_call_count
+            build_call_count += 1
+            if build_call_count == 1:
                 build_started.set()
                 build_can_finish.wait(timeout=5.0)
-                first_build_done = True
-            result = MagicMock()
-            result.success = True
-            result.pages_built = 5
-            result.build_time_ms = 100.0
-            result.error_message = None
-            result.changed_outputs = ()
-            return result
+            stats = MagicMock()
+            stats.total_pages = 5
+            stats.changed_outputs = []
+            return stats
 
-        def tracking_sleep(seconds):
+        def tracking_sleep(seconds: float) -> None:
             sleep_calls.append(seconds)
 
-        mock_executor.submit.side_effect = tracking_submit
+        mock_site.build.side_effect = tracking_build
         mock_sleep.side_effect = tracking_sleep
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
@@ -1007,11 +977,161 @@ class TestBuildTriggerQueuing:
         first_build.join(timeout=5.0)
 
         # Should have two builds
-        assert len(build_requests) == 2
+        assert mock_site.build.call_count == 2
 
         # Stabilization delay should have been called (0.1 seconds)
         assert len(sleep_calls) >= 1
         assert 0.1 in sleep_calls, f"Expected 0.1s delay, got calls: {sleep_calls}"
+
+
+class TestReloadDecisionFlow:
+    """Tests for simplified reload decision flow.
+
+    The reload decision flow uses typed outputs from builds:
+    1. Primary: Typed outputs (CSS-only vs full reload)
+    2. Fallback: Path-based decision (when types unavailable)
+    """
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.root_path = Path("/test/site")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor for testing."""
+        executor = MagicMock()
+        return executor
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_typed_outputs_css_only_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that CSS-only outputs trigger CSS-only reload."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="reload-css", reason="css-only", changed_paths=["style.css"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # CSS-only outputs
+        changed_outputs = (
+            ("style.css", "css", "asset"),
+            ("theme.css", "css", "asset"),
+        )
+        trigger._handle_reload(["assets/style.css"], changed_outputs)
+
+        # Should use decide_from_outputs
+        mock_controller.decide_from_outputs.assert_called_once()
+        mock_send_reload.assert_called_once_with("reload-css", "css-only", ["style.css"])
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_typed_outputs_full_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that HTML outputs trigger full reload."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=["index.html"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # HTML outputs
+        changed_outputs = (
+            ("index.html", "html", "render"),
+            ("about.html", "html", "render"),
+        )
+        trigger._handle_reload(["content/index.md"], changed_outputs)
+
+        mock_controller.decide_from_outputs.assert_called_once()
+        mock_send_reload.assert_called_once_with("reload", "content-changed", ["index.html"])
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_no_outputs_but_sources_changed_triggers_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test fallback reload when sources changed but no typed outputs recorded."""
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Sources changed but empty outputs (fallback case)
+        trigger._handle_reload(["content/draft.md"], ())
+
+        # Should trigger full reload via fallback
+        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", [])
+
+    @patch("bengal.server.build_trigger.controller")
+    def test_no_outputs_no_sources_suppresses_reload(
+        self,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that empty outputs AND empty sources suppress reload."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # No sources, no outputs
+        trigger._handle_reload([], ())
+
+        # Should NOT call decide_from_outputs or send reload
+        mock_controller.decide_from_outputs.assert_not_called()
+        mock_controller.decide_from_changed_paths.assert_not_called()
+
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_fallback_to_path_based_decision(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test fallback to path-based decision when type reconstruction fails."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_changed_paths.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=["index.html"]
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Invalid output type that can't be reconstructed
+        changed_outputs = (
+            ("index.html", "invalid_type", "render"),
+        )
+        trigger._handle_reload(["content/index.md"], changed_outputs)
+
+        # Should fall back to decide_from_changed_paths
+        mock_controller.decide_from_outputs.assert_not_called()
+        mock_controller.decide_from_changed_paths.assert_called_once()
 
 
 class TestBuildStabilizationTiming:

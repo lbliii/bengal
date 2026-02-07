@@ -32,8 +32,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.autodoc.base import DocElement
     from bengal.autodoc.models.openapi import OpenAPIEndpointMetadata, OpenAPISchemaMetadata
-    from bengal.core.section import Section
-    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
+    from bengal.protocols import PageLike, SectionLike, SiteLike, TemplateEnvironment
 
 
 class DocElementLike(Protocol):
@@ -97,7 +96,7 @@ class EndpointView:
     @classmethod
     def from_doc_element(cls, el: DocElementLike, consolidated: bool) -> EndpointView:
         """Create from DocElement (consolidated or individual mode)."""
-        meta: OpenAPIEndpointMetadata = el.typed_metadata  # type: ignore[assignment]
+        meta: OpenAPIEndpointMetadata = el.typed_metadata
 
         # Generate anchor ID from operationId or path
         anchor_id = meta.operation_id or _generate_anchor_id(meta.method, meta.path)
@@ -207,7 +206,7 @@ def _generate_anchor_id(method: str, path: str) -> str:
 # =============================================================================
 
 
-def endpoints_filter(section: Section | None) -> list[EndpointView]:
+def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
     """
     Normalize section endpoints for templates.
 
@@ -254,7 +253,7 @@ def endpoints_filter(section: Section | None) -> list[EndpointView]:
     ]
 
 
-def schemas_filter(section: Section | None) -> list[SchemaView]:
+def schemas_filter(section: SectionLike | None) -> list[SchemaView]:
     """
     Normalize section schemas for templates.
 

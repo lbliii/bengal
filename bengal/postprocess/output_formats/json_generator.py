@@ -68,8 +68,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -135,7 +134,7 @@ class PageJSONGenerator:
         self._edge_index: dict[str, list[dict[str, Any]]] | None = None
 
     def generate(
-        self, pages: list[Page], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None
+        self, pages: list[PageLike], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None
     ) -> int:
         """
         Generate JSON files for all pages.
@@ -196,7 +195,7 @@ class PageJSONGenerator:
 
     def page_to_json(
         self,
-        page: Page,
+        page: PageLike,
         include_html: bool = True,
         include_text: bool = True,
         excerpt_length: int = 200,
@@ -224,8 +223,8 @@ class PageJSONGenerator:
             data["date"] = page.date.isoformat()
 
         # Content (HTML if available)
-        if include_html and page.parsed_ast:
-            data["content"] = page.parsed_ast
+        if include_html and page.html_content:
+            data["content"] = page.html_content
 
         # Plain text - use page.plain_text which is pre-cached during rendering
         content_text = page.plain_text
@@ -239,7 +238,7 @@ class PageJSONGenerator:
         data["metadata"] = {}
         skipped_keys = []
         for k, v in page.metadata.items():
-            if k in ["content", "parsed_ast", "rendered_html", "_generated"]:
+            if k in ["content", "html_content", "rendered_html", "_generated"]:
                 continue
             # Only include JSON-serializable values
             try:
@@ -334,7 +333,7 @@ class PageJSONGenerator:
                 self._edge_index.setdefault(target_id, []).append(edge)
 
     def _get_page_connections(
-        self, page: Page, graph_data: dict[str, Any], max_connections: int = 15
+        self, page: PageLike, graph_data: dict[str, Any], max_connections: int = 15
     ) -> dict[str, Any] | None:
         """
         Get filtered graph data showing only connections to the current page.

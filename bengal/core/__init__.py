@@ -46,7 +46,7 @@ Example:
     >>> from bengal.core import Site, Page, Section
     >>> site = Site.from_config(Path('/path/to/site'))
     >>> page = Page(source_path=Path('content/post.md'))
-    >>> section = site.get_section_by_name('blog')
+    >>> section = site.get_section_by_path('blog')
 
 """
 

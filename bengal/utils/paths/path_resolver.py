@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 __all__ = ["PathResolver", "resolve_path"]
 
@@ -199,7 +199,7 @@ class PathResolver:
         return resolved.relative_to(self.base)
 
     @classmethod
-    def from_site(cls, site: Site) -> PathResolver:
+    def from_site(cls, site: SiteLike) -> PathResolver:
         """
         Create resolver from site instance.
 

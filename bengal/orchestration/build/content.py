@@ -151,15 +151,11 @@ def phase_taxonomies(
                     cascaded_tags, taxonomy_index=None
                 )
 
-            # Store affected tags for later use (related posts, etc.)
-            orchestrator.site._affected_tags = affected_tags
-
         elif incremental and not pages_to_build:
             # Incremental but no pages changed: Still need to regenerate taxonomy pages
             # because site.pages was cleared (dev server case)
             # Use cache to rebuild taxonomies efficiently
             affected_tags = orchestrator.taxonomy.collect_and_generate_incremental([], cache)
-            orchestrator.site._affected_tags = affected_tags
 
         elif not incremental:
             # Full build: Collect and generate everything
@@ -178,7 +174,7 @@ def phase_taxonomies(
             # Update cache with full taxonomy data (for next incremental build)
             for page in orchestrator.site.pages:
                 if not page.metadata.get("_generated") and page.tags:
-                    cache.update_page_tags(page.source_path, set(page.tags))
+                    cache.taxonomy_index.update_page_tags(page.source_path, set(page.tags))
 
         orchestrator.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
         if hasattr(orchestrator.site, "taxonomies"):

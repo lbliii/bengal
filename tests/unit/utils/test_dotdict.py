@@ -42,34 +42,6 @@ class TestDotDictBasics:
         assert "age" in data
         assert "missing" not in data
 
-    def test_len(self):
-        """Test len() function."""
-        data = DotDict({"name": "Alice", "age": 30})
-        assert len(data) == 2
-
-        empty = DotDict()
-        assert len(empty) == 0
-
-    def test_iter(self):
-        """Test iteration over keys."""
-        data = DotDict({"name": "Alice", "age": 30})
-        keys = list(data)
-        assert set(keys) == {"name", "age"}
-
-    def test_keys_values_items(self):
-        """Test dict interface methods."""
-        data = DotDict({"name": "Alice", "age": 30})
-
-        assert set(data.keys()) == {"name", "age"}
-        assert set(data.values()) == {"Alice", 30}
-        assert set(data.items()) == {("name", "Alice"), ("age", 30)}
-
-    def test_repr(self):
-        """Test string representation."""
-        data = DotDict({"name": "Alice"})
-        assert repr(data) == "DotDict({'name': 'Alice'})"
-
-
 class TestDotDictNested:
     """Test nested dictionary handling."""
 

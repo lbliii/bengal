@@ -14,13 +14,13 @@ from bengal.autodoc.base import DocElement
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
 
 def extract_python(
-    site: Site,
+    site: SiteLike,
     python_config: dict,
     cache: Any | None = None,
 ) -> list[DocElement]:
@@ -68,7 +68,7 @@ def extract_python(
 
 
 def extract_cli(
-    site: Site,
+    site: SiteLike,
     cli_config: dict,
 ) -> list[DocElement]:
     """Extract CLI documentation."""
@@ -100,7 +100,7 @@ def extract_cli(
 
 
 def extract_openapi(
-    site: Site,
+    site: SiteLike,
     openapi_config: dict,
 ) -> list[DocElement]:
     """Extract OpenAPI documentation."""

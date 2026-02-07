@@ -33,12 +33,12 @@ def mock_site(tmp_path):
         Page(
             source_path=tmp_path / "content/page1.md",
             _raw_content="Content 1",
-            metadata={"title": "Page 1"},
+            _raw_metadata={"title": "Page 1"},
         ),
         Page(
             source_path=tmp_path / "content/page2.md",
             _raw_content="Content 2",
-            metadata={"title": "Page 2"},
+            _raw_metadata={"title": "Page 2"},
         ),
     ]
     site.assets = []
@@ -128,7 +128,7 @@ class TestFindWork:
         """find_work should detect all changed pages."""
         orchestrator.cache.is_changed = Mock(return_value=True)
         orchestrator.cache.should_bypass = Mock(return_value=True)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
@@ -141,7 +141,7 @@ class TestFindWork:
         """find_work should return ChangeSummary."""
         orchestrator.cache.is_changed = Mock(return_value=True)
         orchestrator.cache.should_bypass = Mock(return_value=True)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
@@ -172,7 +172,7 @@ class TestChangeDetectorDelegation:
         """Detector should be reused across calls."""
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None

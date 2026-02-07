@@ -48,7 +48,7 @@ def phase_parse_content(
         Number of pages that were parsed (vs cache hits)
 
     Side effects:
-        - Populates page.parsed_ast with parsed HTML for all pages
+        - Populates page.html_content with parsed HTML for all pages
         - Populates page.toc with table of contents
         - Updates orchestrator.stats.parsing_time_ms
         - Updates orchestrator.stats with cache hit statistics
@@ -95,7 +95,7 @@ def phase_parse_content(
                 build_context=None,
             )
 
-        # Parse content (stores in page.parsed_ast)
+        # Parse content (stores in page.html_content)
         thread_local.pipeline._parse_content(page)
 
     if pages_to_parse:

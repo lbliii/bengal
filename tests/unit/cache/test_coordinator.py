@@ -316,7 +316,7 @@ class TestCacheCoordinatorThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety violation: {errors}"
         assert len(coordinator.events) == 400

@@ -13,7 +13,10 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.protocols import SiteLike
 
 from jinja2 import (
     ChoiceLoader,
@@ -28,7 +31,7 @@ from jinja2 import (
 try:
     from jinja2 import ChainableUndefined
 except ImportError:
-    ChainableUndefined = StrictUndefined  # type: ignore[misc, assignment]
+    ChainableUndefined = StrictUndefined
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.core.theme import get_theme_package
@@ -41,7 +44,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
+def resolve_theme_chain(active_theme: str | None, site: SiteLike) -> list[str]:
     """
     Resolve theme inheritance chain starting from the active theme.
 
@@ -83,7 +86,7 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
     return [t for t in chain if t != "default"]
 
 
-def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
+def _resolve_theme_templates_path(theme_name: str, site: SiteLike) -> Path | None:
     """
     Resolve the templates directory path for a theme.
 
@@ -124,7 +127,7 @@ def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
     return None
 
 
-def read_theme_extends(theme_name: str, site: Any) -> str | None:
+def read_theme_extends(theme_name: str, site: SiteLike) -> str | None:
     """
     Read theme.toml for 'extends' from site, installed, or bundled theme path.
 
@@ -224,7 +227,12 @@ def create_jinja_environment(
     template_dirs: list[str] = []
     used_cache = False
     cache_key = (getattr(site, "theme", None), str(getattr(site, "root_path", "")))
-    cached = site._bengal_template_dirs_cache
+    # Prefer BuildState cache (fresh each build), fall back to Site field
+    _bs = getattr(site, "build_state", None)
+    cached = (
+        getattr(_bs, "template_dirs_cache", None) if _bs is not None
+        else getattr(site, "_bengal_template_dirs_cache", None)
+    )
     if not auto_reload and isinstance(cached, dict) and cached.get("key") == cache_key:
         cached_dirs = cached.get("template_dirs")
         if isinstance(cached_dirs, list) and all(isinstance(d, str) for d in cached_dirs):
@@ -239,7 +247,11 @@ def create_jinja_environment(
 
     # Theme templates with inheritance (child first, then parents)
     if not used_cache:
-        theme_chain_cached = site._bengal_theme_chain_cache
+        # Prefer BuildState cache (fresh each build), fall back to Site field
+        theme_chain_cached = (
+            getattr(_bs, "theme_chain_cache", None) if _bs is not None
+            else getattr(site, "_bengal_theme_chain_cache", None)
+        )
         if (
             not auto_reload
             and isinstance(theme_chain_cached, dict)
@@ -249,7 +261,11 @@ def create_jinja_environment(
         else:
             theme_chain = resolve_theme_chain(site.theme, site)
             if not auto_reload:
-                site._bengal_theme_chain_cache = {"key": cache_key, "chain": list(theme_chain)}
+                cache_val = {"key": cache_key, "chain": list(theme_chain)}
+                if _bs is not None:
+                    _bs.theme_chain_cache = cache_val
+                else:
+                    site._bengal_theme_chain_cache = cache_val
 
         for theme_name in theme_chain:
             theme_found = False
@@ -446,9 +462,10 @@ def create_jinja_environment(
 
     # Best-effort cache of template search paths for non-dev builds.
     if not auto_reload:
-        site._bengal_template_dirs_cache = {
-            "key": cache_key,
-            "template_dirs": list(template_dirs),
-        }
+        cache_val = {"key": cache_key, "template_dirs": list(template_dirs)}
+        if _bs is not None:
+            _bs.template_dirs_cache = cache_val
+        else:
+            site._bengal_template_dirs_cache = cache_val
 
     return env, template_dir_paths

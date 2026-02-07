@@ -35,7 +35,7 @@ from bengal.health.linkcheck.models import (
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -73,7 +73,7 @@ class LinkCheckOrchestrator:
 
     def __init__(
         self,
-        site: Site,
+        site: SiteLike,
         check_internal: bool = True,
         check_external: bool = True,
         config: dict[str, Any] | None = None,

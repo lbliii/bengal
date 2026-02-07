@@ -57,7 +57,7 @@ class TestSectionOrchestrator:
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         index_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={"title": "Documentation"},
+            _raw_metadata={"title": "Documentation"},
         )
         section.add_page(index_page)
 
@@ -77,7 +77,7 @@ class TestSectionOrchestrator:
         # Create section without index page
         section = Section(name="blog", path=tmp_path / "content" / "blog")
         page1 = Page(
-            source_path=tmp_path / "content" / "blog" / "post1.md", metadata={"title": "Post 1"}
+            source_path=tmp_path / "content" / "blog" / "post1.md", _raw_metadata={"title": "Post 1"}
         )
         section.add_page(page1)
 
@@ -101,7 +101,7 @@ class TestSectionOrchestrator:
         child = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
         child_page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
-            metadata={"title": "Introduction"},
+            _raw_metadata={"title": "Introduction"},
         )
         child.add_page(child_page)
         parent.add_subsection(child)
@@ -162,7 +162,7 @@ class TestSectionOrchestrator:
         """Test that generated archive pages have correct metadata."""
         section = Section(name="posts", path=tmp_path / "content" / "posts")
         page1 = Page(
-            source_path=tmp_path / "content" / "posts" / "hello.md", metadata={"title": "Hello"}
+            source_path=tmp_path / "content" / "posts" / "hello.md", _raw_metadata={"title": "Hello"}
         )
         section.add_page(page1)
 
@@ -236,7 +236,7 @@ class TestSectionValidation:
         """Test validation with all sections having indexes."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
+            source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
         mock_site.sections = [section]
@@ -265,7 +265,7 @@ class TestSectionValidation:
 
         # Parent has index, child doesn't
         parent.index_page = Page(
-            source_path=tmp_path / "content" / "api" / "_index.md", metadata={"title": "API"}
+            source_path=tmp_path / "content" / "api" / "_index.md", _raw_metadata={"title": "API"}
         )
         parent.add_subsection(child)
 
@@ -297,7 +297,7 @@ class TestSectionValidation:
 
         # Only section3 has index
         section3.index_page = Page(
-            source_path=tmp_path / "content" / "api" / "_index.md", metadata={"title": "API"}
+            source_path=tmp_path / "content" / "api" / "_index.md", _raw_metadata={"title": "API"}
         )
 
         mock_site.sections = [section1, section2, section3]
@@ -325,7 +325,7 @@ class TestSectionHelperMethods:
         """Test needs_auto_index returns False when section has index."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
+            source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
         assert section.needs_auto_index() is False
@@ -340,7 +340,7 @@ class TestSectionHelperMethods:
         """Test has_index returns True when index page exists."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
+            source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
         assert section.has_index() is True
@@ -381,7 +381,7 @@ class TestIntegrationScenarios:
         markdown = Section(name="markdown", path=tmp_path / "content" / "docs" / "markdown")
         kitchen_sink = Page(
             source_path=tmp_path / "content" / "docs" / "markdown" / "kitchen-sink.md",
-            metadata={"title": "Kitchen Sink"},
+            _raw_metadata={"title": "Kitchen Sink"},
         )
         markdown.add_page(kitchen_sink)
         docs.add_subsection(markdown)
@@ -398,7 +398,7 @@ class TestIntegrationScenarios:
             / "templates"
             / "function-reference"
             / "_index.md",
-            metadata={"title": "Function Reference"},
+            _raw_metadata={"title": "Function Reference"},
         )
         func_ref.add_page(func_ref_index)
         templates.add_subsection(func_ref)
@@ -437,7 +437,7 @@ class TestIntegrationScenarios:
         docs = Section(name="docs", path=tmp_path / "content" / "docs")
         docs_index = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={"title": "Documentation"},
+            _raw_metadata={"title": "Documentation"},
         )
         docs.add_page(docs_index)
 
@@ -445,7 +445,7 @@ class TestIntegrationScenarios:
         guides = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
         guide_page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
-            metadata={"title": "Introduction"},
+            _raw_metadata={"title": "Introduction"},
         )
         guides.add_page(guide_page)
         docs.add_subsection(guides)
@@ -479,7 +479,7 @@ class TestIntegrationScenarios:
         api = Section(name="api", path=tmp_path / "content" / "api")
         api_page = Page(
             source_path=tmp_path / "content" / "api" / "module.md",
-            metadata={"title": "Module"},
+            _raw_metadata={"title": "Module"},
         )
         api.add_page(api_page)
 
@@ -487,7 +487,7 @@ class TestIntegrationScenarios:
         apps = Section(name="apps", path=tmp_path / "content" / "api" / "apps")
         apps_page = Page(
             source_path=tmp_path / "content" / "api" / "apps" / "app1.md",
-            metadata={"title": "App 1"},
+            _raw_metadata={"title": "App 1"},
         )
         apps.add_page(apps_page)
         api.add_subsection(apps)

@@ -12,7 +12,7 @@ PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
 metadata.py: PageMetadataMixin (frontmatter access)
-navigation.py: PageNavigationMixin (URL, breadcrumbs)
+navigation.py: Free functions for navigation and hierarchy
 computed.py: PageComputedMixin (derived properties)
 content.py: PageContentMixin (AST, TOC, excerpts)
 relationships.py: PageRelationshipsMixin (prev/next, related)
@@ -35,7 +35,7 @@ PageCore: Cacheable subset of page metadata. Shared between Page,
 
 Build Lifecycle:
 1. Discovery: source_path, content, metadata available
-2. Parsing: toc, parsed_ast populated
+2. Parsing: toc, html_content populated
 3. Rendering: rendered_html, output_path populated
 
 Related Packages:
@@ -47,16 +47,20 @@ bengal.orchestration.content: Content discovery and page creation
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
+    from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
 # This is an intentional cross-layer import - the mixin contains rendering logic
@@ -68,7 +72,6 @@ from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
-from .navigation import PageNavigationMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
@@ -77,7 +80,6 @@ from .relationships import PageRelationshipsMixin
 @dataclass
 class Page(
     PageMetadataMixin,
-    PageNavigationMixin,
     PageComputedMixin,
     PageRelationshipsMixin,
     PageOperationsMixin,
@@ -117,10 +119,10 @@ class Page(
 
     1. Discovery (content_discovery.py)
        ✅ Available: source_path, content, metadata, title, slug, date
-       ❌ Not available: toc, parsed_ast, toc_items, rendered_html
+       ❌ Not available: toc, html_content, toc_items, rendered_html
 
     2. Parsing (pipeline.py)
-       ✅ Available: All Stage 1 + toc, parsed_ast
+       ✅ Available: All Stage 1 + toc, html_content
        ✅ toc_items can be accessed (will extract from toc)
 
     3. Rendering (pipeline.py)
@@ -134,7 +136,7 @@ class Page(
         source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
         metadata: Frontmatter metadata (title, date, tags, etc.)
-        parsed_ast: Abstract Syntax Tree from parsed content
+        html_content: Rendered HTML content (parsed from Markdown by Patitas)
         rendered_html: Rendered HTML output
         output_path: Path where the rendered page will be written
         links: List of links found in the page
@@ -165,11 +167,11 @@ class Page(
     # Optional fields (with defaults)
     # Raw markdown source content (use _source property for access)
     _raw_content: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
-    # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
-    # The ASTNode types in bengal.parsing.ast.types are for future AST-based
-    # processing. See plan/ready/plan-type-system-hardening.md for migration path.
-    parsed_ast: Any | None = None
+    # Raw frontmatter from YAML parsing (user's metadata)
+    # Access via .metadata property which combines with cascade
+    _raw_metadata: dict[str, Any] = field(default_factory=dict)
+    # HTML content rendered from Markdown by Patitas parser.
+    html_content: str | None = None
     rendered_html: str = ""
     output_path: Path | None = None
     links: list[str] = field(default_factory=list)
@@ -199,7 +201,7 @@ class Page(
 
     # Cached resolved Section object for fast repeated access during template rendering.
     # NOTE: Cache is per-site-object + epoch + reference tuple and must be invalidated when those change.
-    _section_obj_cache: Any = field(default=None, repr=False, init=False)
+    _section_obj_cache: Section | object | None = field(default=None, repr=False, init=False)
     _section_obj_cache_key: tuple[int, int, Path | None, str | None] | None = field(
         default=None, repr=False, init=False
     )
@@ -213,6 +215,10 @@ class Page(
     # Private cache for lazy frontmatter property
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
 
+    # Cache for CascadeView (invalidated when site/section changes)
+    _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
+    _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
+
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
     _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
@@ -222,6 +228,15 @@ class Page(
     # Virtual page support (for API docs, generated content)
     _virtual: bool = field(default=False, repr=False)
 
+    # Internal metadata for section index pages (replaces metadata["_key"] pattern)
+    # These are build-time bookkeeping, not user-facing frontmatter
+    _posts: list[Page] | None = field(default=None, repr=False, init=False)
+    _subsections: list[Any] | None = field(default=None, repr=False, init=False)  # list[Section]
+    _paginator: Paginator[Page] | None = field(default=None, repr=False, init=False)
+    _page_num: int | None = field(default=None, repr=False, init=False)
+    _autodoc_fallback_template: bool = field(default=False, repr=False, init=False)
+    _autodoc_fallback_reason: str | None = field(default=None, repr=False, init=False)
+
     # Pre-rendered HTML for virtual pages (bypasses markdown parsing)
     _prerendered_html: str | None = field(default=None, repr=False)
 
@@ -230,14 +245,63 @@ class Page(
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
-        if self.metadata:
-            self.tags = self.metadata.get("tags", [])
+        if self._raw_metadata:
+            self.tags = self._raw_metadata.get("tags", [])
             # Priority: explicit 'version' frontmatter -> auto-detected '_version' metadata
-            self.version = self.metadata.get("version") or self.metadata.get("_version")
-            self.aliases = self.metadata.get("aliases", [])
+            self.version = self._raw_metadata.get("version") or self._raw_metadata.get("_version")
+            self.aliases = self._raw_metadata.get("aliases", [])
 
         # Auto-create PageCore from Page fields
         self._init_core_from_fields()
+
+    @property
+    def metadata(self) -> Mapping[str, Any]:
+        """
+        Return combined frontmatter + cascade metadata as CascadeView.
+
+        This property provides dict-like access to page metadata. Values come from:
+        1. Page frontmatter (always takes precedence)
+        2. Cascade from parent sections (inherited values)
+
+        The CascadeView is immutable and resolves values on access, ensuring
+        cascade values are always current even during incremental builds.
+
+        Returns:
+            CascadeView combining frontmatter and cascade, or raw metadata dict
+            if cascade is not yet available (during early construction).
+        """
+        # During early construction or without site, return raw metadata
+        if self._site is None:
+            return self._raw_metadata
+
+        # Get cascade snapshot from site
+        cascade = getattr(self._site, "cascade", None)
+        if cascade is None or not isinstance(cascade, CascadeSnapshot):
+            return self._raw_metadata
+
+        # Get section path for cascade lookup
+        section_path = ""
+        if self._section_path:
+            try:
+                content_dir = self._site.root_path / "content"
+                section_path = str(self._section_path.relative_to(content_dir))
+            except (ValueError, AttributeError):
+                section_path = str(self._section_path)
+
+        # Check cache validity (site id + section path)
+        cache_key = (id(cascade), section_path)
+        if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+            return self._metadata_view_cache
+
+        # Create and cache new CascadeView
+        view = CascadeView.for_page(
+            frontmatter=self._raw_metadata,
+            section_path=section_path,
+            snapshot=cascade,
+        )
+        self._metadata_view_cache = view
+        self._metadata_view_cache_key = cache_key
+        return view
 
     def _init_core_from_fields(self) -> None:
         """
@@ -249,7 +313,7 @@ class Page(
         # Separate standard fields from custom props (Component Model)
         from bengal.core.page.utils import separate_standard_and_custom_fields
 
-        standard_fields, custom_props = separate_standard_and_custom_fields(self.metadata)
+        standard_fields, custom_props = separate_standard_and_custom_fields(self._raw_metadata)
 
         # Component Model: variant (normalized from layout/hero_style)
         variant = standard_fields.get("variant")
@@ -275,6 +339,10 @@ class Page(
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
             aliases=standard_fields.get("aliases") or self.aliases or [],
+            # Cascade data (from _index.md frontmatter)
+            # Critical for incremental builds: without this, cascade data is lost
+            # when _index.md files are loaded from cache as PageProxy
+            cascade=self._raw_metadata.get("cascade", {}),
         )
 
     def normalize_core_paths(self) -> None:
@@ -418,7 +486,7 @@ class Page(
         page = cls(
             source_path=Path(source_id),
             _raw_content=content,
-            metadata=page_metadata,
+            _raw_metadata=page_metadata,
             rendered_html=rendered_html or "",
             output_path=output_path,
             _section_path=section_path,
@@ -454,7 +522,7 @@ class Page(
         """
         return hash(self.source_path)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Pages are equal if they have the same source path.
 
@@ -492,13 +560,13 @@ class Page(
         from bengal.utils.primitives.text import format_path_for_display
 
         base_path = None
-        if self._site is not None and hasattr(self._site, "root_path"):
+        if self._site is not None and isinstance(self._site, SiteLike):
             base_path = self._site.root_path
 
         return format_path_for_display(path, base_path)
 
     @property
-    def _section(self) -> Any | None:
+    def _section(self) -> Section | None:
         """
         Get the section this page belongs to (lazy lookup via path or URL).
 
@@ -608,7 +676,7 @@ class Page(
         return section
 
     @_section.setter
-    def _section(self, value: Any) -> None:
+    def _section(self, value: Section | None) -> None:
         """
         Set the section this page belongs to (stores path or URL, not object).
 
@@ -653,6 +721,50 @@ class Page(
             Section path as string (e.g., "docs/guides") or None
         """
         return str(self._section_path) if self._section_path else None
+
+    # ------------------------------------------------------------------
+    # Navigation properties (delegate to free functions in navigation.py)
+    # ------------------------------------------------------------------
+
+    @property
+    def next(self) -> Page | None:
+        """Next page in site collection."""
+        from bengal.core.page.navigation import get_next_page
+
+        return get_next_page(self, self._site)
+
+    @property
+    def prev(self) -> Page | None:
+        """Previous page in site collection."""
+        from bengal.core.page.navigation import get_prev_page
+
+        return get_prev_page(self, self._site)
+
+    @property
+    def next_in_section(self) -> Page | None:
+        """Next page in current section."""
+        from bengal.core.page.navigation import get_next_in_section
+
+        return get_next_in_section(self, self._section)
+
+    @property
+    def prev_in_section(self) -> Page | None:
+        """Previous page in current section."""
+        from bengal.core.page.navigation import get_prev_in_section
+
+        return get_prev_in_section(self, self._section)
+
+    @property
+    def parent(self) -> Section | None:
+        """Parent section of this page."""
+        return self._section
+
+    @property
+    def ancestors(self) -> list[Section]:
+        """Ancestor sections from immediate parent to root."""
+        from bengal.core.page.navigation import get_ancestors
+
+        return get_ancestors(self._section)
 
 
 __all__ = [

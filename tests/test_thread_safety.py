@@ -50,7 +50,7 @@ class TestLRUCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         assert len(results) == 1000  # 10 threads * 100 iterations
@@ -94,14 +94,14 @@ class TestLRUCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         assert len(results) == 500  # 10 threads * 50 iterations
 
     def test_directive_icon_cache_concurrent_access(self) -> None:
         """Test directive icon cache under concurrent access."""
-        from bengal.directives._icons import _svg_icon_cache, clear_icon_cache, render_svg_icon
+        from bengal.icons.svg import _svg_icon_cache, clear_icon_cache, render_svg_icon
 
         # Clear cache before test
         clear_icon_cache()
@@ -129,7 +129,7 @@ class TestLRUCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         assert len(results) == 500
@@ -156,7 +156,7 @@ class TestLRUCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         assert len(results) == 200
@@ -194,7 +194,7 @@ class TestScaffoldRegistryThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
         # All threads should get the same singleton instance
@@ -225,7 +225,7 @@ class TestScaffoldRegistryThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
 
@@ -253,7 +253,7 @@ class TestLoggerRegistryThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
 
@@ -287,11 +287,11 @@ class TestLoggerRegistryThreadSafety:
             w.start()
         reset_thread.start()
 
-        reset_thread.join()
+        reset_thread.join(timeout=10)
         stop_flag.set()
 
         for w in workers:
-            w.join()
+            w.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
 
@@ -323,7 +323,7 @@ class TestThreadSafeSetUsage:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"
 
@@ -344,7 +344,7 @@ class TestDirectiveCacheConfiguration:
 
     def test_configure_cache_concurrent(self) -> None:
         """Test concurrent cache configuration changes."""
-        from bengal.directives.cache import configure_cache, get_cache
+        from bengal.cache.directive_cache import configure_cache, get_cache
 
         errors: list[Exception] = []
 
@@ -374,6 +374,6 @@ class TestDirectiveCacheConfiguration:
         for t in all_threads:
             t.start()
         for t in all_threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Thread safety errors: {errors}"

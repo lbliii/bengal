@@ -4,7 +4,7 @@ Write-behind buffer for async page output.
 RFC: rfc-path-to-200-pgs (Phase III)
 
 Overlaps CPU-bound rendering with I/O-bound file writes by queuing
-rendered pages for a dedicated writer thread.
+rendered pages for multiple writer threads.
 
 Usage:
     collector = WriteBehindCollector()
@@ -17,12 +17,20 @@ collector.flush_and_close()  # Wait for writes to complete
 
 Thread Safety:
 Queue operations are thread-safe. Multiple render threads can
-enqueue simultaneously while the writer thread drains.
+enqueue simultaneously while the writer pool drains.
+
+Performance Optimizations:
+- Multiple writer threads (8 by default) for SSD parallelism
+- Auto-enables fast_writes in dev server mode (skips atomic rename)
+- Pre-create directories to reduce lock contention
+- Atomic counter for temp file names (faster than uuid4)
 
 """
 
 from __future__ import annotations
 
+import itertools
+import os
 import threading
 from pathlib import Path
 from queue import Empty, Queue
@@ -32,66 +40,129 @@ from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
+
+# Module-level atomic counter for temp file names (faster than uuid4)
+_temp_file_counter = itertools.count()
 
 
 class WriteBehindCollector:
     """Async write-behind buffer for rendered pages.
-
+    
     Worker threads push (path, content) pairs to a queue.
-    A dedicated writer thread drains the queue to disk.
-
+    A pool of writer threads drains the queue to disk in parallel.
+    
     Benefits:
         - Overlaps CPU (rendering) with I/O (writing)
-        - Reduces worker thread blocking on disk
-        - Batches directory creation
-
+        - 8 writer threads for better I/O parallelism on SSDs
+        - Auto-enables fast_writes in dev server mode
+        - Pre-creates directories to reduce lock contention
+        - Uses atomic counter instead of uuid4 for temp files
+    
     Attributes:
         _queue: Thread-safe queue of (Path, str) pairs
-        _writer_thread: Background thread draining to disk
+        _writer_threads: Background threads draining to disk
         _shutdown: Event signaling shutdown
-        _error: Any error from writer thread
+        _error: Any error from writer threads
         _writes_completed: Count of successful writes
-
+        
     """
 
     __slots__ = (
         "_created_dirs",
+        "_created_dirs_lock",
         "_error",
         "_fast_writes",
+        "_num_writers",
         "_queue",
         "_shutdown",
-        "_writer_thread",
+        "_writer_threads",
         "_writes_completed",
+        "_writes_lock",
     )
 
-    def __init__(self, site: Site | None = None, max_queue_size: int = 500) -> None:
+    def __init__(
+        self,
+        site: SiteLike | None = None,
+        max_queue_size: int = 500,
+        num_writers: int | None = None,
+        dev_mode: bool | None = None,
+    ) -> None:
         """Initialize write-behind collector.
 
         Args:
             site: Site instance for config (fast_writes setting)
             max_queue_size: Maximum queue depth before blocking (backpressure)
+            num_writers: Number of writer threads (default: 8 for SSD parallelism)
+            dev_mode: Override dev mode detection (auto-detects from site if None)
         """
         self._queue: Queue[tuple[Path, str] | None] = Queue(maxsize=max_queue_size)
         self._shutdown = threading.Event()
         self._error: Exception | None = None
         self._writes_completed = 0
+        self._writes_lock = threading.Lock()
         self._created_dirs: set[str] = set()
+        self._created_dirs_lock = threading.Lock()
 
-        # Get fast_writes setting from config
+        # Use 8 writer threads by default for better SSD saturation
+        cpu_count = os.cpu_count() or 8
+        self._num_writers = num_writers if num_writers else min(8, cpu_count)
+
+        # Determine fast_writes mode:
+        # 1. Explicit config setting takes precedence
+        # 2. Auto-enable in dev server mode (crash safety less important)
+        # 3. Default to False (safe atomic writes) for production
         self._fast_writes = False
         if site:
-            self._fast_writes = site.config.get("build", {}).get("fast_writes", False)
+            config_fast_writes = site.config.get("build", {}).get("fast_writes")
+            if config_fast_writes is not None:
+                # Explicit config setting
+                self._fast_writes = bool(config_fast_writes)
+            elif dev_mode is not None:
+                # Explicit dev_mode passed
+                self._fast_writes = dev_mode
+            else:
+                # Auto-detect from site's build state
+                build_state = getattr(site, "_current_build_state", None)
+                if build_state and getattr(build_state, "dev_mode", False):
+                    self._fast_writes = True
+                    logger.debug("fast_writes_auto_enabled", reason="dev_server_mode")
 
-        # Start writer thread
-        self._writer_thread = threading.Thread(
-            target=self._drain_loop,
-            name="WriteBehindWriter",
-            daemon=True,
+        # Start writer threads
+        self._writer_threads: list[threading.Thread] = []
+        for i in range(self._num_writers):
+            thread = threading.Thread(
+                target=self._drain_loop,
+                name=f"WriteBehindWriter-{i}",
+                daemon=True,
+            )
+            thread.start()
+            self._writer_threads.append(thread)
+
+    def precreate_directories(self, paths: list[Path]) -> None:
+        """Pre-create all unique parent directories in a single pass.
+        
+        Call this before enqueuing files to eliminate lock contention
+        during parallel writes. Creates directories sequentially upfront.
+        
+        Args:
+            paths: List of output file paths (directories extracted automatically)
+        """
+        # Collect unique parent directories
+        unique_dirs = {str(p.parent) for p in paths}
+        
+        # Create all directories (no lock needed - single-threaded setup phase)
+        for dir_path in unique_dirs:
+            Path(dir_path).mkdir(parents=True, exist_ok=True)
+            self._created_dirs.add(dir_path)
+        
+        logger.debug(
+            "directories_precreated",
+            count=len(unique_dirs),
+            files=len(paths),
         )
-        self._writer_thread.start()
 
     def enqueue(self, output_path: Path, content: str) -> None:
         """Queue a page for writing.
@@ -128,12 +199,14 @@ class WriteBehindCollector:
                     continue
 
                 if item is None:
-                    # Explicit shutdown signal
+                    # Explicit shutdown signal - put it back for other threads
+                    self._queue.put(None)
                     break
 
                 path, content = item
                 self._write_file(path, content)
-                self._writes_completed += 1
+                with self._writes_lock:
+                    self._writes_completed += 1
                 self._queue.task_done()
 
         except Exception as e:
@@ -151,20 +224,44 @@ class WriteBehindCollector:
             path: Destination path
             content: File content
         """
-        # Ensure parent directory exists (with caching)
+        # Ensure parent directory exists (thread-safe with lock)
+        # Note: If precreate_directories() was called, this is a fast no-op
         parent = str(path.parent)
         if parent not in self._created_dirs:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            self._created_dirs.add(parent)
+            with self._created_dirs_lock:
+                if parent not in self._created_dirs:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    self._created_dirs.add(parent)
 
         if self._fast_writes:
-            # Direct write (faster, not crash-safe)
+            # Direct write (faster, not crash-safe) - used in dev server mode
             path.write_text(content, encoding="utf-8")
         else:
-            # Atomic write (crash-safe)
-            from bengal.utils.io.atomic_write import atomic_write_text
+            # Atomic write with fast temp file naming (counter instead of uuid4)
+            self._atomic_write_fast(path, content)
 
-            atomic_write_text(path, content, encoding="utf-8", ensure_parent=False)
+    def _atomic_write_fast(self, path: Path, content: str) -> None:
+        """Atomic write using counter-based temp file names.
+        
+        Faster than uuid4-based naming while maintaining crash safety.
+        Uses PID + thread ID + atomic counter for uniqueness.
+        
+        Args:
+            path: Destination path
+            content: File content
+        """
+        # Use atomic counter instead of uuid4 (faster)
+        pid = os.getpid()
+        tid = threading.get_ident()
+        counter = next(_temp_file_counter)
+        tmp_path = path.parent / f".{path.name}.{pid}.{tid}.{counter}.tmp"
+
+        try:
+            tmp_path.write_text(content, encoding="utf-8")
+            tmp_path.replace(path)  # Atomic rename on POSIX
+        except Exception:
+            tmp_path.unlink(missing_ok=True)
+            raise
 
     def flush_and_close(self, timeout: float = 30.0) -> int:
         """Wait for all queued writes to complete.
@@ -176,18 +273,24 @@ class WriteBehindCollector:
             Number of files written
 
         Raises:
-            BengalRenderingError: If writer thread failed or timed out
+            BengalRenderingError: If writer threads failed or timed out
         """
         # Signal shutdown
         self._shutdown.set()
-        self._queue.put(None)  # Sentinel to wake up blocked get()
+        self._queue.put(None)  # Sentinel to wake up one thread, which propagates
 
-        # Wait for thread
-        self._writer_thread.join(timeout=timeout)
+        # Wait for all threads
+        per_thread_timeout = timeout / max(len(self._writer_threads), 1)
+        timed_out = False
+        for thread in self._writer_threads:
+            thread.join(timeout=per_thread_timeout)
+            if thread.is_alive():
+                timed_out = True
 
-        if self._writer_thread.is_alive():
+        if timed_out:
+            alive_count = sum(1 for t in self._writer_threads if t.is_alive())
             raise BengalRenderingError(
-                f"Writer thread did not complete within {timeout}s",
+                f"{alive_count} writer thread(s) did not complete within {timeout}s",
                 code=ErrorCode.R010,
                 suggestion="Increase timeout or check for slow disk I/O",
             )

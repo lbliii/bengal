@@ -124,9 +124,18 @@ class WaveScheduler:
         Returns:
             RenderStats with rendering statistics
         """
-        if self._strategy == "template_first":
-            return self._render_template_first(pages_to_build)
-        return self._render_topological_waves(pages_to_build)
+        # Set build context for template function memoization (RFC: template-function-memoization)
+        from bengal.rendering.template_functions.memo import set_build_context
+
+        set_build_context(self.build_context)
+
+        try:
+            if self._strategy == "template_first":
+                return self._render_template_first(pages_to_build)
+            return self._render_topological_waves(pages_to_build)
+        finally:
+            # Clear memoization context
+            set_build_context(None)
 
     def _render_template_first(self, pages_to_build: list[Page]) -> RenderStats:
         """

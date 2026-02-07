@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Any, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
+from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.dates import parse_date
 from bengal.utils.primitives.types import (
@@ -292,7 +293,7 @@ class SchemaValidator:
             errors: list[ValidationError] = []
 
             # Pydantic v2 uses .errors() method
-            if hasattr(e, "errors"):
+            if isinstance(e, HasErrors):
                 for error in e.errors():
                     field_path = ".".join(str(loc) for loc in error.get("loc", []))
                     errors.append(
@@ -608,7 +609,7 @@ class SchemaValidator:
                 # Pass max_depth to nested validator
                 # Type cast: we've already verified expected is a dataclass via is_dataclass()
                 nested_validator = SchemaValidator(
-                    expected,  # type: ignore[arg-type]
+                    expected,
                     strict=self.strict,
                     max_depth=self.max_depth,
                 )

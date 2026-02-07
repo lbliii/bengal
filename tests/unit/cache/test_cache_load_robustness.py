@@ -78,7 +78,7 @@ class TestCacheLoadRobustness:
             test_file = tmp_path / f"page{i}.md"
             test_file.write_text(f"# Page {i}")
             cache.update_file(test_file)
-            cache.add_taxonomy_dependency(f"tag:test{i}", test_file)
+            cache.taxonomy_index.add_taxonomy_dependency(f"tag:test{i}", test_file)
 
         # Save cache (compressed by default)
         cache_path = tmp_path / "cache.json"
@@ -95,8 +95,8 @@ class TestCacheLoadRobustness:
             f"Expected 5 fingerprints, got {len(loaded.file_fingerprints)}. "
             "Compressed cache load may have failed silently."
         )
-        assert len(loaded.taxonomy_deps) == 5, (
-            f"Expected 5 taxonomy deps, got {len(loaded.taxonomy_deps)}. "
+        assert len(loaded.taxonomy_index.taxonomy_deps) == 5, (
+            f"Expected 5 taxonomy deps, got {len(loaded.taxonomy_index.taxonomy_deps)}. "
             "Compressed cache load may have partially failed."
         )
 
@@ -261,7 +261,7 @@ class TestCacheExceptionHandling:
         assert len(loaded.file_fingerprints) == 1
         # Should have empty defaults for missing fields
         assert len(loaded.dependencies) == 0
-        assert len(loaded.taxonomy_deps) == 0
+        assert len(loaded.taxonomy_index.taxonomy_deps) == 0
 
 
 class TestCacheChangeDetection:

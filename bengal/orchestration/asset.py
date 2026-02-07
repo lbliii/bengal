@@ -228,11 +228,18 @@ class AssetOrchestrator:
 
         # Performance: load the previous manifest once so stale fingerprint cleanup
         # can delete exact old outputs (O(1)) instead of scanning directories (glob).
+        # Store on BuildState (fresh each build) when available, else on Site.
         try:
             manifest_path = self.site.output_dir / "asset-manifest.json"
-            self.site._asset_manifest_previous = AssetManifest.load(manifest_path)
+            prev_manifest = AssetManifest.load(manifest_path)
         except Exception:
-            self.site._asset_manifest_previous = None
+            prev_manifest = None
+
+        _bs = self.site.build_state
+        if _bs is not None:
+            _bs.asset_manifest_previous = prev_manifest
+        else:
+            self.site._asset_manifest_previous = prev_manifest
 
         # Separate CSS entry points, CSS modules, and other assets
         css_entries = [a for a in assets if a.is_css_entry_point()]

@@ -32,7 +32,7 @@ def small_site(tmp_path):
         page = Page(
             source_path=tmp_path / f"page{i}.md",
             _raw_content=f"# Page {i}",
-            metadata={"title": f"Page {i}"},
+            _raw_metadata={"title": f"Page {i}"},
         )
         pages.append(page)
 
@@ -56,7 +56,7 @@ def large_site(tmp_path):
         page = Page(
             source_path=tmp_path / f"page{i}.md",
             _raw_content=f"# Page {i}",
-            metadata={"title": f"Page {i}"},
+            _raw_metadata={"title": f"Page {i}"},
         )
         pages.append(page)
 
@@ -133,7 +133,7 @@ class TestParallelMatchesSequential:
                 page = Page(
                     source_path=tmp_path / f"page{i}.md",
                     _raw_content=f"# Page {i}",
-                    metadata={"title": f"Page {i}"},
+                    _raw_metadata={"title": f"Page {i}"},
                 )
                 pages.append(page)
 
@@ -195,7 +195,7 @@ class TestParallelErrorHandling:
             page = Page(
                 source_path=tmp_path / f"page{i}.md",
                 _raw_content=f"# Page {i}",
-                metadata={"title": f"Page {i}"},
+                _raw_metadata={"title": f"Page {i}"},
             )
             # Ensure attributes don't exist
             if hasattr(page, "links"):

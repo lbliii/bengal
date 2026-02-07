@@ -30,6 +30,7 @@ from bengal.orchestration.build.results import (
     RebuildReasonCode,
     SkipReasonCode,
 )
+from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -38,14 +39,14 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
-    from bengal.core.site import Site
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
+    from bengal.protocols import SiteLike
 
 
 def _detect_changed_data_files(
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Detect data files that have changed since last build.
@@ -97,7 +98,7 @@ def _detect_changed_data_files(
 
 def _detect_changed_templates(
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Detect template files that have changed since last build.
@@ -119,7 +120,7 @@ def _detect_changed_templates(
 
     # Also check theme templates if theme is set
     theme_templates_dirs = []
-    if hasattr(site, "theme_path") and site.theme_path:
+    if isinstance(site, SiteLike) and site.theme_path:
         theme_templates = site.theme_path / "templates"
         if theme_templates.exists():
             theme_templates_dirs.append(theme_templates)
@@ -217,7 +218,7 @@ def _get_pages_for_template(
 def _get_taxonomy_term_pages_for_member(
     cache: BuildCache,
     member_path: Path,
-    site: Site,
+    site: SiteLike,
 ) -> set[Path]:
     """
     Find taxonomy term pages that list a member page.
@@ -237,7 +238,7 @@ def _get_taxonomy_term_pages_for_member(
     member_key = str(member_path)
 
     # Get tags for this member page from cache
-    tags = cache.page_tags.get(member_key, set())
+    tags = cache.taxonomy_index.page_tags.get(member_key, set())
 
     for tag in tags:
         # Find the virtual taxonomy term page for this tag
@@ -257,7 +258,7 @@ def _get_taxonomy_term_pages_for_member(
 def _expand_forced_changed(
     forced_changed: set[Path],
     cache: BuildCache,
-    site: Site,
+    site: SiteLike,
     pages: list[Page],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
@@ -559,36 +560,24 @@ def phase_incremental_filter_provenance(
                     taxonomy_pages_added=len(taxonomy_pages_to_add),
                 )
 
-        # RFC: Reimagined Cascade Infrastructure
-        # If any _index.md files changed, refresh the cascade snapshot.
-        # This ensures pages get updated cascade values after provenance filtering.
-        index_files_changed = any(
-            p.source_path.name in ("_index.md", "_index.markdown", "index.md")
-            for p in result.pages_to_build
-        )
-
-        if index_files_changed:
-            # Rebuild cascade snapshot with fresh data (copy-on-write: atomic swap)
-            site.build_cascade_snapshot()
-            # Refresh cascade values for in-memory pages.
-            # Proxies are invalidated and will re-apply on first metadata access.
-            from bengal.core.page.proxy import PageProxy
-
-            content_dir = site.root_path / "content"
-            for page in site.pages:
-                if isinstance(page, PageProxy):
-                    page._cascade_invalidated = True  # type: ignore[attr-defined]
-                    continue
-
-                cascade_keys = page.metadata.get("_cascade_keys", [])
-                for key in cascade_keys:
-                    page.metadata.pop(key, None)
-                page.metadata.pop("_cascade_keys", None)
-                site.cascade.apply_to_page(page, content_dir)
-            logger.debug(
-                "cascade_snapshot_refreshed",
-                reason="index_files_changed",
-                sections_with_cascade=len(site.cascade),
+        # Cascade snapshot sanity check.
+        #
+        # The cascade snapshot is built during Phase 2 (discovery) by
+        # _apply_cascades() → site.build_cascade_snapshot().  It should
+        # ALWAYS be populated by the time we reach filtering.  If it's
+        # empty despite sections having cascade data, that signals a
+        # discovery bug — log a warning so we can diagnose it.
+        #
+        # Previously this code conditionally rebuilt the snapshot when
+        # _index.md files changed, but that is now handled correctly by
+        # discovery itself: changed _index.md files are loaded fresh
+        # (not from cache) because their fingerprint won't match, so the
+        # snapshot built during discovery already contains the fresh data.
+        if site.sections and len(site.cascade) == 0:
+            logger.warning(
+                "cascade_snapshot_empty_after_discovery",
+                sections_count=len(site.sections),
+                hint="discovery may not have built the cascade snapshot correctly",
             )
 
         # Initialize decision tracker for observability

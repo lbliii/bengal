@@ -59,27 +59,12 @@ class TestManagerCriticalExceptions:
     as pytest workers don't handle KeyboardInterrupt/SystemExit gracefully.
     """
 
-    def test_critical_exception_handling_logic(self) -> None:
-        """Test that the critical exception handling logic is correct."""
-        # This tests the isinstance check directly
-        critical_exceptions = (KeyboardInterrupt(), SystemExit(1))
-
-        for exc in critical_exceptions:
-            # Simulate what the manager does
-            result = exc
-            if isinstance(result, BaseException):
-                if isinstance(result, (KeyboardInterrupt, SystemExit)):
-                    # Would raise here
-                    assert True  # Logic is correct
-                    continue
-            pytest.fail(f"Critical exception {type(exc)} not properly detected")
-
-    def test_keyboard_interrupt_is_base_exception(self) -> None:
+    def test_keyboard_interrupt_propagates(self) -> None:
         """Verify KeyboardInterrupt is a BaseException (caught by return_exceptions=True)."""
         assert isinstance(KeyboardInterrupt(), BaseException)
         assert isinstance(KeyboardInterrupt(), (KeyboardInterrupt, SystemExit))
 
-    def test_system_exit_is_base_exception(self) -> None:
+    def test_system_exit_propagates(self) -> None:
         """Verify SystemExit is a BaseException (caught by return_exceptions=True)."""
         assert isinstance(SystemExit(1), BaseException)
         assert isinstance(SystemExit(1), (KeyboardInterrupt, SystemExit))

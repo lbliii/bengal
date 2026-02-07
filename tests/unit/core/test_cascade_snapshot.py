@@ -126,14 +126,14 @@ class TestCascadeSnapshotBuild:
         section_docs = Section(name="docs", path=Path("/content/docs"))
         index_page = Page(
             source_path=Path("/content/docs/_index.md"),
-            metadata={"title": "Docs", "cascade": {"type": "doc"}},
+            _raw_metadata={"title": "Docs", "cascade": {"type": "doc"}},
         )
         section_docs.add_page(index_page)
 
         section_blog = Section(name="blog", path=Path("/content/blog"))
         blog_index = Page(
             source_path=Path("/content/blog/_index.md"),
-            metadata={"title": "Blog", "cascade": {"type": "post", "author": "Admin"}},
+            _raw_metadata={"title": "Blog", "cascade": {"type": "post", "author": "Admin"}},
         )
         section_blog.add_page(blog_index)
 
@@ -162,7 +162,7 @@ class TestCascadeSnapshotBuild:
         section = Section(name="plain", path=Path("/content/plain"))
         index_page = Page(
             source_path=Path("/content/plain/_index.md"),
-            metadata={"title": "Plain Section"},  # No cascade
+            _raw_metadata={"title": "Plain Section"},  # No cascade
         )
         section.add_page(index_page)
 
@@ -177,7 +177,7 @@ class TestCascadeSnapshotBuild:
         section = Section(name=".", path=Path("/content"))
         index_page = Page(
             source_path=Path("/content/_index.md"),
-            metadata={"cascade": {"site_wide": True}},
+            _raw_metadata={"cascade": {"site_wide": True}},
         )
         section.add_page(index_page)
 
@@ -208,7 +208,7 @@ class TestCascadeSnapshotImmutability:
         cascade = {"type": "doc"}
         index_page = Page(
             source_path=Path("/content/docs/_index.md"),
-            metadata={"cascade": cascade},
+            _raw_metadata={"cascade": cascade},
         )
         section.add_page(index_page)
 
@@ -409,142 +409,6 @@ class TestCascadeSnapshotGetCascadeKeys:
         keys = snapshot.get_cascade_keys("blog")
 
         assert keys == set()
-
-
-class TestCascadeSnapshotApplyToPage:
-    """Test apply_to_page method for eager cascade merge."""
-
-    def test_apply_to_page_merges_cascade(self):
-        """Test that cascade values are merged into page metadata."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "layout": "docs-layout"}},
-            _content_dir="/content",
-        )
-
-        # Create a mock page-like object with metadata
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {}
-                self.source_path = Path("/content/docs/guide.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        applied = snapshot.apply_to_page(page, content_dir)
-
-        assert page.metadata.get("type") == "doc"
-        assert page.metadata.get("layout") == "docs-layout"
-        assert applied == {"type", "layout"}
-
-    def test_frontmatter_wins_over_cascade(self):
-        """Test that explicit frontmatter values override cascade."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "layout": "docs-layout"}},
-            _content_dir="/content",
-        )
-
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {"type": "custom"}  # Explicit frontmatter
-                self.source_path = Path("/content/docs/guide.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        applied = snapshot.apply_to_page(page, content_dir)
-
-        # Frontmatter "type" should not be overwritten
-        assert page.metadata.get("type") == "custom"
-        # But "layout" should be applied (not in frontmatter)
-        assert page.metadata.get("layout") == "docs-layout"
-        # Only "layout" was applied (type was skipped)
-        assert applied == {"layout"}
-
-    def test_cascade_keys_tracking(self):
-        """Test that _cascade_keys tracks which keys came from cascade."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc", "variant": "sidebar"}},
-            _content_dir="/content",
-        )
-
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {}
-                self.source_path = Path("/content/docs/guide.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        snapshot.apply_to_page(page, content_dir)
-
-        assert "_cascade_keys" in page.metadata
-        cascade_keys = page.metadata["_cascade_keys"]
-        assert "type" in cascade_keys
-        assert "variant" in cascade_keys
-
-    def test_cascade_keys_not_added_when_empty(self):
-        """Test that _cascade_keys is not added when no cascade applied."""
-        snapshot = CascadeSnapshot(
-            _data={},  # No cascade data
-            _content_dir="/content",
-        )
-
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {}
-                self.source_path = Path("/content/blog/post.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        applied = snapshot.apply_to_page(page, content_dir)
-
-        assert applied == set()
-        assert "_cascade_keys" not in page.metadata
-
-    def test_apply_to_page_with_core_section(self):
-        """Test apply_to_page with page that has core.section."""
-        snapshot = CascadeSnapshot(
-            _data={"docs/guides": {"type": "guide"}},
-            _content_dir="/content",
-        )
-
-        class MockCore:
-            section = "docs/guides"
-
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {}
-                self.core = MockCore()
-                self.source_path = Path("/content/docs/guides/intro.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        snapshot.apply_to_page(page, content_dir)
-
-        assert page.metadata.get("type") == "guide"
-
-    def test_apply_to_page_accumulates_cascade_keys(self):
-        """Test that multiple apply calls accumulate _cascade_keys."""
-        snapshot = CascadeSnapshot(
-            _data={"docs": {"type": "doc"}},
-            _content_dir="/content",
-        )
-
-        class MockPage:
-            def __init__(self):
-                self.metadata: dict = {"_cascade_keys": ["existing"]}
-                self.source_path = Path("/content/docs/guide.md")
-
-        page = MockPage()
-        content_dir = Path("/content")
-
-        snapshot.apply_to_page(page, content_dir)
-
-        cascade_keys = page.metadata["_cascade_keys"]
-        assert "existing" in cascade_keys
-        assert "type" in cascade_keys
 
 
 class TestCascadeSnapshotThreadSafety:

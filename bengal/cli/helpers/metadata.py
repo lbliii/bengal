@@ -144,7 +144,7 @@ def command_metadata(
             aliases=aliases or [],
         )
         # Attach metadata to the function
-        func.__command_metadata__ = metadata  # type: ignore[attr-defined]
+        func.__command_metadata__ = metadata
         return func
 
     return decorator

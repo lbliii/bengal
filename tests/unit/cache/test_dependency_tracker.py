@@ -132,10 +132,10 @@ class TestDependencyTracker:
         tracker.track_taxonomy(page, {"Python", "Tutorial"})
 
         # Check taxonomy dependencies
-        assert "tag:python" in cache.taxonomy_deps
-        assert "tag:tutorial" in cache.taxonomy_deps
-        assert str(page) in cache.taxonomy_deps["tag:python"]
-        assert str(page) in cache.taxonomy_deps["tag:tutorial"]
+        assert "tag:python" in cache.taxonomy_index.taxonomy_deps
+        assert "tag:tutorial" in cache.taxonomy_index.taxonomy_deps
+        assert str(page) in cache.taxonomy_index.taxonomy_deps["tag:python"]
+        assert str(page) in cache.taxonomy_index.taxonomy_deps["tag:tutorial"]
 
     def test_track_multiple_dependencies(self, tmp_path):
         """Test tracking multiple dependencies for a page."""
@@ -378,7 +378,7 @@ class TestCrossVersionDependencies:
 
         # Wait for all threads
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # No errors should have occurred
         assert len(errors) == 0

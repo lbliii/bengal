@@ -8,13 +8,14 @@ Thread-safe: Protocols are type-only constructs, no runtime overhead.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
 from patitas.nodes import Block, Inline
 from patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
-    from bengal.directives.cache import DirectiveCache
+    from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.utils import HeadingInfo
 
@@ -43,19 +44,21 @@ class HtmlRendererProtocol(Protocol):
     @property
     def _rosettes_available(self) -> bool: ...
 
-    @property
-    def _delegate(self) -> LexerDelegate | None: ...
+    # Per-render state (slot attributes, not properties)
+    _delegate: LexerDelegate | None
+    _directive_cache: DirectiveCache | None
+    _page_context: Any | None
+    _xref_index: dict[str, Any] | None
+    _site: Any | None
 
     @property
     def _directive_registry(self) -> Any | None: ...
 
+    # Properties that return callables (used as self._heading_slugify(text))
     @property
-    def _directive_cache(self) -> DirectiveCache | None: ...
+    def _heading_slugify(self) -> Callable[[str], str]: ...
 
-    # Methods that mixins call
-    def _heading_slugify(self, text: str) -> str: ...
-
-    def _get_unique_slug(self, base: str) -> str: ...
+    def _get_unique_slug(self, text: str) -> str: ...
 
     def _render_inline_children(
         self, children: list[Inline] | tuple[Inline, ...], sb: StringBuilder

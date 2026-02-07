@@ -159,7 +159,7 @@ class TestTagsToList:
 
     def test_returns_empty_for_non_iterable(self) -> None:
         """Test that non-iterable returns empty list."""
-        result = tags_to_list(42)  # type: ignore[arg-type]
+        result = tags_to_list(42)
 
         assert result == []
 

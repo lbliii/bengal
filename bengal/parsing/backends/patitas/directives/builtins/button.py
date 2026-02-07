@@ -195,7 +195,7 @@ class ButtonDirective:
     def _render_icon(icon_name: str, button_text: str = "") -> str:
         """Render icon for button using Bengal SVG icons."""
         try:
-            from bengal.directives._icons import render_icon, warn_missing_icon
+            from bengal.icons.svg import render_icon, warn_missing_icon
 
             icon_html = render_icon(icon_name, size=18)
 

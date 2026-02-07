@@ -21,6 +21,7 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.protocols import SiteConfig
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
@@ -28,8 +29,11 @@ from bengal.utils.paths.url_normalization import path_to_slug
 if TYPE_CHECKING:
     from kida.template import Template
 
-    from bengal.core.page import Page
-    from bengal.protocols import TemplateEngine
+    from bengal.build.tracking.tracker import DependencyTracker
+    from bengal.cache import BuildCache
+    from bengal.orchestration.stats.models import BuildStats
+    from bengal.protocols import OutputCollector, PageLike, TemplateEngine
+    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -71,13 +75,14 @@ class AutodocRenderer:
 
     def __init__(
         self,
-        site: Any,
+        site: SiteConfig,
         template_engine: TemplateEngine,
         renderer: Renderer,
-        dependency_tracker: Any = None,
-        output_collector: Any = None,
-        build_stats: Any = None,
-        write_behind: Any = None,
+        dependency_tracker: DependencyTracker | None = None,
+        output_collector: OutputCollector | None = None,
+        build_stats: BuildStats | None = None,
+        write_behind: WriteBehindCollector | None = None,
+        build_cache: BuildCache | None = None,
     ):
         """
         Initialize the autodoc renderer.
@@ -90,6 +95,8 @@ class AutodocRenderer:
             output_collector: Optional output collector for hot reload tracking
             build_stats: Optional BuildStats for error tracking and deduplication
             write_behind: Optional write-behind collector for async I/O
+            build_cache: Optional BuildCache for direct cache access. If None,
+                falls back to dependency_tracker.cache for backward compatibility.
         """
         self.site = site
         self.template_engine = template_engine
@@ -98,8 +105,27 @@ class AutodocRenderer:
         self.output_collector = output_collector
         self.build_stats = build_stats
         self.write_behind = write_behind
+        self.build_cache = build_cache or (
+            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+        )
 
-    def process_virtual_page(self, page: Page) -> None:
+        # PERF: Cache autodoc config to avoid repeated lookups per page render.
+        # Autodoc config is immutable during a build, so we cache it once.
+        self._autodoc_config: dict[str, Any] = {}
+        self._doc_type: str | None = None
+        if site and isinstance(site, SiteConfig):
+            config = site.config
+            if isinstance(config, dict):
+                self._autodoc_config = config.get("autodoc", {})
+                # Determine doc_type once
+                if "python" in self._autodoc_config:
+                    self._doc_type = "python"
+                elif "cli" in self._autodoc_config:
+                    self._doc_type = "cli"
+                elif "openapi" in self._autodoc_config:
+                    self._doc_type = "openapi"
+
+    def process_virtual_page(self, page: PageLike) -> None:
         """
         Process a virtual page with pre-rendered HTML content.
 
@@ -131,6 +157,7 @@ class AutodocRenderer:
                 self.dependency_tracker,
                 collector=self.output_collector,
                 write_behind=self.write_behind,
+                build_cache=self.build_cache,
             )
             logger.debug(
                 "autodoc_page_rendered",
@@ -139,7 +166,7 @@ class AutodocRenderer:
             )
             return
 
-        page.parsed_ast = page._prerendered_html
+        page.html_content = page._prerendered_html
         page.toc = ""
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
@@ -158,7 +185,7 @@ class AutodocRenderer:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
         else:
             # Wrap content fragment with template
-            html_content = self.renderer.render_content(page.parsed_ast or "")
+            html_content = self.renderer.render_content(page.html_content or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -168,6 +195,7 @@ class AutodocRenderer:
             self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
+            build_cache=self.build_cache,
         )
 
         logger.debug(
@@ -177,7 +205,7 @@ class AutodocRenderer:
             is_complete_page=is_complete_page,
         )
 
-    def _render_autodoc_page(self, page: Page) -> None:
+    def _render_autodoc_page(self, page: PageLike) -> None:
         """
         Render an autodoc page using the site's template engine.
 
@@ -213,13 +241,13 @@ class AutodocRenderer:
                 template=template_name,
                 error=str(e),
             )
-            # Tag page metadata to indicate fallback was used
-            page.metadata["_autodoc_fallback_template"] = True
-            page.metadata["_autodoc_fallback_reason"] = str(e)
+            # Tag page to indicate fallback was used (explicit attributes, not metadata)
+            page._autodoc_fallback_template = True
+            page._autodoc_fallback_reason = str(e)
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
             page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.parsed_ast = page._prerendered_html
+            page.html_content = page._prerendered_html
             page.toc = ""
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
@@ -285,7 +313,7 @@ class AutodocRenderer:
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
             page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.parsed_ast = page._prerendered_html
+            page.html_content = page._prerendered_html
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
@@ -293,7 +321,7 @@ class AutodocRenderer:
             return
 
         page._prerendered_html = html_content
-        page.parsed_ast = html_content
+        page.html_content = html_content
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
@@ -346,6 +374,10 @@ class AutodocRenderer:
         Ensure autodoc element metadata supports both dotted and mapping access.
         Also adds href property to elements and their children for URL access.
 
+        PERF: Elements are pre-normalized during page creation (page_builders.py).
+        This method now acts as a fallback for elements that weren't pre-normalized.
+        The _normalized flag check in _coerce() provides early exit.
+
         Args:
             element: Autodoc element to normalize
 
@@ -355,19 +387,9 @@ class AutodocRenderer:
         if element is None:
             return None
 
-        # Determine doc_type from page metadata or template name
-        doc_type = None
-        autodoc_config: dict[str, Any] = {}
-        if hasattr(self, "site") and self.site and hasattr(self.site, "config"):
-            config = self.site.config
-            if isinstance(config, dict):
-                autodoc_config = config.get("autodoc", {})
-                if "python" in autodoc_config:
-                    doc_type = "python"
-                elif "cli" in autodoc_config:
-                    doc_type = "cli"
-                elif "openapi" in autodoc_config:
-                    doc_type = "openapi"
+        # PERF: Use cached config (set in __init__) to avoid repeated lookups
+        doc_type = self._doc_type
+        autodoc_config = self._autodoc_config
 
         def _compute_element_url(elem: Any, elem_type: str | None = None) -> str:
             """Compute URL for an element based on its qualified_name and type."""
@@ -425,6 +447,12 @@ class AutodocRenderer:
             return MetadataView({})
 
         def _coerce(obj: Any) -> None:
+            # PERF: Skip already-normalized elements to avoid redundant work.
+            # Elements are normalized once per build and reused across renders.
+            # This prevents O(n*m) behavior where n=pages, m=children per element.
+            if getattr(obj, "_normalized", False):
+                return
+
             # Ensure children attribute exists and is a list (templates rely on it)
             # Use try/except to handle objects that don't support attribute assignment
             try:
@@ -468,7 +496,9 @@ class AutodocRenderer:
                         meta["properties"] = normalized_props
 
             # Add href property for URL access in templates
-            if not hasattr(obj, "href"):
+            # PERF: Skip if href already set (page_builders.py sets this via compute_element_urls)
+            existing_href = getattr(obj, "href", None)
+            if not existing_href:
                 try:
                     href = _compute_element_url(obj, getattr(obj, "element_type", None))
                     obj.href = href
@@ -482,6 +512,14 @@ class AutodocRenderer:
             if children and isinstance(children, (list, tuple)):
                 for child in children:
                     _coerce(child)
+
+            # Mark as normalized to avoid redundant processing on subsequent renders
+            try:
+                obj._normalized = True
+            except (AttributeError, TypeError):
+                # Object doesn't support attribute assignment - best effort
+                with suppress(AttributeError, TypeError):
+                    obj.__dict__["_normalized"] = True
 
         _coerce(element)
         return element

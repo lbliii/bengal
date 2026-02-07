@@ -363,7 +363,7 @@ class ConfigSnapshot:
 
             theme = ThemeSection(
                 name=str(theme_data.get("name", "default")),
-                default_appearance=appearance,  # type: ignore[arg-type]
+                default_appearance=appearance,
                 default_palette=str(theme_data.get("default_palette", "snow-lynx")),
                 features=features_tuple,
                 show_reading_time=bool(theme_data.get("show_reading_time", True)),
@@ -401,9 +401,9 @@ class ConfigSnapshot:
                 related_threshold=float(content_data.get("related_threshold", 0.25)),
                 toc_depth=int(content_data.get("toc_depth", 4)),
                 toc_min_headings=int(content_data.get("toc_min_headings", 2)),
-                toc_style=toc_style,  # type: ignore[arg-type]
-                sort_pages_by=sort_by,  # type: ignore[arg-type]
-                sort_order=sort_order,  # type: ignore[arg-type]
+                toc_style=toc_style,
+                sort_pages_by=sort_by,
+                sort_order=sort_order,
             )
         else:
             content = ContentSection()

@@ -236,6 +236,7 @@ def create_default_registry() -> DirectiveRegistry:
         DataTableDirective,
         DeprecatedDirective,
         DropdownDirective,
+        GlossaryDirective,
         # Misc
         ExampleLabelDirective,
         FigureDirective,
@@ -248,6 +249,7 @@ def create_default_registry() -> DirectiveRegistry:
         # Tables
         ListTableDirective,
         LiteralIncludeDirective,
+        MarimoDirective,
         PrevNextDirective,
         RelatedDirective,
         RubricDirective,
@@ -346,5 +348,11 @@ def create_default_registry() -> DirectiveRegistry:
 
     # Code
     builder.register(CodeTabsDirective())
+
+    # Glossary
+    builder.register(GlossaryDirective())
+
+    # Marimo (executable Python)
+    builder.register(MarimoDirective())
 
     return builder.build()

@@ -2,11 +2,11 @@
 Page Content Mixin - AST-based content representation.
 
 This module provides the true AST architecture for content processing,
-replacing the misleading `parsed_ast` field (which actually contains HTML).
+providing structured content access (HTML, plain text, AST).
 
 Architecture:
 - _ast: True AST from parser (list of tokens) - Phase 3
-- html: HTML rendered from AST (or legacy parsed_ast)
+- html: HTML rendered from AST (or html_content field)
 - plain_text: Plain text for search/LLM (AST walk or raw markdown)
 
 Benefits:
@@ -14,11 +14,6 @@ Benefits:
 - Faster post-processing (O(n) AST walks vs regex)
 - Cleaner transformations (shortcodes at AST level)
 - Better caching (cache AST separately from HTML)
-
-Migration Plan:
-Phase 1: Add html, plain_text properties (non-breaking)
-Phase 2: Deprecate parsed_ast
-Phase 3: Implement true AST with hybrid fallback
 
 See: plan/active/rfc-content-ast-architecture.md
 
@@ -55,10 +50,8 @@ class PageContentMixin:
 
     # Fields from Page that this mixin accesses
     _raw_content: str
-    # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
-    # The ASTNode types in bengal.parsing.ast.types are for future AST-based
-    # processing. See plan/ready/plan-type-system-hardening.md for migration path.
-    parsed_ast: Any
+    # HTML content rendered from Markdown by Patitas parser.
+    html_content: str | None
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)
@@ -123,7 +116,7 @@ class PageContentMixin:
         HTML content rendered from AST or legacy parser.
 
         This is the preferred way to access rendered HTML content.
-        Use this instead of the deprecated `parsed_ast` field.
+        Preferred access over direct html_content field.
 
         Returns:
             Rendered HTML string
@@ -143,8 +136,7 @@ class PageContentMixin:
                 self._html_cache = html
             return html
 
-        # Phase 1/2 fallback: Delegate to parsed_ast (which is actually HTML)
-        return self.parsed_ast if self.parsed_ast else ""
+        return self.html_content if self.html_content else ""
 
     @property
     def plain_text(self) -> str:
@@ -175,7 +167,7 @@ class PageContentMixin:
             return text
 
         # Fallback: Use HTML-based extraction (works correctly with directives)
-        html_content = getattr(self, "parsed_ast", None) or ""
+        html_content = getattr(self, "html_content", None) or ""
         if html_content:
             text = strip_html_and_normalize(html_content)
         else:
@@ -190,7 +182,9 @@ class PageContentMixin:
         """
         Render AST tokens to HTML.
 
-        Internal method used when true AST is available (Phase 3).
+        Internal method for future AST-based pipeline (Phase 3).
+        Currently returns empty string — Patitas renders directly to HTML
+        and does not populate _ast_cache.
 
         Returns:
             Rendered HTML string
@@ -198,26 +192,14 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        try:
-            # Mistune 3.x requires HTMLRenderer instance and BlockState
-            from mistune.core import BlockState
-            from mistune.renderers.html import HTMLRenderer
-
-            renderer = HTMLRenderer()
-            state = BlockState()
-            # Cast to expected type - ASTNode TypedDicts are dict subtypes
-            return renderer(cast(list[dict[str, Any]], self._ast_cache), state)
-        except (ImportError, AttributeError, Exception) as e:
-            # Fallback to empty string if rendering fails
-            emit_diagnostic(
-                self,
-                "debug",
-                "page_ast_to_html_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="returning_empty_string",
-            )
-            return ""
+        # Future: implement AST-to-HTML rendering when AST pipeline lands
+        emit_diagnostic(
+            self,
+            "debug",
+            "page_ast_to_html_not_implemented",
+            action="returning_empty_string",
+        )
+        return ""
 
     def _extract_text_from_ast(self) -> str:
         """

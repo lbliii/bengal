@@ -297,9 +297,9 @@ class VersionResolver:
             if hasattr(page.core, "__dict__"):
                 # Mutable - can set directly
                 object.__setattr__(page.core, "version", version.id)
-            elif hasattr(page, "metadata"):
-                # Fallback to metadata
-                page.metadata["version"] = version.id
+            elif hasattr(page, "_raw_metadata"):
+                # Fallback to raw metadata (metadata property is immutable CascadeView)
+                page._raw_metadata["version"] = version.id
 
     def get_version_url_prefix(self, version: Version | None) -> str:
         """

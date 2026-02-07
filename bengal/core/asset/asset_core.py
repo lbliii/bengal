@@ -430,7 +430,7 @@ class Asset:
         if self.source_path.name.endswith(".min.js"):
             return
         try:
-            from jsmin import jsmin  # type: ignore[import-untyped]
+            from jsmin import jsmin
 
             with open(self.source_path, encoding="utf-8") as f:
                 js_content = f.read()
@@ -659,7 +659,12 @@ class Asset:
             # stale fingerprinted output path (if any) instead of scanning directories.
             if site is not None:
                 try:
-                    prev: AssetManifest | None = getattr(site, "_asset_manifest_previous", None)
+                    # Prefer BuildState (fresh each build), fall back to Site
+                    _bs = getattr(site, "build_state", None)
+                    prev: AssetManifest | None = (
+                        getattr(_bs, "asset_manifest_previous", None) if _bs is not None
+                        else getattr(site, "_asset_manifest_previous", None)
+                    )
                     if prev is not None and self.logical_path is not None:
                         logical_str = self.logical_path.as_posix()
                         prev_entry = prev.get(logical_str)

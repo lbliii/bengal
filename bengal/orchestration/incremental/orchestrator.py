@@ -34,6 +34,7 @@ from bengal.orchestration.incremental.effect_detector import (
     EffectBasedDetector,
     create_detector_from_build,
 )
+from bengal.protocols import SectionLike
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.effects.tracer import EffectTracer
     from bengal.orchestration.build.coordinator import CacheCoordinator
 
 logger = get_logger(__name__)
@@ -70,6 +72,7 @@ class IncrementalOrchestrator:
         site: Site instance for incremental builds
         cache: BuildCache instance for build state persistence
         tracker: DependencyTracker instance for dependency graph construction
+        effect_tracer: EffectTracer for effect-based dependency tracking
         _cache_manager: CacheManager instance for cache operations
         _detector: EffectBasedDetector instance for change detection
 
@@ -91,6 +94,7 @@ class IncrementalOrchestrator:
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
         self.coordinator: CacheCoordinator | None = None
+        self.effect_tracer: EffectTracer | None = None
 
         # Component instances
         self._cache_manager = CacheManager(site)
@@ -111,6 +115,9 @@ class IncrementalOrchestrator:
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
         # Expose coordinator for use by detectors
         self.coordinator = self._cache_manager.coordinator
+        # Expose EffectTracer alongside DependencyTracker (parallel tracking)
+        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        self.effect_tracer = self._cache_manager.effect_tracer
         # Create unified detector from effect tracer
         self._detector = create_detector_from_build(self.site)
         return self.cache, self.tracker
@@ -416,7 +423,7 @@ class IncrementalOrchestrator:
                     # Also mark subsection pages
                     self._add_subsection_pages(section, cascade_rebuild)
                     break
-                elif hasattr(section, "pages") and page in section.pages:
+                elif isinstance(section, SectionLike) and page in section.pages:
                     # Regular page with cascade in a section
                     for section_page in section.pages:
                         cascade_rebuild.add(section_page.source_path)
@@ -434,7 +441,7 @@ class IncrementalOrchestrator:
         if not hasattr(section, "subsections"):
             return
         for subsection in section.subsections:
-            if hasattr(subsection, "pages"):
+            if isinstance(subsection, SectionLike):
                 for page in subsection.pages:
                     rebuild_set.add(page.source_path)
             self._add_subsection_pages(subsection, rebuild_set)
@@ -493,7 +500,7 @@ class IncrementalOrchestrator:
                     if (hasattr(section, "index_page") and section.index_page is page) or (
                         hasattr(section, "path") and section.path == path.parent
                     ):
-                        if hasattr(section, "pages"):
+                        if isinstance(section, SectionLike):
                             for section_page in section.pages:
                                 nav_rebuild.add(section_page.source_path)
                         break
@@ -617,13 +624,15 @@ class IncrementalOrchestrator:
         """
         Update cache with processed files.
 
-        Delegates to CacheManager.
+        Delegates to CacheManager. Also saves EffectTracer state.
 
         Args:
             pages_built: Pages that were built
             assets_processed: Assets that were processed
         """
         self._cache_manager.cache = self.cache
+        # Sync EffectTracer back to CacheManager for persistence
+        self._cache_manager._effect_tracer = self.effect_tracer
         self._cache_manager.save(pages_built, assets_processed)
 
     def _check_shared_content_changes(

@@ -7,33 +7,57 @@ across all render threads without locks.
 
 Architecture:
 - CascadeSnapshot is created at the start of content discovery
-- Contains a mapping of section_path -> cascade dict
-- Provides O(depth) resolve() for cascade key lookup
+- Contains raw cascade blocks per section (_data) and pre-merged cascade (_merged)
+- Pre-merged cascade enables O(1) resolution (no tree walking needed)
+- Cascade inheritance: child sections inherit from parents, local values override
 - Immutable (frozen dataclass) for thread-safety in free-threading builds
-- Supports eager merge via apply_to_page() for duality elimination
 
-Eager Cascade Merge:
-    After building the snapshot, cascade values are merged into each page's
-    metadata via apply_to_page(). This eliminates the duality between
-    page.metadata.get("type") and page.type - they now return the same value.
+Pre-Merged Cascade:
+    The _merged field stores fully resolved cascade for each section path.
+    This includes inherited values from all parent sections, with child
+    values overriding parent values. Resolution becomes O(1) instead of O(depth).
+
+    Example:
+        _data (raw blocks):
+            "docs": {"type": "doc"}
+            "docs/guide": {"layout": "sidebar"}
+
+        _merged (pre-computed):
+            "docs": {"type": "doc"}
+            "docs/guide": {"type": "doc", "layout": "sidebar"}  # inherits type!
+
+Cascade Block Merging:
+    Unlike the previous design where child sections had to repeat parent
+    cascade values, the pre-merged approach automatically inherits:
+
+        # docs/_index.md
+        cascade:
+          type: doc
+
+        # docs/guide/_index.md (only needs to add new values)
+        cascade:
+          layout: sidebar
+
+        # Pages in docs/guide/ automatically get both type AND layout!
 
 Usage:
     # At build start
     snapshot = CascadeSnapshot.build(content_dir, sections)
     site._cascade_snapshot = snapshot
 
-    # Apply cascade values to pages (eager merge)
-    for page in pages:
-        snapshot.apply_to_page(page, content_dir)
+    # Resolution is O(1) via pre-merged data
+    snapshot.resolve("docs/guide", "type")  # Returns "doc" (inherited)
 
-    # After eager merge, both access patterns return the same value
-    assert page.metadata.get("type") == page.type
+    # Or use with CascadeView for dict-like access
+    from bengal.core.cascade import CascadeView
+    view = CascadeView.for_page(frontmatter, "docs/guide", snapshot)
 
 Benefits:
-- No timing issues (snapshot built before pages processed)
+- O(1) resolution (pre-merged, no tree walking)
+- Cascade inheritance (child inherits parent automatically)
 - Lock-free parallel rendering (frozen data structure)
 - Clean incremental builds (atomic snapshot swap)
-- Single source of truth (metadata.get() == property access)
+- Single source of truth for cascade values
 """
 
 from __future__ import annotations
@@ -48,7 +72,7 @@ from bengal.utils.paths.normalize import to_posix
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,17 +86,24 @@ class CascadeSnapshot:
     it cannot be mutated after creation.
 
     Attributes:
-        _data: Mapping of section_path (str) to cascade dict.
-               e.g., {"docs": {"type": "doc", "layout": "docs-layout"}}
+        _data: Mapping of section_path (str) to RAW cascade dict (only local values).
+               e.g., {"docs": {"type": "doc"}, "docs/guide": {"layout": "sidebar"}}
+               Used for get_cascade_for_section() and backward compatibility.
+
+        _merged: Mapping of section_path (str) to MERGED cascade dict (inherited + local).
+                 e.g., {"docs": {"type": "doc"}, "docs/guide": {"type": "doc", "layout": "sidebar"}}
+                 Used for O(1) resolution via resolve() and get_cascade_keys().
+
         _content_dir: Content directory path for relative path computation.
 
     Example:
         >>> snapshot = CascadeSnapshot.build(content_dir, sections)
         >>> snapshot.resolve("docs/guide", "type")
-        "doc"  # Inherited from "docs" section
+        "doc"  # Inherited from "docs" section (O(1) lookup in _merged)
     """
 
     _data: dict[str, dict[str, Any]] = field(default_factory=dict)
+    _merged: dict[str, dict[str, Any]] = field(default_factory=dict)
     _content_dir: str = ""
 
     @staticmethod
@@ -160,11 +191,15 @@ class CascadeSnapshot:
 
     def resolve(self, section_path: str, key: str) -> Any:
         """
-        Resolve a cascade value by walking up the section hierarchy.
+        Resolve a cascade value using pre-merged cascade data.
 
-        This implements the cascade inheritance: a page in "docs/guide/advanced"
-        will inherit cascade values from "docs/guide", then "docs", then root.
-        The first section that defines the key wins (nearest ancestor).
+        With pre-merged cascade, resolution is O(1): we look up the section's
+        merged cascade dict directly. The merged dict already contains all
+        inherited values from parent sections.
+
+        For section paths not explicitly in _merged (e.g., deeply nested paths
+        without their own cascade), we fall back to walking up to find the
+        nearest ancestor with merged data.
 
         Args:
             section_path: Path to the page's section (absolute or relative).
@@ -172,35 +207,52 @@ class CascadeSnapshot:
             key: Cascade key to look up (e.g., "type", "layout", "variant")
 
         Returns:
-            The cascade value from the nearest ancestor section, or None.
+            The cascade value, or None if not found.
 
         Complexity:
-            O(depth) where depth is the section nesting level (typically 2-4)
+            O(1) for paths in _merged, O(depth) fallback for unknown paths.
         """
         # Normalize path to content-relative format for consistent lookup
         path = self._normalize_section_path(section_path)
 
+        # Use pre-merged data if available, otherwise fall back to _data tree walking
+        # (backward compatibility for direct construction without from_data() or build())
+        use_merged = bool(self._merged)
+        data_source = self._merged if use_merged else self._data
+
+        # Fast path: direct lookup in data source
+        if path in data_source:
+            value = data_source[path].get(key)
+            if value is not None or (use_merged and key in data_source[path]):
+                return value
+            # If using _data (not merged), continue to walk up for inheritance
+            if use_merged:
+                return None  # _merged already has inherited values
+
+        # Walk up to find nearest ancestor with data
+        # For _merged: handles unregistered deep paths
+        # For _data: implements cascade inheritance
         while path:
-            cascade = self._data.get(path, {})
-            if key in cascade:
-                return cascade[key]
-            # Move up: "docs/guide/advanced" -> "docs/guide" -> "docs" -> ""
+            if path in data_source:
+                value = data_source[path].get(key)
+                if value is not None:
+                    return value
             if "/" in path:
-                path = "/".join(path.split("/")[:-1])
+                path = path.rsplit("/", 1)[0]
             else:
-                # Check root level cascade (path == "." or section name without /)
                 break
 
-        # Check root cascade (empty string or ".")
-        root_cascade = self._data.get("", {}) or self._data.get(".", {})
-        return root_cascade.get(key)
+        # Check root cascade
+        root_data = data_source.get("", {}) or data_source.get(".", {})
+        return root_data.get(key)
 
     def resolve_all(self, section_path: str) -> dict[str, Any]:
         """
         Resolve all cascade values for a section path.
 
-        This computes the merged cascade by walking from root to the target
-        section, with child sections overriding parent values.
+        With pre-merged cascade, this is O(1): we return a copy of the
+        section's merged cascade dict. For paths not in _merged, we
+        fall back to finding the nearest ancestor or computing the merge.
 
         Args:
             section_path: Path to the page's section (absolute or relative).
@@ -210,10 +262,31 @@ class CascadeSnapshot:
             Merged cascade dict with all inherited and local values.
             Returns a new dict (safe to modify without affecting snapshot).
         """
-        result: dict[str, Any] = {}
-
         # Normalize path to content-relative format for consistent lookup
         normalized_path = self._normalize_section_path(section_path)
+
+        # Use pre-merged data if available
+        if self._merged:
+            # Fast path: direct lookup in pre-merged data
+            if normalized_path in self._merged:
+                return dict(self._merged[normalized_path])
+
+            # Fallback: walk up to find nearest ancestor with merged data
+            path = normalized_path
+            while path:
+                if path in self._merged:
+                    return dict(self._merged[path])
+                if "/" in path:
+                    path = path.rsplit("/", 1)[0]
+                else:
+                    break
+
+            # Return root cascade
+            root_merged = self._merged.get("", {}) or self._merged.get(".", {})
+            return dict(root_merged)
+
+        # Backward compatibility: compute merge from _data (tree walking)
+        result: dict[str, Any] = {}
 
         # Build path components from root to target
         if not normalized_path or normalized_path == ".":
@@ -237,9 +310,9 @@ class CascadeSnapshot:
         """
         Get all keys that could be cascaded to a section path.
 
-        Walks up the section hierarchy collecting all cascade keys from
-        each ancestor section. This is useful for determining which keys
-        need to be applied to a page.
+        With pre-merged cascade, this is O(1): we return the keys from
+        the section's merged cascade dict. For paths not in _merged,
+        we fall back to finding the nearest ancestor or computing keys.
 
         Args:
             section_path: Path to the page's section (absolute or relative).
@@ -249,11 +322,31 @@ class CascadeSnapshot:
             Set of all cascade keys that could apply to this section.
 
         Complexity:
-            O(depth * keys) where depth is the section nesting level
+            O(1) for paths in _merged, O(depth) fallback for unknown paths.
         """
-        keys: set[str] = set()
         path = self._normalize_section_path(section_path)
 
+        # Use pre-merged data if available
+        if self._merged:
+            # Fast path: direct lookup in pre-merged data
+            if path in self._merged:
+                return set(self._merged[path].keys())
+
+            # Fallback: walk up to find nearest ancestor with merged data
+            while path:
+                if path in self._merged:
+                    return set(self._merged[path].keys())
+                if "/" in path:
+                    path = path.rsplit("/", 1)[0]
+                else:
+                    break
+
+            # Return root cascade keys
+            root_merged = self._merged.get("", {}) or self._merged.get(".", {})
+            return set(root_merged.keys())
+
+        # Backward compatibility: collect keys from _data (tree walking)
+        keys: set[str] = set()
         while path:
             if path in self._data:
                 keys.update(self._data[path].keys())
@@ -267,105 +360,11 @@ class CascadeSnapshot:
         keys.update(root.keys())
         return keys
 
-    def _get_section_path_from_page(self, page: Any, content_dir: Path) -> str:
-        """
-        Extract and normalize section path from a page object.
-
-        Handles different page types (Page, PageProxy) and their various
-        ways of storing section information.
-
-        Args:
-            page: Page or PageProxy object
-            content_dir: Content directory for relative path computation
-
-        Returns:
-            Normalized section path string for cascade lookup
-        """
-        # Try to get section path from various sources
-        section_path = ""
-
-        # PageProxy stores section in core.section
-        if (
-            hasattr(page, "core")
-            and page.core is not None
-            and hasattr(page.core, "section")
-            and page.core.section
-        ):
-            section_path = page.core.section
-
-        # Page has _section attribute
-        if (
-            not section_path
-            and hasattr(page, "_section")
-            and page._section is not None
-            and hasattr(page._section, "path")
-            and page._section.path is not None
-        ):
-            try:
-                section_path = str(page._section.path.relative_to(content_dir))
-            except ValueError:
-                # Use normalization that handles /content/ patterns
-                section_path = str(page._section.path)
-
-        # Fallback: derive from source_path
-        if not section_path and hasattr(page, "source_path"):
-            try:
-                rel_path = page.source_path.relative_to(content_dir)
-                # Section is the parent directory
-                if rel_path.parent != Path("."):
-                    section_path = str(rel_path.parent)
-            except (ValueError, AttributeError):
-                # source_path not relative to content_dir - use path normalization
-                # This handles test scenarios with mismatched paths
-                parent = page.source_path.parent
-                section_path = str(parent)
-
-        return self._normalize_section_path(section_path)
-
-    def apply_to_page(self, page: Any, content_dir: Path) -> set[str]:
-        """
-        Merge resolved cascade values into page's metadata.
-
-        This implements eager cascade merge: after calling this method,
-        `page.metadata.get("key")` and `page.key` will return the same value
-        for cascadable keys, eliminating the duality between the two access
-        patterns.
-
-        Args:
-            page: Page or PageProxy object with a mutable `metadata` dict
-            content_dir: Content directory root for section path calculation
-
-        Returns:
-            Set of keys that were added from cascade (not overwritten).
-
-        Behavior:
-            - Frontmatter values take precedence over cascade
-            - Only keys defined in ancestor cascade blocks are considered
-            - Tracks which keys came from cascade via `_cascade_keys` metadata
-        """
-        section_path = self._get_section_path_from_page(page, content_dir)
-        applied_keys: set[str] = set()
-
-        # Get all keys that could be cascaded to this section
-        for key in self.get_cascade_keys(section_path):
-            if key not in page.metadata:  # Frontmatter wins
-                value = self.resolve(section_path, key)
-                if value is not None:
-                    page.metadata[key] = value
-                    applied_keys.add(key)
-
-        # Track origin for debugging and provenance
-        existing_cascade_keys = page.metadata.get("_cascade_keys", [])
-        if applied_keys:
-            page.metadata["_cascade_keys"] = list(set(existing_cascade_keys) | applied_keys)
-
-        return applied_keys
-
     @classmethod
     def build(
         cls,
         content_dir: Path,
-        sections: list[Section],
+        sections: list[SectionLike],
         root_cascade: dict[str, Any] | None = None,
     ) -> CascadeSnapshot:
         """
@@ -375,6 +374,13 @@ class CascadeSnapshot:
         index pages (_index.md). The resulting snapshot is immutable and
         can be safely shared across threads.
 
+        Process:
+            1. Collect raw cascade blocks from each section's _index.md
+            2. Pre-compute merged cascade for each section path:
+               - Start with root cascade (if any)
+               - For each section path, inherit parent's merged cascade
+               - Override with section's local cascade block
+
         Args:
             content_dir: Root content directory for computing relative paths.
             sections: List of all sections in the site.
@@ -382,43 +388,69 @@ class CascadeSnapshot:
                          that applies site-wide.
 
         Returns:
-            Frozen CascadeSnapshot with all cascade data.
+            Frozen CascadeSnapshot with raw (_data) and merged (_merged) cascade.
 
         Note:
-            Sections without index pages or without cascade metadata are
-            skipped. This is normal for leaf sections that inherit cascade.
+            Sections without index pages or without cascade metadata still
+            get entries in _merged (inheriting from parent), but no entry
+            in _data.
         """
         data: dict[str, dict[str, Any]] = {}
+        all_section_paths: list[str] = []
 
         # Add root cascade if provided (from pages not in any section)
         if root_cascade:
             data[""] = dict(root_cascade)
 
+        # Phase 1: Collect raw cascade blocks and all section paths
         for section in sections:
+            # Compute and normalize section path for consistent lookups
+            if section.path is None:
+                section_path = ""
+            else:
+                section_path = cls._normalize_path_static(
+                    str(section.path), str(content_dir)
+                )
+
+            all_section_paths.append(section_path)
+
             # Get cascade from index page metadata first (preferred)
             # Fall back to section.metadata["cascade"] for backward compatibility
-            # with tests and programmatically-created sections
             cascade = {}
             if section.index_page:
                 cascade = section.index_page.metadata.get("cascade", {})
             if not cascade:
                 cascade = section.metadata.get("cascade", {})
-            if not cascade:
-                continue
+            if cascade:
+                data[section_path] = dict(cascade)  # Copy to ensure immutability
 
-            # Compute and normalize section path for consistent lookups
-            if section.path is None:
-                # Virtual section or root
-                section_path = ""
-            else:
-                # Use the shared normalization logic for consistent key format
-                section_path = cls._normalize_path_static(
-                    str(section.path), str(content_dir)
-                )
+        # Phase 2: Pre-compute merged cascade for each section path
+        # Sort paths by depth (parent before child) for proper inheritance
+        all_section_paths = sorted(set(all_section_paths), key=lambda p: p.count("/"))
 
-            data[section_path] = dict(cascade)  # Copy to ensure immutability
+        merged: dict[str, dict[str, Any]] = {}
 
-        return cls(_data=data, _content_dir=str(content_dir))
+        # Initialize root merged cascade
+        root_data = data.get("", {})
+        if root_data or "" in all_section_paths:
+            merged[""] = dict(root_data)
+
+        for section_path in all_section_paths:
+            if not section_path:
+                continue  # Root already handled
+
+            # Start with parent's merged cascade
+            parent_path = section_path.rsplit("/", 1)[0] if "/" in section_path else ""
+            parent_merged = merged.get(parent_path, merged.get("", {}))
+
+            # Create merged cascade: parent values + local overrides
+            section_merged = dict(parent_merged)
+            local_cascade = data.get(section_path, {})
+            section_merged.update(local_cascade)
+
+            merged[section_path] = section_merged
+
+        return cls(_data=data, _merged=merged, _content_dir=str(content_dir))
 
     @classmethod
     def empty(cls) -> CascadeSnapshot:
@@ -430,7 +462,67 @@ class CascadeSnapshot:
         Returns:
             Empty frozen CascadeSnapshot.
         """
-        return cls(_data={}, _content_dir="")
+        return cls(_data={}, _merged={}, _content_dir="")
+
+    @classmethod
+    def from_data(
+        cls,
+        data: dict[str, dict[str, Any]],
+        content_dir: str = "",
+    ) -> CascadeSnapshot:
+        """
+        Create a snapshot from raw cascade data with auto-computed merging.
+
+        This is useful for tests and backward compatibility when you want to
+        create a snapshot directly from cascade dictionaries without going
+        through the full build() process with Section objects.
+
+        The method automatically computes _merged from _data by processing
+        paths in depth order (parent before child).
+
+        Args:
+            data: Mapping of section_path (str) to cascade dict.
+                  e.g., {"docs": {"type": "doc"}, "docs/guide": {"layout": "sidebar"}}
+            content_dir: Content directory path for path normalization.
+
+        Returns:
+            CascadeSnapshot with both _data and _merged populated.
+
+        Example:
+            >>> snapshot = CascadeSnapshot.from_data({
+            ...     "docs": {"type": "doc"},
+            ...     "docs/guide": {"layout": "sidebar"},
+            ... })
+            >>> snapshot.resolve("docs/guide", "type")
+            "doc"  # Inherited from "docs"
+        """
+        # Copy data to ensure immutability
+        raw_data = {k: dict(v) for k, v in data.items()}
+
+        # Compute merged cascade for each path
+        # Sort paths by depth to ensure parent processed before child
+        all_paths = sorted(raw_data.keys(), key=lambda p: p.count("/") if p else -1)
+
+        merged: dict[str, dict[str, Any]] = {}
+
+        # Initialize root merged cascade (empty string key)
+        if "" in raw_data:
+            merged[""] = dict(raw_data[""])
+
+        for path in all_paths:
+            if not path:
+                continue  # Root already handled
+
+            # Get parent's merged cascade
+            parent_path = path.rsplit("/", 1)[0] if "/" in path else ""
+            parent_merged = merged.get(parent_path, merged.get("", {}))
+
+            # Create merged cascade: parent values + local overrides
+            path_merged = dict(parent_merged)
+            path_merged.update(raw_data.get(path, {}))
+            merged[path] = path_merged
+
+        return cls(_data=raw_data, _merged=merged, _content_dir=content_dir)
 
     def __len__(self) -> int:
         """Return number of sections with cascade data."""
@@ -440,3 +532,67 @@ class CascadeSnapshot:
         """Check if a section has cascade data defined."""
         normalized = self._normalize_section_path(section_path)
         return normalized in self._data
+
+
+# =========================================================================
+# Standalone builder (extracted from Site.build_cascade_snapshot)
+# =========================================================================
+
+
+def collect_all_sections(sections: list[Any]) -> list[Any]:
+    """
+    Flatten a section tree into a list including all nested subsections.
+
+    Args:
+        sections: Top-level section list (each may have .subsections)
+
+    Returns:
+        Flat list of all sections
+    """
+    result: list[Any] = []
+
+    def _recurse(items: list[Any]) -> None:
+        for section in items:
+            result.append(section)
+            if section.subsections:
+                _recurse(section.subsections)
+
+    _recurse(sections)
+    return result
+
+
+def build_cascade_from_content(
+    root_path: Path,
+    sections: list[Any],
+    pages: list[Any],
+) -> CascadeSnapshot:
+    """
+    Build an immutable CascadeSnapshot from site content.
+
+    Standalone function that replaces the bulk of Site.build_cascade_snapshot().
+    Gathers all sections (including nested), computes root-level cascade from
+    pages outside sections, and delegates to CascadeSnapshot.build().
+
+    Args:
+        root_path: Site root path
+        sections: Top-level section list
+        pages: All pages
+
+    Returns:
+        Frozen CascadeSnapshot ready for thread-safe access
+    """
+    all_sections = collect_all_sections(sections)
+    content_dir = root_path / "content"
+
+    # Collect root-level cascade from pages not in any section
+    # (handles content/index.md with cascade that applies site-wide)
+    pages_in_sections: set[Any] = set()
+    for section in all_sections:
+        pages_in_sections.update(section.get_all_pages(recursive=True))
+
+    root_cascade: dict[str, Any] = {}
+    for page in pages:
+        if page not in pages_in_sections and "cascade" in page.metadata:
+            root_cascade.update(page.metadata["cascade"])
+
+    return CascadeSnapshot.build(content_dir, all_sections, root_cascade=root_cascade)

@@ -36,7 +36,7 @@ from bengal.orchestration.css_manifest_types import CSSManifest, CSSOptimization
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -65,7 +65,7 @@ class CSSOptimizer:
 
     """
 
-    def __init__(self, site: Site) -> None:
+    def __init__(self, site: SiteLike) -> None:
         """
         Initialize CSS optimizer.
 
@@ -226,7 +226,11 @@ class CSSOptimizer:
         features: set[str] = set()
 
         # 1. Start with auto-detected features from discovery
-        if hasattr(self.site, "features_detected"):
+        # Prefer BuildState (fresh each build), fall back to Site field
+        _bs = getattr(self.site, "build_state", None)
+        if _bs is not None:
+            features.update(_bs.features_detected)
+        elif hasattr(self.site, "features_detected"):
             features.update(self.site.features_detected)
 
         # 2. Add explicit config overrides
@@ -475,7 +479,7 @@ class CSSOptimizer:
         return list(set(all_files))
 
 
-def optimize_css_for_site(site: Site) -> str:
+def optimize_css_for_site(site: SiteLike) -> str:
     """
     Convenience function to generate optimized CSS.
 

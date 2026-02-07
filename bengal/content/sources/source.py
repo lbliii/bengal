@@ -83,7 +83,7 @@ class ContentSource(ABC):
         """
         ...
         # Make this a generator
-        yield  # type: ignore  # pragma: no cover
+        yield  # pragma: no cover
 
     @abstractmethod
     async def fetch_one(self, id: str) -> ContentEntry | None:

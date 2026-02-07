@@ -42,7 +42,7 @@ Related Modules:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.pipeline.thread_local import mark_dir_created
 from bengal.utils.observability.logger import get_logger
@@ -51,14 +51,13 @@ from bengal.utils.paths.url_strategy import URLStrategy
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
     from bengal.core.output import OutputCollector
-    from bengal.core.page import Page
-    from bengal.core.site import Site
+    from bengal.protocols import PageLike, SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 logger = get_logger(__name__)
 
 
-def determine_output_path(page: Page, site: Site) -> Path:
+def determine_output_path(page: PageLike, site: SiteLike) -> Path:
     """
     Determine the output path for a page.
 
@@ -75,7 +74,7 @@ def determine_output_path(page: Page, site: Site) -> Path:
     return URLStrategy.compute_regular_page_output_path(page, site)
 
 
-def determine_template(page: Page) -> str:
+def determine_template(page: PageLike) -> str:
     """
     Determine which template will be used for this page.
 
@@ -114,11 +113,12 @@ def determine_template(page: Page) -> str:
 
 
 def write_output(
-    page: Page,
-    site: Site,
+    page: PageLike,
+    site: SiteLike,
     dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
     write_behind: WriteBehindCollector | None = None,
+    build_cache: Any = None,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -139,6 +139,8 @@ def write_output(
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload tracking
         write_behind: Optional write-behind collector for async writes
+        build_cache: Optional BuildCache for direct cache access. If None,
+            falls back to dependency_tracker.cache for backward compatibility.
 
     """
     # Ensure output_path is set
@@ -161,7 +163,7 @@ def write_output(
     if write_behind is not None:
         write_behind.enqueue(page.output_path, page.rendered_html)
         # Still track dependencies and record output (these are fast)
-        _track_and_record(page, site, dependency_tracker, collector)
+        _track_and_record(page, site, dependency_tracker, collector, build_cache=build_cache)
         return
 
     # Synchronous write (original behavior)
@@ -208,14 +210,15 @@ def write_output(
                 ensure_parent=False,
             )
 
-    _track_and_record(page, site, dependency_tracker, collector)
+    _track_and_record(page, site, dependency_tracker, collector, build_cache=build_cache)
 
 
 def _track_and_record(
-    page: Page,
-    site: Site,
+    page: PageLike,
+    site: SiteLike,
     dependency_tracker: DependencyTracker | None,
     collector: OutputCollector | None,
+    build_cache: Any = None,
 ) -> None:
     """Track dependencies and record output (shared by sync and async paths).
 
@@ -224,19 +227,24 @@ def _track_and_record(
         site: Site instance
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload
+        build_cache: Optional BuildCache for direct cache access. If None,
+            falls back to dependency_tracker.cache for backward compatibility.
 
     """
+    # Resolve cache: prefer explicit build_cache, fall back to dependency_tracker.cache
+    cache = build_cache or (
+        getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+    )
+
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
     if (
-        dependency_tracker
+        cache
         and not page.metadata.get("_generated")
         and not page.metadata.get("is_autodoc")
-        and hasattr(dependency_tracker, "cache")
-        and dependency_tracker.cache
         and page.output_path
     ):
-        dependency_tracker.cache.track_output(page.source_path, page.output_path, site.output_dir)
+        cache.track_output(page.source_path, page.output_path, site.output_dir)
 
     # Record output for hot reload tracking
     if collector and page.output_path:
@@ -245,7 +253,7 @@ def _track_and_record(
         collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
-def format_html(html: str, page: Page, site: Site) -> str:
+def format_html(html: str, page: PageLike, site: SiteLike) -> str:
     """
     Format HTML output (minify/pretty) with content hash embedding.
 

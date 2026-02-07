@@ -20,8 +20,8 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 
-class TestPageNavigationMixin:
-    """Verify PageNavigationMixin contract."""
+class TestPageNavigation:
+    """Verify page navigation free functions (via Page property wrappers)."""
 
     def test_next_returns_none_without_site(self) -> None:
         """next property returns None when _site is None."""
@@ -94,7 +94,7 @@ class TestPageComputedMixin:
 
         page = _create_minimal_page()
         page._raw_content = "x" * 500  # Long content
-        page.metadata = {}
+        page._raw_metadata = {}
 
         result = page.meta_description
         assert len(result) <= 161  # 160 + potential ellipsis
@@ -244,8 +244,8 @@ def _create_minimal_page(
     return Page(
         source_path=source_path,
         _raw_content="Test content",
-        metadata=metadata or {},
-        parsed_ast="",
+        _raw_metadata=metadata or {},
+        html_content="",
         links=[],
     )
 

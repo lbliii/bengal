@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from bengal.analysis.links.types import LinkMetrics, LinkType
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 @runtime_checkable
@@ -99,7 +100,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_page_connectivity(self, page: Page) -> tuple[float, str]:
+    def get_page_connectivity(self, page: PageLike) -> tuple[float, str]:
         """Get connectivity score and level for a page.
 
         Args:
@@ -110,7 +111,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_incoming_links(self, page: Page) -> list[Page]:
+    def get_incoming_links(self, page: PageLike) -> list[Page]:
         """Get pages that link TO the given page.
 
         Args:
@@ -121,7 +122,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_outgoing_links(self, page: Page) -> set[Page]:
+    def get_outgoing_links(self, page: PageLike) -> set[Page]:
         """Get pages that this page links TO.
 
         Args:

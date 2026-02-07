@@ -39,7 +39,7 @@ def _check_autodoc_output_missing(orchestrator: BuildOrchestrator, cache: BuildC
 
     """
     # Skip if no autodoc dependencies tracked (nothing to check)
-    if not hasattr(cache, "autodoc_dependencies") or not cache.autodoc_dependencies:
+    if not hasattr(cache, "autodoc_tracker") or not cache.autodoc_tracker.autodoc_dependencies:
         return False
 
     # Get autodoc config
@@ -410,7 +410,12 @@ def phase_discovery(
         if content_ms is not None and assets_ms is not None:
             details = f"content {int(content_ms)}ms, assets {int(assets_ms)}ms"
             # If we have a richer breakdown from content discovery, include the top 2 items.
-            breakdown = getattr(orchestrator.site, "_discovery_breakdown_ms", None)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = getattr(orchestrator.site, "build_state", None)
+            breakdown = (
+                getattr(_bs, "discovery_timing_ms", None) if _bs is not None
+                else getattr(orchestrator.site, "_discovery_breakdown_ms", None)
+            )
             if isinstance(breakdown, dict) and content_ms >= 500:
                 candidates = [
                     (k, v)

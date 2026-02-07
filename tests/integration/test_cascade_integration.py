@@ -406,7 +406,11 @@ title: "Endpoints"
         assert endpoints.metadata.get("variant") == "api-sidebar"
 
     def test_cascade_keys_tracking(self, temp_site):
-        """Test that _cascade_keys tracks which keys came from cascade."""
+        """Test that CascadeView.cascade_keys() tracks which keys came from cascade.
+
+        The new architecture uses CascadeView.cascade_keys() instead of
+        a _cascade_keys field in metadata.
+        """
         content_dir = temp_site / "content"
         docs_dir = content_dir / "docs"
         docs_dir.mkdir(parents=True)
@@ -430,12 +434,12 @@ author: John
 
         page = next(p for p in site.pages if "page.md" in str(p.source_path))
 
-        # _cascade_keys should track which keys came from cascade
-        cascade_keys = page.metadata.get("_cascade_keys", [])
+        # CascadeView provides cascade_keys() method to track which keys came from cascade
+        cascade_keys = page.metadata.cascade_keys()
         assert "type" in cascade_keys
         assert "custom_key" in cascade_keys
 
-        # Frontmatter keys should NOT be in _cascade_keys
+        # Frontmatter keys should NOT be in cascade_keys
         assert "author" not in cascade_keys
         assert "title" not in cascade_keys
 

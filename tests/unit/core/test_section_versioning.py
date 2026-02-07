@@ -27,7 +27,7 @@ def make_page(
     return Page(
         source_path=tmp_path / f"{name}.md",
         _raw_content=f"Content for {name}",
-        metadata=metadata,
+        _raw_metadata=metadata,
     )
 
 

@@ -23,7 +23,7 @@ from bengal.effects.tracer import EffectTracer
 from bengal.effects.utils import frozenset_or_none
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
 # Thread-local storage for effect context
@@ -121,7 +121,7 @@ class RenderEffectRecorder:
     def __init__(
         self,
         tracer: EffectTracer,
-        page: Page,
+        page: PageLike,
         template_name: str,
     ) -> None:
         """
@@ -218,6 +218,18 @@ class BuildEffectTracer:
         """Get the underlying tracer."""
         return self._tracer
 
+    def set_tracer(self, tracer: EffectTracer) -> None:
+        """
+        Replace the underlying tracer with a persistent instance.
+
+        Used by CacheManager to inject a tracer loaded from disk,
+        so effects recorded during rendering are persisted across builds.
+
+        Args:
+            tracer: EffectTracer instance (typically loaded from effects.json)
+        """
+        self._tracer = tracer
+
     @property
     def enabled(self) -> bool:
         """Check if effect tracing is enabled."""
@@ -231,7 +243,7 @@ class BuildEffectTracer:
         """Disable effect tracing."""
         self._enabled = False
 
-    def record_page_render(self, page: Page, template_name: str) -> RenderEffectRecorder | None:
+    def record_page_render(self, page: PageLike, template_name: str) -> RenderEffectRecorder | None:
         """
         Get recorder for page rendering (if enabled).
 

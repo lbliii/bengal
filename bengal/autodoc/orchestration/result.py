@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.section import Section
+    from bengal.protocols import SectionLike
 
 
 @dataclass
@@ -114,7 +114,7 @@ class PageContext:
         relative_url: str = "/",
         variant: str | None = None,
         source_path: str | None = None,
-        section: Section | None = None,
+        section: SectionLike | None = None,
     ) -> None:
         self.title = title
         self.metadata = metadata

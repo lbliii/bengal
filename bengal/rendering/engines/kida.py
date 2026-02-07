@@ -33,11 +33,13 @@ from kida.environment import (
 
 from bengal.errors import BengalRenderingError
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
+from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
     from bengal.core import Site
+    from bengal.rendering.template_profiler import TemplateProfiler
 
 
 class KidaTemplateEngine:
@@ -54,14 +56,22 @@ class KidaTemplateEngine:
     """
 
     NAME = "kida"
-    __slots__ = ("_dependency_tracker", "_env", "_menu_dict_cache", "site", "template_dirs")
+    __slots__ = (
+        "_dependency_tracker",
+        "_env",
+        "_menu_dict_cache",
+        "_profile",
+        "_profiler",
+        "site",
+        "template_dirs",
+    )
 
     def __init__(self, site: Site, *, profile: bool = False):
         """Initialize Kida engine for site.
 
         Args:
             site: Bengal Site instance
-            profile: Enable template profiling (not yet implemented)
+            profile: Enable template profiling for performance analysis
 
         Configuration (bengal.yaml):
             kida:
@@ -78,11 +88,23 @@ class KidaTemplateEngine:
             `.bengal/cache/kida/` for near-instant cold-start loading.
             Provides 90%+ improvement in template loading times.
         """
+        from bengal.rendering.template_profiler import TemplateProfiler, get_profiler
+        from bengal.utils.observability.logger import get_logger
+
+        logger = get_logger(__name__)
+
         self.site = site
         self.template_dirs = self._build_template_dirs()
 
         # Dependency tracking (set by RenderingPipeline)
         self._dependency_tracker = None
+
+        # Template profiling support
+        self._profile = profile
+        self._profiler: TemplateProfiler | None = None
+        if profile:
+            self._profiler = get_profiler() or TemplateProfiler()
+            logger.debug("kida_template_profiling_enabled")
 
         # Get Kida-specific configuration
         kida_config = site.config.get("kida", {}) or {}
@@ -311,7 +333,10 @@ class KidaTemplateEngine:
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
-            ctx.update(context)
+            # Use items() explicitly to trigger LazyPageContext evaluation.
+            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
+            # but items() always calls LazyPageContext.items() which evaluates lazy values.
+            ctx.update(context.items())
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):
@@ -319,6 +344,14 @@ class KidaTemplateEngine:
                 ctx.update(page_functions)
 
             # Cached blocks are automatically used by Template.render()
+            # Profile template rendering if enabled
+            if self._profiler:
+                self._profiler.start_template(name)
+                try:
+                    result = template.render(ctx)
+                finally:
+                    self._profiler.end_template(name)
+                return result
             return template.render(ctx)
 
         except KidaTemplateNotFoundError as e:
@@ -395,7 +428,10 @@ class KidaTemplateEngine:
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
-            ctx.update(context)
+            # Use items() explicitly to trigger LazyPageContext evaluation.
+            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
+            # but items() always calls LazyPageContext.items() which evaluates lazy values.
+            ctx.update(context.items())
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):
@@ -728,6 +764,16 @@ class KidaTemplateEngine:
         """Alias for validate (for compatibility)."""
         return self.validate(include_patterns)
 
+    def get_template_profile(self) -> dict[str, Any] | None:
+        """Get template profiling report.
+
+        Returns:
+            Dictionary with timing statistics, or None if profiling disabled.
+        """
+        if self._profiler:
+            return self._profiler.get_report()
+        return None
+
     def clear_template_cache(self, names: list[str] | None = None) -> None:
         """Clear template cache for external invalidation.
 
@@ -742,7 +788,7 @@ class KidaTemplateEngine:
             >>> engine.clear_template_cache()  # Clear all
             >>> engine.clear_template_cache(["base.html", "page.html"])  # Specific
         """
-        if hasattr(self._env, "clear_template_cache"):
+        if has_clear_template_cache(self._env):
             self._env.clear_template_cache(names)
 
     def precompile_templates(self, template_names: list[str] | None = None) -> int:

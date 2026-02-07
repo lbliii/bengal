@@ -1,111 +1,19 @@
 """
 Theme service - pure functions for theme resolution.
 
-RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
+Pure functions that resolve theme assets and templates from
+root_path + theme_name. No hidden state, thread-safe.
 
-Replaces ThemeIntegrationMixin with pure functions that operate on
-ConfigSnapshot instead of mutable Site.
-
-Key Principles:
-- Pure functions: no hidden state
-- Explicit inputs: root_path + theme_name
-- Cacheable results: same inputs → same outputs
-- Thread-safe: no shared mutable state
+Usage:
+    >>> from bengal.services.theme import get_theme_assets_dir
+    >>> assets = get_theme_assets_dir(root_path, "default")
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from bengal.services.utils import get_bengal_dir
-
-if TYPE_CHECKING:
-    from bengal.config.snapshot import ConfigSnapshot
-    from bengal.snapshots.types import SiteSnapshot
-
-
-@dataclass(frozen=True, slots=True)
-class ThemeService:
-    """
-    Cached theme resolution service.
-
-    Provides theme asset and template resolution with caching.
-    Operates on ConfigSnapshot for thread-safety.
-
-    Usage:
-        >>> service = ThemeService(root_path, config_snapshot)
-        >>> assets_dir = service.get_assets_dir()
-        >>> asset_chain = service.get_assets_chain()
-    """
-
-    root_path: Path
-    theme_name: str | None
-
-    # Cached results
-    _assets_chain: tuple[Path, ...] = field(default=(), repr=False)
-    _templates_chain: tuple[Path, ...] = field(default=(), repr=False)
-
-    @classmethod
-    def from_config(cls, root_path: Path, config: ConfigSnapshot) -> ThemeService:
-        """
-        Create service from ConfigSnapshot.
-
-        Args:
-            root_path: Site root path
-            config: Frozen config snapshot
-
-        Returns:
-            ThemeService instance
-        """
-        theme_name = config.theme.name if config.theme else None
-        return cls(root_path=root_path, theme_name=theme_name)
-
-    @classmethod
-    def from_snapshot(cls, snapshot: SiteSnapshot) -> ThemeService:
-        """
-        Create service from SiteSnapshot.
-
-        Args:
-            snapshot: Site snapshot
-
-        Returns:
-            ThemeService instance
-        """
-        theme_name = None
-        if snapshot.config_snapshot and snapshot.config_snapshot.theme:
-            theme_name = snapshot.config_snapshot.theme.name
-        return cls(root_path=snapshot.root_path, theme_name=theme_name)
-
-    def get_assets_dir(self) -> Path | None:
-        """
-        Get the assets directory for the current theme.
-
-        Returns:
-            Path to theme assets directory, or None if not found
-        """
-        return get_theme_assets_dir(self.root_path, self.theme_name)
-
-    def get_assets_chain(self) -> list[Path]:
-        """
-        Get theme asset directories in inheritance order.
-
-        Returns:
-            List of Paths, parent themes first (lowest priority),
-            child theme last (highest priority)
-        """
-        return get_theme_assets_chain(self.root_path, self.theme_name)
-
-    def get_templates_chain(self) -> list[Path]:
-        """
-        Get theme template directories in inheritance order.
-
-        Returns:
-            List of Paths, parent themes first (lowest priority),
-            child theme last (highest priority)
-        """
-        return get_theme_templates_chain(self.root_path, self.theme_name)
 
 
 def get_theme_assets_dir(root_path: Path, theme_name: str | None) -> Path | None:

@@ -31,8 +31,8 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import SectionLike
 
 logger = get_logger(__name__)
 
@@ -163,7 +163,7 @@ class PageInitializer:
             enriched = enrich_error(e, context, BengalContentError)
             raise enriched from e
 
-    def ensure_initialized_for_section(self, page: Page, section: Section) -> None:
+    def ensure_initialized_for_section(self, page: Page, section: SectionLike) -> None:
         """
         Ensure a page is initialized with section reference.
 

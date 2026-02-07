@@ -231,7 +231,7 @@ class TestPaginationURLs:
         for i in range(1, 6):
             page = Page(
                 source_path=Path(f"/content/blog/post-{i}.md"),
-                metadata={"title": f"Post {i}"},
+                _raw_metadata={"title": f"Post {i}"},
                 output_path=Path(f"/site/public/blog/post-{i}/index.html"),
             )
             page._site = site

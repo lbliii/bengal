@@ -231,6 +231,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         site1.theme_config = {}
         site1.config = {"dev_server": False, "cache_templates": True}
         site1.dev_mode = False
+        site1.build_state = None  # Must be explicitly None to avoid MagicMock auto-generation
         site1._bengal_theme_chain_cache = None
         site1.paths = MagicMock()
         site1.paths.templates_dir = tmp_path / ".cache" / "templates"
@@ -262,6 +263,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         site2.theme_config = {}
         site2.config = {"dev_server": False, "cache_templates": True}
         site2.dev_mode = False
+        site2.build_state = None  # Must be explicitly None
         site2._bengal_theme_chain_cache = None
         site2.paths = MagicMock()
         site2.paths.templates_dir = tmp_path / ".cache" / "templates"

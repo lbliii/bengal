@@ -56,8 +56,7 @@ from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -395,7 +394,7 @@ class SocialCardGenerator:
 
         return None
 
-    def _compute_card_hash(self, page: Page) -> str:
+    def _compute_card_hash(self, page: PageLike) -> str:
         """
         Compute content hash for cache key.
 
@@ -419,7 +418,7 @@ class SocialCardGenerator:
         content = f"{title}|{description}|{config_str}"
         return hashlib.md5(content.encode()).hexdigest()[:12]
 
-    def _should_regenerate(self, page: Page, output_path: Path) -> bool:
+    def _should_regenerate(self, page: PageLike, output_path: Path) -> bool:
         """
         Check if card needs regeneration.
 
@@ -447,7 +446,7 @@ class SocialCardGenerator:
 
         return current_hash != cached_hash
 
-    def _get_output_path(self, page: Page, output_dir: Path) -> Path:
+    def _get_output_path(self, page: PageLike, output_dir: Path) -> Path:
         """
         Get output path for a page's social card.
 
@@ -690,7 +689,7 @@ class SocialCardGenerator:
 
         return img
 
-    def generate_card(self, page: Page, output_path: Path) -> Path | None:
+    def generate_card(self, page: PageLike, output_path: Path) -> Path | None:
         """
         Generate a single social card for a page.
 
@@ -765,7 +764,7 @@ class SocialCardGenerator:
 
         return output_path
 
-    def generate_all(self, pages: list[Page], output_dir: Path) -> tuple[int, int]:
+    def generate_all(self, pages: list[PageLike], output_dir: Path) -> tuple[int, int]:
         """
         Generate social cards for all pages.
 
@@ -789,7 +788,7 @@ class SocialCardGenerator:
             return (0, 0)
 
         # Filter pages that need generation
-        pages_to_generate: list[tuple[Page, Path]] = []
+        pages_to_generate: list[tuple[PageLike, Path]] = []
         cached_count = 0
 
         for page in pages:
@@ -863,7 +862,7 @@ class SocialCardGenerator:
         return (generated_count, cached_count)
 
 
-def get_social_card_path(page: Page, config: SocialCardConfig, base_path: str = "") -> str | None:
+def get_social_card_path(page: PageLike, config: SocialCardConfig, base_path: str = "") -> str | None:
     """
     Get the path to a page's generated social card.
 

@@ -52,6 +52,7 @@ from bengal.cli.dashboard.notifications import (
     notify_rebuild_triggered,
     notify_server_started,
 )
+from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -340,7 +341,7 @@ class BengalServeDashboard(BengalDashboard):
 
             if self.site:
                 # Get counts from site
-                pages_count = len(self.site.pages) if hasattr(self.site, "pages") else 0
+                pages_count = len(self.site.pages) if isinstance(self.site, SiteLike) else 0
                 assets_count = len(self.site.assets) if hasattr(self.site, "assets") else 0
                 total = pages_count + assets_count
 
@@ -498,7 +499,7 @@ class BengalServeDashboard(BengalDashboard):
         changes_log.clear()
         self.changes.clear()
 
-    async def action_quit(self) -> None:
+    def action_quit(self) -> None:
         """Quit the dashboard and stop the server."""
         if self._stop_event:
             self._stop_event.set()

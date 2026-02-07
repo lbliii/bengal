@@ -2,12 +2,14 @@
 Core BuildCache class for tracking file changes and dependencies.
 
 Main dataclass with fields, save/load, and coordination methods. Uses mixins
-for specialized functionality (file tracking, validation, taxonomy, caching).
+for specialized functionality (file tracking, validation, caching) and
+composition for taxonomy indexing and autodoc tracking.
 
 Key Concepts:
 - File fingerprints: mtime + size for fast change detection, hash for verification
 - Dependency tracking: Templates, partials, and data files used by pages
-- Taxonomy indexes: Tag/category mappings for fast reconstruction
+- Taxonomy indexes: Tag/category mappings for fast reconstruction (via TaxonomyIndex)
+- Autodoc tracking: Source file → page dependencies (via AutodocTracker)
 - Config hash: Auto-invalidation when configuration changes
 - Version tolerance: Accepts missing/older cache versions gracefully
 - Zstandard compression: 92-93% size reduction, <1ms overhead
@@ -34,11 +36,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.build_cache.autodoc_content_cache import AutodocContentCacheMixin
-from bengal.cache.build_cache.autodoc_tracking import AutodocTrackingMixin
+from bengal.cache.build_cache.autodoc_tracking import AutodocTracker
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
 from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixin
 from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMixin
-from bengal.cache.build_cache.taxonomy_index_mixin import TaxonomyIndexMixin
+from bengal.cache.build_cache.taxonomy_index_mixin import BuildTaxonomyIndex
 from bengal.cache.build_cache.validation_cache import ValidationCacheMixin
 from bengal.utils.observability.logger import get_logger
 
@@ -52,10 +54,8 @@ logger = get_logger(__name__)
 class BuildCache(
     FileTrackingMixin,
     ValidationCacheMixin,
-    TaxonomyIndexMixin,
     ParsedContentCacheMixin,
     RenderedOutputCacheMixin,
-    AutodocTrackingMixin,
     AutodocContentCacheMixin,
 ):
     """
@@ -82,10 +82,8 @@ class BuildCache(
         file_fingerprints: Mapping of file paths to {mtime, size, hash} dicts
         dependencies: Mapping of pages to their dependencies (templates, partials, etc.)
         output_sources: Mapping of output files to their source files
-        taxonomy_deps: Mapping of taxonomy terms to affected pages
-        page_tags: Mapping of page paths to their tags (for detecting tag changes)
-        tag_to_pages: Inverted index mapping tag slug to page paths (for O(1) reconstruction)
-        known_tags: Set of all tag slugs from previous build (for detecting deletions)
+        taxonomy_index: Composed TaxonomyIndex for tag/page bidirectional mapping
+        autodoc_tracker: Composed AutodocTracker for autodoc dependency tracking
         parsed_content: Cached parsed HTML/TOC (Optimization #2)
         rendered_output: Cached rendered HTML (Optimization #3)
         synthetic_pages: Cached synthetic page data (autodoc, etc.)
@@ -109,12 +107,9 @@ class BuildCache(
     output_sources: dict[str, str] = field(default_factory=dict)
     # Reverse dependency graph: dependency → sources (RFC: Cache Algorithm Optimization)
     reverse_dependencies: dict[str, set[str]] = field(default_factory=dict)
-    taxonomy_deps: dict[str, set[str]] = field(default_factory=dict)
-    page_tags: dict[str, set[str]] = field(default_factory=dict)
 
-    # Inverted index for fast taxonomy reconstruction (NEW)
-    tag_to_pages: dict[str, set[str]] = field(default_factory=dict)
-    known_tags: set[str] = field(default_factory=set)
+    # Composed taxonomy index (replaces TaxonomyIndexMixin)
+    taxonomy_index: BuildTaxonomyIndex = field(default_factory=BuildTaxonomyIndex)
 
     parsed_content: dict[str, dict[str, Any]] = field(default_factory=dict)
 
@@ -130,16 +125,8 @@ class BuildCache(
     # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
     validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
 
-    # Autodoc dependency tracking: source_file → set[autodoc_page_paths]
-    # Enables selective rebuilding of autodoc pages when their sources change
-    autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
-
-    # Autodoc source metadata: source_file → (content_hash, mtime, {page_path: doc_hash})
-    # Enables fine-grained incremental builds and self-validation.
-    # See: plan/rfc-autodoc-incremental-caching.md
-    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(
-        default_factory=dict
-    )
+    # Composed autodoc tracker (replaces AutodocTrackingMixin)
+    autodoc_tracker: AutodocTracker = field(default_factory=AutodocTracker)
 
     # Autodoc content cache: source_file → CachedModuleInfo
     # RFC: rfc-build-performance-optimizations Phase 3
@@ -170,25 +157,6 @@ class BuildCache(
         # Convert reverse_dependencies lists back to sets (RFC: Cache Algorithm Optimization)
         self.reverse_dependencies = {
             k: set(v) if isinstance(v, list) else v for k, v in self.reverse_dependencies.items()
-        }
-        # Convert taxonomy dependency lists back to sets
-        self.taxonomy_deps = {
-            k: set(v) if isinstance(v, list) else v for k, v in self.taxonomy_deps.items()
-        }
-        # Convert page tags lists back to sets
-        self.page_tags = {
-            k: set(v) if isinstance(v, list) else v for k, v in self.page_tags.items()
-        }
-        # Convert tag_to_pages lists back to sets
-        self.tag_to_pages = {
-            k: set(v) if isinstance(v, list) else v for k, v in self.tag_to_pages.items()
-        }
-        # Convert known_tags list back to set
-        if isinstance(self.known_tags, list):
-            self.known_tags = set(self.known_tags)
-        # Convert autodoc_dependencies lists back to sets
-        self.autodoc_dependencies = {
-            k: set(v) if isinstance(v, list) else v for k, v in self.autodoc_dependencies.items()
         }
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
@@ -286,19 +254,30 @@ class BuildCache(
             else:
                 data["reverse_dependencies"] = {}
 
-            # Convert lists back to sets in tag_to_pages
-            if "tag_to_pages" in data:
-                data["tag_to_pages"] = {k: set(v) for k, v in data["tag_to_pages"].items()}
-
-            # Convert list back to set in known_tags
-            if "known_tags" in data and isinstance(data["known_tags"], list):
-                data["known_tags"] = set(data["known_tags"])
-
+            # --- Reconstruct TaxonomyIndex from flat fields ---
+            taxonomy_deps: dict[str, set[str]] = {}
             if "taxonomy_deps" in data:
-                data["taxonomy_deps"] = {k: set(v) for k, v in data["taxonomy_deps"].items()}
+                taxonomy_deps = {k: set(v) for k, v in data.pop("taxonomy_deps").items()}
 
+            page_tags: dict[str, set[str]] = {}
             if "page_tags" in data:
-                data["page_tags"] = {k: set(v) for k, v in data["page_tags"].items()}
+                page_tags = {k: set(v) for k, v in data.pop("page_tags").items()}
+
+            tag_to_pages: dict[str, set[str]] = {}
+            if "tag_to_pages" in data:
+                tag_to_pages = {k: set(v) for k, v in data.pop("tag_to_pages").items()}
+
+            known_tags: set[str] = set()
+            if "known_tags" in data:
+                raw_tags = data.pop("known_tags")
+                known_tags = set(raw_tags) if isinstance(raw_tags, list) else raw_tags
+
+            data["taxonomy_index"] = BuildTaxonomyIndex(
+                taxonomy_deps=taxonomy_deps,
+                page_tags=page_tags,
+                tag_to_pages=tag_to_pages,
+                known_tags=known_tags,
+            )
 
             # Validation results (new in VERSION 2, tolerate missing)
             if "validation_results" not in data:
@@ -312,39 +291,38 @@ class BuildCache(
             if "file_fingerprints" not in data:
                 data["file_fingerprints"] = {}
 
-            # Autodoc dependencies (new, tolerate missing)
-            if "autodoc_dependencies" not in data:
-                data["autodoc_dependencies"] = {}
-            else:
-                # Convert lists back to sets
-                data["autodoc_dependencies"] = {
-                    k: set(v) for k, v in data["autodoc_dependencies"].items()
-                }
+            # --- Reconstruct AutodocTracker from flat fields ---
+            autodoc_deps: dict[str, set[str]] = {}
+            if "autodoc_dependencies" in data:
+                raw_autodoc = data.pop("autodoc_dependencies")
+                autodoc_deps = {k: set(v) for k, v in raw_autodoc.items()}
 
-            # Autodoc source metadata (new in v0.1.8, tolerate missing)
-            # Structure: {source_path: [hash, mtime, doc_hashes]} → convert to tuple
-            if "autodoc_source_metadata" not in data:
-                data["autodoc_source_metadata"] = {}
-            else:
-                # Convert lists back to tuples and normalize missing doc_hashes
-                normalized: dict[str, tuple[str, float, dict[str, str]]] = {}
-                for key, value in data["autodoc_source_metadata"].items():
+            autodoc_meta: dict[str, tuple[str, float, dict[str, str]]] = {}
+            if "autodoc_source_metadata" in data:
+                raw_meta = data.pop("autodoc_source_metadata")
+                for key, value in raw_meta.items():
                     if isinstance(value, (list, tuple)):
                         if len(value) == 2:
                             source_hash, mtime = value
-                            normalized[key] = (source_hash, mtime, {})
+                            autodoc_meta[key] = (source_hash, mtime, {})
                         elif len(value) == 3:
                             source_hash, mtime, doc_hashes = value
-                            normalized[key] = (source_hash, mtime, doc_hashes or {})
+                            autodoc_meta[key] = (source_hash, mtime, doc_hashes or {})
                         else:
                             raise ValueError(
-                                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                                "Autodoc source metadata must be a 3-tuple "
+                                "(hash, mtime, doc_hashes)."
                             )
                     else:
                         raise ValueError(
-                            "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+                            "Autodoc source metadata must be a 3-tuple "
+                            "(hash, mtime, doc_hashes)."
                         )
-                data["autodoc_source_metadata"] = normalized
+
+            data["autodoc_tracker"] = AutodocTracker(
+                autodoc_dependencies=autodoc_deps,
+                autodoc_source_metadata=autodoc_meta,
+            )
 
             # Rendered output cache (tolerate missing - Optimization #3)
             if "rendered_output" not in data or not isinstance(data["rendered_output"], dict):
@@ -532,6 +510,9 @@ class BuildCache(
                 # Already serialized (shouldn't happen but handle gracefully)
                 autodoc_content_serialized[source_path] = info
 
+        ti = self.taxonomy_index
+        at = self.autodoc_tracker
+
         data = {
             "version": self.VERSION,
             "file_fingerprints": self.file_fingerprints,
@@ -540,19 +521,19 @@ class BuildCache(
                 k: list(v) for k, v in self.reverse_dependencies.items()
             },  # Reverse dep graph (RFC: Cache Algorithm Optimization)
             "output_sources": self.output_sources,
-            "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
-            "page_tags": {k: list(v) for k, v in self.page_tags.items()},
-            "tag_to_pages": {k: list(v) for k, v in self.tag_to_pages.items()},  # Save tag index
-            "known_tags": list(self.known_tags),  # Save known tags
+            "taxonomy_deps": {k: list(v) for k, v in ti.taxonomy_deps.items()},
+            "page_tags": {k: list(v) for k, v in ti.page_tags.items()},
+            "tag_to_pages": {k: list(v) for k, v in ti.tag_to_pages.items()},
+            "known_tags": list(ti.known_tags),
             "parsed_content": self.parsed_content,  # Already in dict format
             "rendered_output": self.rendered_output,  # Already in dict format (Optimization #3)
             "validation_results": self.validation_results,  # Already in dict format
             "autodoc_dependencies": {
-                k: list(v) for k, v in self.autodoc_dependencies.items()
+                k: list(v) for k, v in at.autodoc_dependencies.items()
             },  # Autodoc source → pages
             # Autodoc source metadata for self-validation (hash, mtime tuples → lists for JSON)
             "autodoc_source_metadata": {
-                k: list(v) for k, v in self.autodoc_source_metadata.items()
+                k: list(v) for k, v in at.autodoc_source_metadata.items()
             },
             # Autodoc content cache (CachedModuleInfo serialized to dict)
             "autodoc_content_cache": autodoc_content_serialized,
@@ -599,16 +580,12 @@ class BuildCache(
         self.dependencies.clear()
         self.reverse_dependencies.clear()
         self.output_sources.clear()
-        self.taxonomy_deps.clear()
-        self.page_tags.clear()
-        self.tag_to_pages.clear()
-        self.known_tags.clear()
+        self.taxonomy_index.clear()
         self.parsed_content.clear()
         self.rendered_output.clear()
         self.synthetic_pages.clear()
         self.validation_results.clear()
-        self.autodoc_dependencies.clear()
-        self.autodoc_source_metadata.clear()
+        self.autodoc_tracker.clear()
         self.autodoc_content_cache.clear()
         self.discovered_assets.clear()
         self.url_claims.clear()
@@ -680,11 +657,11 @@ class BuildCache(
         FileTrackingMixin.invalidate_file(self, file_path)
 
         # Remove from taxonomy deps
-        for deps in self.taxonomy_deps.values():
+        for deps in self.taxonomy_index.taxonomy_deps.values():
             deps.discard(file_key)
 
         # Remove page tags
-        self.page_tags.pop(file_key, None)
+        self.taxonomy_index.page_tags.pop(file_key, None)
 
         # Remove parsed content cache
         self.parsed_content.pop(file_key, None)
@@ -708,12 +685,12 @@ class BuildCache(
         stats = {
             "tracked_files": len(self.file_fingerprints),
             "dependencies": sum(len(deps) for deps in self.dependencies.values()),
-            "taxonomy_terms": len(self.taxonomy_deps),
+            "taxonomy_terms": len(self.taxonomy_index.taxonomy_deps),
             "cached_content_pages": len(self.parsed_content),
             "cached_rendered_pages": len(self.rendered_output),
-            "autodoc_source_files": len(self.autodoc_dependencies),
+            "autodoc_source_files": len(self.autodoc_tracker.autodoc_dependencies),
             "autodoc_pages_tracked": sum(
-                len(pages) for pages in self.autodoc_dependencies.values()
+                len(pages) for pages in self.autodoc_tracker.autodoc_dependencies.values()
             ),
         }
 

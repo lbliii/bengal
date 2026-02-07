@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, ClassVar
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
+from bengal.protocols import SiteLike
+
 if TYPE_CHECKING:
     pass
 
@@ -232,7 +234,7 @@ class BengalPageProvider(Provider):
             Matching page hits
         """
         site = getattr(self.app, "site", None)
-        if not site or not hasattr(site, "pages"):
+        if not site or not isinstance(site, SiteLike):
             return
 
         matcher = self.matcher(query)

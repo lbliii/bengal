@@ -31,8 +31,29 @@ from typing import TYPE_CHECKING, ClassVar
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
-from bengal.directives.utils import ensure_badge_base_class
 from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
+
+
+def ensure_badge_base_class(css_class: str) -> str:
+    """Ensure badge CSS has a base class (badge or api-badge)."""
+    if not css_class:
+        return "badge badge-secondary"
+
+    classes = css_class.split()
+
+    has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
+
+    if not has_base_badge:
+        if any(cls.startswith("api-badge") for cls in classes):
+            classes.insert(0, "api-badge")
+        elif any(cls.startswith("badge-") for cls in classes):
+            classes.insert(0, "badge")
+        else:
+            classes.insert(0, "badge")
+
+        return " ".join(classes)
+
+    return css_class
 
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
@@ -109,7 +130,7 @@ class BadgeDirective:
             children=(),  # Badges don't have children
         )
 
-    # Use canonical implementation from bengal.directives.utils
+    # Inlined from former bengal.directives.utils
     _ensure_base_class = staticmethod(ensure_badge_base_class)
 
     def render(

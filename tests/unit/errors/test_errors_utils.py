@@ -439,7 +439,7 @@ class TestThreadSafeSingleton:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # All threads should get the same instance
         assert all(r is results[0] for r in results)

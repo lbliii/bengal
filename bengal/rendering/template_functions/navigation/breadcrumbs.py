@@ -11,10 +11,10 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols import PageLike
 
 
-def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
+def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
     """
     Get breadcrumb items for a page.
 

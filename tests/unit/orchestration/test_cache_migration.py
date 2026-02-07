@@ -77,8 +77,8 @@ class TestCacheMigration:
         # Verify all fields preserved
         assert len(cache.file_fingerprints) == 2
         assert "content/index.md" in cache.dependencies
-        assert cache.page_tags["content/index.md"] == {"tag1", "tag2"}
-        assert "tag1" in cache.known_tags
+        assert cache.taxonomy_index.page_tags["content/index.md"] == {"tag1", "tag2"}
+        assert "tag1" in cache.taxonomy_index.known_tags
         assert "content/index.md" in cache.parsed_content
 
     def test_new_cache_not_overwritten_by_old(self, tmp_path):

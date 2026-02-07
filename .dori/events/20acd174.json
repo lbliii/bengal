@@ -1,0 +1,14 @@
+{
+  "id": "20acd174",
+  "type": "docs_staged",
+  "timestamp": "2026-02-06T16:08:07.421887Z",
+  "message": "1 doc(s) staged for commit",
+  "suggested_action": "::a",
+  "acknowledged": false,
+  "metadata": {
+    "file_count": 1
+  },
+  "files": [
+    "plan/epic-protocol-migration.md"
+  ]
+}

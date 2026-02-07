@@ -34,7 +34,7 @@ def make_page(source_path: Path, title: str = "Test", content: str = "") -> Page
     return Page(
         source_path=source_path,
         _raw_content=content,
-        metadata={"title": title},
+        _raw_metadata={"title": title},
     )
 
 

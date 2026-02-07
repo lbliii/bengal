@@ -51,7 +51,7 @@ from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.protocols import SiteLike
+    from bengal.protocols import SiteConfig
 
 logger = get_logger(__name__)
 
@@ -127,7 +127,7 @@ class GraphVisualizer:
 
     """
 
-    def __init__(self, site: SiteLike, graph: KnowledgeGraph):
+    def __init__(self, site: SiteConfig, graph: KnowledgeGraph):
         """
         Initialize graph visualizer.
 

@@ -490,7 +490,7 @@ class ContentDiscovery:
     def _check_yaml_extensions(self) -> None:
         """Check for PyYAML C extensions (performance hint)."""
         try:
-            import yaml  # type: ignore[import-untyped]
+            import yaml
 
             has_libyaml = getattr(yaml, "__with_libyaml__", False)
             if not has_libyaml:
@@ -647,7 +647,7 @@ class ContentDiscovery:
             page = Page(
                 source_path=file_path,
                 _raw_content=content,
-                metadata=metadata,
+                _raw_metadata=metadata,
             )
 
             if self.site is not None:
@@ -740,9 +740,7 @@ class ContentDiscovery:
 
         version = version_config.get_version_for_path(file_path)
         if version:
-            if page.metadata is None:
-                page.metadata = {}
-            page.metadata["_version"] = version.id
+            # Set version on page and core (metadata is now immutable CascadeView)
             page.version = version.id
             if page.core:
                 object.__setattr__(page.core, "version", version.id)

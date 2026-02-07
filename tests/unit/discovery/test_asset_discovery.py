@@ -251,8 +251,8 @@ class TestAssetDiscoveryPathsWithDots:
         (dotted_path / ".DS_Store").write_bytes(b"\x00" * 100)
 
         # Create hidden directory within assets (should be skipped)
-        (dotted_path / ".git").mkdir()
-        (dotted_path / ".git" / "config").write_text("git config")
+        (dotted_path / ".cache").mkdir()
+        (dotted_path / ".cache" / "data.bin").write_text("cached data")
 
         discovery = AssetDiscovery(dotted_path)
         assets = discovery.discover()

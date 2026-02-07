@@ -101,7 +101,7 @@ class TestThreadLocalCache:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Each thread should create exactly one instance
         assert creation_count == 5
@@ -260,7 +260,7 @@ class TestThreadSafeSet:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # Exactly one thread should succeed
         assert success_count == 1

@@ -23,8 +23,8 @@ from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
     from bengal.core.menu import MenuItem
     from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 from datetime import UTC
 
@@ -45,7 +45,7 @@ from bengal.snapshots.utils import (
 )
 
 
-def create_site_snapshot(site: Site) -> SiteSnapshot:
+def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     """
     Create immutable snapshot from mutable site.
 
@@ -421,7 +421,7 @@ def _rebuild_template_dependents(
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
 
 
-def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
+def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
 
@@ -450,7 +450,7 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
 
     # Get parsed HTML (pre-parsed during parsing phase - RFC: rfc-bengal-snapshot-engine)
     # This is what rendering should use, eliminating re-parsing during render
-    parsed_html = getattr(page, "parsed_ast", "") or ""
+    parsed_html = getattr(page, "html_content", "") or ""
 
     # Get TOC
     toc = getattr(page, "toc", "") or ""
@@ -497,7 +497,7 @@ def _snapshot_page_initial(page: Page, site: Site) -> PageSnapshot:
 
 
 def _snapshot_section_recursive(
-    section: Section,
+    section: SectionLike,
     page_cache: dict[int, PageSnapshot],
     section_cache: dict[int, SectionSnapshot],
     depth: int,
@@ -608,7 +608,7 @@ def _snapshot_section_recursive(
     return snapshot
 
 
-def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: Site) -> None:
+def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> None:
     """Resolve next/prev navigation links."""
     # Create mapping from source_path to page snapshot for lookup
     pages_by_path: dict[Path, PageSnapshot] = {
@@ -745,7 +745,7 @@ def _compute_scout_hints(
 
 
 def _snapshot_menus(
-    site: Site,
+    site: SiteLike,
     page_cache: dict[int, PageSnapshot],
     section_cache: dict[int, SectionSnapshot],
 ) -> MappingProxyType[str, tuple[MenuItemSnapshot, ...]]:
@@ -798,7 +798,7 @@ def _snapshot_menu_item(
 
 
 def _snapshot_taxonomies(
-    site: Site,
+    site: SiteLike,
     page_cache: dict[int, PageSnapshot],
 ) -> MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]]:
     """Snapshot taxonomies from site."""
@@ -818,7 +818,7 @@ def _snapshot_taxonomies(
 # Helper functions
 
 
-def _compute_attention_score(page: Page) -> float:
+def _compute_attention_score(page: PageLike) -> float:
     """Compute attention score for priority scheduling."""
     score = 0.0
 
@@ -845,7 +845,7 @@ def _compute_attention_score(page: Page) -> float:
     return score
 
 
-def _estimate_render_time(page: Page) -> float:
+def _estimate_render_time(page: PageLike) -> float:
     """Estimate render time in milliseconds."""
     # Simple heuristic: base time + word count factor
     base_ms = 10.0
@@ -874,7 +874,7 @@ def _find_index_page(pages: tuple[PageSnapshot, ...]) -> PageSnapshot | None:
     return None
 
 
-def _get_template_partials(template_name: str, site: Site) -> list[Path]:
+def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
     """
     Get partials used by template via template engine analysis.
 
@@ -1063,7 +1063,7 @@ def _snapshot_templates(
     )
 
 
-def _analyze_template(template_name: str, site: Site) -> TemplateSnapshot | None:
+def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | None:
     """
     Analyze a single template and create a TemplateSnapshot.
 

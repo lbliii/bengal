@@ -84,6 +84,30 @@ class Effect:
             metadata={**self.metadata, **other.metadata},
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize to JSON-compatible dict."""
+        return {
+            "outputs": [str(p) for p in sorted(self.outputs)],
+            "depends_on": [str(d) for d in sorted(self.depends_on, key=str)],
+            "invalidates": sorted(self.invalidates),
+            "operation": self.operation,
+            "metadata": self.metadata,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Effect:
+        """Deserialize from dict."""
+        return cls(
+            outputs=frozenset(Path(p) for p in data.get("outputs", [])),
+            depends_on=frozenset(
+                Path(d) if "/" in d or "\\" in d else d
+                for d in data.get("depends_on", [])
+            ),
+            invalidates=frozenset(data.get("invalidates", [])),
+            operation=data.get("operation", ""),
+            metadata=data.get("metadata", {}),
+        )
+
     @classmethod
     def for_page_render(
         cls,

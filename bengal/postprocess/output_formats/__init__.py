@@ -35,7 +35,6 @@ from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike, SiteLike
 
@@ -264,9 +263,6 @@ class OutputFormatsGenerator:
                     for data in accumulated_data
                     if data.full_json_data is not None
                 ]
-            # Fallback to legacy method if unified accumulator not populated
-            elif self.build_context and self.build_context.has_accumulated_json:
-                accumulated_json = self.build_context.get_accumulated_json()
             count = json_gen.generate(pages, accumulated_json=accumulated_json)
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
@@ -339,7 +335,7 @@ class OutputFormatsGenerator:
         if generated:
             logger.info("output_formats_complete", formats=generated)
 
-    def _filter_pages(self) -> list[Page]:
+    def _filter_pages(self) -> list[PageLike]:
         """
         Filter pages based on exclusion rules.
 

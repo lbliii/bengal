@@ -349,7 +349,7 @@ class TestHashFileConsistency:
         page.href = url
         page._path = url
         page.content = content
-        page.parsed_ast = content
+        page.html_content = content
         page.plain_text = content
         page.output_path = output_path
         page.tags = tags or []

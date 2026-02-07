@@ -278,7 +278,7 @@ class TestASTCacheThreadSafety:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         # No errors
         assert len(errors) == 0

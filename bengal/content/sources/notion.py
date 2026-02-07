@@ -32,7 +32,7 @@ try:
 
     CACHETOOLS_AVAILABLE = True
 except ImportError:
-    TTLCache = None  # type: ignore[misc, assignment]
+    TTLCache = None
     CACHETOOLS_AVAILABLE = False
 
 from bengal.content.sources.entry import ContentEntry

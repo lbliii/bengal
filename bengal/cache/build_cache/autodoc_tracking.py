@@ -1,8 +1,9 @@
 """
-Autodoc dependency tracking mixin for BuildCache.
+Standalone autodoc dependency tracker for BuildCache.
 
 Tracks which Python source files produce which autodoc pages, enabling
 selective regeneration of autodoc pages when their source files change.
+Used via composition in BuildCache.
 
 Key Concepts:
 - Source file tracking: Maps Python/OpenAPI source files to autodoc page paths
@@ -23,7 +24,6 @@ See Also:
 
 from __future__ import annotations
 
-from dataclasses import field
 from pathlib import Path
 from typing import Any
 
@@ -32,14 +32,14 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-class AutodocTrackingMixin:
+class AutodocTracker:
     """
-    Track autodoc source file to page dependencies WITH hash validation.
+    Standalone autodoc dependency tracker.
 
-    This mixin adds dependency tracking for autodoc pages, enabling selective
-    rebuilds when only specific Python/OpenAPI source files change. It also
-    provides self-validation capabilities to detect stale autodoc sources
-    even when CI cache keys are incorrect.
+    Tracks autodoc source file to page dependencies WITH hash validation.
+    Enables selective rebuilds when only specific Python/OpenAPI source files
+    change. Also provides self-validation to detect stale autodoc sources even
+    when CI cache keys are incorrect.
 
     Attributes:
         autodoc_dependencies: Mapping of source_file path to set of autodoc page paths
@@ -50,15 +50,17 @@ class AutodocTrackingMixin:
 
     """
 
-    # Mixin expects these to be defined in the main dataclass
-    autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
-
-    # source_file → (content_hash, mtime, {page_path: doc_content_hash})
-    # Using tuple allows mtime-first optimization.
-    # The third element is a mapping of autodoc pages to their fine-grained content hashes.
-    autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] = field(
-        default_factory=dict
-    )
+    def __init__(
+        self,
+        autodoc_dependencies: dict[str, set[str]] | None = None,
+        autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] | None = None,
+    ) -> None:
+        self.autodoc_dependencies = (
+            autodoc_dependencies if autodoc_dependencies is not None else {}
+        )
+        self.autodoc_source_metadata = (
+            autodoc_source_metadata if autodoc_source_metadata is not None else {}
+        )
 
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
@@ -173,6 +175,10 @@ class AutodocTrackingMixin:
         self.autodoc_dependencies.clear()
         self.autodoc_source_metadata.clear()
         logger.debug("autodoc_dependencies_cleared")
+
+    def clear(self) -> None:
+        """Clear all autodoc tracking data."""
+        self.clear_autodoc_dependencies()
 
     def remove_autodoc_source(self, source_file: Path | str) -> set[str]:
         """
@@ -343,7 +349,9 @@ class AutodocTrackingMixin:
         if not metadata:
             return True  # No metadata, assume changed
         if len(metadata) != 3:
-            raise ValueError("Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes).")
+            raise ValueError(
+                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
+            )
 
         # metadata is (file_hash, mtime, {page_path: doc_hash})
         doc_hashes = metadata[2]

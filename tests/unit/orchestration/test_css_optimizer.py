@@ -15,6 +15,15 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 
+def _mock_site(**kwargs) -> MagicMock:
+    """Create a MagicMock site with build_state=None (no BuildState during tests)."""
+    site = MagicMock()
+    site.build_state = None  # Prevent MagicMock auto-creation of truthy build_state
+    for k, v in kwargs.items():
+        setattr(site, k, v)
+    return site
+
+
 class TestCSSOptimizer:
     """Tests for CSSOptimizer class."""
 
@@ -23,9 +32,7 @@ class TestCSSOptimizer:
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
         # Create mock site with blog pages
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
+        site = _mock_site(theme="default", config={})
         site.features_detected = set()
 
         page = MagicMock()
@@ -42,10 +49,7 @@ class TestCSSOptimizer:
         """Should detect doc content type from section metadata."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         site.pages = []
 
@@ -62,10 +66,7 @@ class TestCSSOptimizer:
         """Should detect multiple content types from pages."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page1 = MagicMock()
         page1.metadata = {"type": "blog"}
@@ -88,13 +89,13 @@ class TestCSSOptimizer:
         """Should include features from site.features_detected."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = {"mermaid", "data_tables"}
-
-        site.pages = []
-        site.sections = []
+        site = _mock_site(
+            theme="default",
+            config={},
+            features_detected={"mermaid", "data_tables"},
+            pages=[],
+            sections=[],
+        )
 
         optimizer = CSSOptimizer(site)
         features = optimizer.get_enabled_features()
@@ -106,10 +107,9 @@ class TestCSSOptimizer:
         """Should detect search feature when enabled in config."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {"search": {"enabled": True}}
-        site.features_detected = set()
+        site = _mock_site(
+            theme="default", config={"search": {"enabled": True}}, features_detected=set()
+        )
 
         site.pages = []
         site.sections = []
@@ -123,10 +123,9 @@ class TestCSSOptimizer:
         """Should detect graph feature when enabled in config."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {"graph": {"enabled": True}}
-        site.features_detected = set()
+        site = _mock_site(
+            theme="default", config={"graph": {"enabled": True}}, features_detected=set()
+        )
 
         site.pages = []
         site.sections = []
@@ -140,10 +139,7 @@ class TestCSSOptimizer:
         """Should generate CSS with @layer imports."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -162,10 +158,7 @@ class TestCSSOptimizer:
         """Should always include core CSS files."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -184,10 +177,7 @@ class TestCSSOptimizer:
         """Should include blog-specific CSS for blog content type."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -204,10 +194,7 @@ class TestCSSOptimizer:
         """Should not include autodoc CSS for blog-only site."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -224,15 +211,15 @@ class TestCSSOptimizer:
         """Should include mermaid CSS when mermaid feature is detected."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = {"mermaid"}
-
         page = MagicMock()
         page.metadata = {"type": "blog"}
-        site.pages = [page]
-        site.sections = []
+        site = _mock_site(
+            theme="default",
+            config={},
+            features_detected={"mermaid"},
+            pages=[page],
+            sections=[],
+        )
 
         optimizer = CSSOptimizer(site)
         files = optimizer.get_required_css_files()
@@ -243,10 +230,11 @@ class TestCSSOptimizer:
         """Should include force-included CSS from config."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {"css": {"include": ["components/gallery.css"]}}
-        site.features_detected = set()
+        site = _mock_site(
+            theme="default",
+            config={"css": {"include": ["components/gallery.css"]}},
+            features_detected=set(),
+        )
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -262,10 +250,11 @@ class TestCSSOptimizer:
         """Should exclude force-excluded CSS from config."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {"css": {"exclude": ["components/blog.css"]}}
-        site.features_detected = set()
+        site = _mock_site(
+            theme="default",
+            config={"css": {"exclude": ["components/blog.css"]}},
+            features_detected=set(),
+        )
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -282,10 +271,7 @@ class TestCSSOptimizer:
         """Should deduplicate CSS files in output."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         # Create pages with overlapping CSS needs
         page1 = MagicMock()
@@ -307,10 +293,7 @@ class TestCSSOptimizer:
         """Should return report when requested."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -335,11 +318,12 @@ class TestCSSOptimizer:
         """Should return empty string when theme has no manifest."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "nonexistent-theme"
-        site.root_path = Path("/nonexistent")
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(
+            theme="nonexistent-theme",
+            root_path=Path("/nonexistent"),
+            config={},
+            features_detected=set(),
+        )
         site.pages = []
         site.sections = []
 
@@ -352,10 +336,7 @@ class TestCSSOptimizer:
         """Should include all palette CSS files by default."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -373,13 +354,14 @@ class TestCSSOptimizer:
         """Should include only active palette when all_palettes is false."""
         from bengal.orchestration.css_optimizer import CSSOptimizer
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {
-            "css": {"all_palettes": False},
-            "theme": {"palette": "snow-lynx"},
-        }
-        site.features_detected = set()
+        site = _mock_site(
+            theme="default",
+            config={
+                "css": {"all_palettes": False},
+                "theme": {"palette": "snow-lynx"},
+            },
+            features_detected=set(),
+        )
 
         page = MagicMock()
         page.metadata = {"type": "blog"}
@@ -402,10 +384,7 @@ class TestOptimizeCSSForSite:
         """Should return CSS string."""
         from bengal.orchestration.css_optimizer import optimize_css_for_site
 
-        site = MagicMock()
-        site.theme = "default"
-        site.config = {}
-        site.features_detected = set()
+        site = _mock_site(theme="default", config={}, features_detected=set())
 
         page = MagicMock()
         page.metadata = {"type": "blog"}

@@ -14,11 +14,11 @@ def test_regular_pages_caching(tmp_path):
     site = Site(root_path=tmp_path)
 
     # Add some pages
-    regular_page_1 = Page(source_path=tmp_path / "page1.md", metadata={"title": "Page 1"})
-    regular_page_2 = Page(source_path=tmp_path / "page2.md", metadata={"title": "Page 2"})
+    regular_page_1 = Page(source_path=tmp_path / "page1.md", _raw_metadata={"title": "Page 1"})
+    regular_page_2 = Page(source_path=tmp_path / "page2.md", _raw_metadata={"title": "Page 2"})
     generated_page = Page(
         source_path=tmp_path / "tags" / "python.md",
-        metadata={"title": "Python Tag", "_generated": True},
+        _raw_metadata={"title": "Python Tag", "_generated": True},
     )
 
     site.pages = [regular_page_1, regular_page_2, generated_page]
@@ -45,7 +45,7 @@ def test_regular_pages_cache_invalidation(tmp_path):
     site = Site(root_path=tmp_path)
 
     # Add initial pages
-    regular_page = Page(source_path=tmp_path / "page1.md", metadata={"title": "Page 1"})
+    regular_page = Page(source_path=tmp_path / "page1.md", _raw_metadata={"title": "Page 1"})
     site.pages = [regular_page]
 
     # Access to populate cache
@@ -60,7 +60,7 @@ def test_regular_pages_cache_invalidation(tmp_path):
     # Add a generated page
     generated_page = Page(
         source_path=tmp_path / "tags" / "python.md",
-        metadata={"title": "Python Tag", "_generated": True},
+        _raw_metadata={"title": "Python Tag", "_generated": True},
     )
     site.pages.append(generated_page)
 
@@ -86,11 +86,11 @@ def test_regular_pages_all_generated(tmp_path):
 
     generated1 = Page(
         source_path=tmp_path / "tags" / "python.md",
-        metadata={"title": "Python Tag", "_generated": True},
+        _raw_metadata={"title": "Python Tag", "_generated": True},
     )
     generated2 = Page(
         source_path=tmp_path / "tags" / "django.md",
-        metadata={"title": "Django Tag", "_generated": True},
+        _raw_metadata={"title": "Django Tag", "_generated": True},
     )
 
     site.pages = [generated1, generated2]
@@ -111,7 +111,7 @@ def test_regular_pages_cache_performance(tmp_path):
         is_generated = i % 10 == 0  # Every 10th page is generated
         page = Page(
             source_path=tmp_path / f"page{i}.md",
-            metadata={"title": f"Page {i}", "_generated": is_generated},
+            _raw_metadata={"title": f"Page {i}", "_generated": is_generated},
         )
         site.pages.append(page)
 
@@ -138,7 +138,7 @@ def test_regular_pages_cache_across_multiple_accesses(tmp_path):
 
     # Add pages
     for i in range(100):
-        page = Page(source_path=tmp_path / f"page{i}.md", metadata={"title": f"Page {i}"})
+        page = Page(source_path=tmp_path / f"page{i}.md", _raw_metadata={"title": f"Page {i}"})
         site.pages.append(page)
 
     # Access multiple times

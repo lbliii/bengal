@@ -61,6 +61,7 @@ import yaml
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
 from bengal.output import CLIOutput
+from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
@@ -103,6 +104,11 @@ class BuildTrigger:
     # Frontmatter cache: path -> (mtime, has_nav_keys)
     _frontmatter_cache: dict[Path, tuple[float, bool]] = {}
     _frontmatter_cache_max = 500
+
+    # Content hash cache: path -> (mtime, frontmatter_hash, content_hash)
+    # Used for content-only change detection (RFC: content-only-hot-reload)
+    _content_hash_cache: dict[Path, tuple[float, str, str]] = {}
+    _content_hash_cache_max = 500
 
     # Template directories cache (per-instance, set to None to invalidate)
     _template_dirs: list[Path] | None = None
@@ -264,32 +270,64 @@ class BuildTrigger:
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
 
-            # Create build request
+            # Create build options for warm build
             use_incremental = not needs_full_rebuild
 
-            # Dev server always uses auto-detection (force_sequential=False)
-            # Parallel will be computed dynamically based on page count
-            request = BuildRequest(
-                site_root=str(self.site.root_path),
-                changed_paths=tuple(changed_files),
+            # Warm build: reuse the existing site object instead of creating a new one
+            # This eliminates Site.from_config() overhead (~250ms per rebuild)
+            from bengal.orchestration.build.options import BuildOptions
+            from bengal.utils.observability.profile import BuildProfile
+
+            # Reset all per-build mutable state in one call.
+            # Site.prepare_for_rebuild() is the single source of truth for what
+            # must be reset between warm builds — including cascade snapshot,
+            # content registry, page caches, and URL registry.
+            self.site.prepare_for_rebuild()
+
+            build_opts = BuildOptions(
+                force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
-                profile="WRITER",
-                nav_changed_paths=tuple(str(p) for p in nav_changed_files),
+                profile=BuildProfile.WRITER,
+                changed_sources={Path(p) for p in changed_files} if changed_files else None,
+                nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,
-                force_sequential=False,  # Always auto-detect in dev server
-                version_scope=self.version_scope,
             )
 
-            # Execute build in subprocess
-            result = self._executor.submit(request, timeout=300.0)
-            build_duration = result.build_time_ms / 1000
+            # Apply version scope if set
+            if self.version_scope:
+                self.site.config["_version_scope"] = self.version_scope
 
-            if not result.success:
-                show_error(f"Build failed: {result.error_message}", show_art=False)
+            # Execute warm build directly on the existing site
+            build_start = time.time()
+            try:
+                stats = self.site.build(options=build_opts)
+                build_duration = (time.time() - build_start)
+
+                # Build succeeded - convert stats to result-like object for display
+                class WarmBuildResult:
+                    def __init__(self, stats: Any, build_time: float) -> None:
+                        self.success = True
+                        self.pages_built = stats.total_pages
+                        self.build_time_ms = build_time * 1000
+                        self.error_message = None
+                        self.changed_outputs = tuple(
+                            (str(r.path), r.output_type.value, r.phase)
+                            for r in stats.changed_outputs
+                        ) if hasattr(stats, 'changed_outputs') else ()
+                        self._stats = stats
+
+                result = WarmBuildResult(stats, build_duration)
+
+            except Exception as e:
+                # Build crashed - log error and reinitialize site for next build
+                build_duration = (time.time() - build_start)
+                error_msg = str(e)
+
+                show_error(f"Build failed: {error_msg}", show_art=False)
                 cli.request_log_header()
 
                 # Record failure for pattern detection
-                error_sig = f"build_failed:{result.error_message[:50] if result.error_message else 'unknown'}"
+                error_sig = f"build_failed:{error_msg[:50] if error_msg else 'unknown'}"
                 is_new = get_dev_server_state().record_failure(error_sig)
                 if not is_new:
                     logger.warning(
@@ -302,10 +340,23 @@ class BuildTrigger:
                     "rebuild_failed",
                     error_code=ErrorCode.S003.name,
                     duration_seconds=round(build_duration, 2),
-                    error=result.error_message,
+                    error=error_msg,
                     changed_files=[str(p) for p in changed_paths][:5],
                     is_recurring=not is_new,
                 )
+
+                # Reinitialize site from scratch to recover from corrupted state
+                # This ensures the next build starts clean
+                try:
+                    from bengal.core.site import Site
+                    logger.info("warm_build_recovery", action="reinitializing_site")
+                    self.site = Site.from_config(self.site.root_path)
+                    self.site.dev_mode = True
+                except Exception as reinit_error:
+                    logger.error(
+                        "warm_build_recovery_failed",
+                        error=str(reinit_error),
+                    )
                 return
 
             # Display build stats
@@ -612,6 +663,73 @@ class BuildTrigger:
             logger.debug("frontmatter_check_failed", file=str(path), error=str(e))
             return False
 
+    def _is_content_only_change(self, path: Path) -> bool:
+        """
+        Check if a markdown file change is content-only (frontmatter unchanged).
+
+        Content-only changes can potentially use faster rendering paths that
+        skip template processing and inject new content into cached page shells.
+
+        Args:
+            path: Path to the markdown file
+
+        Returns:
+            True if only the markdown body changed (not frontmatter)
+
+        RFC: content-only-hot-reload
+        """
+        import hashlib
+
+        if not path.suffix.lower() == ".md":
+            return False
+
+        try:
+            mtime = path.stat().st_mtime
+
+            # Read file and split frontmatter/content
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+
+            # Extract frontmatter
+            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
+            if not match:
+                return False  # No frontmatter = can't detect
+
+            fm_text = match.group(1)
+            content_text = match.group(2)
+
+            # Hash both parts
+            fm_hash = hashlib.sha256(fm_text.encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(content_text.encode()).hexdigest()[:16]
+
+            # Check against cache
+            cached = self._content_hash_cache.get(path)
+            if cached is not None:
+                _cached_mtime, cached_fm_hash, cached_content_hash = cached
+
+                # Content-only if frontmatter same but content different
+                if cached_fm_hash == fm_hash and cached_content_hash != content_hash:
+                    logger.debug(
+                        "content_only_change_detected",
+                        file=str(path),
+                        hint="frontmatter_unchanged",
+                    )
+                    # Update cache with new hashes
+                    self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+                    return True
+
+            # Update cache with LRU eviction
+            if len(self._content_hash_cache) >= self._content_hash_cache_max:
+                first_key = next(iter(self._content_hash_cache))
+                del self._content_hash_cache[first_key]
+            self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+
+            return False
+
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
+            return False
+
     def _get_template_dirs(self) -> list[Path]:
         """
         Get template directories (cached).
@@ -627,6 +745,7 @@ class BuildTrigger:
 
         import bengal
 
+        assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
         root_path = getattr(self.site, "root_path", None)
 
@@ -778,7 +897,7 @@ class BuildTrigger:
 
     def _should_regenerate_autodoc(self, changed_paths: set[Path]) -> bool:
         """Check if autodoc regeneration is needed."""
-        if not hasattr(self.site, "config") or not self.site.config:
+        if not isinstance(self.site, SiteLike) or not self.site.config:
             return False
 
         # ConfigSection now supports dict methods, use directly
@@ -822,74 +941,44 @@ class BuildTrigger:
     ) -> None:
         """Handle reload decision and notification.
 
-        Uses a three-tier decision flow for optimal performance:
-        1. Source-gated: Immediate CSS-only detection from source files (fastest)
-        2. Typed outputs: O(o) decision from OutputRecords (preferred)
-        3. Fallback: Path-based decision (should rarely occur)
+        Uses typed outputs from the build for accurate reload decisions:
+        1. Primary: Typed outputs from build (CSS-only vs full reload)
+        2. Fallback: Path-based decision (when typed outputs unavailable)
+
+        The typed output approach is more accurate than source-file inspection
+        because it knows exactly what was written, not just what changed.
 
         Args:
-            changed_files: List of source file paths that changed
+            changed_files: List of source file paths that changed (for logging)
             changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
         """
         decision = None
-        decision_source = "none"  # Track which tier made the decision
+        decision_source = "none"
 
-        # TIER 1: Source-gated reload decision (fastest path)
-        if changed_files:
-            try:
-                lower = [p.lower() for p in changed_files]
-                src_only = [p for p in lower if "/public/" not in p and "\\public\\" not in p]
-
-                has_svg_icons = any(
-                    "/themes/" in p and "/assets/icons/" in p and p.endswith(".svg")
-                    for p in src_only
-                )
-
-                css_only = (
-                    bool(src_only)
-                    and all(p.endswith(".css") for p in src_only)
-                    and not has_svg_icons
-                )
-
-                if css_only:
-                    # Use typed outputs to get CSS paths
-                    css_paths = (
-                        [path for path, type_val, _phase in changed_outputs if type_val == "css"]
-                        if changed_outputs
-                        else []
-                    )
-                    decision = ReloadDecision(
-                        action="reload-css", reason="css-only", changed_paths=css_paths
-                    )
-                    decision_source = "source-gated-css"
-                else:
-                    decision = ReloadDecision(
-                        action="reload", reason="source-change", changed_paths=[]
-                    )
-                    decision_source = "source-gated-full"
-            except Exception as e:
-                logger.debug("reload_decision_failed", error=str(e))
-
-        # TIER 2: Typed builder outputs - preferred path (O(o) not O(F))
-        if decision is None and changed_outputs:
+        # Primary path: Use typed outputs from build
+        if changed_outputs:
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
             for path_str, type_val, phase in changed_outputs:
                 try:
                     output_type = OutputType(type_val)
-                    # phase needs to be a valid literal
                     if phase in ("render", "asset", "postprocess"):
                         records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
                 except (ValueError, TypeError):
                     # Invalid type value, skip
-                    pass
+                    logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
                 decision = controller.decide_from_outputs(records)
                 decision_source = "typed-outputs"
+                logger.debug(
+                    "reload_from_typed_outputs",
+                    output_count=len(records),
+                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
+                )
             else:
-                # TIER 3: Fall back to path-based decision (should rarely occur)
+                # Fallback: Path-based decision (when type reconstruction fails)
                 paths = [path for path, _type, _phase in changed_outputs]
                 decision = controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
@@ -899,10 +988,26 @@ class BuildTrigger:
                     output_count=len(changed_outputs),
                 )
 
-        # Default: suppress reload
+        # Fallback: If sources changed but no typed outputs were recorded, trigger full reload
+        # This handles cases where the output collector didn't receive records (e.g., subprocess
+        # serialization issues, early exit paths, or collector not being passed through).
         if decision is None:
-            decision = ReloadDecision(action="none", reason="no-source-change", changed_paths=[])
-            decision_source = "suppressed"
+            if changed_files:
+                # Sources changed, but no typed outputs - fall back to full reload
+                decision = ReloadDecision(
+                    action="reload", reason="source-change-no-outputs", changed_paths=[]
+                )
+                decision_source = "fallback-source-change"
+                logger.warning(
+                    "reload_fallback_no_outputs",
+                    changed_files_count=len(changed_files),
+                    changed_files=changed_files[:5],
+                )
+            else:
+                # No sources changed and no outputs - suppress reload
+                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=[])
+                decision_source = "no-changes"
+                logger.debug("reload_suppressed_no_changes")
 
         # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
         # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)

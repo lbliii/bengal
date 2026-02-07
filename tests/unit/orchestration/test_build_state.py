@@ -177,7 +177,7 @@ class TestThreadSafeLocks:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert len(errors) == 0, f"Race conditions detected: {errors}"
         assert len(shared_value) == 10

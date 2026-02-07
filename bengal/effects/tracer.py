@@ -14,6 +14,7 @@ EffectTracer replaces 13 detector classes with one unified model:
 Thread-safe because it only reads frozen SiteSnapshot.
 """
 
+import json
 import threading
 from collections import defaultdict
 from pathlib import Path
@@ -63,6 +64,10 @@ class EffectTracer:
         self._output_index: dict[Path, Effect] = {}
         # cache key → list of effects that invalidate it
         self._invalidation_index: dict[str, list[Effect]] = defaultdict(list)
+
+        # File fingerprints for change detection
+        self._fingerprints: dict[str, dict[str, Any]] = {}  # path -> {mtime, size}
+        self._pending_fingerprints: set[Path] = set()  # Deferred updates
 
     @property
     def effects(self) -> list[Effect]:
@@ -231,6 +236,81 @@ class EffectTracer:
         """
         with self._lock:
             return list(self._invalidation_index.get(cache_key, []))
+
+    # --- File Fingerprinting ---
+
+    def update_fingerprint(self, path: Path) -> None:
+        """Record current file fingerprint (deferred until flush)."""
+        self._pending_fingerprints.add(path)
+
+    def flush_pending_fingerprints(self) -> None:
+        """Apply all pending fingerprint updates."""
+        with self._lock:
+            for path in self._pending_fingerprints:
+                if path.exists():
+                    stat = path.stat()
+                    self._fingerprints[str(path)] = {
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
+                    }
+                else:
+                    self._fingerprints.pop(str(path), None)
+            self._pending_fingerprints.clear()
+
+    def is_changed(self, path: Path) -> bool:
+        """Check if a file has changed since last fingerprint."""
+        key = str(path)
+        cached = self._fingerprints.get(key)
+        if cached is None:
+            return True  # New file
+        if not path.exists():
+            return True  # Deleted file
+        stat = path.stat()
+        return stat.st_mtime != cached["mtime"] or stat.st_size != cached["size"]
+
+    def get_changed_files(self, root_path: Path) -> set[Path]:
+        """Get all files that have changed since last fingerprint."""
+        changed: set[Path] = set()
+        for path_str in self._fingerprints:
+            path = Path(path_str)
+            if self.is_changed(path):
+                changed.add(path)
+        return changed
+
+    # --- Persistence ---
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize tracer state to dict."""
+        with self._lock:
+            return {
+                "effects": [e.to_dict() for e in self._effects],
+                "fingerprints": dict(self._fingerprints),
+            }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> EffectTracer:
+        """Deserialize tracer from dict."""
+        tracer = cls()
+        effects = [Effect.from_dict(e) for e in data.get("effects", [])]
+        tracer.record_batch(effects)
+        tracer._fingerprints = dict(data.get("fingerprints", {}))
+        return tracer
+
+    def save(self, path: Path) -> None:
+        """Save tracer state to a JSON file."""
+        data = self.to_dict()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(data, f, separators=(",", ":"))
+
+    @classmethod
+    def load(cls, path: Path) -> EffectTracer:
+        """Load tracer state from a JSON file."""
+        if not path.exists():
+            return cls()
+        with open(path) as f:
+            data = json.load(f)
+        return cls.from_dict(data)
 
     def clear(self) -> None:
         """Clear all recorded effects and indexes."""

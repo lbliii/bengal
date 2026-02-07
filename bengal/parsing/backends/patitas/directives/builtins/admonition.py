@@ -107,7 +107,7 @@ def _render_admonition_icon(icon_name: str) -> str:
 
     """
     try:
-        from bengal.directives._icons import render_svg_icon
+        from bengal.icons.svg import render_svg_icon
 
         return render_svg_icon(icon_name, size=20, css_class="admonition-icon")
     except ImportError:

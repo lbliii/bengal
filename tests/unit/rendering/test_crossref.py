@@ -121,7 +121,7 @@ class TestCrossReferenceTemplateFunctions:
 
         # Mock page
         page = Page(source_path=Path("docs/install.md"))
-        page.metadata = {"title": "Installation"}
+        page._raw_metadata = {"title": "Installation"}
         page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
         page._site = site
 
@@ -160,7 +160,7 @@ class TestCrossReferenceTemplateFunctions:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("about.md"))
-        page.metadata = {"title": "About"}
+        page._raw_metadata = {"title": "About"}
         page.output_path = tmp_path / "public" / "about" / "index.html"
         page._site = site
 
@@ -230,7 +230,7 @@ class TestCrossReferenceMistunePlugin:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("docs/install.md"))
-        page.metadata = {"title": "Installation"}
+        page._raw_metadata = {"title": "Installation"}
         page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
         page._site = site
 
@@ -253,7 +253,7 @@ class TestCrossReferenceMistunePlugin:
         site.output_dir = tmp_path / "public"
 
         page = Page(source_path=Path("docs/install.md"))
-        page.metadata = {"title": "Installation"}
+        page._raw_metadata = {"title": "Installation"}
         page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
         page._site = site
 
@@ -287,7 +287,7 @@ class TestCrossReferenceMistunePlugin:
     def test_resolve_id(self):
         """Test _resolve_id with custom ID."""
         page = Page(source_path=Path("about.md"))
-        page.metadata = {"title": "About Us"}
+        page._raw_metadata = {"title": "About Us"}
         page.output_path = Path("/about/index.html")
 
         index = {
@@ -316,7 +316,7 @@ def test_integration_mistune_parser_with_xref(tmp_path):
 
     # Create mock page for xref_index
     page = Page(source_path=Path("docs/api.md"))
-    page.metadata = {"title": "API Reference"}
+    page._raw_metadata = {"title": "API Reference"}
     page.output_path = tmp_path / "public" / "docs" / "api" / "index.html"
     page._site = site
 

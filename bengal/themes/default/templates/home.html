@@ -195,30 +195,13 @@ MAIN TEMPLATE
     {# Recent Posts Section - cached for performance #}
     {% if show_recent %}
     {% cache 'home-recent-posts-' ~ (site.nav_version ?? '') %}
-    {# Find blog section #}
-    {% let site_sections = site?.sections ?? [] %}
-    {% let blog_section_candidates = site_sections |> selectattr('name', 'eq', blog_section_name) |> list %}
-    {% let blog_section = blog_section_candidates[0] if blog_section_candidates | length > 0 else none %}
+    {# Find blog section - O(1) dict lookup via get_section() #}
+    {% let blog_section = get_section(blog_section_name) %}
 
-    {# Get recent posts #}
+    {# Get recent posts from section pages #}
     {% let recent = [] %}
-    {% if blog_section and blog_section?.pages %}
-    {% let section_pages = blog_section.pages ?? [] %}
-    {% let recent = section_pages
-    |> selectattr('date')
-    |> sort(attribute='date', reverse=true)
-    |> take(3) %}
-    {% elif site?.pages %}
-    {# Fallback: find blog posts by URL path or metadata type #}
-    {% let blog_posts = [] %}
-    {% for p in site.pages %}
-    {% let p_type = p?.metadata?.type ?? '' %}
-    {% let p_path = p?._path ?? '' %}
-    {% if p_type == 'blog' or '/blog/' in p_path %}
-    {% set _ = blog_posts.append(p) %}
-    {% end %}
-    {% end %}
-    {% let recent = blog_posts
+    {% if blog_section %}
+    {% let recent = (blog_section.pages ?? [])
     |> selectattr('date')
     |> sort(attribute='date', reverse=true)
     |> take(3) %}

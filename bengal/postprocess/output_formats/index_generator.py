@@ -90,13 +90,11 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 else:
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
-    from bengal.protocols import SiteLike
-    from bengal.protocols import PageLike as Page
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -160,7 +158,7 @@ class SiteIndexGenerator:
 
     def generate(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         accumulated_data: list[AccumulatedPageData] | None = None,
         build_context: BuildContext | None = None,
     ) -> Path | list[Path]:
@@ -220,7 +218,7 @@ class SiteIndexGenerator:
 
     def _generate_single_index(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         accumulated_data: list[AccumulatedPageData] | None = None,
     ) -> Path:
         """
@@ -390,7 +388,7 @@ class SiteIndexGenerator:
     def _generate_version_index(
         self,
         version_id: str | None,
-        pages: list[Page],
+        pages: list[PageLike],
         accumulated_data: list[AccumulatedPageData] | None = None,
     ) -> Path:
         """Generate index for a specific version with hybrid mode support."""
@@ -481,9 +479,9 @@ class SiteIndexGenerator:
 
         return index_path
 
-    def _group_by_version(self, pages: list[Page]) -> dict[str | None, list[Page]]:
+    def _group_by_version(self, pages: list[PageLike]) -> dict[str | None, list[PageLike]]:
         """Group pages by version ID (None for unversioned)."""
-        by_version: dict[str | None, list[Page]] = {}
+        by_version: dict[str | None, list[PageLike]] = {}
         for page in pages:
             version = getattr(page, "version", None)
             by_version.setdefault(version, []).append(page)
@@ -519,7 +517,7 @@ class SiteIndexGenerator:
         """
         write_if_content_changed(path, content, hash_suffix=".hash")
 
-    def page_to_summary(self, page: Page) -> dict[str, Any]:
+    def page_to_summary(self, page: PageLike) -> dict[str, Any]:
         """
         Convert page to summary for site index.
 

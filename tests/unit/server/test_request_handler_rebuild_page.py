@@ -60,7 +60,7 @@ class TestBuildInProgressState:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert len(errors) == 0
 

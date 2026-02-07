@@ -27,8 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from datetime import date, datetime
 
-    from bengal.core.page import Page
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -113,7 +112,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def languages() -> list[LanguageInfo]:
         return _languages(site)
 
-    def alternate_links(page: Page | None = None) -> list[dict[str, str]]:
+    def alternate_links(page: PageLike | None = None) -> list[dict[str, str]]:
         return _alternate_links(site, page)
 
     def locale_date(
@@ -134,7 +133,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     # and context injection for Kida
 
 
-def _current_lang(site: SiteLike, page: Page | None = None) -> str | None:
+def _current_lang(site: SiteLike, page: PageLike | None = None) -> str | None:
     i18n = site.config.get("i18n", {}) or {}
     default = i18n.get("default_language", "en")
     if page is not None and getattr(page, "lang", None):
@@ -287,7 +286,7 @@ def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
     return index
 
 
-def _alternate_links(site: SiteLike, page: Page | None) -> list[dict[str, str]]:
+def _alternate_links(site: SiteLike, page: PageLike | None) -> list[dict[str, str]]:
     if page is None:
         return []
     # Build alternates via translation_key

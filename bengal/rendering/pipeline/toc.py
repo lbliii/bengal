@@ -38,7 +38,7 @@ Usage:
 Related Modules:
 - bengal.rendering.pipeline.core: Calls extraction during rendering
 - bengal.core.page: Page.toc_items property uses this function
-- bengal.parsing.backends.mistune.toc: Mistune TOC plugin
+- bengal.parsing.backends.patitas: Patitas parser TOC support
 
 """
 
@@ -51,7 +51,7 @@ from typing import Any
 from bengal.utils.observability.logger import get_logger
 
 # TOC extraction version - increment when extract_toc_structure() logic changes
-TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for mistune
+TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for flat lists
 
 logger = get_logger(__name__)
 
@@ -60,8 +60,8 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
     """
     Parse TOC HTML into structured data for custom rendering.
 
-    Handles both nested <ul> structures (python-markdown style) and flat lists (mistune style).
-    For flat lists from mistune, parses indentation to infer heading levels.
+    Handles both nested <ul> structures and flat lists with indentation.
+    For flat lists, parses indentation to infer heading levels.
 
     This is a standalone function so it can be called from Page.toc_items
     property for lazy evaluation.
@@ -77,7 +77,7 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
         return []
 
     try:
-        # For mistune's flat TOC with indentation, use regex to preserve whitespace
+        # For flat TOC with indentation, use regex to preserve whitespace
         # Pattern: optional spaces + <li><a href="#id">title</a></li>
         pattern = r'^(\s*)<li><a href="#([^"]+)">([^<]+)</a></li>'
 
@@ -88,7 +88,7 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
                 indent_str, anchor_id, title = match.groups()
                 # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
                 title = html_module.unescape(title)
-                # Count spaces to determine level (mistune uses 2 spaces per level)
+                # Count spaces to determine level (2 spaces per level)
                 indent_level = len(indent_str)
                 level = (
                     indent_level // 2

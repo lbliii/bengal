@@ -26,10 +26,17 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
+from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.stats.models import BuildStats
+    from bengal.protocols import PageLike, SectionLike, TemplateEngine
+    from bengal.rendering.block_cache import BlockCache
+    from bengal.snapshots.types import SectionSnapshot, SiteSnapshot
 
 logger = get_logger(__name__)
 
@@ -68,10 +75,10 @@ class Renderer:
 
     def __init__(
         self,
-        template_engine: Any,
-        build_stats: Any = None,
-        block_cache: Any = None,
-        build_context: Any = None,
+        template_engine: TemplateEngine,
+        build_stats: BuildStats | None = None,
+        block_cache: BlockCache | None = None,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Initialize the renderer.
@@ -88,14 +95,14 @@ class Renderer:
         self.block_cache = block_cache  # Block cache for KIDA introspection optimization
         self.build_context = build_context  # For accessing snapshot
         # PERF: Cache for top-level content (computed once per build)
-        self._top_level_cache: tuple[list[Page], list[Any]] | None = None
+        self._top_level_cache: tuple[list[PageLike], list[SectionLike]] | None = None
         # PERF: Cache for resolved tag pages (computed once per build)
-        # Maps tag_slug -> list of filtered, resolved Page objects
-        self._tag_pages_cache: dict[str, list[Page]] | None = None
+        # Maps tag_slug -> list of filtered, resolved PageLike objects
+        self._tag_pages_cache: dict[str, list[PageLike]] | None = None
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
 
-    def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
+    def _get_top_level_content(self) -> tuple[list[PageLike], list[SectionLike]]:
         """
         Get top-level pages and sections (not nested in any section).
 
@@ -127,9 +134,12 @@ class Renderer:
         self._top_level_cache = (top_level_pages, top_level_subsections)
         return self._top_level_cache
 
-    def _to_section_snapshot(self, section: Any, snapshot: Any) -> Any:
+    def _to_section_snapshot(self, section: SectionLike | SectionSnapshot | None, snapshot: SiteSnapshot | None) -> SectionSnapshot | None:
         """
         Convert a mutable Section to its SectionSnapshot equivalent.
+
+        PERF: Uses BuildContext.get_section_snapshot() for O(1) cached lookup
+        instead of O(S) iteration over snapshot.sections.
 
         Args:
             section: Mutable Section object (or None)
@@ -147,7 +157,11 @@ class Renderer:
         if isinstance(section, SectionSnapshot):
             return section
 
-        # Look up in snapshot
+        # PERF: Use BuildContext cached lookup if available (O(1) vs O(S))
+        if self.build_context:
+            return self.build_context.get_section_snapshot(section)
+
+        # Fallback: O(S) iteration (when no build_context available)
         if snapshot:
             for sec_snap in snapshot.sections:
                 if sec_snap.path == getattr(section, "path", None) or sec_snap.name == getattr(
@@ -158,7 +172,7 @@ class Renderer:
         # Fallback: return NO_SECTION sentinel
         return NO_SECTION
 
-    def _to_section_snapshots(self, sections: list[Any], snapshot: Any) -> list[Any]:
+    def _to_section_snapshots(self, sections: list[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None) -> list[SectionSnapshot]:
         """
         Convert a list of mutable Sections to SectionSnapshots.
 
@@ -180,7 +194,7 @@ class Renderer:
                 result.append(snap)
         return result
 
-    def _get_resolved_tag_pages(self, tag_slug: str) -> list[Page]:
+    def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:
         """
         Get resolved and filtered pages for a tag (cached).
 
@@ -212,7 +226,7 @@ class Renderer:
 
         return self._tag_pages_cache.get(tag_slug, [])
 
-    def _build_all_tag_pages_cache(self) -> dict[str, list[Page]]:
+    def _build_all_tag_pages_cache(self) -> dict[str, list[PageLike]]:
         """
         Build complete cache of resolved tag pages.
 
@@ -224,12 +238,12 @@ class Renderer:
         Returns:
             Dict mapping tag_slug -> list of resolved Page objects
         """
-        cache: dict[str, list[Page]] = {}
+        cache: dict[str, list[PageLike]] = {}
         str_page_map = self.site.get_page_path_map()
         tags_data = self.site.taxonomies.get("tags", {})
 
         for tag_slug, tag_info in tags_data.items():
-            resolved_pages: list[Page] = []
+            resolved_pages: list[PageLike] = []
 
             for tax_page in tag_info.get("pages", []):
                 resolved_page = None
@@ -296,7 +310,7 @@ class Renderer:
 
         return result
 
-    def render_page(self, page: Page, content: str | None = None) -> str:
+    def render_page(self, page: PageLike, content: str | None = None) -> str:
         """
         Render a complete page with template.
 
@@ -314,7 +328,7 @@ class Renderer:
 
         Args:
             page: Page to render
-            content: Optional pre-rendered content (uses page.parsed_ast if not provided)
+            content: Optional pre-rendered content (uses page.html_content if not provided)
 
         Returns:
             Fully rendered HTML page
@@ -322,7 +336,7 @@ class Renderer:
         from bengal.rendering.context import build_page_context
 
         if content is None:
-            content = page.parsed_ast or ""
+            content = page.html_content or ""
             # Debug: Check core/page specifically
             if hasattr(page, "source_path") and "core/page.md" in str(page.source_path):
                 has_badges = "api-badge" in content
@@ -350,11 +364,13 @@ class Renderer:
         if hasattr(self, "build_context") and self.build_context:
             snapshot = getattr(self.build_context, "snapshot", None)
 
+        # Build context using unified context builder
         context = build_page_context(
             page=page,
             site=self.site,
             content=content,
             snapshot=snapshot,
+            build_context=self.build_context,  # PERF: O(1) section lookup
         )
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
@@ -493,7 +509,7 @@ class Renderer:
             # Fallback to simple HTML
             return self._render_fallback(page, content)
 
-    def _add_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """
         Add special context variables for generated pages (archives, tags, etc.).
 
@@ -524,7 +540,7 @@ class Renderer:
             self._add_tag_index_generated_page_context(page, context)
             return
 
-    def _add_archive_like_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_archive_like_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """
         Add context for archive/reference/blog-like generated pages.
 
@@ -574,7 +590,7 @@ class Renderer:
             }
         )
 
-    def _add_tag_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_tag_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """Add context for an individual tag page."""
         tag_name = page.metadata.get("_tag")
         tag_slug = page.metadata.get("_tag_slug")
@@ -694,7 +710,7 @@ class Renderer:
             }
         )
 
-    def _add_tag_index_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
+    def _add_tag_index_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """Add context for the tag index page."""
         tags = page.metadata.get("_tags", {})
 
@@ -716,7 +732,7 @@ class Renderer:
             }
         )
 
-    def _get_template_name(self, page: Page) -> str:
+    def _get_template_name(self, page: PageLike) -> str:
         """
         Determine which template to use for a page.
 
@@ -835,7 +851,7 @@ class Renderer:
             return site_section.get("title", "Site")
         return config.get("title", "Site")
 
-    def _render_fallback(self, page: Page, content: str) -> str:
+    def _render_fallback(self, page: PageLike, content: str) -> str:
         """
         Render a fallback HTML page with basic styling.
 
@@ -851,7 +867,7 @@ class Renderer:
         """
         # Try to include CSS if available
         css_link = ""
-        if hasattr(self.site, "output_dir"):
+        if isinstance(self.site, SiteLike):
             css_file = self.site.output_dir / "assets" / "css" / "style.css"
             if css_file.exists():
                 css_link = '<link rel="stylesheet" href="/assets/css/style.css">'

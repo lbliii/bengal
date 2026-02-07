@@ -39,8 +39,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.core.section import Section
-    from bengal.core.site import Site
+    from bengal.protocols import SectionLike, SiteLike
 
 
 class URLStrategy:
@@ -80,7 +79,7 @@ class URLStrategy:
     """
 
     @staticmethod
-    def compute_regular_page_output_path(page: Page, site: Site, pre_cascade: bool = False) -> Path:
+    def compute_regular_page_output_path(page: Page, site: SiteLike, pre_cascade: bool = False) -> Path:
         """
         Compute output path for a regular content page.
 
@@ -161,7 +160,7 @@ class URLStrategy:
         return site.output_dir / output_rel_path
 
     @staticmethod
-    def _apply_version_path_transform(rel_path: Path, page: Page, site: Site) -> Path:
+    def _apply_version_path_transform(rel_path: Path, page: Page, site: SiteLike) -> Path:
         """
         Transform versioned content path to output path structure.
 
@@ -231,7 +230,7 @@ class URLStrategy:
         return rel_path
 
     @staticmethod
-    def compute_archive_output_path(section: Section, page_num: int, site: Site) -> Path:
+    def compute_archive_output_path(section: SectionLike, page_num: int, site: SiteLike) -> Path:
         """
         Compute output path for a section archive page.
 
@@ -263,7 +262,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_output_path(tag_slug: str, page_num: int, site: Site) -> Path:
+    def compute_tag_output_path(tag_slug: str, page_num: int, site: SiteLike) -> Path:
         """
         Compute output path for a tag listing page.
 
@@ -299,7 +298,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_index_output_path(site: Site) -> Path:
+    def compute_tag_index_output_path(site: SiteLike) -> Path:
         """
         Compute output path for the main tags index page.
 
@@ -326,7 +325,7 @@ class URLStrategy:
         return base_path / "tags" / "index.html"
 
     @staticmethod
-    def url_from_output_path(output_path: Path, site: Site) -> str:
+    def url_from_output_path(output_path: Path, site: SiteLike) -> str:
         """
         Generate clean URL from output path.
 
@@ -379,7 +378,7 @@ class URLStrategy:
         return url
 
     @staticmethod
-    def make_virtual_path(site: Site, *parts: str) -> Path:
+    def make_virtual_path(site: SiteLike, *parts: str) -> Path:
         """
         Create virtual source path for generated pages.
 

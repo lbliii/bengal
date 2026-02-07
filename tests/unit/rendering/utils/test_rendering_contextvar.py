@@ -166,7 +166,7 @@ class TestContextVarManagerThreadIsolation:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Errors occurred: {errors}"
         assert results[1] == "thread1"
@@ -192,7 +192,7 @@ class TestContextVarManagerThreadIsolation:
         for t in threads:
             t.start()
         for t in threads:
-            t.join()
+            t.join(timeout=10)
 
         assert not errors, f"Errors occurred: {errors}"
 
@@ -212,7 +212,7 @@ class TestContextVarManagerThreadIsolation:
 
         thread = threading.Thread(target=worker)
         thread.start()
-        thread.join()
+        thread.join(timeout=10)
 
         # Main thread should still have its original value
         assert manager.get() == "main"

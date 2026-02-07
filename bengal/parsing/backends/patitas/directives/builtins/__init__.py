@@ -12,6 +12,7 @@ Provides commonly-used directives out of the box:
 - Tables: list-table directive for MyST-style tables
 - Video: youtube, vimeo, tiktok, and self-hosted video embeds
 - Embed: gist, codepen, codesandbox, stackblitz, spotify, soundcloud
+- Glossary: glossary terms from centralized data files
 - Versioning: since, deprecated, changed version badges
 
 """
@@ -44,6 +45,9 @@ from bengal.parsing.backends.patitas.directives.builtins.data_table import (
 from bengal.parsing.backends.patitas.directives.builtins.dropdown import (
     DropdownDirective,
 )
+from bengal.parsing.backends.patitas.directives.builtins.glossary import (
+    GlossaryDirective,
+)
 from bengal.parsing.backends.patitas.directives.builtins.embed import (
     CodePenDirective,
     CodeSandboxDirective,
@@ -55,6 +59,9 @@ from bengal.parsing.backends.patitas.directives.builtins.embed import (
 from bengal.parsing.backends.patitas.directives.builtins.include import (
     IncludeDirective,
     LiteralIncludeDirective,
+)
+from bengal.parsing.backends.patitas.directives.builtins.marimo import (
+    MarimoDirective,
 )
 from bengal.parsing.backends.patitas.directives.builtins.inline import (
     BadgeDirective,
@@ -139,12 +146,16 @@ __all__ = [
     "FigureDirective",
     "GalleryDirective",
     "GistDirective",
+    # Glossary
+    "GlossaryDirective",
     "IconDirective",
     # Include (File I/O)
     "IncludeDirective",
     # Tables
     "ListTableDirective",
     "LiteralIncludeDirective",
+    # Marimo
+    "MarimoDirective",
     "PrevNextDirective",
     "RelatedDirective",
     "RubricDirective",

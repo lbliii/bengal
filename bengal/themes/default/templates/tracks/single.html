@@ -68,7 +68,7 @@ Or set `type: track` to auto-select this template
 {% let section_prefix = "s" ~ index ~ "-" %}
 {% let item_title = item_page?.title ?? 'Section' %}
 {% let item_desc = item_page?.description ?? '' %}
-{% let item_ast = item_page?.parsed_ast %}
+{% let item_html = item_page?.html_content %}
 {% let item_content = item_page?.content ?? '' %}
 {% let item_href = item_page?.href ?? '#' %}
 
@@ -86,8 +86,8 @@ Or set `type: track` to auto-select this template
 
   {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
   <div class="track-section-content">
-    {% if item_ast %}
-    {{ item_ast | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {% if item_html %}
+    {{ item_html | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% elif item_content %}
     {{ item_content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% else %}
@@ -126,6 +126,15 @@ Or set `type: track` to auto-select this template
 {% let track_desc = track?.description ?? page?.description ?? '' %}
 {% let page_toc_items = page?.toc_items ?? [] %}
 
+{# PRE-COMPUTE all track item pages ONCE (used by sidebar + content + TOC) #}
+{% let track_item_pages = {} %}
+{% for item_slug in track_items %}
+{% let item_page = get_page(item_slug) %}
+{% if item_page %}
+{% let track_item_pages = track_item_pages | merge({item_slug: item_page}) %}
+{% end %}
+{% end %}
+
 {# Three-column pillar page layout #}
 <div class="docs-layout track-layout">
   {# Left Sidebar: Track Navigation + Progress #}
@@ -162,7 +171,8 @@ Or set `type: track` to auto-select this template
       {% if track and track_items | length > 0 %}
       <div class="track-content">
         {% for item_slug in track_items %}
-        {% let item_page = get_page(item_slug) %}
+        {# Use pre-computed page (O(1) lookup instead of get_page call) #}
+        {% let item_page = track_item_pages[item_slug] if item_slug in track_item_pages else none %}
         {% if item_page %}
         {{ track_section_block(item_page, loop.index, loop.last) }}
         {% else %}

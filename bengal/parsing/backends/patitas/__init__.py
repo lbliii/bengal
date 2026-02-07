@@ -280,10 +280,11 @@ def parse_many(
             return [parse(s, highlight=highlight, delegate=delegate) for s in sources]
 
         cpu_count = os.cpu_count() or 4
-        max_workers = min(4, n_docs, max(2, cpu_count // 2))
+        # Use more workers for better parallelism on modern CPUs
+        max_workers = min(cpu_count, n_docs, max(2, cpu_count))
 
         if avg_size < 1000:  # < 1KB average per doc
-            max_workers = min(2, max_workers)
+            max_workers = min(4, max_workers)  # Still use some parallelism
     else:
         max_workers = workers
 
@@ -616,7 +617,7 @@ class Markdown:
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
         """
-        from bengal.directives.cache import get_cache
+        from bengal.cache.directive_cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled (auto-enabled for versioned sites)
@@ -690,7 +691,7 @@ class Markdown:
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
         """
-        from bengal.directives.cache import get_cache
+        from bengal.cache.directive_cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         # Use global directive cache if enabled

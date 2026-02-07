@@ -56,9 +56,9 @@ Auto-generated for each tag in the site
       {% if tag_posts | length > 0 %}
       <div class="archive-list">
         {% for post in tag_posts %}
-        {# Skip autodoc pages (defensive) #}
-        {% let source_str = (post?.source_path ?? '') | string %}
-        {% if 'content/api' not in source_str and 'content/cli' not in source_str %}
+        {# Skip autodoc pages using efficient function check instead of string manipulation #}
+        {% let is_autodoc = is_autodoc_page(post) if is_autodoc_page is defined else false %}
+        {% unless is_autodoc %}
         {{ article_card(post, show_excerpt=true) }}
         {% end %}
         {% end %}

@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -62,6 +63,7 @@ from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
@@ -533,6 +535,20 @@ class BuildOrchestrator:
             snapshot_cache = SnapshotCache(cache_dir)
             snapshot_cache.save(site_snapshot)
 
+            # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
+            # Services operate on the frozen snapshot for thread-safe rendering.
+            # Instantiated once per build, available via build context.
+            from bengal.services.query import QueryService
+
+            early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
+            # DataService instantiation deferred — only when data/ dir exists
+            try:
+                from bengal.services.data import DataService
+
+                early_ctx.data_service = DataService.from_root(self.site.root_path)
+            except Exception:
+                pass  # data/ dir may not exist; service remains None
+
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
         # In dry-run mode, we skip rendering, assets, postprocessing, and health
@@ -634,9 +650,9 @@ class BuildOrchestrator:
         finalization_start = time.time()
 
         # Phase 17: Post-processing
-        # Post-processing doesn't use parallel processing, so pass False
+        # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
         finalization.phase_postprocess(
-            self, cli, False, ctx, incremental, collector=output_collector
+            self, cli, not force_sequential, ctx, incremental, collector=output_collector
         )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
@@ -683,12 +699,33 @@ class BuildOrchestrator:
                 content_hash_count=len(content_hash_lookup),
             )
 
-        # Phase 18: Save Cache
-        finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
+        # Phase 18: Save Caches (parallel for independent caches)
+        # Run cache saves concurrently since they're independent I/O operations.
+        # This reduces total cache save time from sum to max of all saves.
+        cache_start = time.perf_counter()
 
-        # RFC: Output Cache Architecture - Save GeneratedPageCache
-        if generated_page_cache:
-            generated_page_cache.save()
+        def _save_main_cache() -> None:
+            self.incremental.save_cache(pages_to_build, assets_to_process)
+
+        def _save_generated_cache() -> None:
+            if generated_page_cache:
+                generated_page_cache.save()
+
+        # Run cache saves in parallel
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="CacheSave") as executor:
+            futures = [
+                executor.submit(_save_main_cache),
+                executor.submit(_save_generated_cache),
+            ]
+            # Wait for all saves to complete
+            for future in as_completed(futures):
+                # Re-raise any exceptions from save threads
+                future.result()
+
+        cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+        if cli is not None:
+            cli.phase("Cache save", duration_ms=cache_duration_ms)
+        self.logger.info("cache_saved")
 
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)
@@ -698,6 +735,20 @@ class BuildOrchestrator:
 
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
+
+        # Debug: Log output collection for hot reload diagnostics
+        if self.stats.changed_outputs:
+            self.logger.debug(
+                "output_collector_results",
+                total_outputs=len(self.stats.changed_outputs),
+                html_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "html"),
+                css_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "css"),
+            )
+        else:
+            self.logger.warning(
+                "output_collector_empty",
+                pages_rendered=len(pages_to_build) if pages_to_build else 0,
+            )
 
         finalization_duration_ms = (time.time() - finalization_start) * 1000
         notify_phase_complete(
@@ -928,8 +979,8 @@ class BuildOrchestrator:
         incremental: bool,
     ) -> None:
         """Phase 17: Post-processing."""
-        # Post-processing doesn't use parallel processing, so pass False
-        finalization.phase_postprocess(self, cli, False, ctx, incremental)
+        # Enable parallel post-processing for independent tasks
+        finalization.phase_postprocess(self, cli, not force_sequential, ctx, incremental)
 
     def _phase_cache_save(self, pages_to_build: list[Page], assets_to_process: list[Any]) -> None:
         """Phase 18: Save Cache."""
@@ -969,7 +1020,7 @@ class BuildOrchestrator:
             session = get_session()
 
             # Record any errors collected during build phases
-            if hasattr(self.stats, "errors") and self.stats.errors:
+            if isinstance(self.stats, HasErrors) and self.stats.errors:
                 for error in self.stats.errors:
                     if hasattr(error, "phase"):
                         record_error(
