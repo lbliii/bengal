@@ -4,12 +4,24 @@ Core protocols for page, section, and site-like objects.
 This module provides Protocol definitions for core content objects,
 enabling type-safe operations without depending on concrete implementations.
 
-Protocols:
-- PageLike: Interface for page objects
+Role-Based Page Protocols:
+- Renderable: Content that can be rendered to HTML
+- Navigable: Objects with URL/path/hierarchy properties
+- Summarizable: Objects with metadata for search/summaries
+- PageLike: Full page interface (extends all three roles)
+
+Section Protocols:
 - SectionLike: Interface for content sections
-- SiteLike: Interface for site objects
 - NavigableSection: Sections with navigation support
 - QueryableSection: Sections with query capabilities
+
+Role-Based Site Protocols:
+- SiteConfig: Site configuration and identity
+- SiteContent: Site content (pages, sections, data)
+- SiteLike: Full site interface (extends both roles)
+
+Other:
+- ConfigLike: Dict-like config access protocol
 
 Thread Safety:
     All protocols are designed for use in multi-threaded contexts.
@@ -29,45 +41,59 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from bengal.config.types import SiteConfig
+    from bengal.config.types import SiteConfig as SiteConfigType
     from bengal.core.page.frontmatter import Frontmatter
     from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
 
 
 # =============================================================================
-# Page Protocol
+# Page Role Protocols
 # =============================================================================
 
 
 @runtime_checkable
-class PageLike(Protocol):
+class Renderable(Protocol):
     """
-    Protocol for page-like objects.
+    Protocol for objects with renderable content.
 
-    Provides a unified interface for objects that can be treated as pages
-    in templates, navigation, and rendering. This enables type-safe access
-    to page properties without depending on the concrete Page class.
+    Use when a function only needs access to rendered HTML, TOC, or
+    template information -- not navigation or metadata.
 
-    Use Cases:
-        - Template rendering: Functions accept PageLike for flexibility
-        - Navigation building: Menu items work with any PageLike
-        - Testing: Create minimal page-like objects for unit tests
-
-    Thread Safety:
-        Implementations should be thread-safe for concurrent access
-        during parallel builds.
-
-    Example:
-            >>> def render_page(page: PageLike) -> str:
-            ...     return f"<h1>{page.title}</h1>{page.content}"
-
+    Consumers: rendering pipeline, cache checker, complexity estimator.
     """
 
     @property
-    def title(self) -> str:
-        """Page title from frontmatter or filename."""
+    def content(self) -> str:
+        """Rendered HTML content (template-ready)."""
         ...
+
+    @property
+    def toc(self) -> str:
+        """Rendered table of contents HTML."""
+        ...
+
+    @property
+    def toc_items(self) -> list[Any]:
+        """Structured table of contents items."""
+        ...
+
+    @property
+    def template_name(self) -> str:
+        """Template to use for rendering."""
+        ...
+
+
+@runtime_checkable
+class Navigable(Protocol):
+    """
+    Protocol for objects with navigation/URL properties.
+
+    Use when a function only needs URL, path, or hierarchy information
+    -- not content or metadata.
+
+    Consumers: path registry, query index, nav tree, template get_page.
+    """
 
     @property
     def href(self) -> str:
@@ -75,8 +101,40 @@ class PageLike(Protocol):
         ...
 
     @property
-    def content(self) -> str:
-        """Rendered HTML content (template-ready)."""
+    def source_path(self) -> Path:
+        """Path to source file."""
+        ...
+
+    @property
+    def output_path(self) -> Path | None:
+        """Path where the rendered page will be written."""
+        ...
+
+    @property
+    def slug(self) -> str:
+        """URL slug derived from filename or frontmatter."""
+        ...
+
+    @property
+    def is_virtual(self) -> bool:
+        """Whether this is a virtual (generated) page."""
+        ...
+
+
+@runtime_checkable
+class Summarizable(Protocol):
+    """
+    Protocol for objects with metadata suitable for summaries and search.
+
+    Use when a function only needs title, date, tags, or description
+    -- not rendered content or navigation paths.
+
+    Consumers: taxonomy, indexes (category, author), content type classification.
+    """
+
+    @property
+    def title(self) -> str:
+        """Page title from frontmatter or filename."""
         ...
 
     @property
@@ -100,11 +158,6 @@ class PageLike(Protocol):
         ...
 
     @property
-    def source_path(self) -> Path:
-        """Path to source file."""
-        ...
-
-    @property
     def metadata(self) -> dict[str, Any]:
         """Raw frontmatter/metadata dict for template access."""
         ...
@@ -112,11 +165,6 @@ class PageLike(Protocol):
     @property
     def tags(self) -> list[str]:
         """Tags for taxonomy filtering."""
-        ...
-
-    @property
-    def output_path(self) -> Path | None:
-        """Path where the rendered page will be written."""
         ...
 
     @property
@@ -140,34 +188,36 @@ class PageLike(Protocol):
         ...
 
     @property
-    def toc(self) -> str:
-        """Rendered table of contents HTML."""
-        ...
-
-    @property
-    def toc_items(self) -> list[Any]:
-        """Structured table of contents items."""
-        ...
-
-    @property
-    def slug(self) -> str:
-        """URL slug derived from filename or frontmatter."""
-        ...
-
-    @property
-    def is_virtual(self) -> bool:
-        """Whether this is a virtual (generated) page."""
-        ...
-
-    @property
-    def template_name(self) -> str:
-        """Template to use for rendering."""
-        ...
-
-    @property
     def type(self) -> str:
         """Page type (e.g., 'page', 'post', 'api')."""
         ...
+
+
+# =============================================================================
+# Composite Page Protocol
+# =============================================================================
+
+
+@runtime_checkable
+class PageLike(Renderable, Navigable, Summarizable, Protocol):
+    """
+    Full page protocol combining all three roles.
+
+    Use PageLike when a function needs access to content, navigation,
+    AND metadata (e.g., the rendering pipeline, JSON generator).
+    Prefer the narrower role protocols when possible.
+
+    Extends: Renderable, Navigable, Summarizable
+
+    Thread Safety:
+        Implementations should be thread-safe for concurrent access
+        during parallel builds.
+
+    Example:
+            >>> def render_page(page: PageLike) -> str:
+            ...     return f"<h1>{page.title}</h1>{page.content}"
+
+    """
 
 
 # =============================================================================
@@ -271,27 +321,19 @@ class SectionLike(Protocol):
 
 
 # =============================================================================
-# Site Protocol
+# Site Role Protocols
 # =============================================================================
 
 
 @runtime_checkable
-class SiteLike(Protocol):
+class SiteConfig(Protocol):
     """
-    Protocol for site-like objects.
+    Protocol for site configuration and identity.
 
-    Provides a unified interface for site operations in templates,
-    rendering, and orchestration. Enables type-safe site access without
-    depending on the concrete Site class.
+    Use when a function only needs config, paths, or theme information
+    -- not pages or sections.
 
-    Thread Safety:
-        Implementations should be thread-safe for concurrent access
-        during parallel builds.
-
-    Example:
-            >>> def get_page_count(site: SiteLike) -> int:
-            ...     return len(site.pages)
-
+    Consumers: autodoc renderer, CSS optimizer, icon resolver, asset pipeline.
     """
 
     @property
@@ -305,23 +347,8 @@ class SiteLike(Protocol):
         ...
 
     @property
-    def config(self) -> SiteConfig:
+    def config(self) -> SiteConfigType:
         """Site configuration dictionary."""
-        ...
-
-    @property
-    def pages(self) -> list[PageLike]:
-        """All pages in the site."""
-        ...
-
-    @property
-    def sections(self) -> list[SectionLike]:
-        """Top-level sections."""
-        ...
-
-    @property
-    def root_section(self) -> SectionLike:
-        """Root section of the content tree."""
         ...
 
     @property
@@ -345,6 +372,63 @@ class SiteLike(Protocol):
         ...
 
     @property
+    def theme_config(self) -> Theme:
+        """Theme configuration object."""
+        ...
+
+    @property
+    def content_dir(self) -> Path:
+        """Path to the content directory."""
+        ...
+
+    @property
+    def version_config(self) -> VersionConfig:
+        """Site versioning configuration."""
+        ...
+
+    @property
+    def versioning_enabled(self) -> bool:
+        """Whether versioned documentation is enabled."""
+        ...
+
+    @property
+    def build_time(self) -> datetime | None:
+        """Build timestamp."""
+        ...
+
+
+@runtime_checkable
+class SiteContent(Protocol):
+    """
+    Protocol for site content (pages, sections, data).
+
+    Use when a function only needs access to pages, sections, or data
+    -- not configuration or theme.
+
+    Consumers: query index, JSON/LLM generators, nav tree, taxonomy.
+    """
+
+    @property
+    def pages(self) -> list[PageLike]:
+        """All pages in the site."""
+        ...
+
+    @property
+    def regular_pages(self) -> list[PageLike]:
+        """Non-generated, non-index pages."""
+        ...
+
+    @property
+    def sections(self) -> list[SectionLike]:
+        """Top-level sections."""
+        ...
+
+    @property
+    def root_section(self) -> SectionLike:
+        """Root section of the content tree."""
+        ...
+
+    @property
     def data(self) -> dict[str, Any]:
         """Data directory contents (loaded from data/ directory)."""
         ...
@@ -360,43 +444,13 @@ class SiteLike(Protocol):
         ...
 
     @property
-    def version_config(self) -> VersionConfig:
-        """Site versioning configuration."""
-        ...
-
-    @property
-    def versioning_enabled(self) -> bool:
-        """Whether versioned documentation is enabled."""
-        ...
-
-    @property
-    def content_dir(self) -> Path:
-        """Path to the content directory."""
-        ...
-
-    @property
-    def theme_config(self) -> Theme:
-        """Theme configuration object."""
-        ...
-
-    @property
     def xref_index(self) -> dict[str, Any]:
         """Cross-reference index for internal linking."""
         ...
 
     @property
-    def regular_pages(self) -> list[PageLike]:
-        """Non-generated, non-index pages."""
-        ...
-
-    @property
     def versions(self) -> list[Any]:
         """Available documentation versions."""
-        ...
-
-    @property
-    def build_time(self) -> datetime | None:
-        """Build timestamp."""
         ...
 
     def get_page_path_map(self) -> dict[str, PageLike]:
@@ -406,6 +460,32 @@ class SiteLike(Protocol):
     def get_section_by_path(self, path: Path | str) -> SectionLike | None:
         """Look up a section by its path (O(1) operation)."""
         ...
+
+
+# =============================================================================
+# Composite Site Protocol
+# =============================================================================
+
+
+@runtime_checkable
+class SiteLike(SiteConfig, SiteContent, Protocol):
+    """
+    Full site protocol combining configuration and content roles.
+
+    Use SiteLike when a function needs access to BOTH config/paths
+    AND pages/sections. Prefer the narrower role protocols when possible.
+
+    Extends: SiteConfig, SiteContent
+
+    Thread Safety:
+        Implementations should be thread-safe for concurrent access
+        during parallel builds.
+
+    Example:
+            >>> def get_page_count(site: SiteLike) -> int:
+            ...     return len(site.pages)
+
+    """
 
 
 # =============================================================================
@@ -518,10 +598,19 @@ class ConfigLike(Protocol):
 # =============================================================================
 
 __all__ = [
-    "ConfigLike",
-    "NavigableSection",
+    # Page role protocols
+    "Renderable",
+    "Navigable",
+    "Summarizable",
     "PageLike",
-    "QueryableSection",
+    # Section protocols
     "SectionLike",
+    "NavigableSection",
+    "QueryableSection",
+    # Site role protocols
+    "SiteConfig",
+    "SiteContent",
     "SiteLike",
+    # Config protocol
+    "ConfigLike",
 ]

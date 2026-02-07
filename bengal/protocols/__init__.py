@@ -8,7 +8,7 @@ Internal modules may define implementation-specific protocols, but
 cross-module contracts belong here.
 
 Organization:
-- core: PageLike, SectionLike, SiteLike, NavigableSection, QueryableSection
+- core: Renderable, Navigable, Summarizable, PageLike, SectionLike, SiteConfig, SiteContent, SiteLike
 - rendering: TemplateRenderer, TemplateIntrospector, TemplateEngine, HighlightService
 - infrastructure: ProgressReporter, Cacheable, OutputCollector, ContentSourceProtocol
 
@@ -61,11 +61,16 @@ from bengal.protocols.capabilities import (
 )
 from bengal.protocols.core import (
     ConfigLike,
+    Navigable,
     NavigableSection,
     PageLike,
     QueryableSection,
+    Renderable,
     SectionLike,
+    SiteConfig,
+    SiteContent,
     SiteLike,
+    Summarizable,
 )
 from bengal.protocols.infrastructure import (
     Cacheable,
@@ -115,10 +120,11 @@ __all__ = [
     "HighlightService",
     # Analysis
     "KnowledgeGraphProtocol",
+    # Core - Page role protocols
+    "Navigable",
     "NavigableSection",
     "OutputCollector",
     "OutputTarget",
-    # Core
     "PageLike",
     "PhaseStats",
     "PhaseTiming",
@@ -127,10 +133,15 @@ __all__ = [
     "QueryableSection",
     "RenderContext",
     "RenderResult",
+    "Renderable",
     # Rendering - Roles and Directives
     "RoleHandler",
     "SectionLike",
+    # Core - Site role protocols
+    "SiteConfig",
+    "SiteContent",
     "SiteLike",
+    "Summarizable",
     "TemplateEngine",
     "TemplateEngineProtocol",  # Backwards compatibility
     # Rendering - Template
