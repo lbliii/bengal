@@ -245,7 +245,7 @@ def _create_minimal_page(
         source_path=source_path,
         _raw_content="Test content",
         _raw_metadata=metadata or {},
-        parsed_ast="",
+        html_content="",
         links=[],
     )
 

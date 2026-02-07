@@ -52,7 +52,7 @@ def test_pipeline_writes_output_file(tmp_path):
     page.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Simulate already-rendered content
-    page.parsed_ast = "<h1>Title</h1>"
+    page.html_content = "<h1>Title</h1>"
     page.rendered_html = "<html>\n<body>\n<h1>Title</h1>\n</body>\n</html>"
     pipeline.renderer = SimpleNamespace(
         render_content=lambda s: s,

@@ -221,11 +221,11 @@ class TestGetPageFunction:
         assert page is not None
 
         # Verify page is parsed after get_page call
-        assert hasattr(page, "parsed_ast")
-        assert page.parsed_ast is not None
-        assert len(page.parsed_ast) > 0
+        assert hasattr(page, "html_content")
+        assert page.html_content is not None
+        assert len(page.html_content) > 0
         # Should be HTML, not markdown (Patitas adds id attributes: <h1 id="...">)
-        assert "</h1>" in page.parsed_ast or "</h2>" in page.parsed_ast
+        assert "</h1>" in page.html_content or "</h2>" in page.html_content
 
     def test_get_page_does_not_reparse_already_parsed_pages(self, site_with_content: Site):
         """Test that get_page doesn't reparse pages that are already parsed."""
@@ -239,14 +239,14 @@ class TestGetPageFunction:
         page = get_page("docs/getting-started/installation.md")
         assert page is not None
 
-        # Manually set parsed_ast to a known value
+        # Manually set html_content to a known value to prevent re-parsing
         original_parsed = "<h1>Test</h1><p>Original content</p>"
-        page.parsed_ast = original_parsed
+        page.html_content = original_parsed
 
         # Get the page again - should not reparse
         page2 = get_page("docs/getting-started/installation.md")
         assert page2 is not None
-        assert page2.parsed_ast == original_parsed
+        assert page2.html_content == original_parsed
 
 
 class TestCacheKeyNormalization:

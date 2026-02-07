@@ -223,8 +223,8 @@ class PageJSONGenerator:
             data["date"] = page.date.isoformat()
 
         # Content (HTML if available)
-        if include_html and page.parsed_ast:
-            data["content"] = page.parsed_ast
+        if include_html and page.html_content:
+            data["content"] = page.html_content
 
         # Plain text - use page.plain_text which is pre-cached during rendering
         content_text = page.plain_text
@@ -238,7 +238,7 @@ class PageJSONGenerator:
         data["metadata"] = {}
         skipped_keys = []
         for k, v in page.metadata.items():
-            if k in ["content", "parsed_ast", "rendered_html", "_generated"]:
+            if k in ["content", "html_content", "rendered_html", "_generated"]:
                 continue
             # Only include JSON-serializable values
             try:

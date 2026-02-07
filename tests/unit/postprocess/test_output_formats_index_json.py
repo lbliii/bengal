@@ -401,7 +401,7 @@ class TestSiteIndexJsonGeneration:
         page.href = url
         page._path = url  # Site-relative path (used by get_page_relative_url)
         page.content = content
-        page.parsed_ast = content  # Simplified for testing
+        page.html_content = content  # Simplified for testing
         page.plain_text = content  # For AST-based extraction
         page.output_path = output_path
         page.tags = tags or []

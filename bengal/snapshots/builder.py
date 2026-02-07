@@ -450,7 +450,7 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
 
     # Get parsed HTML (pre-parsed during parsing phase - RFC: rfc-bengal-snapshot-engine)
     # This is what rendering should use, eliminating re-parsing during render
-    parsed_html = getattr(page, "parsed_ast", "") or ""
+    parsed_html = getattr(page, "html_content", "") or ""
 
     # Get TOC
     toc = getattr(page, "toc", "") or ""

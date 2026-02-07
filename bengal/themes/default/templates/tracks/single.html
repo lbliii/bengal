@@ -68,7 +68,7 @@ Or set `type: track` to auto-select this template
 {% let section_prefix = "s" ~ index ~ "-" %}
 {% let item_title = item_page?.title ?? 'Section' %}
 {% let item_desc = item_page?.description ?? '' %}
-{% let item_ast = item_page?.parsed_ast %}
+{% let item_html = item_page?.html_content %}
 {% let item_content = item_page?.content ?? '' %}
 {% let item_href = item_page?.href ?? '#' %}
 
@@ -86,8 +86,8 @@ Or set `type: track` to auto-select this template
 
   {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
   <div class="track-section-content">
-    {% if item_ast %}
-    {{ item_ast | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {% if item_html %}
+    {{ item_html | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% elif item_content %}
     {{ item_content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% else %}

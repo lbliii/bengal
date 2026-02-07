@@ -81,7 +81,7 @@ def mock_page(tmp_path):
         metadata={"title": "Test Page", "type": "doc"},
         tags=[],
         toc="",
-        parsed_ast=None,
+        html_content=None,
         rendered_html=None,
         _prerendered_html=None,
         _virtual=False,
@@ -112,7 +112,7 @@ class TestPipelineCacheStorage:
         pipeline = RenderingPipeline(site, dependency_tracker=tracker, build_context=ctx)
 
         # Manually call cache_parsed_content via the cache_checker
-        mock_page.parsed_ast = "<p>Test content</p>"
+        mock_page.html_content = "<p>Test content</p>"
         mock_page.toc = "<nav>TOC</nav>"
         mock_page.links = []
 
@@ -189,7 +189,7 @@ class TestPipelineCacheIntegration:
         pipeline = RenderingPipeline(site, dependency_tracker=tracker, build_context=ctx)
 
         # Store parsed content
-        mock_page.parsed_ast = "<p>Cached content for persistence test</p>"
+        mock_page.html_content = "<p>Cached content for persistence test</p>"
         mock_page.toc = "<nav>TOC</nav>"
         mock_page.links = []
 

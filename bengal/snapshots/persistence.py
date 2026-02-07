@@ -278,7 +278,7 @@ def apply_cached_parsing(
 
         if current_hash == cached.content_hash:
             # Content unchanged - apply cached data
-            page.parsed_ast = cached.parsed_html
+            page.html_content = cached.parsed_html
             page.toc = cached.toc
             page._toc_items_cache = list(cached.toc_items)
             if hasattr(page, "_reading_time"):

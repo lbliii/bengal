@@ -29,9 +29,9 @@ def sample_page():
             "weight": 5,
         },
     )
-    # Set parsed_ast so that content property returns expected HTML
+    # Set html_content so that .content property returns expected HTML
     # (In real builds, this is set by the rendering pipeline)
-    page.parsed_ast = "<h1>My Post</h1>\n<p>Content here.</p>"
+    page.html_content = "<h1>My Post</h1>\n<p>Content here.</p>"
     return page
 
 
@@ -322,7 +322,7 @@ class TestPageProxyFromPage:
 
         # Should load immediately when accessing
         content = proxy.content
-        # sample_page has parsed_ast set, so content should match
+        # sample_page has html_content set, so content should match
         assert content == "<h1>My Post</h1>\n<p>Content here.</p>"
 
 

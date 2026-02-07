@@ -211,7 +211,7 @@ class TestTrackRendering:
         assert page is not None
         assert page.title == "Page 1"
         # Content should be available (may be parsed or raw)
-        assert hasattr(page, "content") or hasattr(page, "parsed_ast")
+        assert hasattr(page, "content") or hasattr(page, "html_content")
 
     def test_track_with_empty_items_list(self, tmp_path: Path):
         """Test track with no items handles gracefully."""
