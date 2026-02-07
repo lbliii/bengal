@@ -19,7 +19,7 @@ class VersionService:
         version_config: Versioning configuration loaded from site config.
     """
 
-    __slots__ = ("_version_config", "_versions_dict_cache", "_latest_version_dict_cache")
+    __slots__ = ("_latest_version_dict_cache", "_version_config", "_versions_dict_cache")
 
     def __init__(self, version_config: VersionConfig) -> None:
         self._version_config = version_config
@@ -79,7 +79,9 @@ class VersionService:
         """
         if self._latest_version_dict_cache is not None:
             # None means "not cached yet"; sentinel distinguishes "cached None"
-            return self._latest_version_dict_cache if self._latest_version_dict_cache != "_NO_LATEST_VERSION_" else None
+            if self._latest_version_dict_cache == "_NO_LATEST_VERSION_":
+                return None
+            return self._latest_version_dict_cache
 
         if not self._version_config or not self._version_config.enabled:
             result = None

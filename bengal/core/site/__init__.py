@@ -430,6 +430,34 @@ class Site(
         return for_testing(cls, root_path, config)
 
     # =========================================================================
+    # VERSIONING (delegated to VersionService)
+    # =========================================================================
+
+    @property
+    def versioning_enabled(self) -> bool:
+        """Whether versioned documentation is enabled."""
+        return self._version_service.versioning_enabled if self._version_service else False
+
+    @property
+    def versions(self) -> list[dict[str, Any]]:
+        """Available documentation versions."""
+        return self._version_service.versions if self._version_service else []
+
+    @property
+    def latest_version(self) -> dict[str, Any] | None:
+        """Latest documentation version."""
+        return self._version_service.latest_version if self._version_service else None
+
+    def get_version(self, version_id: str) -> Version | None:
+        """Get version by ID or alias."""
+        return self._version_service.get_version(version_id) if self._version_service else None
+
+    def invalidate_version_caches(self) -> None:
+        """Clear cached version data."""
+        if self._version_service:
+            self._version_service.invalidate_caches()
+
+    # =========================================================================
     # HELPERS
     # =========================================================================
 
