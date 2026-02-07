@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
+    from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
 # This is an intentional cross-layer import - the mixin contains rendering logic
@@ -202,7 +203,7 @@ class Page(
 
     # Cached resolved Section object for fast repeated access during template rendering.
     # NOTE: Cache is per-site-object + epoch + reference tuple and must be invalidated when those change.
-    _section_obj_cache: Any = field(default=None, repr=False, init=False)
+    _section_obj_cache: Section | object | None = field(default=None, repr=False, init=False)
     _section_obj_cache_key: tuple[int, int, Path | None, str | None] | None = field(
         default=None, repr=False, init=False
     )
@@ -233,7 +234,7 @@ class Page(
     # These are build-time bookkeeping, not user-facing frontmatter
     _posts: list[Page] | None = field(default=None, repr=False, init=False)
     _subsections: list[Any] | None = field(default=None, repr=False, init=False)  # list[Section]
-    _paginator: Any | None = field(default=None, repr=False, init=False)
+    _paginator: Paginator[Page] | None = field(default=None, repr=False, init=False)
     _page_num: int | None = field(default=None, repr=False, init=False)
     _autodoc_fallback_template: bool = field(default=False, repr=False, init=False)
     _autodoc_fallback_reason: str | None = field(default=None, repr=False, init=False)
@@ -523,7 +524,7 @@ class Page(
         """
         return hash(self.source_path)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Pages are equal if they have the same source path.
 
@@ -567,7 +568,7 @@ class Page(
         return format_path_for_display(path, base_path)
 
     @property
-    def _section(self) -> Any | None:
+    def _section(self) -> Section | None:
         """
         Get the section this page belongs to (lazy lookup via path or URL).
 
@@ -677,7 +678,7 @@ class Page(
         return section
 
     @_section.setter
-    def _section(self, value: Any) -> None:
+    def _section(self, value: Section | None) -> None:
         """
         Set the section this page belongs to (stores path or URL, not object).
 

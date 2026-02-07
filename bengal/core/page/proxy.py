@@ -26,7 +26,9 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.utils.pagination import Paginator
 
 from .page_core import PageCore
 
@@ -173,7 +175,7 @@ class PageProxy:
         # Section index page caches (set during section finalization, avoid forcing load)
         self._posts_cache: list[Page] | None = None
         self._subsections_cache: list[Any] | None = None
-        self._paginator_cache: Any | None = None
+        self._paginator_cache: Paginator[Page] | None = None
         self._page_num_cache: int | None = None
 
         # Path-based section reference (stable across rebuilds)
@@ -583,7 +585,7 @@ class PageProxy:
             self._full_page._subsections = value
 
     @property
-    def _paginator(self) -> Any | None:
+    def _paginator(self) -> Paginator[Page] | None:
         """Get paginator for section index pages."""
         if self._paginator_cache is not None:
             return self._paginator_cache
@@ -592,7 +594,7 @@ class PageProxy:
         return None
 
     @_paginator.setter
-    def _paginator(self, value: Any | None) -> None:
+    def _paginator(self, value: Paginator[Page] | None) -> None:
         """Set paginator for section index pages."""
         if not self._lazy_loaded and self._full_page is None:
             self._paginator_cache = value
@@ -651,7 +653,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def parent(self) -> Any:
+    def parent(self) -> Section | None:
         """
         Get the parent section of this page.
 
@@ -777,7 +779,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def _section(self) -> Any | None:
+    def _section(self) -> Section | None:
         """
         Get the section this page belongs to (lazy lookup via path).
 
@@ -802,7 +804,7 @@ class PageProxy:
         return self._site.get_section_by_path(self._section_path)
 
     @_section.setter
-    def _section(self, value: Any) -> None:
+    def _section(self, value: Section | None) -> None:
         """
         Set the section this page belongs to (stores path, not object).
 
@@ -832,7 +834,7 @@ class PageProxy:
         """Hash based on source_path (same as Page)."""
         return hash(self.source_path)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Equality based on source_path."""
         if isinstance(other, PageProxy):
             return self.source_path == other.source_path
@@ -863,7 +865,7 @@ class PageProxy:
         }
 
     @classmethod
-    def from_page(cls, page: Page, metadata: Any) -> PageProxy:
+    def from_page(cls, page: Page, metadata: PageCore) -> PageProxy:
         """Create proxy from full page (for testing)."""
 
         # This is mainly for testing - normally you'd create from metadata

@@ -7,11 +7,13 @@ Provides methods for discovering pages, sections, and assets.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.protocols.core import SiteLike
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.registry import ContentRegistry
@@ -29,7 +31,7 @@ class SiteDiscoveryMixin:
 
     # These attributes are defined on the Site dataclass
     root_path: Path
-    config: Any
+    config: Config | dict[str, Any]
     theme: str | None
     pages: list[Page]
     sections: list[Section]
@@ -107,13 +109,17 @@ class SiteDiscoveryMixin:
                 continue
 
             # Compute output path using centralized strategy for regular pages
-            page.output_path = URLStrategy.compute_regular_page_output_path(page, self)
+            page.output_path = URLStrategy.compute_regular_page_output_path(
+                page, cast(SiteLike, self)
+            )
 
             # Claim URL in registry for ownership enforcement
             # Priority 100 = user content (highest priority)
             if hasattr(self, "url_registry") and self.url_registry:
                 try:
-                    url = URLStrategy.url_from_output_path(page.output_path, self)
+                    url = URLStrategy.url_from_output_path(
+                        page.output_path, cast(SiteLike, self)
+                    )
                     source = str(getattr(page, "source_path", page.title))
                     version = getattr(page, "version", None)
                     lang = getattr(page, "lang", None)

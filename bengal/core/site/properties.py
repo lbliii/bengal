@@ -8,14 +8,16 @@ description, baseurl, author, and various config section accessors.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.protocols.core import SiteLike
 from bengal.core.utils.config import get_config_section, get_site_value
 
 if TYPE_CHECKING:
     from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
+    from bengal.config.accessor import Config
     from bengal.core.theme import Theme
 
 
@@ -28,11 +30,11 @@ class SitePropertiesMixin:
     """
 
     # These attributes are defined on the Site dataclass
-    config: Any
+    config: Config | dict[str, Any]
     root_path: Path
     _paths: BengalPaths | None
     _theme_obj: Theme | None
-    _query_registry: Any
+    _query_registry: QueryIndexRegistry | None
     _config_hash: str | None
 
     @property
@@ -343,7 +345,9 @@ class SitePropertiesMixin:
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            self._query_registry = QueryIndexRegistry(self, self.paths.indexes_dir)
+            self._query_registry = QueryIndexRegistry(
+                cast(SiteLike, self), self.paths.indexes_dir
+            )
         return self._query_registry
 
     # =========================================================================

@@ -58,6 +58,7 @@ from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
+from bengal.protocols.core import SiteLike
 
 # Import mixins
 from .config_normalized import SiteNormalizedConfigMixin
@@ -67,10 +68,14 @@ from .properties import SitePropertiesMixin
 from .versioning import SiteVersioningMixin
 
 if TYPE_CHECKING:
+    from bengal.assets.manifest import AssetManifest
     from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.config.accessor import Config
+    from bengal.core.cascade_snapshot import CascadeSnapshot
+    from bengal.core.page_cache import PageCacheManager
     from bengal.orchestration.build_state import BuildState
+    from bengal.parsing.base import BaseMarkdownParser
     from bengal.utils.primitives.dotdict import DotDict
 
 
@@ -84,6 +89,7 @@ class Site(
     SiteNormalizedConfigMixin,
     SiteVersioningMixin,
     SiteDiscoveryMixin,
+    SiteLike,
 ):
     """
     Represents the entire website and orchestrates the build process.
@@ -146,7 +152,7 @@ class Site(
     # Current language context for rendering (set per page during rendering).
     current_language: str | None = None
     # Global data from data/ directory (YAML, JSON, TOML files).
-    data: Any = field(default_factory=dict)
+    data: DotDict = field(default_factory=dict)
     # Runtime flag: True when running in dev server mode (not persisted to config).
     dev_mode: bool = False
 
@@ -156,9 +162,9 @@ class Site(
     current_version: Version | None = None
 
     # Page cache manager (lazy caches over self.pages, extracted to PageCacheManager)
-    _page_cache: Any = field(default=None, repr=False, init=False)
+    _page_cache: PageCacheManager | None = field(default=None, repr=False, init=False)
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
-    _query_registry: Any = field(default=None, repr=False, init=False)
+    _query_registry: QueryIndexRegistry | None = field(default=None, repr=False, init=False)
 
     # URL ownership registry for claim-time enforcement
     # See: plan/drafted/plan-url-ownership-architecture.md
@@ -190,7 +196,7 @@ class Site(
     # Last build stats for health check access (set by finalization phase)
     _last_build_stats: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Template parser cache (set by get_page template function)
-    _template_parser: Any = field(default=None, repr=False, init=False)
+    _template_parser: BaseMarkdownParser | None = field(default=None, repr=False, init=False)
 
     # =========================================================================
     # RUNTIME CACHES — LEGACY FALLBACK FIELDS
@@ -207,13 +213,13 @@ class Site(
 
     # --- Asset Manifest State ---
     # Previous manifest for incremental asset comparison (set by AssetOrchestrator)
-    _asset_manifest_previous: Any = field(default=None, repr=False, init=False)
+    _asset_manifest_previous: AssetManifest | None = field(default=None, repr=False, init=False)
 
     # Thread-safe set of fallback warnings to avoid duplicate warnings
     _asset_manifest_fallbacks_global: set[str] = field(default_factory=set, repr=False, init=False)
 
     # Lock for thread-safe fallback set access (initialized in __post_init__)
-    _asset_manifest_fallbacks_lock: Any = field(default=None, repr=False, init=False)
+    _asset_manifest_fallbacks_lock: Lock | None = field(default=None, repr=False, init=False)
 
     # --- Legacy Template Environment Caches (primary: BuildState) ---
     _bengal_theme_chain_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
@@ -227,7 +233,7 @@ class Site(
     features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
     # --- Cascade Snapshot (primary: BuildState, bridge: site.cascade property) ---
-    _cascade_snapshot: Any = field(default=None, repr=False, init=False)
+    _cascade_snapshot: CascadeSnapshot | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -714,7 +720,7 @@ class Site(
     # =========================================================================
 
     @property
-    def cascade(self) -> Any:
+    def cascade(self) -> CascadeSnapshot:
         """
         Get the immutable cascade snapshot for this build.
 
