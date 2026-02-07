@@ -33,9 +33,6 @@ import asyncio
 import random
 import time
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
-
-T = TypeVar("T")
 
 
 def calculate_backoff(
@@ -75,7 +72,7 @@ def calculate_backoff(
     return float(max(0.1, delay))  # Minimum 100ms
 
 
-def retry_with_backoff(
+def retry_with_backoff[T](
     func: Callable[[], T],
     retries: int = 3,
     base_delay: float = 0.5,
@@ -132,7 +129,7 @@ def retry_with_backoff(
     raise last_error  # type: ignore[misc]
 
 
-async def async_retry_with_backoff(
+async def async_retry_with_backoff[T](
     coro_func: Callable[[], Awaitable[T]],
     retries: int = 3,
     base_delay: float = 0.5,

@@ -17,12 +17,8 @@ Example:
 
 """
 
-from typing import TypeVar
 
-T = TypeVar("T")
-
-
-def top_n_by_score(
+def top_n_by_score[T](
     scores: dict[T, float],
     limit: int = 20,
     *,
@@ -54,7 +50,7 @@ def top_n_by_score(
     return sorted_items[:limit]
 
 
-def items_above_percentile(
+def items_above_percentile[T](
     scores: dict[T, float],
     percentile: int,
 ) -> set[T]:
@@ -89,7 +85,7 @@ def items_above_percentile(
     return {item for item, score in scores.items() if score >= threshold_score}
 
 
-def normalize_scores(
+def normalize_scores[T](
     scores: dict[T, float],
     *,
     min_val: float = 0.0,

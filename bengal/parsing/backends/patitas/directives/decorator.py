@@ -19,7 +19,7 @@ Example (class):
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, TypeVar, overload
+from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from patitas.nodes import Directive
@@ -28,12 +28,9 @@ if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
     from bengal.parsing.backends.patitas.directives.options import DirectiveOptions
 
-TOptions = TypeVar("TOptions", bound="DirectiveOptions")
-TClass = TypeVar("TClass", bound=type)
-
 
 @overload
-def directive(
+def directive[TOptions: DirectiveOptions](
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,
@@ -43,7 +40,7 @@ def directive(
 
 
 @overload
-def directive(
+def directive[TOptions: DirectiveOptions, TClass: type](
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,

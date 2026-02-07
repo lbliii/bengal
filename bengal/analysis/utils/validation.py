@@ -24,17 +24,15 @@ Example:
 """
 
 from functools import wraps
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalGraphError, ErrorCode
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-F = TypeVar("F", bound="Callable[..., Any]")
 
-
-def require_built(method: F) -> F:
+def require_built[F: Callable[..., Any]](method: F) -> F:
     """
     Decorator ensuring KnowledgeGraph is built before method execution.
 

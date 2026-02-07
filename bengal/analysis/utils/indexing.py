@@ -76,7 +76,7 @@ def build_inverted_index(
     return index
 
 
-def build_tag_index(
+def build_tag_index[T](
     pages: list[T],
     tag_attr: str = "tags",
     normalize: bool = True,
@@ -118,7 +118,7 @@ def build_tag_index(
     return build_inverted_index(pages, get_tags)
 
 
-def build_category_index(
+def build_category_index[T](
     pages: list[T],
     category_attr: str = "category",
     categories_attr: str = "categories",
