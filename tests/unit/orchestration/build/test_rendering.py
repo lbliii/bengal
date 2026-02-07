@@ -258,9 +258,13 @@ class TestPhaseAssets:
         # CSS output is missing (no public/assets/css/style*.css)
         # Don't create the CSS directory - this triggers the safety net
 
-        # Mock theme service function (patch at the source module, not import location)
-        with patch("bengal.services.theme.get_theme_assets_dir") as mock_get_theme:
-            mock_get_theme.return_value = mock_theme_dir
+        result = phase_assets(
+            orchestrator,
+            cli,
+            incremental=True,
+            parallel=False,
+            assets_to_process=[],  # No changed assets
+        )
 
         # Should process all assets since CSS output is missing
         assert result == orchestrator.site.assets
@@ -335,7 +339,6 @@ class TestPhaseRender:
                 verbose=False,
                 memory_optimized=False,
                 pages_to_build=pages,
-                tracker=MagicMock(),
                 profile=MagicMock(),
                 progress_manager=None,
                 reporter=None,
@@ -364,7 +367,6 @@ class TestPhaseRender:
                 verbose=False,
                 memory_optimized=True,
                 pages_to_build=[],
-                tracker=MagicMock(),
                 profile=MagicMock(),
                 progress_manager=None,
                 reporter=None,
@@ -388,7 +390,6 @@ class TestPhaseRender:
                 verbose=False,
                 memory_optimized=False,
                 pages_to_build=[],
-                tracker=MagicMock(),
                 profile=MagicMock(),
                 progress_manager=None,
                 reporter=None,
@@ -418,7 +419,6 @@ class TestPhaseRender:
                 verbose=False,
                 memory_optimized=False,
                 pages_to_build=[],
-                tracker=MagicMock(),
                 profile=MagicMock(),
                 progress_manager=None,
                 reporter=None,
@@ -446,7 +446,6 @@ class TestPhaseRender:
                 verbose=False,
                 memory_optimized=False,
                 pages_to_build=[],
-                tracker=MagicMock(),
                 profile=MagicMock(),
                 progress_manager=None,
                 reporter=None,

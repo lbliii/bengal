@@ -68,18 +68,16 @@ class TestOrchestratorInitialization:
 
         assert orch.site is mock_site
         assert orch.cache is None
-        assert orch.tracker is None
+        assert orch.effect_tracer is None
         assert orch._detector is None
 
-    def test_initialize_creates_cache_and_tracker(self, mock_site):
-        """initialize() should create cache and tracker."""
+    def test_initialize_creates_cache_and_effect_tracer(self, mock_site):
+        """initialize() should create cache and effect tracer."""
         orch = IncrementalOrchestrator(mock_site)
-        cache, tracker = orch.initialize(enabled=False)
+        cache = orch.initialize(enabled=False)
 
         assert cache is not None
-        assert tracker is not None
         assert orch.cache is cache
-        assert orch.tracker is tracker
 
 
 class TestFindWorkEarly:

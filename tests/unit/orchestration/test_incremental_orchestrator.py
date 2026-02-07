@@ -78,16 +78,14 @@ class TestIncrementalOrchestrator:
         """Test that orchestrator initializes correctly."""
         assert orchestrator.site == mock_site
         assert orchestrator.cache is None
-        assert orchestrator.tracker is None
+        assert orchestrator.effect_tracer is None
 
     def test_initialize_with_cache_disabled(self, orchestrator):
         """Test initialization with caching disabled."""
-        cache, tracker = orchestrator.initialize(enabled=False)
+        cache = orchestrator.initialize(enabled=False)
 
         assert cache is not None
-        assert tracker is not None
         assert orchestrator.cache is cache
-        assert orchestrator.tracker is tracker
 
     @patch("bengal.cache.BuildCache.load")
     def test_initialize_with_cache_enabled(self, mock_load, orchestrator, mock_site):
@@ -95,7 +93,7 @@ class TestIncrementalOrchestrator:
         mock_cache = Mock()
         mock_load.return_value = mock_cache
 
-        cache, tracker = orchestrator.initialize(enabled=True)
+        cache = orchestrator.initialize(enabled=True)
 
         # Should load existing cache from .bengal/cache.json
         mock_load.assert_called_once_with(mock_site.paths.build_cache)
@@ -194,7 +192,6 @@ class TestIncrementalOrchestrator:
 
         orchestrator = IncrementalOrchestrator(site)
         orchestrator.cache = cache
-        orchestrator.tracker = Mock()
 
         pages, assets, _summary = orchestrator.find_work_early(
             verbose=True, forced_changed_sources=set(), nav_changed_sources={nav_path}
@@ -262,7 +259,6 @@ class TestIncrementalOrchestrator:
 
         orchestrator = IncrementalOrchestrator(site)
         orchestrator.cache = cache
-        orchestrator.tracker = Mock()
 
         pages, assets, _summary = orchestrator.find_work_early(
             verbose=True, forced_changed_sources={nav_path}, nav_changed_sources=set()
@@ -328,7 +324,6 @@ class TestIncrementalOrchestrator:
 
         orchestrator = IncrementalOrchestrator(site)
         orchestrator.cache = cache
-        orchestrator.tracker = Mock()
 
         pages, assets, _summary = orchestrator.find_work_early(
             verbose=True, forced_changed_sources={child_path}, nav_changed_sources=set()
@@ -346,7 +341,6 @@ class TestIncrementalOrchestrator:
         """Test find_work_early when no files changed."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.is_changed.return_value = False
         # RFC: should_bypass combines changed_sources check with is_changed
         orchestrator.cache.should_bypass.return_value = False
@@ -368,7 +362,6 @@ class TestIncrementalOrchestrator:
         """Test find_work_early detects changed pages."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
 
         # Simulate page1.md changed using should_bypass (RFC: centralized cache bypass)
         def should_bypass(path, changed_sources=None):
@@ -391,14 +384,10 @@ class TestIncrementalOrchestrator:
         assert pages_to_build[0].source_path.name == "page1.md"
         assert len(change_summary["Modified content"]) == 1
 
-        # Should track taxonomy for changed page
-        orchestrator.tracker.track_taxonomy.assert_called_once()
-
     def test_find_work_early_skips_generated_pages(self, orchestrator, mock_site):
         """Test that find_work_early skips generated pages."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.is_changed.return_value = True
 
         # Mock the _get_theme_templates_dir to return None
@@ -416,7 +405,6 @@ class TestIncrementalOrchestrator:
         """Test find_work_early detects changed assets."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
 
         # Simulate style.css changed using should_bypass (RFC: centralized cache bypass)
         def should_bypass(path, changed_sources=None):
@@ -446,7 +434,6 @@ class TestIncrementalOrchestrator:
         """Test find_work_early detects template changes and affected pages."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
 
         # Mock template directory
         mock_exists.return_value = True
@@ -482,7 +469,6 @@ class TestPhaseOrderingOptimization:
         """Test that find_work_early returns only real pages, not generated ones."""
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         # RFC: should_bypass is now the centralized cache bypass check
         orchestrator.cache.should_bypass.return_value = True
         orchestrator.cache.is_changed.return_value = True
@@ -499,10 +485,13 @@ class TestPhaseOrderingOptimization:
         assert all(not p.metadata.get("_generated") for p in pages_to_build)
 
     def test_find_work_early_tracks_tags(self, orchestrator, mock_site):
-        """Test that changed pages with tags are tracked."""
+        """Test that changed pages with tags are detected.
+
+        Taxonomy tracking is now handled by EffectTracer during rendering
+        via Effect.for_taxonomy_page(), not during find_work_early.
+        """
         # Setup
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
 
         # Only page1.md changed (RFC: use should_bypass for centralized check)
         def should_bypass(path, changed_sources=None):
@@ -518,10 +507,9 @@ class TestPhaseOrderingOptimization:
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
-        # Should track taxonomy for the changed page
-        orchestrator.tracker.track_taxonomy.assert_called_once()
-        call_args = orchestrator.tracker.track_taxonomy.call_args[0]
-        assert call_args[1] == {"python", "testing"}
+        # Should detect page1.md needs rebuilding
+        assert len(pages_to_build) == 1
+        assert pages_to_build[0].source_path.name == "page1.md"
 
 
 class TestCascadeDependencyTracking:
@@ -564,7 +552,6 @@ class TestCascadeDependencyTracking:
 
         # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
         def should_bypass(path, changed_sources=None):
@@ -640,7 +627,6 @@ class TestCascadeDependencyTracking:
 
         # Setup cache - only child _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
         def should_bypass(path, changed_sources=None):
@@ -691,7 +677,6 @@ class TestCascadeDependencyTracking:
 
         # Setup cache - only root index changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
         def should_bypass(path, changed_sources=None):
@@ -744,7 +729,6 @@ class TestCascadeDependencyTracking:
 
         # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
-        orchestrator.tracker = Mock()
         orchestrator.cache.parsed_content = {}  # No cached nav metadata
 
         def should_bypass(path, changed_sources=None):

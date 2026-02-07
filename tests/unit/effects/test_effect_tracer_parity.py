@@ -240,10 +240,11 @@ class TestFileChangeDetectionParity:
         # Not changed yet
         assert not tracer.is_changed(test_file)
 
-        # Modify the file
-        test_file.write_text("modified content")
+        # Modify the file with different size so mtime-based detection
+        # works even on fast filesystems with coarse timestamp resolution
+        test_file.write_text("modified content that is deliberately longer")
 
-        # Should detect the change
+        # Should detect the change (size differs)
         assert tracer.is_changed(test_file)
 
     def test_new_files_detected(self, tmp_path: Path) -> None:

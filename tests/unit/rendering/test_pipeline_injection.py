@@ -22,12 +22,11 @@ class DummyTemplateEngine:
 
 def test_pipeline_uses_injected_parser_and_engine(tmp_path):
     site = SimpleNamespace(config={}, root_path=tmp_path, output_dir=tmp_path / "public")
-    tracker = SimpleNamespace()
     parser = DummyParser()
     engine = DummyTemplateEngine(site)
     ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
 
-    pipeline = RenderingPipeline(site, dependency_tracker=tracker, build_context=ctx)
+    pipeline = RenderingPipeline(site, build_context=ctx)
 
     assert pipeline.parser is parser
     assert pipeline.template_engine is engine

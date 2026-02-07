@@ -57,7 +57,6 @@ class TestDetectionContext:
     def test_default_values(self, mock_cache: MagicMock, mock_site: MagicMock) -> None:
         """DetectionContext has expected default values."""
         ctx = DetectionContext(cache=mock_cache, site=mock_site)
-        assert ctx.tracker is None
         assert ctx.coordinator is None
         assert ctx.previous.pages_to_rebuild == frozenset()
         assert ctx.verbose is False
@@ -66,7 +65,6 @@ class TestDetectionContext:
 
     def test_creates_with_all_fields(self, mock_cache: MagicMock, mock_site: MagicMock) -> None:
         """DetectionContext can be created with all fields."""
-        mock_tracker = MagicMock()
         mock_coordinator = MagicMock()
         previous = ChangeDetectionResult(pages_to_rebuild=frozenset([CacheKey("page.md")]))
         forced = frozenset([CacheKey("forced.md")])
@@ -75,7 +73,6 @@ class TestDetectionContext:
         ctx = DetectionContext(
             cache=mock_cache,
             site=mock_site,
-            tracker=mock_tracker,
             coordinator=mock_coordinator,
             previous=previous,
             verbose=True,
@@ -83,7 +80,6 @@ class TestDetectionContext:
             nav_changed=nav,
         )
 
-        assert ctx.tracker is mock_tracker
         assert ctx.coordinator is mock_coordinator
         assert CacheKey("page.md") in ctx.previous.pages_to_rebuild
         assert ctx.verbose is True
@@ -120,13 +116,11 @@ class TestDetectionContext:
         self, mock_cache: MagicMock, mock_site: MagicMock
     ) -> None:
         """with_previous() preserves all other context fields."""
-        mock_tracker = MagicMock()
         forced = frozenset([CacheKey("forced.md")])
 
         ctx = DetectionContext(
             cache=mock_cache,
             site=mock_site,
-            tracker=mock_tracker,
             verbose=True,
             forced_changed=forced,
         )
@@ -135,7 +129,6 @@ class TestDetectionContext:
 
         assert new_ctx.cache is mock_cache
         assert new_ctx.site is mock_site
-        assert new_ctx.tracker is mock_tracker
         assert new_ctx.verbose is True
         assert new_ctx.forced_changed == forced
 

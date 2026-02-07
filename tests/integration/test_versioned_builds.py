@@ -348,7 +348,7 @@ baseurl = "/"
         site.discover_content()
 
         orchestrator = IncrementalOrchestrator(site)
-        cache, tracker = orchestrator.initialize(enabled=True)
+        cache = orchestrator.initialize(enabled=True)
 
         # On first call, files are new (not in cache) so is_changed returns True
         result = orchestrator._check_shared_content_changes(set())

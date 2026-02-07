@@ -38,8 +38,10 @@ Variables:
     {% if all_tags %}
     {% for tag_item in all_tags %}
     {# Handle both formats: objects with .name/.count OR tuples (name, count) #}
+    {# Index access first: tuples have a .count METHOD that isn't None, #}
+    {# so ?.count ?? fallback wouldn't trigger for tuples. #}
     {% let tag_name = tag_item?.name ?? tag_item[0] ?? '' %}
-    {% let tag_count = tag_item?.count ?? tag_item[1] ?? 0 %}
+    {% let tag_count = tag_item[1] ?? tag_item?.count ?? 0 %}
     {% let tag_name_normalized = tag_name | lower %}
     {% let is_active = current_tag_normalized == tag_name_normalized %}
 

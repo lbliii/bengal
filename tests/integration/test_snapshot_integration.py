@@ -6,6 +6,7 @@ Tests the full integration: snapshot creation → WaveScheduler → HTML output.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,9 @@ from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.build.options import BuildOptions
 from bengal.snapshots import create_site_snapshot
 
+# Pattern to strip build-specific content hashes that vary between runs
+_CONTENT_HASH_RE = re.compile(r'<meta name="bengal:content-hash" content="[0-9a-f]+">')
+
 
 @pytest.mark.bengal(testroot="test-basic")
 def test_snapshot_created_during_build(site, build_site):
@@ -21,14 +25,14 @@ def test_snapshot_created_during_build(site, build_site):
     build_site()
 
     orchestrator = BuildOrchestrator(site)
-    options = BuildOptions(parallel=True, incremental=False)
+    options = BuildOptions(force_sequential=False, incremental=False)
 
     stats = orchestrator.build(options)
 
     # Snapshot should be created (check via build stats if available)
     # Note: We can't directly access snapshot from stats, but we can verify
-    # that parallel rendering was used (which requires snapshot)
-    assert stats.parallel is True or stats.parallel is False  # Should be set
+    # that the build completed successfully
+    assert stats is not None
 
 
 @pytest.mark.bengal(testroot="test-taxonomy")
@@ -37,7 +41,7 @@ def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
     build_site()
 
     orchestrator = BuildOrchestrator(site)
-    options = BuildOptions(parallel=True, incremental=False)
+    options = BuildOptions(force_sequential=False, incremental=False)
 
     stats = orchestrator.build(options)
 
@@ -67,13 +71,11 @@ def test_snapshot_rendering_produces_html(site, build_site):
     from bengal.snapshots.scheduler import WaveScheduler
     from bengal.orchestration.build_context import BuildContext
 
-    tracker = None  # No tracker for this test
     stats = None  # No stats for this test
 
     build_context = BuildContext(
         site=site,
         pages=site.pages,
-        tracker=tracker,
         stats=stats,
     )
     build_context.snapshot = snapshot
@@ -81,7 +83,6 @@ def test_snapshot_rendering_produces_html(site, build_site):
     scheduler = WaveScheduler(
         snapshot=snapshot,
         site=site,
-        tracker=tracker,
         quiet=True,
         stats=stats,
         build_context=build_context,
@@ -113,7 +114,7 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
 
     # Build with parallel (uses snapshot)
     orchestrator1 = BuildOrchestrator(site)
-    options1 = BuildOptions(parallel=True, incremental=False)
+    options1 = BuildOptions(force_sequential=False, incremental=False)
     stats1 = orchestrator1.build(options1)
 
     # Get HTML files from parallel build
@@ -125,7 +126,7 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
 
     # Rebuild with sequential (no snapshot)
     orchestrator2 = BuildOrchestrator(site)
-    options2 = BuildOptions(parallel=False, incremental=False)
+    options2 = BuildOptions(force_sequential=True, incremental=False)
     stats2 = orchestrator2.build(options2)
 
     # Get HTML files from sequential build
@@ -139,8 +140,8 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
     assert set(parallel_html.keys()) == set(sequential_html.keys()), "Different pages rendered"
 
     for path in parallel_html.keys():
-        # Normalize whitespace for comparison
-        parallel_content = parallel_html[path].strip()
-        sequential_content = sequential_html[path].strip()
+        # Normalize: strip whitespace and build-specific content hashes
+        parallel_content = _CONTENT_HASH_RE.sub("", parallel_html[path].strip())
+        sequential_content = _CONTENT_HASH_RE.sub("", sequential_html[path].strip())
 
         assert parallel_content == sequential_content, f"Different HTML for {path}"

@@ -188,66 +188,6 @@ class TestEngineCommonInterface:
         assert callable(engine.list_templates)
 
 
-class TestEngineDependencyTracking:
-    """Test that both engines support dependency tracking."""
-
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_dependency_tracker_attribute_exists(self, engine_type: str) -> None:
-        """Both engines should have _dependency_tracker attribute."""
-        mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
-        assert hasattr(engine, "_dependency_tracker")
-        # Initially None
-        assert engine._dependency_tracker is None
-
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_dependency_tracker_can_be_set(self, engine_type: str) -> None:
-        """Both engines should allow setting _dependency_tracker."""
-        mock_site = make_mock_site()
-        mock_tracker = MagicMock()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
-        engine._dependency_tracker = mock_tracker
-        assert engine._dependency_tracker is mock_tracker
-
-
 class TestEngineMenuCache:
     """Test that both engines have menu caching."""
 

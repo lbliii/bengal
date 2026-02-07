@@ -53,7 +53,6 @@ class DetectionContext:
         return DetectionContext(
             cache=self.cache,
             site=self.site,
-            tracker=self.tracker,
             coordinator=self.coordinator,
             previous=self.previous.merge(result),
             verbose=self.verbose,

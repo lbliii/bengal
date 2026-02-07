@@ -36,7 +36,7 @@ Usage:
 from bengal.orchestration.build import BuildOrchestrator, BuildOptions
 
     orchestrator = BuildOrchestrator(site)
-    stats = orchestrator.build(BuildOptions(parallel=True, incremental=True))
+    stats = orchestrator.build(BuildOptions(incremental=True))
 
 See Also:
 bengal.orchestration: All specialized orchestrators

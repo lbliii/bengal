@@ -86,5 +86,9 @@ benchmarks/scenarios/*/output/
 # other
 .competitor/
 
+# DORI (local/ephemeral)
+.dori/local/
+.dori/events/
+
 # Test artifacts (leaked mocks)
 MagicMock/
