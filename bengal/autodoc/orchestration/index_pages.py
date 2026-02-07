@@ -49,9 +49,14 @@ def create_index_pages(
             url = URLStrategy.url_from_output_path(output_path, site)
             existing_claim = site.url_registry.get_claim(url)
             if existing_claim is not None:
-                # URL already claimed - skip creating section index
-                # The existing page will serve as the section's content
-                continue
+                # Allow re-creation when the existing claim is from our own previous
+                # run (loaded from build cache during incremental builds).
+                # Only skip when a *different* producer owns this URL.
+                expected_source = f"__virtual__/{section_path}/section-index.md"
+                if existing_claim.source != expected_source:
+                    # URL claimed by a different producer - skip creating section index
+                    # The existing page will serve as the section's content
+                    continue
 
         # Determine template and page type based on section metadata
         # Page type controls CSS styling, template dir may differ
