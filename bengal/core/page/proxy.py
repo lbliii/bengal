@@ -482,8 +482,8 @@ class PageProxy:
                 # Also update pending to keep them in sync
                 self._pending_output_path = value
 
-    parsed_ast = _lazy_property_with_setter(
-        "parsed_ast", default=None, getter_doc="Parsed AST (lazy-loaded)."
+    html_content = _lazy_property_with_setter(
+        "html_content", default=None, getter_doc="HTML content (lazy-loaded)."
     )
     plain_text = _lazy_property(
         "plain_text",

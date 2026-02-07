@@ -114,7 +114,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
 
     """
     # Skip if already parsed
-    if hasattr(page, "parsed_ast") and page.parsed_ast is not None:
+    if hasattr(page, "html_content") and page.html_content is not None:
         return
 
     # Skip if no content
@@ -235,7 +235,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             parsed_content = escape_method(parsed_content)
 
         # Store parsed content
-        page.parsed_ast = parsed_content
+        page.html_content = parsed_content
         if need_toc:
             page.toc = toc
 
@@ -245,8 +245,8 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
 
             enhancer = get_enhancer()
             page_type = page.metadata.get("type")
-            if enhancer and page.parsed_ast and enhancer.should_enhance(page_type):
-                page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
+            if enhancer and page.html_content and enhancer.should_enhance(page_type):
+                page.html_content = enhancer.enhance(page.html_content, page_type)
         except Exception as e:
             logger.debug(
                 "page_enhancement_failed",
@@ -265,7 +265,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             error_type=type(e).__name__,
             action="using_raw_content",
         )
-        # On parse failure, leave parsed_ast as None so template can fall back to content
+        # On parse failure, leave html_content as None so template can fall back to content
 
 
 def _build_lookup_maps_impl(site: SiteLike) -> dict[str, dict[str, Any]]:

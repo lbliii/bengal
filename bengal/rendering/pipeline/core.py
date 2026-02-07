@@ -381,7 +381,7 @@ class RenderingPipeline:
         # Full pipeline execution
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
         # This avoids redundant parsing when using WaveScheduler with pre-parsed content
-        if not page.parsed_ast:
+        if not page.html_content:
             self._parse_content(page)
         self._enhance_api_docs(page)
         # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
@@ -436,12 +436,12 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
-            if page.parsed_ast:
-                page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
+            if page.html_content:
+                page.html_content = flush_deferred_highlighting(page.html_content)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
-            page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
+            page.html_content = self._html_transformer.transform(page.html_content or "")
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -453,7 +453,7 @@ class RenderingPipeline:
                 and self.parser._var_plugin
                 and self.parser._var_plugin.escaped_placeholders  # type: ignore[union-attr]
             ):
-                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)  # type: ignore[union-attr]
+                page.html_content = self.parser._var_plugin.restore_placeholders(page.html_content)  # type: ignore[union-attr]
             # fmt: on
         finally:
             disable_deferred_highlighting()
@@ -535,7 +535,7 @@ class RenderingPipeline:
                         error=str(e),
                     )
 
-        page.parsed_ast = parsed_content
+        page.html_content = parsed_content
         page.toc = toc
 
     def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
@@ -550,7 +550,7 @@ class RenderingPipeline:
         if page.metadata.get("preprocess") is False:
             parsed_content = escape_template_syntax_in_html(parsed_content)
 
-        page.parsed_ast = parsed_content
+        page.html_content = parsed_content
         page.toc = toc
 
     def _enhance_api_docs(self, page: PageLike) -> None:
@@ -558,7 +558,7 @@ class RenderingPipeline:
         enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
-            page.parsed_ast = enhancer.enhance(page.parsed_ast or "", page_type)
+            page.html_content = enhancer.enhance(page.html_content or "", page_type)
 
     def _render_and_write(self, page: PageLike, template: str) -> None:
         """Render template and write output.
@@ -569,11 +569,11 @@ class RenderingPipeline:
         RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
         Optionally records effects for unified dependency tracking.
         """
-        # Allow empty parsed_ast - pages like home pages, section indexes, and
+        # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
-        if page.parsed_ast is None:
-            page.parsed_ast = ""  # Ensure it's a string, not None
+        if page.html_content is None:
+            page.html_content = ""  # Ensure it's a string, not None
 
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
@@ -590,11 +590,11 @@ class RenderingPipeline:
             # Use effect recorder context if enabled
             if effect_recorder:
                 with effect_recorder:
-                    html_content = self.renderer.render_content(page.parsed_ast or "")
+                    html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     page.rendered_html = format_html(page.rendered_html, page, self.site)
             else:
-                html_content = self.renderer.render_content(page.parsed_ast or "")
+                html_content = self.renderer.render_content(page.html_content or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
                 page.rendered_html = format_html(page.rendered_html, page, self.site)
 

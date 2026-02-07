@@ -155,7 +155,7 @@ class AutodocRenderer:
             )
             return
 
-        page.parsed_ast = page._prerendered_html
+        page.html_content = page._prerendered_html
         page.toc = ""
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
@@ -174,7 +174,7 @@ class AutodocRenderer:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
         else:
             # Wrap content fragment with template
-            html_content = self.renderer.render_content(page.parsed_ast or "")
+            html_content = self.renderer.render_content(page.html_content or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
@@ -235,7 +235,7 @@ class AutodocRenderer:
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
             page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.parsed_ast = page._prerendered_html
+            page.html_content = page._prerendered_html
             page.toc = ""
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
@@ -301,7 +301,7 @@ class AutodocRenderer:
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
             page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.parsed_ast = page._prerendered_html
+            page.html_content = page._prerendered_html
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
@@ -309,7 +309,7 @@ class AutodocRenderer:
             return
 
         page._prerendered_html = html_content
-        page.parsed_ast = html_content
+        page.html_content = html_content
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content

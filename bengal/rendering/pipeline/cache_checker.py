@@ -160,7 +160,7 @@ class CacheChecker:
         if not cached or is_missing(cached):
             return False
 
-        page.parsed_ast = cached["html"]
+        page.html_content = cached["html"]
         page.toc = cached["toc"]
         page._toc_items_cache = cached.get("toc_items", [])
 
@@ -262,7 +262,7 @@ class CacheChecker:
 
         cache.store_parsed_content(
             page.source_path,
-            page.parsed_ast,
+            page.html_content,
             page.toc,
             toc_items,
             cached_links if isinstance(cached_links, list) else None,

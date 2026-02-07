@@ -35,7 +35,7 @@ PageCore: Cacheable subset of page metadata. Shared between Page,
 
 Build Lifecycle:
 1. Discovery: source_path, content, metadata available
-2. Parsing: toc, parsed_ast populated
+2. Parsing: toc, html_content populated
 3. Rendering: rendered_html, output_path populated
 
 Related Packages:
@@ -120,10 +120,10 @@ class Page(
 
     1. Discovery (content_discovery.py)
        ✅ Available: source_path, content, metadata, title, slug, date
-       ❌ Not available: toc, parsed_ast, toc_items, rendered_html
+       ❌ Not available: toc, html_content, toc_items, rendered_html
 
     2. Parsing (pipeline.py)
-       ✅ Available: All Stage 1 + toc, parsed_ast
+       ✅ Available: All Stage 1 + toc, html_content
        ✅ toc_items can be accessed (will extract from toc)
 
     3. Rendering (pipeline.py)
@@ -137,7 +137,7 @@ class Page(
         source_path: Path to the source content file (synthetic for virtual pages)
         content: Raw content (Markdown, etc.)
         metadata: Frontmatter metadata (title, date, tags, etc.)
-        parsed_ast: Rendered HTML content (legacy name; stores HTML, not an AST)
+        html_content: Rendered HTML content (parsed from Markdown by Patitas)
         rendered_html: Rendered HTML output
         output_path: Path where the rendered page will be written
         links: List of links found in the page
@@ -171,10 +171,8 @@ class Page(
     # Raw frontmatter from YAML parsing (user's metadata)
     # Access via .metadata property which combines with cascade
     _raw_metadata: dict[str, Any] = field(default_factory=dict)
-    # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
-    # The ASTNode types in bengal.parsing.ast.types are for future AST-based
-    # processing. See plan/ready/plan-type-system-hardening.md for migration path.
-    parsed_ast: Any | None = None
+    # HTML content rendered from Markdown by Patitas parser.
+    html_content: str | None = None
     rendered_html: str = ""
     output_path: Path | None = None
     links: list[str] = field(default_factory=list)

@@ -324,7 +324,7 @@ class Renderer:
 
         Args:
             page: Page to render
-            content: Optional pre-rendered content (uses page.parsed_ast if not provided)
+            content: Optional pre-rendered content (uses page.html_content if not provided)
 
         Returns:
             Fully rendered HTML page
@@ -332,7 +332,7 @@ class Renderer:
         from bengal.rendering.context import build_page_context
 
         if content is None:
-            content = page.parsed_ast or ""
+            content = page.html_content or ""
             # Debug: Check core/page specifically
             if hasattr(page, "source_path") and "core/page.md" in str(page.source_path):
                 has_badges = "api-badge" in content
