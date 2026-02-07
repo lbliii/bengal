@@ -46,7 +46,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from bengal.core.asset import Asset
 from bengal.core.diagnostics import emit as emit_diagnostic
@@ -89,7 +89,6 @@ class Site(
     SiteNormalizedConfigMixin,
     SiteVersioningMixin,
     SiteDiscoveryMixin,
-    SiteLike,
 ):
     """
     Represents the entire website and orchestrates the build process.
@@ -288,7 +287,7 @@ class Site(
 
         # Initialize theme-aware icon resolver for all icon consumers
         # (template functions, inline icon plugin, directives)
-        icon_resolver.initialize(self)
+        icon_resolver.initialize(cast(SiteLike, self))
 
         # Access output_dir from build section (supports both Config and dict)
         output_dir_str: str | None = None
