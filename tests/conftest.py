@@ -450,18 +450,7 @@ def reset_bengal_state(request):
         except ImportError:
             logger.debug("Parser cache reset skipped: reset_parser_cache not available")
 
-    # Setup: Force reload directives factory to pick up any new directives
-    # This is needed because directive imports happen at module load time
-    try:
-        import importlib
-
-        import bengal.directives.factory
-
-        importlib.reload(bengal.directives.factory)
-    except ImportError:
-        logger.debug("Directives factory reload skipped: module not available")
-    except AttributeError as e:
-        logger.debug("Directives factory reload failed: %s", e)
+    # Mistune directives factory removed — Patitas registry is immutable after creation
 
     yield
 

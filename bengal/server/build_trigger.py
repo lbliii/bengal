@@ -61,6 +61,7 @@ import yaml
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
 from bengal.output import CLIOutput
+from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
@@ -896,7 +897,7 @@ class BuildTrigger:
 
     def _should_regenerate_autodoc(self, changed_paths: set[Path]) -> bool:
         """Check if autodoc regeneration is needed."""
-        if not hasattr(self.site, "config") or not self.site.config:
+        if not isinstance(self.site, SiteLike) or not self.site.config:
             return False
 
         # ConfigSection now supports dict methods, use directly

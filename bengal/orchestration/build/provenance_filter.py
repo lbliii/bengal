@@ -30,6 +30,7 @@ from bengal.orchestration.build.results import (
     RebuildReasonCode,
     SkipReasonCode,
 )
+from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -119,7 +120,7 @@ def _detect_changed_templates(
 
     # Also check theme templates if theme is set
     theme_templates_dirs = []
-    if hasattr(site, "theme_path") and site.theme_path:
+    if isinstance(site, SiteLike) and site.theme_path:
         theme_templates = site.theme_path / "templates"
         if theme_templates.exists():
             theme_templates_dirs.append(theme_templates)

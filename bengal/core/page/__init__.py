@@ -54,6 +54,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.core.section import Section
@@ -562,7 +563,7 @@ class Page(
         from bengal.utils.primitives.text import format_path_for_display
 
         base_path = None
-        if self._site is not None and hasattr(self._site, "root_path"):
+        if self._site is not None and isinstance(self._site, SiteLike):
             base_path = self._site.root_path
 
         return format_path_for_display(path, base_path)

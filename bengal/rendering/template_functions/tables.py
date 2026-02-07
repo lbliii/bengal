@@ -15,12 +15,13 @@ from jinja2.utils import pass_environment
 from kida import Markup
 
 from bengal.errors import ErrorCode
+from bengal.protocols import SiteLike
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -281,7 +282,7 @@ def data_table(env: Any, path: str, **options: Any) -> Markup:
 
     # Get site from environment globals
     site = env.globals["site"]
-    if not hasattr(site, "root_path"):
+    if not isinstance(site, SiteLike):
         raise TypeError("Site object missing required 'root_path' attribute")
 
     # Load data

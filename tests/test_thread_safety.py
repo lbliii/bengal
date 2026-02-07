@@ -101,7 +101,7 @@ class TestLRUCacheThreadSafety:
 
     def test_directive_icon_cache_concurrent_access(self) -> None:
         """Test directive icon cache under concurrent access."""
-        from bengal.directives._icons import _svg_icon_cache, clear_icon_cache, render_svg_icon
+        from bengal.icons.svg import _svg_icon_cache, clear_icon_cache, render_svg_icon
 
         # Clear cache before test
         clear_icon_cache()
@@ -344,7 +344,7 @@ class TestDirectiveCacheConfiguration:
 
     def test_configure_cache_concurrent(self) -> None:
         """Test concurrent cache configuration changes."""
-        from bengal.directives.cache import configure_cache, get_cache
+        from bengal.cache.directive_cache import configure_cache, get_cache
 
         errors: list[Exception] = []
 

@@ -28,6 +28,7 @@ import re
 import threading
 from typing import TYPE_CHECKING, Any
 
+from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -862,7 +863,7 @@ class Renderer:
         """
         # Try to include CSS if available
         css_link = ""
-        if hasattr(self.site, "output_dir"):
+        if isinstance(self.site, SiteLike):
             css_file = self.site.output_dir / "assets" / "css" / "style.css"
             if css_file.exists():
                 css_link = '<link rel="stylesheet" href="/assets/css/style.css">'

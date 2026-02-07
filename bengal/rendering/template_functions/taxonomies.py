@@ -21,10 +21,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -216,7 +217,7 @@ def tag_view_filter(tag_slug: str) -> TagView | None:
     if not tag_data or not isinstance(tag_data, dict):
         return None
 
-    total_posts = len(_site_ref.pages) if hasattr(_site_ref, "pages") else 0
+    total_posts = len(_site_ref.pages) if isinstance(_site_ref, SiteLike) else 0
     return TagView.from_taxonomy_entry(tag_slug, tag_data, total_posts)
 
 

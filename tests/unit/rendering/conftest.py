@@ -61,7 +61,7 @@ def reset_parser_state(request: pytest.FixtureRequest):
     may cause cross-test pollution, so we clear the cache between tests.
     """
     # Clear directive cache to prevent cross-test pollution
-    from bengal.directives.cache import clear_cache
+    from bengal.cache.directive_cache import clear_cache
 
     clear_cache()
     yield

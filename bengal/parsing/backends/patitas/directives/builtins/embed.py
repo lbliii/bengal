@@ -967,7 +967,7 @@ class SoundCloudDirective:
             children=tuple(children),
         )
 
-    # Use canonical implementation from bengal.directives.utils
+    # Inlined from former bengal.directives.utils
     _clean_path = staticmethod(clean_soundcloud_path)
 
     def render(

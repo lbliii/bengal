@@ -33,6 +33,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from bengal.protocols import SiteLike
 from bengal.server.file_watcher import create_watcher
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.utils.observability.logger import get_logger
@@ -317,7 +318,7 @@ def create_watcher_runner(
     config = getattr(site, "config", {}) or {}
     # Handle ConfigSection objects that need .raw for dict access
     config_dict = config.raw if hasattr(config, "raw") else config
-    output_dir = site.output_dir if hasattr(site, "output_dir") else None
+    output_dir = site.output_dir if isinstance(site, SiteLike) else None
     ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=output_dir)
 
     return WatcherRunner(

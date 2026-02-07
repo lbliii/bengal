@@ -63,6 +63,7 @@ from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
@@ -1019,7 +1020,7 @@ class BuildOrchestrator:
             session = get_session()
 
             # Record any errors collected during build phases
-            if hasattr(self.stats, "errors") and self.stats.errors:
+            if isinstance(self.stats, HasErrors) and self.stats.errors:
                 for error in self.stats.errors:
                     if hasattr(error, "phase"):
                         record_error(

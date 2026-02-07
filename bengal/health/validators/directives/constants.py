@@ -1,29 +1,34 @@
 """
 Directive validation constants and configuration.
 
-Imports directive type definitions from the rendering package (single source of truth)
+Sources directive type definitions from the Patitas registry (single source of truth)
 and adds health-check-specific thresholds and configuration.
 """
 
 from __future__ import annotations
 
-# Import from the single source of truth (rendering/plugins/directives/__init__.py)
-# This ensures the health check stays in sync with actually registered directives.
-from bengal.directives import (
+from bengal.parsing.backends.patitas.directives.builtins.admonition import (
     ADMONITION_TYPES,
-    CODE_BLOCK_DIRECTIVES,
-    KNOWN_DIRECTIVE_NAMES,
+)
+from bengal.parsing.backends.patitas.directives.registry import create_default_registry
+
+# Build known directive names from the Patitas registry (single source of truth)
+_registry = create_default_registry()
+KNOWN_DIRECTIVE_NAMES: frozenset[str] = _registry.names
+
+# Code block directives (directives that contain code)
+CODE_BLOCK_DIRECTIVES: frozenset[str] = frozenset(
+    {"code-tabs", "literalinclude", "code", "code-block"}
 )
 
-# Re-export for backward compatibility with existing imports
-# These are now imported from the rendering package
+# Re-export for backward compatibility
 KNOWN_DIRECTIVES = KNOWN_DIRECTIVE_NAMES
 
-# Re-export type-specific constants
 __all__ = [
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
     "KNOWN_DIRECTIVES",
+    "KNOWN_DIRECTIVE_NAMES",
     "MAX_NESTING_DEPTH",
     "MAX_TABS_PER_BLOCK",
 ]

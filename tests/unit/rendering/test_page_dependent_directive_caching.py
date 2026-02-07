@@ -22,7 +22,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.directives.cache import clear_cache, get_cache
+from bengal.cache.directive_cache import clear_cache, get_cache
 from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 from bengal.parsing.backends.patitas.wrapper import PatitasParser
 

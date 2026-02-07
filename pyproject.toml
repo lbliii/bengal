@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.1.7",
-    "mistune>=3.0.0",
+
     "jinja2>=3.1.0",
     "rosettes>=0.1.0",
     "kida-templates>=0.1.2",                   # Kida template engine (AST-native, free-threading ready)

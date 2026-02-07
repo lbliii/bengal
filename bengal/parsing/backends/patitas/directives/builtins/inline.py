@@ -130,7 +130,7 @@ class BadgeDirective:
             children=(),  # Badges don't have children
         )
 
-    # Use canonical implementation from bengal.directives.utils
+    # Inlined from former bengal.directives.utils
     _ensure_base_class = staticmethod(ensure_badge_base_class)
 
     def render(

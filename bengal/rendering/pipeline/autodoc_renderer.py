@@ -21,6 +21,7 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
@@ -102,7 +103,7 @@ class AutodocRenderer:
         # Autodoc config is immutable during a build, so we cache it once.
         self._autodoc_config: dict[str, Any] = {}
         self._doc_type: str | None = None
-        if site and hasattr(site, "config"):
+        if site and isinstance(site, SiteLike):
             config = site.config
             if isinstance(config, dict):
                 self._autodoc_config = config.get("autodoc", {})
