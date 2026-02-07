@@ -47,10 +47,10 @@ class WarmBuildTestSite:
     root: Path
     content: Path
     cache_path: Path
-    _site: "Site | None" = None
+    _site: Site | None = None
 
     @property
-    def site(self) -> "Site":
+    def site(self) -> Site:
         """Load or return cached site instance."""
         if self._site is None:
             from bengal.cli.helpers import load_site_from_cli
@@ -58,7 +58,7 @@ class WarmBuildTestSite:
             self._site = load_site_from_cli(source=str(self.root))
         return self._site
 
-    def build(self, *, incremental: bool = True, explain: bool = True) -> "BuildStats":
+    def build(self, *, incremental: bool = True, explain: bool = True) -> BuildStats:
         """Build the site and return stats.
 
         Args:
@@ -88,7 +88,7 @@ class WarmBuildTestSite:
 
 
 @pytest.fixture
-def warm_site(tmp_path: Path) -> Generator[WarmBuildTestSite, None, None]:
+def warm_site(tmp_path: Path) -> Generator[WarmBuildTestSite]:
     """Create a minimal site and warm its cache.
 
     Creates a basic Bengal site with:
@@ -134,7 +134,7 @@ output_dir = "public"
 
 
 @pytest.fixture
-def warm_site_with_sections(tmp_path: Path) -> Generator[WarmBuildTestSite, None, None]:
+def warm_site_with_sections(tmp_path: Path) -> Generator[WarmBuildTestSite]:
     """Create a site with nested sections and warm its cache.
 
     Creates a Bengal site with:

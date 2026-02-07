@@ -7,7 +7,6 @@ Tests the full integration: snapshot creation → WaveScheduler → HTML output.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 import pytest
 
@@ -68,8 +67,8 @@ def test_snapshot_rendering_produces_html(site, build_site):
     assert len(snapshot.pages) > 0
 
     # Use WaveScheduler to render
-    from bengal.snapshots.scheduler import WaveScheduler
     from bengal.orchestration.build_context import BuildContext
+    from bengal.snapshots.scheduler import WaveScheduler
 
     stats = None  # No stats for this test
 

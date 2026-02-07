@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from bengal.postprocess.utils.page_data import get_section_name, tags_to_list
 
 

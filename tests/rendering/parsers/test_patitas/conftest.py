@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 import pytest
+from patitas.lexer import Lexer
+from patitas.parser import Parser
 
 from bengal.parsing.backends.patitas import (
     RenderConfig,
     create_markdown,
-    parse,
     parse_to_ast,
     render_ast,
     set_render_config,
 )
-from patitas.lexer import Lexer
-from patitas.parser import Parser
 from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 from bengal.parsing.backends.patitas.wrapper import PatitasParser
-
 
 # Default plugins for tests (matches PatitasParser.DEFAULT_PLUGINS)
 DEFAULT_TEST_PLUGINS = ["table", "strikethrough", "task_lists", "math", "footnotes"]

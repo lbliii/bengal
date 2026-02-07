@@ -153,7 +153,6 @@ body {
     def test_manifest_not_found_graceful_fallback(self, tmp_path: Path):
         """When manifest doesn't exist, _resolve_fingerprinted should return None gracefully."""
         from bengal.rendering.assets import (
-            get_asset_manifest,
             reset_asset_manifest,
         )
 

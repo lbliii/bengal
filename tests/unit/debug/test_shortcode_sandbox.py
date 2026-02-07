@@ -16,7 +16,7 @@ pytest.importorskip(
     reason="ShortcodeSandbox module not yet implemented",
 )
 
-from bengal.debug.shortcode_sandbox import (  # noqa: E402
+from bengal.debug.shortcode_sandbox import (
     RenderResult,
     ShortcodeSandbox,
     ValidationResult,

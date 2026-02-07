@@ -8,15 +8,11 @@ based on member content hashes.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
-
-import pytest
 
 from bengal.cache.generated_page_cache import (
     GeneratedPageCache,
     GeneratedPageCacheEntry,
-    GENERATED_PAGE_CACHE_VERSION,
 )
 
 

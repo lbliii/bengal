@@ -623,7 +623,7 @@ def assert_pages_have_required_metadata(
 
         for field in required_fields:
             # Check both metadata dict and direct attributes
-            has_field = field in metadata or hasattr(page, field) and getattr(page, field)
+            has_field = field in metadata or (hasattr(page, field) and getattr(page, field))
             if not has_field:
                 page_missing.append(field)
 

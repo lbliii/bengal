@@ -14,10 +14,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.orchestration.build.coordinator import (
+    _MAX_EVENTS,
     CacheCoordinator,
     InvalidationEvent,
     PageInvalidationReason,
-    _MAX_EVENTS,
 )
 
 

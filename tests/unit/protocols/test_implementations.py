@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.protocols import (
     Cacheable,
     HighlightService,
@@ -132,7 +130,8 @@ class TestCacheableImplementations:
 
     def test_page_core_roundtrip(self) -> None:
         """PageCore should serialize and deserialize correctly."""
-        from datetime import datetime, UTC
+        from datetime import UTC, datetime
+
         from bengal.core.page.page_core import PageCore
 
         original = PageCore(

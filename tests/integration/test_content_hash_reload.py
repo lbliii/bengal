@@ -7,15 +7,13 @@ and correctly filters aggregate-only changes.
 RFC: Output Cache Architecture
 """
 
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 from bengal.server.reload_controller import (
     EnhancedReloadDecision,
     ReloadController,
-    ReloadDecision,
 )
 
 

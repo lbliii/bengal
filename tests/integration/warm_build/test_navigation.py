@@ -12,8 +12,6 @@ See: plan/rfc-warm-build-test-expansion.md
 
 from __future__ import annotations
 
-import pytest
-
 from tests.integration.warm_build.conftest import WarmBuildTestSite
 
 

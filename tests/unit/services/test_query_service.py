@@ -7,8 +7,6 @@ RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
 from pathlib import Path
 from types import MappingProxyType
 
-import pytest
-
 from bengal.services.query import (
     QueryService,
     get_page,

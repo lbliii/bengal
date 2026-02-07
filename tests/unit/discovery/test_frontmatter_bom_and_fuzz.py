@@ -22,7 +22,7 @@ class TestFrontmatterBOM:
 class TestConfigFuzzing:
     # Determine hypothesis availability at import time
     try:
-        import hypothesis  # noqa: F401
+        import hypothesis
 
         _HYPOTHESIS_AVAILABLE = True
     except Exception:  # pragma: no cover - environment dependent

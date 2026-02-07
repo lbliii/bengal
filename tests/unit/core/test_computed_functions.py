@@ -14,8 +14,6 @@ from datetime import UTC, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 from bengal.core.page.computed import (
     compute_age_days,
     compute_age_months,
@@ -28,7 +26,6 @@ from bengal.core.page.computed import (
     get_series_info,
     get_series_neighbor,
 )
-
 
 # -----------------------------------------------------------------------
 # compute_word_count

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.orchestration.render import get_current_generation, clear_thread_local_pipelines
+from bengal.orchestration.render import clear_thread_local_pipelines, get_current_generation
 
 
 class TestStreamingUsesRenderOrchestratorCacheInvalidation:

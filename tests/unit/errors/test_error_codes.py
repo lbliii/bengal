@@ -31,7 +31,7 @@ class TestErrorCodeUniqueness:
                 duplicate_codes.append(f"{dup_value!r}: {codes_with_value}")
 
             pytest.fail(
-                f"Found duplicate ErrorCode values (causes enum aliasing):\n"
+                "Found duplicate ErrorCode values (causes enum aliasing):\n"
                 + "\n".join(f"  • {d}" for d in duplicate_codes)
             )
 
@@ -53,7 +53,7 @@ class TestErrorCodeUniqueness:
 
         if aliases:
             pytest.fail(
-                f"Found enum aliases (duplicate values):\n" + "\n".join(f"  • {a}" for a in aliases)
+                "Found enum aliases (duplicate values):\n" + "\n".join(f"  • {a}" for a in aliases)
             )
 
 

@@ -10,6 +10,7 @@ Tests the three patterns from RFC: rfc-contextvar-downstream-patterns.md
 from __future__ import annotations
 
 import pytest
+from patitas.parser import Parser
 
 from bengal.parsing.backends.patitas import (
     ParserPool,
@@ -25,9 +26,7 @@ from bengal.parsing.backends.patitas import (
     request_context,
     try_get_request_context,
 )
-from patitas.parser import Parser
 from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
-
 
 # =============================================================================
 # Pattern 1: Parser/Renderer Pooling Tests
@@ -465,11 +464,12 @@ class TestContextVarComposition:
     def test_all_patterns_together(self):
         """All three patterns can be used together."""
         from pathlib import Path
+
         from bengal.parsing.backends.patitas import (
-            parse_config_context,
-            render_config_context,
             ParseConfig,
             RenderConfig,
+            parse_config_context,
+            render_config_context,
         )
 
         source = """# Hello World

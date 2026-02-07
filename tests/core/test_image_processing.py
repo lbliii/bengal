@@ -16,13 +16,13 @@ import pytest
 from PIL import Image
 
 from bengal.core.resources.image import ImageResource, ProcessedImage
-from bengal.core.resources.types import parse_spec
 from bengal.core.resources.processor import (
     CACHE_SCHEMA_VERSION,
     ImageProcessor,
     clear_cache,
     get_cache_stats,
 )
+from bengal.core.resources.types import parse_spec
 
 
 class TestSpecParsing:

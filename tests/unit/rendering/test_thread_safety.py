@@ -12,14 +12,12 @@ from __future__ import annotations
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from bengal.rendering.block_cache import BlockCache
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    pass
 
 
 class TestBlockCacheThreadSafety:
@@ -295,7 +293,7 @@ class TestRendererCacheThreadSafety:
 
     def test_tag_pages_cache_initialization(self) -> None:
         """Verify tag pages cache initializes safely under concurrent access."""
-        from unittest.mock import MagicMock, PropertyMock
+        from unittest.mock import MagicMock
 
         from bengal.rendering.renderer import Renderer
 

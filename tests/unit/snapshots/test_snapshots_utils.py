@@ -9,9 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
-
-import pytest
 
 from bengal.snapshots.utils import (
     RenderProgressTracker,
@@ -22,7 +19,6 @@ from bengal.snapshots.utils import (
     resolve_template_name,
     update_frozen,
 )
-
 
 # =============================================================================
 # Test Fixtures

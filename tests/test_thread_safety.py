@@ -36,7 +36,7 @@ class TestLRUCacheThreadSafety:
                     # Each thread creates param infos with overlapping names
                     result = _cached_param_info(
                         name=f"param_{i % 10}",
-                        type_hint=f"str | int" if i % 2 == 0 else None,
+                        type_hint="str | int" if i % 2 == 0 else None,
                         default=f"default_{i % 5}" if i % 3 == 0 else None,
                         description=f"Description for param {i}",
                     )
@@ -62,7 +62,6 @@ class TestLRUCacheThreadSafety:
     def test_icon_render_cache_concurrent_access(self) -> None:
         """Test icon render cache under concurrent access."""
         from bengal.rendering.template_functions.icons import (
-            _icon_render_cache,
             _render_icon_cached,
             clear_icon_cache,
         )
@@ -101,7 +100,7 @@ class TestLRUCacheThreadSafety:
 
     def test_directive_icon_cache_concurrent_access(self) -> None:
         """Test directive icon cache under concurrent access."""
-        from bengal.icons.svg import _svg_icon_cache, clear_icon_cache, render_svg_icon
+        from bengal.icons.svg import clear_icon_cache, render_svg_icon
 
         # Clear cache before test
         clear_icon_cache()
@@ -136,7 +135,7 @@ class TestLRUCacheThreadSafety:
 
     def test_theme_cache_concurrent_access(self) -> None:
         """Test theme discovery cache under concurrent access."""
-        from bengal.core.theme.registry import _installed_themes_cache, get_installed_themes
+        from bengal.core.theme.registry import get_installed_themes
 
         errors: list[Exception] = []
         results: list[dict] = []

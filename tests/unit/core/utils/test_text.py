@@ -6,8 +6,6 @@ Tests HTML stripping and text truncation utilities.
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.core.utils.text import (
     normalize_whitespace,
     strip_html,

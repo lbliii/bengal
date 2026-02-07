@@ -14,7 +14,6 @@ These tests verify both AST construction and HTML rendering.
 from __future__ import annotations
 
 import pytest
-
 from patitas.nodes import (
     FootnoteDef,
     FootnoteRef,

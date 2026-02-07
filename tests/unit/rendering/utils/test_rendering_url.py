@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-import pytest
-
 from bengal.rendering.utils.url import apply_baseurl, normalize_url_path
 
 

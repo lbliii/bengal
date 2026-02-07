@@ -20,7 +20,6 @@ class MockHTTPHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Suppress log messages."""
-        pass
 
     def do_HEAD(self):
         """Handle HEAD requests."""

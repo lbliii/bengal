@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.orchestration.build.output_types import (
     OutputType,
     classify_output,

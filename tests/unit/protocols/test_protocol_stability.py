@@ -17,11 +17,8 @@ from __future__ import annotations
 import inspect
 from typing import get_type_hints
 
-import pytest
-
 from bengal.protocols import (
     Cacheable,
-    ContentSourceProtocol,
     DirectiveHandler,
     HighlightService,
     OutputCollector,
@@ -81,7 +78,7 @@ class TestCacheableStability:
         """Cacheable must have from_cache_dict classmethod."""
         assert hasattr(Cacheable, "from_cache_dict")
         # from_cache_dict should be a classmethod
-        method = getattr(Cacheable, "from_cache_dict")
+        method = Cacheable.from_cache_dict
         assert callable(method)
 
     def test_to_cache_dict_returns_dict(self) -> None:

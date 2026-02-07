@@ -6,7 +6,6 @@ safe attribute/dict access with Jinja2 Undefined handling.
 
 from __future__ import annotations
 
-import pytest
 from jinja2 import Undefined
 
 from bengal.rendering.utils.safe_access import (

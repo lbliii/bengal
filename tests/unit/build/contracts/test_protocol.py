@@ -24,8 +24,7 @@ from bengal.build.contracts.results import (
 )
 
 if TYPE_CHECKING:
-    from bengal.cache import BuildCache
-    from bengal.core.site import Site
+    pass
 
 
 # =============================================================================

@@ -36,7 +36,7 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    pass
 
 
 # =============================================================================

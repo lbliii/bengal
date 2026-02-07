@@ -15,9 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, Mock
-
-import pytest
+from unittest.mock import Mock
 
 
 class TestPageNavigation:
@@ -25,7 +23,6 @@ class TestPageNavigation:
 
     def test_next_returns_none_without_site(self) -> None:
         """next property returns None when _site is None."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._site = None
@@ -34,7 +31,6 @@ class TestPageNavigation:
 
     def test_prev_returns_none_without_site(self) -> None:
         """prev property returns None when _site is None."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._site = None
@@ -43,7 +39,6 @@ class TestPageNavigation:
 
     def test_next_in_section_returns_none_without_section(self) -> None:
         """next_in_section returns None when _section is None."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._section = None
@@ -52,7 +47,6 @@ class TestPageNavigation:
 
     def test_page_can_find_itself_in_list(self) -> None:
         """Page instances can be found with list.index()."""
-        from bengal.core.page import Page
 
         page1 = _create_minimal_page(source_path=Path("/test/page1.md"))
         page2 = _create_minimal_page(source_path=Path("/test/page2.md"))
@@ -69,7 +63,6 @@ class TestPageComputedMixin:
 
     def test_word_count_returns_int(self) -> None:
         """word_count always returns int, even for empty content."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._raw_content = ""
@@ -80,7 +73,6 @@ class TestPageComputedMixin:
 
     def test_reading_time_minimum_one_minute(self) -> None:
         """reading_time returns at least 1 minute."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._raw_content = "short"  # Very few words
@@ -90,7 +82,6 @@ class TestPageComputedMixin:
 
     def test_meta_description_truncates_correctly(self) -> None:
         """meta_description respects 160 char limit."""
-        from bengal.core.page import Page
 
         page = _create_minimal_page()
         page._raw_content = "x" * 500  # Long content
@@ -105,7 +96,6 @@ class TestSectionErgonomicsMixin:
 
     def test_recent_pages_handles_none_dates(self) -> None:
         """recent_pages doesn't crash when pages have None dates."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
 
@@ -143,7 +133,6 @@ class TestSectionNavigationMixin:
 
     def test_href_without_site_returns_path(self) -> None:
         """href works even when _site is None."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
         section._site = None
@@ -154,7 +143,6 @@ class TestSectionNavigationMixin:
 
     def test_subsection_index_urls_returns_set(self) -> None:
         """subsection_index_urls returns a set of strings."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
         section.subsections = []
@@ -168,7 +156,6 @@ class TestSectionHierarchyMixin:
 
     def test_hierarchy_returns_list_of_strings(self) -> None:
         """hierarchy returns list[str]."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
 
@@ -178,7 +165,6 @@ class TestSectionHierarchyMixin:
 
     def test_depth_returns_positive_int(self) -> None:
         """depth returns positive integer."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
 
@@ -188,7 +174,6 @@ class TestSectionHierarchyMixin:
 
     def test_walk_includes_self(self) -> None:
         """walk() includes the section itself."""
-        from bengal.core.section import Section
 
         section = _create_minimal_section()
         section.subsections = []
@@ -202,7 +187,7 @@ class TestDiagnosticsEmission:
 
     def test_emit_helper_creates_event(self) -> None:
         """emit() convenience function creates DiagnosticEvent."""
-        from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsCollector, emit
+        from bengal.core.diagnostics import DiagnosticsCollector, emit
 
         collector = DiagnosticsCollector()
 

@@ -9,7 +9,6 @@ This test would have caught Bug #4: duplicate H701 code in external_refs and con
 
 from __future__ import annotations
 
-import ast
 import re
 from pathlib import Path
 

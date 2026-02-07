@@ -9,18 +9,16 @@ Also verifies BuildState delegation: per-build state (cascade, template
 caches, features_detected) is structurally fresh via BuildState.
 """
 
-from pathlib import Path
 
 import pytest
 
-from bengal.core.cascade_snapshot import CascadeSnapshot
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.build_state import BuildState
 
 
-@pytest.fixture()
+@pytest.fixture
 def site_with_cascade(tmp_path):
     """Create a site with sections, pages, and a populated cascade snapshot."""
     content_dir = tmp_path / "content"

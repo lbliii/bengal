@@ -14,4 +14,3 @@ def example_function():
     element for the autodoc system.
 
     """
-    pass

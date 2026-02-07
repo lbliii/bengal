@@ -17,13 +17,11 @@ from types import MappingProxyType
 import pytest
 
 from bengal.snapshots import (
-    update_snapshot,
-    predict_affected,
-    SpeculativeRenderer,
     ShadowModeValidator,
+    SpeculativeRenderer,
+    predict_affected,
 )
-from bengal.snapshots.types import PageSnapshot, SiteSnapshot, SectionSnapshot, NO_SECTION
-
+from bengal.snapshots.types import NO_SECTION, PageSnapshot, SiteSnapshot
 
 # =============================================================================
 # predict_affected() Tests

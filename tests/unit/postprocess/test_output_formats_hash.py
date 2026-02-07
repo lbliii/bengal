@@ -11,13 +11,10 @@ Regression test for: Non-atomic hash write bug (index_generator.py:538)
 
 from __future__ import annotations
 
-import json
 import time
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
-
-import pytest
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator

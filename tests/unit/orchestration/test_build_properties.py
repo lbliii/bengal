@@ -112,7 +112,7 @@ def _create_site_with_content(
     content: dict[str, str],
     *,
     base_config: dict | None = None,
-) -> "Site":
+) -> Site:
     """
     Create a Bengal site with the given content.
 
@@ -364,9 +364,9 @@ class TestURLProperties:
         slug = slugify(title)
 
         # PROPERTY: Slug should be URL-safe when input has alphanumeric chars
-        assert slug, f"Empty slug for title: {repr(title)}"
+        assert slug, f"Empty slug for title: {title!r}"
         # Allow lowercase, numbers, hyphens, and underscores (all URL-safe)
-        assert re.match(r"^[a-z0-9_-]+$", slug), f"Invalid slug '{slug}' for title: {repr(title)}"
+        assert re.match(r"^[a-z0-9_-]+$", slug), f"Invalid slug '{slug}' for title: {title!r}"
 
 
 @pytest.mark.slow  # Each example runs full build (~60s total)
@@ -411,11 +411,11 @@ class TestTaxonomyProperties:
         # Add a page with multiple tags
         if len(tags) >= 2:
             content["multi_tag.md"] = (
-                f"---\n"
-                f"title: Multi Tag Page\n"
-                f"tags:\n"
+                "---\n"
+                "title: Multi Tag Page\n"
+                "tags:\n"
                 + "\n".join(f"  - {t}" for t in tags[:2])
-                + f"\n---\n\n# Multi Tag\n\nMultiple tags."
+                + "\n---\n\n# Multi Tag\n\nMultiple tags."
             )
 
         # Create site with taxonomy config

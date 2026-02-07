@@ -12,10 +12,9 @@ Regression test for: ThreadPoolExecutor error handling (json_generator.py:206-20
 
 from __future__ import annotations
 
-import threading
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 

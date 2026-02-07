@@ -14,7 +14,6 @@ See Also:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -108,7 +107,7 @@ class TestWriteBehindErrors:
         collector = WriteBehindCollector()
 
         # Simulate an error in the writer thread
-        collector._error = IOError("Simulated disk error")
+        collector._error = OSError("Simulated disk error")
 
         with pytest.raises(BengalRenderingError) as exc_info:
             collector.enqueue(Path("/tmp/test.html"), "<html></html>")

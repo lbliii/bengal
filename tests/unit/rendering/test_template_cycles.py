@@ -3,15 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-from bengal.core.site import Site
-from bengal.rendering.engines import create_engine
 from kida.environment.exceptions import (
     TemplateError as KidaTemplateError,
 )
 from kida.environment.exceptions import (
     TemplateRuntimeError,
 )
+
+from bengal.core.site import Site
+from bengal.rendering.engines import create_engine
 
 
 class TestTemplateCircularDependencies:

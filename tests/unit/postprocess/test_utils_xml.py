@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 
-import pytest
-
 from bengal.postprocess.utils.xml import indent_xml
 
 

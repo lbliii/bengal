@@ -9,8 +9,6 @@ Ensures all protocols follow consistent patterns:
 
 from __future__ import annotations
 
-from typing import Protocol, get_args, get_origin
-
 import pytest
 
 from bengal import protocols

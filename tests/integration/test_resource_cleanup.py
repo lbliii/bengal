@@ -167,7 +167,6 @@ class TestDevServerCleanup:
         """Test that dev server creates and cleans up PID file."""
         # This is more of a smoke test - we can't easily test signal handling
         # in pytest without more complex subprocess management
-        pass
 
 
 @pytest.mark.skipif(os.name == "nt", reason="Signal handling differs on Windows")

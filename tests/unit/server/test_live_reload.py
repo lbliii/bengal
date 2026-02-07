@@ -92,7 +92,6 @@ class TestSSEShutdown:
     def test_shutdown_sse_clients_sets_flag(self):
         """Test that shutdown_sse_clients sets the shutdown flag."""
         from bengal.server.live_reload import (
-            _shutdown_requested,
             reset_sse_shutdown,
             shutdown_sse_clients,
         )
@@ -160,7 +159,7 @@ class TestSetReloadAction:
 
     def test_set_reload_action_valid_values(self):
         """Test that valid action values are accepted."""
-        from bengal.server.live_reload import _last_action, set_reload_action
+        from bengal.server.live_reload import set_reload_action
 
         for action in ("reload", "reload-css", "reload-page"):
             set_reload_action(action)
@@ -355,7 +354,6 @@ class TestAssetCacheBuildAwareServing:
     def mock_handler(self, tmp_path):
         """Create a mock handler with LiveReloadMixin methods."""
         from io import BytesIO
-        from unittest.mock import MagicMock
 
         # Create a concrete class that inherits from LiveReloadMixin
         class TestHandler(LiveReloadMixin):

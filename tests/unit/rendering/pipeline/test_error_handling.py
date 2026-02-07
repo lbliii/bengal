@@ -8,9 +8,6 @@ rather than being silently swallowed.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 

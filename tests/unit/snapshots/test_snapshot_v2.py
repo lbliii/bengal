@@ -16,17 +16,12 @@ from types import MappingProxyType
 import pytest
 
 from bengal.config.snapshot import (
-    AssetsSection,
     BuildSection,
     ConfigSnapshot,
-    ContentSection,
-    DevSection,
-    FeaturesSection,
     SiteSection,
     ThemeSection,
 )
 from bengal.snapshots.types import TemplateSnapshot
-
 
 # =============================================================================
 # ConfigSnapshot Tests (Opportunity 6)

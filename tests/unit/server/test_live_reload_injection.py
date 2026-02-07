@@ -32,15 +32,12 @@ class DummyHandler(BengalRequestHandler):
     # Stub HTTP response methods for testing
     def send_response(self, code: int) -> None:
         """Stub - we're testing content, not HTTP mechanics."""
-        pass
 
     def send_header(self, keyword: str, value: str) -> None:
         """Stub - we're testing content, not HTTP mechanics."""
-        pass
 
     def end_headers(self) -> None:
         """Stub - we're testing content, not HTTP mechanics."""
-        pass
 
 
 def test_live_reload_injects_script(tmp_path: Path) -> None:

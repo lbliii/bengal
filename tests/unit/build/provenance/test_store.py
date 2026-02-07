@@ -19,7 +19,6 @@ from bengal.build.provenance.types import (
     ProvenanceRecord,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -391,8 +390,8 @@ class TestProvenanceCacheThreadSafety:
 
     def test_concurrent_get_and_store(self, store: ProvenanceCache) -> None:
         """Concurrent get and store operations are thread-safe."""
-        import threading
         import random
+        import threading
 
         # Pre-populate some records
         for i in range(10):

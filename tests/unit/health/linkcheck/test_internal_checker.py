@@ -9,7 +9,6 @@ This test file includes operator precedence tests that would have caught Bug #5.
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest

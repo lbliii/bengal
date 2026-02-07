@@ -6,8 +6,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 from bengal.postprocess.output_formats.utils import (
     get_i18n_output_path,
     parallel_write_files,

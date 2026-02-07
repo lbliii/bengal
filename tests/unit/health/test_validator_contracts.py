@@ -10,8 +10,6 @@ These tests would catch issues like:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -154,7 +152,7 @@ class TestValidatorInterfaceContracts:
     def test_has_validate_method(self, validator_class):
         """All validators must have a 'validate' method."""
         assert hasattr(validator_class, "validate")
-        assert callable(getattr(validator_class, "validate"))
+        assert callable(validator_class.validate)
 
 
 class TestValidatorReturnTypeContracts:

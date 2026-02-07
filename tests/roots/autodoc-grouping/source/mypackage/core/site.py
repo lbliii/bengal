@@ -18,4 +18,3 @@ class Site:
 
     def build(self) -> None:
         """Build the site."""
-        pass

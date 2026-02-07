@@ -95,8 +95,8 @@ Regular paragraph with *emphasis* and **strong** text.
 
     def test_ast_toc_extraction_matches_html_toc(self, tmp_path: Path) -> None:
         """Verify AST-based TOC extraction produces same structure as HTML-based."""
-        from bengal.parsing.ast.utils import extract_toc_from_ast
         from bengal.parsing import PatitasParser
+        from bengal.parsing.ast.utils import extract_toc_from_ast
 
         content = """# Main Title
 
@@ -127,8 +127,8 @@ Regular paragraph with *emphasis* and **strong** text.
 
     def test_ast_link_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based link extraction finds all links."""
-        from bengal.parsing.ast.utils import extract_links_from_ast
         from bengal.parsing import PatitasParser
+        from bengal.parsing.ast.utils import extract_links_from_ast
 
         content = """# Links Test
 
@@ -150,8 +150,8 @@ And [an external link](https://example.com).
 
     def test_ast_plain_text_extraction(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction."""
-        from bengal.parsing.ast.utils import extract_plain_text
         from bengal.parsing import PatitasParser
+        from bengal.parsing.ast.utils import extract_plain_text
 
         content = """# Hello World
 
@@ -178,11 +178,11 @@ def test():
     @pytest.mark.xfail(reason="render_ast is a stub (TODO in PatitasParser.render_ast)")
     def test_ast_transforms_preserve_structure(self, tmp_path: Path) -> None:
         """Verify AST transforms don't break rendering."""
+        from bengal.parsing import PatitasParser
         from bengal.parsing.ast.transforms import (
             add_baseurl_to_ast,
             normalize_md_links_in_ast,
         )
-        from bengal.parsing import PatitasParser
 
         content = """# Test
 
@@ -205,8 +205,8 @@ def test():
 
     def test_page_content_uses_ast_when_available(self, tmp_path: Path) -> None:
         """Verify AST-based plain text extraction works correctly."""
-        from bengal.parsing.ast.utils import extract_plain_text
         from bengal.parsing import PatitasParser
+        from bengal.parsing.ast.utils import extract_plain_text
 
         content = "# Hello\n\nWorld paragraph."
 
@@ -259,8 +259,8 @@ class TestASTCacheThreadSafety:
         """Verify AST extraction can be called from multiple threads."""
         import threading
 
-        from bengal.parsing.ast.utils import extract_plain_text
         from bengal.parsing import PatitasParser
+        from bengal.parsing.ast.utils import extract_plain_text
 
         content = "# Test\n\nContent paragraph."
 

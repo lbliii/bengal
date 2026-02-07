@@ -10,8 +10,6 @@ Tests the `releases` filter with smart version detection and sorting:
 from datetime import date, datetime
 from pathlib import Path
 
-import pytest
-
 from bengal.rendering.template_functions.changelog import (
     ReleaseView,
     _extract_version,

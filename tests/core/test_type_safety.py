@@ -14,9 +14,7 @@ Motivation:
 from __future__ import annotations
 
 import ast
-import inspect
 from pathlib import Path
-from typing import Any, get_type_hints
 
 import pytest
 
@@ -168,6 +166,7 @@ class TestMixinComposition:
     def test_section_can_be_used_in_list_operations(self) -> None:
         """Section instances work with list.index() and similar operations."""
         from pathlib import Path as PathLib
+
         from bengal.core.section import Section
 
         # Create minimal sections for testing
@@ -205,8 +204,9 @@ class TestPILIntegration:
     @pytest.mark.skipif(not _pillow_available(), reason="Pillow not installed")
     def test_resampling_enum_used(self) -> None:
         """Image processing uses Resampling enum, not raw integers."""
-        from bengal.core.resources.processor import ImageProcessor
         import inspect
+
+        from bengal.core.resources.processor import ImageProcessor
 
         # Get source of relevant methods
         methods_to_check = ["_fill", "_fit", "_resize", "_smart_crop"]

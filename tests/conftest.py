@@ -31,7 +31,7 @@ def pytest_configure(config: pytest.Config) -> None:
     # Enforce Python 3.14+ requirement (fail fast if wrong version)
     import sys
 
-    if sys.version_info < (3, 14):  # noqa: UP036
+    if sys.version_info < (3, 14):
         pytest.exit(
             f"ERROR: Python 3.14+ required, but found {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\n"
             f"Current Python: {sys.executable}\n"

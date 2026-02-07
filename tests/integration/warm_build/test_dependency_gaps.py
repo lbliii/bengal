@@ -535,7 +535,6 @@ def create_data_tracking_site_structure(site_dir) -> None:
     Important: Use `template:` in frontmatter (not `layout:`) for explicit
     template selection in Bengal.
     """
-    from pathlib import Path
 
     # Config
     (site_dir / "bengal.toml").write_text("""
@@ -612,7 +611,6 @@ def create_taxonomy_tracking_site_structure(site_dir) -> None:
     """
     Create a site structure with taxonomy for metadata propagation testing.
     """
-    from pathlib import Path
 
     # Config with taxonomies
     (site_dir / "bengal.toml").write_text("""
@@ -676,7 +674,6 @@ def create_sitemap_site_structure(site_dir) -> None:
     """
     Create a site structure with sitemap enabled for incremental testing.
     """
-    from pathlib import Path
 
     # Config with sitemap enabled
     (site_dir / "bengal.toml").write_text("""
@@ -768,7 +765,6 @@ def create_cascade_tracking_site_structure(site_dir) -> None:
     Uses a custom template that outputs page.type as a data attribute,
     so we can verify cascade values propagate to HTML output.
     """
-    from pathlib import Path
 
     # Config
     (site_dir / "bengal.toml").write_text("""

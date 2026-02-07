@@ -14,6 +14,8 @@ from bengal.rendering.utils.safe_access import (
     has_value,
     is_undefined,
     safe_get,
+)
+from bengal.rendering.utils.safe_access import (
     safe_get_nested as safe_get_attr,
 )
 

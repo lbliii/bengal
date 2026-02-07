@@ -11,13 +11,13 @@ for users who want to use it.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    pass
 
 
 def make_mock_site(
@@ -257,8 +257,8 @@ class TestEngineCapabilities:
             patch("bengal.rendering.engines.kida.FileSystemLoader"),
             patch("bengal.rendering.engines.kida.Environment"),
         ):
-            from bengal.rendering.engines.kida import KidaTemplateEngine
             from bengal.protocols import EngineCapability
+            from bengal.rendering.engines.kida import KidaTemplateEngine
 
             engine = KidaTemplateEngine(mock_site)
 
@@ -274,8 +274,8 @@ class TestEngineCapabilities:
             mock_env = MagicMock()
             mock_create_env.return_value = (mock_env, [])
 
-            from bengal.rendering.engines.jinja import JinjaTemplateEngine
             from bengal.protocols import EngineCapability
+            from bengal.rendering.engines.jinja import JinjaTemplateEngine
 
             engine = JinjaTemplateEngine(mock_site)
 

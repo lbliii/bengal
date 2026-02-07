@@ -6,7 +6,7 @@ Additional tests that would have caught the unused menu builder bug.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

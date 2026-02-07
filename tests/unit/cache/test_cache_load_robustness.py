@@ -17,8 +17,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from bengal.cache.build_cache import BuildCache
 
 

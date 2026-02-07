@@ -10,11 +10,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from bengal.cache.content_hash_registry import (
-    ContentHashRegistry,
     REGISTRY_FORMAT_VERSION,
+    ContentHashRegistry,
 )
 
 

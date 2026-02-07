@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import multiprocessing
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -91,7 +89,7 @@ class TestHighConcurrencyStress:
                 f'"""Derived {i}."""',
                 f"from .base import Base{i - 1}",
                 f"class Derived{i}(Base{i - 1}):",
-                f"    def derived_method(self): pass",
+                "    def derived_method(self): pass",
             ]
             (pkg_dir / f"derived{i}.py").write_text("\n".join(derived_content))
 

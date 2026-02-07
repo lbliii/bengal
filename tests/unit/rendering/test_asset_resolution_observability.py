@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,7 +21,7 @@ from bengal.rendering.assets import (
     clear_manifest_cache,
     get_resolution_stats,
 )
-from bengal.utils.observability.logger import get_logger, reset_loggers
+from bengal.utils.observability.logger import reset_loggers
 
 
 @dataclass
@@ -176,7 +174,7 @@ class TestDevModeLogging:
 
     def test_debug_log_in_dev_mode(self, mock_site: MockSite) -> None:
         """Debug log in dev mode (expected fallback)."""
-        from bengal.utils.observability.logger import configure_logging, LogLevel
+        from bengal.utils.observability.logger import LogLevel, configure_logging
 
         # Enable DEBUG level to capture debug events
         configure_logging(level=LogLevel.DEBUG)

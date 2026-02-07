@@ -110,8 +110,8 @@ class TestIndexGeneratorVisibilityFiltering:
         search_exclude = False
         if (
             metadata.get("hidden", False)
-            or isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True)
+            or (isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True))
         ):
             search_exclude = True
 
@@ -130,8 +130,8 @@ class TestIndexGeneratorVisibilityFiltering:
         search_exclude = False
         if (
             metadata.get("hidden", False)
-            or isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True)
+            or (isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True))
         ):
             search_exclude = True
 

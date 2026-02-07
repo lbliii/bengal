@@ -69,7 +69,7 @@ class EfficiencyMetrics:
     timestamp: str = ""
 
     @classmethod
-    def from_build_stats(cls, stats: "BuildStats", scenario: str = "") -> "EfficiencyMetrics":
+    def from_build_stats(cls, stats: BuildStats, scenario: str = "") -> EfficiencyMetrics:
         """Extract efficiency metrics from BuildStats."""
         metrics = cls(
             scenario=scenario,
@@ -182,7 +182,7 @@ def _print_efficiency_report(metrics: EfficiencyMetrics) -> None:
     print(f"  Cache hit rate: {metrics.cache_hit_rate:.1f}%")
     print(f"  Build time:     {metrics.build_time_ms:.1f}ms")
     if metrics.rebuild_by_reason:
-        print(f"\n  Rebuild reasons:")
+        print("\n  Rebuild reasons:")
         for reason, count in sorted(metrics.rebuild_by_reason.items()):
             print(f"    {reason}: {count}")
     print(f"{'=' * 60}\n")
@@ -207,7 +207,7 @@ def efficiency_site(tmp_path: Path):
         *,
         with_tags: bool = False,
         with_sections: bool = False,
-    ) -> tuple[Path, "Site"]:
+    ) -> tuple[Path, Site]:
         site_dir = tmp_path / "site"
         site_dir.mkdir(exist_ok=True)
 

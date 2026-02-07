@@ -7,14 +7,12 @@ required fields populated.
 
 from __future__ import annotations
 
-from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 
 from bengal.snapshots import create_site_snapshot
 from bengal.snapshots.types import NO_SECTION, PageSnapshot, SectionSnapshot, SiteSnapshot
-
-from types import MappingProxyType
 
 
 @pytest.mark.bengal(testroot="test-basic")
@@ -237,7 +235,7 @@ def test_navtree_cache_uses_precomputed(site, build_site):
     """NavTreeCache.get() should return pre-computed tree when available."""
     build_site()
 
-    from bengal.core.nav_tree import NavTree, NavTreeCache
+    from bengal.core.nav_tree import NavTreeCache
 
     snapshot = create_site_snapshot(site)
 
@@ -258,7 +256,7 @@ def test_navtree_cache_invalidate_clears_precomputed(site, build_site):
     """NavTreeCache.invalidate() should clear pre-computed trees."""
     build_site()
 
-    from bengal.core.nav_tree import NavTree, NavTreeCache
+    from bengal.core.nav_tree import NavTreeCache
 
     snapshot = create_site_snapshot(site)
     NavTreeCache.set_precomputed(dict(snapshot.nav_trees))

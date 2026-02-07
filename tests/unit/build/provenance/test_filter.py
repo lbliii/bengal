@@ -8,15 +8,13 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.build.contracts.keys import CacheKey
 from bengal.build.provenance.filter import ProvenanceFilter, ProvenanceFilterResult
 from bengal.build.provenance.store import ProvenanceCache
 from bengal.build.provenance.types import ContentHash, Provenance
-
 
 # =============================================================================
 # Fixtures

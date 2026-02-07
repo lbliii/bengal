@@ -15,12 +15,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from bengal import __version__
 from bengal.cli.commands.upgrade.check import (
-    CACHE_TTL,
     UpgradeInfo,
     check_for_upgrade,
     fetch_latest_version,
@@ -32,9 +30,9 @@ from bengal.cli.commands.upgrade.check import (
 from bengal.cli.commands.upgrade.command import upgrade
 from bengal.cli.commands.upgrade.installers import (
     InstallerInfo,
-    detect_installer,
     _is_pipx_install,
     _is_uv_project,
+    detect_installer,
 )
 
 

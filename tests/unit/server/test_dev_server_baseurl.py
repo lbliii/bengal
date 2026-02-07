@@ -6,7 +6,6 @@ serves from the root (/) not from a subdirectory (/bengal).
 """
 
 import json
-from unittest.mock import MagicMock, patch
 
 import pytest
 

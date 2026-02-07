@@ -12,21 +12,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from bengal.parsing.backends.patitas import (
-    RenderConfig,
-    get_render_config,
-    render_config_context,
-    reset_render_config,
-    set_render_config,
-)
-from bengal.parsing.backends.patitas import (
-    ParseConfig as BengalParseConfig,
-    get_parse_config as get_bengal_parse_config,
-    parse_config_context as bengal_parse_config_context,
-    reset_parse_config as reset_bengal_parse_config,
-    set_parse_config as set_bengal_parse_config,
-)
-
 # For tests that use external patitas's Parser directly, we use patitas's config
 from patitas.config import (
     ParseConfig,
@@ -36,6 +21,26 @@ from patitas.config import (
     set_parse_config,
 )
 from patitas.parser import Parser
+
+from bengal.parsing.backends.patitas import (
+    ParseConfig as BengalParseConfig,
+)
+from bengal.parsing.backends.patitas import (
+    RenderConfig,
+    get_render_config,
+    render_config_context,
+    reset_render_config,
+    set_render_config,
+)
+from bengal.parsing.backends.patitas import (
+    get_parse_config as get_bengal_parse_config,
+)
+from bengal.parsing.backends.patitas import (
+    parse_config_context as bengal_parse_config_context,
+)
+from bengal.parsing.backends.patitas import (
+    reset_parse_config as reset_bengal_parse_config,
+)
 from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
 

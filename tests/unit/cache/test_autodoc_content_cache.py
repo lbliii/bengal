@@ -9,12 +9,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from bengal.autodoc.base import DocElement
 from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
 from bengal.cache.build_cache.core import BuildCache
-from bengal.utils.primitives.hashing import hash_file, hash_str
+from bengal.utils.primitives.hashing import hash_file
 
 
 class TestCachedModuleInfo:

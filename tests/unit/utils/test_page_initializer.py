@@ -14,10 +14,10 @@ from unittest.mock import Mock
 
 import pytest
 
+from bengal.content.discovery.page_factory import PageInitializer
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
-from bengal.content.discovery.page_factory import PageInitializer
 from bengal.errors import BengalContentError
 
 

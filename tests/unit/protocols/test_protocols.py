@@ -11,10 +11,6 @@ This module tests:
 from __future__ import annotations
 
 import warnings
-from pathlib import Path
-from typing import Any
-
-import pytest
 
 
 class TestCoreProtocols:
@@ -23,7 +19,6 @@ class TestCoreProtocols:
     def test_section_satisfies_section_like(self) -> None:
         """Section class satisfies SectionLike protocol."""
         from bengal.core import Section
-        from bengal.protocols import SectionLike
 
         # Verify protocol conformance (structural typing)
         # We can't use isinstance with Protocol unless we have an instance
@@ -80,7 +75,7 @@ class TestRenderingProtocols:
 
     def test_template_renderer_is_subset_of_template_engine(self) -> None:
         """TemplateRenderer is a proper subset of TemplateEngine."""
-        from bengal.protocols import TemplateEngine, TemplateRenderer
+        from bengal.protocols import TemplateEngine
 
         # TemplateEngine should have all TemplateRenderer methods plus more
         # This is structural, so we check method names
@@ -105,7 +100,6 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.core.section.protocols import SectionLike
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -119,7 +113,6 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.rendering.highlighting.protocol import HighlightBackend
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -132,7 +125,6 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.rendering.engines.protocol import TemplateEngineProtocol
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -161,7 +153,6 @@ class TestBackwardsCompatibility:
             warnings.simplefilter("always")
 
             # Import from new canonical path
-            from bengal.protocols import SectionLike, HighlightService
 
             # Should NOT emit any deprecation warnings
             deprecation_warnings = [

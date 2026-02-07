@@ -6,21 +6,13 @@ Tests the shared utility functions used across debug tools.
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.debug.utils import (
-    FILE_TYPE_EXTENSIONS,
-    FILE_TYPE_ICONS,
-    PERFORMANCE_EMOJI,
-    SEVERITY_EMOJI,
-    STATUS_EMOJI,
     TreeFormatter,
     classify_file,
     find_similar_strings,
     format_bytes_human,
     format_time_change,
     format_time_ms,
-    format_tree,
     get_file_icon,
     get_nested_value,
     get_severity_emoji,

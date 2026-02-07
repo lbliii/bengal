@@ -6,7 +6,6 @@ RFC: rfc-build-performance-optimizations Phase 2
 
 from __future__ import annotations
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.asset_tracking import AssetTracker, get_current_tracker
 from bengal.rendering.assets import resolve_asset_url

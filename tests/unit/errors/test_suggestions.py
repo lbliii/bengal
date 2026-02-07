@@ -9,8 +9,6 @@ See Also:
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.errors.suggestions import (
     ActionableSuggestion,
     enhance_error_context,

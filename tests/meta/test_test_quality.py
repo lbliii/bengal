@@ -141,7 +141,7 @@ class TestMockUsagePatterns:
         # Report high-density files for prioritization
         if high_density_files:
             high_density_files.sort(key=lambda x: x[1], reverse=True)
-            print(f"\nHigh mock density files (>50 mocks):")
+            print("\nHigh mock density files (>50 mocks):")
             for f, count in high_density_files[:10]:
                 print(f"  {count:3d} mocks: {f}")
 
@@ -259,7 +259,7 @@ class TestAssertionHelperUsage:
                 usages += len(matches)
                 files_using += 1
 
-        print(f"\nBehavioral assertion helper usage:")
+        print("\nBehavioral assertion helper usage:")
         print(f"  Total usages: {usages}")
         print(f"  Files using helpers: {files_using}")
 

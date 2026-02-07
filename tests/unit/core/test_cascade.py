@@ -8,8 +8,6 @@ These tests verify the CascadeSnapshot/CascadeView architecture where:
 
 from pathlib import Path
 
-import pytest
-
 from bengal.core.cascade import CascadeView
 from bengal.core.cascade_snapshot import CascadeSnapshot
 from bengal.core.page import Page

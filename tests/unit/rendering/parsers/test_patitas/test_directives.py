@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from patitas.nodes import Directive
 
 from bengal.parsing.backends.patitas import parse, parse_to_ast
 from bengal.parsing.backends.patitas.directives import (
@@ -14,7 +15,6 @@ from bengal.parsing.backends.patitas.directives import (
 from bengal.parsing.backends.patitas.directives.builtins import (
     AdmonitionDirective,
 )
-from patitas.nodes import Directive
 
 
 class TestDirectiveParsing:
@@ -48,9 +48,11 @@ This is a warning.
 
     def test_directive_with_options(self) -> None:
         """Parse directive with options."""
-        from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
-        from bengal.parsing.backends.patitas.directives import create_default_registry
+        from patitas.config import ParseConfig as PatitasParseConfig
+        from patitas.config import parse_config_context
         from patitas.parser import Parser
+
+        from bengal.parsing.backends.patitas.directives import create_default_registry
 
         source = """
 :::{note}
@@ -207,8 +209,9 @@ class TestDirectiveContracts:
 
     def test_requires_children(self) -> None:
         """Contract requires_children validation."""
-        from bengal.parsing.backends.patitas.directives.contracts import TAB_SET_CONTRACT
         from patitas.location import SourceLocation
+
+        from bengal.parsing.backends.patitas.directives.contracts import TAB_SET_CONTRACT
 
         loc = SourceLocation(1, 1)
 
@@ -294,12 +297,14 @@ Content here.
 
     def test_render_with_registry(self) -> None:
         """Render using custom directive registry."""
-        from patitas.config import ParseConfig as PatitasParseConfig, parse_config_context
+        from patitas.config import ParseConfig as PatitasParseConfig
+        from patitas.config import parse_config_context
+        from patitas.parser import Parser
+
         from bengal.parsing.backends.patitas import (
             RenderConfig,
             render_config_context,
         )
-        from patitas.parser import Parser
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
         registry = create_default_registry()

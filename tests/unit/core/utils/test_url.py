@@ -9,8 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import pytest
-
 from bengal.core.utils.url import apply_baseurl, get_baseurl
 
 

@@ -14,9 +14,9 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
+from bengal.content.discovery.content_discovery import ContentDiscovery
 from bengal.core.page import Page, PageProxy
 from bengal.core.site import Site
-from bengal.content.discovery.content_discovery import ContentDiscovery
 from bengal.orchestration import BuildOrchestrator
 
 

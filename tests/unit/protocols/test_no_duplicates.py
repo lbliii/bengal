@@ -126,7 +126,7 @@ class TestNoDuplicateProtocols:
                             )
 
         assert not redefinitions, (
-            f"Found protocol redefinitions outside bengal/protocols/:\n"
+            "Found protocol redefinitions outside bengal/protocols/:\n"
             + "\n".join(redefinitions)
             + "\n\n"
             "These should import from bengal.protocols instead of defining their own.\n"

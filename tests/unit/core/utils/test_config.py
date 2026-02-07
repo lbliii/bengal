@@ -9,8 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import pytest
-
 from bengal.core.utils.config import get_config_section, get_site_value
 
 

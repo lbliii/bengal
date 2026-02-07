@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.content.discovery.version_diff import VersionDiffer, VersionDiff
+from bengal.content.discovery.version_diff import VersionDiff, VersionDiffer
 
 
 @pytest.fixture

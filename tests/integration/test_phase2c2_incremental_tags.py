@@ -10,8 +10,6 @@ Performance Target: ~160ms savings per incremental build for typical sites
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import pytest
-
 from bengal.cache.taxonomy_index import TaxonomyIndex
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator

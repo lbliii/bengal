@@ -9,11 +9,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.server.reload_controller import (
-    ReloadController,
     EnhancedReloadDecision,
+    ReloadController,
 )
 
 

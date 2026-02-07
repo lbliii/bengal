@@ -176,8 +176,8 @@ About content here.
         Verifies that recorded effects persist and can be used for
         rebuild detection on subsequent builds.
         """
-        from bengal.effects.tracer import EffectTracer
         from bengal.effects.effect import Effect
+        from bengal.effects.tracer import EffectTracer
 
         # Create template and page
         templates_dir = minimal_site / "templates"

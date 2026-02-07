@@ -104,7 +104,7 @@ class TestGoldenOutput:
         self,
         tmp_path: Path,
         request: pytest.FixtureRequest,
-    ) -> Generator[tuple[Path, Path, Path], None, None]:
+    ) -> Generator[tuple[Path, Path, Path]]:
         """
         Set up a golden test site.
 
@@ -159,7 +159,7 @@ class TestGoldenOutput:
 
         if not expected_dir.exists():
             pytest.skip(
-                f"No expected/ directory for this scenario. Run with --update-golden to generate."
+                "No expected/ directory for this scenario. Run with --update-golden to generate."
             )
 
         mismatches = []

@@ -10,7 +10,6 @@ See: plan/rfc-ci-cache-inputs.md (Phase 4: Self-Validating Cache)
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import pytest
 

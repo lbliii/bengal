@@ -129,7 +129,7 @@ class TestSlugifyProperties:
 
         if not has_valid_chars:
             # No valid characters → empty slug
-            assert result == "", f"Input '{repr(text)}' has no valid chars but produced '{result}'"
+            assert result == "", f"Input '{text!r}' has no valid chars but produced '{result}'"
 
     @pytest.mark.hypothesis
     @given(text=st.text())
@@ -240,7 +240,7 @@ class TestSlugifyProperties:
         result3 = slugify(text)
 
         assert result1 == result2 == result3, (
-            f"Non-deterministic: {repr(text)} produced {repr(result1)}, {repr(result2)}, {repr(result3)}"
+            f"Non-deterministic: {text!r} produced {result1!r}, {result2!r}, {result3!r}"
         )
 
     @pytest.mark.hypothesis
@@ -253,7 +253,7 @@ class TestSlugifyProperties:
         """
         result = slugify(text)
         assert result == "", (
-            f"Whitespace-only input {repr(text)} produced non-empty slug '{result}'"
+            f"Whitespace-only input {text!r} produced non-empty slug '{result}'"
         )
 
     @pytest.mark.hypothesis
@@ -331,7 +331,7 @@ class TestSlugifyEdgeCases:
         """
         result = slugify(text)
         assert result == "", (
-            f"Special chars only {repr(text)} should produce empty slug, got '{result}'"
+            f"Special chars only {text!r} should produce empty slug, got '{result}'"
         )
 
     @pytest.mark.hypothesis

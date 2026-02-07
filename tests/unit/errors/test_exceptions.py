@@ -18,8 +18,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.errors import (
     BengalAutodocError,
     BengalBuildError,
@@ -219,7 +217,7 @@ class TestConvertedExceptions:
 
     def test_rendering_error_has_original_error(self) -> None:
         """Rendering errors can chain original exception."""
-        original = IOError("Disk full")
+        original = OSError("Disk full")
         error = BengalRenderingError(
             "Writer thread failed",
             code=ErrorCode.R010,

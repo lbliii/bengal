@@ -8,7 +8,7 @@ are written correctly.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -75,6 +75,7 @@ def test_wave_scheduler_topological_order(site, build_site):
 
     # Mock RenderingPipeline.process_page instance method to track order
     from unittest.mock import patch
+
     from bengal.rendering.pipeline import RenderingPipeline
 
     original_process_page = RenderingPipeline.process_page

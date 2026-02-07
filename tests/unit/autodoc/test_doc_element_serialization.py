@@ -5,7 +5,6 @@ Serialization round-trip tests for DocElement typed_metadata.
 from __future__ import annotations
 
 from bengal.autodoc.base import DocElement
-from bengal.errors import BengalCacheError
 from bengal.autodoc.models import (
     CLICommandMetadata,
     CLIGroupMetadata,
@@ -20,6 +19,7 @@ from bengal.autodoc.models.openapi import (
     OpenAPIResponseMetadata,
 )
 from bengal.autodoc.models.python import ParameterInfo
+from bengal.errors import BengalCacheError
 
 
 class TestDocElementSerialization:

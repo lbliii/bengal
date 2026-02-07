@@ -29,7 +29,7 @@ def test_postprocess_reports_errors_via_reporter(tmp_path, monkeypatch):
 
     monkeypatch.setenv("PYTHONHASHSEED", "0")
 
-    class FakeLinkValidator:  # noqa: N801
+    class FakeLinkValidator:
         def validate_site(self, site):
             return {"/broken": "not found"}
 
@@ -74,7 +74,7 @@ def test_postprocess_parallel_errors_use_reporter(tmp_path, monkeypatch):
     )
 
     # Stub link validator to avoid actual scanning
-    class FakeLinkValidator:  # noqa: N801
+    class FakeLinkValidator:
         def validate_site(self, site):
             return {}
 

@@ -7,8 +7,6 @@ functions for accurate change detection during hot reload.
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.rendering.pipeline.output import embed_content_hash, extract_content_hash
 
 

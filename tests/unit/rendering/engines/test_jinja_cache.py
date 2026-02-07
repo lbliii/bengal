@@ -11,10 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    pass
 
 
 def make_mock_site(

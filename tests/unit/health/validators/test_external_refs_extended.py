@@ -55,7 +55,7 @@ class TestExternalRefValidatorCodes:
         for result in results:
             if result.code:
                 assert result.code != "H701", (
-                    f"ExternalRefValidator should not use H701 (reserved for connectivity)"
+                    "ExternalRefValidator should not use H701 (reserved for connectivity)"
                 )
 
     def test_code_is_in_h7xx_range(self, mock_site):

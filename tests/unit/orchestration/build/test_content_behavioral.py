@@ -25,7 +25,6 @@ import pytest
 
 from tests._testing.assertions import (
     assert_all_pages_have_urls,
-    assert_menu_structure,
     assert_output_files_exist,
     assert_page_rendered,
     assert_taxonomy_pages_complete,

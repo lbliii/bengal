@@ -10,9 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 
 def make_mock_page(
@@ -138,7 +136,7 @@ class TestPaginationURLConstruction:
 
         # base_url should be "/" not "//"
         base_url = context.get("base_url", "")
-        assert base_url == "/" or base_url.startswith("/") and "//" not in base_url
+        assert base_url == "/" or (base_url.startswith("/") and "//" not in base_url)
 
     def test_pagination_url_with_valid_section(self) -> None:
         """Verify normal section name produces correct URL."""

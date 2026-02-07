@@ -15,8 +15,6 @@ Background:
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.protocols import Cacheable, OutputCollector, ProgressReporter
 
 
@@ -61,6 +59,8 @@ class TestOutputCollectorCanonical:
         """isinstance() should work regardless of import path."""
         from bengal.core.output.collector import (
             BuildOutputCollector,
+        )
+        from bengal.core.output.collector import (
             OutputCollector as OCLegacy,
         )
 
@@ -87,6 +87,8 @@ class TestProgressReporterCanonical:
         """isinstance() should work regardless of import path."""
         from bengal.utils.observability.progress import (
             NoopReporter,
+        )
+        from bengal.utils.observability.progress import (
             ProgressReporter as PRLegacy,
         )
 

@@ -11,6 +11,7 @@ The tests use 'run_cli' which invokes Bengal via 'python -m bengal.cli'.
 """
 
 import pytest
+
 from tests._testing.cli import run_cli
 
 

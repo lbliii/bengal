@@ -26,7 +26,6 @@ def sample_cli():
     This is used for testing the CLI extractor.
 
     """
-    pass
 
 
 @sample_cli.command()
@@ -40,7 +39,6 @@ def process(filename, verbose, count):
     This command processes the specified file with various options.
 
     """
-    pass
 
 
 @sample_cli.command()
@@ -52,7 +50,6 @@ def clean(force):
     Removes temporary files and caches.
 
     """
-    pass
 
 
 # Nested command group for testing
@@ -64,7 +61,6 @@ def manage():
     Commands for managing system resources.
 
     """
-    pass
 
 
 @manage.command()
@@ -77,7 +73,6 @@ def create(name, description):
     Creates a resource with the given name.
 
     """
-    pass
 
 
 @manage.command()
@@ -90,7 +85,6 @@ def delete(name, force):
     Removes the specified resource.
 
     """
-    pass
 
 
 class TestCLIExtractor:
@@ -242,7 +236,6 @@ class TestCLIExtractorEdgeCases:
         @click.argument("name")
         def cmd_with_arg(name):
             """Command with argument."""
-            pass
 
         extractor = CLIExtractor()
         elements = extractor.extract(cmd_with_arg)
@@ -276,7 +269,6 @@ class TestCLIExtractorEdgeCases:
         @click.option("--hidden", hidden=True, help="Hidden option")
         def cmd_with_hidden(hidden):
             """Command with hidden option."""
-            pass
 
         extractor = CLIExtractor()
         elements = extractor.extract(cmd_with_hidden)
@@ -483,7 +475,6 @@ if TYPER_AVAILABLE:
 
         This command processes the specified file with various options.
         """
-        pass
 
     @typer_app.command()
     def clean(force: bool = typer.Option(False, "--force", "-f", help="Force the operation")):
@@ -492,7 +483,6 @@ if TYPER_AVAILABLE:
 
         Removes temporary files and caches.
         """
-        pass
 
     # Nested Typer app for testing subcommands
     manage_app = typer.Typer(help="Manage resources and configuration")
@@ -507,7 +497,6 @@ if TYPER_AVAILABLE:
 
         Creates a resource with the given name.
         """
-        pass
 
     @manage_app.command()
     def delete(
@@ -519,7 +508,6 @@ if TYPER_AVAILABLE:
 
         Removes the specified resource.
         """
-        pass
 
     # Add nested app to main app
     typer_app.add_typer(manage_app, name="manage")
