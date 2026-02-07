@@ -40,7 +40,7 @@ def test_ignore_policy_domain_substring():
     """Test domain exclusion with substring match."""
     policy = IgnorePolicy(domains=["example.com"])
 
-    should_ignore, reason = policy.should_ignore_url("https://www.example.com/page")
+    should_ignore, _reason = policy.should_ignore_url("https://www.example.com/page")
     assert should_ignore
 
     should_ignore, _reason = policy.should_ignore_url("https://api.example.com")
