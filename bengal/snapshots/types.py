@@ -255,6 +255,17 @@ class SiteSnapshot:
         default_factory=lambda: MappingProxyType({})
     )
 
+    # Pre-computed top-level content (eliminates Renderer._cache_lock).
+    # Pages and sections not nested in any parent section.
+    top_level_pages: tuple[PageSnapshot, ...] = ()
+    top_level_sections: tuple[SectionSnapshot, ...] = ()
+
+    # Pre-computed tag→pages mapping (eliminates Renderer._cache_lock).
+    # Maps tag slug to filtered, resolved page snapshots.
+    tag_pages: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
 
 @dataclass(frozen=True, slots=True)
 class ScoutHint:

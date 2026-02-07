@@ -106,7 +106,10 @@ class Renderer:
         """
         Get top-level pages and sections (not nested in any section).
 
-        PERF: Uses O(n) algorithm with set-based filtering instead of O(n²).
+        Fast path (lock-free): If snapshot has pre-computed top_level_pages/sections,
+        returns them directly — no lock needed.
+
+        Fallback path: Uses O(n) algorithm with set-based filtering.
         Result is cached for the lifetime of the Renderer instance.
 
         Returns:
@@ -115,6 +118,16 @@ class Renderer:
         if self._top_level_cache is not None:
             return self._top_level_cache
 
+        # Fast path: use pre-computed snapshot data (lock-free)
+        snapshot = getattr(self.build_context, "snapshot", None) if self.build_context else None
+        if snapshot is not None and snapshot.top_level_pages:
+            self._top_level_cache = (
+                list(snapshot.top_level_pages),
+                list(snapshot.top_level_sections),
+            )
+            return self._top_level_cache
+
+        # Fallback: compute from mutable site data
         # Build set of all pages that are in any section (O(sections × pages_per_section))
         pages_in_sections: set[int] = set()
         for section in self.site.sections:
@@ -198,15 +211,13 @@ class Renderer:
         """
         Get resolved and filtered pages for a tag (cached).
 
-        Cache is built once per Renderer instance (per build). This eliminates
-        repeated O(P) filtering per tag page render.
+        Fast path (lock-free): If snapshot has pre-computed tag_pages,
+        returns them directly — no lock needed.
 
-        PERF: O(T × P) total once, then O(1) lookups per tag page render.
-        Previously: O(P) per render × R pagination pages per tag.
+        Fallback path: Cache is built once per Renderer instance (per build).
+        Uses double-checked locking for thread-safe initialization.
 
-        Thread Safety:
-            Uses double-checked locking pattern for safe initialization under
-            free-threading (PEP 703 / Python 3.14t).
+        PERF: O(1) lookup when using snapshot pre-computed data.
 
         Args:
             tag_slug: The tag slug to get pages for
@@ -214,7 +225,12 @@ class Renderer:
         Returns:
             List of filtered, resolved Page objects for the tag
         """
-        # Fast path: cache already built (no lock needed for reads)
+        # Fast path: use pre-computed snapshot data (lock-free)
+        snapshot = getattr(self.build_context, "snapshot", None) if self.build_context else None
+        if snapshot is not None and snapshot.tag_pages:
+            return list(snapshot.tag_pages.get(tag_slug, ()))
+
+        # Check instance cache
         if self._tag_pages_cache is not None:
             return self._tag_pages_cache.get(tag_slug, [])
 

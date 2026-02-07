@@ -189,9 +189,20 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     # Phase 8: Pre-compute navigation trees (eliminates NavTreeCache locks)
     nav_trees = _build_nav_trees(site)
 
+    # Phase 9: Pre-compute renderer caches (eliminates Renderer._cache_lock)
+    all_pages = tuple(page_cache.values())
+    regular_pages_tuple = tuple(
+        p for p in page_cache.values() if not p.metadata.get("_generated")
+    )
+    all_sections_tuple = tuple(section_cache.values())
+    top_level_pages, top_level_sections = _compute_top_level_content(
+        regular_pages_tuple, all_sections_tuple
+    )
+    tag_pages = _compute_tag_pages(taxonomies)
+
     return SiteSnapshot(
-        pages=tuple(page_cache.values()),
-        regular_pages=tuple(p for p in page_cache.values() if not p.metadata.get("_generated")),
+        pages=all_pages,
+        regular_pages=regular_pages_tuple,
         sections=tuple(section_cache.values()),
         root_section=root or NO_SECTION,
         config=MappingProxyType(config_dict),
@@ -213,6 +224,9 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
         template_dependents=template_dependents,
         config_snapshot=config_snapshot,
         nav_trees=nav_trees,
+        top_level_pages=top_level_pages,
+        top_level_sections=top_level_sections,
+        tag_pages=tag_pages,
     )
 
 
@@ -389,10 +403,18 @@ def update_snapshot(
     # Rebuild nav trees (structure may have changed)
     nav_trees = _build_nav_trees(site)
 
+    # Rebuild renderer caches
+    regular_pages_inc = tuple(p for p in all_pages if not p.metadata.get("_generated"))
+    all_sections_inc = tuple(section_cache.values())
+    top_level_pages, top_level_sections = _compute_top_level_content(
+        regular_pages_inc, all_sections_inc
+    )
+    tag_pages = _compute_tag_pages(taxonomies)
+
     return SiteSnapshot(
         pages=all_pages,
-        regular_pages=tuple(p for p in all_pages if not p.metadata.get("_generated")),
-        sections=tuple(section_cache.values()),
+        regular_pages=regular_pages_inc,
+        sections=all_sections_inc,
         root_section=root or NO_SECTION,
         config=old.config,  # Reuse (structural sharing)
         params=old.params,  # Reuse (structural sharing)
@@ -411,6 +433,9 @@ def update_snapshot(
         template_dependents=template_dependents,
         config_snapshot=config_snapshot,
         nav_trees=nav_trees,
+        top_level_pages=top_level_pages,
+        top_level_sections=top_level_sections,
+        tag_pages=tag_pages,
     )
 
 
@@ -427,6 +452,81 @@ def _rebuild_template_dependents(
             dependents[template_name] = pages
 
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
+
+
+def _compute_top_level_content(
+    regular_pages: tuple[PageSnapshot, ...],
+    sections: tuple[SectionSnapshot, ...],
+) -> tuple[tuple[PageSnapshot, ...], tuple[SectionSnapshot, ...]]:
+    """
+    Pre-compute top-level pages and sections (not nested in any parent).
+
+    Eliminates Renderer._cache_lock by computing at snapshot time instead of
+    lazily during rendering under a lock.
+
+    Args:
+        regular_pages: All non-generated page snapshots
+        sections: All section snapshots
+
+    Returns:
+        Tuple of (top_level_pages, top_level_sections)
+    """
+    # Build set of all page source_paths that are in any section
+    pages_in_sections: set[Path] = set()
+    for section in sections:
+        for page in section.pages:
+            pages_in_sections.add(page.source_path)
+
+    # Build set of sections that are subsections of another
+    nested_section_paths: set[Path | None] = set()
+    for parent in sections:
+        for sub in parent.subsections:
+            nested_section_paths.add(sub.path)
+
+    top_pages = tuple(
+        p for p in regular_pages if p.source_path not in pages_in_sections
+    )
+    top_sections = tuple(
+        s for s in sections if s.path not in nested_section_paths
+    )
+
+    return top_pages, top_sections
+
+
+def _compute_tag_pages(
+    taxonomies: MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]],
+) -> MappingProxyType[str, tuple[PageSnapshot, ...]]:
+    """
+    Pre-compute filtered tag→pages mapping from taxonomy data.
+
+    Eliminates Renderer._cache_lock by computing at snapshot time.
+    Excludes generated pages, API pages, and CLI pages (same logic as
+    Renderer._build_all_tag_pages_cache).
+
+    Args:
+        taxonomies: Snapshot taxonomy data
+
+    Returns:
+        Frozen mapping of tag_slug → filtered page snapshots
+    """
+    tags_data = taxonomies.get("tags", {})
+    cache: dict[str, tuple[PageSnapshot, ...]] = {}
+
+    for tag_slug, tag_pages_tuple in tags_data.items():
+        filtered: list[PageSnapshot] = []
+        for page in tag_pages_tuple:
+            source_str = str(page.source_path)
+            # Same filtering as Renderer._build_all_tag_pages_cache:
+            # exclude generated, API, and CLI pages
+            if (
+                not page.metadata.get("_generated")
+                and "content/api" not in source_str
+                and "content/cli" not in source_str
+            ):
+                filtered.append(page)
+        cache[tag_slug] = tuple(filtered)
+
+    return MappingProxyType(cache)
 
 
 def _build_nav_trees(site: SiteLike) -> MappingProxyType[str, Any]:

@@ -89,7 +89,8 @@ Locks acquired during parallel page rendering.
 | Lock                                          | Type   | Protects                                   |
 +===============================================+========+============================================+
 | Renderer._cache_lock                          | Lock   | _top_level_cache, _tag_pages_cache         |
-|   rendering/renderer.py:103                   |        |                                            |
+|   rendering/renderer.py:103                   |        | (FALLBACK ONLY — pre-computed via          |
+|                                               |        |  SiteSnapshot.top_level_*/tag_pages)       |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavTreeCache._lock (class-level)              | Lock   | Site-change invalidation (FALLBACK ONLY —  |
 |   core/nav_tree.py:698                        |        | pre-computed path via SiteSnapshot.nav_trees|
@@ -106,7 +107,8 @@ Locks acquired during parallel page rendering.
 |   rendering/.../navigation/scaffold.py:88     |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
 | _context_lock (module-level)                  | Lock   | _global_context_cache dict                 |
-|   rendering/context/__init__.py:118           |        |                                            |
+|   rendering/context/__init__.py:118           |        | (FALLBACK ONLY — eagerly populated on      |
+|                                               |        |  BuildContext before parallel rendering)    |
 +-----------------------------------------------+--------+--------------------------------------------+
 | _config_lock (module-level)                   | Lock   | _directive_cache global replacement        |
 |   cache/directive_cache.py:129                |        |                                            |

@@ -534,6 +534,13 @@ class BuildOrchestrator:
 
             NavTreeCache.set_precomputed(dict(site_snapshot.nav_trees))
 
+            # Eagerly create global context wrappers (eliminates _context_lock
+            # contention during parallel rendering — cache is populated before
+            # any render thread starts)
+            from bengal.rendering.context import _get_global_contexts
+
+            _get_global_contexts(self.site, build_context=early_ctx)
+
             # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
             # This enables near-instant parsing on subsequent builds
             cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
