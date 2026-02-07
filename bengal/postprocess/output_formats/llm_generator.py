@@ -77,7 +77,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import PageLike, SiteConfig
 
 logger = get_logger(__name__)
 
@@ -122,7 +122,7 @@ class SiteLlmTxtGenerator:
 
     def __init__(
         self,
-        site: SiteLike,
+        site: SiteConfig,
         separator_width: int = 80,
     ) -> None:
         """

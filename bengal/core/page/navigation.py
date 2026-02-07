@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.protocols import SiteLike
+from bengal.protocols import SiteContent
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,7 +62,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.next) }}">{{ page.next.title }} →</a>
             {% endif %}
         """
-        if not self._site or not isinstance(self._site, SiteLike):
+        if not self._site or not isinstance(self._site, SiteContent):
             return None
 
         try:
@@ -88,7 +88,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
             {% endif %}
         """
-        if not self._site or not isinstance(self._site, SiteLike):
+        if not self._site or not isinstance(self._site, SiteContent):
             return None
 
         try:

@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike
+    from bengal.protocols import SiteConfig
 
 logger = get_logger(__name__)
 
@@ -72,7 +72,7 @@ def _is_valid_icon_name(name: str) -> bool:
     return not any(c in _INVALID_CHARS for c in name)
 
 
-def initialize(site: SiteLike, preload: bool = False) -> None:
+def initialize(site: SiteConfig, preload: bool = False) -> None:
     """
     Initialize icon resolver with Site context.
 
@@ -100,7 +100,7 @@ def initialize(site: SiteLike, preload: bool = False) -> None:
         _preload_all_icons()
 
 
-def _get_icon_search_paths(site: SiteLike) -> list[Path]:
+def _get_icon_search_paths(site: SiteConfig) -> list[Path]:
     """
     Get ordered list of icon directories to search.
 

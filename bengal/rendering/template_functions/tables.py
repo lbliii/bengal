@@ -15,7 +15,7 @@ from jinja2.utils import pass_environment
 from kida import Markup
 
 from bengal.errors import ErrorCode
-from bengal.protocols import SiteLike
+from bengal.protocols import SiteConfig
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 __all__ = ["data_table", "register"]
 
 
-def register(env: TemplateEnvironment, site: SiteLike) -> None:
+def register(env: TemplateEnvironment, site: SiteConfig) -> None:
     """
     Register functions with template environment.
 
@@ -282,7 +282,7 @@ def data_table(env: Any, path: str, **options: Any) -> Markup:
 
     # Get site from environment globals
     site = env.globals["site"]
-    if not isinstance(site, SiteLike):
+    if not hasattr(site, "root_path"):
         raise TypeError("Site object missing required 'root_path' attribute")
 
     # Load data

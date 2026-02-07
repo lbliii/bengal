@@ -27,7 +27,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.protocols import SiteLike
+from bengal.protocols import SiteConfig
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -74,7 +74,7 @@ class PathRegistry:
             else site.root_path / ".bengal" / "generated"
         )
         self._output_dir = (
-            site.output_dir if isinstance(site, SiteLike) else site.root_path / "public"
+            site.output_dir if isinstance(site, SiteConfig) else site.root_path / "public"
         )
 
     def canonical_source(self, page: PageLike) -> Path:

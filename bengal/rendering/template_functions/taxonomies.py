@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from bengal.protocols import SiteLike
+from bengal.protocols import SiteContent
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 
 
 # Store site reference for filter access
-_site_ref: SiteLike | None = None
+_site_ref: SiteContent | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,7 +95,7 @@ class TagView:
         )
 
 
-def register(env: TemplateEnvironment, site: SiteLike) -> None:
+def register(env: TemplateEnvironment, site: SiteContent) -> None:
     """Register taxonomy helper functions with template environment.
 
     Context-dependent functions (tag_url) are registered via the adapter
@@ -217,7 +217,7 @@ def tag_view_filter(tag_slug: str) -> TagView | None:
     if not tag_data or not isinstance(tag_data, dict):
         return None
 
-    total_posts = len(_site_ref.pages) if isinstance(_site_ref, SiteLike) else 0
+    total_posts = len(_site_ref.pages) if isinstance(_site_ref, SiteContent) else 0
     return TagView.from_taxonomy_entry(tag_slug, tag_data, total_posts)
 
 

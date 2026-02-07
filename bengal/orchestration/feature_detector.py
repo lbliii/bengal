@@ -27,7 +27,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols import PageLike, SiteContent
 
 
 class FeatureDetector:
@@ -134,7 +134,7 @@ class FeatureDetector:
         return features
 
 
-def detect_site_features(site: SiteLike) -> set[str]:
+def detect_site_features(site: SiteContent) -> set[str]:
     """
     Detect all features used across a site.
 

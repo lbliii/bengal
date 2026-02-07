@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 from kida import Markup
 
 if TYPE_CHECKING:
-    from bengal.protocols import SiteLike, TemplateEnvironment
+    from bengal.protocols import SiteConfig, TemplateEnvironment
 
 from bengal.icons.svg import ICON_MAP
 from bengal.errors import ErrorCode
@@ -40,7 +40,7 @@ _warned_icons: set[str] = set()
 # Site instance for theme config access (set during registration)
 # Thread-safe: protected by _site_lock for concurrent access
 _site_lock = threading.Lock()
-_site_instance: SiteLike | None = None
+_site_instance: SiteConfig | None = None
 
 
 def _get_mapped_icon_name(name: str) -> str:
@@ -226,7 +226,7 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     return Markup(svg_html)
 
 
-def register(env: TemplateEnvironment, site: SiteLike) -> None:
+def register(env: TemplateEnvironment, site: SiteConfig) -> None:
     """
     Register icon template functions.
 
