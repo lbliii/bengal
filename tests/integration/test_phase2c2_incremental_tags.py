@@ -146,10 +146,6 @@ Content here.
                 "Tag page HTML should persist after incremental build (no changes)"
             )
 
-    @pytest.mark.xfail(
-        reason="Incremental builds generate 'All Tags' index but not individual "
-        "tag term pages (e.g., /tags/django/). This is a known limitation."
-    )
     def test_modified_page_regenerates_affected_tags(self):
         """Test that modifying a page regenerates its tags"""
         with TemporaryDirectory() as tmpdir:
@@ -372,10 +368,6 @@ class TestWarmBuildTaxonomyHtml:
     Extends existing TaxonomyIndex tests with actual HTML output checks.
     """
 
-    @pytest.mark.xfail(
-        reason="Incremental builds generate 'All Tags' index but not individual "
-        "tag term pages (e.g., /tags/tutorial/). This is a known limitation."
-    )
     def test_new_tag_renders_in_taxonomy_page_html(self):
         """
         Adding tag to page should render in taxonomy list page HTML.
