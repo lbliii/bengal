@@ -25,7 +25,7 @@ See Also:
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.postprocess.utils import indent_xml

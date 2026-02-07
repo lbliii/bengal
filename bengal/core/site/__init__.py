@@ -73,7 +73,9 @@ if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.cascade_snapshot import CascadeSnapshot
     from bengal.core.page_cache import PageCacheManager
+    from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
+    from bengal.orchestration.stats.models import BuildStats
     from bengal.parsing.base import BaseMarkdownParser
     from bengal.utils.primitives.dotdict import DotDict
 
