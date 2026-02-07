@@ -288,7 +288,6 @@ Updated documentation section.
         site_with_nav.assert_output_exists("docs/guides/intro/index.html")
 
         # Change parent title
-        original_title = "Documentation"
         new_title = "Docs Hub"
         site_with_nav.modify_file(
             "content/docs/_index.md",

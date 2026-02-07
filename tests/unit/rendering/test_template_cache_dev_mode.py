@@ -75,7 +75,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            env, _template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
             )
 
@@ -93,7 +93,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            env, _template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
             )
 
@@ -111,7 +111,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            env, _template_dirs = create_jinja_environment(
                 mock_site_dev, mock_engine, profile_templates=False
             )
 
@@ -129,7 +129,7 @@ class TestBytecodeaCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            env, _template_dirs = create_jinja_environment(
                 mock_site_prod, mock_engine, profile_templates=False
             )
 
@@ -177,7 +177,7 @@ class TestTemplateDirsCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            _env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
             )
 
@@ -207,7 +207,7 @@ class TestTemplateDirsCacheDevMode:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, template_dirs = create_jinja_environment(
+            _env, template_dirs = create_jinja_environment(
                 mock_site, mock_engine, profile_templates=False
             )
 
@@ -250,7 +250,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         mock_engine = MagicMock()
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env1, dirs1 = create_jinja_environment(site1, mock_engine, profile_templates=False)
+            _env1, dirs1 = create_jinja_environment(site1, mock_engine, profile_templates=False)
 
         # Should use cached theme-a dirs
         assert cached_dir_a in [str(d) for d in dirs1]
@@ -275,7 +275,7 @@ class TestConfigChangeTriggersCacheInvalidation:
         }
 
         with patch("bengal.rendering.template_engine.environment.register_all"):
-            env2, dirs2 = create_jinja_environment(site2, mock_engine, profile_templates=False)
+            _env2, _dirs2 = create_jinja_environment(site2, mock_engine, profile_templates=False)
 
         # Cache key doesn't match (theme-a vs theme-b), should NOT use cached dir
         # (The actual template dirs will be computed fresh)

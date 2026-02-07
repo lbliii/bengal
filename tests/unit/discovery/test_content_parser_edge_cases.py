@@ -140,7 +140,7 @@ class TestContentParserParseFile:
         test_file.write_bytes(b"\xef\xbb\xbf---\ntitle: BOM Test\n---\n\nContent")
 
         parser = ContentParser(tmp_path)
-        content, metadata = parser.parse_file(test_file)
+        content, _metadata = parser.parse_file(test_file)
 
         # Should parse successfully
         assert "Content" in content

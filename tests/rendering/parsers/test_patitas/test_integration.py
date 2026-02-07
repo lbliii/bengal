@@ -176,7 +176,7 @@ class TestTOCGeneration:
     def test_toc_nested_headings(self, patitas_parser):
         """TOC handles nested heading levels."""
         content = "# H1\n\n## H2\n\n### H3"
-        html, toc = patitas_parser.parse_with_toc(content, {})
+        _html, toc = patitas_parser.parse_with_toc(content, {})
         assert "H1" in toc
         assert "H2" in toc
         assert "H3" in toc

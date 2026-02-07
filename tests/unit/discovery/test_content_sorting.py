@@ -41,7 +41,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         # Find the docs section
         docs_section = sections[0]
@@ -88,7 +88,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         # Find the docs section
         docs_section = sections[0]
@@ -134,7 +134,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         # Top-level sections should be sorted by weight
         assert len(sections) == 3
@@ -198,7 +198,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         # Find the docs section
         docs_section = sections[0]
@@ -252,7 +252,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         docs_section = sections[0]
 
@@ -276,7 +276,7 @@ Empty section""")
 
         # Discover content (should not raise error)
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         # Should have the section even though it's empty
         assert len(sections) == 1
@@ -314,7 +314,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         docs_section = sections[0]
 
@@ -380,7 +380,7 @@ Content""")
 
         # Discover content
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        sections, _pages = discovery.discover()
 
         docs_section = sections[0]
 

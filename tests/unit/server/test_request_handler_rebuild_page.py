@@ -246,7 +246,7 @@ class TestRebuildingPagePalette:
         html = get_rebuilding_page_html("/test/")
 
         # Get the expected accent color for the default palette
-        accent, accent_rgb, _, _, _ = PALETTE_COLORS[DEFAULT_PALETTE]
+        accent, _accent_rgb, _, _, _ = PALETTE_COLORS[DEFAULT_PALETTE]
 
         assert accent.encode() in html
         assert b"%ACCENT%" not in html

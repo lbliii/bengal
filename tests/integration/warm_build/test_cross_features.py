@@ -656,7 +656,7 @@ Post.
         site1 = Site.from_config(site_dir)
         site1.build(BuildOptions(incremental=False))
 
-        output_dir = site_dir / "public"
+        site_dir / "public"
 
         # Enable RSS
         (site_dir / "bengal.toml").write_text("""

@@ -97,7 +97,7 @@ paths:
             ),
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-            pages, sections, result = orchestrator.generate()
+            _pages, sections, _result = orchestrator.generate()
 
         # Root sections prefer an aggregating parent when multiple autodoc types share a prefix.
         # With /api/python/ and /api/rest/, we should return a single /api/ root section that
@@ -155,7 +155,7 @@ paths:
             return_value=cli_elements,
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-            pages, sections, result = orchestrator.generate()
+            pages, sections, _result = orchestrator.generate()
 
         # Check page URLs
         page_urls = {p.href for p in pages}
@@ -230,7 +230,7 @@ class TestBackwardsCompatibility:
             return_value=[python_element],
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-            pages, sections, result = orchestrator.generate()
+            _pages, sections, _result = orchestrator.generate()
 
         # Should have root section at /api/
         assert any(s._path == "/api/" for s in sections)
@@ -277,7 +277,7 @@ paths: {}
             return_value=[openapi_element],
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
-            pages, sections, result = orchestrator.generate()
+            _pages, sections, _result = orchestrator.generate()
 
         # Should have root section at /api/
         assert any(s._path == "/api/" for s in sections)

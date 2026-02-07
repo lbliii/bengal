@@ -164,7 +164,7 @@ class TestIncrementalProperties:
         build's pages_to_build list.
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
-            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
+            site_dir, _content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
             # Modify selected pages
             time.sleep(0.01)  # Ensure mtime changes
@@ -207,7 +207,7 @@ class TestIncrementalProperties:
         should detect the file has changed.
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
-            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
+            site_dir, _content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
             # Modify first page with generated content
             time.sleep(0.01)
@@ -299,7 +299,7 @@ class TestIncrementalEquivalence:
         the same output as a full (non-incremental) build.
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
-            site_dir, content_dir, page_paths = _create_warm_site(Path(tmp_dir))
+            site_dir, _content_dir, page_paths = _create_warm_site(Path(tmp_dir))
 
             # Modify selected pages
             time.sleep(0.01)

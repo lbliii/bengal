@@ -632,7 +632,7 @@ class TestNavNodeProxy:
 
     def test_proxy_url_includes_baseurl(self, tree_with_baseurl):
         """Test that NavNodeProxy.url includes baseurl for templates."""
-        tree, current_page, site = tree_with_baseurl
+        tree, current_page, _site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
 
         # Get the wrapped root node (NavNodeProxy)
@@ -647,7 +647,7 @@ class TestNavNodeProxy:
 
     def test_proxy_path_excludes_baseurl(self, tree_with_baseurl):
         """Test that NavNodeProxy._path does NOT include baseurl."""
-        tree, current_page, site = tree_with_baseurl
+        tree, current_page, _site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
 
         # Get the wrapped root node (NavNodeProxy)
@@ -696,7 +696,7 @@ class TestNavNodeProxy:
 
     def test_proxy_dict_access_href_includes_baseurl(self, tree_with_baseurl):
         """Test that dict-style access ['href'] also includes baseurl."""
-        tree, current_page, site = tree_with_baseurl
+        tree, current_page, _site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
         root_proxy = context._wrap_node(tree.root)
 
@@ -707,7 +707,7 @@ class TestNavNodeProxy:
 
     def test_proxy_children_also_have_baseurl(self, tree_with_baseurl):
         """Test that child proxies also have baseurl applied."""
-        tree, current_page, site = tree_with_baseurl
+        tree, current_page, _site = tree_with_baseurl
         context = NavTreeContext(tree, current_page)
         root_proxy = context._wrap_node(tree.root)
 

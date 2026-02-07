@@ -94,7 +94,7 @@ class TestSurgicalDiscoveryCacheHit:
     ) -> None:
         """PageProxy from cache hit should have section set by discovery."""
         file_path = content_dir / "docs" / "getting-started.md"
-        section_path = str(content_dir / "docs")
+        str(content_dir / "docs")
         mock_cache.get_metadata.return_value = make_page_core(file_path, "Test")
 
         from bengal.core.section import Section
@@ -205,7 +205,7 @@ class TestSurgicalDiscoveryNoDoubleParsing:
             return original_create_page(file_path, current_lang, section)
 
         with patch.object(discovery, "_create_page", side_effect=tracking_create_page):
-            sections, pages = discovery._discover_surgical(mock_cache)
+            _sections, _pages = discovery._discover_surgical(mock_cache)
 
         # getting-started should NOT be in parsed_files (cache hit)
         assert not any("getting-started" in str(f) for f in parsed_files)

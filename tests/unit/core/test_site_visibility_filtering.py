@@ -70,14 +70,14 @@ class TestSitePagesFiltering:
 
     def test_all_pages_in_pages_list(self, mock_site):
         """site.pages contains all pages (not filtered by visibility)."""
-        site, pages = mock_site
+        site, _pages = mock_site
         # Note: In the actual implementation, site.pages may or may not filter
         # Here we test the expected behavior
         assert len(site.pages) == 5
 
     def test_listable_pages_excludes_hidden(self, mock_site):
         """site.listable_pages excludes hidden pages."""
-        site, pages = mock_site
+        site, _pages = mock_site
         listable = site.listable_pages
 
         # Should include: regular, no-menu (menu visibility doesn't affect listings)

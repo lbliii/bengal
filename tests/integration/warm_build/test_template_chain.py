@@ -137,7 +137,7 @@ class TestWarmBuildTemplateChain:
         site_with_templates.full_build()
 
         # Verify initial content
-        initial_html = site_with_templates.read_output("index.html")
+        site_with_templates.read_output("index.html")
 
         # Modify the "override" template (our local base.html)
         site_with_templates.modify_file(
@@ -324,7 +324,7 @@ This post uses the new blog layout.
         site_with_templates.wait_for_fs()
 
         # Build 2: Incremental build
-        stats2 = site_with_templates.incremental_build()
+        site_with_templates.incremental_build()
 
         # New page should be generated
         site_with_templates.assert_output_exists("blog/new-post/index.html")

@@ -283,7 +283,7 @@ members:
         # Build 2: Try incremental build - should handle error gracefully
         # Bengal may warn about invalid YAML but should not crash
         try:
-            stats2 = site_with_data.incremental_build()
+            site_with_data.incremental_build()
             # If build succeeds, it handled the error gracefully
             assert True
         except Exception as e:

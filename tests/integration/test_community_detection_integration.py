@@ -71,7 +71,7 @@ class TestCommunityDetectionIntegration:
 
     def test_detect_communities(self, clustered_site):
         """Test basic community detection."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, _python_pages, _web_pages = clustered_site
 
         # Detect communities
         results = graph.detect_communities(random_seed=42)
@@ -91,7 +91,7 @@ class TestCommunityDetectionIntegration:
 
     def test_community_detection_caching(self, clustered_site):
         """Test that community detection results are cached."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, _python_pages, _web_pages = clustered_site
 
         # First detection
         results1 = graph.detect_communities(random_seed=42)
@@ -111,7 +111,7 @@ class TestCommunityDetectionIntegration:
 
     def test_get_community_for_page(self, clustered_site):
         """Test getting community ID for specific page."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, python_pages, web_pages = clustered_site
 
         # Get community for a Python page
         community_id = graph.get_community_for_page(python_pages[0])
@@ -133,7 +133,7 @@ class TestCommunityDetectionIntegration:
 
     def test_get_largest_communities(self, clustered_site):
         """Test getting largest communities."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, _python_pages, _web_pages = clustered_site
 
         results = graph.detect_communities(random_seed=42)
 
@@ -147,7 +147,7 @@ class TestCommunityDetectionIntegration:
 
     def test_get_communities_above_size(self, clustered_site):
         """Test filtering communities by size."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, _python_pages, _web_pages = clustered_site
 
         results = graph.detect_communities(random_seed=42)
 
@@ -163,7 +163,7 @@ class TestCommunityDetectionIntegration:
 
     def test_community_detection_without_build(self, clustered_site):
         """Test that community detection requires graph to be built first."""
-        site, graph, python_pages, web_pages = clustered_site
+        site, _graph, _python_pages, _web_pages = clustered_site
 
         # Create new graph without building
         new_graph = KnowledgeGraph(site)
@@ -173,7 +173,7 @@ class TestCommunityDetectionIntegration:
 
     def test_resolution_parameter(self, clustered_site):
         """Test that resolution parameter affects community count."""
-        site, graph, python_pages, web_pages = clustered_site
+        _site, graph, _python_pages, _web_pages = clustered_site
 
         # Lower resolution -> fewer communities
         results_low = graph.detect_communities(resolution=0.5, random_seed=42)

@@ -161,7 +161,7 @@ class TestContentDiscoveryIntegration:
 
         # Run discovery without build_context (backward compat)
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         assert len(pages) == 1
         assert pages[0].title == "Test"
@@ -418,7 +418,7 @@ baseurl = "/"
 
         ctx = BuildContext()
         discovery = ContentDiscovery(content_dir, build_context=ctx)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         # Verify content was cached
         assert ctx.has_cached_content

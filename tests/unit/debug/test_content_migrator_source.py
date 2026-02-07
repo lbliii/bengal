@@ -161,7 +161,7 @@ class TestContentMigratorOrphanDetection:
             orphans = orphan_findings[0].metadata.get("orphans", [])
             # page-c should be in orphans (no one links to it)
             # page-b should NOT be in orphans (page-a links to it)
-            page_c_paths = [p for p in orphans if "page-c" in p]
+            [p for p in orphans if "page-c" in p]
             page_b_paths = [p for p in orphans if "page-b" in p]
 
             assert len(page_b_paths) == 0, "page-b has incoming link, should not be orphan"

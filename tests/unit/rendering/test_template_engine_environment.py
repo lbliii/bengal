@@ -41,7 +41,7 @@ class TestBytecodeCache:
         mock_engine._asset_url = MagicMock(return_value="/assets/test.css")
 
         # Create environment
-        env, template_dirs = create_jinja_environment(mock_site, mock_engine)
+        env, _template_dirs = create_jinja_environment(mock_site, mock_engine)
 
         # Verify bytecode cache is None (disabled)
         assert env.bytecode_cache is None, (
@@ -83,7 +83,7 @@ class TestBytecodeCache:
         mock_engine._asset_url = MagicMock(return_value="/assets/test.css")
 
         # Create environment
-        env, template_dirs = create_jinja_environment(mock_site, mock_engine)
+        env, _template_dirs = create_jinja_environment(mock_site, mock_engine)
 
         # Verify bytecode cache is enabled
         assert env.bytecode_cache is not None, (
@@ -115,7 +115,7 @@ class TestBytecodeCache:
         mock_engine._asset_url = MagicMock(return_value="/assets/test.css")
 
         # Create environment
-        env, template_dirs = create_jinja_environment(mock_site, mock_engine)
+        env, _template_dirs = create_jinja_environment(mock_site, mock_engine)
 
         # Verify bytecode cache is None (disabled)
         assert env.bytecode_cache is None, (

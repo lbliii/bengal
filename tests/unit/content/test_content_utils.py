@@ -77,14 +77,14 @@ class TestParseFrontmatter:
     def test_frontmatter_with_lists(self) -> None:
         """Frontmatter with YAML lists."""
         content = "---\ntags:\n  - python\n  - testing\n---\n\nContent"
-        meta, body = parse_frontmatter(content)
+        meta, _body = parse_frontmatter(content)
 
         assert meta == {"tags": ["python", "testing"]}
 
     def test_frontmatter_with_nested_dict(self) -> None:
         """Frontmatter with nested dictionaries."""
         content = "---\nmeta:\n  og_title: Test\n  og_image: /img.png\n---\nBody"
-        meta, body = parse_frontmatter(content)
+        meta, _body = parse_frontmatter(content)
 
         assert meta == {"meta": {"og_title": "Test", "og_image": "/img.png"}}
 
@@ -100,7 +100,7 @@ class TestParseFrontmatter:
     def test_unclosed_frontmatter(self) -> None:
         """Unclosed frontmatter (no closing ---) returns content as-is."""
         content = "---\ntitle: No closing delimiter"
-        meta, body = parse_frontmatter(content)
+        meta, _body = parse_frontmatter(content)
 
         assert meta == {}
 

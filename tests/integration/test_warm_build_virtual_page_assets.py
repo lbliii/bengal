@@ -213,7 +213,7 @@ This is the home page.
 
         # Build 2: Incremental
         site2 = Site.from_config(site_root)
-        stats2 = site2.build(BuildOptions(force_sequential=True, incremental=True))
+        site2.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Pages should NOT be rebuilt (only SVG changed)
         # Note: This test may need adjustment if SVG is included in templates

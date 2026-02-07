@@ -176,7 +176,7 @@ class TestChangeDetectorProtocol:
             def detect(self) -> ChangeDetectionResult:  # Missing ctx parameter
                 return ChangeDetectionResult.empty()
 
-        detector = WrongSignatureDetector()
+        WrongSignatureDetector()
         # Note: runtime_checkable only checks for method presence, not signature
         # This will still pass isinstance check
         # The type checker will catch this error

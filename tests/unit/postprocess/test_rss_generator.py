@@ -192,7 +192,7 @@ class TestRSSGeneratorWithPages:
 
         site = self._create_mock_site(pages=[page1, page2, page3])
 
-        generator = RSSGenerator(site)
+        RSSGenerator(site)
 
         # Get pages with dates and sort (mimicking generate logic)
         pages_with_dates = [p for p in site.pages if p.date and p.in_rss]
@@ -218,7 +218,7 @@ class TestRSSGeneratorWithPages:
 
         site = self._create_mock_site(pages=pages)
 
-        generator = RSSGenerator(site)
+        RSSGenerator(site)
 
         # Get pages with dates and limit (mimicking generate logic)
         pages_with_dates = [p for p in site.pages if p.date and p.in_rss]
@@ -266,7 +266,7 @@ class TestRSSGeneratori18n:
         }
         site.output_dir = Path("/tmp/output")
 
-        generator = RSSGenerator(site)
+        RSSGenerator(site)
 
         # Verify filtering logic
         i18n = site.config.get("i18n", {}) or {}
@@ -446,7 +446,7 @@ class TestRSSGeneratorLinkGeneration:
         site.output_dir = tmp_path
         site.config = {"baseurl": "https://example.com"}
 
-        generator = RSSGenerator(site)
+        RSSGenerator(site)
 
         # Mimicking link generation logic
         # Access from site section (supports both Config and dict)

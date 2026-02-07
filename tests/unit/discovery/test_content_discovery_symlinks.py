@@ -44,7 +44,7 @@ class TestSymlinkLoopDetection:
         loop_link.symlink_to(docs_dir)
 
         discovery = ContentDiscovery(temp_content_dir)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         # Should not hang or crash
         # Should find the normal pages
@@ -89,7 +89,7 @@ class TestSymlinkLoopDetection:
         link.symlink_to(shared_dir)
 
         discovery = ContentDiscovery(content_dir)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         # Should find content from both directories
         assert len(pages) >= 2
@@ -110,7 +110,7 @@ class TestSymlinkLoopDetection:
         loop_link.symlink_to(temp_content_dir / "docs")
 
         discovery = ContentDiscovery(temp_content_dir)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         # Should complete without hanging
         assert isinstance(pages, list)
@@ -125,7 +125,7 @@ class TestSymlinkLoopDetection:
             (section_dir / "page.md").write_text(f"---\ntitle: Page in Section {i}\n---\n# Page")
 
         discovery = ContentDiscovery(temp_content_dir)
-        sections, pages = discovery.discover()
+        _sections, pages = discovery.discover()
 
         # Should find all pages
         assert len(pages) >= 8  # Home + 3 sections * (index + page) + docs
@@ -135,7 +135,7 @@ class TestSymlinkLoopDetection:
         discovery = ContentDiscovery(temp_content_dir)
 
         # First discovery
-        sections1, pages1 = discovery.discover()
+        _sections1, pages1 = discovery.discover()
         assert len(pages1) > 0
 
         # Add more content
@@ -146,7 +146,7 @@ class TestSymlinkLoopDetection:
         discovery.sections = []
 
         # Second discovery should find the new page
-        sections2, pages2 = discovery.discover()
+        _sections2, pages2 = discovery.discover()
         assert len(pages2) > 0
 
 
@@ -166,7 +166,7 @@ class TestPermissionErrorHandling:
             no_access.chmod(0o000)
 
             discovery = ContentDiscovery(temp_content_dir)
-            sections, pages = discovery.discover()
+            _sections, pages = discovery.discover()
 
             # Should not crash, just skip the unreadable directory
             assert isinstance(pages, list)

@@ -546,7 +546,7 @@ A post in tutorials category.
             tutorials_html = output_dir / "categories" / "tutorials" / "index.html"
 
             # Tutorials category may or may not exist depending on taxonomy config
-            tutorials_existed = tutorials_html.exists()
+            tutorials_html.exists()
 
             # CHANGE category from tutorials to guides
             post_file.write_text("""---
@@ -564,7 +564,7 @@ A post now in guides category.
             orch2.build(BuildOptions(incremental=True))
 
             # Build should succeed with category change
-            guides_html = output_dir / "categories" / "guides" / "index.html"
+            output_dir / "categories" / "guides" / "index.html"
 
             # If categories taxonomy is enabled, guides page should exist
             # (depends on Bengal's taxonomy configuration)

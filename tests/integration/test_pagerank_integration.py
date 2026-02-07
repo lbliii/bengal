@@ -65,7 +65,7 @@ class TestPageRankIntegration:
 
     def test_compute_pagerank(self, sample_site):
         """Test basic PageRank computation."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, hub_page, spoke_pages, orphan_page = sample_site
 
         # Compute PageRank
         results = graph.compute_pagerank()
@@ -88,7 +88,7 @@ class TestPageRankIntegration:
 
     def test_pagerank_caching(self, sample_site):
         """Test that PageRank results are cached."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, _hub_page, _spoke_pages, _orphan_page = sample_site
 
         # First computation
         results1 = graph.compute_pagerank()
@@ -108,7 +108,7 @@ class TestPageRankIntegration:
 
     def test_get_top_pages_by_pagerank(self, sample_site):
         """Test getting top pages by PageRank."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, hub_page, _spoke_pages, _orphan_page = sample_site
 
         # Get top 3 pages
         top_pages = graph.get_top_pages_by_pagerank(limit=3)
@@ -125,7 +125,7 @@ class TestPageRankIntegration:
 
     def test_get_pagerank_score(self, sample_site):
         """Test getting PageRank score for specific page."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, hub_page, spoke_pages, _orphan_page = sample_site
 
         # Get score for hub page
         hub_score = graph.get_pagerank_score(hub_page)
@@ -140,7 +140,7 @@ class TestPageRankIntegration:
 
     def test_personalized_pagerank(self, sample_site):
         """Test personalized PageRank from seed pages."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, _hub_page, spoke_pages, _orphan_page = sample_site
 
         # Compute personalized PageRank around spoke 0
         seed_pages = {spoke_pages[0]}
@@ -163,7 +163,7 @@ class TestPageRankIntegration:
         """Test that personalized PageRank requires seed pages."""
         from bengal.errors import BengalError
 
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, _hub_page, _spoke_pages, _orphan_page = sample_site
 
         with pytest.raises(BengalError, match="requires at least one seed page"):
             graph.compute_personalized_pagerank(seed_pages=set())
@@ -172,7 +172,7 @@ class TestPageRankIntegration:
         """Test that PageRank requires graph to be built first."""
         from bengal.errors import BengalError
 
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        site, _graph, _hub_page, _spoke_pages, _orphan_page = sample_site
 
         # Create new graph without building
         new_graph = KnowledgeGraph(site)
@@ -182,7 +182,7 @@ class TestPageRankIntegration:
 
     def test_pagerank_with_different_damping(self, sample_site):
         """Test PageRank with different damping factors."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, hub_page, _spoke_pages, _orphan_page = sample_site
 
         # Compute with different damping factors
         results_low = graph.compute_pagerank(damping=0.5)
@@ -200,7 +200,7 @@ class TestPageRankIntegration:
 
     def test_pagerank_identifies_important_pages(self, sample_site):
         """Test that PageRank correctly identifies important pages."""
-        site, graph, hub_page, spoke_pages, orphan_page = sample_site
+        _site, graph, hub_page, _spoke_pages, orphan_page = sample_site
 
         results = graph.compute_pagerank()
 

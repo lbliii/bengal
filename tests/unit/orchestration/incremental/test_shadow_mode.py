@@ -91,7 +91,7 @@ class TestFindWorkEarly:
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
-            pages, assets, summary = orchestrator.find_work_early(verbose=True)
+            pages, _assets, _summary = orchestrator.find_work_early(verbose=True)
 
         assert len(pages) == 2
 
@@ -104,7 +104,7 @@ class TestFindWorkEarly:
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
-            pages, assets, summary = orchestrator.find_work_early(
+            pages, _assets, _summary = orchestrator.find_work_early(
                 verbose=True,
                 forced_changed_sources={forced_path},
             )
@@ -131,7 +131,7 @@ class TestFindWork:
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
-            pages, assets, summary = orchestrator.find_work(verbose=True)
+            pages, _assets, _summary = orchestrator.find_work(verbose=True)
 
         assert len(pages) == 2
 
@@ -144,7 +144,7 @@ class TestFindWork:
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
-            pages, assets, summary = orchestrator.find_work(verbose=True)
+            _pages, _assets, summary = orchestrator.find_work(verbose=True)
 
         from bengal.orchestration.build.results import ChangeSummary
 

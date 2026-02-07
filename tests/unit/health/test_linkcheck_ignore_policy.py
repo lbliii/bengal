@@ -43,10 +43,10 @@ def test_ignore_policy_domain_substring():
     should_ignore, reason = policy.should_ignore_url("https://www.example.com/page")
     assert should_ignore
 
-    should_ignore, reason = policy.should_ignore_url("https://api.example.com")
+    should_ignore, _reason = policy.should_ignore_url("https://api.example.com")
     assert should_ignore
 
-    should_ignore, reason = policy.should_ignore_url("https://different.org")
+    should_ignore, _reason = policy.should_ignore_url("https://different.org")
     assert not should_ignore
 
 

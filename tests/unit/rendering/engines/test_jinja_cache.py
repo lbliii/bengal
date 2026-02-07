@@ -109,7 +109,7 @@ class TestJinjaTemplateCaching:
             engine._template_path_cache["test.html"] = template_dir / "test.html"
 
             # Should return cached value without checking filesystem
-            with patch.object(Path, "exists", return_value=False) as mock_exists:
+            with patch.object(Path, "exists", return_value=False):
                 result = engine.get_template_path("test.html")
 
             # Cache hit - should NOT have called exists()

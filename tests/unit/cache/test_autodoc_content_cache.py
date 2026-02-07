@@ -175,7 +175,7 @@ def sample_function():
         extractor1 = PythonExtractor(config={})
         elements1 = extractor1.extract(tmp_path)
         assert len(elements1) == 1
-        module_element1 = elements1[0]
+        elements1[0]
 
         # Create cache and extract with cache
         cache = BuildCache()

@@ -199,7 +199,7 @@ An advanced Python tutorial.
         site_with_taxonomy_tracking.wait_for_fs()
 
         # Build 2: Incremental build
-        stats2 = site_with_taxonomy_tracking.incremental_build()
+        site_with_taxonomy_tracking.incremental_build()
 
         # Assert: Tag page shows new title
         site_with_taxonomy_tracking.assert_output_contains(
@@ -254,7 +254,7 @@ Now the newest content.
         site_with_taxonomy_tracking.wait_for_fs()
 
         # Build 2: Incremental build
-        stats2 = site_with_taxonomy_tracking.incremental_build()
+        site_with_taxonomy_tracking.incremental_build()
 
         # Assert: Tag page shows updated title
         site_with_taxonomy_tracking.assert_output_contains(
@@ -308,7 +308,7 @@ New page content.
         site_with_sitemap.wait_for_fs()
 
         # Build 2: Incremental build
-        stats2 = site_with_sitemap.incremental_build()
+        site_with_sitemap.incremental_build()
 
         # Assert: New page was built
         site_with_sitemap.assert_output_exists("new-page/index.html")
@@ -350,7 +350,7 @@ title: Page To Delete
 This page will be deleted.
 """,
         )
-        stats1 = site_with_sitemap.full_build()
+        site_with_sitemap.full_build()
 
         # Verify page exists in sitemap
         initial_sitemap = site_with_sitemap.read_output("sitemap.xml")
@@ -362,7 +362,7 @@ This page will be deleted.
         site_with_sitemap.wait_for_fs()
 
         # Build 2: Full rebuild for deletion cleanup
-        stats2 = site_with_sitemap.full_build()
+        site_with_sitemap.full_build()
 
         # Assert: Deleted page not in sitemap
         updated_sitemap = site_with_sitemap.read_output("sitemap.xml")
@@ -457,7 +457,7 @@ cascade:
         7. Assert: Both guide.md AND advanced/tips.md are rebuilt
         """
         # Build 1: Full build
-        stats1 = site_with_cascade_tracking.full_build()
+        site_with_cascade_tracking.full_build()
 
         # Create nested structure
         site_with_cascade_tracking.create_file(
@@ -482,7 +482,7 @@ title: Tips and Tricks
         site_with_cascade_tracking.wait_for_fs()
 
         # Build 2: Build with new pages
-        stats2 = site_with_cascade_tracking.full_build()
+        site_with_cascade_tracking.full_build()
 
         # Verify initial cascade in nested page
         site_with_cascade_tracking.assert_output_contains(
@@ -506,7 +506,7 @@ cascade:
         site_with_cascade_tracking.wait_for_fs()
 
         # Build 3: Incremental build
-        stats3 = site_with_cascade_tracking.incremental_build()
+        site_with_cascade_tracking.incremental_build()
 
         # Assert: Both levels rebuilt with new cascade
         site_with_cascade_tracking.assert_output_contains(

@@ -165,7 +165,7 @@ class TestBeautifyCommonException:
         result = beautify_common_exception(error)
 
         assert result is not None
-        message, suggestion = result
+        message, _suggestion = result
         assert "YAML" in message
         assert "line 11" in message  # 10 + 1 (0-indexed)
 
@@ -197,7 +197,7 @@ class TestBeautifyCommonException:
         result = beautify_common_exception(error)
 
         assert result is not None
-        message, suggestion = result
+        message, _suggestion = result
         assert "syntax error" in message.lower()
         assert "line 15" in message
 
@@ -223,7 +223,7 @@ class TestBeautifyCommonException:
         result = beautify_common_exception(error)
 
         assert result is not None
-        message, suggestion = result
+        message, _suggestion = result
         assert "Template not found" in message
         assert "custom.html" in message
 

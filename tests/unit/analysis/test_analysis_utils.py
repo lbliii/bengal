@@ -184,7 +184,7 @@ class TestBfsPredecessors:
     def test_computes_predecessors(self):
         """Test BFS computes predecessor information."""
         graph = {"A": {"B", "C"}, "B": {"D"}, "C": {"D"}, "D": set()}
-        preds, sigma, dist, stack = bfs_predecessors(graph, "A", {"A", "B", "C", "D"})
+        preds, sigma, dist, _stack = bfs_predecessors(graph, "A", {"A", "B", "C", "D"})
 
         # A is source
         assert dist["A"] == 0

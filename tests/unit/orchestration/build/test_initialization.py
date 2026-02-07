@@ -344,7 +344,7 @@ class TestPhaseIncrementalFilter:
         assert result.pages_to_build == mock_pages
         assert result.assets_to_process == mock_assets
         # Test tuple unpacking backward compatibility
-        pages, assets, tags, paths, sections = result
+        pages, assets, _tags, _paths, _sections = result
         assert pages == mock_pages
         assert assets == mock_assets
 
@@ -395,7 +395,7 @@ class TestPhaseIncrementalFilter:
         assert len(result.pages_to_build) == 1
         assert result.pages_to_build[0] is changed_page
         # Test tuple unpacking backward compatibility
-        pages, assets, tags, paths, sections = result
+        pages, _assets, _tags, _paths, _sections = result
         assert len(pages) == 1
         assert pages[0] is changed_page
 

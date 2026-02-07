@@ -213,7 +213,7 @@ class TestLayers:
         assert isinstance(layers, PageLayers)
 
         # Test tuple unpacking (backward compatibility)
-        hubs, mid_tier, leaves = layers
+        _hubs, _mid_tier, _leaves = layers
 
         # All pages should be in one of the layers
         total = len(layers.hubs) + len(layers.mid_tier) + len(layers.leaves)
@@ -231,7 +231,7 @@ class TestLayers:
         layers = graph.get_layers()
 
         # Test tuple unpacking (backward compatibility)
-        hubs, mid_tier, leaves = layers
+        _hubs, _mid_tier, _leaves = layers
 
         # If we have pages in multiple layers,
         # hubs should have higher connectivity than leaves

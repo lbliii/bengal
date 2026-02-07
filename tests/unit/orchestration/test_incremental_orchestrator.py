@@ -375,7 +375,7 @@ class TestIncrementalOrchestrator:
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
             # Test
-            pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early(
+            pages_to_build, _assets_to_process, change_summary = orchestrator.find_work_early(
                 verbose=True
             )
 
@@ -418,7 +418,7 @@ class TestIncrementalOrchestrator:
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
         ):
             # Test
-            pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early(
+            _pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early(
                 verbose=True
             )
 

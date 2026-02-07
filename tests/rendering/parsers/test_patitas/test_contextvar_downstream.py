@@ -89,13 +89,13 @@ class TestParserPool:
         # Parse document with link refs
         source1 = "[link][ref]\n\n[ref]: https://example.com"
         with ParserPool.acquire(source1) as parser1:
-            ast1 = parser1.parse()
+            parser1.parse()
             assert len(parser1._link_refs) == 1
 
         # Reuse parser - link refs should be cleared
         source2 = "# Simple heading"
         with ParserPool.acquire(source2) as parser2:
-            ast2 = parser2.parse()
+            parser2.parse()
             # Link refs should be reset
             assert len(parser2._link_refs) == 0
 
@@ -297,7 +297,7 @@ print("Hello")
         ast = parse_to_ast(source)
 
         with metadata_context() as meta:
-            html = render_ast(ast, source)
+            render_ast(ast, source)
 
             # Verify accumulation
             assert meta.has_code_blocks is True
@@ -312,7 +312,7 @@ print("Hello")
         ast = parse_to_ast(source, plugins=["math"])
 
         with metadata_context() as meta:
-            html = render_ast(ast, source)
+            render_ast(ast, source)
             assert meta.has_math is True
 
     def test_metadata_table_detection(self):
@@ -323,7 +323,7 @@ print("Hello")
         ast = parse_to_ast(source, plugins=["table"])
 
         with metadata_context() as meta:
-            html = render_ast(ast, source)
+            render_ast(ast, source)
             assert meta.has_tables is True
 
 
@@ -418,10 +418,10 @@ class TestRequestContextManager:
 
     def test_context_nesting(self):
         """Nested contexts work correctly."""
-        with request_context(source_content="outer") as outer:
+        with request_context(source_content="outer"):
             assert get_request_context().source_content == "outer"
 
-            with request_context(source_content="inner") as inner:
+            with request_context(source_content="inner"):
                 assert get_request_context().source_content == "inner"
 
             assert get_request_context().source_content == "outer"

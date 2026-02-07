@@ -182,7 +182,7 @@ class TestCacheMigration:
         site = Site(root_path=tmp_path, config={"output_dir": "public"})
         site.output_dir = public_dir
         incremental = IncrementalOrchestrator(site)
-        cache = incremental.initialize(enabled=True)
+        incremental.initialize(enabled=True)
 
         # Verify new cache location used
         new_cache_path = tmp_path / ".bengal" / "cache.json"

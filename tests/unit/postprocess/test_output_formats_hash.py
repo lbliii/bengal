@@ -302,7 +302,7 @@ class TestHashFileConsistency:
         first_hash = hash_path.read_text().strip()
 
         # Second generation with same content
-        path2 = generator.generate([page])
+        generator.generate([page])
 
         second_hash = hash_path.read_text().strip()
 

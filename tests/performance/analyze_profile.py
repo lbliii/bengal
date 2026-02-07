@@ -171,7 +171,7 @@ def compare_profiles(current_path: Path, baseline_path: Path, fail_threshold: fl
     def extract_times(stats):
         times = {}
         for func, (_cc, nc, tt, ct, _callers) in stats.stats.items():
-            filename, line, func_name = func
+            filename, _line, func_name = func
             key = f"{Path(filename).name}::{func_name}"
             times[key] = {"tottime": tt, "cumtime": ct, "ncalls": nc}
         return times

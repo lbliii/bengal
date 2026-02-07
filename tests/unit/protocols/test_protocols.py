@@ -79,7 +79,6 @@ class TestRenderingProtocols:
 
         # TemplateEngine should have all TemplateRenderer methods plus more
         # This is structural, so we check method names
-        renderer_methods = {"render_template", "render_string"}
 
         # All TemplateRenderer methods should be in TemplateEngine
         # (This is guaranteed by inheritance in the protocol definition)

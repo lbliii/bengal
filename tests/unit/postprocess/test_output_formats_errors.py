@@ -127,7 +127,6 @@ class TestParallelWriteErrorHandling:
         mock_site.pages = pages
 
         # Track how many times write is called
-        write_count = [0]
         fail_indices = {1, 3, 5}  # Fail pages 1, 3, 5
 
         original_mkdir = Path.mkdir

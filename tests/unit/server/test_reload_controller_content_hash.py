@@ -251,7 +251,7 @@ class TestReloadControllerDecideWithContentHashes:
         )
 
         # First decision should work
-        decision1 = controller.decide_with_content_hashes(output_dir)
+        controller.decide_with_content_hashes(output_dir)
 
         # Second decision should be throttled (within 10s)
         decision2 = controller.decide_with_content_hashes(output_dir)

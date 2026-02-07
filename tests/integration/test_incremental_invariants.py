@@ -336,7 +336,7 @@ print(f"saved:{{len(cache.file_fingerprints)}}")
         When no files have changed between builds, the incremental system
         should detect this and skip unnecessary work.
         """
-        stats1 = warm_site.build(incremental=True)
+        warm_site.build(incremental=True)
         stats2 = warm_site.build(incremental=True)
 
         # INVARIANT: Second build should have 0 pages to rebuild

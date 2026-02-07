@@ -42,7 +42,7 @@ def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
     orchestrator = BuildOrchestrator(site)
     options = BuildOptions(force_sequential=False, incremental=False)
 
-    stats = orchestrator.build(options)
+    orchestrator.build(options)
 
     # Verify HTML files were written
     html_files = list(site.output_dir.rglob("*.html"))
@@ -114,7 +114,7 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
     # Build with parallel (uses snapshot)
     orchestrator1 = BuildOrchestrator(site)
     options1 = BuildOptions(force_sequential=False, incremental=False)
-    stats1 = orchestrator1.build(options1)
+    orchestrator1.build(options1)
 
     # Get HTML files from parallel build
     parallel_html = {
@@ -126,7 +126,7 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
     # Rebuild with sequential (no snapshot)
     orchestrator2 = BuildOrchestrator(site)
     options2 = BuildOptions(force_sequential=True, incremental=False)
-    stats2 = orchestrator2.build(options2)
+    orchestrator2.build(options2)
 
     # Get HTML files from sequential build
     sequential_html = {

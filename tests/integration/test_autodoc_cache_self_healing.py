@@ -139,7 +139,7 @@ def test_function(x: int, y: str = "default") -> bool:
 
         orchestrator = VirtualAutodocOrchestrator(site2)
         try:
-            pages, sections, _run = orchestrator.generate_from_cache_payload(regenerated_payload)
+            pages, _sections, _run = orchestrator.generate_from_cache_payload(regenerated_payload)
             # If we get here, deserialization succeeded
             assert len(pages) > 0, "Regenerated payload should produce pages"
         except (TypeError, KeyError, ValueError) as e:

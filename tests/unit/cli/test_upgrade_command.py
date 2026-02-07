@@ -467,7 +467,7 @@ class TestUpgradeCommand:
         monkeypatch.setattr("subprocess.run", mock_run)
 
         runner = CliRunner()
-        result = runner.invoke(upgrade, ["--yes"])
+        runner.invoke(upgrade, ["--yes"])
 
         # Should have attempted upgrade without prompt
         mock_run.assert_called_once()

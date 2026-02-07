@@ -237,7 +237,7 @@ FINAL modification content.
         warm_build_site.wait_for_fs()
 
         # Build 2: Incremental build
-        stats2 = warm_build_site.incremental_build()
+        warm_build_site.incremental_build()
 
         # Final content should be reflected
         html = warm_build_site.read_output("rapid/index.html")

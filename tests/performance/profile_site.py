@@ -102,7 +102,7 @@ def compare_parallel_vs_sequential(site_path):
 
     # Sequential build
     print("Running SEQUENTIAL build...")
-    seq_time, pages = profile_build(site_path, parallel=False)
+    seq_time, _pages = profile_build(site_path, parallel=False)
 
     # Parallel build with different worker counts
     for workers in [2, 4, 8]:

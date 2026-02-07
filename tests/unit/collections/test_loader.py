@@ -155,7 +155,7 @@ class TestBuildCollectionTrie:
         trie = build_collection_trie(collections)
 
         assert len(trie) == 1
-        name, config = trie.find(Path("content/blog/post.md"))
+        name, _config = trie.find(Path("content/blog/post.md"))
         assert name == "blog"
 
     def test_multiple_collections(self) -> None:
@@ -198,7 +198,7 @@ class TestGetCollectionForPathWithTrie:
         trie = build_collection_trie(collections)
         content_root = Path(".")
 
-        name, config = get_collection_for_path(
+        name, _config = get_collection_for_path(
             Path("blog/post.md"),
             content_root,
             collections,
@@ -235,7 +235,7 @@ class TestGetCollectionForPathWithTrie:
         content_root = Path(".")
 
         # Should match api (deepest), not docs
-        name, config = get_collection_for_path(
+        name, _config = get_collection_for_path(
             Path("docs/api/endpoint.md"),
             content_root,
             collections,
@@ -251,7 +251,7 @@ class TestGetCollectionForPathWithTrie:
         }
         content_root = Path(".")
 
-        name, config = get_collection_for_path(
+        name, _config = get_collection_for_path(
             Path("blog/post.md"),
             content_root,
             collections,
@@ -269,7 +269,7 @@ class TestGetCollectionForPathWithTrie:
         content_root = Path(".")
 
         # Should match api (deepest), not docs - same behavior as trie
-        name, config = get_collection_for_path(
+        name, _config = get_collection_for_path(
             Path("docs/api/endpoint.md"),
             content_root,
             collections,
@@ -279,7 +279,7 @@ class TestGetCollectionForPathWithTrie:
         assert name == "api"
 
         # File in docs/ but not api/ should match docs collection
-        name, config = get_collection_for_path(
+        name, _config = get_collection_for_path(
             Path("docs/guide.md"),
             content_root,
             collections,

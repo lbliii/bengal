@@ -569,9 +569,9 @@ def assert_no_broken_internal_links(
 
             # Parse path and anchor
             if "#" in href:
-                path, anchor = href.split("#", 1)
+                path, _anchor = href.split("#", 1)
             else:
-                path, anchor = href, None
+                path, _anchor = href, None
 
             # Resolve to file path
             target_path = output_dir / path.lstrip("/")

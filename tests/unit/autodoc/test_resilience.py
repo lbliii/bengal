@@ -151,7 +151,7 @@ class TestExtractionFailureHandling:
 
             # CLI is disabled in mock_site, so this won't actually fail
             # But we can test the pattern
-            pages, sections, result = orchestrator.generate()
+            _pages, _sections, result = orchestrator.generate()
 
             # Should have some pages from Python extraction
             assert result.extracted >= 0  # May be 0 if no elements match filters
@@ -248,7 +248,7 @@ class TestSummaryTracking:
                 return_value=([], AutodocRunResult()),
             ),
         ):
-            pages, sections, result = orchestrator.generate()
+            _pages, _sections, result = orchestrator.generate()
 
             # Result should be populated (though pages may be empty due to filtering)
             assert isinstance(result, AutodocRunResult)
@@ -288,7 +288,7 @@ class TestSummaryTracking:
                 return_value=([], AutodocRunResult()),
             ),
         ):
-            pages, sections, result = orchestrator.generate()
+            _pages, _sections, result = orchestrator.generate()
 
             assert isinstance(result, AutodocRunResult)
 
@@ -330,7 +330,7 @@ class TestSummaryTracking:
                 return_value=([], AutodocRunResult()),
             ),
         ):
-            pages, sections, result = orchestrator.generate()
+            _pages, _sections, result = orchestrator.generate()
 
             assert isinstance(result, AutodocRunResult)
 
