@@ -192,21 +192,6 @@ class TestProcessMethod:
             # Should call _set_output_paths_for_pages with the pages
             mock_set.assert_called_once_with(pages)
 
-    def test_process_passes_tracker_to_sequential(self, orchestrator, mock_site):
-        """Test that process passes tracker to sequential rendering."""
-        pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={})
-        ]
-        mock_tracker = Mock()
-
-        with patch.object(orchestrator, "_set_output_paths_for_pages"):
-            with patch.object(orchestrator, "_render_sequential") as mock_seq:
-                orchestrator.process(pages, parallel=False, tracker=mock_tracker)
-
-            # Should pass tracker
-            call_args = mock_seq.call_args[0]
-            assert call_args[1] == mock_tracker
-
     def test_process_passes_stats_to_parallel(self, orchestrator, mock_site):
         """Test that process passes stats to parallel rendering."""
         pages = [
@@ -219,9 +204,9 @@ class TestProcessMethod:
             with patch.object(orchestrator, "_render_parallel") as mock_par:
                 orchestrator.process(pages, parallel=True, stats=mock_stats)
 
-            # Should pass stats
+            # Should pass stats (pages=0, quiet=1, stats=2)
             call_args = mock_par.call_args[0]
-            assert call_args[3] == mock_stats
+            assert call_args[2] == mock_stats
 
 
 class TestPerformanceOptimization:

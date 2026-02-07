@@ -33,14 +33,6 @@ def mock_cache():
 
 
 @pytest.fixture
-def mock_tracker():
-    """Create a mock DependencyTracker."""
-    tracker = MagicMock()
-    tracker.get_pages_using_data_file = MagicMock(return_value=set())
-    return tracker
-
-
-@pytest.fixture
 def mock_site():
     """Create a mock Site."""
     site = MagicMock()
@@ -49,9 +41,9 @@ def mock_site():
 
 
 @pytest.fixture
-def coordinator(mock_cache, mock_tracker, mock_site):
+def coordinator(mock_cache, mock_site):
     """Create a CacheCoordinator with mocks."""
-    return CacheCoordinator(mock_cache, mock_tracker, mock_site)
+    return CacheCoordinator(mock_cache, mock_site)
 
 
 class TestPageInvalidationReason:
@@ -110,10 +102,9 @@ class TestInvalidationEvent:
 class TestCacheCoordinator:
     """Tests for CacheCoordinator class."""
 
-    def test_initialization(self, coordinator, mock_cache, mock_tracker, mock_site):
+    def test_initialization(self, coordinator, mock_cache, mock_site):
         """Coordinator initializes correctly."""
         assert coordinator.cache is mock_cache
-        assert coordinator.tracker is mock_tracker
         assert coordinator.site is mock_site
         assert coordinator._events == []
 
@@ -168,14 +159,29 @@ class TestCacheCoordinator:
 
         assert event.caches_cleared == ["rendered_output"]
 
-    def test_invalidate_for_data_file(self, coordinator, mock_cache, mock_tracker):
+    def test_invalidate_for_data_file(self, coordinator, mock_cache):
         """invalidate_for_data_file cascades to dependent pages."""
         data_file = Path("data/team.yaml")
         page1 = Path("content/about.md")
         page2 = Path("content/team.md")
-        mock_tracker.get_pages_using_data_file.return_value = {page1, page2}
 
-        events = coordinator.invalidate_for_data_file(data_file)
+        # Mock BuildEffectTracer (used internally to find affected outputs)
+        mock_tracer = MagicMock()
+        output1 = Path("public/about/index.html")
+        output2 = Path("public/team/index.html")
+        mock_tracer.outputs_needing_rebuild.return_value = {output1, output2}
+        mock_tracer.get_dependencies_for_output.side_effect = lambda p: (
+            [page1] if p == output1 else [page2]
+        )
+
+        mock_effect_tracer = MagicMock()
+        mock_effect_tracer.tracer = mock_tracer
+
+        with patch(
+            "bengal.effects.render_integration.BuildEffectTracer"
+        ) as MockBET:
+            MockBET.get_instance.return_value = mock_effect_tracer
+            events = coordinator.invalidate_for_data_file(data_file)
 
         assert len(events) == 2
         assert all(e.reason == PageInvalidationReason.DATA_FILE_CHANGED for e in events)
@@ -296,9 +302,9 @@ class TestCacheCoordinator:
 class TestCacheCoordinatorThreadSafety:
     """Tests for thread safety of CacheCoordinator."""
 
-    def test_concurrent_invalidation(self, mock_cache, mock_tracker, mock_site):
+    def test_concurrent_invalidation(self, mock_cache, mock_site):
         """Events are logged safely under concurrent invalidation."""
-        coordinator = CacheCoordinator(mock_cache, mock_tracker, mock_site)
+        coordinator = CacheCoordinator(mock_cache, mock_site)
         errors = []
 
         def invalidate_pages(start_idx: int):
@@ -325,9 +331,9 @@ class TestCacheCoordinatorThreadSafety:
 class TestCacheCoordinatorEventBounds:
     """Tests for event log bounds."""
 
-    def test_events_trimmed_at_max(self, mock_cache, mock_tracker, mock_site):
+    def test_events_trimmed_at_max(self, mock_cache, mock_site):
         """Event log is trimmed when exceeding _MAX_EVENTS."""
-        coordinator = CacheCoordinator(mock_cache, mock_tracker, mock_site)
+        coordinator = CacheCoordinator(mock_cache, mock_site)
 
         # Add more than _MAX_EVENTS
         for i in range(_MAX_EVENTS + 100):

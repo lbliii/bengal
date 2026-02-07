@@ -69,14 +69,9 @@ class TestBuildOrchestrator:
         from bengal.orchestration.build.results import FilterResult
 
         # Setup mocks for successful flow
-        # Note: initialize() returns (cache, tracker) - order matters!
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
-        mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (
-            mock_cache,
-            mock_tracker,
-        )
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
         mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
         mock_orchestrators["section"].return_value.validate_sections.return_value = []
 
@@ -135,11 +130,9 @@ class TestBuildOrchestrator:
         from bengal.orchestration.build.results import FilterResult
 
         mock_inc = mock_orchestrators["incremental"].return_value
-        # Note: initialize() returns (cache, tracker) - order matters!
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
-        mock_tracker = MagicMock()
-        mock_inc.initialize.return_value = (mock_cache, mock_tracker)
+        mock_inc.initialize.return_value = mock_cache
         mock_inc.check_config_changed.return_value = False
         # Simulate filtering work
         filter_result = FilterResult(
@@ -177,14 +170,9 @@ class TestBuildOrchestrator:
 
         # Setup mocks to return validation errors
         mock_orchestrators["section"].return_value.validate_sections.return_value = ["Error 1"]
-        # Note: initialize() returns (cache, tracker) - order matters!
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
-        mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (
-            mock_cache,
-            mock_tracker,
-        )
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
         from bengal.orchestration.build.results import FilterResult
 
         filter_result = FilterResult(
@@ -207,14 +195,9 @@ class TestBuildOrchestrator:
     def test_flag_propagation(self, mock_site, mock_orchestrators):
         """Test that flags are propagated to sub-orchestrators."""
         orchestrator = BuildOrchestrator(mock_site)
-        # Note: initialize() returns (cache, tracker) - order matters!
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
-        mock_tracker = MagicMock()
-        mock_orchestrators["incremental"].return_value.initialize.return_value = (
-            mock_cache,
-            mock_tracker,
-        )
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
 
         from bengal.orchestration.build.results import FilterResult
 
