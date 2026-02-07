@@ -2,9 +2,11 @@
 Tests for rendering pipeline cache storage integration.
 
 Verifies that the rendering pipeline correctly stores parsed content
-and rendered output in the cache via dependency_tracker.cache.
+and rendered output in the cache via build_cache (or the backward-compatible
+dependency_tracker.cache fallback).
 
-These tests ensure the fix for the ._cache vs .cache bug doesn't regress.
+These tests ensure the fix for the ._cache vs .cache bug doesn't regress,
+and verify the build_cache concern separation.
 """
 
 from types import SimpleNamespace
@@ -99,9 +101,10 @@ class TestPipelineCacheStorage:
         self, site_with_cache, mock_page, tmp_path
     ):
         """
-        Verify cache_parsed_content accesses dependency_tracker.cache (not ._cache).
+        Verify cache_parsed_content accesses build_cache directly.
 
-        This test ensures the fix for the ._cache vs .cache bug.
+        This test ensures the fix for the ._cache vs .cache bug and
+        validates the build_cache concern separation.
         """
         site, cache, tracker = site_with_cache
 
@@ -130,9 +133,10 @@ class TestPipelineCacheStorage:
         self, site_with_cache, mock_page, tmp_path
     ):
         """
-        Verify cache_rendered_output accesses dependency_tracker.cache (not ._cache).
+        Verify cache_rendered_output accesses build_cache directly.
 
-        This test ensures the fix for the ._cache vs .cache bug.
+        This test ensures the fix for the ._cache vs .cache bug and
+        validates the build_cache concern separation.
         """
         site, cache, tracker = site_with_cache
 
@@ -173,6 +177,62 @@ class TestPipelineCacheStorage:
         # Should NOT have ._cache
         # (Note: Python allows accessing private attrs, so we just verify the public one works)
         assert tracker.cache.file_fingerprints is not None
+
+    def test_build_cache_resolved_from_dependency_tracker(self, site_with_cache):
+        """
+        Verify build_cache is auto-resolved from dependency_tracker.cache
+        when not provided explicitly.
+        """
+        site, cache, tracker = site_with_cache
+
+        parser = DummyParser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+
+        pipeline = RenderingPipeline(site, dependency_tracker=tracker, build_context=ctx)
+
+        # build_cache should be resolved from tracker.cache
+        assert pipeline.build_cache is cache
+        assert pipeline._cache_checker.build_cache is cache
+
+    def test_build_cache_passed_directly(self, site_with_cache):
+        """
+        Verify build_cache can be passed directly without dependency_tracker.
+        """
+        site, cache, _tracker = site_with_cache
+
+        parser = DummyParser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+
+        # Pass build_cache directly, no dependency_tracker
+        pipeline = RenderingPipeline(
+            site, dependency_tracker=None, build_context=ctx, build_cache=cache
+        )
+
+        assert pipeline.build_cache is cache
+        assert pipeline._cache_checker.build_cache is cache
+
+    def test_explicit_build_cache_overrides_tracker(self, site_with_cache, tmp_path):
+        """
+        Verify explicit build_cache takes priority over dependency_tracker.cache.
+        """
+        site, _default_cache, tracker = site_with_cache
+
+        # Create a separate cache to pass explicitly
+        explicit_cache = BuildCache()
+
+        parser = DummyParser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+
+        pipeline = RenderingPipeline(
+            site, dependency_tracker=tracker, build_context=ctx, build_cache=explicit_cache
+        )
+
+        # Explicit build_cache should be used, not tracker.cache
+        assert pipeline.build_cache is explicit_cache
+        assert pipeline._cache_checker.build_cache is explicit_cache
 
 
 class TestPipelineCacheIntegration:

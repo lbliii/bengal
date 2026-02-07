@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.build.tracking import DependencyTracker
+    from bengal.cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
@@ -80,6 +81,8 @@ class RenderingPipeline:
         site: Site instance with config and xref_index
         parser: Thread-local markdown parser (cached per thread)
         dependency_tracker: Optional DependencyTracker for incremental builds
+        build_cache: Optional BuildCache for direct cache access (resolved from
+            build_cache or dependency_tracker.cache)
         quiet: Whether to suppress per-page output
         build_stats: Optional BuildStats for error collection
 
@@ -116,6 +119,7 @@ class RenderingPipeline:
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
         write_behind: WriteBehindCollector | None = None,
+        build_cache: BuildCache | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -137,6 +141,8 @@ class RenderingPipeline:
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
             write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
+            build_cache: Optional BuildCache for direct cache access. If None,
+                falls back to dependency_tracker.cache for backward compatibility.
         """
         self.site = site
 
@@ -158,6 +164,11 @@ class RenderingPipeline:
         self.parser = injected_parser or get_thread_parser(markdown_engine)
 
         self.dependency_tracker = dependency_tracker
+
+        # Direct cache access: prefer explicit build_cache, fall back to dependency_tracker.cache
+        self.build_cache = build_cache or (
+            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+        )
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
@@ -235,6 +246,7 @@ class RenderingPipeline:
             build_stats=build_stats,
             output_collector=self._output_collector,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
         self._json_accumulator = JsonAccumulator(site, build_context)
         self._autodoc_renderer = AutodocRenderer(
@@ -245,6 +257,7 @@ class RenderingPipeline:
             output_collector=self._output_collector,
             build_stats=build_stats,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
 
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
@@ -611,6 +624,7 @@ class RenderingPipeline:
             self.dependency_tracker,
             collector=self._output_collector,
             write_behind=self._write_behind,
+            build_cache=self.build_cache,
         )
 
         # Accumulate unified page data during rendering (JSON + search index)
@@ -732,7 +746,13 @@ class RenderingPipeline:
 
     def _write_output(self, page: PageLike) -> None:
         """Write rendered page to output directory (backward compatibility wrapper)."""
-        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        write_output(
+            page,
+            self.site,
+            self.dependency_tracker,
+            collector=self._output_collector,
+            build_cache=self.build_cache,
+        )
 
     def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""

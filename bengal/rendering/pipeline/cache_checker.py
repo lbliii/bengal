@@ -34,7 +34,9 @@ class CacheChecker:
     (parsed AST before template rendering) for incremental builds.
 
     Attributes:
-        dependency_tracker: DependencyTracker with cache access
+        dependency_tracker: DependencyTracker for dependency tracking (e.g. end_page())
+        build_cache: BuildCache for direct cache access (resolved from build_cache or
+            dependency_tracker.cache)
         site: Site instance for configuration
         renderer: Renderer for template rendering
         build_stats: Optional BuildStats for metrics
@@ -60,17 +62,20 @@ class CacheChecker:
         build_stats: Any = None,
         output_collector: Any = None,
         write_behind: Any = None,
+        build_cache: Any = None,
     ):
         """
         Initialize the cache checker.
 
         Args:
-            dependency_tracker: DependencyTracker with cache access
+            dependency_tracker: DependencyTracker for dependency tracking (e.g. end_page())
             site: Site instance for configuration
             renderer: Renderer for template rendering
             build_stats: Optional BuildStats for metrics collection
             output_collector: Optional output collector for hot reload tracking
             write_behind: Optional write-behind collector for async I/O
+            build_cache: Optional BuildCache for direct cache access. If None,
+                falls back to dependency_tracker.cache for backward compatibility.
         """
         self.dependency_tracker = dependency_tracker
         self.site = site
@@ -78,6 +83,11 @@ class CacheChecker:
         self.build_stats = build_stats
         self.output_collector = output_collector
         self.write_behind = write_behind
+
+        # Direct cache access: prefer explicit build_cache, fall back to dependency_tracker.cache
+        self.build_cache = build_cache or (
+            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+        )
 
     def try_rendered_cache(self, page: PageLike, template: str) -> bool:
         """
@@ -93,12 +103,10 @@ class CacheChecker:
         Returns:
             True if cache hit (page written), False if cache miss
         """
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
+        if not self.build_cache or page.metadata.get("_generated"):
             return False
 
-        cache = self.dependency_tracker.cache
-        if not cache or page.metadata.get("_generated"):
-            return False
+        cache = self.build_cache
 
         # Pass output_dir for asset manifest validation
         output_dir = getattr(self.site, "output_dir", None)
@@ -127,6 +135,7 @@ class CacheChecker:
             self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
+            build_cache=self.build_cache,
         )
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
@@ -149,12 +158,10 @@ class CacheChecker:
         Returns:
             True if cache hit (page rendered and written), False if cache miss
         """
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
+        if not self.build_cache or page.metadata.get("_generated"):
             return False
 
-        cache = self.dependency_tracker.cache
-        if not cache or page.metadata.get("_generated"):
-            return False
+        cache = self.build_cache
 
         cached = cache.get_parsed_content(page.source_path, page.metadata, template, parser_version)
         if not cached or is_missing(cached):
@@ -230,6 +237,7 @@ class CacheChecker:
             self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
+            build_cache=self.build_cache,
         )
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
@@ -246,12 +254,10 @@ class CacheChecker:
             template: Template name used
             parser_version: Parser version used
         """
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
+        if not self.build_cache or page.metadata.get("_generated"):
             return
 
-        cache = self.dependency_tracker.cache
-        if not cache or page.metadata.get("_generated"):
-            return
+        cache = self.build_cache
 
         toc_items = extract_toc_structure(page.toc or "")
         md_cfg = self.site.config.get("markdown", {}) or {}
@@ -280,12 +286,10 @@ class CacheChecker:
             page: Page with rendered HTML
             template: Template name used
         """
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
+        if not self.build_cache or page.metadata.get("_generated"):
             return
 
-        cache = self.dependency_tracker.cache
-        if not cache or page.metadata.get("_generated"):
-            return
+        cache = self.build_cache
 
         page_key = str(page.source_path)
         deps = list(cache.dependencies.get(page_key, []))
@@ -317,11 +321,7 @@ class CacheChecker:
         if getattr(page, "_cascade_invalidated", False):
             return True
 
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
+        if not self.build_cache:
             return False
 
-        cache = self.dependency_tracker.cache
-        if not cache:
-            return False
-
-        return cache.should_bypass(page.source_path, changed_sources)
+        return self.build_cache.should_bypass(page.source_path, changed_sources)

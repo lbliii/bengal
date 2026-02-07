@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from kida.template import Template
 
     from bengal.build.tracking.tracker import DependencyTracker
+    from bengal.cache import BuildCache
     from bengal.orchestration.stats.models import BuildStats
     from bengal.protocols import OutputCollector, PageLike, TemplateEngine
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
@@ -81,6 +82,7 @@ class AutodocRenderer:
         output_collector: OutputCollector | None = None,
         build_stats: BuildStats | None = None,
         write_behind: WriteBehindCollector | None = None,
+        build_cache: BuildCache | None = None,
     ):
         """
         Initialize the autodoc renderer.
@@ -93,6 +95,8 @@ class AutodocRenderer:
             output_collector: Optional output collector for hot reload tracking
             build_stats: Optional BuildStats for error tracking and deduplication
             write_behind: Optional write-behind collector for async I/O
+            build_cache: Optional BuildCache for direct cache access. If None,
+                falls back to dependency_tracker.cache for backward compatibility.
         """
         self.site = site
         self.template_engine = template_engine
@@ -101,6 +105,9 @@ class AutodocRenderer:
         self.output_collector = output_collector
         self.build_stats = build_stats
         self.write_behind = write_behind
+        self.build_cache = build_cache or (
+            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
+        )
 
         # PERF: Cache autodoc config to avoid repeated lookups per page render.
         # Autodoc config is immutable during a build, so we cache it once.
@@ -150,6 +157,7 @@ class AutodocRenderer:
                 self.dependency_tracker,
                 collector=self.output_collector,
                 write_behind=self.write_behind,
+                build_cache=self.build_cache,
             )
             logger.debug(
                 "autodoc_page_rendered",
@@ -187,6 +195,7 @@ class AutodocRenderer:
             self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
+            build_cache=self.build_cache,
         )
 
         logger.debug(
