@@ -45,9 +45,6 @@ from bengal.parsing.backends.patitas.directives.builtins.data_table import (
 from bengal.parsing.backends.patitas.directives.builtins.dropdown import (
     DropdownDirective,
 )
-from bengal.parsing.backends.patitas.directives.builtins.glossary import (
-    GlossaryDirective,
-)
 from bengal.parsing.backends.patitas.directives.builtins.embed import (
     CodePenDirective,
     CodeSandboxDirective,
@@ -56,18 +53,21 @@ from bengal.parsing.backends.patitas.directives.builtins.embed import (
     SpotifyDirective,
     StackBlitzDirective,
 )
+from bengal.parsing.backends.patitas.directives.builtins.glossary import (
+    GlossaryDirective,
+)
 from bengal.parsing.backends.patitas.directives.builtins.include import (
     IncludeDirective,
     LiteralIncludeDirective,
-)
-from bengal.parsing.backends.patitas.directives.builtins.marimo import (
-    MarimoDirective,
 )
 from bengal.parsing.backends.patitas.directives.builtins.inline import (
     BadgeDirective,
     IconDirective,
     RubricDirective,
     TargetDirective,
+)
+from bengal.parsing.backends.patitas.directives.builtins.marimo import (
+    MarimoDirective,
 )
 from bengal.parsing.backends.patitas.directives.builtins.media import (
     AudioDirective,

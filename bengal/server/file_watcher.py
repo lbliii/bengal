@@ -85,7 +85,7 @@ class WatchfilesWatcher:
         self,
         paths: list[Path],
         ignore_filter: Callable[[Path], bool],
-        stop_event: "asyncio.Event | None" = None,
+        stop_event: asyncio.Event | None = None,
     ) -> None:
         """
         Initialize watchfiles watcher.

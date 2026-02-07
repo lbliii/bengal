@@ -138,6 +138,7 @@ from bengal.debug.models import (
     TemplateInfo,
 )
 
+
 # Lazy imports for optional components
 def __getattr__(name: str) -> Any:
     """

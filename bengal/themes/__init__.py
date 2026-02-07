@@ -79,11 +79,11 @@ __all__ = [
     # Token instances
     "BENGAL_MASCOT",
     "BENGAL_PALETTE",
-    "PALETTE_VARIANTS",
     # Path constants
     "CLI_DASHBOARD_TCSS_PATH",
     "DEFAULT_CSS_TOKENS_PATH",
     "DEFAULT_THEME_PATH",
+    "PALETTE_VARIANTS",
     "THEMES_ROOT",
     # Config models
     "AppearanceConfig",
@@ -100,12 +100,12 @@ __all__ = [
     "ThemeConfig",
     # Validation utilities
     "extract_with_defaults",
-    "validate_enum_field",
     # Generation utilities
     "generate_tcss_reference",
     "generate_web_css",
     # Token utilities
     "get_palette",
+    "validate_enum_field",
     "validate_tcss_tokens",
     "write_generated_css",
 ]

@@ -236,13 +236,13 @@ def create_default_registry() -> DirectiveRegistry:
         DataTableDirective,
         DeprecatedDirective,
         DropdownDirective,
-        GlossaryDirective,
         # Misc
         ExampleLabelDirective,
         FigureDirective,
         GalleryDirective,
         # Developer embeds
         GistDirective,
+        GlossaryDirective,
         IconDirective,
         # File I/O
         IncludeDirective,

@@ -94,7 +94,7 @@ __all__ = [
 
 # Re-export helper function for convenience
 # Note: Import from helpers.py to avoid circular import (auto_nav imports from helpers)
-from bengal.rendering.template_functions.navigation.helpers import get_nav_title  # noqa: E402
+from bengal.rendering.template_functions.navigation.helpers import get_nav_title
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:

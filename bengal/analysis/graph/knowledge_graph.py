@@ -47,8 +47,6 @@ See Also:
 from typing import TYPE_CHECKING
 
 from bengal.analysis.graph.builder import GraphBuilder
-from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_THRESHOLD
-from bengal.analysis.utils.validation import require_built
 from bengal.analysis.graph.metrics import GraphMetrics, MetricsCalculator, PageConnectivity
 from bengal.analysis.links.types import (
     DEFAULT_THRESHOLDS,
@@ -58,6 +56,8 @@ from bengal.analysis.links.types import (
     LinkMetrics,
     LinkType,
 )
+from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_THRESHOLD
+from bengal.analysis.utils.validation import require_built
 from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 

@@ -178,7 +178,7 @@ class RenderingPipeline:
 
                 external_ref_resolver = ExternalRefResolver(site.config)
                 # Expose resolver for health checks (unresolved external refs)
-                setattr(site, "external_ref_resolver", external_ref_resolver)
+                site.external_ref_resolver = external_ref_resolver
 
             self.parser.enable_cross_references(  # type: ignore[union-attr]
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver

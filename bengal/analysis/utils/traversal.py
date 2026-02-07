@@ -60,7 +60,7 @@ def bfs_distances(
 
     # Initialize distances
     if target_set is not None:
-        distances: dict[T, int] = {node: -1 for node in target_set}
+        distances: dict[T, int] = dict.fromkeys(target_set, -1)
         if source in target_set:
             distances[source] = 0
     else:
@@ -176,9 +176,9 @@ def bfs_predecessors(
 
     # Initialize
     predecessors: dict[T, list[T]] = {node: [] for node in target_set}
-    sigma: dict[T, int] = {node: 0 for node in target_set}
+    sigma: dict[T, int] = dict.fromkeys(target_set, 0)
     sigma[source] = 1
-    distance: dict[T, int] = {node: -1 for node in target_set}
+    distance: dict[T, int] = dict.fromkeys(target_set, -1)
     distance[source] = 0
 
     stack: list[T] = []

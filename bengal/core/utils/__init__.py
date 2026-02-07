@@ -32,19 +32,19 @@ from bengal.core.utils.text import (
 from bengal.core.utils.url import apply_baseurl
 
 __all__ = [
+    # Sorting utilities
+    "DEFAULT_WEIGHT",
+    # URL utilities
+    "apply_baseurl",
+    "get_config_section",
+    # Config utilities
+    "get_site_value",
+    "normalize_whitespace",
+    "sorted_by_weight",
     # Text utilities
     "strip_html",
     "strip_html_and_normalize",
-    "normalize_whitespace",
     "truncate_at_sentence",
     "truncate_at_word",
-    # Sorting utilities
-    "DEFAULT_WEIGHT",
     "weight_sort_key",
-    "sorted_by_weight",
-    # Config utilities
-    "get_site_value",
-    "get_config_section",
-    # URL utilities
-    "apply_baseurl",
 ]

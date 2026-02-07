@@ -598,19 +598,19 @@ class ConfigLike(Protocol):
 # =============================================================================
 
 __all__ = [
+    # Config protocol
+    "ConfigLike",
+    "Navigable",
+    "NavigableSection",
+    "PageLike",
+    "QueryableSection",
     # Page role protocols
     "Renderable",
-    "Navigable",
-    "Summarizable",
-    "PageLike",
     # Section protocols
     "SectionLike",
-    "NavigableSection",
-    "QueryableSection",
     # Site role protocols
     "SiteConfig",
     "SiteContent",
     "SiteLike",
-    # Config protocol
-    "ConfigLike",
+    "Summarizable",
 ]

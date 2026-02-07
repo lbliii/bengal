@@ -150,13 +150,7 @@ class DirectiveValidator(BaseValidator):
         # Log stats at debug level for observability
         logger.debug(
             "directive_validator_complete",
-            **{
-                "pages_processed": self.last_stats.pages_processed,
-                "pages_total": self.last_stats.pages_total,
-                "cache_hits": self.last_stats.cache_hits,
-                "cache_misses": self.last_stats.cache_misses,
-                "analyze_ms": sub_timings.get("analyze", 0),
-            },
+            pages_processed=self.last_stats.pages_processed, pages_total=self.last_stats.pages_total, cache_hits=self.last_stats.cache_hits, cache_misses=self.last_stats.cache_misses, analyze_ms=sub_timings.get("analyze", 0),
         )
 
         return results

@@ -69,7 +69,7 @@ class ContextVarManager(Generic[T]):
 
     """
 
-    __slots__ = ("_var", "_name")
+    __slots__ = ("_name", "_var")
 
     def __init__(self, name: str, *, default: T | None = None) -> None:
         """

@@ -53,8 +53,8 @@ if TYPE_CHECKING:
     from bengal.cache.page_discovery_cache import PageDiscoveryCache
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import SectionLike
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols import SectionLike
 
 logger = get_logger(__name__)
 

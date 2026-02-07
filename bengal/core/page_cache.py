@@ -31,12 +31,12 @@ class PageCacheManager:
     """
 
     __slots__ = (
-        "_pages_fn",
-        "_regular",
         "_generated",
         "_listable",
+        "_pages_fn",
         "_path_map",
         "_path_map_version",
+        "_regular",
         "_source_path_map",
     )
 

@@ -278,9 +278,9 @@ def flush_deferred_highlighting(content: str) -> str:
 # Re-export for backward compatibility (now imported from utils.primitives.code)
 __all__ = [
     "CodeBlock",
-    "enable_deferred_highlighting",
     "disable_deferred_highlighting",
-    "is_deferred_highlighting_enabled",
+    "enable_deferred_highlighting",
     "flush_deferred_highlighting",
+    "is_deferred_highlighting_enabled",
     "parse_hl_lines",
 ]

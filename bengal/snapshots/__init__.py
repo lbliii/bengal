@@ -26,6 +26,8 @@ from bengal.snapshots.builder import (
     create_site_snapshot,
     update_snapshot,
 )
+from bengal.snapshots.scheduler import WaveScheduler
+from bengal.snapshots.scout import ScoutThread
 from bengal.snapshots.speculative import (
     ShadowModeValidator,
     SpeculativeRenderer,
@@ -34,8 +36,6 @@ from bengal.snapshots.speculative import (
 from bengal.snapshots.templates import (
     pages_affected_by_template_change,
 )
-from bengal.snapshots.scheduler import WaveScheduler
-from bengal.snapshots.scout import ScoutThread
 from bengal.snapshots.types import (
     NO_SECTION,
     MenuItemSnapshot,

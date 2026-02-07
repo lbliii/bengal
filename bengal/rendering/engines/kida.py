@@ -318,7 +318,10 @@ class KidaTemplateEngine:
         self.invalidate_menu_cache()
 
         # Record template dependency for EffectTracer (via ContextVar)
-        from bengal.effects.render_integration import record_extra_dependency, record_template_include
+        from bengal.effects.render_integration import (
+            record_extra_dependency,
+            record_template_include,
+        )
 
         record_template_include(name)
         template_path = self.get_template_path(name)
@@ -394,7 +397,7 @@ class KidaTemplateEngine:
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
             ) from e
-        except Exception as e:  # noqa: BLE001 — catch-all for arbitrary template/filter errors
+        except Exception as e:
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
@@ -449,7 +452,7 @@ class KidaTemplateEngine:
                 message=f"Template string render error: {e}",
                 original_error=e,
             ) from e
-        except Exception as e:  # noqa: BLE001 — catch-all for arbitrary template/filter errors
+        except Exception as e:
             raise BengalRenderingError(
                 message=f"Template string render error: {e}",
                 original_error=e,
@@ -497,7 +500,10 @@ class KidaTemplateEngine:
         Args:
             template_name: Name of template to analyze
         """
-        from bengal.effects.render_integration import record_extra_dependency, record_template_include
+        from bengal.effects.render_integration import (
+            record_extra_dependency,
+            record_template_include,
+        )
 
         seen: set[str] = {template_name}
         to_process: list[str] = [template_name]

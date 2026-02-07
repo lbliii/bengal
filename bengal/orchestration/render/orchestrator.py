@@ -301,7 +301,7 @@ class RenderOrchestrator:
         # WriteBehindCollector is thread-safe - multiple render workers can enqueue
         # simultaneously while the writer threads drain to disk.
         # This provides 15-25% speedup by eliminating I/O blocking in render workers.
-        # 
+        #
         # Optimizations:
         # - 8 writer threads for SSD parallelism
         # - Auto-enables fast_writes in dev server mode
@@ -314,13 +314,13 @@ class RenderOrchestrator:
 
             write_behind = WriteBehindCollector(site=self.site)
             build_context.write_behind = write_behind
-            
+
             # Pre-create all output directories in a single pass
             # Eliminates lock contention during parallel writes
             output_paths = [p.output_path for p in pages if p.output_path]
             if output_paths:
                 write_behind.precreate_directories(output_paths)
-            
+
             logger.debug(
                 "write_behind_enabled",
                 parallel=use_parallel,

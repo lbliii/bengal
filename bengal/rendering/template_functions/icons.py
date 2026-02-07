@@ -24,9 +24,9 @@ from kida import Markup
 if TYPE_CHECKING:
     from bengal.protocols import SiteConfig, TemplateEnvironment
 
-from bengal.icons.svg import ICON_MAP
 from bengal.errors import ErrorCode
 from bengal.icons import resolver as icon_resolver
+from bengal.icons.svg import ICON_MAP
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.lru_cache import LRUCache
 

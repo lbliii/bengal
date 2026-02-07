@@ -118,7 +118,7 @@ def normalize_scores[T](
 
     # Handle case where all scores are equal
     if score_max == score_min:
-        return {item: min_val for item in scores}
+        return dict.fromkeys(scores, min_val)
 
     # Linear normalization
     scale = (max_val - min_val) / (score_max - score_min)

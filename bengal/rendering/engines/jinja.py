@@ -33,12 +33,12 @@ from bengal.rendering.template_engine.environment import (
 from bengal.rendering.template_engine.manifest import ManifestHelpersMixin
 from bengal.rendering.template_engine.menu import MenuHelpersMixin
 from bengal.rendering.template_engine.url_helpers import href_for
-from bengal.rendering.utils.url import apply_baseurl
 from bengal.rendering.template_profiler import (
     ProfiledTemplate,
     TemplateProfiler,
     get_profiler,
 )
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.observability.logger import get_logger, truncate_error
 
@@ -449,7 +449,10 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
     def _track_referenced_templates(self, template_name: str) -> None:
         """Track referenced templates (extends/include/import) as dependencies."""
 
-        from bengal.effects.render_integration import record_extra_dependency, record_template_include
+        from bengal.effects.render_integration import (
+            record_extra_dependency,
+            record_template_include,
+        )
 
         cached_paths = self._referenced_template_paths_cache.get(template_name)
         if cached_paths is not None:

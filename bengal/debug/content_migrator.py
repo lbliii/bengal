@@ -57,8 +57,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
-from bengal.utils.primitives.text import slugify
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import slugify
 
 logger = get_logger(__name__)
 

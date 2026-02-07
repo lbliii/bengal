@@ -47,7 +47,7 @@ _cell_counter = 0
 
 def _next_cell_id() -> int:
     """Generate a unique cell ID (thread-safe)."""
-    global _cell_counter  # noqa: PLW0603
+    global _cell_counter
     with _cell_lock:
         _cell_counter += 1
         return _cell_counter

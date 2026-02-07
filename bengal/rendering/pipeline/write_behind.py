@@ -50,24 +50,24 @@ _temp_file_counter = itertools.count()
 
 class WriteBehindCollector:
     """Async write-behind buffer for rendered pages.
-    
+
     Worker threads push (path, content) pairs to a queue.
     A pool of writer threads drains the queue to disk in parallel.
-    
+
     Benefits:
         - Overlaps CPU (rendering) with I/O (writing)
         - 8 writer threads for better I/O parallelism on SSDs
         - Auto-enables fast_writes in dev server mode
         - Pre-creates directories to reduce lock contention
         - Uses atomic counter instead of uuid4 for temp files
-    
+
     Attributes:
         _queue: Thread-safe queue of (Path, str) pairs
         _writer_threads: Background threads draining to disk
         _shutdown: Event signaling shutdown
         _error: Any error from writer threads
         _writes_completed: Count of successful writes
-        
+
     """
 
     __slots__ = (
@@ -143,21 +143,21 @@ class WriteBehindCollector:
 
     def precreate_directories(self, paths: list[Path]) -> None:
         """Pre-create all unique parent directories in a single pass.
-        
+
         Call this before enqueuing files to eliminate lock contention
         during parallel writes. Creates directories sequentially upfront.
-        
+
         Args:
             paths: List of output file paths (directories extracted automatically)
         """
         # Collect unique parent directories
         unique_dirs = {str(p.parent) for p in paths}
-        
+
         # Create all directories (no lock needed - single-threaded setup phase)
         for dir_path in unique_dirs:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
             self._created_dirs.add(dir_path)
-        
+
         logger.debug(
             "directories_precreated",
             count=len(unique_dirs),
@@ -242,10 +242,10 @@ class WriteBehindCollector:
 
     def _atomic_write_fast(self, path: Path, content: str) -> None:
         """Atomic write using counter-based temp file names.
-        
+
         Faster than uuid4-based naming while maintaining crash safety.
         Uses PID + thread ID + atomic counter for uniqueness.
-        
+
         Args:
             path: Destination path
             content: File content

@@ -72,9 +72,8 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
-
 from threading import Lock
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors.utils import ThreadSafeSingleton, generate_error_signature
 
