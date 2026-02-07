@@ -686,8 +686,23 @@ def phase_update_site_pages(
     """
     if incremental and pages_to_build:
         start = time.perf_counter()
-        # Create a mapping of source_path -> rendered page
-        rendered_map = {page.source_path: page for page in pages_to_build}
+
+        # Create a mapping of source_path -> rendered page.
+        # If a page is a PageProxy that was lazy-loaded during rendering,
+        # extract the full Page so that site.pages contains up-to-date
+        # metadata (title, date, tags) instead of stale cached values.
+        from bengal.core.page.proxy import PageProxy
+
+        rendered_map = {}
+        for page in pages_to_build:
+            if (
+                isinstance(page, PageProxy)
+                and page._lazy_loaded
+                and page._full_page is not None
+            ):
+                rendered_map[page.source_path] = page._full_page
+            else:
+                rendered_map[page.source_path] = page
 
         # Replace stale proxies with fresh pages
         updated_pages = []

@@ -443,12 +443,6 @@ generate_rss = false
     assert len(proxy.plain_text) > 0
 
 
-@pytest.mark.xfail(
-    reason="Incremental build renders the modified page but does not replace "
-    "the PageProxy in site.pages with the re-rendered full Page object. "
-    "The proxy retains the old cached title. This is a known gap in the "
-    "incremental build pipeline's page update phase."
-)
 def test_modified_page_becomes_full_page_not_proxy(tmp_path):
     """
     Contract test: Modified pages should be full Pages, not proxies.
