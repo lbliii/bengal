@@ -9,7 +9,7 @@ Structure:
 - fingerprint.py: FileFingerprint for fast change detection
 - file_tracking.py: FileTrackingMixin for hash/change/dependency tracking
 - validation_cache.py: ValidationCacheMixin for CheckResult caching
-- taxonomy_index_mixin.py: TaxonomyIndexMixin for tag/page indexing
+- taxonomy_index_mixin.py: TaxonomyIndex for tag/page indexing (standalone, composed)
 - parsed_content_cache.py: ParsedContentCacheMixin for markdown caching
 - rendered_output_cache.py: RenderedOutputCacheMixin for HTML caching
 

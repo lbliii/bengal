@@ -577,13 +577,13 @@ class IncrementalBuildDebugger(DebugTool):
         if file_path.endswith((".md", ".markdown", ".rst")):
             # Find which taxonomy terms this page belongs to
             page_terms: set[str] = set()
-            for term, pages in self.cache.taxonomy_deps.items():
+            for term, pages in self.cache.taxonomy_index.taxonomy_deps.items():
                 if file_path in pages:
                     page_terms.add(term)
 
             # Add pages that share taxonomy terms with the changed page
             for term in page_terms:
-                for page in self.cache.taxonomy_deps.get(term, []):
+                for page in self.cache.taxonomy_index.taxonomy_deps.get(term, []):
                     if page not in would_rebuild:
                         would_rebuild.append(page)
 

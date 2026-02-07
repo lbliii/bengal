@@ -39,7 +39,7 @@ def _check_autodoc_output_missing(orchestrator: BuildOrchestrator, cache: BuildC
 
     """
     # Skip if no autodoc dependencies tracked (nothing to check)
-    if not hasattr(cache, "autodoc_dependencies") or not cache.autodoc_dependencies:
+    if not hasattr(cache, "autodoc_tracker") or not cache.autodoc_tracker.autodoc_dependencies:
         return False
 
     # Get autodoc config

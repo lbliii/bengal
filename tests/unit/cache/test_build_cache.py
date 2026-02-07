@@ -16,7 +16,7 @@ class TestBuildCache:
         assert cache.file_fingerprints == {}
         assert cache.dependencies == {}
         assert cache.output_sources == {}
-        assert cache.taxonomy_deps == {}
+        assert cache.taxonomy_index.taxonomy_deps == {}
         assert cache.last_build is None
 
     def test_hash_file(self, tmp_path):
@@ -143,11 +143,11 @@ class TestBuildCache:
 
         page = tmp_path / "post.md"
 
-        cache.add_taxonomy_dependency("tag:python", page)
-        cache.add_taxonomy_dependency("tag:tutorial", page)
+        cache.taxonomy_index.add_taxonomy_dependency("tag:python", page)
+        cache.taxonomy_index.add_taxonomy_dependency("tag:tutorial", page)
 
-        assert "tag:python" in cache.taxonomy_deps
-        assert str(page) in cache.taxonomy_deps["tag:python"]
+        assert "tag:python" in cache.taxonomy_index.taxonomy_deps
+        assert str(page) in cache.taxonomy_index.taxonomy_deps["tag:python"]
 
     def test_get_affected_pages(self, tmp_path):
         """Test finding affected pages when a dependency changes."""
@@ -226,8 +226,8 @@ class TestBuildCache:
         page.write_text("Content")
         cache.update_file(page)
         cache.add_dependency(page, page)
-        cache.add_taxonomy_dependency("tag:python", page)
-        cache.update_tags(page, {"python", "web"})
+        cache.taxonomy_index.add_taxonomy_dependency("tag:python", page)
+        cache.taxonomy_index.update_tags(page, {"python", "web"})
         cache.config_hash = "abc123"
 
         # Add url_claims
@@ -254,16 +254,16 @@ class TestBuildCache:
         assert len(cache.dependencies) == 0
         assert len(cache.reverse_dependencies) == 0
         assert len(cache.output_sources) == 0
-        assert len(cache.taxonomy_deps) == 0
-        assert len(cache.page_tags) == 0
-        assert len(cache.tag_to_pages) == 0
-        assert len(cache.known_tags) == 0
+        assert len(cache.taxonomy_index.taxonomy_deps) == 0
+        assert len(cache.taxonomy_index.page_tags) == 0
+        assert len(cache.taxonomy_index.tag_to_pages) == 0
+        assert len(cache.taxonomy_index.known_tags) == 0
         assert len(cache.parsed_content) == 0
         assert len(cache.rendered_output) == 0
         assert len(cache.synthetic_pages) == 0
         assert len(cache.validation_results) == 0
-        assert len(cache.autodoc_dependencies) == 0
-        assert len(cache.autodoc_source_metadata) == 0
+        assert len(cache.autodoc_tracker.autodoc_dependencies) == 0
+        assert len(cache.autodoc_tracker.autodoc_source_metadata) == 0
         assert len(cache.autodoc_content_cache) == 0  # NEW: verify this is cleared
         assert len(cache.discovered_assets) == 0
         assert len(cache.url_claims) == 0  # NEW: verify this is cleared
@@ -280,7 +280,7 @@ class TestBuildCache:
         page.write_text("Content")
         cache.update_file(page)
         cache.add_dependency(page, template)
-        cache.add_taxonomy_dependency("tag:python", page)
+        cache.taxonomy_index.add_taxonomy_dependency("tag:python", page)
 
         # Save cache (compressed by default - .json.zst)
         cache_file = tmp_path / ".bengal-cache.json"
@@ -296,7 +296,7 @@ class TestBuildCache:
         assert str(page) in loaded_cache.file_fingerprints
         assert str(page) in loaded_cache.dependencies
         assert str(template) in loaded_cache.dependencies[str(page)]
-        assert "tag:python" in loaded_cache.taxonomy_deps
+        assert "tag:python" in loaded_cache.taxonomy_index.taxonomy_deps
 
     def test_load_nonexistent_cache(self, tmp_path):
         """Test loading a cache file that doesn't exist."""
@@ -333,7 +333,7 @@ class TestBuildCache:
         cache.update_file(page2)
         cache.add_dependency(page1, template)
         cache.add_dependency(page2, template)
-        cache.add_taxonomy_dependency("tag:python", page1)
+        cache.taxonomy_index.add_taxonomy_dependency("tag:python", page1)
 
         stats = cache.get_stats()
 
@@ -411,8 +411,8 @@ class TestBuildCacheConfigHash:
         test_file.write_text("content")
         cache.update_file(test_file)
         cache.add_dependency(test_file, tmp_path / "template.html")
-        cache.add_taxonomy_dependency("tag:python", test_file)
-        cache.update_page_tags(test_file, {"python", "web"})
+        cache.taxonomy_index.add_taxonomy_dependency("tag:python", test_file)
+        cache.taxonomy_index.update_page_tags(test_file, {"python", "web"})
 
         # Validate with different hash
         cache.validate_config("new_hash")
@@ -420,10 +420,10 @@ class TestBuildCacheConfigHash:
         # All fields should be cleared
         assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
-        assert len(cache.taxonomy_deps) == 0
-        assert len(cache.page_tags) == 0
-        assert len(cache.tag_to_pages) == 0
-        assert len(cache.known_tags) == 0
+        assert len(cache.taxonomy_index.taxonomy_deps) == 0
+        assert len(cache.taxonomy_index.page_tags) == 0
+        assert len(cache.taxonomy_index.tag_to_pages) == 0
+        assert len(cache.taxonomy_index.known_tags) == 0
 
     def test_config_hash_persists_through_save_load(self, tmp_path):
         """Config hash is saved and loaded correctly."""

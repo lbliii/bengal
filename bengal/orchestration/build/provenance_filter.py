@@ -238,7 +238,7 @@ def _get_taxonomy_term_pages_for_member(
     member_key = str(member_path)
 
     # Get tags for this member page from cache
-    tags = cache.page_tags.get(member_key, set())
+    tags = cache.taxonomy_index.page_tags.get(member_key, set())
 
     for tag in tags:
         # Find the virtual taxonomy term page for this tag

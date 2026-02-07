@@ -26,10 +26,11 @@ def mock_cache():
     cache = Mock(spec=BuildCache)
     cache.output_sources = {}
     cache.file_fingerprints = {}
-    cache.page_tags = {}
+    cache.taxonomy_index = Mock()
+    cache.taxonomy_index.page_tags = {}
     cache.parsed_content = {}
     cache.file_fingerprints = {}
-    # autodoc_dependencies not set by default
+    cache.autodoc_tracker = Mock()
     return cache
 
 
@@ -97,7 +98,7 @@ class TestCleanupDeletedFiles:
         mock_cache.file_fingerprints = {
             str(source_path): {"hash": "abc123", "mtime": 0, "size": 0},
         }
-        mock_cache.page_tags = {
+        mock_cache.taxonomy_index.page_tags = {
             str(source_path): {"python"},
         }
         mock_cache.parsed_content = {
@@ -113,7 +114,7 @@ class TestCleanupDeletedFiles:
 
         # All cache entries for deleted source should be removed
         assert str(source_path) not in mock_cache.file_fingerprints
-        assert str(source_path) not in mock_cache.page_tags
+        assert str(source_path) not in mock_cache.taxonomy_index.page_tags
         assert str(source_path) not in mock_cache.parsed_content
 
     def test_no_cleanup_when_source_exists(self, mock_site, mock_cache, tmp_path):

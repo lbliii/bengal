@@ -364,9 +364,9 @@ class ContentOrchestrator:
                     and cached_payload.get("autodoc_config_hash") == current_cfg_hash
                 ):
                     changed = False
-                    if hasattr(cache, "get_autodoc_source_files"):
+                    if hasattr(cache, "autodoc_tracker"):
                         try:
-                            for source in cache.get_autodoc_source_files():
+                            for source in cache.autodoc_tracker.get_autodoc_source_files():
                                 src_path = _resolve_autodoc_source(Path(source))
                                 if _is_external_autodoc_source(src_path):
                                     continue
@@ -383,9 +383,9 @@ class ContentOrchestrator:
                             pages, sections, run_result = orchestrator.generate_from_cache_payload(
                                 cached_payload
                             )
-                            # Register autodoc dependencies with build_cache so has_autodoc_tracking is True
+                            # Register autodoc dependencies with build_cache so autodoc_tracker is populated
                             if build_cache is not None and hasattr(
-                                build_cache, "add_autodoc_dependency"
+                                build_cache, "autodoc_tracker"
                             ):
                                 from bengal.utils.primitives.hashing import hash_file
 
@@ -405,7 +405,7 @@ class ContentOrchestrator:
                                     source_hash = hash_file(src_path)
                                     source_mtime = src_path.stat().st_mtime
                                     for page_path, content_hash in page_hashes.items():
-                                        build_cache.add_autodoc_dependency(
+                                        build_cache.autodoc_tracker.add_autodoc_dependency(
                                             source_file,
                                             page_path,
                                             site_root=self.site.root_path,
@@ -440,7 +440,7 @@ class ContentOrchestrator:
 
             # Register autodoc dependencies with build_cache for selective rebuilds
             # CRITICAL: Pass source_hash and source_mtime for incremental detection.
-            if build_cache is not None and hasattr(build_cache, "add_autodoc_dependency"):
+            if build_cache is not None and hasattr(build_cache, "autodoc_tracker"):
                 from bengal.utils.primitives.hashing import hash_file
 
                 for source_file, page_hashes in run_result.autodoc_dependencies.items():
@@ -465,7 +465,7 @@ class ContentOrchestrator:
                         continue
 
                     for page_path, content_hash in page_hashes.items():
-                        build_cache.add_autodoc_dependency(
+                        build_cache.autodoc_tracker.add_autodoc_dependency(
                             source_file,
                             page_path,
                             site_root=self.site.root_path,

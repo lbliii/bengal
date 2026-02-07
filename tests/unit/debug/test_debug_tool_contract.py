@@ -35,7 +35,7 @@ class TestDebugToolContract:
         cache = MagicMock()
         cache.file_fingerprints = {}
         cache.dependencies = {}
-        cache.taxonomy_deps = {}
+        cache.taxonomy_index.taxonomy_deps = {}
         cache.parsed_content = {}
         cache.rendered_output = {}
         return cache

@@ -128,7 +128,7 @@ class TestFindWork:
         """find_work should detect all changed pages."""
         orchestrator.cache.is_changed = Mock(return_value=True)
         orchestrator.cache.should_bypass = Mock(return_value=True)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
@@ -141,7 +141,7 @@ class TestFindWork:
         """find_work should return ChangeSummary."""
         orchestrator.cache.is_changed = Mock(return_value=True)
         orchestrator.cache.should_bypass = Mock(return_value=True)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
@@ -172,7 +172,7 @@ class TestChangeDetectorDelegation:
         """Detector should be reused across calls."""
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
-        orchestrator.cache.get_previous_tags = Mock(return_value=set())
+        orchestrator.cache.taxonomy_index.get_previous_tags = Mock(return_value=set())
 
         with patch.object(
             orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None

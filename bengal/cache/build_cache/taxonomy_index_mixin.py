@@ -1,8 +1,8 @@
 """
-Taxonomy indexing mixin for BuildCache.
+Standalone taxonomy index for BuildCache.
 
-Provides methods for maintaining bidirectional tag/page indexes for fast
-taxonomy reconstruction during incremental builds.
+Provides bidirectional tag/page indexes for fast taxonomy reconstruction
+during incremental builds. Used via composition in BuildCache.
 
 Key Concepts:
 - Forward index: page_path → set[tag_slug]
@@ -20,29 +20,34 @@ Related Modules:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
-class TaxonomyIndexMixin:
+class BuildTaxonomyIndex:
     """
-    Mixin providing taxonomy indexing for fast incremental builds.
+    Standalone taxonomy index for tag/page bidirectional mapping.
 
-    Requires these attributes on the host class:
-        - taxonomy_deps: dict[str, set[str]]
-        - page_tags: dict[str, set[str]]
-        - tag_to_pages: dict[str, set[str]]
-        - known_tags: set[str]
+    Maintains forward (page → tags) and inverted (tag → pages) indexes
+    for O(1) taxonomy reconstruction during incremental builds.
+
+    Attributes:
+        taxonomy_deps: Mapping of taxonomy terms to affected pages
+        page_tags: Forward index mapping page paths to their tags
+        tag_to_pages: Inverted index mapping tag slugs to page paths
+        known_tags: Set of all tag slugs from previous build
 
     """
 
-    # Type hints for mixin attributes (provided by host class)
-    taxonomy_deps: dict[str, set[str]]
-    page_tags: dict[str, set[str]]
-    tag_to_pages: dict[str, set[str]]
-    known_tags: set[str]
+    def __init__(
+        self,
+        taxonomy_deps: dict[str, set[str]] | None = None,
+        page_tags: dict[str, set[str]] | None = None,
+        tag_to_pages: dict[str, set[str]] | None = None,
+        known_tags: set[str] | None = None,
+    ) -> None:
+        self.taxonomy_deps = taxonomy_deps if taxonomy_deps is not None else {}
+        self.page_tags = page_tags if page_tags is not None else {}
+        self.tag_to_pages = tag_to_pages if tag_to_pages is not None else {}
+        self.known_tags = known_tags if known_tags is not None else set()
 
     def add_taxonomy_dependency(self, taxonomy_term: str, page: Path) -> None:
         """
@@ -155,3 +160,10 @@ class TaxonomyIndexMixin:
             Set of tag slugs
         """
         return self.known_tags.copy()
+
+    def clear(self) -> None:
+        """Clear all taxonomy index data."""
+        self.taxonomy_deps.clear()
+        self.page_tags.clear()
+        self.tag_to_pages.clear()
+        self.known_tags.clear()

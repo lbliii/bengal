@@ -226,9 +226,9 @@ class CacheManager:
             self.cache.update_file(page.source_path)
             # Store tags for next build's comparison
             if page.tags:
-                self.cache.update_tags(page.source_path, set(page.tags))
+                self.cache.taxonomy_index.update_tags(page.source_path, set(page.tags))
             else:
-                self.cache.update_tags(page.source_path, set())
+                self.cache.taxonomy_index.update_tags(page.source_path, set())
 
         # Update all asset hashes
         for asset in assets_processed:

@@ -212,7 +212,7 @@ class TaxonomyOrchestrator:
 
             # Update cache and get affected tags
             new_tags = set(page.tags) if page.tags else set()
-            page_affected = cache.update_page_tags(page.source_path, new_tags)
+            page_affected = cache.taxonomy_index.update_page_tags(page.source_path, new_tags)
             affected_tags.update(page_affected)
 
         # STEP 2: Rebuild taxonomy structure from current Page objects
@@ -386,8 +386,8 @@ class TaxonomyOrchestrator:
         current_page_map = {p.source_path: p for p in eligible_pages}
 
         # For each tag in cache, map paths to current Page objects
-        for tag_slug in cache.get_all_tags():
-            page_paths = cache.get_pages_for_tag(tag_slug)
+        for tag_slug in cache.taxonomy_index.get_all_tags():
+            page_paths = cache.taxonomy_index.get_pages_for_tag(tag_slug)
 
             # Map paths to current Page objects
             current_pages = []

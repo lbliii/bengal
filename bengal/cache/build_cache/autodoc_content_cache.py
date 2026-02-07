@@ -4,8 +4,8 @@ Autodoc content caching mixin for BuildCache.
 RFC: rfc-build-performance-optimizations Phase 3
 Caches parsed autodoc module information to avoid re-parsing AST on every build.
 
-This mixin extends AutodocTrackingMixin to cache the actual parsed module data,
-not just the source→page dependency mapping. This enables skipping AST parsing
+This mixin caches the actual parsed module data (complementing AutodocTracker
+which handles source→page dependency mapping). This enables skipping AST parsing
 for unchanged Python source files.
 
 Key Concepts:
@@ -59,11 +59,11 @@ class AutodocContentCacheMixin:
     Cache parsed autodoc content between builds.
 
     RFC: rfc-build-performance-optimizations Phase 3
-    Extends AutodocTrackingMixin to cache parsed module information,
-    enabling AST parsing to be skipped for unchanged source files.
+    Caches parsed module information, enabling AST parsing to be skipped
+    for unchanged source files.
 
     This mixin expects to be used with BuildCache which already has
-    AutodocTrackingMixin for dependency tracking.
+    AutodocTracker for dependency tracking (via composition).
     """
 
     # Cache: source_file_path → CachedModuleInfo

@@ -32,7 +32,7 @@ class TestSimulateChangeTaxonomy:
         # post-a and post-b share "python" tag
         # post-c has "rust" tag
         # post-d has both "python" and "rust" tags
-        cache.taxonomy_deps = {
+        cache.taxonomy_index.taxonomy_deps = {
             "tags/python": ["content/post-a.md", "content/post-b.md", "content/post-d.md"],
             "tags/rust": ["content/post-c.md", "content/post-d.md"],
         }
@@ -108,7 +108,7 @@ class TestSimulateChangeNonContentFiles:
             "content/page.md": {"templates/base.html", "templates/page.html"},
             "content/other.md": {"templates/base.html"},
         }
-        cache.taxonomy_deps = {
+        cache.taxonomy_index.taxonomy_deps = {
             "tags/python": ["content/page.md"],
         }
         return cache
@@ -160,7 +160,7 @@ class TestSimulateChangeEmptyTaxonomy:
             "content/tagged.md": "hash2",
         }
         cache.dependencies = {}
-        cache.taxonomy_deps = {
+        cache.taxonomy_index.taxonomy_deps = {
             "tags/python": ["content/tagged.md"],
             # standalone.md is not in any taxonomy
         }
@@ -176,7 +176,7 @@ class TestSimulateChangeEmptyTaxonomy:
         cache = MagicMock()
         cache.file_fingerprints = {"content/page.md": "hash1"}
         cache.dependencies = {}
-        cache.taxonomy_deps = {}  # Empty
+        cache.taxonomy_index.taxonomy_deps = {}  # Empty
 
         debugger = IncrementalBuildDebugger(cache=cache)
         affected = debugger.simulate_change("content/page.md")
@@ -196,7 +196,7 @@ class TestSimulateChangeNoDuplicates:
         }
         cache.dependencies = {}
         # Both pages share multiple tags
-        cache.taxonomy_deps = {
+        cache.taxonomy_index.taxonomy_deps = {
             "tags/python": ["content/post.md", "content/related.md"],
             "tags/tutorial": ["content/post.md", "content/related.md"],
             "tags/beginner": ["content/post.md", "content/related.md"],
@@ -223,7 +223,7 @@ class TestSimulateChangeDirectDependencies:
         cache.dependencies = {
             "content/page.md": {"data/config.yaml"},
         }
-        cache.taxonomy_deps = {}
+        cache.taxonomy_index.taxonomy_deps = {}
 
         debugger = IncrementalBuildDebugger(cache=cache)
         affected = debugger.simulate_change("data/config.yaml")
@@ -243,7 +243,7 @@ class TestSimulateChangeDirectDependencies:
             "content/post-c.md": {"content/post-a.md"},
         }
         # post-a and post-b share a tag
-        cache.taxonomy_deps = {
+        cache.taxonomy_index.taxonomy_deps = {
             "tags/python": ["content/post-a.md", "content/post-b.md"],
         }
 

@@ -95,7 +95,7 @@ class TestDebugToolsInstantiation:
         mock_cache = MagicMock()
         mock_cache.file_fingerprints = {}
         mock_cache.dependencies = {}
-        mock_cache.taxonomy_deps = {}
+        mock_cache.taxonomy_index.taxonomy_deps = {}
 
         debugger = IncrementalBuildDebugger(cache=mock_cache)
 

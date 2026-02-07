@@ -27,7 +27,7 @@ def mock_cache() -> MagicMock:
     cache.dependencies = {}
     cache.add_dependency = MagicMock()
     cache.update_file = MagicMock()
-    cache.add_taxonomy_dependency = MagicMock()
+    cache.taxonomy_index = MagicMock()
     cache.is_changed = MagicMock(return_value=False)
     return cache
 
@@ -235,7 +235,7 @@ class TestTaxonomyTracking:
         tracker.track_taxonomy(page_path, tags)
 
         # Should call add_taxonomy_dependency for each tag
-        assert mock_cache.add_taxonomy_dependency.call_count == 2
+        assert mock_cache.taxonomy_index.add_taxonomy_dependency.call_count == 2
 
     def test_track_taxonomy_skips_none(
         self, tracker: DependencyTracker, mock_cache: MagicMock
@@ -247,7 +247,7 @@ class TestTaxonomyTracking:
         tracker.track_taxonomy(page_path, tags)
 
         # Should only call for non-None tags
-        assert mock_cache.add_taxonomy_dependency.call_count == 2
+        assert mock_cache.taxonomy_index.add_taxonomy_dependency.call_count == 2
 
     def test_get_term_pages_for_member(self, tracker: DependencyTracker) -> None:
         """get_term_pages_for_member returns term page keys."""

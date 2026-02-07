@@ -178,7 +178,7 @@ def phase_taxonomies(
             # Update cache with full taxonomy data (for next incremental build)
             for page in orchestrator.site.pages:
                 if not page.metadata.get("_generated") and page.tags:
-                    cache.update_page_tags(page.source_path, set(page.tags))
+                    cache.taxonomy_index.update_page_tags(page.source_path, set(page.tags))
 
         orchestrator.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
         if hasattr(orchestrator.site, "taxonomies"):

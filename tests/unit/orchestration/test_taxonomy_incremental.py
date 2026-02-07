@@ -40,7 +40,7 @@ def test_incremental_collection_tag_added(mock_site, mock_cache):
     }
 
     # Cache previous tags
-    mock_cache.update_page_tags(page1.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python"})
 
     # Modify page: Add a new tag
     page1_modified = Page(
@@ -83,7 +83,7 @@ def test_incremental_collection_tag_removed(mock_site, mock_cache):
     }
 
     # Cache previous tags
-    mock_cache.update_page_tags(page1.source_path, {"python", "django"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python", "django"})
 
     # Modify page: Remove django tag
     page1_modified = Page(
@@ -130,8 +130,8 @@ def test_incremental_collection_multiple_pages(mock_site, mock_cache):
     }
 
     # Cache previous tags
-    mock_cache.update_page_tags(page1.source_path, {"python"})
-    mock_cache.update_page_tags(page2.source_path, {"python", "flask"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page2.source_path, {"python", "flask"})
 
     # Modify page1: Add django
     page1_modified = Page(
@@ -202,7 +202,7 @@ def test_incremental_collection_skips_generated_pages(mock_site, mock_cache):
         "categories": {},
     }
 
-    mock_cache.update_page_tags(page1.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python"})
 
     # Modify both pages (adding django tag)
     page1_modified = Page(
@@ -255,8 +255,8 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
         "categories": {},
     }
 
-    mock_cache.update_page_tags(page1.source_path, {"python"})
-    mock_cache.update_page_tags(page2.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page2.source_path, {"python"})
 
     # Modify page1 content (trigger resort)
     page1_modified = Page(
@@ -289,7 +289,7 @@ def test_collect_and_generate_incremental(mock_site, mock_cache):
         "categories": {},
     }
 
-    mock_cache.update_page_tags(page1.source_path, {"python"})
+    mock_cache.taxonomy_index.update_page_tags(page1.source_path, {"python"})
 
     # Modify page: Add django tag
     page1_modified = Page(

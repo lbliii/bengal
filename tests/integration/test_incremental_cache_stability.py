@@ -541,7 +541,7 @@ title: Home
         cache.update_file(content_dir / "index.md")
         cache.last_build = time.strftime("%Y-%m-%dT%H:%M:%S")
         # Simulate previous autodoc build by adding dependencies
-        cache.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
+        cache.autodoc_tracker.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
         cache.save(paths.build_cache)
 
         # Create output directory with HTML and assets (so basic checks pass)
@@ -705,7 +705,7 @@ output_prefix = "cli"
         paths.ensure_dirs()
 
         cache = BuildCache()
-        cache.autodoc_dependencies = {"myapp/cli.py": {"cli/commands/index.md"}}
+        cache.autodoc_tracker.autodoc_dependencies = {"myapp/cli.py": {"cli/commands/index.md"}}
         cache.save(paths.build_cache)
 
         # Create output with everything EXCEPT cli/ directory
@@ -801,7 +801,7 @@ source_dirs = ["src/mypackage"]
         paths.ensure_dirs()
 
         cache = BuildCache()
-        cache.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
+        cache.autodoc_tracker.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
         cache.save(paths.build_cache)
 
         # Create output WITHOUT the auto-derived api/mypackage/ directory

@@ -1,7 +1,7 @@
 """
 Tests for autodoc source self-validation (Phase 4 of RFC CI Cache Inputs).
 
-Tests the AutodocTrackingMixin's ability to detect stale autodoc sources
+Tests the AutodocTracker's ability to detect stale autodoc sources
 independent of CI cache keys, providing defense-in-depth for cache correctness.
 
 See: plan/rfc-ci-cache-inputs.md (Phase 4: Self-Validating Cache)
@@ -33,7 +33,7 @@ class TestAutodocSourceMetadata:
         source_hash = hash_file(source_file, truncate=16)
         source_mtime = source_file.stat().st_mtime
 
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -43,15 +43,19 @@ class TestAutodocSourceMetadata:
 
         # Path normalized relative to site parent
         normalized_key = str(source_file.relative_to(tmp_path))
-        assert normalized_key in cache.autodoc_source_metadata
-        assert cache.autodoc_source_metadata[normalized_key] == (source_hash, source_mtime, {})
+        assert normalized_key in cache.autodoc_tracker.autodoc_source_metadata
+        assert cache.autodoc_tracker.autodoc_source_metadata[normalized_key] == (
+            source_hash,
+            source_mtime,
+            {},
+        )
 
     def test_add_autodoc_dependency_without_metadata(self, tmp_path):
         """Missing metadata is rejected."""
         cache = BuildCache()
 
         with pytest.raises(ValueError, match="metadata required"):
-            cache.add_autodoc_dependency(
+            cache.autodoc_tracker.add_autodoc_dependency(
                 "/path/to/source.py",
                 "api/module/index.md",
             )
@@ -72,7 +76,7 @@ class TestStaleAutodocDetection:
         source_mtime = source_file.stat().st_mtime
 
         cache = BuildCache()
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -81,7 +85,7 @@ class TestStaleAutodocDetection:
         )
 
         # File hasn't changed, so stale check should use cached mtime
-        stale = cache.get_stale_autodoc_sources(site_root)
+        stale = cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
         normalized_key = str(source_file.relative_to(tmp_path))
         assert normalized_key not in stale
 
@@ -94,7 +98,7 @@ class TestStaleAutodocDetection:
         source_file.write_text("def foo(): pass")
 
         cache = BuildCache()
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -106,7 +110,7 @@ class TestStaleAutodocDetection:
         time.sleep(0.01)  # Ensure mtime changes
         source_file.write_text("def foo(): return 42")
 
-        stale = cache.get_stale_autodoc_sources(site_root)
+        stale = cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
         normalized_key = str(source_file.relative_to(tmp_path))
         assert normalized_key in stale
 
@@ -120,7 +124,7 @@ class TestStaleAutodocDetection:
 
         cache = BuildCache()
         normalized_key = str(source_file.relative_to(tmp_path))
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -131,7 +135,7 @@ class TestStaleAutodocDetection:
         # Delete source
         source_file.unlink()
 
-        stale = cache.get_stale_autodoc_sources(site_root)
+        stale = cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
         assert normalized_key in stale
 
     def test_cache_migration_marks_all_stale(self, tmp_path):
@@ -146,13 +150,13 @@ class TestStaleAutodocDetection:
         normalized_key = str(source_file.relative_to(tmp_path))
 
         # Simulate old cache: has dependencies but no metadata (pre-v0.1.8)
-        cache.autodoc_dependencies[normalized_key] = {"api/module/index.md"}
+        cache.autodoc_tracker.autodoc_dependencies[normalized_key] = {"api/module/index.md"}
         # autodoc_source_metadata is empty
 
         from bengal.errors import BengalCacheError
 
         with pytest.raises(BengalCacheError):
-            cache.get_stale_autodoc_sources(site_root)
+            cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
 
     def test_mtime_unchanged_skips_hash(self, tmp_path):
         """mtime-first optimization skips hash computation when mtime unchanged.
@@ -170,7 +174,7 @@ class TestStaleAutodocDetection:
         source_mtime = source_file.stat().st_mtime
 
         cache = BuildCache()
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -179,7 +183,7 @@ class TestStaleAutodocDetection:
         )
 
         # Without modifying the file, mtime check should pass (no hash needed)
-        stale = cache.get_stale_autodoc_sources(site_root)
+        stale = cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
 
         # File unchanged - should not be stale
         assert len(stale) == 0
@@ -197,7 +201,7 @@ class TestStaleAutodocDetection:
         original_hash = hash_file(source_file, truncate=16)
         original_mtime = source_file.stat().st_mtime
 
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -209,7 +213,7 @@ class TestStaleAutodocDetection:
         time.sleep(0.01)
         source_file.write_text(original_content)  # Same content, new mtime
 
-        stale = cache.get_stale_autodoc_sources(site_root)
+        stale = cache.autodoc_tracker.get_stale_autodoc_sources(site_root)
         normalized_key = str(source_file.relative_to(tmp_path))
 
         # Should NOT be stale because content hash matches
@@ -232,14 +236,14 @@ class TestAutodocStats:
         cache = BuildCache()
 
         # Add two with metadata
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source1,
             "api/module1/index.md",
             site_root=site_root,
             source_hash=hash_file(source1, truncate=16),
             source_mtime=source1.stat().st_mtime,
         )
-        cache.add_autodoc_dependency(
+        cache.autodoc_tracker.add_autodoc_dependency(
             source2,
             "api/module2/index.md",
             site_root=site_root,
@@ -247,7 +251,7 @@ class TestAutodocStats:
             source_mtime=source2.stat().st_mtime,
         )
 
-        stats = cache.get_autodoc_stats()
+        stats = cache.autodoc_tracker.get_autodoc_stats()
 
         assert stats["autodoc_source_files"] == 2
         assert stats["sources_with_metadata"] == 2
@@ -271,7 +275,7 @@ class TestCachePersistence:
         source_hash = hash_file(source_file, truncate=16)
         source_mtime = source_file.stat().st_mtime
 
-        cache1.add_autodoc_dependency(
+        cache1.autodoc_tracker.add_autodoc_dependency(
             source_file,
             "api/module/index.md",
             site_root=site_root,
@@ -287,10 +291,10 @@ class TestCachePersistence:
 
         # Verify metadata preserved
         normalized_key = str(source_file.relative_to(tmp_path))
-        assert normalized_key in cache2.autodoc_source_metadata
-        loaded_hash, loaded_mtime, loaded_doc_hashes = cache2.autodoc_source_metadata[
-            normalized_key
-        ]
+        assert normalized_key in cache2.autodoc_tracker.autodoc_source_metadata
+        loaded_hash, loaded_mtime, loaded_doc_hashes = (
+            cache2.autodoc_tracker.autodoc_source_metadata[normalized_key]
+        )
         assert loaded_hash == source_hash
         assert loaded_mtime == source_mtime
         assert loaded_doc_hashes == {}
