@@ -9,7 +9,9 @@ import shutil
 from pathlib import Path
 
 import pytest
-from bs4 import BeautifulSoup
+
+bs4 = pytest.importorskip("bs4", reason="beautifulsoup4 required for output quality tests")
+BeautifulSoup = bs4.BeautifulSoup
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
