@@ -257,10 +257,10 @@ class TestLoggingIntegration:
         logger = get_logger("bengal.orchestration.build")
         events = logger.get_events()
 
-        # Should have incremental_filtering phase
+        # Should have incremental_filtering_provenance phase
         phase_events = [e for e in events if e.message == "phase_complete"]
         phases = [e.context.get("phase_name") for e in phase_events]
-        assert "incremental_filtering" in phases
+        assert "incremental_filtering_provenance" in phases
 
     def test_warning_logging(self, temp_site):
         """Test that warnings are logged appropriately."""

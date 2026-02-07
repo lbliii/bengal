@@ -165,7 +165,7 @@ class TestProductData:
         from pathlib import Path
 
         template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "cli" / "templates" / "product"
+            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         )
         data_file = template_dir / "data" / "products.yaml"
 
@@ -178,7 +178,7 @@ class TestProductData:
         import yaml
 
         template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "cli" / "templates" / "product"
+            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         )
         data_file = template_dir / "data" / "products.yaml"
 

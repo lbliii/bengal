@@ -65,7 +65,7 @@ def config_directory_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Pa
     profile_dir = config_dir / "profiles"
     profile_dir.mkdir()
 
-    dev_profile = {"debug": True, "build": {"parallel": False}}
+    dev_profile = {"build": {"debug": True, "parallel": False}}
     (profile_dir / "dev.yaml").write_text(yaml.dump(dev_profile))
 
     # Create content directory
@@ -145,8 +145,8 @@ class TestSiteFromConfigDirectory:
         """Test profile overrides."""
         site = Site.from_config(config_directory_site, environment="testing", profile="dev")
 
-        assert site.config["debug"] is True  # from profile
-        assert site.config["parallel"] is False  # from profile (flattened)
+        assert site.config["debug"] is True  # from profile (build.debug flattened)
+        assert site.config["parallel"] is False  # from profile (build.parallel flattened)
         assert site.config["max_workers"] == 4  # not overridden (flattened)
 
     def test_load_with_environment_and_profile(self, config_directory_site: Path):
@@ -157,8 +157,8 @@ class TestSiteFromConfigDirectory:
         assert site.config["baseurl"] == "https://prod.example.com"
 
         # From dev profile (overrides environment)
-        assert site.config["debug"] is True
-        assert site.config["parallel"] is False  # profile wins (flattened)
+        assert site.config["debug"] is True  # build.debug flattened
+        assert site.config["parallel"] is False  # profile wins (build.parallel flattened)
 
 
 class TestSiteFromSingleFile:
@@ -204,8 +204,8 @@ class TestConfigPrecedence:
         site = Site.from_config(config_directory_site, environment="production", profile="dev")
 
         # Production sets parallel=True, but dev profile sets parallel=False
-        # Profile should win
-        assert site.config["build"]["parallel"] is False
+        # Profile should win (flattened)
+        assert site.config["parallel"] is False
 
 
 class TestFeatureExpansion:

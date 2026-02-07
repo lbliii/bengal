@@ -11,6 +11,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.errors import BengalError
+from bengal.orchestration.build.options import BuildOptions
 from bengal.utils.io.file_io import write_text_file
 
 if TYPE_CHECKING:
@@ -540,7 +541,7 @@ Content for page {i}.""",
     site = Site.from_config(site_dir, config_path=config_path)
     site.discover_content()
     site.discover_assets()
-    _build_stats = site.build(parallel=False)  # Sequential for consistency
+    _build_stats = site.build(BuildOptions(force_sequential=True))  # Sequential for consistency
 
     # Yield site, with optional param to copy for modification
     if hasattr(request, "param") and request.param == "modifiable":

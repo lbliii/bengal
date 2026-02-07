@@ -67,10 +67,10 @@ def walk_ast(ast: list[ASTNode]) -> Iterator[ASTNode]:
     """
     for node in ast:
         yield node
-        # Check for children in various formats
+        # Check for children in various formats (list from mistune, tuple from patitas)
         children = node.get("children")
-        if children and isinstance(children, list):
-            yield from walk_ast(children)
+        if children and isinstance(children, (list, tuple)):
+            yield from walk_ast(list(children))
 
 
 def generate_heading_id(node: ASTNode) -> str:
@@ -114,11 +114,13 @@ def extract_text_from_node(node: ASTNode) -> str:
     """
     parts: list[str] = []
 
-    if "raw" in node:
-        parts.append(node["raw"])  # type: ignore[typeddict-item]
+    # Support 'raw' (mistune), 'content' (patitas text), and 'code' (patitas codespan) keys
+    raw = node.get("raw") or node.get("content", "") or node.get("code", "")
+    if raw and isinstance(raw, str):
+        parts.append(raw)
 
     children = node.get("children")
-    if children and isinstance(children, list):
+    if children and isinstance(children, (list, tuple)):
         for child in children:
             parts.append(extract_text_from_node(child))
 
@@ -241,24 +243,25 @@ def extract_plain_text(ast: list[ASTNode]) -> str:
     """
     parts: list[str] = []
 
-    def _walk_for_text(nodes: list[ASTNode]) -> None:
+    def _walk_for_text(nodes: list[ASTNode] | tuple) -> None:
         for node in nodes:
             node_type = node.get("type", "")
 
-            # Extract raw text
-            if is_text(node) or node_type == "codespan":
-                raw = node.get("raw", "")
-                if raw:
+            # Extract raw text (support 'raw', 'content', and 'code' keys)
+            # Patitas code nodes have 'code' key without 'type'
+            if is_text(node) or node_type == "codespan" or "code" in node:
+                raw = node.get("raw", "") or node.get("content", "") or node.get("code", "")
+                if raw and isinstance(raw, str):
                     parts.append(raw)
             elif node_type == "block_code":
                 # Include code block content for search
-                raw = node.get("raw", "")
-                if raw:
+                raw = node.get("raw", "") or node.get("content", "")
+                if raw and isinstance(raw, str):
                     parts.append(raw)
 
-            # Recurse into children
+            # Recurse into children (list from mistune, tuple from patitas)
             children = node.get("children")
-            if children and isinstance(children, list):
+            if children and isinstance(children, (list, tuple)):
                 _walk_for_text(children)
 
             # Add spacing for block elements

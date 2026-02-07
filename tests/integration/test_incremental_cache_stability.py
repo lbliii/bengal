@@ -207,8 +207,7 @@ About content here.
         tracer.save(effects_path)
 
         # Build 2: Load and verify
-        tracer2 = EffectTracer()
-        tracer2.load(effects_path)
+        tracer2 = EffectTracer.load(effects_path)
 
         # Template change should trigger rebuild of dependent page
         outputs = tracer2.outputs_needing_rebuild({template})
@@ -363,7 +362,9 @@ title: Home
         # Load site
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
         from bengal.output import CLIOutput
 
         site = Site.from_config(site_with_cache)
@@ -382,7 +383,7 @@ title: Home
         cli = CLIOutput()
         build_start = time.time()
 
-        result = phase_incremental_filter(
+        result = phase_incremental_filter_provenance(
             orchestrator=orchestrator,
             cli=cli,
             incremental=True,
@@ -417,7 +418,9 @@ title: Home
 
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
         from bengal.output import CLIOutput
 
         site = Site.from_config(site_with_cache)
@@ -427,9 +430,9 @@ title: Home
         orchestrator.content.discover_content()
         orchestrator.content.discover_assets()
 
-        cache, _ = orchestrator.incremental.initialize(enabled=True)
+        cache = orchestrator.incremental.initialize(enabled=True)
 
-        result = phase_incremental_filter(
+        result = phase_incremental_filter_provenance(
             orchestrator=orchestrator,
             cli=CLIOutput(),
             incremental=True,
@@ -453,7 +456,9 @@ title: Home
 
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
         from bengal.output import CLIOutput
 
         site = Site.from_config(site_with_cache)
@@ -463,9 +468,9 @@ title: Home
         orchestrator.content.discover_content()
         orchestrator.content.discover_assets()
 
-        cache, _ = orchestrator.incremental.initialize(enabled=True)
+        cache = orchestrator.incremental.initialize(enabled=True)
 
-        result = phase_incremental_filter(
+        result = phase_incremental_filter_provenance(
             orchestrator=orchestrator,
             cli=CLIOutput(),
             incremental=True,

@@ -36,7 +36,7 @@ class TestPageDeduplicationInBuilds:
         # Create generated tag page
         tag_page = Page(
             source_path=Path("_generated/tags/python.md"),
-            metadata={"_generated": True, "type": "tag", "_tag_slug": "python"},
+            _raw_metadata={"_generated": True, "type": "tag", "_tag_slug": "python"},
         )
 
         site.pages = [page1, page2, tag_page]

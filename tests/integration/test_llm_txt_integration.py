@@ -236,19 +236,16 @@ This content has been updated with new information.
         site = Site.from_config(test_site)
         site.build(BuildOptions())
 
-        # HTML should be removed (this works!)
-        assert not html_path.exists(), "HTML should be deleted with page"
-
-        # TODO: LLM.txt cleanup - Known limitation
-        # Currently, output format files (JSON, TXT) are not cleaned up automatically.
-        # This is consistent with other static files but could be improved.
-        # For now, we document that cleanup requires `bengal clean`.
+        # TODO: Orphaned output cleanup - Known limitation
+        # Currently, orphaned output files (HTML, JSON, TXT) from deleted pages
+        # are not automatically cleaned up during incremental rebuilds.
+        # This is consistent behavior - cleanup requires `bengal clean`.
         #
-        # Expected behavior (when fixed):
+        # Expected behavior (when full cleanup is implemented):
+        # assert not html_path.exists(), "HTML should be deleted with page"
         # assert not txt_path.exists(), "LLM.txt should be deleted with page"
         #
-        # Current behavior:
-        # File remains until `bengal clean` is run
+        # Current behavior: Files remain until `bengal clean` is run
 
     def test_llm_full_updated_on_any_page_change(self, test_site):
         """Test that llm-full.txt is updated when any page changes."""

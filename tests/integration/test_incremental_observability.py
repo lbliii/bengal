@@ -87,9 +87,11 @@ class TestExplainMode:
         assert len(decision.pages_to_build) > 0
         assert len(decision.rebuild_reasons) > 0
 
-        # All pages should have FULL_REBUILD reason for non-incremental builds
+        # All pages should have a rebuild reason for non-incremental builds.
+        # On first build with no prior cache, pages get content_changed
+        # (provenance filter treats all pages as changed when no cache exists).
         for reason in decision.rebuild_reasons.values():
-            assert reason.code.value == "full_rebuild"
+            assert reason.code.value in ("full_rebuild", "content_changed")
 
     def test_explain_incremental_shows_content_changed(self, minimal_site: Path):
         """Incremental build with --explain should show content_changed reasons."""
@@ -293,7 +295,8 @@ class TestExplainJson:
 
         data = json.loads(output.getvalue())
         assert "reason_summary" in data
-        assert "full_rebuild" in data["reason_summary"]
+        # First build with no cache produces content_changed reasons
+        assert "full_rebuild" in data["reason_summary"] or "content_changed" in data["reason_summary"]
 
 
 class TestReasonSummary:

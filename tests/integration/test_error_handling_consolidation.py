@@ -119,8 +119,10 @@ class TestWriteBehindErrors:
 
         # Clean up
         collector._shutdown.set()
-        collector._queue.put(None)
-        collector._writer_thread.join(timeout=1.0)
+        for _ in collector._writer_threads:
+            collector._queue.put(None)
+        for thread in collector._writer_threads:
+            thread.join(timeout=1.0)
 
     def test_writer_timeout_raises_rendering_error(self) -> None:
         """Writer thread timeout raises BengalRenderingError with helpful message."""
