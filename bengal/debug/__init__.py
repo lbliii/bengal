@@ -169,11 +169,17 @@ def __getattr__(name: str) -> Any:
 
         return ExplanationReporter
     if name in ("ShortcodeSandbox", "RenderResult", "ValidationResult"):
-        from bengal.debug.shortcode_sandbox import (
-            RenderResult,
-            ShortcodeSandbox,
-            ValidationResult,
-        )
+        try:
+            from bengal.debug.shortcode_sandbox import (
+                RenderResult,
+                ShortcodeSandbox,
+                ValidationResult,
+            )
+        except ModuleNotFoundError:
+            raise AttributeError(
+                f"module {__name__!r} has no attribute {name!r} "
+                f"(bengal.debug.shortcode_sandbox is not yet implemented)"
+            ) from None
 
         _lazy_map = {
             "ShortcodeSandbox": ShortcodeSandbox,

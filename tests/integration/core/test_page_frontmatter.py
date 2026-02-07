@@ -13,7 +13,7 @@ def test_page_frontmatter_typed_access(tmp_path: Path) -> None:
     page = Page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
-        metadata={"title": "My Post", "tags": ["python"], "custom": "value"},
+        _raw_metadata={"title": "My Post", "tags": ["python"], "custom": "value"},
     )
 
     # Typed access
@@ -30,7 +30,7 @@ def test_frontmatter_dict_syntax_works(tmp_path: Path) -> None:
     page = Page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
-        metadata={"title": "My Post"},
+        _raw_metadata={"title": "My Post"},
     )
 
     # Dict access (what templates use)
@@ -43,7 +43,7 @@ def test_frontmatter_cached(tmp_path: Path) -> None:
     page = Page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
-        metadata={"title": "Test"},
+        _raw_metadata={"title": "Test"},
     )
 
     fm1 = page.frontmatter

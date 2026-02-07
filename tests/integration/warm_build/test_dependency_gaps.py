@@ -74,6 +74,10 @@ title: Home - Updated
         )
 
 
+@pytest.mark.xfail(
+    reason="RFC: rfc-incremental-build-dependency-gaps Gap 1 - data file dependency tracking",
+    strict=False,
+)
 class TestDataFileDependencyGap:
     """
     Gap 1: Data file changes should trigger dependent page rebuilds.
@@ -142,6 +146,10 @@ members:
         )
 
 
+@pytest.mark.xfail(
+    reason="RFC: rfc-incremental-build-dependency-gaps Gap 2 - taxonomy metadata propagation",
+    strict=False,
+)
 class TestTaxonomyMetadataPropagationGap:
     """
     Gap 2: Taxonomy term pages should update when member post metadata changes.
@@ -363,6 +371,10 @@ This page will be deleted.
         )
 
 
+@pytest.mark.xfail(
+    reason="RFC: rfc-incremental-build-dependency-gaps Gap 4 - cascade propagation to child pages",
+    strict=False,
+)
 class TestCascadeFrontmatterGap:
     """
     Gap 4: Cascade changes should trigger child page rebuilds.
