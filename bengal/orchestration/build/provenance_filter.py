@@ -103,7 +103,9 @@ def _detect_changed_templates(
     """
     Detect template files that have changed since last build.
 
-    Compares current template file hashes against stored fingerprints.
+    Compares current template file hashes against stored fingerprints,
+    then stores current fingerprints for ALL scanned templates so that
+    the next incremental build can detect changes.
 
     Args:
         cache: BuildCache with stored fingerprints
@@ -131,19 +133,27 @@ def _detect_changed_templates(
             file_key = str(tpl_file)
             stored = cache.file_fingerprints.get(file_key)
 
-            if stored is None:
-                # New template - treat as changed
+            try:
+                current_hash = hash_file(tpl_file)
+            except OSError:
+                # File error - treat as changed, skip fingerprint update
                 changed.add(tpl_file)
                 continue
 
-            # Check if file changed (compare hash)
-            try:
-                current_hash = hash_file(tpl_file)
-                if stored.get("hash") != current_hash:
-                    changed.add(tpl_file)
-            except OSError:
-                # File error - treat as changed
+            if stored is None or stored.get("hash") != current_hash:
                 changed.add(tpl_file)
+
+            # Always store current fingerprint so the cache has it for
+            # the next incremental build (store-after-compare pattern).
+            try:
+                stat = tpl_file.stat()
+                cache.file_fingerprints[file_key] = {
+                    "mtime": stat.st_mtime,
+                    "size": stat.st_size,
+                    "hash": current_hash,
+                }
+            except OSError:
+                pass
 
     if changed:
         logger.debug(
@@ -293,13 +303,19 @@ def _expand_forced_changed(
                 reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
 
     # Gap 3: Detect template changes
+    # Per-page template dependencies are not yet recorded in BuildCache,
+    # so _get_pages_for_template() would always return empty.  Instead,
+    # fall back to rebuilding ALL pages when any template changes -- any
+    # page could reference any template via extends/includes.
     changed_templates = _detect_changed_templates(cache, site)
-    for template_path in changed_templates:
-        affected_pages = _get_pages_for_template(cache, template_path)
-        for page_path in affected_pages:
-            if page_path not in expanded:
-                expanded.add(page_path)
-                reasons.setdefault(str(page_path), []).append(f"template:{template_path.name}")
+    if changed_templates:
+        template_names = ", ".join(t.name for t in changed_templates)
+        for page in pages:
+            if page.source_path not in expanded:
+                expanded.add(page.source_path)
+                reasons.setdefault(str(page.source_path), []).append(
+                    f"template_changed:{template_names}"
+                )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Build a mapping of source paths to pages for efficient lookup

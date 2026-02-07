@@ -49,13 +49,7 @@ class TestIncrementalSequence:
         "change_type",
         [
             "content",  # Modify page content
-            pytest.param(
-                "template",
-                marks=pytest.mark.xfail(
-                    reason="Provenance filter does not track user template changes; "
-                    "template modifications don't trigger incremental rebuilds"
-                ),
-            ),
+            "template",  # Modify templates/base.html
             "config",  # Modify bengal.toml
         ],
     )
