@@ -59,6 +59,7 @@ from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
 from bengal.protocols.core import SiteLike
+from bengal.services.config import ConfigService
 
 # Import mixins
 from .config_normalized import SiteNormalizedConfigMixin
@@ -184,6 +185,9 @@ class Site(
     _paths: BengalPaths | None = field(default=None, repr=False, init=False)
     # Optional runtime override for site description (used by postprocessors)
     _description_override: str | None = field(default=None, repr=False, init=False)
+
+    # Immutable config service (constructed in __post_init__, thread-safe)
+    _config_service: ConfigService | None = field(default=None, repr=False, init=False)
 
     # Dynamic runtime attributes (set by various orchestrators)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
@@ -311,6 +315,9 @@ class Site(
         self.data = self._load_data_directory()
         self._compute_config_hash()
 
+        # Construct immutable ConfigService (thread-safe accessor for all config properties)
+        self._config_service = ConfigService.from_config(self.config, self.root_path)
+
         # Initialize page cache manager (lazy caches over self.pages)
         from bengal.core.page_cache import PageCacheManager
 
@@ -349,6 +356,19 @@ class Site(
     # =========================================================================
     # REGISTRY ACCESS
     # =========================================================================
+
+    @property
+    def config_service(self) -> ConfigService:
+        """
+        Immutable configuration service for thread-safe config access.
+
+        Provides the same properties as the old SitePropertiesMixin
+        (title, baseurl, author, etc.) via a frozen dataclass that
+        requires no locks during parallel rendering.
+        """
+        if self._config_service is None:
+            self._config_service = ConfigService.from_config(self.config, self.root_path)
+        return self._config_service
 
     @property
     def registry(self) -> ContentRegistry:
