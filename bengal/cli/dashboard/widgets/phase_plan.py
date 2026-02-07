@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from textual.app import ComposeResult
 from textual.containers import Grid
@@ -98,7 +99,7 @@ class BuildPhasePlan(Grid):
     }
     """
 
-    STATUS_ICONS: dict[str, str] = {
+    STATUS_ICONS: ClassVar[dict[str, str]] = {
         "pending": "○",
         "running": "●",
         "complete": "✓",

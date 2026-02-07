@@ -9,7 +9,7 @@ Supports badge colors that map to Bengal's design system.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 from bengal.utils.observability.logger import get_logger
 
@@ -47,7 +47,7 @@ class BadgePlugin:
     """
 
     # Badge color mapping (legacy -> Bengal CSS classes)
-    COLOR_MAP = {
+    COLOR_MAP: ClassVar[dict[str, str]] = {
         "primary": "primary",
         "secondary": "secondary",
         "success": "success",

@@ -16,7 +16,7 @@ parser/renderer instances with no shared state.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from patitas.nodes import Block
 
@@ -58,7 +58,7 @@ class PatitasParser(BaseMarkdownParser):
     """
 
     # Default plugins to enable (matches mistune's plugins)
-    DEFAULT_PLUGINS = ["table", "strikethrough", "task_lists", "math", "footnotes"]
+    DEFAULT_PLUGINS: ClassVar[list[str]] = ["table", "strikethrough", "task_lists", "math", "footnotes"]
 
     def __init__(
         self,

@@ -12,6 +12,8 @@ Usage:
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.message import Message
@@ -75,7 +77,7 @@ class QuickAction(Static, can_focus=True):
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("enter", "select", "Select"),
         ("space", "select", "Select"),
     ]

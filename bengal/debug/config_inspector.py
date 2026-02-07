@@ -50,7 +50,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 from bengal.debug.base import DebugFinding, DebugReport, DebugTool, Severity
 from bengal.debug.utils import get_nested_value
@@ -311,7 +311,7 @@ class ConfigInspector(DebugTool):
     description: str = "Inspect and compare configuration with origin tracking and impact analysis."
 
     # Known impact patterns
-    IMPACT_PATTERNS: dict[str, str] = {
+    IMPACT_PATTERNS: ClassVar[dict[str, str]] = {
         "baseurl": "Changes output URLs and may break links",
         "theme": "Changes site appearance and available templates",
         "parallel": "Affects build performance",

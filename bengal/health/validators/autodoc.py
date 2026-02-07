@@ -7,7 +7,7 @@ Ensures all autodoc sections have HTML output files with correct page types.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus, ValidatorStats
@@ -35,7 +35,7 @@ class AutodocValidator(BaseValidator):
     enabled_by_default = True
 
     # Expected page types for each autodoc prefix
-    EXPECTED_TYPES = {
+    EXPECTED_TYPES: ClassVar[dict[str, str]] = {
         "api": "autodoc-python",
         "cli": "autodoc-cli",
     }

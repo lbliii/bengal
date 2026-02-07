@@ -14,7 +14,7 @@ Part of the Document Application RFC Phase 6: Author-Time Intelligence.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
@@ -52,7 +52,7 @@ class AccessibilityValidator(BaseValidator):
     description = "Validates accessibility best practices in HTML output"
 
     # Patterns for link text to avoid
-    BAD_LINK_TEXT_PATTERNS = [
+    BAD_LINK_TEXT_PATTERNS: ClassVar[list[str]] = [
         r"^click\s+here$",
         r"^here$",
         r"^read\s+more$",

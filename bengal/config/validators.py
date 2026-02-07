@@ -38,7 +38,7 @@ See Also:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from bengal.config.utils import coerce_bool
 from bengal.errors import BengalConfigError, ErrorCode, record_error
@@ -164,7 +164,7 @@ class ConfigValidator:
     """
 
     # Define expected types for known fields
-    BOOLEAN_FIELDS = {
+    BOOLEAN_FIELDS: ClassVar[set[str]] = {
         # Build settings
         "parallel",
         "incremental",
@@ -194,9 +194,9 @@ class ConfigValidator:
         "expose_metadata_json",
     }
 
-    INTEGER_FIELDS = {"max_workers", "min_page_size", "port"}
+    INTEGER_FIELDS: ClassVar[set[str]] = {"max_workers", "min_page_size", "port"}
 
-    STRING_FIELDS = {
+    STRING_FIELDS: ClassVar[set[str]] = {
         "title",
         "baseurl",
         "description",

@@ -24,7 +24,7 @@ See Also:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteContent
@@ -46,7 +46,7 @@ class FeatureDetector:
     """
 
     # Feature detection patterns
-    PATTERNS: dict[str, re.Pattern[str]] = {
+    PATTERNS: ClassVar[dict[str, re.Pattern[str]]] = {
         # Mermaid diagram code blocks
         "mermaid": re.compile(r"```mermaid", re.IGNORECASE),
         # Data tables (tabulator)
@@ -65,7 +65,7 @@ class FeatureDetector:
     }
 
     # Directive-based feature patterns (Bengal directives)
-    DIRECTIVE_PATTERNS: dict[str, re.Pattern[str]] = {
+    DIRECTIVE_PATTERNS: ClassVar[dict[str, re.Pattern[str]]] = {
         "mermaid": re.compile(r":::\{mermaid\}", re.IGNORECASE),
         "data_tables": re.compile(r":::\{(datatable|tabulator)\}", re.IGNORECASE),
     }

@@ -49,7 +49,7 @@ from __future__ import annotations
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.core.diagnostics import emit
 from bengal.core.utils.sorting import DEFAULT_WEIGHT
@@ -698,7 +698,7 @@ class NavTreeCache:
     _build_locks = PerKeyLockManager()  # Per-version build serialization
     _site: Site | None = None
     # Pre-computed trees from SiteSnapshot — lock-free fast path
-    _precomputed: dict[str, NavTree] = {}
+    _precomputed: ClassVar[dict[str, NavTree]] = {}
 
     @classmethod
     def set_precomputed(cls, trees: dict[str, NavTree] | None) -> None:

@@ -64,7 +64,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
@@ -556,7 +556,7 @@ class DebugRegistry:
 
     """
 
-    _tools: dict[str, type[DebugTool]] = {}
+    _tools: ClassVar[dict[str, type[DebugTool]]] = {}
 
     @classmethod
     def register(cls, tool_class: type[DebugTool]) -> type[DebugTool]:

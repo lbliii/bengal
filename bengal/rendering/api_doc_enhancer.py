@@ -24,6 +24,7 @@ enhanced_html = enhancer.enhance(html, page_type='python-module')
 from __future__ import annotations
 
 import re
+from typing import ClassVar
 
 from bengal.utils.observability.logger import get_logger
 
@@ -48,7 +49,7 @@ class APIDocEnhancer:
 
     # Badge patterns: (marker_pattern, replacement)
     # Note: These need to handle headerlink anchors that come before the closing tag
-    BADGE_PATTERNS = [
+    BADGE_PATTERNS: ClassVar[list[tuple[str, str]]] = [
         # Async methods/functions (h3 or h4 headings)
         (
             r"(<h[34][^>]*>)([^<@]+)\s*@async\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h[34]>)",
@@ -77,7 +78,7 @@ class APIDocEnhancer:
     ]
 
     # Page types that should be enhanced
-    SUPPORTED_PAGE_TYPES = {
+    SUPPORTED_PAGE_TYPES: ClassVar[set[str]] = {
         "python-module",
         "autodoc/python",
         "cli-command",

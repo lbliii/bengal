@@ -54,7 +54,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 
@@ -102,12 +102,12 @@ class BuildTrigger:
 
     # Class-level caches (shared across instances for efficiency)
     # Frontmatter cache: path -> (mtime, has_nav_keys)
-    _frontmatter_cache: dict[Path, tuple[float, bool]] = {}
+    _frontmatter_cache: ClassVar[dict[Path, tuple[float, bool]]] = {}
     _frontmatter_cache_max = 500
 
     # Content hash cache: path -> (mtime, frontmatter_hash, content_hash)
     # Used for content-only change detection (RFC: content-only-hot-reload)
-    _content_hash_cache: dict[Path, tuple[float, str, str]] = {}
+    _content_hash_cache: ClassVar[dict[Path, tuple[float, str, str]]] = {}
     _content_hash_cache_max = 500
 
     # Template directories cache (per-instance, set to None to invalidate)

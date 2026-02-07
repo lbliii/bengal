@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.postprocess.output_formats.utils import get_i18n_output_path
 from bengal.utils.io.atomic_write import atomic_write_text
@@ -78,7 +78,7 @@ class LunrIndexGenerator:
     """
 
     # Field boost values (matching search.js for consistency)
-    BOOSTS = {
+    BOOSTS: ClassVar[dict[str, int]] = {
         "title": 10,
         "description": 5,
         "content": 1,

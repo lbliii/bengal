@@ -71,7 +71,7 @@ import os
 import threading
 from io import BufferedIOBase
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
@@ -264,14 +264,14 @@ class LiveReloadMixin:
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
     # Key: (file_path_str, mtime), Value: modified_content bytes
     # Defined here in the mixin to avoid circular import with request_handler.py
-    _html_cache: dict[tuple[str, float], bytes] = {}
+    _html_cache: ClassVar[dict[tuple[str, float], bytes]] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
 
     # Cache for CSS/JS assets - enables serving during builds when files are being rewritten
     # Key: relative_path (e.g., "assets/css/style.css"), Value: (content_bytes, content_type)
     # This cache persists across builds and is updated after each successful file serve
-    _asset_cache: dict[str, tuple[bytes, str]] = {}
+    _asset_cache: ClassVar[dict[str, tuple[bytes, str]]] = {}
     _asset_cache_max_size = 30  # Keep last 30 assets (CSS/JS files)
     _asset_cache_lock = threading.Lock()
 

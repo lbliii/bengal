@@ -23,6 +23,7 @@ RFC: rfc-dashboard-api-integration
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
@@ -92,7 +93,7 @@ class PhaseProgress(Vertical):
     """
 
     # Phase names matching BuildOrchestrator callbacks
-    PHASE_NAMES: list[str] = [
+    PHASE_NAMES: ClassVar[list[str]] = [
         "discovery",
         "content",
         "assets",
