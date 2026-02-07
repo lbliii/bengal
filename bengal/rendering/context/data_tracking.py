@@ -97,7 +97,7 @@ class TrackedData:
         try:
             value = getattr(data, name)
         except AttributeError:
-            raise AttributeError(f"'site.data' has no attribute '{name}'")
+            raise AttributeError(f"'site.data' has no attribute '{name}'") from None
 
         # Record data file dependency via EffectTracer
         from bengal.effects.render_integration import record_data_file_access

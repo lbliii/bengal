@@ -137,7 +137,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
         if e.stderr:
             click.echo(e.stderr, err=True)
         cli.tip(f"Try running manually: {installer.display_command}")
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
 
 def show_upgrade_notification() -> None:
