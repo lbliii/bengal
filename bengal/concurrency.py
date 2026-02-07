@@ -264,6 +264,231 @@ Design Principles
 - **Immutable by default**: Frozen dataclasses and tuples eliminate the
   need for locks on read-heavy data (Page, Section, Theme, etc.).
 
+Immutable Snapshot Evaluation
+-----------------------------
+Bengal already has a mature snapshot system (``bengal/snapshots/``) that creates
+frozen dataclasses after content discovery (Phase 5) and before rendering.
+``SiteSnapshot``, ``PageSnapshot``, ``SectionSnapshot``, ``CascadeSnapshot``,
+and ``TemplateSnapshot`` are all ``frozen=True, slots=True`` and provide
+lock-free access to core site data during parallel rendering.
+
+This evaluation assesses which *remaining* lock-protected mutable state could
+be converted to immutable snapshots, and where the snapshot pattern is
+impractical.
+
+**What is already snapshotted (no further action needed):**
+
+- Page lists (``pages``, ``regular_pages``): ``SiteSnapshot.pages``
+- Section tree with navigation: ``SiteSnapshot.sections``, ``SectionSnapshot``
+- Taxonomy data (tag → pages): ``SiteSnapshot.taxonomies``
+- Cascade metadata: ``CascadeSnapshot`` with O(1) pre-merged resolution
+- Template dependency graph: ``SiteSnapshot.templates``, ``template_dependents``
+- Config and site params: ``SiteSnapshot.config``, ``ConfigSnapshot``
+- Menu structure: ``SiteSnapshot.menus``
+- Scheduling structures: ``topological_order``, ``template_groups``, etc.
+
+**HIGH benefit — Tier 3 (Rendering) locks eliminable via snapshots:**
+
+1. **NavTreeCache** (``_lock`` + ``_build_locks``, 2 locks)
+
+   The navigation tree is built from section/page data that is fully determined
+   at snapshot time.  Pre-computing the NavTree inside ``create_site_snapshot()``
+   would eliminate both the class-level site-invalidation lock and the
+   per-version ``PerKeyLockManager`` locks.
+
+   - Data: ``NavTree`` objects keyed by version_id
+   - Lock eliminated: ``NavTreeCache._lock`` (Tier 3), ``NavTreeCache._build_locks``
+   - Memory overhead: Negligible (~1-10 KB HTML per version)
+   - Feasibility: **HIGH** — NavTree depends solely on sections/pages, already
+     frozen in ``SectionSnapshot``.  The ``NavTree.build()`` call can move into
+     the snapshot builder.
+
+2. **NavScaffoldCache** (``_lock`` + ``_render_locks``, 2 locks)
+
+   Identical pattern to NavTreeCache.  Scaffold HTML is rendered from navigation
+   data, which is fully available at snapshot time.
+
+   - Lock eliminated: ``NavScaffoldCache._lock``, ``NavScaffoldCache._render_locks``
+   - Memory overhead: Small (~1-5 KB per scaffold)
+   - Feasibility: **HIGH** — purely derived from snapshotted navigation data.
+
+3. **Renderer._cache_lock** (1 lock)
+
+   Protects lazy initialization of ``_top_level_cache`` and ``_tag_pages_cache``.
+   Both are deterministic views of site data (filter pages by section membership,
+   filter taxonomy pages by type).  Pre-computing these in the snapshot builder
+   would eliminate the double-checked locking pattern.
+
+   - Lock eliminated: ``Renderer._cache_lock`` (Tier 3)
+   - Memory overhead: Negligible (already cached; only moving *when* computed)
+   - Feasibility: **HIGH** — top-level content and tag page filtering are pure
+     functions of page/section/taxonomy data.
+
+4. **_global_context_cache** / ``_context_lock`` (1 lock)
+
+   Caches four stateless context wrappers (``SiteContext``, ``ConfigContext``,
+   ``ThemeContext``, ``MenusContext``) per site instance.  These could be created
+   once during the snapshot phase and stored as a frozen field.
+
+   - Lock eliminated: ``_context_lock`` (Tier 3)
+   - Memory overhead: 4 wrapper objects — negligible
+   - Feasibility: **HIGH** — trivial to pre-create during snapshot.
+
+5. **_directive_cache** / ``_config_lock`` (1 lock)
+
+   The ``_config_lock`` only guards replacement of the global ``DirectiveCache``
+   instance.  The ``DirectiveCache`` itself uses ``LRUCache`` with its own
+   internal ``RLock``.  Snapshotting the configuration at build start would
+   eliminate the need to reconfigure mid-build.
+
+   - Lock eliminated: ``_config_lock`` (Tier 3)
+   - Internal ``LRUCache._lock`` remains (needed for LRU eviction)
+   - Feasibility: **MEDIUM** — config changes are rare; the internal LRU lock
+     persists regardless.
+
+   *Subtotal: 7 locks eliminable (Tier 3).*
+
+**MODERATE benefit — Tier 1 (Cache Infrastructure) locks reducible:**
+
+6. **TaxonomyIndex._lock** (RLock)
+
+   During rendering, ``TaxonomyIndex`` is read-only; writes happen exclusively
+   during content discovery (Phase 5).  The read-side lock could be eliminated
+   if rendering consumed taxonomy data from ``SiteSnapshot.taxonomies`` instead
+   of querying the mutable ``TaxonomyIndex``.
+
+   - Lock impact: RLock contention eliminated during render phase
+   - Memory overhead: None — ``SiteSnapshot.taxonomies`` already duplicates this
+   - Feasibility: **MEDIUM** — the ``TaxonomyIndex`` is also a persistent cache
+     that writes to disk; its lock is still needed for the write path and for
+     incremental builds.  The render-phase benefit is already partially captured
+     by ``SiteSnapshot.taxonomies``.
+
+7. **QueryIndex._lock** (RLock)
+
+   Same pattern as ``TaxonomyIndex``.  Read-only during rendering, writable
+   during discovery.  Render-phase reads could use snapshot data.
+
+   - Feasibility: **MEDIUM** — same analysis as TaxonomyIndex.
+
+8. **Icon resolver** / ``_icon_lock`` (Lock)
+
+   Read-heavy with lazy population.  Could pre-load all icons at snapshot time,
+   converting ``_icon_cache`` and ``_not_found_cache`` into frozen dicts.
+
+   - Lock eliminated: ``_icon_lock`` (Tier 4)
+   - Memory overhead: Small (~100-500 SVG strings, typically <50 KB total)
+   - Feasibility: **MEDIUM** — requires knowing which icons are used before
+     rendering starts.  A ``preload=True`` path already exists; snapshotting
+     would formalize it.
+
+   *Subtotal: 2-3 locks reducible (contention eliminated during render).*
+
+**LOW / NO benefit — snapshot pattern impractical:**
+
+9. **ContentHashRegistry._lock** (RLock, Tier 1)
+
+   Updated *during* rendering (output hashes written as pages render) AND read
+   for incremental decisions.  Writes and reads are interleaved in the hot path.
+
+   - Why not: Inherently mutable during the render phase.  A snapshot would be
+     stale immediately.
+
+10. **ProvenanceStore._lock** (Lock, Tier 1)
+
+    Written during rendering (provenance records created per page), read for
+    incremental build decisions.  Writes are interleaved with rendering.
+
+    - Why not: Write-heavy workload during rendering.
+
+11. **GeneratedPageCache._lock** (Lock, Tier 1)
+
+    Needs mutation during rendering — generated pages (tag pages, archive pages)
+    check and update this cache as they render.
+
+    - Why not: Fundamentally a write-through cache during the render phase.
+
+12. **DependencyTracker.lock** (Lock, Tier 2)
+
+    Tracks file dependencies discovered during rendering.  New dependencies are
+    registered as templates include files or pages reference assets.
+
+    - Why not: Dependency tracking is inherently append-only during rendering.
+
+13. **EffectTracer._lock** (Lock, Tier 2)
+
+    Records build effects (files written, dirs created) during rendering.
+
+    - Why not: Inherently mutable — accumulates effects as they happen.
+
+14. **Progress/IO locks** (Tier 5, all locks)
+
+    Track mutable counters (``_completed_count``, ``_writes_completed``).
+    Cannot be pre-computed.
+
+    - Why not: Progress counters are inherently mutable.
+
+15. **Server locks** (Tier 6, all locks)
+
+    Dev server locks handle real-time file change events and cache invalidation.
+    They operate outside the build lifecycle.
+
+    - Why not: Real-time mutation by definition.
+
+16. **Error session locks** (Tier 7)
+
+    Accumulate errors during rendering.  Cannot be pre-computed.
+
+    - Why not: Error recording is inherently append-only.
+
+**Estimated lock reduction summary:**
+
++------------------------------+-------+-----------------------------------+
+| Category                     | Locks | Impact                            |
++==============================+=======+===================================+
+| Already snapshotted          | —     | Core site data: no locks needed   |
++------------------------------+-------+-----------------------------------+
+| Eliminable (Tier 3 hot path) | ~7    | NavTree(2), NavScaffold(2),       |
+|                              |       | Renderer(1), context(1),          |
+|                              |       | directive_config(1)               |
++------------------------------+-------+-----------------------------------+
+| Reducible (render-phase)     | ~2-3  | TaxonomyIndex, QueryIndex, icons  |
++------------------------------+-------+-----------------------------------+
+| Impractical                  | ~30   | Write-heavy, counters, server,    |
+|                              |       | error tracking, dependency graph  |
++------------------------------+-------+-----------------------------------+
+
+Of ~40 total locks, ~7 are eliminable and ~2-3 more are reducible.  The
+absolute count (~20-25% of locks) understates the impact: the eliminable
+locks are concentrated in **Tier 3 (Rendering)**, which is the hottest
+contention path because all render threads compete for these caches
+simultaneously.
+
+**Recommended next steps (priority order):**
+
+1. **Pre-compute NavTree at snapshot time** (eliminates 4 locks, highest ROI).
+   Add a ``nav_trees: MappingProxyType[str, NavTree]`` field to ``SiteSnapshot``.
+   The ``NavTreeCache.get()`` method becomes a simple dict lookup on the snapshot.
+
+2. **Pre-compute tag pages and top-level content in snapshot builder** (eliminates
+   1 lock).  Add ``top_level_pages``, ``top_level_sections``, and a tag-pages
+   mapping to ``SiteSnapshot``.  Renderer reads these directly instead of
+   lazy-computing under lock.
+
+3. **Create global context wrappers during snapshot phase** (eliminates 1 lock).
+   Store pre-built ``SiteContext``, ``ConfigContext``, ``ThemeContext``,
+   ``MenusContext`` alongside the snapshot.
+
+4. **Pre-load icons at snapshot time** (eliminates 1 lock, optional).
+   Formalize the existing ``preload=True`` path into the snapshot lifecycle.
+
+5. **Route render-phase taxonomy reads through SiteSnapshot** (reduces
+   contention on ``TaxonomyIndex._lock``).  This is partially done already
+   but not consistently enforced.
+
+Steps 1-3 can be done incrementally without breaking changes.  Each step
+is independently shippable and testable.
+
 """
 
 from __future__ import annotations
