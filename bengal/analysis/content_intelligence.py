@@ -103,16 +103,17 @@ class ContentAnalysisReport:
 
         if self.code_blocks_detected:
             lines.append("  📑 Pages with multiple code blocks (consider tabs):")
-            for path in self.code_blocks_detected[:5]:
-                lines.append(f"     • {path}")
+            lines.extend(f"     • {path}" for path in self.code_blocks_detected[:5])
             if len(self.code_blocks_detected) > 5:
                 lines.append(f"     ... and {len(self.code_blocks_detected) - 5} more")
             lines.append("")
 
         if self.accessibility_warnings:
             lines.append("  ⚠️  Accessibility warnings:")
-            for warning in self.accessibility_warnings[:5]:
-                lines.append(f"     • {warning.page_path}: {warning.message}")
+            lines.extend(
+                f"     • {warning.page_path}: {warning.message}"
+                for warning in self.accessibility_warnings[:5]
+            )
             if len(self.accessibility_warnings) > 5:
                 lines.append(f"     ... and {len(self.accessibility_warnings) - 5} more")
             lines.append("")

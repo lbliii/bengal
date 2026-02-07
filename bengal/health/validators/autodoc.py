@@ -159,10 +159,11 @@ class AutodocValidator(BaseValidator):
             if not prefix_dir.exists():
                 continue
 
-            missing: list[str] = []
-            for dir_path in prefix_dir.rglob("*"):
-                if dir_path.is_dir() and not (dir_path / "index.html").exists():
-                    missing.append(str(dir_path.relative_to(site.output_dir)))
+            missing = [
+                str(dir_path.relative_to(site.output_dir))
+                for dir_path in prefix_dir.rglob("*")
+                if dir_path.is_dir() and not (dir_path / "index.html").exists()
+            ]
 
             if missing:
                 results.append(

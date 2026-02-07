@@ -520,10 +520,11 @@ class MenuBuilder:
         by_id = {item.identifier: item for item in self.items}
 
         # Validate parent references
-        orphaned_items = []
-        for item in self.items:
-            if item.parent and item.parent not in by_id:
-                orphaned_items.append((item.name, item.parent))
+        orphaned_items = [
+            (item.name, item.parent)
+            for item in self.items
+            if item.parent and item.parent not in by_id
+        ]
 
         if orphaned_items:
             message = (

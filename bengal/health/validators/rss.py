@@ -135,11 +135,7 @@ class RSSValidator(BaseValidator):
 
         # Check required channel elements
         required_elements = ["title", "link", "description"]
-        missing = []
-
-        for elem in required_elements:
-            if channel.find(elem) is None:
-                missing.append(elem)
+        missing = [elem for elem in required_elements if channel.find(elem) is None]
 
         if missing:
             results.append(
@@ -190,10 +186,7 @@ class RSSValidator(BaseValidator):
         # Check items have required elements
         invalid_items = []
         for i, item in enumerate(items[:5]):  # Check first 5 items
-            missing = []
-            for elem in ["title", "link"]:
-                if item.find(elem) is None:
-                    missing.append(elem)
+            missing = [elem for elem in ["title", "link"] if item.find(elem) is None]
 
             if missing:
                 invalid_items.append(f"Item {i + 1}: missing {', '.join(missing)}")

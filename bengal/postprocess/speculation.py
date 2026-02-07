@@ -191,9 +191,9 @@ class SpeculationRulesGenerator:
         # Add CSS selector pattern exclusions (e.g., ".external", ".no-prefetch")
         # Note: URL pattern exclusions (starting with "/") are not yet implemented
         # in the speculation rules spec - they would need href_matches negation
-        for pattern in exclude:
-            if pattern.startswith("."):
-                exclude_selectors.append(pattern)
+        exclude_selectors.extend(
+            pattern for pattern in exclude if pattern.startswith(".")
+        )
 
         return SpeculationRule(
             href_matches=patterns,

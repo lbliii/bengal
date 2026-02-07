@@ -125,8 +125,7 @@ class GraphReporter:
         output.append("")
         if orphans:
             output.append(f"Orphaned Pages ({len(orphans)} with 0 incoming refs):")
-            for orphan in orphans[:5]:
-                output.append(f"  • {orphan.source_path}")
+            output.extend(f"  • {orphan.source_path}" for orphan in orphans[:5])
             if len(orphans) > 5:
                 output.append(f"  ... and {len(orphans) - 5} more")
         else:
@@ -148,24 +147,21 @@ class GraphReporter:
         if recommendations:
             output.append("")
             output.append("🎯 Actionable Recommendations:")
-            for rec in recommendations:
-                output.append(f"  {rec}")
+            output.extend(f"  {rec}" for rec in recommendations)
 
         # Add SEO insights
         seo_insights = self.get_seo_insights()
         if seo_insights:
             output.append("")
             output.append("🎯 SEO Insights:")
-            for insight in seo_insights:
-                output.append(f"  {insight}")
+            output.extend(f"  {insight}" for insight in seo_insights)
 
         # Add content gap detection
         content_gaps = self.get_content_gaps()
         if content_gaps:
             output.append("")
             output.append("🔍 Content Gaps:")
-            for gap in content_gaps[:5]:  # Limit to top 5
-                output.append(f"  {gap}")
+            output.extend(f"  {gap}" for gap in content_gaps[:5])  # Limit to top 5
             if len(content_gaps) > 5:
                 output.append(f"  ... and {len(content_gaps) - 5} more gaps")
 

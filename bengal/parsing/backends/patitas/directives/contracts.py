@@ -176,31 +176,31 @@ class DirectiveContract:
 
         # Check allows_children
         if self.allows_children is not None:
-            for name in child_names:
-                if name not in self.allows_children:
-                    violations.append(
-                        ContractViolation(
-                            directive=directive_name,
-                            violation_type="forbidden_child",
-                            message=f"'{name}' is not allowed inside '{directive_name}'",
-                            expected=self.allows_children,
-                            actual=name,
-                        )
-                    )
+            violations.extend(
+                ContractViolation(
+                    directive=directive_name,
+                    violation_type="forbidden_child",
+                    message=f"'{name}' is not allowed inside '{directive_name}'",
+                    expected=self.allows_children,
+                    actual=name,
+                )
+                for name in child_names
+                if name not in self.allows_children
+            )
 
         # Check forbids_children
         if self.forbids_children is not None:
-            for name in child_names:
-                if name in self.forbids_children:
-                    violations.append(
-                        ContractViolation(
-                            directive=directive_name,
-                            violation_type="forbidden_child",
-                            message=f"'{name}' is forbidden inside '{directive_name}'",
-                            expected=None,
-                            actual=name,
-                        )
-                    )
+            violations.extend(
+                ContractViolation(
+                    directive=directive_name,
+                    violation_type="forbidden_child",
+                    message=f"'{name}' is forbidden inside '{directive_name}'",
+                    expected=None,
+                    actual=name,
+                )
+                for name in child_names
+                if name in self.forbids_children
+            )
 
         # Check max_children
         if self.max_children is not None and len(children) > self.max_children:

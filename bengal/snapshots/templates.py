@@ -400,9 +400,11 @@ def _get_transitive_deps_for_template(
                         continue
                     parse_method = cast(Callable[[str], Any], env.parse)
                     ast = parse_method(source)
-                    for ref in meta.find_referenced_templates(ast) or []:
-                        if isinstance(ref, str) and ref not in seen:
-                            next_queue.append(ref)
+                    next_queue.extend(
+                        ref
+                        for ref in (meta.find_referenced_templates(ast) or [])
+                        if isinstance(ref, str) and ref not in seen
+                    )
                 except Exception:
                     continue
 
@@ -440,9 +442,11 @@ def _get_transitive_dependents(
             dependents.add(dep_name)
 
             # Templates that depend on this dependent
-            for further_dep in dependency_graph.get(dep_name, frozenset()):
-                if further_dep not in seen:
-                    next_queue.append(further_dep)
+            next_queue.extend(
+                further_dep
+                for further_dep in dependency_graph.get(dep_name, frozenset())
+                if further_dep not in seen
+            )
 
         queue = next_queue
 

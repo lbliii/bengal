@@ -260,8 +260,9 @@ class TemplateRenderError(BengalRenderingError):
                     start = max(0, line_number - 4)
                     end = min(len(lines), line_number + 3)
 
-                    for i in range(start, end):
-                        surrounding_lines.append((i + 1, lines[i].rstrip()))
+                    surrounding_lines.extend(
+                        (i + 1, lines[i].rstrip()) for i in range(start, end)
+                    )
             except (OSError, IndexError):
                 pass
 

@@ -88,9 +88,10 @@ def extract_all_exports(tree: ast.Module) -> list[str] | None:
                     and isinstance(node.value, ast.List | ast.Tuple)
                 ):
                     # Try to extract the list
-                    exports = []
-                    for elt in node.value.elts:
-                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                            exports.append(elt.value)
+                    exports = [
+                        elt.value
+                        for elt in node.value.elts
+                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                    ]
                     return exports
     return None

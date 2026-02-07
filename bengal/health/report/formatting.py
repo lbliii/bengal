@@ -75,8 +75,7 @@ def format_quiet(
 
                 # Show first 3 details
                 if result.details:
-                    for detail in result.details[:3]:
-                        lines.append(f"        - {detail}")
+                    lines.extend(f"        - {detail}" for detail in result.details[:3])
                     if len(result.details) > 3:
                         remaining = len(result.details) - 3
                         lines.append(f"        ... and {remaining} more")
@@ -181,9 +180,8 @@ def format_normal(
 
                 # Details show location + context (the important part)
                 if result.details:
-                    for detail in result.details[:3]:
-                        # Details are already formatted with location:line
-                        lines.append(f"      {detail}")
+                    # Details are already formatted with location:line
+                    lines.extend(f"      {detail}" for detail in result.details[:3])
                     if len(result.details) > 3:
                         lines.append(f"      ... and {len(result.details) - 3} more")
 
@@ -208,9 +206,11 @@ def format_normal(
                 f"  {icons.tip} [bold]{vr.validator_name}[/bold] ([info]{vr.suggestion_count} suggestion(s)[/info])"
             )
 
-            for result in vr.results:
-                if result.status == CheckStatus.SUGGESTION:
-                    lines.append(f"    • {result.formatted_message}")
+            lines.extend(
+                f"    • {result.formatted_message}"
+                for result in vr.results
+                if result.status == CheckStatus.SUGGESTION
+            )
 
             if not is_last_suggestion:
                 lines.append("")
@@ -299,8 +299,7 @@ def format_verbose(
                 # Problems get full detail - location first (with code if available)
                 lines.append(f"    • {result.formatted_message}")
                 if result.details:
-                    for detail in result.details[:5]:
-                        lines.append(f"      {detail}")
+                    lines.extend(f"      {detail}" for detail in result.details[:5])
                     if len(result.details) > 5:
                         lines.append(f"      ... and {len(result.details) - 5} more")
 
@@ -309,8 +308,10 @@ def format_verbose(
                     lines.append("")
 
             # Show successes briefly (grouped at end)
-            for result in other_results:
-                lines.append(f"    {icons.success} {result.formatted_message}")
+            lines.extend(
+                f"    {icons.success} {result.formatted_message}"
+                for result in other_results
+            )
 
             if not is_last_problem:
                 lines.append("")

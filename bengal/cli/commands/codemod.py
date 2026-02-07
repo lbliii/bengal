@@ -72,12 +72,12 @@ def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
     extensions = {".html", ".py", ".jinja2", ".j2", ".js"}
 
     # Find all matching files (exclude vendor directories)
-    files_to_process: list[Path] = []
-    for ext in extensions:
-        for file_path in path.rglob(f"*{ext}"):
-            # Skip vendor directories (third-party libraries)
-            if "vendor" not in file_path.parts:
-                files_to_process.append(file_path)
+    files_to_process: list[Path] = [
+        file_path
+        for ext in extensions
+        for file_path in path.rglob(f"*{ext}")
+        if "vendor" not in file_path.parts
+    ]
 
     if not files_to_process:
         cli.warning("No matching files found.")

@@ -413,12 +413,10 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
             # Handle nesting changes
             if level > prev_level:
                 # Deeper: open new nested list(s)
-                for _ in range(level - prev_level):
-                    result.append("<ul>")
+                result.extend("<ul>" for _ in range(level - prev_level))
             elif level < prev_level:
                 # Shallower: close nested list(s)
-                for _ in range(prev_level - level):
-                    result.append("</li></ul>")
+                result.extend("</li></ul>" for _ in range(prev_level - level))
                 result.append("</li>")
             elif result[-1] not in ("</ul>", '<ul class="toc">'):
                 # Same level, close previous item

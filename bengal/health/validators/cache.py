@@ -162,13 +162,9 @@ class CacheValidator(BaseValidator):
 
     def _check_cache_structure(self, cache_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """Check if cache has expected structure."""
-        issues = []
-
         # Check for expected top-level keys
         expected_keys = ["file_hashes", "dependencies"]
-        for key in expected_keys:
-            if key not in cache_data:
-                issues.append(f"missing '{key}'")
+        issues = [f"missing '{key}'" for key in expected_keys if key not in cache_data]
 
         # Check that values are dicts
         if "file_hashes" in cache_data and not isinstance(cache_data["file_hashes"], dict):

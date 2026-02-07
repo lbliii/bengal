@@ -452,14 +452,12 @@ class ConfigInspector(DebugTool):
             # Environments
             env_dir = self._config_dir / "environments"
             if env_dir.exists():
-                for f in env_dir.glob("*.yaml"):
-                    sources.append(f"env:{f.stem}")
+                sources.extend(f"env:{f.stem}" for f in env_dir.glob("*.yaml"))
 
             # Profiles
             profile_dir = self._config_dir / "profiles"
             if profile_dir.exists():
-                for f in profile_dir.glob("*.yaml"):
-                    sources.append(f"profile:{f.stem}")
+                sources.extend(f"profile:{f.stem}" for f in profile_dir.glob("*.yaml"))
 
         # Always include standard environments
         for env in ["local", "preview", "production"]:

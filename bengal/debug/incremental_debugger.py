@@ -173,14 +173,12 @@ class RebuildExplanation:
         lines.append(f"   Cache Status: {self.cache_status}")
         lines.append("")
         lines.append("   Reasons:")
-        for reason in self.reasons:
-            lines.append(f"      • {reason.description}")
+        lines.extend(f"      • {reason.description}" for reason in self.reasons)
 
         if self.changed_dependencies:
             lines.append("")
             lines.append("   Changed Dependencies:")
-            for dep in self.changed_dependencies[:5]:
-                lines.append(f"      • {dep}")
+            lines.extend(f"      • {dep}" for dep in self.changed_dependencies[:5])
             if len(self.changed_dependencies) > 5:
                 lines.append(f"      ... and {len(self.changed_dependencies) - 5} more")
 
@@ -194,8 +192,7 @@ class RebuildExplanation:
         if self.suggestions:
             lines.append("")
             lines.append("   💡 Suggestions:")
-            for suggestion in self.suggestions:
-                lines.append(f"      • {suggestion}")
+            lines.extend(f"      • {suggestion}" for suggestion in self.suggestions)
 
         return "\n".join(lines)
 
@@ -645,12 +642,12 @@ class IncrementalBuildDebugger(DebugTool):
             return findings
 
         # Check for pages with no dependencies (suspicious)
-        pages_without_deps = []
-        for path in self.cache.file_fingerprints:
-            if path.endswith((".md", ".markdown")) and (
-                path not in self.cache.dependencies or not self.cache.dependencies[path]
-            ):
-                pages_without_deps.append(path)
+        pages_without_deps = [
+            path
+            for path in self.cache.file_fingerprints
+            if path.endswith((".md", ".markdown"))
+            and (path not in self.cache.dependencies or not self.cache.dependencies[path])
+        ]
 
         if pages_without_deps:
             findings.append(

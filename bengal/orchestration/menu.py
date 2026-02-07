@@ -167,17 +167,16 @@ class MenuOrchestrator:
         menu_config = self.site.menu_config
 
         # Get pages with menu frontmatter
-        menu_pages = []
-        for page in self.site.pages:
-            if "menu" in page.metadata:
-                menu_pages.append(
-                    {
-                        "path": str(page.source_path),
-                        "menu": page.metadata["menu"],
-                        "title": page.title,
-                        "url": getattr(page, "href", "/"),
-                    }
-                )
+        menu_pages = [
+            {
+                "path": str(page.source_path),
+                "menu": page.metadata["menu"],
+                "title": page.title,
+                "url": getattr(page, "href", "/"),
+            }
+            for page in self.site.pages
+            if "menu" in page.metadata
+        ]
 
         # Include dev params and section names in cache key
         # (sections affect dev menu bundling)
@@ -187,11 +186,11 @@ class MenuOrchestrator:
         }
 
         # Include section names that affect dev menu (api, cli)
-        dev_section_names = []
-        for section in self.site.sections:
-            if hasattr(section, "name") and section.name in ("api", "cli"):
-                dev_section_names.append(section.name)
-        dev_section_names.sort()
+        dev_section_names = sorted(
+            section.name
+            for section in self.site.sections
+            if hasattr(section, "name") and section.name in ("api", "cli")
+        )
 
         # Include dropdown configurations from section frontmatter
         dropdown_configs = []

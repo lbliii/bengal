@@ -100,9 +100,10 @@ def get_input_globs(site: SiteLike) -> list[tuple[str, str]]:
     python_config = autodoc_config.get("python", {})
     if python_config.get("enabled", False):
         source_dirs = python_config.get("source_dirs", [])
-        for source_dir in source_dirs:
-            # Source dirs are relative to site root
-            inputs.append((f"{source_dir}/**/*.py", "autodoc.python.source_dirs"))
+        inputs.extend(
+            (f"{source_dir}/**/*.py", "autodoc.python.source_dirs")
+            for source_dir in source_dirs
+        )
 
     # Autodoc CLI (derive package from app_module)
     cli_config = autodoc_config.get("cli", {})

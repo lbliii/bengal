@@ -121,8 +121,7 @@ def extract_text_from_node(node: ASTNode) -> str:
 
     children = node.get("children")
     if children and isinstance(children, (list, tuple)):
-        for child in children:
-            parts.append(extract_text_from_node(child))
+        parts.extend(extract_text_from_node(child) for child in children)
 
     return "".join(parts)
 

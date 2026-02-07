@@ -472,11 +472,12 @@ def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str
     from bengal.core.theme import resolve_theme_chain
 
     chain = resolve_theme_chain(site_root, active_theme)
-    for theme_name in chain:
-        if not _theme_exists(site_root, theme_name):
-            issues.append(
-                f"Theme '{theme_name}' not found in any location (site, installed, or bundled)"
-            )
+    issues.extend(
+        f"Theme '{theme_name}' not found in any location"
+        " (site, installed, or bundled)"
+        for theme_name in chain
+        if not _theme_exists(site_root, theme_name)
+    )
 
     return issues
 

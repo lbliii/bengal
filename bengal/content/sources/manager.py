@@ -227,8 +227,7 @@ class ContentLayerManager:
         entries: list[ContentEntry] = []
 
         try:
-            async for entry in source.fetch_all():
-                entries.append(entry)
+            entries = [entry async for entry in source.fetch_all()]
         except Exception as e:
             # Try to fall back to cache on error
             cached = self._load_cache(name)

@@ -103,22 +103,22 @@ class VersionDiff:
         if self.added_pages:
             lines.append("## ✨ New Pages")
             lines.append("")
-            for page in self.added_pages:
-                lines.append(f"- `{page.path}`")
+            lines.extend(f"- `{page.path}`" for page in self.added_pages)
             lines.append("")
 
         if self.removed_pages:
             lines.append("## 🗑️ Removed Pages")
             lines.append("")
-            for page in self.removed_pages:
-                lines.append(f"- `{page.path}`")
+            lines.extend(f"- `{page.path}`" for page in self.removed_pages)
             lines.append("")
 
         if self.modified_pages:
             lines.append("## 📝 Modified Pages")
             lines.append("")
-            for page in self.modified_pages:
-                lines.append(f"- `{page.path}` ({page.change_percentage:.1f}% changed)")
+            lines.extend(
+                f"- `{page.path}` ({page.change_percentage:.1f}% changed)"
+                for page in self.modified_pages
+            )
             lines.append("")
 
         if not self.has_changes:

@@ -242,9 +242,11 @@ class IncrementalOrchestrator:
         # Check theme templates directory
         templates_dir = self._cache_manager._get_theme_templates_dir()
         if templates_dir and templates_dir.exists():
-            for template_file in templates_dir.rglob("*.html"):
-                if self.cache and self.cache.is_changed(template_file):
-                    template_changes.append(template_file)
+            template_changes.extend(
+                template_file
+                for template_file in templates_dir.rglob("*.html")
+                if self.cache and self.cache.is_changed(template_file)
+            )
 
         return template_changes
 

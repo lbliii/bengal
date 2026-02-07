@@ -143,11 +143,11 @@ class CompactTracebackRenderer(TracebackRenderer):
         cli = CLIOutput()
         tb = error.__traceback__
         frames = _traceback.extract_tb(tb)
-        summary_lines: list[str] = []
-
         # Keep last up to 3 frames
-        for frame in frames[-3:]:
-            summary_lines.append(f"{frame.filename}:{frame.lineno} in {frame.name}")
+        summary_lines = [
+            f"{frame.filename}:{frame.lineno} in {frame.name}"
+            for frame in frames[-3:]
+        ]
 
         cli.blank()
         cli.error(f"{type(error).__name__}: {error}")

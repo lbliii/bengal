@@ -86,17 +86,16 @@ def build_template_cascade(
         "single": ["single.html", "page.html"],
     }
 
-    candidates: list[str] = []
-
     # Add type-prefixed templates first
-    for suffix in suffixes[page_type]:
-        candidates.append(f"{type_prefix}/{suffix}")
+    candidates: list[str] = [f"{type_prefix}/{suffix}" for suffix in suffixes[page_type]]
 
     # Add extra prefix templates (e.g., autodoc/ for autodoc/python)
     if extra_prefixes:
-        for prefix in extra_prefixes:
-            for suffix in suffixes[page_type]:
-                candidates.append(f"{prefix}/{suffix}")
+        candidates.extend(
+            f"{prefix}/{suffix}"
+            for prefix in extra_prefixes
+            for suffix in suffixes[page_type]
+        )
 
     # Add generic fallbacks
     candidates.extend(suffixes[page_type])

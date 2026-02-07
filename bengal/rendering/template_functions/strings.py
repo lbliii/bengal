@@ -206,8 +206,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     result.append(suffix)
 
     # Close any unclosed tags (in reverse order)
-    for tag in reversed(open_tags):
-        result.append(f"</{tag}>")
+    result.extend(f"</{tag}>" for tag in reversed(open_tags))
 
     return "".join(result)
 

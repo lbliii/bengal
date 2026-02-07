@@ -331,14 +331,12 @@ class BuildDelta:
             lines.append("📄 Page Changes:")
             if self.added_pages:
                 lines.append(f"   Added:   +{len(self.added_pages)}")
-                for page in list(self.added_pages)[:5]:
-                    lines.append(f"      • {page}")
+                lines.extend(f"      • {page}" for page in list(self.added_pages)[:5])
                 if len(self.added_pages) > 5:
                     lines.append(f"      ... and {len(self.added_pages) - 5} more")
             if self.removed_pages:
                 lines.append(f"   Removed: -{len(self.removed_pages)}")
-                for page in list(self.removed_pages)[:5]:
-                    lines.append(f"      • {page}")
+                lines.extend(f"      • {page}" for page in list(self.removed_pages)[:5])
                 if len(self.removed_pages) > 5:
                     lines.append(f"      ... and {len(self.removed_pages) - 5} more")
             lines.append("")

@@ -112,8 +112,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
                     lines.append(f"     Tip: {error.suggestion}")
 
         # Report warnings
-        for warning in category.warnings:
-            lines.append(f"  ⚠️  {warning}")
+        lines.extend(f"  ⚠️  {warning}" for warning in category.warnings)
 
     # Also report template_errors for backward compatibility
     if stats.template_errors:
@@ -139,8 +138,10 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
     ):
         if "general" not in stats.errors_by_category:
             lines.append("\nGENERAL:")
-        for warning in stats.warnings:
-            lines.append(f"  ⚠️  {warning.file_path}: {warning.message}")
+        lines.extend(
+            f"  ⚠️  {warning.file_path}: {warning.message}"
+            for warning in stats.warnings
+        )
 
     return "\n".join(lines)
 

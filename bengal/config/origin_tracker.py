@@ -167,8 +167,7 @@ class ConfigWithOrigin:
             elif isinstance(value, list):
                 # List
                 lines.append(f"{indent_str}{key}:  # {origin}")
-                for item in value:
-                    lines.append(f"{indent_str}  - {item}")
+                lines.extend(f"{indent_str}  - {item}" for item in value)
             else:
                 # Primitive
                 lines.append(f"{indent_str}{key}: {value}  # {origin}")

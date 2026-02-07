@@ -173,8 +173,7 @@ class ContentValidationError(BengalContentError):
         if self.collection_name:
             lines[0] += f" (collection: {self.collection_name})"
 
-        for error in self.errors:
-            lines.append(f"  └─ {error.field}: {error.message}")
+        lines.extend(f"  └─ {error.field}: {error.message}" for error in self.errors)
 
         return "\n".join(lines)
 

@@ -256,10 +256,11 @@ class ProvenanceFilter:
                 self._collect_affected(page, affected_tags, affected_sections)
 
         # For assets, check file modification
-        assets_to_process: list[Asset] = []
-        for asset in assets:
-            if asset.source_path in forced or self._is_asset_changed(asset):
-                assets_to_process.append(asset)
+        assets_to_process: list[Asset] = [
+            asset
+            for asset in assets
+            if asset.source_path in forced or self._is_asset_changed(asset)
+        ]
 
         return ProvenanceFilterResult(
             pages_to_build=pages_to_build,

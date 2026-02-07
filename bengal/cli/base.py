@@ -206,9 +206,11 @@ class BengalCommand(click.Command):
             pieces = [ctx.command_path]
             if self.params:
                 pieces.append("[dim][OPTIONS][/dim]")
-            for param in self.params:
-                if isinstance(param, click.Argument):
-                    pieces.append(f"[info]{param.human_readable_name.upper()}[/info]")
+            pieces.extend(
+                f"[info]{param.human_readable_name.upper()}[/info]"
+                for param in self.params
+                if isinstance(param, click.Argument)
+            )
 
             if cli.use_rich:
                 cli.console.print(f"[header]Usage:[/header] {' '.join(pieces)}")

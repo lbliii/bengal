@@ -119,11 +119,11 @@ class ResourcesProxy:
             ".bmp",
             ".tiff",
         }
-        results = []
-
-        for match in self._assets_dir.glob(pattern):
-            if match.is_file() and match.suffix.lower() in image_extensions:
-                results.append(ImageResource(source_path=match, site=self._site))
+        results = [
+            ImageResource(source_path=match, site=self._site)
+            for match in self._assets_dir.glob(pattern)
+            if match.is_file() and match.suffix.lower() in image_extensions
+        ]
 
         # Sort by path for deterministic ordering
         results.sort(key=lambda r: str(r.source_path))

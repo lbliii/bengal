@@ -627,9 +627,7 @@ class PythonExtractor(Extractor):
         parsed_doc = parse_docstring(docstring) if docstring else None
 
         # Extract base classes
-        bases = []
-        for base in node.bases:
-            bases.append(expr_to_string(base))
+        bases = [expr_to_string(base) for base in node.bases]
 
         # Extract decorators
         decorators = [expr_to_string(d) for d in node.decorator_list]
@@ -924,14 +922,14 @@ class PythonExtractor(Extractor):
         # Build raises info (parsed.raises is a list of dicts, not a dict)
         raises: list[RaisesInfo] = []
         if hasattr(parsed, "raises") and parsed.raises:
-            for raise_item in parsed.raises:
-                if isinstance(raise_item, dict):
-                    raises.append(
-                        RaisesInfo(
-                            type_name=raise_item.get("type", ""),
-                            description=raise_item.get("description", ""),
-                        )
-                    )
+            raises.extend(
+                RaisesInfo(
+                    type_name=raise_item.get("type", ""),
+                    description=raise_item.get("description", ""),
+                )
+                for raise_item in parsed.raises
+                if isinstance(raise_item, dict)
+            )
 
         return ParsedDocstring(
             summary=getattr(parsed, "summary", "") or "",

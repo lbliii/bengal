@@ -80,9 +80,7 @@ def validate_required_keys(config: dict[str, Any]) -> list[str]:
         if not isinstance(section_data, dict):
             missing.append(f"{section} (not a dict)")
             continue
-        for key in keys:
-            if key not in section_data:
-                missing.append(f"{section}.{key}")
+        missing.extend(f"{section}.{key}" for key in keys if key not in section_data)
     return missing
 
 

@@ -257,8 +257,10 @@ class BengalError(Exception):
         # Debug payload suggestions
         if self.debug_payload and self.debug_payload.grep_patterns:
             commands.append("# Suggested search patterns from debug payload")
-            for pattern in self.debug_payload.grep_patterns:
-                commands.append(f"grep -rn '{pattern}' bengal/")
+            commands.extend(
+                f"grep -rn '{pattern}' bengal/"
+                for pattern in self.debug_payload.grep_patterns
+            )
 
         return commands
 

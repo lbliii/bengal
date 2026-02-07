@@ -244,8 +244,7 @@ class ExplanationReporter:
         lines = []
         for section_name, items in sections:
             lines.append(f"[bold]{section_name}:[/bold]")
-            for item in items[:5]:  # Limit to 5 per section
-                lines.append(f"  • {item}")
+            lines.extend(f"  • {item}" for item in items[:5])
             if len(items) > 5:
                 lines.append(f"  [dim]... +{len(items) - 5} more[/dim]")
 

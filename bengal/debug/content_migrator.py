@@ -217,22 +217,25 @@ class MovePreview:
 
         if self.affected_links:
             lines.append(f"🔗 {len(self.affected_links)} links would be updated:")
-            for link in self.affected_links[:5]:
-                lines.append(f"   • {link.file_path}:{link.line}")
+            lines.extend(
+                f"   • {link.file_path}:{link.line}"
+                for link in self.affected_links[:5]
+            )
             if len(self.affected_links) > 5:
                 lines.append(f"   ... and {len(self.affected_links) - 5} more")
             lines.append("")
 
         if self.redirects_needed:
             lines.append(f"↪️  {len(self.redirects_needed)} redirect(s) would be created:")
-            for redirect in self.redirects_needed:
-                lines.append(f"   • {redirect.from_path} → {redirect.to_path}")
+            lines.extend(
+                f"   • {redirect.from_path} → {redirect.to_path}"
+                for redirect in self.redirects_needed
+            )
             lines.append("")
 
         if self.warnings:
             lines.append("⚠️  Warnings:")
-            for warning in self.warnings:
-                lines.append(f"   • {warning}")
+            lines.extend(f"   • {warning}" for warning in self.warnings)
             lines.append("")
 
         status = "✅ Safe to proceed" if self.can_proceed else "❌ Issues found"
@@ -282,8 +285,7 @@ class PageDraft:
         lines.append("   Content preview:")
 
         content_lines = self.content.split("\n")[:max_lines]
-        for line in content_lines:
-            lines.append(f"   │ {line[:60]}")
+        lines.extend(f"   │ {line[:60]}" for line in content_lines)
         if len(self.content.split("\n")) > max_lines:
             lines.append(f"   │ ... ({len(self.content.split(chr(10))) - max_lines} more lines)")
 

@@ -74,9 +74,11 @@ def validate_config_types(config: dict[str, Any], errors: list[str], warnings: l
         "validate_links",
     ]
 
-    for field in boolean_fields:
-        if field in config and not isinstance(config[field], bool):
-            errors.append(f"'{field}' must be boolean, got {type(config[field]).__name__}")
+    errors.extend(
+        f"'{field}' must be boolean, got {type(config[field]).__name__}"
+        for field in boolean_fields
+        if field in config and not isinstance(config[field], bool)
+    )
 
 
 def validate_config_values(

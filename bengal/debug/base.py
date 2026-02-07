@@ -396,8 +396,7 @@ class DebugReport:
         if self.recommendations:
             lines.append("")
             lines.append("   💡 Top Recommendations:")
-            for rec in self.recommendations[:3]:
-                lines.append(f"      • {rec}")
+            lines.extend(f"      • {rec}" for rec in self.recommendations[:3])
 
         return "\n".join(lines)
 

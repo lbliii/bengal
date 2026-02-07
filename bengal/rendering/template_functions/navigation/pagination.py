@@ -125,15 +125,15 @@ def get_pagination_items(
         pages.append({"num": None, "url": None, "is_current": False, "is_ellipsis": True})
 
     # Middle pages
-    for page_num in range(start, end + 1):
-        pages.append(
-            {
-                "num": page_num,
-                "href": page_url(page_num),
-                "is_current": page_num == current_page,
-                "is_ellipsis": False,
-            }
-        )
+    pages.extend(
+        {
+            "num": page_num,
+            "href": page_url(page_num),
+            "is_current": page_num == current_page,
+            "is_ellipsis": False,
+        }
+        for page_num in range(start, end + 1)
+    )
 
     # Ellipsis before last page if needed
     if end < total_pages - 1:
