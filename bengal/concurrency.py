@@ -91,11 +91,13 @@ Locks acquired during parallel page rendering.
 | Renderer._cache_lock                          | Lock   | _top_level_cache, _tag_pages_cache         |
 |   rendering/renderer.py:103                   |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
-| NavTreeCache._lock (class-level)              | Lock   | Site-change invalidation of NavTree cache  |
-|   core/nav_tree.py:698                        |        |                                            |
+| NavTreeCache._lock (class-level)              | Lock   | Site-change invalidation (FALLBACK ONLY —  |
+|   core/nav_tree.py:698                        |        | pre-computed path via SiteSnapshot.nav_trees|
+|                                               |        | is lock-free during normal builds)         |
 +-----------------------------------------------+--------+--------------------------------------------+
-| NavTreeCache._build_locks                     | PKL*   | Per-version NavTree build serialization    |
-|   core/nav_tree.py:699                        |        |                                            |
+| NavTreeCache._build_locks                     | PKL*   | Per-version build serialization (FALLBACK  |
+|   core/nav_tree.py:699                        |        | ONLY — bypassed when pre-computed trees    |
+|                                               |        | are available from snapshot)               |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavScaffoldCache._lock (class-level)          | Lock   | Site-change invalidation of scaffold cache |
 |   rendering/.../navigation/scaffold.py:87     |        |                                            |
@@ -461,9 +463,10 @@ simultaneously.
 
 **Recommended next steps (priority order):**
 
-1. **Pre-compute NavTree at snapshot time** (eliminates 4 locks, highest ROI).
-   Add a ``nav_trees: MappingProxyType[str, NavTree]`` field to ``SiteSnapshot``.
-   The ``NavTreeCache.get()`` method becomes a simple dict lookup on the snapshot.
+1. **Pre-compute NavTree at snapshot time** (eliminates 2 locks, highest ROI).
+   ✅ DONE — ``SiteSnapshot.nav_trees`` pre-computed in snapshot builder.
+   ``NavTreeCache.get()`` uses lock-free dict lookup when pre-computed trees
+   are available, falling back to lock-based build for backward compatibility.
 
 2. **Pre-compute tag pages and top-level content in snapshot builder** (eliminates
    1 lock).  Add ``top_level_pages``, ``top_level_sections``, and a tag-pages

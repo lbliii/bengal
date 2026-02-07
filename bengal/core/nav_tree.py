@@ -676,18 +676,17 @@ class NavTreeCache:
     """
     Thread-safe cache for NavTree instances with LRU eviction.
 
-    Uses per-version locking to prevent duplicate NavTree builds when multiple
-    threads request the same version simultaneously. Different versions can
-    still be built in parallel.
+    Pre-computed trees (from SiteSnapshot) are checked first for lock-free O(1)
+    lookups during parallel rendering. The lock-based build path remains as a
+    fallback for contexts where no snapshot is available (tests, dev server).
 
     Memory leak prevention: Cache is limited to 20 entries. When limit is reached,
     least-recently-used entries are evicted (LRU). This prevents unbounded growth
     if many version_ids are created while keeping frequently-accessed versions cached.
 
     Thread Safety:
-        - Uses shared LRUCache with internal RLock
-        - _build_locks: Per-version locks to serialize builds for SAME version
-        - Different versions build in parallel (no contention)
+        - Pre-computed path: Lock-free dict lookup (set via set_precomputed)
+        - Fallback path: shared LRUCache + per-version PerKeyLockManager locks
 
     Eviction Strategy:
         LRU (Least Recently Used) via shared bengal.utils.lru_cache.LRUCache.
@@ -698,21 +697,43 @@ class NavTreeCache:
     _lock = threading.Lock()
     _build_locks = PerKeyLockManager()  # Per-version build serialization
     _site: Site | None = None
+    # Pre-computed trees from SiteSnapshot — lock-free fast path
+    _precomputed: dict[str, NavTree] = {}
+
+    @classmethod
+    def set_precomputed(cls, trees: dict[str, NavTree] | None) -> None:
+        """
+        Install pre-computed NavTrees from the snapshot builder.
+
+        Called once after create_site_snapshot() to enable lock-free lookups
+        during parallel rendering. Pass None to clear pre-computed trees.
+
+        Args:
+            trees: Mapping of version_key → NavTree (or None to clear)
+        """
+        cls._precomputed = dict(trees) if trees else {}
 
     @classmethod
     def get(cls, site: SiteLike, version_id: str | None = None) -> NavTree:
         """
         Get a cached NavTree or build it if missing.
 
-        Thread-safe: Multiple threads requesting the same version will serialize
-        on the build, with only one thread doing the actual work. Different
-        versions can be built in parallel.
+        Fast path (lock-free): If pre-computed trees are available (from
+        SiteSnapshot), returns immediately via dict lookup — no locks acquired.
 
-        Uses LRU semantics via shared LRUCache.
+        Fallback path (thread-safe): Multiple threads requesting the same
+        version will serialize on the build, with only one thread doing
+        the actual work. Different versions can be built in parallel.
         """
         # Use string key for cache (None -> "__default__")
         cache_key = version_id if version_id is not None else "__default__"
 
+        # Fast path: check pre-computed trees (lock-free O(1) lookup)
+        precomputed = cls._precomputed.get(cache_key)
+        if precomputed is not None:
+            return precomputed
+
+        # Fallback path: lock-based build-on-demand
         # 1. Quick cache check (includes site change detection)
         with cls._lock:
             # Full invalidation if site object changed (new build session)
@@ -746,19 +767,22 @@ class NavTreeCache:
         if version_id is None:
             cls._cache.clear()
             cls._build_locks.clear()
+            cls._precomputed.clear()
         else:
             cache_key = version_id if version_id is not None else "__default__"
             cls._cache.delete(cache_key)
+            cls._precomputed.pop(cache_key, None)
 
     @classmethod
     def clear_locks(cls) -> None:
         """
-        Clear all build locks.
+        Clear all build locks and pre-computed trees.
 
         Call this at the end of a build session to reset lock state.
         Safe to call when no threads are actively building.
         """
         cls._build_locks.clear()
+        cls._precomputed.clear()
 
     @classmethod
     def stats(cls) -> dict[str, Any]:

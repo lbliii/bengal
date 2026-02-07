@@ -14,6 +14,8 @@ import pytest
 from bengal.snapshots import create_site_snapshot
 from bengal.snapshots.types import NO_SECTION, PageSnapshot, SectionSnapshot, SiteSnapshot
 
+from types import MappingProxyType
+
 
 @pytest.mark.bengal(testroot="test-basic")
 def test_create_snapshot_basic(site, build_site):
@@ -179,3 +181,88 @@ def test_snapshot_section_hierarchy(site, build_site):
     for section_snap in snapshot.sections:
         assert section_snap.root is not None
         assert section_snap.root == snapshot.root_section or section_snap == snapshot.root_section
+
+
+# =============================================================================
+# NavTree pre-computation tests
+# =============================================================================
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_snapshot_has_nav_trees(site, build_site):
+    """Snapshot should have pre-computed nav_trees field."""
+    build_site()
+
+    snapshot = create_site_snapshot(site)
+
+    assert hasattr(snapshot, "nav_trees")
+    assert isinstance(snapshot.nav_trees, MappingProxyType)
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_snapshot_nav_trees_has_default_tree(site, build_site):
+    """Snapshot should contain at least the __default__ NavTree."""
+    build_site()
+
+    snapshot = create_site_snapshot(site)
+
+    assert "__default__" in snapshot.nav_trees
+
+    from bengal.core.nav_tree import NavTree
+
+    tree = snapshot.nav_trees["__default__"]
+    assert isinstance(tree, NavTree)
+    assert tree.root is not None
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_snapshot_nav_tree_matches_direct_build(site, build_site):
+    """Pre-computed NavTree should match a fresh NavTree.build() result."""
+    build_site()
+
+    snapshot = create_site_snapshot(site)
+    fresh_tree = __import__("bengal.core.nav_tree", fromlist=["NavTree"]).NavTree.build(site)
+
+    snapshot_tree = snapshot.nav_trees["__default__"]
+
+    # Both should have the same top-level section URLs
+    snapshot_urls = snapshot_tree.urls
+    fresh_urls = fresh_tree.urls
+
+    assert snapshot_urls == fresh_urls
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_navtree_cache_uses_precomputed(site, build_site):
+    """NavTreeCache.get() should return pre-computed tree when available."""
+    build_site()
+
+    from bengal.core.nav_tree import NavTree, NavTreeCache
+
+    snapshot = create_site_snapshot(site)
+
+    # Install pre-computed trees
+    NavTreeCache.invalidate()
+    NavTreeCache.set_precomputed(dict(snapshot.nav_trees))
+
+    try:
+        # get() should return the pre-computed tree (lock-free path)
+        cached = NavTreeCache.get(site)
+        assert cached is snapshot.nav_trees["__default__"]
+    finally:
+        NavTreeCache.invalidate()
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_navtree_cache_invalidate_clears_precomputed(site, build_site):
+    """NavTreeCache.invalidate() should clear pre-computed trees."""
+    build_site()
+
+    from bengal.core.nav_tree import NavTree, NavTreeCache
+
+    snapshot = create_site_snapshot(site)
+    NavTreeCache.set_precomputed(dict(snapshot.nav_trees))
+
+    # Invalidate should clear pre-computed
+    NavTreeCache.invalidate()
+    assert len(NavTreeCache._precomputed) == 0

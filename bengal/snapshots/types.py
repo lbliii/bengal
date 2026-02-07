@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.config.snapshot import ConfigSnapshot
+    from bengal.core.nav_tree import NavTree
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,6 +247,13 @@ class SiteSnapshot:
     # Provides typed attribute access: config_snapshot.site.title
     # None for backward compatibility - will be populated by snapshot builder
     config_snapshot: ConfigSnapshot | None = None
+
+    # Pre-computed navigation trees keyed by version_id ("__default__" for unversioned).
+    # Built at snapshot time from the fully-populated site, enabling lock-free
+    # O(1) lookups during parallel rendering and eliminating NavTreeCache locks.
+    nav_trees: MappingProxyType[str, NavTree] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True, slots=True)

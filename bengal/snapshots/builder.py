@@ -186,6 +186,9 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     # Create typed ConfigSnapshot (RFC: Snapshot-Enabled v2, Opportunity 6)
     config_snapshot = ConfigSnapshot.from_dict(config_dict)
 
+    # Phase 8: Pre-compute navigation trees (eliminates NavTreeCache locks)
+    nav_trees = _build_nav_trees(site)
+
     return SiteSnapshot(
         pages=tuple(page_cache.values()),
         regular_pages=tuple(p for p in page_cache.values() if not p.metadata.get("_generated")),
@@ -209,6 +212,7 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
         template_dependency_graph=template_dep_graph,
         template_dependents=template_dependents,
         config_snapshot=config_snapshot,
+        nav_trees=nav_trees,
     )
 
 
@@ -382,6 +386,9 @@ def update_snapshot(
         config_dict = {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
 
+    # Rebuild nav trees (structure may have changed)
+    nav_trees = _build_nav_trees(site)
+
     return SiteSnapshot(
         pages=all_pages,
         regular_pages=tuple(p for p in all_pages if not p.metadata.get("_generated")),
@@ -403,6 +410,7 @@ def update_snapshot(
         template_dependency_graph=template_dep_graph,
         template_dependents=template_dependents,
         config_snapshot=config_snapshot,
+        nav_trees=nav_trees,
     )
 
 
@@ -419,6 +427,37 @@ def _rebuild_template_dependents(
             dependents[template_name] = pages
 
     return MappingProxyType({k: tuple(v) for k, v in dependents.items()})
+
+
+def _build_nav_trees(site: SiteLike) -> MappingProxyType[str, Any]:
+    """
+    Pre-compute navigation trees for all versions at snapshot time.
+
+    This eliminates the need for NavTreeCache locks during parallel rendering.
+    Trees are built from the fully-populated site (sections + pages), which is
+    the same input NavTree.build() uses when called lazily.
+
+    Args:
+        site: Mutable Site after content discovery (sections must be populated)
+
+    Returns:
+        Frozen mapping of version_key → NavTree for lock-free lookups
+    """
+    from bengal.core.nav_tree import NavTree
+
+    trees: dict[str, Any] = {}
+
+    # Build default (unversioned) tree
+    trees["__default__"] = NavTree.build(site)
+
+    # Build per-version trees if versioning is enabled
+    if getattr(site, "versioning_enabled", False):
+        versions = getattr(site, "versions", [])
+        for version_dict in versions:
+            version_id = version_dict["id"] if isinstance(version_dict, dict) else str(version_dict)
+            trees[version_id] = NavTree.build(site, version_id)
+
+    return MappingProxyType(trees)
 
 
 def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:

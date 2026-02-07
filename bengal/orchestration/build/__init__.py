@@ -529,6 +529,11 @@ class BuildOrchestrator:
             if hasattr(self.stats, "snapshot_time_ms"):
                 self.stats.snapshot_time_ms = snapshot_duration_ms
 
+            # Install pre-computed NavTrees for lock-free lookups during rendering
+            from bengal.core.nav_tree import NavTreeCache
+
+            NavTreeCache.set_precomputed(dict(site_snapshot.nav_trees))
+
             # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
             # This enables near-instant parsing on subsequent builds
             cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
