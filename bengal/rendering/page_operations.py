@@ -23,7 +23,9 @@ See Also:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from bengal.protocols.core import PageLike
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -67,7 +69,7 @@ class PageOperationsMixin:
         from bengal.rendering.renderer import Renderer
 
         renderer = Renderer(template_engine)
-        self.rendered_html = renderer.render_page(self)
+        self.rendered_html = renderer.render_page(cast(PageLike, self))
         return self.rendered_html
 
     def validate_links(self) -> list[str]:
@@ -80,7 +82,7 @@ class PageOperationsMixin:
         from bengal.health.validators.links import LinkValidator
 
         validator = LinkValidator()
-        broken_links = validator.validate_page_links(self)
+        broken_links = validator.validate_page_links(cast(PageLike, self))
         return broken_links
 
     def apply_template(self, template_name: str, context: dict[str, object] | None = None) -> str:

@@ -15,7 +15,7 @@ Site(root_path, config): Direct instantiation (advanced)
 Package Structure:
 properties.py: SitePropertiesMixin (config accessors)
 config_normalized.py: SiteNormalizedConfigMixin (normalized config)
-versioning.py: SiteVersioningMixin (version support)
+versioning.py: VersionService (version support, composed)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
 factory.py: Factory functions (from_config, for_testing)
 
@@ -65,7 +65,7 @@ from .config_normalized import SiteNormalizedConfigMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
 from .properties import SitePropertiesMixin
-from .versioning import SiteVersioningMixin
+from .versioning import VersionService
 
 if TYPE_CHECKING:
     from bengal.assets.manifest import AssetManifest
@@ -87,7 +87,6 @@ _print_lock = Lock()
 class Site(
     SitePropertiesMixin,
     SiteNormalizedConfigMixin,
-    SiteVersioningMixin,
     SiteDiscoveryMixin,
 ):
     """
@@ -159,6 +158,9 @@ class Site(
     version_config: VersionConfig = field(default_factory=VersionConfig)
     # Current version context for rendering (set per page during rendering)
     current_version: Version | None = None
+
+    # Version service (composed, replaces SiteVersioningMixin)
+    _version_service: VersionService | None = field(default=None, repr=False, init=False)
 
     # Page cache manager (lazy caches over self.pages, extracted to PageCacheManager)
     _page_cache: PageCacheManager | None = field(default=None, repr=False, init=False)
@@ -319,6 +321,7 @@ class Site(
         # Initialize versioning configuration
         # VersionConfig.from_config expects a dict; config_dict already computed above
         self.version_config = VersionConfig.from_config(config_dict)
+        self._version_service = VersionService(self.version_config)
         if self.version_config.enabled:
             emit_diagnostic(
                 self,

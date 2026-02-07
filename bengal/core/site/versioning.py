@@ -1,8 +1,4 @@
-"""
-Versioning mixin for Site.
-
-Provides properties and methods for versioned documentation support.
-"""
+"""Version service for site versioning support."""
 
 from __future__ import annotations
 
@@ -12,16 +8,27 @@ if TYPE_CHECKING:
     from bengal.core.version import Version, VersionConfig
 
 
-class SiteVersioningMixin:
+class VersionService:
     """
-    Mixin providing versioning properties and methods for Site.
+    Standalone versioning service.
 
-    Supports versioned documentation with multiple versions of content,
-    version selectors in templates, and version-aware navigation.
+    Encapsulates version resolution, caching, and template-facing version
+    data.  Composed into Site rather than mixed in.
+
+    Args:
+        version_config: Versioning configuration loaded from site config.
     """
 
-    # These attributes are defined on the Site dataclass
-    version_config: VersionConfig
+    __slots__ = ("_version_config", "_versions_dict_cache", "_latest_version_dict_cache")
+
+    def __init__(self, version_config: VersionConfig) -> None:
+        self._version_config = version_config
+        self._versions_dict_cache: list[dict[str, Any]] | None = None
+        self._latest_version_dict_cache: dict[str, Any] | None | str = None
+
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
 
     @property
     def versioning_enabled(self) -> bool:
@@ -31,46 +38,32 @@ class SiteVersioningMixin:
         Returns:
             True if versioning is configured and enabled
         """
-        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
-        return version_config is not None and version_config.enabled
+        return self._version_config is not None and self._version_config.enabled
 
     @property
     def versions(self) -> list[dict[str, Any]]:
         """
         Get list of all versions for templates (cached).
 
-        Available in templates as `site.versions` for version selector rendering.
+        Available in templates as ``site.versions`` for version selector rendering.
         Each version dict contains: id, label, latest, deprecated, url_prefix.
 
         Returns:
             List of version dictionaries for template use
 
-        Example:
-            {% for v in site.versions %}
-                <option value="{{ v.url_prefix }}"
-                        {% if v.id == site.current_version.id %}selected{% endif %}>
-                    {{ v.label }}{% if v.latest %} (Latest){% endif %}
-                </option>
-            {% endfor %}
-
         Performance:
             Version dicts are cached on first access. For a 1000-page site with
             version selector in header, this eliminates ~1000 list creations.
         """
-        # Return cached value if available
-        cache_attr = "_versions_dict_cache"
-        cached = getattr(self, cache_attr, None)
-        if cached is not None:
-            return cached
+        if self._versions_dict_cache is not None:
+            return self._versions_dict_cache
 
-        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
-        if not version_config or not version_config.enabled:
+        if not self._version_config or not self._version_config.enabled:
             result: list[dict[str, Any]] = []
         else:
-            result = [v.to_dict() for v in version_config.versions]
+            result = [v.to_dict() for v in self._version_config.versions]
 
-        # Cache the result
-        object.__setattr__(self, cache_attr, result)
+        self._versions_dict_cache = result
         return result
 
     @property
@@ -82,27 +75,24 @@ class SiteVersioningMixin:
             Latest version dictionary or None if versioning disabled
 
         Performance:
-            Cached on first access to avoid repeated .to_dict() calls.
+            Cached on first access to avoid repeated ``.to_dict()`` calls.
         """
-        # Return cached value if available
-        cache_attr = "_latest_version_dict_cache"
-        cached = getattr(self, cache_attr, None)
-        if cached is not None:
-            # None means "not cached yet", use sentinel for "cached None"
-            return cached if cached != "_NO_LATEST_VERSION_" else None
+        if self._latest_version_dict_cache is not None:
+            # None means "not cached yet"; sentinel distinguishes "cached None"
+            return self._latest_version_dict_cache if self._latest_version_dict_cache != "_NO_LATEST_VERSION_" else None
 
-        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
-        if not version_config or not version_config.enabled:
+        if not self._version_config or not self._version_config.enabled:
             result = None
         else:
-            latest = version_config.latest_version
+            latest = self._version_config.latest_version
             result = latest.to_dict() if latest else None
 
-        # Cache the result (use sentinel for None to distinguish from "not cached")
-        object.__setattr__(
-            self, cache_attr, result if result is not None else "_NO_LATEST_VERSION_"
-        )
+        self._latest_version_dict_cache = result if result is not None else "_NO_LATEST_VERSION_"
         return result
+
+    # ------------------------------------------------------------------
+    # Methods
+    # ------------------------------------------------------------------
 
     def get_version(self, version_id: str) -> Version | None:
         """
@@ -114,17 +104,16 @@ class SiteVersioningMixin:
         Returns:
             Version object or None if not found
         """
-        version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
-        if not version_config or not version_config.enabled:
+        if not self._version_config or not self._version_config.enabled:
             return None
-        return version_config.get_version_or_alias(version_id)
+        return self._version_config.get_version_or_alias(version_id)
 
-    def invalidate_version_caches(self) -> None:
+    def invalidate_caches(self) -> None:
         """
         Invalidate cached version dict lists.
 
-        Call this when versioning configuration changes (e.g., during dev server reload).
+        Call this when versioning configuration changes (e.g., during dev
+        server reload).
         """
-        for attr in ("_versions_dict_cache", "_latest_version_dict_cache"):
-            if hasattr(self, attr):
-                object.__delattr__(self, attr)
+        self._versions_dict_cache = None
+        self._latest_version_dict_cache = None
