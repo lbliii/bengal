@@ -13,7 +13,6 @@ Site.for_testing(): Minimal instance for unit tests
 Site(root_path, config): Direct instantiation (advanced)
 
 Package Structure:
-properties.py: SitePropertiesMixin (config accessors)
 config_normalized.py: SiteNormalizedConfigMixin (normalized config)
 versioning.py: VersionService (version support, composed)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
@@ -65,7 +64,6 @@ from bengal.services.config import ConfigService
 from .config_normalized import SiteNormalizedConfigMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
-from .properties import SitePropertiesMixin
 from .versioning import VersionService
 
 if TYPE_CHECKING:
@@ -86,7 +84,6 @@ _print_lock = Lock()
 
 @dataclass
 class Site(
-    SitePropertiesMixin,
     SiteNormalizedConfigMixin,
     SiteDiscoveryMixin,
 ):
@@ -362,13 +359,143 @@ class Site(
         """
         Immutable configuration service for thread-safe config access.
 
-        Provides the same properties as the old SitePropertiesMixin
-        (title, baseurl, author, etc.) via a frozen dataclass that
-        requires no locks during parallel rendering.
+        Provides config-derived properties (title, baseurl, author, etc.)
+        via a frozen dataclass that requires no locks during parallel rendering.
         """
         if self._config_service is None:
             self._config_service = ConfigService.from_config(self.config, self.root_path)
         return self._config_service
+
+    # ------------------------------------------------------------------
+    # Config delegation properties (formerly SitePropertiesMixin)
+    # ------------------------------------------------------------------
+
+    @property
+    def paths(self) -> BengalPaths:
+        """Access to .bengal directory paths."""
+        return self.config_service.paths
+
+    @property
+    def title(self) -> str | None:
+        """Get site title from configuration."""
+        return self.config_service.title
+
+    @property
+    def description(self) -> str | None:
+        """Get site description, respecting runtime overrides."""
+        if self._description_override is not None:
+            return self._description_override
+        return self.config_service.description
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        """Allow runtime override of site description for generated outputs."""
+        self._description_override = value
+
+    @property
+    def baseurl(self) -> str | None:
+        """Get site baseurl from configuration."""
+        return self.config_service.baseurl
+
+    @property
+    def content_dir(self) -> Path:
+        """Get path to the content directory."""
+        return self.config_service.content_dir
+
+    @property
+    def author(self) -> str | None:
+        """Get site author from configuration."""
+        return self.config_service.author
+
+    @property
+    def favicon(self) -> str | None:
+        """Get favicon path from site config."""
+        return self.config_service.favicon
+
+    @property
+    def logo_image(self) -> str | None:
+        """Get logo image path from site config."""
+        return self.config_service.logo_image
+
+    @property
+    def logo_text(self) -> str | None:
+        """Get logo text from site config."""
+        return self.config_service.logo_text
+
+    @property
+    def params(self) -> dict[str, Any]:
+        """Site-level custom parameters from [params] config section."""
+        return self.config_service.params
+
+    @property
+    def logo(self) -> str:
+        """Logo URL from config (checks multiple locations)."""
+        return self.config_service.logo
+
+    @property
+    def config_hash(self) -> str:
+        """Get deterministic hash of the resolved configuration."""
+        return self.config_service.config_hash
+
+    def _compute_config_hash(self) -> None:
+        """Compute and cache the configuration hash (backward compat)."""
+        from bengal.config.hash import compute_config_hash
+
+        self._config_hash = compute_config_hash(self.config)
+        emit_diagnostic(
+            self,
+            "debug",
+            "config_hash_computed",
+            hash=self._config_hash[:8] if self._config_hash else "none",
+        )
+
+    @property
+    def theme_config(self) -> Theme:
+        """Get theme configuration object."""
+        if self._theme_obj is not None:
+            return self._theme_obj
+        return self.config_service.theme_config
+
+    @property
+    def indexes(self) -> QueryIndexRegistry:
+        """Access to query indexes for O(1) page lookups."""
+        if self._query_registry is None:
+            from bengal.cache.query_index_registry import QueryIndexRegistry
+
+            self._query_registry = QueryIndexRegistry(
+                cast(SiteLike, self), self.paths.indexes_dir
+            )
+        return self._query_registry
+
+    @property
+    def assets_config(self) -> dict[str, Any]:
+        """Get the assets configuration section."""
+        return self.config_service.assets_config
+
+    @property
+    def build_config(self) -> dict[str, Any]:
+        """Get the build configuration section."""
+        return self.config_service.build_config
+
+    @property
+    def i18n_config(self) -> dict[str, Any]:
+        """Get the internationalization configuration section."""
+        return self.config_service.i18n_config
+
+    @property
+    def menu_config(self) -> dict[str, Any]:
+        """Get the menu configuration section."""
+        return self.config_service.menu_config
+
+    @property
+    def content_config(self) -> dict[str, Any]:
+        """Get the content configuration section."""
+        return self.config_service.content_config
+
+    @property
+    def output_config(self) -> dict[str, Any]:
+        """Get the output configuration section."""
+        return self.config_service.output_config
 
     @property
     def registry(self) -> ContentRegistry:
