@@ -23,12 +23,16 @@ See Also:
 from __future__ import annotations
 
 from bengal.snapshots.builder import (
+    create_site_snapshot,
+    update_snapshot,
+)
+from bengal.snapshots.speculative import (
     ShadowModeValidator,
     SpeculativeRenderer,
-    create_site_snapshot,
-    pages_affected_by_template_change,
     predict_affected,
-    update_snapshot,
+)
+from bengal.snapshots.templates import (
+    pages_affected_by_template_change,
 )
 from bengal.snapshots.scheduler import WaveScheduler
 from bengal.snapshots.scout import ScoutThread
