@@ -52,6 +52,7 @@ from bengal.parsing.backends.patitas.renderers.directives import (
     DirectiveRendererMixin,
 )
 from bengal.parsing.backends.patitas.renderers.inline import INLINE_DISPATCH
+from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 from bengal.parsing.backends.patitas.renderers.utils import (
     HeadingInfo,
     default_slugify,
@@ -67,7 +68,7 @@ if TYPE_CHECKING:
 __all__ = ["HeadingInfo", "HtmlRenderer"]
 
 
-class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin):
+class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProtocol):
     """Render AST to HTML using StringBuilder pattern.
 
     O(n) rendering using StringBuilder for string accumulation.

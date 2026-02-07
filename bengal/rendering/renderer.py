@@ -32,7 +32,11 @@ from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+    from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.stats.models import BuildStats
+    from bengal.protocols import PageLike, SectionLike, TemplateEngine
+    from bengal.rendering.block_cache import BlockCache
+    from bengal.snapshots.types import SectionSnapshot, SiteSnapshot
 
 logger = get_logger(__name__)
 
@@ -71,10 +75,10 @@ class Renderer:
 
     def __init__(
         self,
-        template_engine: Any,
-        build_stats: Any = None,
-        block_cache: Any = None,
-        build_context: Any = None,
+        template_engine: TemplateEngine,
+        build_stats: BuildStats | None = None,
+        block_cache: BlockCache | None = None,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Initialize the renderer.
@@ -91,14 +95,14 @@ class Renderer:
         self.block_cache = block_cache  # Block cache for KIDA introspection optimization
         self.build_context = build_context  # For accessing snapshot
         # PERF: Cache for top-level content (computed once per build)
-        self._top_level_cache: tuple[list[PageLike], list[Any]] | None = None
+        self._top_level_cache: tuple[list[PageLike], list[SectionLike]] | None = None
         # PERF: Cache for resolved tag pages (computed once per build)
         # Maps tag_slug -> list of filtered, resolved PageLike objects
         self._tag_pages_cache: dict[str, list[PageLike]] | None = None
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
 
-    def _get_top_level_content(self) -> tuple[list[PageLike], list[Any]]:
+    def _get_top_level_content(self) -> tuple[list[PageLike], list[SectionLike]]:
         """
         Get top-level pages and sections (not nested in any section).
 
@@ -130,7 +134,7 @@ class Renderer:
         self._top_level_cache = (top_level_pages, top_level_subsections)
         return self._top_level_cache
 
-    def _to_section_snapshot(self, section: Any, snapshot: Any) -> Any:
+    def _to_section_snapshot(self, section: SectionLike | SectionSnapshot | None, snapshot: SiteSnapshot | None) -> SectionSnapshot | None:
         """
         Convert a mutable Section to its SectionSnapshot equivalent.
 
@@ -168,7 +172,7 @@ class Renderer:
         # Fallback: return NO_SECTION sentinel
         return NO_SECTION
 
-    def _to_section_snapshots(self, sections: list[Any], snapshot: Any) -> list[Any]:
+    def _to_section_snapshots(self, sections: list[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None) -> list[SectionSnapshot]:
         """
         Convert a list of mutable Sections to SectionSnapshots.
 

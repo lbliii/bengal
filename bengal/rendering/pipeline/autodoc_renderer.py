@@ -29,7 +29,10 @@ from bengal.utils.paths.url_normalization import path_to_slug
 if TYPE_CHECKING:
     from kida.template import Template
 
-    from bengal.protocols import PageLike, TemplateEngine
+    from bengal.build.tracking.tracker import DependencyTracker
+    from bengal.orchestration.stats.models import BuildStats
+    from bengal.protocols import OutputCollector, PageLike, TemplateEngine
+    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -71,13 +74,13 @@ class AutodocRenderer:
 
     def __init__(
         self,
-        site: Any,
+        site: SiteLike,
         template_engine: TemplateEngine,
         renderer: Renderer,
-        dependency_tracker: Any = None,
-        output_collector: Any = None,
-        build_stats: Any = None,
-        write_behind: Any = None,
+        dependency_tracker: DependencyTracker | None = None,
+        output_collector: OutputCollector | None = None,
+        build_stats: BuildStats | None = None,
+        write_behind: WriteBehindCollector | None = None,
     ):
         """
         Initialize the autodoc renderer.

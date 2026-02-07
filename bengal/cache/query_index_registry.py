@@ -49,8 +49,7 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.query_index import QueryIndex
-    from bengal.core.site import Site
-    from bengal.protocols import PageLike
+    from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
 
@@ -74,7 +73,7 @@ class QueryIndexRegistry:
 
     """
 
-    def __init__(self, site: Site, cache_dir: Path):
+    def __init__(self, site: SiteLike, cache_dir: Path):
         """
         Initialize registry.
 
