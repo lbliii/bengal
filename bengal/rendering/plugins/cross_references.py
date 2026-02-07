@@ -84,7 +84,7 @@ class CrossReferencePlugin:
             version_config: Optional versioning configuration for cross-version links
             cross_version_tracker: Optional callback to track cross-version link dependencies.
                 Called with (source_page, target_version, target_path) when a [[v2:path]]
-                link is resolved. Used by DependencyTracker for incremental rebuilds.
+                link is resolved. Used by EffectTracer for incremental rebuilds.
             external_ref_resolver: Optional resolver for [[ext:project:target]] syntax.
                 See: plan/rfc-external-references.md
 

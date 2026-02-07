@@ -89,7 +89,7 @@ def phase_parse_content(
         if not hasattr(thread_local, "pipeline"):
             thread_local.pipeline = RenderingPipeline(
                 orchestrator.site,
-                dependency_tracker=None,  # No tracking during parsing phase
+                # No dependency tracking during parsing phase (EffectTracer handles this at render time)
                 quiet=True,
                 build_stats=None,
                 build_context=None,

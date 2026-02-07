@@ -29,7 +29,7 @@ class SiteContext:
     Data File Tracking:
         When accessing `site.data`, returns a TrackedData wrapper that
         records data file dependencies for incremental builds. This is
-        automatic when a DependencyTracker is set via tracker_context().
+        automatic when EffectTracer is active via render_integration.
 
     Example:
         {{ site.title }}             # Site title

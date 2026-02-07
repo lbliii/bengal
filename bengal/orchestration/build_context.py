@@ -35,7 +35,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
@@ -170,9 +169,8 @@ class BuildContext:
     stats: BuildStats | None = None
     profile: BuildProfile | None = None
 
-    # Cache and tracking
+    # Cache
     cache: BuildCache | None = None
-    tracker: DependencyTracker | None = None
 
     # Build mode flags
     incremental: bool = False

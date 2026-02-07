@@ -49,7 +49,6 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
@@ -115,7 +114,6 @@ def determine_template(page: PageLike) -> str:
 def write_output(
     page: PageLike,
     site: SiteLike,
-    dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
     write_behind: WriteBehindCollector | None = None,
     build_cache: Any = None,
@@ -136,11 +134,9 @@ def write_output(
     Args:
         page: Page with rendered content
         site: Site instance for config
-        dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload tracking
         write_behind: Optional write-behind collector for async writes
-        build_cache: Optional BuildCache for direct cache access. If None,
-            falls back to dependency_tracker.cache for backward compatibility.
+        build_cache: Optional BuildCache for direct cache access.
 
     """
     # Ensure output_path is set
@@ -162,8 +158,8 @@ def write_output(
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
         write_behind.enqueue(page.output_path, page.rendered_html)
-        # Still track dependencies and record output (these are fast)
-        _track_and_record(page, site, dependency_tracker, collector, build_cache=build_cache)
+        # Still track output mapping and record output (these are fast)
+        _track_and_record(page, site, collector, build_cache=build_cache)
         return
 
     # Synchronous write (original behavior)
@@ -210,31 +206,25 @@ def write_output(
                 ensure_parent=False,
             )
 
-    _track_and_record(page, site, dependency_tracker, collector, build_cache=build_cache)
+    _track_and_record(page, site, collector, build_cache=build_cache)
 
 
 def _track_and_record(
     page: PageLike,
     site: SiteLike,
-    dependency_tracker: DependencyTracker | None,
     collector: OutputCollector | None,
     build_cache: Any = None,
 ) -> None:
-    """Track dependencies and record output (shared by sync and async paths).
+    """Track output mapping and record output (shared by sync and async paths).
 
     Args:
         page: Page with output_path set
         site: Site instance
-        dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload
-        build_cache: Optional BuildCache for direct cache access. If None,
-            falls back to dependency_tracker.cache for backward compatibility.
+        build_cache: Optional BuildCache for direct cache access.
 
     """
-    # Resolve cache: prefer explicit build_cache, fall back to dependency_tracker.cache
-    cache = build_cache or (
-        getattr(dependency_tracker, "cache", None) if dependency_tracker else None
-    )
+    cache = build_cache
 
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)

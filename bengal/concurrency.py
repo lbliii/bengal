@@ -68,8 +68,8 @@ Per-build state that tracks dependencies, provenance, and effects.
 +-----------------------------------------------+--------+--------------------------------------------+
 | Lock                                          | Type   | Protects                                   |
 +===============================================+========+============================================+
-| DependencyTracker.lock                        | Lock   | tracked_files, dependencies,               |
-|   build/tracking/tracker.py:151               |        | reverse_dependencies, pending fingerprints |
+| (removed: DependencyTracker.lock)             |        | Replaced by EffectTracer (lock-free)       |
+|                                               |        | See bengal/effects/tracer.py               |
 +-----------------------------------------------+--------+--------------------------------------------+
 | ProvenanceFilter._session_lock                | Lock   | Per-session file hash & provenance caches  |
 |   build/provenance/filter.py:125              |        | (_file_hashes, _computed_provenance)       |
@@ -408,12 +408,7 @@ impractical.
 
     - Why not: Fundamentally a write-through cache during the render phase.
 
-12. **DependencyTracker.lock** (Lock, Tier 2)
-
-    Tracks file dependencies discovered during rendering.  New dependencies are
-    registered as templates include files or pages reference assets.
-
-    - Why not: Dependency tracking is inherently append-only during rendering.
+12. **(Removed) DependencyTracker.lock** — replaced by EffectTracer (see #13).
 
 13. **EffectTracer._lock** (Lock, Tier 2)
 

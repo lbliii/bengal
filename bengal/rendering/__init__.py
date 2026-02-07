@@ -44,7 +44,7 @@ Key Classes:
 
 Quick Start:
     >>> from bengal.rendering import RenderingPipeline
-    >>> pipeline = RenderingPipeline(site, dependency_tracker=tracker)
+    >>> pipeline = RenderingPipeline(site)
     >>> pipeline.process_page(page)
 
 Related Modules:

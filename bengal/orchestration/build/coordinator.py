@@ -33,7 +33,6 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache.build_cache import BuildCache
     from bengal.core.site import Site
 
@@ -92,10 +91,10 @@ class CacheCoordinator:
 
     Related:
         - cache_registry.py: Global cache coordination (complementary)
-        - DependencyTracker: Tracks dependencies; this class acts on them
+        - EffectTracer: Tracks dependencies; this class acts on them
 
     Example:
-        >>> coordinator = CacheCoordinator(cache, tracker, site)
+        >>> coordinator = CacheCoordinator(cache, site)
         >>> coordinator.invalidate_page(
         ...     page_path,
         ...     PageInvalidationReason.DATA_FILE_CHANGED,
@@ -106,7 +105,6 @@ class CacheCoordinator:
     def __init__(
         self,
         cache: BuildCache,
-        tracker: DependencyTracker,
         site: Site,
     ) -> None:
         """
@@ -114,11 +112,9 @@ class CacheCoordinator:
 
         Args:
             cache: BuildCache instance for cache operations
-            tracker: DependencyTracker for dependency lookups
             site: Site instance for page access
         """
         self.cache = cache
-        self.tracker = tracker
         self.site = site
         self._events: list[InvalidationEvent] = []
         self._lock = Lock()
@@ -184,6 +180,7 @@ class CacheCoordinator:
         Invalidate all pages that depend on a data file.
 
         Called when data/*.yaml or data/*.json changes.
+        Uses EffectTracer to determine affected outputs.
 
         Args:
             data_file: Path to the changed data file
@@ -192,15 +189,24 @@ class CacheCoordinator:
             List of InvalidationEvents for affected pages
         """
         events: list[InvalidationEvent] = []
-        affected_pages = self.tracker.get_pages_using_data_file(data_file)
 
-        for page_path in affected_pages:
-            event = self.invalidate_page(
-                page_path,
-                reason=PageInvalidationReason.DATA_FILE_CHANGED,
-                trigger=str(data_file),
-            )
-            events.append(event)
+        # Use EffectTracer to find affected outputs
+        from bengal.effects.render_integration import BuildEffectTracer
+
+        tracer = BuildEffectTracer.get_instance().tracer
+        affected_outputs = tracer.outputs_needing_rebuild({data_file})
+
+        for output_path in affected_outputs:
+            # Map output path back to source path via effect
+            deps = tracer.get_dependencies_for_output(output_path)
+            source_paths = [d for d in deps if isinstance(d, Path) and str(d).startswith("content")]
+            for source_path in source_paths:
+                event = self.invalidate_page(
+                    source_path,
+                    reason=PageInvalidationReason.DATA_FILE_CHANGED,
+                    trigger=str(data_file),
+                )
+                events.append(event)
 
         if events:
             logger.info(

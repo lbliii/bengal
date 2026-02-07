@@ -57,7 +57,6 @@ class KidaTemplateEngine:
 
     NAME = "kida"
     __slots__ = (
-        "_dependency_tracker",
         "_env",
         "_menu_dict_cache",
         "_profile",
@@ -96,8 +95,7 @@ class KidaTemplateEngine:
         self.site = site
         self.template_dirs = self._build_template_dirs()
 
-        # Dependency tracking (set by RenderingPipeline)
-        self._dependency_tracker = None
+        # Legacy dependency tracking removed — EffectTracer handles this now
 
         # Template profiling support
         self._profile = profile
@@ -319,13 +317,15 @@ class KidaTemplateEngine:
         # Invalidate menu cache to ensure fresh active states for each page
         self.invalidate_menu_cache()
 
-        # Track template dependency for incremental builds
-        if self._dependency_tracker:
-            template_path = self.get_template_path(name)
-            if template_path:
-                self._dependency_tracker.track_template(template_path)
-            # Track all templates in the inheritance chain (extends/includes)
-            self._track_referenced_templates(name)
+        # Record template dependency for EffectTracer (via ContextVar)
+        from bengal.effects.render_integration import record_extra_dependency, record_template_include
+
+        record_template_include(name)
+        template_path = self.get_template_path(name)
+        if template_path:
+            record_extra_dependency(template_path)
+        # Track all templates in the inheritance chain (extends/includes)
+        self._track_referenced_templates(name)
 
         try:
             template = self._env.get_template(name)
@@ -497,8 +497,7 @@ class KidaTemplateEngine:
         Args:
             template_name: Name of template to analyze
         """
-        if not self._dependency_tracker:
-            return
+        from bengal.effects.render_integration import record_extra_dependency, record_template_include
 
         seen: set[str] = {template_name}
         to_process: list[str] = [template_name]
@@ -520,10 +519,11 @@ class KidaTemplateEngine:
                         continue
                     seen.add(ref_name)
 
-                    # Track as dependency
+                    # Record as dependency via EffectTracer
+                    record_template_include(ref_name)
                     ref_path = self.get_template_path(ref_name)
                     if ref_path:
-                        self._dependency_tracker.track_partial(ref_path)
+                        record_extra_dependency(ref_path)
 
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)

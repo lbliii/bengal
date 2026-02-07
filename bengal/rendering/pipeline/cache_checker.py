@@ -34,9 +34,7 @@ class CacheChecker:
     (parsed AST before template rendering) for incremental builds.
 
     Attributes:
-        dependency_tracker: DependencyTracker for dependency tracking (e.g. end_page())
-        build_cache: BuildCache for direct cache access (resolved from build_cache or
-            dependency_tracker.cache)
+        build_cache: BuildCache for direct cache access
         site: Site instance for configuration
         renderer: Renderer for template rendering
         build_stats: Optional BuildStats for metrics
@@ -44,7 +42,6 @@ class CacheChecker:
 
     Example:
             >>> checker = CacheChecker(
-            ...     dependency_tracker=tracker,
             ...     site=site,
             ...     renderer=renderer,
             ...     build_stats=stats,
@@ -56,7 +53,6 @@ class CacheChecker:
 
     def __init__(
         self,
-        dependency_tracker: Any,
         site: Any,
         renderer: Renderer,
         build_stats: Any = None,
@@ -68,26 +64,19 @@ class CacheChecker:
         Initialize the cache checker.
 
         Args:
-            dependency_tracker: DependencyTracker for dependency tracking (e.g. end_page())
             site: Site instance for configuration
             renderer: Renderer for template rendering
             build_stats: Optional BuildStats for metrics collection
             output_collector: Optional output collector for hot reload tracking
             write_behind: Optional write-behind collector for async I/O
-            build_cache: Optional BuildCache for direct cache access. If None,
-                falls back to dependency_tracker.cache for backward compatibility.
+            build_cache: Optional BuildCache for direct cache access.
         """
-        self.dependency_tracker = dependency_tracker
         self.site = site
         self.renderer = renderer
         self.build_stats = build_stats
         self.output_collector = output_collector
         self.write_behind = write_behind
-
-        # Direct cache access: prefer explicit build_cache, fall back to dependency_tracker.cache
-        self.build_cache = build_cache or (
-            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
-        )
+        self.build_cache = build_cache
 
     def try_rendered_cache(self, page: PageLike, template: str) -> bool:
         """
@@ -132,14 +121,10 @@ class CacheChecker:
         write_output(
             page,
             self.site,
-            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
         )
-
-        if self.dependency_tracker and not page.metadata.get("_generated"):
-            self.dependency_tracker.end_page()
 
         return True
 
@@ -234,14 +219,10 @@ class CacheChecker:
         write_output(
             page,
             self.site,
-            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
         )
-
-        if self.dependency_tracker and not page.metadata.get("_generated"):
-            self.dependency_tracker.end_page()
 
         return True
 

@@ -171,16 +171,13 @@ About content here.
 
     def test_dependency_tracking_stable(self, minimal_site: Path) -> None:
         """
-        Dependency tracking should be stable across builds.
+        Dependency tracking via EffectTracer should be stable across builds.
 
-        Verifies Fix 3: Deferred fingerprint updates.
+        Verifies that recorded effects persist and can be used for
+        rebuild detection on subsequent builds.
         """
-        from bengal.cache import BuildCache
-        from bengal.build.tracking import DependencyTracker
-        from bengal.cache.paths import BengalPaths
-
-        paths = BengalPaths(minimal_site)
-        paths.ensure_dirs()
+        from bengal.effects.tracer import EffectTracer
+        from bengal.effects.effect import Effect
 
         # Create template and page
         templates_dir = minimal_site / "templates"
@@ -191,30 +188,35 @@ About content here.
         content_dir = minimal_site / "content"
         page = content_dir / "index.md"
 
-        # Build 1: Track dependencies
-        cache = BuildCache()
-        tracker = DependencyTracker(cache)
+        output_path = minimal_site / "public" / "index.html"
 
-        tracker.start_page(page)
-        tracker.track_template(template)
-        tracker.end_page()
+        # Build 1: Record effects
+        tracer = EffectTracer()
+        tracer.record(
+            Effect(
+                outputs=frozenset({output_path}),
+                depends_on=frozenset({page, template}),
+                invalidates=frozenset({"page:/"}),
+                operation="render_page",
+            )
+        )
 
-        # Flush pending updates
-        tracker.flush_pending_updates()
+        # Persist effects
+        effects_path = minimal_site / ".bengal" / "effects.json"
+        effects_path.parent.mkdir(parents=True, exist_ok=True)
+        tracer.save(effects_path)
 
-        # Update page fingerprint
-        cache.update_file(page)
-        cache.save(paths.build_cache)
+        # Build 2: Load and verify
+        tracer2 = EffectTracer()
+        tracer2.load(effects_path)
 
-        # Build 2: Verify dependencies are intact
-        cache2 = BuildCache.load(paths.build_cache)
+        # Template change should trigger rebuild of dependent page
+        outputs = tracer2.outputs_needing_rebuild({template})
+        assert output_path in outputs, "Template dependency not preserved"
 
-        # Page should still depend on template
-        page_deps = cache2.dependencies.get(str(page), set())
-        assert str(template) in page_deps, "Dependency not preserved"
-
-        # Template fingerprint should exist
-        assert str(template) in cache2.file_fingerprints, "Template fingerprint missing"
+        # Page source change should also trigger rebuild
+        outputs2 = tracer2.outputs_needing_rebuild({page})
+        assert output_path in outputs2, "Page source dependency not preserved"
 
     def test_content_change_detected_correctly(self, minimal_site: Path) -> None:
         """
@@ -374,7 +376,7 @@ title: Home
         orchestrator.content.discover_assets()
 
         # Initialize incremental orchestrator
-        cache, _tracker = orchestrator.incremental.initialize(enabled=True)
+        cache = orchestrator.incremental.initialize(enabled=True)
 
         # Run incremental filter
         cli = CLIOutput()

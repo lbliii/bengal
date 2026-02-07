@@ -11,7 +11,7 @@ Thread Safety (Free-Threading / PEP 703):
 
 Usage:
     # Define a manager for your context type
-    _tracker_ctx = ContextVarManager[DependencyTracker]("dependency_tracker")
+    _tracker_ctx = ContextVarManager[EffectTracer]("effect_tracer")
 
     # Get/set/reset
     tracker = _tracker_ctx.get()
@@ -26,7 +26,7 @@ Usage:
 Related Modules:
     - bengal.rendering.assets: Uses for AssetManifestContext
     - bengal.rendering.asset_tracking: Uses for AssetTracker
-    - bengal.rendering.context.data_tracking: Uses for DependencyTracker
+    - bengal.rendering.context.data_tracking: Uses for EffectTracer integration
 """
 
 from __future__ import annotations

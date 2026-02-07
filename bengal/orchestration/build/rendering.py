@@ -31,7 +31,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.build.tracking import DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
@@ -391,7 +390,6 @@ def phase_render(
     verbose: bool,
     memory_optimized: bool,
     pages_to_build: list[Page],
-    tracker: DependencyTracker | None,
     profile: BuildProfile,
     progress_manager: LiveProgressManager | None,
     reporter: ProgressReporter | None,
@@ -414,7 +412,6 @@ def phase_render(
         verbose: Whether verbose mode is enabled
         memory_optimized: Whether to use streaming render
         pages_to_build: List of pages to render
-        tracker: Dependency tracker
         profile: Build profile
         progress_manager: Progress manager
         reporter: Progress reporter
@@ -480,7 +477,6 @@ def phase_render(
                 ctx = BuildContext(
                     site=orchestrator.site,
                     pages=pages_to_build,
-                    tracker=tracker,
                     stats=orchestrator.stats,
                     profile=profile,
                     progress_manager=progress_manager,
@@ -507,7 +503,6 @@ def phase_render(
                     pages_to_build,
                     parallel=use_parallel,
                     quiet=quiet_mode,
-                    tracker=tracker,
                     stats=orchestrator.stats,
                     progress_manager=progress_manager,
                     reporter=reporter,
@@ -520,7 +515,6 @@ def phase_render(
                 ctx = BuildContext(
                     site=orchestrator.site,
                     pages=pages_to_build,
-                    tracker=tracker,
                     stats=orchestrator.stats,
                     profile=profile,
                     progress_manager=progress_manager,
@@ -582,7 +576,6 @@ def phase_render(
                     scheduler = WaveScheduler(
                         snapshot=ctx.snapshot,
                         site=orchestrator.site,
-                        tracker=tracker,
                         quiet=quiet_mode,
                         stats=orchestrator.stats,
                         build_context=ctx,
@@ -608,7 +601,6 @@ def phase_render(
                         pages_to_build,
                         parallel=use_parallel,
                         quiet=quiet_mode,
-                        tracker=tracker,
                         stats=orchestrator.stats,
                         progress_manager=progress_manager,
                         reporter=reporter,

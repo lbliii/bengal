@@ -60,7 +60,6 @@ class WaveScheduler:
         self,
         snapshot: SiteSnapshot,
         site: Any,  # Site type
-        tracker: Any | None,  # DependencyTracker type
         quiet: bool,
         stats: Any | None,  # BuildStats type
         build_context: Any | None,  # BuildContext type
@@ -71,7 +70,6 @@ class WaveScheduler:
     ):
         self.snapshot = snapshot
         self.site = site
-        self.tracker = tracker
         self.quiet = quiet
         self.stats = stats
         self.build_context = build_context
@@ -264,7 +262,6 @@ class WaveScheduler:
                         if not hasattr(thread_local, "pipeline"):
                             thread_local.pipeline = RenderingPipeline(
                                 self.site,
-                                self.tracker,
                                 quiet=self.quiet,
                                 build_stats=self.stats,
                                 build_context=self.build_context,
@@ -388,7 +385,6 @@ class WaveScheduler:
                         if not hasattr(thread_local, "pipeline"):
                             thread_local.pipeline = RenderingPipeline(
                                 self.site,
-                                self.tracker,
                                 quiet=self.quiet,
                                 build_stats=self.stats,
                                 build_context=self.build_context,

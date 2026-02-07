@@ -13,9 +13,9 @@ BuildCache: Central cache for file fingerprints, dependencies, and build state.
 CacheStore: Generic type-safe storage for Cacheable types with version management.
     Handles JSON serialization, compression, and tolerant loading.
 
-DependencyTracker: Tracks template, partial, and data file dependencies during
-    rendering. Enables selective rebuilding when dependencies change.
-    (Moved to bengal.build.tracking.)
+EffectTracer: Tracks dependencies during rendering via declarative effects.
+    Enables selective rebuilding when dependencies change.
+    (Located in bengal.effects.tracer.)
 
 QueryIndex: Base class for O(1) page lookups by attribute. Built-in indexes
     include section, author, category, and date_range.
@@ -71,7 +71,6 @@ from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
 # =============================================================================
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.cache_store import CacheStore
     from bengal.cache.compression import (

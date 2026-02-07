@@ -29,7 +29,6 @@ from bengal.utils.paths.url_normalization import path_to_slug
 if TYPE_CHECKING:
     from kida.template import Template
 
-    from bengal.build.tracking.tracker import DependencyTracker
     from bengal.cache import BuildCache
     from bengal.orchestration.stats.models import BuildStats
     from bengal.protocols import OutputCollector, PageLike, TemplateEngine
@@ -60,7 +59,6 @@ class AutodocRenderer:
         site: Site instance for configuration
         template_engine: TemplateEngine for template rendering
         renderer: Renderer for fallback rendering
-        dependency_tracker: Optional DependencyTracker for dependency tracking
         output_collector: Optional collector for hot reload tracking
 
     Example:
@@ -78,7 +76,6 @@ class AutodocRenderer:
         site: SiteConfig,
         template_engine: TemplateEngine,
         renderer: Renderer,
-        dependency_tracker: DependencyTracker | None = None,
         output_collector: OutputCollector | None = None,
         build_stats: BuildStats | None = None,
         write_behind: WriteBehindCollector | None = None,
@@ -91,23 +88,18 @@ class AutodocRenderer:
             site: Site instance for configuration
             template_engine: TemplateEngine for template rendering
             renderer: Renderer for fallback rendering
-            dependency_tracker: Optional DependencyTracker for dependency tracking
             output_collector: Optional output collector for hot reload tracking
             build_stats: Optional BuildStats for error tracking and deduplication
             write_behind: Optional write-behind collector for async I/O
-            build_cache: Optional BuildCache for direct cache access. If None,
-                falls back to dependency_tracker.cache for backward compatibility.
+            build_cache: Optional BuildCache for direct cache access.
         """
         self.site = site
         self.template_engine = template_engine
         self.renderer = renderer
-        self.dependency_tracker = dependency_tracker
         self.output_collector = output_collector
         self.build_stats = build_stats
         self.write_behind = write_behind
-        self.build_cache = build_cache or (
-            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
-        )
+        self.build_cache = build_cache
 
         # PERF: Cache autodoc config to avoid repeated lookups per page render.
         # Autodoc config is immutable during a build, so we cache it once.
@@ -154,7 +146,6 @@ class AutodocRenderer:
             write_output(
                 page,
                 self.site,
-                self.dependency_tracker,
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
@@ -192,7 +183,6 @@ class AutodocRenderer:
         write_output(
             page,
             self.site,
-            self.dependency_tracker,
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,

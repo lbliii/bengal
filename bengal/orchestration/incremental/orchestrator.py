@@ -38,7 +38,6 @@ from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reaso
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
@@ -70,14 +69,13 @@ class IncrementalOrchestrator:
     Attributes:
         site: Site instance for incremental builds
         cache: BuildCache instance for build state persistence
-        tracker: DependencyTracker instance for dependency graph construction
         effect_tracer: EffectTracer for effect-based dependency tracking
         _cache_manager: CacheManager instance for cache operations
         _detector: EffectBasedDetector instance for change detection
 
     Example:
             >>> orchestrator = IncrementalOrchestrator(site)
-            >>> cache, tracker = orchestrator.initialize(enabled=True)
+            >>> cache = orchestrator.initialize(enabled=True)
             >>> pages, assets, summary = orchestrator.find_work_early()
 
     """
@@ -91,7 +89,6 @@ class IncrementalOrchestrator:
         """
         self.site = site
         self.cache: BuildCache | None = None
-        self.tracker: DependencyTracker | None = None
         self.coordinator: CacheCoordinator | None = None
         self.effect_tracer: EffectTracer | None = None
 
@@ -99,9 +96,9 @@ class IncrementalOrchestrator:
         self._cache_manager = CacheManager(site)
         self._detector: EffectBasedDetector | None = None
 
-    def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
+    def initialize(self, enabled: bool = False) -> BuildCache:
         """
-        Initialize cache and dependency tracker for incremental builds.
+        Initialize cache and EffectTracer for incremental builds.
 
         Delegates to CacheManager for cache operations.
 
@@ -109,17 +106,16 @@ class IncrementalOrchestrator:
             enabled: Whether incremental builds are enabled
 
         Returns:
-            Tuple of (BuildCache, DependencyTracker) instances
+            BuildCache instance
         """
-        self.cache, self.tracker = self._cache_manager.initialize(enabled)
+        self.cache = self._cache_manager.initialize(enabled)
         # Expose coordinator for use by detectors
         self.coordinator = self._cache_manager.coordinator
-        # Expose EffectTracer alongside DependencyTracker (parallel tracking)
-        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        # Expose EffectTracer for dependency tracking
         self.effect_tracer = self._cache_manager.effect_tracer
         # Create unified detector from effect tracer
         self._detector = create_detector_from_build(self.site)
-        return self.cache, self.tracker
+        return self.cache
 
     def check_config_changed(self) -> bool:
         """
@@ -175,7 +171,7 @@ class IncrementalOrchestrator:
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
-        if not self.cache or not self.tracker:
+        if not self.cache:
             from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
@@ -288,7 +284,7 @@ class IncrementalOrchestrator:
         Returns:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
-        if not self.cache or not self.tracker:
+        if not self.cache:
             from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
@@ -354,11 +350,9 @@ class IncrementalOrchestrator:
         page_by_path = self.site.page_by_source_path
         for path in all_changed:
             if path.suffix == ".md":
-                page = page_by_path.get(path)
-                if page and self.tracker:
-                    tags = page.metadata.get("tags", [])
-                    if tags:
-                        self.tracker.track_taxonomy(page, set(tags))
+                # Taxonomy tracking now handled by EffectTracer via
+                # Effect.for_taxonomy_page() during rendering
+                pass
 
         # Handle cascade changes - pages with cascade mark all descendants
         cascade_pages = self._detect_cascade_changes(all_changed, verbose=verbose)
@@ -549,12 +543,13 @@ class IncrementalOrchestrator:
         Bridge-style process for testing incremental invalidation.
 
         ⚠️  TEST BRIDGE ONLY - See docstring for details.
+        Uses EffectTracer for change detection.
         """
-        if not self.tracker:
+        if not self.cache:
             from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
-                "Tracker not initialized - call initialize() first",
+                "Cache not initialized - call initialize() first",
                 code=ErrorCode.B010,
                 suggestion="Call IncrementalOrchestrator.initialize() before use",
             )
@@ -567,18 +562,15 @@ class IncrementalOrchestrator:
                 "Use run() or full_build() for production builds."
             )
 
-        context = BuildContext(site=self.site, pages=self.site.pages, tracker=self.tracker)
+        context = BuildContext(site=self.site, pages=self.site.pages)
 
         path_set: set[Path] = {Path(p) for p in changed_paths}
-        invalidated: set[Path]
-        if change_type == "content":
-            invalidated = self.tracker.invalidator.invalidate_content(path_set)
-        elif change_type == "template":
-            invalidated = self.tracker.invalidator.invalidate_templates(path_set)
-        elif change_type == "config":
-            invalidated = self.tracker.invalidator.invalidate_config()
-        else:
-            invalidated = set()
+
+        # Use EffectTracer for invalidation
+        from bengal.effects.render_integration import BuildEffectTracer
+
+        tracer = BuildEffectTracer.get_instance().tracer
+        invalidated = tracer.outputs_needing_rebuild(path_set)
 
         for path in invalidated:
             self._write_output(path, context)

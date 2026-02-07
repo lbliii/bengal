@@ -16,7 +16,6 @@ from bengal.build.contracts.results import ChangeDetectionResult
 
 if TYPE_CHECKING:
     from bengal.build.contracts.keys import CacheKey
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build.coordinator import CacheCoordinator
@@ -35,7 +34,6 @@ class DetectionContext:
     # Core dependencies
     cache: BuildCache
     site: Site
-    tracker: DependencyTracker | None = None
     coordinator: CacheCoordinator | None = None
 
     # Accumulated results from previous detectors

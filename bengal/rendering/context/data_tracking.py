@@ -7,12 +7,11 @@ rebuild only pages affected by data file changes.
 
 Key Concepts:
 - TrackedData: Wrapper that intercepts attribute access on site.data
-- Thread-local tracking: Uses DependencyTracker's current_page for thread-safety
+- Thread-safe tracking: Uses EffectTracer via record_data_file_access()
 - File-level granularity: Tracks at data file level, not key level
-- ContextVarManager pattern: Tracker is accessed via ContextVarManager for thread safety
 
 Related Modules:
-- bengal.build.tracking: Records dependencies
+- bengal.effects.render_integration: Records data file dependencies
 - bengal.core.site.data: DataLoadingMixin that populates site.data
 - bengal.utils.dotdict: DotDict for dot-notation access
 
@@ -21,7 +20,6 @@ See Also:
 - plan/rfc-free-threading-patterns.md: ContextVar pattern
 
 RFC: rfc-incremental-build-dependency-gaps (Phase 1)
-RFC: rfc-free-threading-patterns (ContextVarManager pattern)
 """
 
 from __future__ import annotations
@@ -29,11 +27,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.utils.contextvar import ContextVarManager
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.utils.primitives.dotdict import DotDict
 
 logger = get_logger(__name__)
@@ -41,91 +37,8 @@ logger = get_logger(__name__)
 __all__ = [
     # Data wrapper
     "TrackedData",
-    # ContextVarManager functions for tracker management
-    "get_current_tracker",
-    "reset_current_tracker",
-    "set_current_tracker",
-    "tracker_context",
     "wrap_data_for_tracking",
 ]
-
-
-# =============================================================================
-# ContextVarManager for Dependency Tracker (Thread-Safe)
-# =============================================================================
-# This allows SiteContext to access the current tracker without needing
-# it passed through the entire call stack. Each thread/async task gets
-# its own tracker via ContextVarManager.
-#
-# RFC: rfc-free-threading-patterns.md
-# - ContextVars are thread-local by design (PEP 567)
-# - ~8M ops/sec throughput
-# - Zero lock contention
-
-_current_tracker: ContextVarManager[DependencyTracker] = ContextVarManager("current_tracker")
-
-
-def get_current_tracker() -> DependencyTracker | None:
-    """Get the current dependency tracker for this thread/context.
-
-    Returns:
-        DependencyTracker if set, None otherwise.
-
-    Thread Safety:
-        Uses ContextVarManager - each thread/async task has independent storage.
-    """
-    return _current_tracker.get()
-
-
-def set_current_tracker(tracker: DependencyTracker | None):
-    """Set the dependency tracker for the current context.
-
-    Args:
-        tracker: DependencyTracker instance or None to clear.
-
-    Returns:
-        Token for restoring previous value via reset_current_tracker().
-    """
-    if tracker is None:
-        # For clearing, we reset to None
-        _current_tracker.reset()
-        return None
-    return _current_tracker.set(tracker)
-
-
-def reset_current_tracker(token=None) -> None:
-    """Reset the tracker to its previous value.
-
-    Args:
-        token: Token from set_current_tracker() for proper nesting.
-               If None, sets tracker to None.
-    """
-    _current_tracker.reset(token)
-
-
-def tracker_context(tracker: DependencyTracker | None):
-    """Context manager for scoped tracker usage.
-
-    Properly restores previous tracker on exit (supports nesting).
-
-    Usage:
-        with tracker_context(dependency_tracker):
-            # All rendering in this context can access tracker
-            # via get_current_tracker()
-            render_pages(pages)
-
-    Args:
-        tracker: DependencyTracker to use within the context.
-
-    Yields:
-        The tracker that was set.
-    """
-    if tracker is None:
-        # Return a no-op context manager for None tracker
-        from contextlib import nullcontext
-
-        return nullcontext(None)
-    return _current_tracker(tracker)
 
 
 class TrackedData:
@@ -137,8 +50,8 @@ class TrackedData:
     `data/team.yaml` changes, pages that accessed it will be rebuilt.
 
     Thread Safety:
-        Uses ContextVar to get the current tracker at access time. Each thread
-        has its own tracker context, enabling parallel rendering.
+        Uses EffectTracer via record_data_file_access() ContextVar.
+        Each thread has its own effect context, enabling parallel rendering.
 
     Creation:
         Internal use only. Created by SiteContext when data is accessed.
@@ -159,10 +72,6 @@ class TrackedData:
         Args:
             data: Original site.data DotDict
             data_dir: Path to data/ directory (for file path resolution)
-
-        Note:
-            Tracker is NOT stored here - looked up via get_current_tracker()
-            at access time for thread-safety.
         """
         # Use object.__setattr__ to bypass our __setattr__
         object.__setattr__(self, "_data", data)
@@ -178,15 +87,11 @@ class TrackedData:
         depends on `data/team.yaml` (or .yml/.json/.toml).
 
         Thread Safety:
-            Gets tracker from ContextVar at access time, not from init.
-            This ensures each thread uses its own tracker during parallel rendering.
+            Uses EffectTracer ContextVar for thread-safe recording.
         """
         data = object.__getattribute__(self, "_data")
         data_dir = object.__getattribute__(self, "_data_dir")
         file_cache = object.__getattribute__(self, "_file_cache")
-
-        # Get tracker from ContextVar (thread-safe)
-        tracker = get_current_tracker()
 
         # Get the actual value
         try:
@@ -194,16 +99,15 @@ class TrackedData:
         except AttributeError:
             raise AttributeError(f"'site.data' has no attribute '{name}'")
 
-        # Track the dependency if tracker is available and we're in a page context
-        if tracker and hasattr(tracker.current_page, "value"):
-            # Resolve the data file path (with caching)
-            if name not in file_cache:
-                file_cache[name] = self._resolve_data_file(name, data_dir)
+        # Record data file dependency via EffectTracer
+        from bengal.effects.render_integration import record_data_file_access
 
-            data_file = file_cache[name]
-            if data_file:
-                current_page = tracker.current_page.value
-                tracker.track_data_file(current_page, data_file)
+        if name not in file_cache:
+            file_cache[name] = self._resolve_data_file(name, data_dir)
+
+        data_file = file_cache[name]
+        if data_file:
+            record_data_file_access(data_file)
 
         return value
 

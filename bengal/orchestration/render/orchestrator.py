@@ -62,16 +62,13 @@ from .tracking import (
 
 logger = get_logger(__name__)
 
-
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.observability.cli_progress import LiveProgressManager
-
 
 class RenderOrchestrator:
     """
@@ -93,7 +90,7 @@ class RenderOrchestrator:
 
     Relationships:
         - Uses: RenderingPipeline for individual page rendering
-        - Uses: DependencyTracker for dependency tracking
+        - Uses: EffectTracer for dependency tracking
         - Uses: BuildStats for build statistics collection
         - Uses: BlockCache for site-wide block caching
         - Used by: BuildOrchestrator for rendering phase
@@ -104,7 +101,8 @@ class RenderOrchestrator:
 
     Examples:
         orchestrator = RenderOrchestrator(site)
-        orchestrator.process(pages, parallel=True, tracker=tracker, stats=stats)
+        orchestrator.process(pages, parallel=True,
+ stats=stats)
 
     """
 
@@ -214,7 +212,6 @@ class RenderOrchestrator:
         pages: list[Page],
         parallel: bool = True,
         quiet: bool = False,
-        tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
         reporter: ProgressReporter | None = None,
@@ -228,7 +225,6 @@ class RenderOrchestrator:
             pages: List of pages to render
             parallel: Whether to use parallel rendering
             quiet: Whether to suppress progress output (minimal output mode)
-            tracker: Dependency tracker for incremental builds
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
         """
@@ -246,7 +242,6 @@ class RenderOrchestrator:
                 pages=pages,
                 parallel=parallel,
                 quiet=quiet,
-                tracker=tracker,
                 stats=stats,
                 progress_manager=progress_manager,
                 reporter=reporter,
@@ -261,7 +256,6 @@ class RenderOrchestrator:
         pages: list[Page],
         parallel: bool,
         quiet: bool,
-        tracker: DependencyTracker | None,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None,
         reporter: ProgressReporter | None,
@@ -344,11 +338,11 @@ class RenderOrchestrator:
             # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
             if use_parallel:
                 self._render_parallel(
-                    pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+                    pages, quiet, stats, progress_manager, build_context, changed_sources
                 )
             else:
                 self._render_sequential(
-                    pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+                    pages, quiet, stats, progress_manager, build_context, changed_sources
                 )
         finally:
             # Flush write-behind queue and wait for all writes to complete
@@ -365,7 +359,6 @@ class RenderOrchestrator:
     def _render_sequential(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -377,7 +370,6 @@ class RenderOrchestrator:
 
         Args:
             pages: Pages to render
-            tracker: Dependency tracker
             quiet: Whether to suppress verbose output
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
@@ -390,7 +382,6 @@ class RenderOrchestrator:
 
             pipeline = RenderingPipeline(
                 self.site,
-                tracker,
                 quiet=True,
                 build_stats=stats,
                 build_context=build_context,
@@ -434,12 +425,11 @@ class RenderOrchestrator:
             use_rich = False
 
         if use_rich:
-            self._render_sequential_with_progress(pages, tracker, quiet, stats, build_context)
+            self._render_sequential_with_progress(pages, quiet, stats, build_context)
         else:
             # Traditional rendering without progress
             pipeline = RenderingPipeline(
                 self.site,
-                tracker,
                 quiet=quiet,
                 build_stats=stats,
                 build_context=build_context,
@@ -452,7 +442,6 @@ class RenderOrchestrator:
     def _render_parallel(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -505,7 +494,6 @@ class RenderOrchestrator:
 
         Args:
             pages: Pages to render
-            tracker: Dependency tracker for incremental builds
             quiet: Whether to suppress verbose output
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
@@ -523,7 +511,6 @@ class RenderOrchestrator:
             self._render_with_snapshot(
                 build_context.snapshot,
                 pages,
-                tracker,
                 quiet,
                 stats,
                 progress_manager,
@@ -534,7 +521,7 @@ class RenderOrchestrator:
         # If we have a progress manager, use it with parallel rendering
         if progress_manager:
             self._render_parallel_with_live_progress(
-                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+                pages, quiet, stats, progress_manager, build_context, changed_sources
             )
             return
 
@@ -554,18 +541,17 @@ class RenderOrchestrator:
 
         if use_rich:
             self._render_parallel_with_progress(
-                pages, tracker, quiet, stats, build_context, changed_sources
+                pages, quiet, stats, build_context, changed_sources
             )
         else:
             self._render_parallel_simple(
-                pages, tracker, quiet, stats, build_context, changed_sources
+                pages, quiet, stats, build_context, changed_sources
             )
 
     def _render_with_snapshot(
         self,
         snapshot: Any,  # SiteSnapshot
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -580,7 +566,6 @@ class RenderOrchestrator:
         Args:
             snapshot: SiteSnapshot from build context
             pages: Pages to render (filtered to pages in snapshot)
-            tracker: Dependency tracker
             quiet: Whether to suppress verbose output
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
@@ -599,7 +584,6 @@ class RenderOrchestrator:
         scheduler = WaveScheduler(
             snapshot=snapshot,
             site=self.site,
-            tracker=tracker,
             quiet=quiet,
             stats=stats,
             build_context=build_context,
@@ -678,7 +662,6 @@ class RenderOrchestrator:
     def _render_parallel_simple(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -711,7 +694,6 @@ class RenderOrchestrator:
             if needs_new_pipeline:
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
-                    tracker,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,
@@ -776,7 +758,6 @@ class RenderOrchestrator:
     def _render_sequential_with_progress(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -798,7 +779,6 @@ class RenderOrchestrator:
         console = get_console()
         pipeline = RenderingPipeline(
             self.site,
-            tracker,
             quiet=quiet,
             build_stats=stats,
             build_context=build_context,
@@ -845,7 +825,6 @@ class RenderOrchestrator:
     def _render_parallel_with_live_progress(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol,
@@ -890,7 +869,6 @@ class RenderOrchestrator:
                 # parameter from the caller is intentionally ignored here.
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
-                    tracker,
                     quiet=True,  # Always True when progress_manager is active
                     build_stats=stats,
                     build_context=build_context,
@@ -992,7 +970,6 @@ class RenderOrchestrator:
     def _render_parallel_with_progress(
         self,
         pages: list[Page],
-        tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -1034,7 +1011,6 @@ class RenderOrchestrator:
             if needs_new_pipeline:
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
-                    tracker,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,

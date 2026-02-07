@@ -45,7 +45,6 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
@@ -114,7 +113,6 @@ class StreamingRenderOrchestrator:
         pages: list[Page],
         parallel: bool = True,
         quiet: bool = False,
-        tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
         batch_size: int = 100,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -132,7 +130,6 @@ class StreamingRenderOrchestrator:
             pages: List of pages to render
             parallel: Whether to use parallel rendering
             quiet: Whether to suppress progress output (minimal output mode)
-            tracker: Dependency tracker for incremental builds
             stats: Build statistics tracker
             batch_size: Number of leaves to process per batch
             progress_manager: Optional progress manager to use for unified progress display
@@ -220,7 +217,7 @@ class StreamingRenderOrchestrator:
 
                 orchestrator = RenderOrchestrator(self.site)
                 orchestrator.process(
-                    pages, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                    pages, parallel, quiet, stats, progress_manager=progress_manager
                 )
                 return
 
@@ -278,7 +275,6 @@ class StreamingRenderOrchestrator:
                 hubs_to_render,
                 parallel,
                 quiet,
-                tracker,
                 stats,
                 progress_manager=progress_manager,
                 reporter=reporter,
@@ -300,7 +296,6 @@ class StreamingRenderOrchestrator:
                 batch_size,
                 parallel,
                 quiet,
-                tracker,
                 stats,
                 "mid-tier",
                 progress_manager=progress_manager,
@@ -322,7 +317,6 @@ class StreamingRenderOrchestrator:
                 batch_size,
                 parallel,
                 quiet,
-                tracker,
                 stats,
                 "leaves",
                 release_memory=True,
@@ -352,7 +346,6 @@ class StreamingRenderOrchestrator:
         batch_size: int,
         parallel: bool,
         quiet: bool,
-        tracker: DependencyTracker | None,
         stats: BuildStats | None,
         batch_label: str = "pages",
         release_memory: bool = False,
@@ -369,7 +362,6 @@ class StreamingRenderOrchestrator:
             batch_size: Pages per batch
             parallel: Use parallel rendering
             quiet: Whether to suppress progress output
-            tracker: Dependency tracker
             stats: Build statistics
             batch_label: Label for logging
             release_memory: Whether to force garbage collection after each batch
@@ -389,7 +381,6 @@ class StreamingRenderOrchestrator:
                 batch,
                 parallel,
                 quiet,
-                tracker,
                 stats,
                 progress_manager=progress_manager,
                 build_context=build_context,

@@ -96,8 +96,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         # Create Jinja2 environment
         self.env, self.template_dirs = create_jinja_environment(site, self, profile)
 
-        # Dependency tracking (set by RenderingPipeline)
-        self._dependency_tracker = None
+        # Legacy dependency tracking removed — EffectTracer handles this now
 
         # Asset manifest handling
         self._asset_manifest_path = self.site.output_dir / "asset-manifest.json"
@@ -152,13 +151,16 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         """
         logger.debug("rendering_template", template=name, context_keys=list(context.keys()))
 
-        # Track template dependency
-        if self._dependency_tracker:
-            template_path = self.get_template_path(name)
-            if template_path:
-                self._dependency_tracker.track_template(template_path)
-                logger.debug("tracked_template_dependency", template=name, path=str(template_path))
-            self._track_referenced_templates(name)
+        # Record template dependency for EffectTracer (via ContextVar)
+        from bengal.effects.render_integration import record_template_include
+
+        record_template_include(name)
+        template_path = self.get_template_path(name)
+        if template_path:
+            from bengal.effects.render_integration import record_extra_dependency
+
+            record_extra_dependency(template_path)
+        self._track_referenced_templates(name)
 
         # Add site to context
         context.setdefault("site", self.site)
@@ -446,14 +448,14 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
     def _track_referenced_templates(self, template_name: str) -> None:
         """Track referenced templates (extends/include/import) as dependencies."""
-        if not self._dependency_tracker:
-            return
+
+        from bengal.effects.render_integration import record_extra_dependency, record_template_include
 
         cached_paths = self._referenced_template_paths_cache.get(template_name)
         if cached_paths is not None:
             for ref_path in cached_paths:
                 with contextlib.suppress(Exception):
-                    self._dependency_tracker.track_partial(ref_path)
+                    record_extra_dependency(ref_path)
             return
 
         referenced = self._referenced_template_cache.get(template_name)
@@ -502,7 +504,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self._referenced_template_paths_cache[template_name] = tuple(resolved_paths)
         for ref_path in resolved_paths:
             with contextlib.suppress(Exception):
-                self._dependency_tracker.track_partial(ref_path)
+                record_extra_dependency(ref_path)
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """Resolve theme inheritance chain."""

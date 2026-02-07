@@ -316,10 +316,10 @@ class BuildOrchestrator:
         )
         self.site.set_build_state(build_state)
 
-        # Initialize cache and tracker (ALWAYS, even for full builds)
+        # Initialize cache (ALWAYS, even for full builds)
         # We need cache for cleanup of deleted files and auto-mode decision
         with logger.phase("initialization"):
-            cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
+            cache = self.incremental.initialize(enabled=True)  # Always load cache
 
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
@@ -610,7 +610,6 @@ class BuildOrchestrator:
                 verbose,
                 memory_optimized,
                 pages_to_build,
-                tracker,
                 profile,
                 progress_manager,
                 reporter,
@@ -940,7 +939,6 @@ class BuildOrchestrator:
         verbose: bool,
         memory_optimized: bool,
         pages_to_build: list[Page],
-        tracker: Any,
         profile: BuildProfile | None,
         progress_manager: Any | None,
         reporter: Any | None,
@@ -955,7 +953,6 @@ class BuildOrchestrator:
             verbose,
             memory_optimized,
             pages_to_build,
-            tracker,
             profile,
             progress_manager,
             reporter,

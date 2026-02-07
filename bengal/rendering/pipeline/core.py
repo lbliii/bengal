@@ -31,7 +31,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
@@ -72,7 +71,7 @@ class RenderingPipeline:
     for performance and integrates with dependency tracking for incremental builds.
 
     Creation:
-        Direct instantiation: RenderingPipeline(site, dependency_tracker=None, ...)
+        Direct instantiation: RenderingPipeline(site, ...)
             - Created by RenderOrchestrator for page rendering
             - One instance per worker thread (thread-local)
             - Requires Site instance with config
@@ -80,9 +79,7 @@ class RenderingPipeline:
     Attributes:
         site: Site instance with config and xref_index
         parser: Thread-local markdown parser (cached per thread)
-        dependency_tracker: Optional DependencyTracker for incremental builds
-        build_cache: Optional BuildCache for direct cache access (resolved from
-            build_cache or dependency_tracker.cache)
+        build_cache: Optional BuildCache for direct cache access
         quiet: Whether to suppress per-page output
         build_stats: Optional BuildStats for error collection
 
@@ -96,7 +93,7 @@ class RenderingPipeline:
     Relationships:
         - Uses: TemplateEngine for template rendering
         - Uses: Renderer for individual page rendering
-        - Uses: DependencyTracker for dependency tracking
+        - Uses: EffectTracer for dependency tracking (via BuildEffectTracer)
         - Used by: RenderOrchestrator for page rendering
 
     Thread Safety:
@@ -104,7 +101,7 @@ class RenderingPipeline:
         have its own RenderingPipeline instance.
 
     Examples:
-        pipeline = RenderingPipeline(site, dependency_tracker=tracker)
+        pipeline = RenderingPipeline(site)
         pipeline.render_page(page)
 
     """
@@ -112,7 +109,6 @@ class RenderingPipeline:
     def __init__(
         self,
         site: Site,
-        dependency_tracker: DependencyTracker | None = None,
         quiet: bool = False,
         build_stats: BuildStats | None = None,
         build_context: BuildContext | None = None,
@@ -136,13 +132,11 @@ class RenderingPipeline:
 
         Args:
             site: Site instance with config and xref_index
-            dependency_tracker: Optional tracker for incremental builds
             quiet: If True, suppress per-page output
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
             write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
-            build_cache: Optional BuildCache for direct cache access. If None,
-                falls back to dependency_tracker.cache for backward compatibility.
+            build_cache: Optional BuildCache for direct cache access.
         """
         self.site = site
 
@@ -163,22 +157,17 @@ class RenderingPipeline:
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = injected_parser or get_thread_parser(markdown_engine)
 
-        self.dependency_tracker = dependency_tracker
-
-        # Direct cache access: prefer explicit build_cache, fall back to dependency_tracker.cache
-        self.build_cache = build_cache or (
-            getattr(dependency_tracker, "cache", None) if dependency_tracker else None
-        )
+        # Direct cache access
+        self.build_cache = build_cache
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
 
-            # Pass cross-version tracker for dependency tracking during incremental builds
+            # Cross-version link tracking now handled by EffectTracer via
+            # record_extra_dependency() - no explicit tracker callback needed.
             cross_version_tracker = None
-            if dependency_tracker and hasattr(dependency_tracker, "track_cross_version_link"):
-                cross_version_tracker = dependency_tracker.track_cross_version_link
 
             # Create external reference resolver for [[ext:project:target]] syntax
             # See: plan/rfc-external-references.md
@@ -206,9 +195,6 @@ class RenderingPipeline:
                 getattr(build_context, "profile_templates", False) if build_context else False
             )
             self.template_engine = create_engine(site, profile=profile_templates)
-
-        if self.dependency_tracker:
-            self.template_engine._dependency_tracker = self.dependency_tracker  # type: ignore[union-attr]
 
         self.renderer = Renderer(
             self.template_engine,
@@ -240,7 +226,6 @@ class RenderingPipeline:
 
         # Initialize helper modules (composition)
         self._cache_checker = CacheChecker(
-            dependency_tracker=dependency_tracker,
             site=site,
             renderer=self.renderer,
             build_stats=build_stats,
@@ -253,7 +238,6 @@ class RenderingPipeline:
             site=site,
             template_engine=self.template_engine,
             renderer=self.renderer,
-            dependency_tracker=dependency_tracker,
             output_collector=self._output_collector,
             build_stats=build_stats,
             write_behind=self._write_behind,
@@ -316,21 +300,7 @@ class RenderingPipeline:
 
         clear_get_page_cache()
 
-        # Set tracker context for data file dependency tracking
-        # This enables site.data.X access to be tracked automatically
-        # RFC: rfc-incremental-build-dependency-gaps (Phase 1)
-        from bengal.rendering.context.data_tracking import (
-            reset_current_tracker,
-            set_current_tracker,
-        )
-
-        tracker_token = set_current_tracker(self.dependency_tracker)
-
-        try:
-            self._process_page_impl(page)
-        finally:
-            # Always reset tracker context, even on exceptions
-            reset_current_tracker(tracker_token)
+        self._process_page_impl(page)
 
     def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""
@@ -361,9 +331,6 @@ class RenderingPipeline:
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
                 self._cache_checker.cache_rendered_output(page, template)
             return
-
-        if self.dependency_tracker and not page.metadata.get("_generated"):
-            self.dependency_tracker.start_page(page.source_path)
 
         if not page.output_path:
             page.output_path = determine_output_path(page, self.site)
@@ -419,10 +386,6 @@ class RenderingPipeline:
                 )
         self._cache_checker.cache_parsed_content(page, template, parser_version)
         self._render_and_write(page, template)
-
-        # End page tracking
-        if self.dependency_tracker and not page.metadata.get("_generated"):
-            self.dependency_tracker.end_page()
 
     def _parse_content(self, page: PageLike) -> None:
         """Parse page content through markdown parser.
@@ -621,7 +584,6 @@ class RenderingPipeline:
         write_output(
             page,
             self.site,
-            self.dependency_tracker,
             collector=self._output_collector,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
@@ -749,7 +711,6 @@ class RenderingPipeline:
         write_output(
             page,
             self.site,
-            self.dependency_tracker,
             collector=self._output_collector,
             build_cache=self.build_cache,
         )

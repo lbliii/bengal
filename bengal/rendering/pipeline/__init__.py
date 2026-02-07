@@ -22,7 +22,7 @@ Usage:
 ```python
 from bengal.rendering.pipeline import RenderingPipeline
 
-pipeline = RenderingPipeline(site, dependency_tracker=tracker)
+pipeline = RenderingPipeline(site)
 pipeline.process_page(page)
 ```
 

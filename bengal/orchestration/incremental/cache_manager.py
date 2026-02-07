@@ -24,7 +24,6 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.build.tracking import DependencyTracker
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
@@ -45,13 +44,12 @@ class CacheManager:
     Attributes:
         site: Site instance for cache operations
         cache: BuildCache instance (None until initialized)
-        tracker: DependencyTracker instance (None until initialized)
         coordinator: CacheCoordinator instance for unified invalidation (None until initialized)
         effect_tracer: EffectTracer instance for effect-based dependency tracking (None until initialized)
 
     Example:
             >>> manager = CacheManager(site)
-            >>> cache, tracker = manager.initialize(enabled=True)
+            >>> cache = manager.initialize(enabled=True)
             >>> # ... build operations ...
             >>> manager.save(pages_built, assets_processed)
 
@@ -66,7 +64,6 @@ class CacheManager:
         """
         self.site = site
         self.cache: BuildCache | None = None
-        self.tracker: DependencyTracker | None = None
         self.coordinator: CacheCoordinator | None = None
         self._effect_tracer: EffectTracer | None = None
 
@@ -75,11 +72,11 @@ class CacheManager:
         """EffectTracer for effect-based dependency tracking (None until initialized)."""
         return self._effect_tracer
 
-    def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
+    def initialize(self, enabled: bool = False) -> BuildCache:
         """
-        Initialize cache and dependency tracker for incremental builds.
+        Initialize cache and EffectTracer for incremental builds.
 
-        Sets up BuildCache, DependencyTracker, and CacheCoordinator instances.
+        Sets up BuildCache, CacheCoordinator, and EffectTracer instances.
         If enabled, loads existing cache from .bengal/cache.json (migrates from
         legacy location if needed). If disabled, creates empty cache instances.
 
@@ -88,20 +85,19 @@ class CacheManager:
                     empty cache instances (full rebuilds always).
 
         Returns:
-            Tuple of (BuildCache, DependencyTracker) instances
+            BuildCache instance
 
         Process:
             1. Create .bengal/ directory if enabled
             2. Migrate legacy cache from output_dir/.bengal-cache.json if exists
             3. Load or create BuildCache instance
-            4. Create DependencyTracker with cache and site
-            5. Create CacheCoordinator for unified invalidation
+            4. Create CacheCoordinator for unified invalidation
+            5. Create EffectTracer for dependency tracking
 
         Example:
-            >>> cache, tracker = manager.initialize(enabled=True)
+            >>> cache = manager.initialize(enabled=True)
             >>> # Cache loaded from .bengal/cache.json if exists
         """
-        from bengal.build.tracking import DependencyTracker
         from bengal.cache import BuildCache
         from bengal.orchestration.build.coordinator import CacheCoordinator
 
@@ -144,13 +140,11 @@ class CacheManager:
             self.cache = BuildCache()
             logger.debug("cache_initialized", enabled=False)
 
-        self.tracker = DependencyTracker(self.cache, self.site)
-
         # Initialize CacheCoordinator for unified page-level invalidation
         # RFC: rfc-cache-invalidation-architecture
-        self.coordinator = CacheCoordinator(self.cache, self.tracker, self.site)
+        self.coordinator = CacheCoordinator(self.cache, self.site)
 
-        # Create EffectTracer alongside DependencyTracker (parallel tracking)
+        # Create EffectTracer for dependency tracking.
         # Load from cache if available for incremental rebuild queries.
         # Inject into BuildEffectTracer singleton so effects recorded during
         # rendering flow into this persistent tracer instance.
@@ -178,7 +172,7 @@ class CacheManager:
         build_effect_tracer.set_tracer(self._effect_tracer)
         build_effect_tracer.enable()
 
-        return self.cache, self.tracker
+        return self.cache
 
     def check_config_changed(self) -> bool:
         """
@@ -308,11 +302,6 @@ class CacheManager:
         # Without this, data files always appear "changed" on incremental builds
         # because they have no cached fingerprint to compare against.
         self._update_data_file_fingerprints()
-
-        # Flush deferred fingerprint updates before saving.
-        # This ensures fingerprints reflect post-build state, not mid-build state.
-        if self.tracker:
-            self.tracker.flush_pending_updates()
 
         # Save EffectTracer alongside build cache
         # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
