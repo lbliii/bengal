@@ -4,11 +4,23 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
+import bengal.rendering.template_functions.authors as authors_mod
 from bengal.rendering.template_functions.authors import (
     AuthorView,
     author_view_filter,
     authors_filter,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_site_ref():
+    """Ensure module-level _site_ref is clean for each test (xdist safety)."""
+    old = authors_mod._site_ref
+    authors_mod._site_ref = None
+    yield
+    authors_mod._site_ref = old
 
 
 class TestAuthorViewFromPage:

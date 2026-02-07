@@ -138,14 +138,6 @@ from bengal.debug.models import (
     TemplateInfo,
 )
 
-# Shortcode/directive sandbox
-from bengal.debug.shortcode_sandbox import (
-    RenderResult,
-    ShortcodeSandbox,
-    ValidationResult,
-)
-
-
 # Lazy imports for optional components
 def __getattr__(name: str) -> Any:
     """
@@ -154,6 +146,9 @@ def __getattr__(name: str) -> Any:
     PageExplainer and ExplanationReporter are loaded lazily because they
     have additional dependencies (Rich library, regex patterns) that may
     not be needed for basic debug tool usage.
+
+    ShortcodeSandbox and related classes are loaded lazily because the
+    module may not exist yet (planned feature).
 
     Args:
         name: Attribute name being accessed.
@@ -173,6 +168,19 @@ def __getattr__(name: str) -> Any:
         from bengal.debug.reporter import ExplanationReporter
 
         return ExplanationReporter
+    if name in ("ShortcodeSandbox", "RenderResult", "ValidationResult"):
+        from bengal.debug.shortcode_sandbox import (
+            RenderResult,
+            ShortcodeSandbox,
+            ValidationResult,
+        )
+
+        _lazy_map = {
+            "ShortcodeSandbox": ShortcodeSandbox,
+            "RenderResult": RenderResult,
+            "ValidationResult": ValidationResult,
+        }
+        return _lazy_map[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

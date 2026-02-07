@@ -34,7 +34,6 @@ from bengal.orchestration.incremental.effect_detector import (
     EffectBasedDetector,
     create_detector_from_build,
 )
-from bengal.protocols import SectionLike
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 
@@ -423,7 +422,7 @@ class IncrementalOrchestrator:
                     # Also mark subsection pages
                     self._add_subsection_pages(section, cascade_rebuild)
                     break
-                elif isinstance(section, SectionLike) and page in section.pages:
+                elif hasattr(section, "pages") and page in section.pages:
                     # Regular page with cascade in a section
                     for section_page in section.pages:
                         cascade_rebuild.add(section_page.source_path)
@@ -441,7 +440,7 @@ class IncrementalOrchestrator:
         if not hasattr(section, "subsections"):
             return
         for subsection in section.subsections:
-            if isinstance(subsection, SectionLike):
+            if hasattr(subsection, "pages"):
                 for page in subsection.pages:
                     rebuild_set.add(page.source_path)
             self._add_subsection_pages(subsection, rebuild_set)
@@ -500,7 +499,7 @@ class IncrementalOrchestrator:
                     if (hasattr(section, "index_page") and section.index_page is page) or (
                         hasattr(section, "path") and section.path == path.parent
                     ):
-                        if isinstance(section, SectionLike):
+                        if hasattr(section, "pages"):
                             for section_page in section.pages:
                                 nav_rebuild.add(section_page.source_path)
                         break

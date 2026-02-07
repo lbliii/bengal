@@ -275,6 +275,33 @@ def _extract_github(value: str) -> str:
 _site_ref: SiteLike | None = None
 
 
+def _get_site_enrichment() -> tuple[dict[str, Any] | None, dict[str, list[Any]] | None]:
+    """Extract author enrichment data from the module-level site reference.
+
+    Isolates all ``_site_ref`` access so that a stale or partially-torn-down
+    site (common when ``pytest-xdist`` reuses workers) never poisons callers.
+
+    Returns:
+        (site_data, author_index) — both ``None`` when unavailable.
+    """
+    if not _site_ref:
+        return None, None
+
+    site_data = None
+    author_index = None
+    try:
+        data = getattr(_site_ref, "data", None) or {}
+        site_data = data.get("authors") if hasattr(data, "get") else None
+    except Exception:
+        pass
+    try:
+        indexes = getattr(_site_ref, "indexes", None) or {}
+        author_index = indexes.get("author") if hasattr(indexes, "get") else None
+    except Exception:
+        pass
+    return site_data, author_index
+
+
 def author_view_filter(page: Any) -> AuthorView | None:
     """
     Convert an author page to an AuthorView.
@@ -296,15 +323,7 @@ def author_view_filter(page: Any) -> AuthorView | None:
         return None
 
     try:
-        site_data = None
-        author_index = None
-
-        if _site_ref:
-            data = getattr(_site_ref, "data", None) or {}
-            site_data = data.get("authors") if hasattr(data, "get") else None
-            indexes = getattr(_site_ref, "indexes", None) or {}
-            author_index = indexes.get("author") if hasattr(indexes, "get") else None
-
+        site_data, author_index = _get_site_enrichment()
         return AuthorView.from_page(page, site_data, author_index)
     except Exception:
         return None
@@ -329,14 +348,7 @@ def authors_filter(pages: Any) -> list[AuthorView]:
     if not pages:
         return []
 
-    site_data = None
-    author_index = None
-
-    if _site_ref:
-        data = getattr(_site_ref, "data", None) or {}
-        site_data = data.get("authors") if hasattr(data, "get") else None
-        indexes = getattr(_site_ref, "indexes", None) or {}
-        author_index = indexes.get("author") if hasattr(indexes, "get") else None
+    site_data, author_index = _get_site_enrichment()
 
     result = []
     for page in pages:

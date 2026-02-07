@@ -131,11 +131,11 @@ class TestPrepareForRebuild:
 
         # Populate caches
         _ = site.regular_pages
-        assert site._regular_pages_cache is not None
+        assert site._page_cache._regular is not None
 
         site.prepare_for_rebuild()
 
-        assert site._regular_pages_cache is None
+        assert site._page_cache._regular is None
 
 
 class TestCascadePreservedAcrossRebuild:

@@ -23,8 +23,8 @@ def test_regular_pages_caching(tmp_path):
 
     site.pages = [regular_page_1, regular_page_2, generated_page]
 
-    # First access should compute and cache
-    assert site._regular_pages_cache is None
+    # First access should compute and cache (internal cache starts as None)
+    assert site._page_cache._regular is None
     regular = site.regular_pages
     assert len(regular) == 2
     assert regular_page_1 in regular
@@ -32,12 +32,12 @@ def test_regular_pages_caching(tmp_path):
     assert generated_page not in regular
 
     # Cache should now be populated
-    assert site._regular_pages_cache is not None
-    assert len(site._regular_pages_cache) == 2
+    assert site._page_cache._regular is not None
+    assert len(site._page_cache._regular) == 2
 
     # Second access should use cache (same object reference)
     regular2 = site.regular_pages
-    assert regular2 is site._regular_pages_cache
+    assert regular2 is site._page_cache._regular
 
 
 def test_regular_pages_cache_invalidation(tmp_path):
@@ -51,11 +51,11 @@ def test_regular_pages_cache_invalidation(tmp_path):
     # Access to populate cache
     regular = site.regular_pages
     assert len(regular) == 1
-    assert site._regular_pages_cache is not None
+    assert site._page_cache._regular is not None
 
     # Invalidate cache
     site.invalidate_regular_pages_cache()
-    assert site._regular_pages_cache is None
+    assert site._page_cache._regular is None
 
     # Add a generated page
     generated_page = Page(
@@ -77,7 +77,7 @@ def test_regular_pages_empty_site(tmp_path):
 
     regular = site.regular_pages
     assert regular == []
-    assert site._regular_pages_cache == []
+    assert site._page_cache._regular == []
 
 
 def test_regular_pages_all_generated(tmp_path):
@@ -97,7 +97,7 @@ def test_regular_pages_all_generated(tmp_path):
 
     regular = site.regular_pages
     assert regular == []
-    assert site._regular_pages_cache == []
+    assert site._page_cache._regular == []
 
 
 def test_regular_pages_cache_performance(tmp_path):
@@ -129,7 +129,7 @@ def test_regular_pages_cache_performance(tmp_path):
     # Cached access should be faster (at least 3x, relaxed for CI timing variance)
     # The real test is that regular2 IS the cache - timing is secondary
     assert second_time < first_time / 3 or first_time < 0.001  # Allow fast first access
-    assert regular2 is site._regular_pages_cache
+    assert regular2 is site._page_cache._regular
 
 
 def test_regular_pages_cache_across_multiple_accesses(tmp_path):
@@ -145,7 +145,7 @@ def test_regular_pages_cache_across_multiple_accesses(tmp_path):
     for _ in range(10):
         regular = site.regular_pages
         assert len(regular) == 100
-        assert regular is site._regular_pages_cache
+        assert regular is site._page_cache._regular
 
 
 # =============================================================================

@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.protocols import SiteContent
-
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
@@ -27,7 +25,7 @@ if TYPE_CHECKING:
 
 def get_next_page(page: Page, site: Site | None) -> Page | None:
     """Get the next page in the site's collection."""
-    if not site or not isinstance(site, SiteContent):
+    if not site or not hasattr(site, "pages"):
         return None
     try:
         pages = site.pages
@@ -41,7 +39,7 @@ def get_next_page(page: Page, site: Site | None) -> Page | None:
 
 def get_prev_page(page: Page, site: Site | None) -> Page | None:
     """Get the previous page in the site's collection."""
-    if not site or not isinstance(site, SiteContent):
+    if not site or not hasattr(site, "pages"):
         return None
     try:
         pages = site.pages
