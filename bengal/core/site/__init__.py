@@ -188,8 +188,6 @@ class Site(
     # Dynamic runtime attributes (set by various orchestrators)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
     _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
-    # Affected tags during incremental builds (set by TaxonomyOrchestrator)
-    _affected_tags: set[str] = field(default_factory=set, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
     _page_lookup_maps: dict[str, dict[str, Page]] | None = field(
         default=None, repr=False, init=False
@@ -857,7 +855,7 @@ class Site(
             - page caches (regular_pages, generated_pages, etc.)
             - content registry and URL registry
             - _cascade_snapshot fallback (primary is on BuildState)
-            - _affected_tags, _page_lookup_maps (legacy fallback fields)
+            - _page_lookup_maps (legacy fallback field)
 
         What is handled by BuildState (structurally fresh each build):
             - cascade_snapshot (primary — site.cascade delegates to BuildState)
@@ -937,7 +935,6 @@ class Site(
         # These are kept as safety nets for code paths that haven't
         # been migrated to use BuildState yet.
         # =================================================================
-        self._affected_tags = set()
         self._page_lookup_maps = None
 
     # =========================================================================
