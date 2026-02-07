@@ -12,7 +12,7 @@ PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
 metadata.py: PageMetadataMixin (frontmatter access)
-navigation.py: PageNavigationMixin (URL, breadcrumbs)
+navigation.py: Free functions for navigation and hierarchy
 computed.py: PageComputedMixin (derived properties)
 content.py: PageContentMixin (AST, TOC, excerpts)
 relationships.py: PageRelationshipsMixin (prev/next, related)
@@ -72,7 +72,6 @@ from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
-from .navigation import PageNavigationMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
@@ -81,7 +80,6 @@ from .relationships import PageRelationshipsMixin
 @dataclass
 class Page(
     PageMetadataMixin,
-    PageNavigationMixin,
     PageComputedMixin,
     PageRelationshipsMixin,
     PageOperationsMixin,
@@ -723,6 +721,50 @@ class Page(
             Section path as string (e.g., "docs/guides") or None
         """
         return str(self._section_path) if self._section_path else None
+
+    # ------------------------------------------------------------------
+    # Navigation properties (delegate to free functions in navigation.py)
+    # ------------------------------------------------------------------
+
+    @property
+    def next(self) -> Page | None:
+        """Next page in site collection."""
+        from bengal.core.page.navigation import get_next_page
+
+        return get_next_page(self, self._site)
+
+    @property
+    def prev(self) -> Page | None:
+        """Previous page in site collection."""
+        from bengal.core.page.navigation import get_prev_page
+
+        return get_prev_page(self, self._site)
+
+    @property
+    def next_in_section(self) -> Page | None:
+        """Next page in current section."""
+        from bengal.core.page.navigation import get_next_in_section
+
+        return get_next_in_section(self, self._section)
+
+    @property
+    def prev_in_section(self) -> Page | None:
+        """Previous page in current section."""
+        from bengal.core.page.navigation import get_prev_in_section
+
+        return get_prev_in_section(self, self._section)
+
+    @property
+    def parent(self) -> Section | None:
+        """Parent section of this page."""
+        return self._section
+
+    @property
+    def ancestors(self) -> list[Section]:
+        """Ancestor sections from immediate parent to root."""
+        from bengal.core.page.navigation import get_ancestors
+
+        return get_ancestors(self._section)
 
 
 __all__ = [

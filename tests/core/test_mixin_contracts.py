@@ -20,8 +20,8 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 
-class TestPageNavigationMixin:
-    """Verify PageNavigationMixin contract."""
+class TestPageNavigation:
+    """Verify page navigation free functions (via Page property wrappers)."""
 
     def test_next_returns_none_without_site(self) -> None:
         """next property returns None when _site is None."""
