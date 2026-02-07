@@ -30,7 +30,12 @@ def test_default_style_is_compact(monkeypatch):
 
 
 def test_env_sets_full_style(monkeypatch):
-    _clear_env(["BENGAL_TRACEBACK"])
+    _clear_env([
+        "BENGAL_TRACEBACK",
+        "BENGAL_TRACEBACK_SHOW_LOCALS",
+        "BENGAL_TRACEBACK_MAX_FRAMES",
+        "BENGAL_TRACEBACK_SUPPRESS",
+    ])
     monkeypatch.setenv("BENGAL_TRACEBACK", "full")
     cfg = TracebackConfig.from_environment()
     assert cfg.style == TracebackStyle.FULL
