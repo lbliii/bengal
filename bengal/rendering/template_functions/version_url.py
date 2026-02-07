@@ -30,6 +30,7 @@ Example (Mako):
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.utils.url import apply_baseurl
@@ -281,6 +282,7 @@ def _get_version_root_url(version_id: str, is_latest: bool, site: SiteLike) -> s
 # Module-level cache for version page index (keyed by id(site))
 # Limited to 10 entries to prevent memory leaks when Site objects are recreated
 _version_page_index_cache: dict[int, dict[str, set[str]]] = {}
+_version_cache_lock = threading.Lock()
 _VERSION_INDEX_CACHE_MAX_SIZE = 10
 
 
@@ -300,15 +302,17 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
 
     """
     site_id = id(site)
-    if site_id in _version_page_index_cache:
-        return _version_page_index_cache[site_id]
+    with _version_cache_lock:
+        if site_id in _version_page_index_cache:
+            return _version_page_index_cache[site_id]
 
-    # Evict oldest entry if cache is full (prevent memory leak)
-    if len(_version_page_index_cache) >= _VERSION_INDEX_CACHE_MAX_SIZE:
-        # Remove first (oldest) entry
-        oldest_key = next(iter(_version_page_index_cache))
-        _version_page_index_cache.pop(oldest_key, None)
+        # Evict oldest entry if cache is full (prevent memory leak)
+        if len(_version_page_index_cache) >= _VERSION_INDEX_CACHE_MAX_SIZE:
+            # Remove first (oldest) entry
+            oldest_key = next(iter(_version_page_index_cache))
+            _version_page_index_cache.pop(oldest_key, None)
 
+    # Build index outside lock (read-only access to site.pages)
     index: dict[str, set[str]] = {}
 
     for page in site.pages:
@@ -326,7 +330,8 @@ def _build_version_page_index(site: SiteLike) -> dict[str, set[str]]:
             if url.endswith("/") and len(url) > 1:
                 index[version].add(url.rstrip("/"))
 
-    _version_page_index_cache[site_id] = index
+    with _version_cache_lock:
+        _version_page_index_cache[site_id] = index
     return index
 
 
@@ -369,7 +374,8 @@ def invalidate_version_page_index() -> None:
     Call this when pages are modified during a build.
 
     """
-    _version_page_index_cache.clear()
+    with _version_cache_lock:
+        _version_page_index_cache.clear()
 
 
 # Register cache with centralized cache registry for lifecycle management

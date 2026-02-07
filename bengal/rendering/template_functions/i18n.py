@@ -17,6 +17,7 @@ to wrap these for the specific template engine being used.
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.utils.io.file_io import load_data_file
@@ -33,6 +34,7 @@ logger = get_logger(__name__)
 
 # Track warned translation keys to avoid spamming logs (once per key per build)
 _warned_translation_keys: set[str] = set()
+_i18n_lock = threading.Lock()
 
 
 class LanguageInfo(TypedDict, total=False):
@@ -62,15 +64,16 @@ def _warn_missing_translation(key: str, lang: str) -> None:
 
     """
     warn_key = f"{lang}:{key}"
-    if warn_key not in _warned_translation_keys:
-        _warned_translation_keys.add(warn_key)
-        logger.debug(
-            "translation_missing",
-            key=key,
-            lang=lang,
-            fallback="key_returned",
-            hint=f"Add translation for '{key}' in i18n/{lang}.yaml",
-        )
+    with _i18n_lock:
+        if warn_key not in _warned_translation_keys:
+            _warned_translation_keys.add(warn_key)
+            logger.debug(
+                "translation_missing",
+                key=key,
+                lang=lang,
+                fallback="key_returned",
+                hint=f"Add translation for '{key}' in i18n/{lang}.yaml",
+            )
 
 
 def reset_translation_warnings() -> None:
@@ -80,7 +83,8 @@ def reset_translation_warnings() -> None:
     Useful for testing or when starting a new build.
 
     """
-    _warned_translation_keys.clear()
+    with _i18n_lock:
+        _warned_translation_keys.clear()
 
 
 _DEF_FORMATS = {
@@ -267,13 +271,14 @@ def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
     site_id = id(site)
     current_page_count = len(site.pages)
 
-    cached = _translation_key_index_cache.get(site_id)
-    if cached is not None:
-        cached_count, index = cached
-        if cached_count == current_page_count:
-            return index
+    with _i18n_lock:
+        cached = _translation_key_index_cache.get(site_id)
+        if cached is not None:
+            cached_count, index = cached
+            if cached_count == current_page_count:
+                return index
 
-    # Build fresh index
+    # Build fresh index outside lock (read-only access to site.pages)
     index: dict[str, list[Any]] = {}
     for p in site.pages:
         key = getattr(p, "translation_key", None)
@@ -282,7 +287,8 @@ def _get_translation_key_index(site: SiteLike) -> dict[str, list[Any]]:
                 index[key] = []
             index[key].append(p)
 
-    _translation_key_index_cache[site_id] = (current_page_count, index)
+    with _i18n_lock:
+        _translation_key_index_cache[site_id] = (current_page_count, index)
     return index
 
 

@@ -48,6 +48,7 @@ bengal.orchestration.content: Content discovery and page creation
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -156,6 +157,7 @@ class Page(
     # the first 3 occurrences per unique warning key.
     # The dict is bounded to max 100 entries (oldest removed when limit reached).
     _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
+    _warnings_lock: ClassVar[threading.Lock] = threading.Lock()
     _MAX_WARNING_KEYS: ClassVar[int] = 100
 
     # Required field (no default)
@@ -595,23 +597,24 @@ class Page(
         if self._site is None:
             # Warn globally about missing site reference (class-level counter)
             warn_key = "missing_site"
-            if self._global_missing_section_warnings.get(warn_key, 0) < 3:
-                emit_diagnostic(
-                    self,
-                    "warning",
-                    "page_section_lookup_no_site",
-                    page=self._format_path_for_log(self.source_path),
-                    section_path=self._format_path_for_log(self._section_path),
-                    section_url=self._section_url,
-                )
-                # Bound the warning dict to prevent unbounded growth
-                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                    # Remove oldest entry (first key in dict)
-                    first_key = next(iter(self._global_missing_section_warnings))
-                    del self._global_missing_section_warnings[first_key]
-                self._global_missing_section_warnings[warn_key] = (
-                    self._global_missing_section_warnings.get(warn_key, 0) + 1
-                )
+            with self._warnings_lock:
+                if self._global_missing_section_warnings.get(warn_key, 0) < 3:
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "page_section_lookup_no_site",
+                        page=self._format_path_for_log(self.source_path),
+                        section_path=self._format_path_for_log(self._section_path),
+                        section_url=self._section_url,
+                    )
+                    # Bound the warning dict to prevent unbounded growth
+                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                        # Remove oldest entry (first key in dict)
+                        first_key = next(iter(self._global_missing_section_warnings))
+                        del self._global_missing_section_warnings[first_key]
+                    self._global_missing_section_warnings[warn_key] = (
+                        self._global_missing_section_warnings.get(warn_key, 0) + 1
+                    )
             return None
 
         # Cache key ties the resolved section to the active site object + reference fields + registry epoch.
@@ -634,42 +637,43 @@ class Page(
         if section is None:
             # Counter-gated warning to prevent log spam (class-level counter)
             warn_key = str(self._section_path or self._section_url)
-            count = self._global_missing_section_warnings.get(warn_key, 0)
+            with self._warnings_lock:
+                count = self._global_missing_section_warnings.get(warn_key, 0)
 
-            if count < 3:
-                emit_diagnostic(
-                    self,
-                    "warning",
-                    "page_section_not_found",
-                    page=self._format_path_for_log(self.source_path),
-                    section_path=self._format_path_for_log(self._section_path),
-                    section_url=self._section_url,
-                    count=count + 1,
-                )
-                # Bound the warning dict to prevent unbounded growth
-                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                    # Remove oldest entry (first key in dict)
-                    first_key = next(iter(self._global_missing_section_warnings))
-                    del self._global_missing_section_warnings[first_key]
-                self._global_missing_section_warnings[warn_key] = count + 1
-            elif count == 3:
-                # Show summary after 3rd warning, then go silent
-                emit_diagnostic(
-                    self,
-                    "warning",
-                    "page_section_not_found_summary",
-                    page=self._format_path_for_log(self.source_path),
-                    section_path=self._format_path_for_log(self._section_path),
-                    section_url=self._section_url,
-                    total_warnings=count + 1,
-                    note="Further warnings for this section will be suppressed",
-                )
-                # Bound the warning dict to prevent unbounded growth
-                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                    # Remove oldest entry (first key in dict)
-                    first_key = next(iter(self._global_missing_section_warnings))
-                    del self._global_missing_section_warnings[first_key]
-                self._global_missing_section_warnings[warn_key] = count + 1
+                if count < 3:
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "page_section_not_found",
+                        page=self._format_path_for_log(self.source_path),
+                        section_path=self._format_path_for_log(self._section_path),
+                        section_url=self._section_url,
+                        count=count + 1,
+                    )
+                    # Bound the warning dict to prevent unbounded growth
+                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                        # Remove oldest entry (first key in dict)
+                        first_key = next(iter(self._global_missing_section_warnings))
+                        del self._global_missing_section_warnings[first_key]
+                    self._global_missing_section_warnings[warn_key] = count + 1
+                elif count == 3:
+                    # Show summary after 3rd warning, then go silent
+                    emit_diagnostic(
+                        self,
+                        "warning",
+                        "page_section_not_found_summary",
+                        page=self._format_path_for_log(self.source_path),
+                        section_path=self._format_path_for_log(self._section_path),
+                        section_url=self._section_url,
+                        total_warnings=count + 1,
+                        note="Further warnings for this section will be suppressed",
+                    )
+                    # Bound the warning dict to prevent unbounded growth
+                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                        # Remove oldest entry (first key in dict)
+                        first_key = next(iter(self._global_missing_section_warnings))
+                        del self._global_missing_section_warnings[first_key]
+                    self._global_missing_section_warnings[warn_key] = count + 1
 
         # Cache both hits and misses (misses use a sentinel).
         self._section_obj_cache_key = cache_key
