@@ -13,7 +13,7 @@ Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
 metadata.py: PageMetadataMixin (frontmatter access)
 navigation.py: Free functions for navigation and hierarchy
-computed.py: PageComputedMixin (derived properties)
+computed.py: Free functions for computed properties (word count, reading time, etc.)
 content.py: PageContentMixin (AST, TOC, excerpts)
 bundle.py: Free functions for bundle detection and resource access
 relationships.py: PageRelationshipsMixin (prev/next, related)
@@ -59,7 +59,9 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
+    from bengal.core.author import Author
     from bengal.core.section import Section
+    from bengal.core.series import Series
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
     from bengal.utils.pagination import Paginator
@@ -70,7 +72,6 @@ if TYPE_CHECKING:
 from bengal.rendering.page_operations import PageOperationsMixin
 
 from .bundle import BundleType, PageResource, PageResources
-from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
@@ -82,7 +83,6 @@ from .relationships import PageRelationshipsMixin
 @dataclass
 class Page(
     PageMetadataMixin,
-    PageComputedMixin,
     PageRelationshipsMixin,
     PageOperationsMixin,
     PageContentMixin,
@@ -794,6 +794,92 @@ class Page(
         from bengal.core.page.bundle import get_resources
 
         return get_resources(self.source_path, getattr(self, "url", "/"))
+
+    # ------------------------------------------------------------------
+    # Computed properties (delegate to free functions in computed.py)
+    # ------------------------------------------------------------------
+
+    @property
+    def _source(self) -> str:
+        """Raw markdown source content."""
+        return self._raw_content
+
+    @cached_property
+    def word_count(self) -> int:
+        """Word count from source markdown."""
+        from bengal.core.page.computed import compute_word_count
+
+        return compute_word_count(self._raw_content)
+
+    @cached_property
+    def meta_description(self) -> str:
+        """SEO-friendly meta description (max 160 chars)."""
+        from bengal.core.page.computed import compute_meta_description
+
+        return compute_meta_description(self.metadata, self._raw_content)
+
+    @cached_property
+    def reading_time(self) -> int:
+        """Estimated reading time in minutes (minimum 1)."""
+        from bengal.core.page.computed import compute_reading_time
+
+        return compute_reading_time(self.word_count)
+
+    @cached_property
+    def excerpt(self) -> str:
+        """Content excerpt for listings (max 200 chars)."""
+        from bengal.core.page.computed import compute_excerpt
+
+        return compute_excerpt(self._raw_content)
+
+    @cached_property
+    def age_days(self) -> int:
+        """Days since publication."""
+        from bengal.core.page.computed import compute_age_days
+
+        return compute_age_days(self.date)
+
+    @cached_property
+    def age_months(self) -> int:
+        """Months since publication."""
+        from bengal.core.page.computed import compute_age_months
+
+        return compute_age_months(self.date)
+
+    @cached_property
+    def author(self) -> Author | None:
+        """Primary author as Author object."""
+        from bengal.core.page.computed import get_primary_author
+
+        return get_primary_author(self.metadata)
+
+    @cached_property
+    def authors(self) -> list[Author]:
+        """All authors as list of Author objects."""
+        from bengal.core.page.computed import get_all_authors
+
+        return get_all_authors(self.metadata)
+
+    @cached_property
+    def series(self) -> Series | None:
+        """Series info as Series object."""
+        from bengal.core.page.computed import get_series_info
+
+        return get_series_info(self.metadata)
+
+    @cached_property
+    def prev_in_series(self) -> Page | None:
+        """Previous page in series."""
+        from bengal.core.page.computed import get_series_neighbor
+
+        return get_series_neighbor(self.metadata, self._site, -1)
+
+    @cached_property
+    def next_in_series(self) -> Page | None:
+        """Next page in series."""
+        from bengal.core.page.computed import get_series_neighbor
+
+        return get_series_neighbor(self.metadata, self._site, 1)
 
 
 __all__ = [

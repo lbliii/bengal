@@ -1,491 +1,331 @@
 """
-Page Computed Properties Mixin - Cached expensive computations.
+Page Computed Properties - Free functions for cached expensive computations.
 
-This mixin provides cached computed properties for pages. Each property is
-computed once on first access and cached using @cached_property decorator.
+Functions accept explicit parameters (raw_content, metadata, date) instead of
+accessing them through mixin self-reference.
 
-Key Properties:
-- meta_description: SEO-friendly description (max 160 chars)
-- reading_time: Estimated reading time in minutes
-- excerpt: Content excerpt for listings (max 200 chars)
-- age_days: Days since publication
-- age_months: Months since publication
-- author: Primary Author object
-- authors: List of all Author objects
-- series: Series object for multi-part content
+Key Functions:
+- compute_word_count: Word count from source markdown
+- compute_meta_description: SEO-friendly description (max 160 chars)
+- compute_reading_time: Estimated reading time in minutes
+- compute_excerpt: Content excerpt for listings (max 200 chars)
+- compute_age_days: Days since publication
+- compute_age_months: Months since publication
+- get_primary_author: Primary Author object
+- get_all_authors: List of all Author objects
+- get_series_info: Series object for multi-part content
+- get_series_neighbor: Navigate between pages in a series
 
 Performance:
-All properties use @cached_property decorator, ensuring expensive operations
-(HTML stripping, word counting, truncation) are only performed once per page.
+Page class uses @cached_property wrappers that call these pure functions,
+ensuring expensive operations (HTML stripping, word counting, truncation)
+are only performed once per page.
 
 Related Modules:
 - bengal.rendering.pipeline: Content rendering that populates page.content
 - bengal.core.author: Author dataclass for author metadata
 
 See Also:
-- bengal/core/page/__init__.py: Page class that uses this mixin
+- bengal/core/page/__init__.py: Page class that wraps these functions as properties
 
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from functools import cached_property
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
+    from bengal.core.page import Page
     from bengal.core.series import Series
     from bengal.core.site import Site
 
 
-@runtime_checkable
-class HasMetadata(Protocol):
-    """Protocol for objects that have metadata and content attributes."""
+def compute_word_count(raw_content: str) -> int:
+    """Word count from source markdown.
 
-    metadata: dict[str, Any]
-    _raw_content: str
+    Counts words in the raw markdown source content. This is the
+    authoritative word count for the page, representing the author's
+    actual words rather than rendered HTML which may include generated
+    content.
 
+    Args:
+        raw_content: Raw markdown source string
 
-@runtime_checkable
-class HasDate(Protocol):
-    """Protocol for objects that have a date attribute."""
-
-    date: datetime | None
-
-
-@runtime_checkable
-class HasSiteAndMetadata(Protocol):
-    """Protocol for objects with site reference and metadata."""
-
-    metadata: dict[str, Any]
-    _site: Site | None
-    source_path: Path
-
-
-class PageComputedMixin:
+    Returns:
+        Word count (integer)
     """
-    Mixin providing cached computed properties for pages.
+    if not raw_content:
+        return 0
+    return len(raw_content.split())
 
-    This mixin handles expensive operations that are cached after first access:
-    - meta_description - SEO-friendly description
-    - word_count - Word count from source content
-    - reading_time - Estimated reading time
-    - excerpt - Content excerpt
 
-    Underscore Convention:
-        Properties prefixed with `_` are for internal/advanced use:
-        - _source: Raw markdown source (for plugins, custom analysis)
-        Properties without `_` are template-ready:
-        - word_count, reading_time: Pre-computed for templates
+def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> str:
+    """Generate SEO-friendly meta description.
 
+    Creates description by:
+    - Using explicit 'description' from metadata if available
+    - Otherwise generating from content by stripping HTML and truncating
+    - Attempting to end at sentence boundary for better readability
+
+    Args:
+        metadata: Page metadata dict
+        raw_content: Raw markdown source string
+
+    Returns:
+        Meta description text (max 160 chars)
     """
+    # Check metadata first (explicit description)
+    description = metadata.get("description")
+    if description:
+        return cast(str, description)
 
-    @property
-    def _source(self: HasMetadata) -> str:
-        """
-        Raw markdown source content.
+    # Generate from raw content
+    if not raw_content:
+        return ""
 
-        This property provides access to the original markdown source content.
-        Use this for:
-        - Plugins that need raw markdown
-        - Custom analysis or transformation
-        - Internal comparisons and hashing
+    # Strip HTML tags and normalize whitespace
+    from bengal.core.utils.text import normalize_whitespace
 
-        For template use, prefer the computed properties:
-        - page.word_count - Pre-computed word count
-        - page.reading_time - Pre-computed reading time
+    text = normalize_whitespace(strip_html(raw_content))
 
-        Returns:
-            Raw markdown source string
+    # Truncate at sentence boundary for readability
+    return truncate_at_sentence(text, length=160)
 
-        Example:
-            >>> len(page._source)  # Character count
-            1523
-            >>> page._source[:100]  # First 100 chars
-            '# My Page Title\\n\\nThis is the introduction...'
 
-        Note:
-            Following the underscore convention, this property is for
-            internal/advanced use. Templates should use page.word_count
-            and page.reading_time instead of accessing _source directly.
-        """
-        return self._raw_content
+def compute_reading_time(word_count: int) -> int:
+    """Calculate reading time in minutes.
 
-    @cached_property
-    def word_count(self: HasMetadata) -> int:
-        """
-        Word count from source markdown (computed once, cached).
+    Estimates reading time at 200 words per minute.
 
-        Counts words in the raw markdown source content. This is the
-        authoritative word count for the page, representing the author's
-        actual words rather than rendered HTML which may include generated
-        content.
+    Args:
+        word_count: Number of words in content
 
-        The result is cached after first access for efficient repeated use.
+    Returns:
+        Reading time in minutes (minimum 1)
+    """
+    return max(1, round(word_count / 200))
 
-        Returns:
-            Word count (integer)
 
-        Example:
-            <span>{{ page.word_count }} words</span>
+def compute_excerpt(raw_content: str) -> str:
+    """Extract content excerpt.
 
-        See Also:
-            - page.reading_time: Estimated reading time based on word_count
-            - page._source: Raw markdown source (internal use only)
-        """
-        # Use _source (raw markdown) for accurate word count
-        source = self._source
-        if not source:
-            return 0
-        return len(source.split())
+    Creates a 200-character excerpt from content by:
+    - Stripping HTML tags
+    - Truncating to length
+    - Respecting word boundaries (doesn't cut words in half)
+    - Adding ellipsis if truncated
 
-    @cached_property
-    def meta_description(self: HasMetadata) -> str:
-        """
-        Generate SEO-friendly meta description (computed once, cached).
+    Args:
+        raw_content: Raw markdown source string
 
-        Creates description by:
-        - Using explicit 'description' from metadata if available
-        - Otherwise generating from content by stripping HTML and truncating
-        - Attempting to end at sentence boundary for better readability
+    Returns:
+        Excerpt text with ellipsis if truncated
+    """
+    if not raw_content:
+        return ""
 
-        The result is cached after first access, so multiple template uses
-        (meta tag, og:description, twitter:description) only compute once.
+    # Strip HTML and truncate at word boundary
+    clean_text = strip_html(raw_content)
+    return truncate_at_word(clean_text, length=200)
 
-        Returns:
-            Meta description text (max 160 chars)
 
-        Example:
-            <meta name="description" content="{{ page.meta_description }}">
-            <meta property="og:description" content="{{ page.meta_description }}">
-        """
-        # Check metadata first (explicit description)
-        description = self.metadata.get("description")
-        if description:
-            return cast(str, description)
+def compute_age_days(date: datetime | None) -> int:
+    """Calculate days since publication.
 
-        # Generate from raw content
-        text = self._raw_content
-        if not text:
-            return ""
+    Args:
+        date: Publication date (or None)
 
-        # Strip HTML tags and normalize whitespace
-        from bengal.core.utils.text import normalize_whitespace
+    Returns:
+        Number of days since publication, or 0 if no date
+    """
+    if date is None:
+        return 0
 
-        text = normalize_whitespace(strip_html(text))
+    # Handle timezone-aware dates
+    now = datetime.now(UTC) if date.tzinfo is not None else datetime.now()
+    diff = now - date
+    return max(0, diff.days)
 
-        # Truncate at sentence boundary for readability
-        return truncate_at_sentence(text, length=160)
 
-    @cached_property
-    def reading_time(self: HasMetadata) -> int:
-        """
-        Calculate reading time in minutes (computed once, cached).
+def compute_age_months(date: datetime | None) -> int:
+    """Calculate months since publication.
 
-        Estimates reading time based on word_count at 200 words per minute.
-        Uses the source markdown word count (via word_count property) for
-        accurate estimation of author's actual writing.
+    Uses calendar months rather than 30-day periods for more intuitive
+    results. A post from January 15 accessed in March would be 2 months old.
 
-        The result is cached after first access for efficient repeated use.
+    Args:
+        date: Publication date (or None)
 
-        Returns:
-            Reading time in minutes (minimum 1)
+    Returns:
+        Number of months since publication, or 0 if no date
+    """
+    if date is None:
+        return 0
 
-        Example:
-            <span class="reading-time">{{ page.reading_time }} min read</span>
+    now = datetime.now(UTC) if date.tzinfo is not None else datetime.now()
+    months = (now.year - date.year) * 12 + (now.month - date.month)
+    return max(0, months)
 
-        See Also:
-            - page.word_count: The word count used for this calculation
-        """
-        # Use word_count property (based on _source markdown)
-        return max(1, round(self.word_count / 200))
 
-    @cached_property
-    def excerpt(self: HasMetadata) -> str:
-        """
-        Extract content excerpt (computed once, cached).
+def get_primary_author(metadata: Mapping[str, Any]) -> Author | None:
+    """Get primary author as Author object.
 
-        Creates a 200-character excerpt from content by:
-        - Stripping HTML tags
-        - Truncating to length
-        - Respecting word boundaries (doesn't cut words in half)
-        - Adding ellipsis if truncated
+    Parses the 'author' frontmatter field into a structured Author object.
+    Supports both string format ("Jane Smith") and dict format with details.
 
-        The result is cached after first access for efficient repeated use.
+    Args:
+        metadata: Page metadata dict
 
-        Returns:
-            Excerpt text with ellipsis if truncated
+    Returns:
+        Author object or None if no author specified
+    """
+    from bengal.core.author import Author
 
-        Example:
-            <p class="excerpt">{{ page.excerpt }}</p>
-        """
-        if not self._raw_content:
-            return ""
+    # Check for 'author' field first
+    author_data = metadata.get("author")
+    if author_data:
+        return Author.from_frontmatter(author_data)
 
-        # Strip HTML and truncate at word boundary
-        clean_text = strip_html(self._raw_content)
-        return truncate_at_word(clean_text, length=200)
+    # Fall back to first author in 'authors' list
+    authors_data = metadata.get("authors")
+    if authors_data and isinstance(authors_data, list) and len(authors_data) > 0:
+        return Author.from_frontmatter(authors_data[0])
 
-    @cached_property
-    def age_days(self: HasDate) -> int:
-        """
-        Calculate days since publication (computed once, cached).
+    return None
 
-        Returns the number of days since the page's date. Useful for
-        determining content freshness and applying age-based styling.
 
-        Returns:
-            Number of days since publication, or 0 if no date
+def get_all_authors(metadata: Mapping[str, Any]) -> list[Author]:
+    """Get all authors as list of Author objects.
 
-        Example:
-            {% if page.age_days < 7 %}
-              <span class="badge">New</span>
-            {% endif %}
-        """
-        page_date = getattr(self, "date", None)
-        if page_date is None:
-            return 0
+    Parses both 'author' and 'authors' frontmatter fields, combining them
+    into a single deduplicated list. Handles string and dict formats.
 
-        # Handle timezone-aware dates
-        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
-        diff = now - page_date
-        return max(0, diff.days)
+    Args:
+        metadata: Page metadata dict
 
-    @cached_property
-    def age_months(self: HasDate) -> int:
-        """
-        Calculate months since publication (computed once, cached).
+    Returns:
+        List of Author objects (empty list if no authors)
+    """
+    from bengal.core.author import Author
 
-        Uses calendar months rather than 30-day periods for more intuitive
-        results. A post from January 15 accessed in March would be 2 months old.
+    result: list[Author] = []
+    seen_names: set[str] = set()
 
-        Returns:
-            Number of months since publication, or 0 if no date
+    # Process 'author' field (single author)
+    author_data = metadata.get("author")
+    if author_data:
+        author = Author.from_frontmatter(author_data)
+        if author and author.name not in seen_names:
+            result.append(author)
+            seen_names.add(author.name)
 
-        Example:
-            {% if page.age_months > 6 %}
-              <div class="notice">This content may be outdated.</div>
-            {% endif %}
-        """
-        page_date = getattr(self, "date", None)
-        if page_date is None:
-            return 0
-
-        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
-        months = (now.year - page_date.year) * 12 + (now.month - page_date.month)
-        return max(0, months)
-
-    @cached_property
-    def author(self: HasMetadata) -> Author | None:
-        """
-        Get primary author as Author object (computed once, cached).
-
-        Parses the 'author' frontmatter field into a structured Author object.
-        Supports both string format ("Jane Smith") and dict format with details.
-
-        Returns:
-            Author object or None if no author specified
-
-        Example:
-            {% if page.author %}
-              <span class="author">{{ page.author.name }}</span>
-              {% if page.author.avatar %}
-                <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
-              {% endif %}
-            {% endif %}
-        """
-        from bengal.core.author import Author
-
-        # Check for 'author' field first
-        author_data = self.metadata.get("author")
-        if author_data:
-            return Author.from_frontmatter(author_data)
-
-        # Fall back to first author in 'authors' list
-        authors_data = self.metadata.get("authors")
-        if authors_data and isinstance(authors_data, list) and len(authors_data) > 0:
-            return Author.from_frontmatter(authors_data[0])
-
-        return None
-
-    @cached_property
-    def authors(self: HasMetadata) -> list[Author]:
-        """
-        Get all authors as list of Author objects (computed once, cached).
-
-        Parses both 'author' and 'authors' frontmatter fields, combining them
-        into a single deduplicated list. Handles string and dict formats.
-
-        Returns:
-            List of Author objects (empty list if no authors)
-
-        Example:
-            {% for author in page.authors %}
-              <a href="/authors/{{ author.name | slugify }}/">
-                {{ author.name }}
-              </a>
-            {% endfor %}
-        """
-        from bengal.core.author import Author
-
-        result: list[Author] = []
-        seen_names: set[str] = set()
-
-        # Process 'author' field (single author)
-        author_data = self.metadata.get("author")
-        if author_data:
-            author = Author.from_frontmatter(author_data)
+    # Process 'authors' field (multiple authors)
+    authors_data = metadata.get("authors")
+    if authors_data and isinstance(authors_data, list):
+        for item in authors_data:
+            author = Author.from_frontmatter(item)
             if author and author.name not in seen_names:
                 result.append(author)
                 seen_names.add(author.name)
 
-        # Process 'authors' field (multiple authors)
-        authors_data = self.metadata.get("authors")
-        if authors_data and isinstance(authors_data, list):
-            for item in authors_data:
-                author = Author.from_frontmatter(item)
-                if author and author.name not in seen_names:
-                    result.append(author)
-                    seen_names.add(author.name)
+    return result
 
-        return result
 
-    @cached_property
-    def series(self: HasMetadata) -> Series | None:
-        """
-        Get series info as Series object (computed once, cached).
+def get_series_info(metadata: Mapping[str, Any]) -> Series | None:
+    """Get series info as Series object.
 
-        Parses the 'series' frontmatter field into a structured Series object
-        for multi-part content navigation.
+    Parses the 'series' frontmatter field into a structured Series object
+    for multi-part content navigation.
 
-        Returns:
-            Series object or None if not part of a series
+    Args:
+        metadata: Page metadata dict
 
-        Example:
-            {% if page.series %}
-              <div class="series-nav">
-                <h4>{{ page.series.name }}</h4>
-                <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
-              </div>
-            {% endif %}
-        """
-        from bengal.core.series import Series
+    Returns:
+        Series object or None if not part of a series
+    """
+    from bengal.core.series import Series
 
-        series_data = self.metadata.get("series")
-        if not series_data:
-            return None
-
-        return Series.from_frontmatter(series_data)
-
-    @cached_property
-    def prev_in_series(self: HasSiteAndMetadata) -> Any | None:
-        """
-        Get previous page in series (computed once, cached).
-
-        Looks up other pages in the same series via the SeriesIndex and
-        returns the page with part number one less than this page.
-
-        Returns:
-            Previous Page in series, or None if first/not in series
-
-        Example:
-            {% if page.prev_in_series %}
-              <a href="{{ page.prev_in_series.href }}">
-                ← {{ page.prev_in_series.title }}
-              </a>
-            {% endif %}
-        """
-        return self._get_series_neighbor(-1)
-
-    @cached_property
-    def next_in_series(self: HasSiteAndMetadata) -> Any | None:
-        """
-        Get next page in series (computed once, cached).
-
-        Looks up other pages in the same series via the SeriesIndex and
-        returns the page with part number one more than this page.
-
-        Returns:
-            Next Page in series, or None if last/not in series
-
-        Example:
-            {% if page.next_in_series %}
-              <a href="{{ page.next_in_series.href }}">
-                {{ page.next_in_series.title }} →
-              </a>
-            {% endif %}
-        """
-        return self._get_series_neighbor(1)
-
-    def _get_series_neighbor(self: HasSiteAndMetadata, offset: int) -> Any | None:
-        """
-        Get neighboring page in series by part offset.
-
-        Args:
-            offset: Part number offset (-1 for prev, +1 for next)
-
-        Returns:
-            Neighboring Page or None
-        """
-        # Get series info from this page
-        series_data = self.metadata.get("series")
-        if not series_data:
-            return None
-
-        # Extract series name and current part
-        if isinstance(series_data, str):
-            series_name = series_data
-            current_part = 1
-        elif isinstance(series_data, dict):
-            series_name = series_data.get("name", "")
-            current_part = int(series_data.get("part", 1))
-        else:
-            return None
-
-        if not series_name:
-            return None
-
-        target_part = current_part + offset
-        if target_part < 1:
-            return None
-
-        # Access site's series index
-        site = getattr(self, "_site", None)
-        if site is None:
-            return None
-
-        # Get series index
-        indexes = getattr(site, "indexes", None)
-        if indexes is None:
-            return None
-
-        series_index = getattr(indexes, "series", None)
-        if series_index is None:
-            return None
-
-        # Get all page paths in this series
-        page_paths = series_index.get(series_name)
-        if not page_paths:
-            return None
-
-        # Get page lookup map
-        page_map = site.get_page_path_map()
-
-        # Find the page with the target part number
-        for path in page_paths:
-            page = page_map.get(path)
-            if page is None:
-                continue
-
-            # Check this page's part number
-            page_series = page.metadata.get("series")
-            page_part = int(page_series.get("part", 1)) if isinstance(page_series, dict) else 1
-
-            if page_part == target_part:
-                return page
-
+    series_data = metadata.get("series")
+    if not series_data:
         return None
+
+    return Series.from_frontmatter(series_data)
+
+
+def get_series_neighbor(
+    metadata: Mapping[str, Any],
+    site: Site | None,
+    offset: int,
+) -> Page | None:
+    """Get neighboring page in series by part offset.
+
+    Args:
+        metadata: Page metadata dict
+        site: Site instance (for page lookup)
+        offset: Part number offset (-1 for prev, +1 for next)
+
+    Returns:
+        Neighboring Page or None
+    """
+    # Get series info from this page
+    series_data = metadata.get("series")
+    if not series_data:
+        return None
+
+    # Extract series name and current part
+    if isinstance(series_data, str):
+        series_name = series_data
+        current_part = 1
+    elif isinstance(series_data, dict):
+        series_name = series_data.get("name", "")
+        current_part = int(series_data.get("part", 1))
+    else:
+        return None
+
+    if not series_name:
+        return None
+
+    target_part = current_part + offset
+    if target_part < 1:
+        return None
+
+    # Access site's series index
+    if site is None:
+        return None
+
+    # Get series index
+    indexes = getattr(site, "indexes", None)
+    if indexes is None:
+        return None
+
+    series_index = getattr(indexes, "series", None)
+    if series_index is None:
+        return None
+
+    # Get all page paths in this series
+    page_paths = series_index.get(series_name)
+    if not page_paths:
+        return None
+
+    # Get page lookup map
+    page_map = site.get_page_path_map()
+
+    # Find the page with the target part number
+    for path in page_paths:
+        page = page_map.get(path)
+        if page is None:
+            continue
+
+        # Check this page's part number
+        page_series = page.metadata.get("series")
+        page_part = int(page_series.get("part", 1)) if isinstance(page_series, dict) else 1
+
+        if page_part == target_part:
+            return page
+
+    return None
