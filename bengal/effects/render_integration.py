@@ -218,6 +218,18 @@ class BuildEffectTracer:
         """Get the underlying tracer."""
         return self._tracer
 
+    def set_tracer(self, tracer: EffectTracer) -> None:
+        """
+        Replace the underlying tracer with a persistent instance.
+
+        Used by CacheManager to inject a tracer loaded from disk,
+        so effects recorded during rendering are persisted across builds.
+
+        Args:
+            tracer: EffectTracer instance (typically loaded from effects.json)
+        """
+        self._tracer = tracer
+
     @property
     def enabled(self) -> bool:
         """Check if effect tracing is enabled."""

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.effects.tracer import EffectTracer
     from bengal.orchestration.build.coordinator import CacheCoordinator
 
 logger = get_logger(__name__)
@@ -46,6 +47,7 @@ class CacheManager:
         cache: BuildCache instance (None until initialized)
         tracker: DependencyTracker instance (None until initialized)
         coordinator: CacheCoordinator instance for unified invalidation (None until initialized)
+        effect_tracer: EffectTracer instance for effect-based dependency tracking (None until initialized)
 
     Example:
             >>> manager = CacheManager(site)
@@ -66,6 +68,12 @@ class CacheManager:
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
         self.coordinator: CacheCoordinator | None = None
+        self._effect_tracer: EffectTracer | None = None
+
+    @property
+    def effect_tracer(self) -> EffectTracer | None:
+        """EffectTracer for effect-based dependency tracking (None until initialized)."""
+        return self._effect_tracer
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
@@ -141,6 +149,34 @@ class CacheManager:
         # Initialize CacheCoordinator for unified page-level invalidation
         # RFC: rfc-cache-invalidation-architecture
         self.coordinator = CacheCoordinator(self.cache, self.tracker, self.site)
+
+        # Create EffectTracer alongside DependencyTracker (parallel tracking)
+        # Load from cache if available for incremental rebuild queries.
+        # Inject into BuildEffectTracer singleton so effects recorded during
+        # rendering flow into this persistent tracer instance.
+        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        from bengal.effects.render_integration import BuildEffectTracer
+        from bengal.effects.tracer import EffectTracer as _EffectTracer
+
+        effects_path = paths.state_dir / "effects.json"
+        if enabled:
+            self._effect_tracer = _EffectTracer.load(effects_path)
+            logger.debug(
+                "effect_tracer_initialized",
+                loaded_from_cache=effects_path.exists(),
+                effect_count=len(self._effect_tracer.effects),
+            )
+        else:
+            self._effect_tracer = _EffectTracer()
+            logger.debug("effect_tracer_initialized", enabled=False)
+
+        # Wire persistent tracer into the global BuildEffectTracer singleton
+        # so that RenderingPipeline._render_and_write() records to our tracer.
+        # Previous effects are preserved for EffectBasedDetector change detection;
+        # new effects recorded during rendering accumulate alongside them.
+        build_effect_tracer = BuildEffectTracer.get_instance()
+        build_effect_tracer.set_tracer(self._effect_tracer)
+        build_effect_tracer.enable()
 
         return self.cache, self.tracker
 
@@ -277,6 +313,18 @@ class CacheManager:
         # This ensures fingerprints reflect post-build state, not mid-build state.
         if self.tracker:
             self.tracker.flush_pending_updates()
+
+        # Save EffectTracer alongside build cache
+        # RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
+        if self._effect_tracer:
+            effects_path = paths.state_dir / "effects.json"
+            self._effect_tracer.flush_pending_fingerprints()
+            self._effect_tracer.save(effects_path)
+            logger.debug(
+                "effect_tracer_saved",
+                effect_count=len(self._effect_tracer.effects),
+                path=str(effects_path),
+            )
 
         # Save cache
         self.cache.save(cache_path)
