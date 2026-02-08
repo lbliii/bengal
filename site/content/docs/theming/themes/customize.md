@@ -410,10 +410,10 @@ Bengal provides a pre-computed navigation tree for efficient template rendering.
           <li>
             <a href="{{ child.href }}">{{ child.title }}</a>
           </li>
-        {% endfor %}
+        {% end %}
       </ul>
     {% end %}
-  {% endfor %}
+  {% end %}
 </nav>
 ```
 
@@ -443,7 +443,7 @@ For section-specific navigation (e.g., docs-only sidebar):
 {% let root = page._section.root if page._section else none %}
 {% for item in get_nav_tree(page, root_section=root) %}
   <a href="{{ item.href }}">{{ item.title }}</a>
-{% endfor %}
+{% end %}
 ```
 
 ### Benefits

@@ -251,10 +251,10 @@ Make a variable from an inner scope available to the outer scope:
   <article>
     {{ page.content | safe }}
   </article>
-{% endblock %}
+{% end %}
 ```
 
-**Note**: Kida uses `{% endblock %}` for blocks (Jinja2 compatibility), but `{% end %}` works too.
+**Note**: Kida uses `{% end %}` as the preferred block ending. `{% endblock %}` is also accepted for Jinja2 compatibility.
 
 ### Includes
 
@@ -319,7 +319,7 @@ Kida functions can access variables from their surrounding context automatically
 
 {% call card(page) %}
   <p>Custom content here</p>
-{% endcall %}
+{% end %}
 ```
 
 ## Filters and Pipeline
@@ -936,7 +936,7 @@ Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
       {{ build_sidebar(site.pages) }}
     </aside>
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ## See Also

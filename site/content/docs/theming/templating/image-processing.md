@@ -128,7 +128,7 @@ You can create a reusable responsive image pattern in your templates:
      sizes="{{ sizes }}"
      alt="{{ alt }}"
      loading="{{ loading }}" />
-{% endmacro %}
+{% end %}
 
 {# Usage #}
 {{ responsive_img('hero.jpg', alt='Hero image', sizes='(max-width: 768px) 100vw, 50vw') }}

@@ -457,7 +457,7 @@ All linking methods use O(1) lookups from pre-built indexes:
 <nav>
   {% for item in site.menus.main %}
     <a href="{{ item.url }}">{{ item.name }}</a>
-  {% endfor %}
+  {% end %}
 </nav>
 ```
 
@@ -480,7 +480,7 @@ All linking methods use O(1) lookups from pre-built indexes:
   <ul>
     {% for page in related %}
       <li>{{ ref(page.path) }}</li>
-    {% endfor %}
+    {% end %}
   </ul>
 {% end %}
 ```

@@ -110,7 +110,7 @@ Use with `{% call %}` to pass content:
     <button class="btn btn-danger">Delete</button>
     <button class="btn btn-secondary">Cancel</button>
   </div>
-{% endcall %}
+{% end %}
 ```
 
 ## Common Patterns
@@ -257,5 +257,5 @@ Use in templates:
       {{ post_card(post) }}
     {% end %}
   </section>
-{% endblock %}
+{% end %}
 ```

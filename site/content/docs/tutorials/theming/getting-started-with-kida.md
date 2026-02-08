@@ -200,7 +200,7 @@ Create `templates/baseof.html`:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ site.config.title }}{% endblock %}</title>
+  <title>{% block title %}{{ site.config.title }}{% end %}</title>
 </head>
 <body>
   <header>
@@ -213,7 +213,7 @@ Create `templates/baseof.html`:
   </header>
 
   <main>
-    {% block content %}{% endblock %}
+    {% block content %}{% end %}
   </main>
 
   <footer>
@@ -230,7 +230,7 @@ Create `templates/blog/single.html`:
 ```kida
 {% extends "baseof.html" %}
 
-{% block title %}{{ page.title }} - {{ site.config.title }}{% endblock %}
+{% block title %}{{ page.title }} - {{ site.config.title }}{% end %}
 
 {% block content %}
   <article class="blog-post">
@@ -242,7 +242,7 @@ Create `templates/blog/single.html`:
       {{ page.content | safe }}
     </div>
   </article>
-{% endblock %}
+{% end %}
 ```
 
 ## Step 6: Build a Complete Blog Template
@@ -262,7 +262,7 @@ Create a full-featured blog template:
   |> sort_by('date', reverse=true)
   |> take(5) %}
 
-{% block title %}{{ post.title }} - {{ site.config.title }}{% endblock %}
+{% block title %}{{ post.title }} - {{ site.config.title }}{% end %}
 
 {% block content %}
   <article class="blog-post">
@@ -299,7 +299,7 @@ Create a full-featured blog template:
         <ul>
           {% for related in related_posts %}
             <li>
-              <a href="{{ related.url }}">{{ related.title }}</a>
+              <a href="{{ related.href }}">{{ related.title }}</a>
               <span>{{ related.date | days_ago }} days ago</span>
             </li>
           {% end %}
@@ -307,7 +307,7 @@ Create a full-featured blog template:
       </aside>
     {% end %}
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ## Step 7: Fragment Caching

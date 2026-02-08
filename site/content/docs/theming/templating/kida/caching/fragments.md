@@ -321,7 +321,7 @@ bengal build --verbose
       {% end %}
     {% end %}
   </article>
-{% endblock %}
+{% end %}
 
 {% block sidebar %}
   {% cache "sidebar-nav-" ~ site.nav_version %}
@@ -331,5 +331,5 @@ bengal build --verbose
   {% cache "tag-cloud" %}
     {{ build_tag_cloud(site.tags) }}
   {% end %}
-{% endblock %}
+{% end %}
 ```

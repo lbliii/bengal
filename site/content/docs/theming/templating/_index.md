@@ -46,7 +46,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
   <h1>{{ page.title }}</h1>
   {{ page.content | safe }}
 </article>
-{% endblock %}
+{% end %}
 ```
 :::
 
@@ -56,12 +56,12 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{% block title %}{{ page.title }}{% endblock %}</title>
+  <title>{% block title %}{{ page.title }}{% end %}</title>
 </head>
 <body>
-  {% block header %}{% include "partials/header.html" %}{% endblock %}
-  {% block content %}{% endblock %}
-  {% block footer %}{% include "partials/footer.html" %}{% endblock %}
+  {% block header %}{% include "partials/header.html" %}{% end %}
+  {% block content %}{% end %}
+  {% block footer %}{% include "partials/footer.html" %}{% end %}
 </body>
 </html>
 ```
@@ -86,7 +86,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 | Concept | Syntax | Purpose |
 |---------|--------|---------|
 | **Extends** | `{% extends "base.html" %}` | Inherit from parent template |
-| **Block** | `{% block name %}...{% endblock %}` | Replaceable section |
+| **Block** | `{% block name %}...{% end %}` | Replaceable section |
 | **Include** | `{% include "partial.html" %}` | Insert another template |
 | **Variable** | `{{ page.title }}` | Output a value |
 | **Filter** | `{{ text \| truncate(100) }}` | Transform a value |

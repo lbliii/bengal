@@ -114,7 +114,7 @@ Here are all our Python tutorials.
     {% end %}
   </div>
 
-{% endblock %}
+{% end %}
 ```
 
 ## Summary

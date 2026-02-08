@@ -168,7 +168,7 @@ Assign array and dict literals directly:
   <main class="{% if show_sidebar %}with-sidebar{% end %}">
     {{ page.content | safe }}
   </main>
-{% endblock %}
+{% end %}
 ```
 
 ### Computed Values

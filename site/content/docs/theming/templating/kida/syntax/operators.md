@@ -188,5 +188,5 @@ The `??` operator has lower precedence than `|`, so filters bind to the fallback
     </aside>
   {% end %}
 </article>
-{% endblock %}
+{% end %}
 ```

@@ -224,7 +224,7 @@ cp templates/blog/single.html templates/blog/single.html.jinja2
 # Replace all block endings with {% end %}
 sed -i 's/{% endif %}/{% end %}/g' templates/blog/single.html
 sed -i 's/{% endfor %}/{% end %}/g' templates/blog/single.html
-sed -i 's/{% endblock %}/{% endblock %}/g' templates/blog/single.html  # Keep endblock for compatibility
+sed -i 's/{% endblock %}/{% end %}/g' templates/blog/single.html
 ```
 
 ### Step 4: Replace Template Variables
@@ -622,7 +622,7 @@ In strict mode, use `??` to handle undefined variables safely:
         {{ page.content | safe }}
       </article>
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ## Next Steps

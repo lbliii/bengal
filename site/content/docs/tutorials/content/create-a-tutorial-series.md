@@ -455,7 +455,7 @@ template: "series-overview.html"
     {% end %}
   </section>
 </article>
-{% endblock %}
+{% end %}
 ```
 
 Add styles:
@@ -667,7 +667,7 @@ Include it in your series page layout:
     {% include "partials/series-nav.html" %}
   </article>
 </div>
-{% endblock %}
+{% end %}
 ```
 :::{/step}
 
