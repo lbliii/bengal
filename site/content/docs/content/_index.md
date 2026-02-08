@@ -55,7 +55,7 @@ flowchart LR
 | Feature | Description |
 |---------|-------------|
 | **Component Model** | `type`, `variant`, and `props` define page identity, appearance, and data |
-| **MyST Directives** | Tabs, cards, admonitions, code blocks, and 40+ directives |
+| **MyST Directives** | Tabs, cards, admonitions, code blocks, and 60+ directives |
 | **Cross-References** | `[[path]]` syntax with O(1) lookups and auto-title resolution |
 | **Validation** | `bengal validate` checks links, directives, and frontmatter |
 | **Graph Analysis** | `bengal graph report` finds orphan pages and suggests links |

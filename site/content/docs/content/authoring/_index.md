@@ -9,7 +9,7 @@ card_color: blue
 ---
 # Writing Content
 
-Bengal uses CommonMark Markdown with MyST-style directive extensions for rich documentation. Write in standard Markdown and extend with 40+ built-in directives.
+Bengal uses CommonMark Markdown with MyST-style directive extensions for rich documentation. Write in standard Markdown and extend with 60+ built-in directives.
 
 ## What Do You Need?
 
@@ -196,7 +196,7 @@ This endpoint uses API {{ api_version }}.
 
 ## Available Directives
 
-Bengal provides 40+ directives organized by category:
+Bengal provides 60+ directives organized by category:
 
 | Category | Directives |
 |----------|------------|

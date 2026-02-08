@@ -79,7 +79,6 @@ Define your own using Python dataclasses:
 ```python
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 @dataclass
 class ProjectPage:
@@ -87,7 +86,7 @@ class ProjectPage:
     status: str  # "active", "completed", "archived"
     started: datetime
     tech_stack: list[str] = field(default_factory=list)
-    github_url: Optional[str] = None
+    github_url: str | None = None
 
 collections = {
     "projects": define_collection(

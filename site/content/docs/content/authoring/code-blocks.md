@@ -30,7 +30,7 @@ def hello():
 
 ### Supported Languages
 
-Bengal uses **[[ext:rosettes:docs/reference/languages|Rosettes]]** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 50+ languages:
+Bengal uses **[[ext:rosettes:docs/reference/languages|Rosettes]]** for syntax highlighting—a modern, thread-safe highlighter designed for Python 3.14t free-threading. Rosettes supports 55+ languages:
 
 ::::{tab-set}
 
@@ -480,7 +480,7 @@ When `theme: "auto"` is set, the syntax theme automatically inherits from your s
 
 ### CSS Class Styles
 
-Rosettes supports two CSS class naming conventions:
+[[ext:rosettes:|Rosettes]] supports two CSS class naming conventions:
 
 ::::{tab-set}
 
@@ -511,7 +511,7 @@ Short class names compatible with existing Pygments themes:
 ::::
 
 :::{note}
-Rosettes is designed for Python 3.14t free-threading with zero global mutable state. It provides lock-free, thread-safe syntax highlighting that's 3.4× faster than Pygments in parallel builds. See [[ext:rosettes:docs/about/performance|Rosettes Performance]] for benchmarks.
+[[ext:rosettes:|Rosettes]] is designed for Python 3.14t free-threading with zero global mutable state. It provides thread-safe syntax highlighting that's up to 3.75× faster than Pygments. See [[ext:rosettes:docs/about/performance|Rosettes Performance]] for benchmarks.
 :::
 
 ::::{seealso}
@@ -519,8 +519,8 @@ Rosettes is designed for Python 3.14t free-threading with zero global mutable st
 - [[docs/content/authoring|Authoring Overview]] — Other authoring features
 - [[docs/theming|Theming Guide]] — Customize your site's appearance including syntax themes
 
-**Rosettes Documentation**:
-- [[ext:rosettes:docs/reference/languages|Supported Languages]] — Full list of 50+ supported languages
+**[[ext:rosettes:|Rosettes]] Documentation**:
+- [[ext:rosettes:docs/reference/languages|Supported Languages]] — Full list of 55+ supported languages
 - [[ext:rosettes:docs/styling/custom-themes|Custom Themes]] — Create your own syntax themes
 - [[ext:rosettes:docs/highlighting/line-highlighting|Line Highlighting]] — Advanced highlighting options
 ::::

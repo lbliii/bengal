@@ -22,11 +22,11 @@ category: guide
 
 Standard tag pages list content for *one* tag (e.g., `/tags/python/`). But sometimes users want to find content that matches **multiple** criteria, like "Tutorials" AND "Python" AND "Beginner".
 
-This guide shows how to build an advanced filter using Jinja set logic.
+This guide shows how to build an advanced filter using [[ext:kida:|Kida]] template set logic.
 
 ## The Logic: Set Intersections
 
-Jinja allows us to treat lists of pages as mathematical sets.
+Kida (and Jinja2) allows us to treat lists of pages as mathematical sets.
 
 - **Union**: All unique items in A or B.
 - **Intersection**: Items that are in BOTH A and B.
@@ -81,7 +81,7 @@ However, for specific, high-value combinations, you can create dedicated pages.
 ```markdown
 ---
 title: Python Tutorials
-layout: filter_page
+variant: filter_page
 filter_tags: ["python", "tutorial"]
 ---
 Here are all our Python tutorials.
