@@ -114,10 +114,10 @@ select = [
     "PT",   # flake8-pytest-style - pytest best practices
 ]
 ignore = [
-    "E501",    # line too long - handled by formatter, manual review for long strings
-    "RUF001",  # ambiguous unicode in string (intentional × symbols, em-dashes)
-    "RUF002",  # ambiguous unicode in docstring (intentional typography)
-    "RUF003",  # ambiguous unicode in comment (intentional typography)
+    "E501",   # line too long - handled by formatter, manual review for long strings
+    "RUF001", # ambiguous unicode in string (intentional × symbols, em-dashes)
+    "RUF002", # ambiguous unicode in docstring (intentional typography)
+    "RUF003", # ambiguous unicode in comment (intentional typography)
 ]
 
 # Per-file ignore rules
@@ -134,7 +134,10 @@ ignore = [
 "tests/integration/test_config_system_integration.py" = ["PT017"]
 "tests/integration/warm_build/test_data_files.py" = ["PT017"]
 "tests/unit/rendering/test_asset_manifest_contextvar.py" = ["PT012", "SIM117"]
-"tests/unit/rendering/parsers/test_patitas/test_contextvar_config.py" = ["PT012", "SIM117"]
+"tests/unit/rendering/parsers/test_patitas/test_contextvar_config.py" = [
+    "PT012",
+    "SIM117",
+]
 
 [tool.ty.environment]
 python-version = "3.14"
@@ -145,28 +148,28 @@ exclude = ["tests/roots/", "MagicMock/", "dist/", "build/"]
 [tool.ty.rules]
 # Relax rules that produce too many false positives or are overly strict
 # These are still checked but won't fail CI (warn instead of error)
-unresolved-import = "warn"           # Third-party stubs often incomplete
-unresolved-attribute = "warn"        # Dynamic attribute access patterns
-invalid-argument-type = "warn"       # Gradual typing - allow flexibility
-possibly-unresolved-reference = "ignore"  # Too noisy with conditional imports
+unresolved-import = "warn"               # Third-party stubs often incomplete
+unresolved-attribute = "warn"            # Dynamic attribute access patterns
+invalid-argument-type = "warn"           # Gradual typing - allow flexibility
+possibly-unresolved-reference = "ignore" # Too noisy with conditional imports
 
 # Relax additional rules that are too strict for large codebases
-call-non-callable = "warn"           # False positives with Protocol/dynamic types
-invalid-return-type = "warn"         # Gradual typing flexibility
-invalid-assignment = "warn"          # Allows incremental typing improvements
-invalid-type-arguments = "warn"      # Generics constraints too strict
-not-subscriptable = "warn"           # Protocol objects missing __getitem__
-invalid-method-override = "warn"     # Liskov violations - review later
-unused-ignore-comment = "warn"       # Flag stale type: ignore comments for cleanup
+call-non-callable = "warn"       # False positives with Protocol/dynamic types
+invalid-return-type = "warn"     # Gradual typing flexibility
+invalid-assignment = "warn"      # Allows incremental typing improvements
+invalid-type-arguments = "warn"  # Generics constraints too strict
+not-subscriptable = "warn"       # Protocol objects missing __getitem__
+invalid-method-override = "warn" # Liskov violations - review later
+unused-ignore-comment = "warn"   # Flag stale type: ignore comments for cleanup
 
 # Relax remaining rules to unblock CI - fix incrementally
-unresolved-reference = "warn"        # Missing imports - fix these properly
-unknown-argument = "warn"            # Wrong kwargs - needs investigation
-missing-argument = "warn"            # Missing args - needs investigation
-unsupported-operator = "warn"        # Type operations - review later
-not-iterable = "warn"                # Iteration issues
-too-many-positional-arguments = "warn"  # Signature mismatches
-no-matching-overload = "warn"        # Overload issues
+unresolved-reference = "warn"          # Missing imports - fix these properly
+unknown-argument = "warn"              # Wrong kwargs - needs investigation
+missing-argument = "warn"              # Missing args - needs investigation
+unsupported-operator = "warn"          # Type operations - review later
+not-iterable = "warn"                  # Iteration issues
+too-many-positional-arguments = "warn" # Signature mismatches
+no-matching-overload = "warn"          # Overload issues
 
 [dependency-groups]
 dev = [
@@ -241,13 +244,24 @@ hooks = { cmd = "prek run --all-files", help = "Run all pre-commit hooks" }
 hooks-install = { cmd = "prek install", help = "Install pre-commit hooks" }
 
 # CI Pipeline (what CI runs)
-ci = { sequence = ["lint", "ty", "test"], help = "Run full CI check (lint → type → test)" }
-check = { sequence = ["lint", "format-check", "ty"], help = "Quick check (lint + format + types)" }
+ci = { sequence = [
+    "lint",
+    "ty",
+    "test",
+], help = "Run full CI check (lint → type → test)" }
+check = { sequence = [
+    "lint",
+    "format-check",
+    "ty",
+], help = "Quick check (lint + format + types)" }
 
 # Build & Release
 dist = { shell = "rm -rf dist/ && uv build && ls -la dist/", help = "Build distribution packages" }
 publish = { cmd = "uv publish", help = "Publish to PyPI" }
-release = { sequence = ["dist", "publish"], help = "Build and publish in one step" }
+release = { sequence = [
+    "dist",
+    "publish",
+], help = "Build and publish in one step" }
 
 # Code Quality Analysis
 deadcode = { cmd = "ruff check . --select F401,F841 --statistics", help = "Find unused imports/variables" }
