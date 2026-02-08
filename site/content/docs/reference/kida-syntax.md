@@ -852,29 +852,23 @@ Remove whitespace between HTML tags:
 
 ## Error Handling
 
-### Strict Mode (Default)
+### Strict Mode (Always On)
 
-Kida raises `UndefinedError` for undefined variables:
+Kida raises `UndefinedError` for undefined variables. Strict mode is always enabled and cannot be disabled — this helps catch typos and missing context variables at render time.
 
 ```kida
 {{ missing_var }}  {# Raises UndefinedError #}
 {{ missing_var | default('N/A') }}  {# Safe: 'N/A' #}
 ```
 
-### Disabling Strict Mode
-
-Configure in `bengal.yaml`:
-
 ## Configuration
 
-Kida is Bengal's default template engine. Configure in `bengal.yaml`:
+Kida is Bengal's default template engine. Configure in `bengal.toml` or `config/_default/`:
 
 ```yaml
 kida:
   bytecode_cache: true      # Persistent compiled template cache (default)
 ```
-
-**Note**: Strict mode (raising `UndefinedError` for undefined variables) is always enabled in Kida and cannot be disabled. This helps catch typos and missing context variables at render time.
 
 | Option            | Default | Description                         |
 |-------------------|---------|-------------------------------------|

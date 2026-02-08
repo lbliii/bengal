@@ -54,7 +54,7 @@ bengal clean --stale-server            # Kill stale server processes
 ```bash
 # New project
 bengal new site mysite                 # Interactive wizard
-bengal new site mysite --preset blog   # Skip wizard with preset
+bengal new site mysite --template blog  # Skip wizard with template
 
 # New content
 bengal new page my-page                # Page at content/my-page.md
@@ -130,12 +130,12 @@ author: "Jane Doe"
 ---
 ```
 
-### Layout & Type
+### Type & Variant
 
 ```yaml
 ---
 type: post                             # Template type (templates/post/)
-layout: custom                         # Override default layout
+variant: custom                        # Visual presentation variant
 template: special.html                 # Specific template file
 ---
 ```
