@@ -185,27 +185,22 @@ bengal build
 bengal build --environment production
 ```
 
-## Coming Soon: Skeleton Manifests
+## Skeleton Manifests
 
-Bengal will soon support **skeleton manifests** - shareable YAML files that define complete site structures with frontmatter, cascades, and content stubs.
+Bengal supports **skeleton manifests** — shareable YAML files that define complete site structures with frontmatter, cascades, and content stubs.
 
 ```bash
-# Apply a community skeleton
-bengal project skeleton apply @bengal/api-docs-starter
+# Apply a skeleton YAML
+bengal project skeleton apply api-docs.yaml
 
-# Export your site's structure for others
-bengal project skeleton export --output my-pattern.yaml
+# Preview what would be created
+bengal project skeleton apply api-docs.yaml --dry-run
 
-# Browse available skeletons
-bengal project skeleton list --category documentation
+# Overwrite existing files
+bengal project skeleton apply api-docs.yaml --force
 ```
 
-Skeletons will enable:
-- **Community patterns** - Browse and use proven site structures
-- **Org standards** - Enforce consistent IA across projects
-- **Theme compatibility** - Find skeletons optimized for your theme
-
-See [RFC: Skeleton Manifests](https://github.com/lbliii/bengal/blob/main/plan/active/rfc-shareable-site-skeletons.md) for the full proposal.
+See [[docs/extending/custom-skeletons|Create Custom Skeletons]] for the full guide on writing skeleton YAML files.
 
 ## Next Steps
 

@@ -184,7 +184,7 @@ draft: true                 # Exclude from production
 | `draft` | `true` excludes from production builds |
 | `slug` | Custom URL (overrides filename) |
 | `type` | Page type for template selection |
-| `layout` | Layout variant |
+| `variant` | Visual presentation variant |
 | `lang` | Language code (`en`, `es`, etc.) |
 | `nav_title` | Short title for navigation |
 | `aliases` | Redirect URLs to this page |

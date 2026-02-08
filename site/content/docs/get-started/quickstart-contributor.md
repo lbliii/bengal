@@ -79,7 +79,6 @@ bengal/
 │   ├── cache/          # Caching infrastructure
 │   ├── health/         # Validation and health checks
 │   ├── config/         # Configuration loading
-│   ├── directives/     # MyST directive implementations
 │   ├── server/         # Dev server with live reload
 │   └── cli/            # Command-line interface
 ├── tests/
