@@ -150,7 +150,7 @@ should be updated alongside changes to incremental build logic.
 
 Every PR runs:
 1. **Linting**: `ruff` check and format
-2. **Type Checking**: `mypy` strict mode
+2. **Type Checking**: `ty` type checker
 3. **Test Suite**: Unit + integration (`-m "not slow"`)
 4. **Full Suite**: On main/release branches
 

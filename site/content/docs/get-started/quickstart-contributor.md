@@ -128,7 +128,7 @@ uv run ruff format bengal/ tests/
 uv run ruff check bengal/ tests/ --fix
 
 # Type check
-uv run mypy bengal/
+uv run ty check bengal/
 ```
 
 :::{/step}

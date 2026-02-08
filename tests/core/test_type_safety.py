@@ -2,7 +2,7 @@
 Type safety tests for core package.
 
 These tests verify type contracts and API consistency that static analysis
-might miss at runtime. They complement mypy checks with runtime verification.
+might miss at runtime. They complement ty checks with runtime verification.
 
 Motivation:
 - Mixin self-reference bugs (e.g., list.index(self) failing)

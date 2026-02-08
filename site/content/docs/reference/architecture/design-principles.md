@@ -111,7 +111,7 @@ keywords:
 ### Continuous Validation
 - Health check system validates builds
 - Linter catches common issues
-- Type checking with mypy
+- Type checking with ty
 
 ## 8. Documentation
 

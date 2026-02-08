@@ -359,7 +359,7 @@ entries = store.load()  # Returns list[PageCore]
 
 ### Benefits
 
-- **Type Safety**: Static type checkers (mypy) validate cache contracts at compile time
+- **Type Safety**: Static type checkers (ty) validate cache contracts at compile time
 - **Consistency**: All cache entries follow the same serialization pattern
 - **Versioning**: Built-in version checking for cache invalidation
 - **Safety**: Prevents accidental pickling of complex objects that might break across versions
@@ -402,4 +402,4 @@ if isinstance(obj, Cacheable):
     # Safe to serialize
 ```
 
-However, static type checking via mypy is the primary validation method.
+However, static type checking via ty is the primary validation method.

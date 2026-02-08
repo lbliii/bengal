@@ -256,7 +256,7 @@ class LiveReloadMixin:
     """
 
     # Type declarations for attributes provided by SimpleHTTPRequestHandler
-    # These tell mypy what to expect when this mixin is used
+    # These tell the type checker what to expect when this mixin is used
     path: str
     client_address: tuple[str, int]
     wfile: BufferedIOBase

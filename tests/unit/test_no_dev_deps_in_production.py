@@ -14,7 +14,7 @@ import pytest
 DEV_ONLY_IMPORTS = {
     "pytest",
     "hypothesis",
-    "mypy",
+    "ty",
     "ruff",
     "pytest_mock",
     "pytest_cov",
@@ -117,19 +117,19 @@ class TestNoDevDepsInProduction:
         )
 
     def test_no_dev_tools_in_production(self):
-        """Test that dev tools (mypy, ruff) are not imported in production code."""
+        """Test that dev tools (ty, ruff) are not imported in production code."""
         production_files = get_all_production_files()
         files_with_dev_tools = []
 
         for file_path in production_files:
             imports = get_imports_from_file(file_path)
-            dev_tool_imports = {"mypy", "ruff"}
+            dev_tool_imports = {"ty", "ruff"}
             if imports & dev_tool_imports:
                 files_with_dev_tools.append(file_path)
 
         assert not files_with_dev_tools, (
             f"Found dev tool imports in production code: {files_with_dev_tools}\n"
-            "mypy and ruff are dev dependencies and should only be used in development"
+            "ty and ruff are dev dependencies and should only be used in development"
         )
 
     def test_all_dev_deps_not_in_production(self):

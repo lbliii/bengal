@@ -18,7 +18,7 @@ AssetDependencyMap, etc.) to implement its own save/load logic.
 
 Benefits:
 - Consistent version handling across all caches
-- Type-safe operations (mypy validates)
+- Type-safe operations (ty validates)
 - Tolerant loading (returns empty on mismatch, doesn't crash)
 - Automatic directory creation
 - Single source of truth for cache file format
@@ -114,7 +114,7 @@ class CacheStore:
     Type Safety:
         - save() accepts list of any Cacheable type
         - load() requires explicit type parameter for deserialization
-        - mypy validates that type implements Cacheable protocol
+        - ty validates that type implements Cacheable protocol
 
     Example:
         store = CacheStore(Path('.bengal/tags.json'))
@@ -256,7 +256,7 @@ class CacheStore:
             loaded = store.load(TagEntry, expected_version=1)  # []
 
         Type Safety:
-            mypy validates that entry_type implements Cacheable:
+            ty validates that entry_type implements Cacheable:
 
                 store.load(TagEntry, ...)  # ✅ OK (TagEntry implements Cacheable)
                 store.load(Page, ...)      # ❌ Error (Page doesn't implement Cacheable)

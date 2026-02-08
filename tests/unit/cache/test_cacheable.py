@@ -117,7 +117,7 @@ class TestCacheableProtocol:
         When PartialImplementation inherits from Cacheable Protocol, it inherits
         the abstract from_cache_dict method (as `...`), so it passes isinstance.
 
-        Real validation comes from mypy, not runtime checks.
+        Real validation comes from ty, not runtime checks.
         """
         obj = PartialImplementation(value="test")
         # Runtime check passes (method exists, even if abstract)
