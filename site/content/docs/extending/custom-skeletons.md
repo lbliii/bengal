@@ -335,7 +335,7 @@ Common frontmatter fields for `props`:
 | `tags` | list | Taxonomy tags |
 | `draft` | boolean | Exclude from production |
 | `type` | string | Content type (`doc`, `blog`, etc.) |
-| `layout` | string | Layout variant |
+| `variant` | string | Visual presentation variant (e.g., `editorial`, `wide`) |
 | `nav_title` | string | Short title for navigation |
 
 Custom props are accessible in templates via `page.props.fieldname`.

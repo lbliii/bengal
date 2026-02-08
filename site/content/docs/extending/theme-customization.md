@@ -371,7 +371,7 @@ Prefer token overrides over hard-coded values:
 
 ### 3. Extend, Don't Replace
 
-Use Jinja's `{% block %}` and `{% extends %}`:
+Use [[ext:kida:|Kida's]] `{% block %}` and `{% extends %}`:
 
 ```jinja
 {% extends "layouts/base.html" %}
