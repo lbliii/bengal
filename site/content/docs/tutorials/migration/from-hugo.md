@@ -244,8 +244,8 @@ Bengal includes built-in directives for common media embeds:
 | `{{ .Summary }}` | `{{ page.excerpt }}` | Auto-generated |
 | `{{ .WordCount }}` | `{{ page.word_count }}` | Word count |
 | `{{ .ReadingTime }}` | `{{ page.reading_time }}` | Minutes to read |
-| `{{ .Permalink }}` | `{{ page.url }}` | Full URL |
-| `{{ .RelPermalink }}` | `{{ page.path }}` | Relative path |
+| `{{ .Permalink }}` | `{{ page.href }}` | URL with baseurl |
+| `{{ .RelPermalink }}` | `{{ page._path }}` | Site-relative path |
 
 ### Site Variables
 

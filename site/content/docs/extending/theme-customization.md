@@ -310,7 +310,7 @@ path = "themes/my-theme"  # Path to theme directory
 ```jinja
 {{ page.title }}          # Page title
 {{ page.content }}        # Rendered HTML content
-{{ page.url }}            # Page URL
+{{ page.href }}           # URL with baseurl applied
 {{ page.date }}           # Publication date
 {{ page.metadata }}       # All frontmatter
 {{ page.section }}        # Parent section

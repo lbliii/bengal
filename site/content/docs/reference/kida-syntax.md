@@ -567,7 +567,7 @@ Kida automatically caches site-scoped template blocks for optimal build performa
 {% block nav %}
   <nav>
     {% for page in site.pages %}
-      <a href="{{ page.url }}">{{ page.title }}</a>
+      <a href="{{ page.href }}">{{ page.title }}</a>
     {% end %}
   </nav>
 {% end %}

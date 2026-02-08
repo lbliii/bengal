@@ -138,7 +138,7 @@ Did you mean:
 | `urlize` | `url_encode` |
 | `safeHTML` | `safe` |
 | `in_section` | `{% if page.parent %}` |
-| `is_ancestor` | Compare `page.url` values |
+| `is_ancestor` | Compare `page._path` values |
 
 ---
 

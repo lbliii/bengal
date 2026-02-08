@@ -23,7 +23,7 @@ Get a section by its path. Cleaner alternative to `site.get_section_by_path()`.
 {% if docs %}
   <h2>{{ docs.title }}</h2>
   {% for page in docs.pages |> sort_by('weight') %}
-    <a href="{{ page.url }}">{{ page.title }}</a>
+    <a href="{{ page.href }}">{{ page.title }}</a>
   {% end %}
 {% end %}
 ```
@@ -35,12 +35,12 @@ Get pages from a section directly. Combines `get_section()` with `.pages` access
 ```kida
 {# Non-recursive (direct children only) #}
 {% for page in section_pages('docs') |> sort_by('weight') %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ page.href }}">{{ page.title }}</a>
 {% end %}
 
 {# Recursive (include all nested pages) #}
 {% for page in section_pages('docs', recursive=true) %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ page.href }}">{{ page.title }}</a>
 {% end %}
 ```
 
@@ -65,7 +65,7 @@ Retrieve a page object by path. Similar to `doc()` but intended for programmatic
 ```kida
 {% let page = get_page('docs/getting-started') %}
 {% if page %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ page.href }}">{{ page.title }}</a>
 {% end %}
 
 {# Works with various path formats #}

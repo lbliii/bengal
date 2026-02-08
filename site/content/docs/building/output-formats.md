@@ -130,7 +130,7 @@ This generates `search-index.json` (a pre-serialized Lunr index) in addition to 
 
     resultsList.innerHTML = results.map(page => `
       <li>
-        <a href="${page.url}">
+        <a href="${page.href}">
           <strong>${page.title}</strong>
           <p>${page.excerpt}</p>
         </a>

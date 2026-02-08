@@ -309,7 +309,7 @@ Site name: {{ site.config.title }}
 ```
 
 Variables available in content:
-- `page.title`, `page.url`, `page.date` - Page properties
+- `page.title`, `page.href`, `page.date` - Page properties
 - `page.metadata.xxx` - Custom frontmatter fields
 - `site.config.xxx` - Site configuration values
 ::::{/tab}

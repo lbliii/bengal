@@ -56,7 +56,7 @@ Available on index pages (`_index.md`) and doc-type pages.
 ```kida
 <div class="child-cards">
   {% for subsection in section.subsections %}
-    <a href="{{ subsection.index_page.url }}" class="card">
+    <a href="{{ subsection.index_page.href }}" class="card">
       <h3>{{ subsection.title }}</h3>
       <p>{{ subsection.metadata.description }}</p>
     </a>
@@ -72,7 +72,7 @@ Available on index pages (`_index.md`) and doc-type pages.
   <h4>In this section:</h4>
   <ul>
     {% for page in section.sorted_pages %}
-      <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+      <li><a href="{{ page.href }}">{{ page.title }}</a></li>
     {% end %}
   </ul>
 </nav>

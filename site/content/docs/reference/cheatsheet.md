@@ -165,9 +165,9 @@ no_format: true                        # Skip HTML formatting
 {{ page.title }}              {# Page title #}
 {{ page.description }}        {# Meta description #}
 {{ page.content }}            {# Rendered HTML content #}
-{{ page.summary }}            {# Auto-generated excerpt #}
-{{ page.url }}                {# Page URL path #}
-{{ page.permalink }}          {# Full URL with baseurl #}
+{{ page.excerpt }}            {# Auto-generated excerpt #}
+{{ page.href }}               {# URL with baseurl applied #}
+{{ page._path }}              {# Site-relative URL (for comparisons) #}
 {{ page.date }}               {# Publication date #}
 {{ page.lastmod }}            {# Last modified date #}
 {{ page.draft }}              {# Draft status (boolean) #}
@@ -210,9 +210,9 @@ no_format: true                        # Skip HTML formatting
 ```kida
 {% for page in section.pages |> sort_by('date', reverse=true) %}
   <article>
-    <h2><a href="{{ page.url }}">{{ page.title }}</a></h2>
+    <h2><a href="{{ page.href }}">{{ page.title }}</a></h2>
     <time>{{ page.date | date('%B %d, %Y') }}</time>
-    <p>{{ page.summary }}</p>
+    <p>{{ page.excerpt }}</p>
   </article>
 {% end %}
 ```
@@ -251,7 +251,7 @@ no_format: true                        # Skip HTML formatting
 <nav>
   {% for item in site.menus.main |> sort_by('weight') %}
     <a href="{{ item.url }}"
-       {% if page.url == item.url %}class="active"{% end %}>
+       {% if page._path == item.url %}class="active"{% end %}>
       {{ item.name }}
     </a>
   {% end %}

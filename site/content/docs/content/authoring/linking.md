@@ -296,7 +296,7 @@ Get a page object for custom link generation:
 ```kida
 {% let page = doc('docs/getting-started') %}
 {% if page %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ page.href }}">{{ page.title }}</a>
   <p>{{ page.description }}</p>
 {% end %}
 ```

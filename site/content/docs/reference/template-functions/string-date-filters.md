@@ -75,7 +75,7 @@ Extract an excerpt from content (first paragraph or sentence).
 Extract the first sentence from text.
 
 ```kida
-{{ page.summary | first_sentence }}
+{{ page.excerpt | first_sentence }}
 ```
 
 ## truncate_chars

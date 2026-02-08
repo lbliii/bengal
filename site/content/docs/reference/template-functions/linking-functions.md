@@ -63,7 +63,7 @@ Get a page object for custom link generation or metadata access.
 ```kida
 {% let page = doc('docs/getting-started') %}
 {% if page %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ page.href }}">{{ page.title }}</a>
   <p>{{ page.description }}</p>
 {% end %}
 ```
@@ -87,7 +87,7 @@ Get a page object for custom link generation or metadata access.
 {% let api_page = doc('docs/api') %}
 {% if api_page %}
   <div class="card">
-    <a href="{{ api_page.url }}">
+    <a href="{{ api_page.href }}">
       <h3>{{ api_page.title }}</h3>
     </a>
     <p>{{ api_page.description }}</p>

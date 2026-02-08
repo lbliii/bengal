@@ -51,7 +51,7 @@ Kida analyzes templates at compile time to identify **site-scoped blocks**—blo
 {% block nav %}
   {# Accesses site.pages only — renders once, cached for all pages #}
   {% for page in site.pages %}
-    <a href="{{ page.url }}">{{ page.title }}</a>
+    <a href="{{ page.href }}">{{ page.title }}</a>
   {% end %}
 {% end %}
 
@@ -155,12 +155,12 @@ Move invariant expressions outside loops:
 {# Good: Compute once #}
 {% let base_url = site.config.base_url %}
 {% for page in pages %}
-  <a href="{{ base_url }}{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ base_url }}{{ page.href }}">{{ page.title }}</a>
 {% end %}
 
 {# Avoid: Recomputes site.config.base_url on every iteration #}
 {% for page in pages %}
-  <a href="{{ site.config.base_url }}{{ page.url }}">{{ page.title }}</a>
+  <a href="{{ site.config.base_url }}{{ page.href }}">{{ page.title }}</a>
 {% end %}
 ```
 

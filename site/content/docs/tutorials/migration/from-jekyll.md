@@ -303,7 +303,7 @@ Jekyll features that require plugins are built into Bengal:
 | `{{ page.date }}` | `{{ page.date }}` | ✅ Same |
 | `{{ page.content }}` | `{{ content }}` | Use `{{ content }}` for rendered HTML (preferred). `{{ page.content }}` also works. |
 | `{{ page.excerpt }}` | `{{ page.excerpt }}` | ✅ Same |
-| `{{ page.url }}` | `{{ page.url }}` | ✅ Same |
+| `{{ page.url }}` | `{{ page.href }}` | URL with baseurl |
 | `{{ page.categories }}` | `{{ page.category }}` | Single |
 | `{{ page.tags }}` | `{{ page.tags }}` | ✅ Same |
 | `{{ page.custom_var }}` | `{{ page.metadata.custom_var }}` | Nested |
@@ -532,7 +532,7 @@ grep -r "{{" content/
 | `{% highlight lang %}...{% endhighlight %}` | ` ```lang...``` ` |
 | `{% include note.html content="..." %}` | `:::{note}...:::` |
 | `{{ site.baseurl }}` | Remove (auto-handled) |
-| `{{ page.url \| relative_url }}` | Remove filter |
+| `{{ page.url \| relative_url }}` | `{{ page.href }}` (baseurl auto-handled) |
 :::{/step}
 
 :::{step} Migrate Data
