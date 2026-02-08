@@ -28,7 +28,7 @@ Bengal is a high-performance static site generator for Python 3.14+. It transfor
 | **Python-Native** | Python 3.14+ with free-threading (PEP 703). No Node.js |
 | **Auto API Docs** | AST-based docs from Python, CLI, and OpenAPI sources |
 | **Batteries Included** | Dev server, live reload, sitemap, RSS, Lunr search |
-| **Flexible Theming** | Theme inheritance, swizzling, 650+ CSS tokens |
+| **Flexible Theming** | Theme inheritance, swizzling, 1,100+ CSS tokens |
 | **Content First** | MyST Markdown, YAML/TOML front matter, cascading config |
 
 ## Philosophy

@@ -32,7 +32,7 @@ Bengal is a static site generator that produces HTML, CSS, and JavaScript from M
 - **Auto-generated API Docs** — From Python source, CLI tools, and OpenAPI specs
 - **Image Processing** — Resize, crop, format conversion (WebP/AVIF), srcset generation
 - **Zero-Config Deploy** — Auto-detects GitHub Pages, Netlify, Vercel
-- **Theme System** — Install themes from PyPI, swizzle templates, 650+ CSS tokens
+- **Theme System** — Install themes from PyPI, swizzle templates, 1,100+ CSS tokens
 
 ### Quality & Validation
 
@@ -47,7 +47,7 @@ Bengal is a static site generator that produces HTML, CSS, and JavaScript from M
 | **Language** | Python 3.14+ |
 | **Templates** | [[ext:kida:|Kida]] (Jinja2-compatible, 1.81x faster concurrent) |
 | **Markdown** | [[ext:patitas:|Patitas]] (typed AST, O(n) parsing, thread-safe) |
-| **Highlighting** | [[ext:rosettes:|Rosettes]] (3.4x faster than Pygments, 55+ languages) |
+| **Highlighting** | [[ext:rosettes:|Rosettes]] (up to 3.75x faster than Pygments, 55+ languages) |
 | **Content Types** | Docs, blog, pages, changelog (mixed) |
 | **Incremental Builds** | Yes (35-80ms single-page, cache-validated) |
 | **Free-Threading (GIL=0)** | Yes (Kida, Patitas, Rosettes are all GIL-independent) |

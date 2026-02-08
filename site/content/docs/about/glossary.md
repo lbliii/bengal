@@ -159,7 +159,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## R
 
 **Rosettes**
-: Bengal's syntax highlighting engine. A modern, lock-free highlighter designed for Python 3.14t free-threading with 50+ supported languages. Provides semantic CSS classes and configurable themes. See [[ext:rosettes:docs/get-started|Rosettes documentation]] for details.
+: Bengal's syntax highlighting engine. A modern, thread-safe highlighter designed for Python 3.14t free-threading with 55+ supported languages. Provides semantic CSS classes and configurable themes. See [[ext:rosettes:docs/get-started|Rosettes documentation]] for details.
 
 **Partial**
 : A reusable template fragment (e.g., `header.html`, `footer.html`, `sidebar.html`). Included in other templates via `{% include "partials/name.html" %}`.
