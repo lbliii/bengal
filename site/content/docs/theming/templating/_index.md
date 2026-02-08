@@ -146,7 +146,7 @@ Kida is Bengal's default template engine:
 
 ## Choose Your Engine
 
-Kida is the default. To use a different engine, configure `bengal.yaml`:
+Kida is the default. To use a different engine, configure `bengal.toml` (or `config/_default/site.yaml`):
 
 ```yaml
 site:

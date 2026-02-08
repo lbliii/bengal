@@ -77,7 +77,7 @@ fingerprint = true   # main.css → main.a1b2c3.css
 ```kida
 {# Access assets co-located with current page #}
 {% for image in page.resources.match("*.jpg") %}
-  <img src="{{ image.url }}" alt="{{ image.title }}">
+  <img src="{{ image.rel_permalink }}" alt="{{ image.title }}">
 {% end %}
 ```
 :::

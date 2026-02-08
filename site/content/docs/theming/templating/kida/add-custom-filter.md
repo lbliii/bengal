@@ -36,7 +36,7 @@ Create a custom filter that formats currency values and use it in templates.
 ## Prerequisites
 
 - Bengal site initialized
-- Kida enabled in `bengal.yaml`
+- Kida enabled in `bengal.toml`
 - Python knowledge
 
 ## Steps

@@ -21,7 +21,7 @@ Kida uses automatic block caching, bytecode caching, and free-threading to reduc
 Kida renders templates without holding the Global Interpreter Lock (GIL). On Python 3.14t+, templates render in parallel across CPU cores.
 
 ```yaml
-# bengal.yaml
+# config/_default/build.yaml (or [build] in bengal.toml)
 build:
   parallel: true  # Default on Python 3.14t+
 ```
@@ -84,7 +84,7 @@ Manually cache expensive operations with `{% cache %}`:
 {% end %}
 ```
 
-Fragment cache uses a global TTL configured in `bengal.yaml`. All cached fragments share the same expiration time. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
+Fragment cache uses a global TTL configured in `bengal.toml` (or `config/_default/`). All cached fragments share the same expiration time. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
 
 Use fragment caching for:
 
@@ -97,7 +97,7 @@ Use fragment caching for:
 Compiled templates cache to disk in `.bengal/cache/kida/`. On subsequent builds, Kida loads bytecode directly without recompilation.
 
 ```yaml
-# bengal.yaml
+# config/_default/ or bengal.toml
 kida:
   bytecode_cache: true  # Default
 ```

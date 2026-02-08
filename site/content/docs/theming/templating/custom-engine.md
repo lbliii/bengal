@@ -254,7 +254,7 @@ register_engine("myengine", MyEngine)
 ### Step 4: Configure Bengal
 
 ```yaml
-# bengal.yaml
+# config/_default/site.yaml (or [site] in bengal.toml)
 site:
   template_engine: myengine
 ```

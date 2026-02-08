@@ -183,7 +183,7 @@ The `??` operator has lower precedence than `|`, so filters bind to the fallback
     <aside class="related">
       <h2>Related Posts</h2>
       {% for item in related_posts %}
-        <a href="{{ item.url }}">{{ item.title }}</a>
+        <a href="{{ item.href }}">{{ item.title }}</a>
       {% end %}
     </aside>
   {% end %}

@@ -93,7 +93,7 @@ Then in your template:
 ```html
 {% for css_file in theme.config.custom_css %}
 <link rel="stylesheet" href="{{ asset_url(css_file) }}">
-{% endfor %}
+{% end %}
 ```
 :::
 
@@ -113,7 +113,7 @@ Use `bengal theme swizzle partials/header.html` (or `bengal utils theme swizzle`
 
 | Directory | Purpose |
 |-----------|---------|
-| `templates/` | HTML templates (Jinja2) |
+| `templates/` | HTML templates (Kida) |
 | `static/` | CSS, JS, images |
 | `assets/` | Processed assets |
 | `theme.toml` | Theme configuration |

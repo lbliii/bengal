@@ -191,7 +191,7 @@ def register_filters(site: Site) -> None:
         env.add_filter("format_number", format_number)
 ```
 
-Add the build hook to `bengal.yaml`:
+Add the build hook to `bengal.toml`:
 
 ```yaml
 build_hooks:
@@ -232,7 +232,7 @@ Use in templates:
 {# Reusable function with access to outer scope #}
 {% def post_card(post) %}
   <article class="post-card" style="border-color: {{ theme_accent }}">
-    <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+    <h2><a href="{{ post.href }}">{{ post.title }}</a></h2>
     <div class="meta">
       <time>{{ post.date | dateformat('%B %d, %Y') }}</time>
       <span>{{ post.content | reading_time }} min</span>

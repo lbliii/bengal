@@ -32,7 +32,7 @@ Create a custom blog post template that:
 ## Prerequisites
 
 - Bengal site initialized
-- Kida enabled in `bengal.yaml`:
+- Kida enabled in `bengal.toml`:
 
   ```yaml
   site:
@@ -176,7 +176,7 @@ Process collections with the pipeline operator:
       <h2>Related Posts</h2>
       <ul>
         {% for related in recent_posts %}
-          <li><a href="{{ related.url }}">{{ related.title }}</a></li>
+          <li><a href="{{ related.href }}">{{ related.title }}</a></li>
         {% end %}
       </ul>
     </aside>
@@ -206,7 +206,7 @@ Cache expensive operations:
         <h2>Related Posts</h2>
         <ul>
           {% for item in related %}
-            <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+            <li><a href="{{ item.href }}">{{ item.title }}</a></li>
           {% end %}
         </ul>
       </aside>
@@ -273,7 +273,7 @@ Here's a complete blog post template:
         <ul>
           {% for related in related_posts %}
             <li>
-              <a href="{{ related.url }}">{{ related.title }}</a>
+              <a href="{{ related.href }}">{{ related.title }}</a>
               <span>{{ related.date | days_ago }} days ago</span>
             </li>
           {% end %}

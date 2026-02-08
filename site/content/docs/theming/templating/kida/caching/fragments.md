@@ -43,7 +43,7 @@ Use expressions to create unique cache keys:
     |> take(5) %}
   <aside>
     {% for item in related %}
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.href }}">{{ item.title }}</a>
     {% end %}
   </aside>
 {% end %}
@@ -51,7 +51,7 @@ Use expressions to create unique cache keys:
 
 ### Cache with TTL
 
-Fragment cache uses a global TTL configured at the environment level. All cached fragments share the same expiration time set in `bengal.yaml`:
+Fragment cache uses a global TTL configured at the environment level. All cached fragments share the same expiration time set in `bengal.toml` (or `config/_default/`):
 
 ```kida
 {% cache "stats" %}
@@ -80,7 +80,7 @@ Fragment cache uses a global TTL configured at the environment level. All cached
       <ul>
         {% for item in related %}
           <li>
-            <a href="{{ item.url }}">{{ item.title }}</a>
+            <a href="{{ item.href }}">{{ item.title }}</a>
             <span>{{ item.date | days_ago }} days ago</span>
           </li>
         {% end %}
@@ -97,7 +97,7 @@ Fragment cache uses a global TTL configured at the environment level. All cached
   {% let nav = get_nav_tree(page) %}
   <nav>
     {% for item in nav %}
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.href }}">{{ item.title }}</a>
     {% end %}
   </nav>
 {% end %}
@@ -208,7 +208,7 @@ rm -rf .bengal/cache/kida/
 
 ### Configure TTL Appropriately
 
-Set the global TTL in `bengal.yaml` based on your content update frequency:
+Set the global TTL in `bengal.toml` (or `config/_default/`) based on your content update frequency:
 
 ```yaml
 kida:
@@ -243,7 +243,7 @@ kida:
 
 ## Configuration
 
-Configure cache settings in `bengal.yaml`:
+Configure cache settings in `bengal.toml` (or `config/_default/`):
 
 ```yaml
 kida:
@@ -314,7 +314,7 @@ bengal build --verbose
           <h2>Related Posts</h2>
           <ul>
             {% for item in related %}
-              <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+              <li><a href="{{ item.href }}">{{ item.title }}</a></li>
             {% end %}
           </ul>
         </aside>

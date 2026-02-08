@@ -197,7 +197,7 @@ Migrate templates incrementally, starting with:
 **Migration**: Replace `{% endcache %}` with `{% end %}`.
 
 :::{note}
-**Cache TTL**: Fragment cache TTL is configured at the environment level in `bengal.yaml`, not per-key. Set `kida.fragment_ttl` (in seconds) to control cache expiration for all fragments.
+**Cache TTL**: Fragment cache TTL is configured at the environment level in `bengal.toml` (or `config/_default/`), not per-key. Set `kida.fragment_ttl` (in seconds) to control cache expiration for all fragments.
 :::
 
 ## Step-by-Step Migration
@@ -430,7 +430,7 @@ Bengal provides simpler alternatives that work with both `|` and `|>`:
 
 ## Migration Checklist
 
-- [ ] Enable Kida in `bengal.yaml`
+- [ ] Enable Kida in `bengal.toml`
 - [ ] Test templates work in compatibility mode
 - [ ] Replace `{% endif %}`, `{% endfor %}`, etc. with `{% end %}`
 - [ ] Replace template-wide `{% set %}` with `{% let %}`
@@ -500,7 +500,7 @@ Kida does not support Jinja2's `{% macro %}` syntax. Use `{% def %}` instead, wh
 **Key Difference**: `{% def %}` functions have access to outer template variables (like `site` and `config`), while Jinja2 macros are isolated. This means you don't need to pass common variables as parameters.
 
 :::{note}
-**Need full Jinja2 compatibility?** If your templates rely heavily on `{% macro %}`, you can use the Jinja2 engine by setting `template_engine: jinja2` in your `bengal.yaml` config.
+**Need full Jinja2 compatibility?** If your templates rely heavily on `{% macro %}`, you can use the Jinja2 engine by setting `template_engine: jinja2` in your `bengal.toml` config.
 :::
 
 ### Include with Variables

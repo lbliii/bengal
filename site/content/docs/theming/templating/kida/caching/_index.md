@@ -25,7 +25,7 @@ Use `{% cache %}` for manual control over expensive operations like navigation t
     |> take(5) %}
   <ul>
     {% for item in related %}
-      <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+      <li><a href="{{ item.href }}">{{ item.title }}</a></li>
     {% end %}
   </ul>
 {% end %}
