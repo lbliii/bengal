@@ -1,36 +1,82 @@
 ## [Unreleased]
 
-## 0.1.9 - 2026-01-23
+## 0.1.9 - 2026-02-08
+
+### 🏗️ Architecture Decomposition ✅
+- **core**: split `PageLike` and `SiteLike` into role-based protocols (`SiteConfig`, `SiteContent`, `Summarizable`)
+  - Migrate Page → PageLike and Site → SiteLike across 40+ consumer files
+  - Narrow protocols to minimal interfaces per consumer (read-only where possible)
+  - Remove `SiteLike` from `Site` inheritance chain entirely
+- **core**: extract mixins to free functions and composed services
+  - `PageComputedMixin` → free functions with tests
+  - `PageBundleMixin` → free functions
+  - `PageNavigationMixin` → free functions + property wrappers
+  - `SiteVersioningMixin` → composed `VersionService`
+  - `SitePropertiesMixin` → inline properties on `Site`
+  - Remove 8+ dead mixin files from `Site` inheritance chain (12 → 4 mixins)
+- **config**: create `ConfigService` frozen dataclass, wire into `Site` with bridge properties (31 tests)
+- **cache**: extract `TaxonomyIndex` and `AutodocTracker` to composed classes
+- **cache**: remove `DependencyTracker`, fully replace with `EffectTracer` (persistence, file fingerprinting, threading tests)
+- **core**: split `snapshots/builder.py` (1,762 lines) into 5 focused modules
+- **core**: replace `Any` escape hatches with correct types across rendering and Page files
+- **core**: rename `parsed_ast` to `html_content` in core and all consumers
+- **core**: remove 55 stale `type: ignore` comments
+- **core**: fix protocol Self-type annotations in renderers and mixins
+- **config**: remove deprecated `config/loader.py`, update test imports
 
 ### ⚡ Build Performance Optimizations ✅
 - **rendering(output)**: wire `fast_mode` to skip HTML formatting (Phase 1.1)
   - `build.fast_mode=True` now returns raw HTML without pretty-printing or minification
   - Provides ~10-15% speedup for builds with formatting enabled
-  - RFC: rfc-build-performance-optimizations
 - **rendering(assets)**: implement render-time asset tracking (Phase 2)
   - Track assets during template rendering via ContextVar-based AssetTracker
-  - Eliminates post-render HTML parsing for asset dependency tracking
-  - Provides ~20-25% speedup for sites with many assets
-  - Falls back to HTML parsing for assets not using filters
-  - RFC: rfc-build-performance-optimizations
+  - Eliminates post-render HTML parsing for asset dependency tracking (~20-25% speedup)
 - **cache(autodoc)**: add AST caching for autodoc extraction (Phase 3)
-  - Cache parsed Python module data to skip AST parsing on subsequent builds
-  - Provides ~30-40% speedup for sites with many autodoc pages
+  - Cache parsed Python module data to skip AST parsing on subsequent builds (~30-40% speedup)
   - Full DocElement reconstruction from cache on cache hit
   - Automatic cache invalidation on source file changes
-  - RFC: rfc-build-performance-optimizations
-- **core(pool)**: re-enable ParserPool with patitas 0.1.1 `_reinit()` support
-  - ~78% faster instantiation for high-volume parsing via instance pooling
+- **core(pool)**: re-enable ParserPool with patitas 0.1.1 `_reinit()` support (~78% faster instantiation)
+- **rendering**: pre-compute renderer caches and context wrappers at snapshot time
+- **core**: pre-compute NavTrees at snapshot time for lock-free lookups
+
+### 🐍 Python 3.14 Modernization ✅
+- **core**: convert to PEP 695 type parameter syntax (`class Foo[T]:` instead of `Generic[T]`)
+- **core**: add `slots=True` to all frozen dataclasses
+- **core**: add exception chaining to raise-in-except blocks
+- **core**: annotate mutable class defaults with `ClassVar`
+- **perf**: convert manual list building to comprehensions (PERF401)
+- **rendering**: narrow `except Exception` blocks in kida.py and authors.py
+- **style**: auto-fix source and test lint violations across codebase
 
 ### 🔒 Thread Safety (Python 3.14t) ✅
-- **core(assets)**: ContextVar pattern for thread-safe asset manifest access (RFC: rfc-global-build-state-dependencies, Phase 2)
+- **core(assets)**: ContextVar pattern for thread-safe asset manifest access
   - Fixes TOCTOU race condition in `Site._asset_manifest_cache` for free-threading
-  - Manifest loaded once before rendering, accessed via thread-local ContextVar
   - ~8M ops/sec throughput, zero lock contention
+- **core**: add lock protection to shared mutable state in rendering hot path
+- **core**: add lock ordering convention and concurrency documentation
+- **core**: add immutable snapshot evaluation to concurrency docs
+- **rendering**: separate BuildCache from DependencyTracker in pipeline
+- **tests**: add threading integration tests for EffectTracer and BuildTaxonomyIndex
+
+### 🔧 Cache & Incremental Build Improvements ✅
+- **cache**: implement unified CacheCoordinator for coordinated cache invalidation across subsystems
+  - Centralized path registry, rebuild manifest, and invalidation coordination
+- **core(cache)**: implement Output Cache Architecture RFC
+  - Content-hash embedding in rendered output for O(1) change detection
+  - Output type classification (authored, generated, static)
+  - GeneratedPageCache for taxonomy/archive page deduplication
+- **orchestration(incremental)**: add IncrementalFilterEngine for rebuild decision hardening
+- **cache**: detect template changes and trigger incremental rebuilds
+- **orchestration**: fix incremental tag term page generation
+- **orchestration**: promote PageProxy to full Page in `phase_update_site_pages`
+- **orchestration**: wire EffectTracer into incremental build pipeline with persistence and file fingerprinting
+- **orchestration**: move `configure_for_site` before parallel rendering, fix stale tracker tests
+- **incremental**: skip cascade rebuild on body-only changes to `_index.md` sections
+- **server**: enable content-hash change detection; integrate into build_trigger and dev_server
 
 ### 🚀 Developer Experience ✅
 - **cli(upgrade)**: add `bengal upgrade` self-update command with PyPI version checking and installer detection (uv/pip)
-- **cli(build)**: add incremental build observability flags (`--explain`, `--dry-run`, `--explain-json`) for debugging rebuild decisions
+- **cli(build)**: add incremental build observability flags (`--explain`, `--dry-run`, `--explain-json`)
 - **cli**: add Python 3.14+ version warning on startup for compatibility awareness
 - **server(dev)**: implement serve-first startup for instant first paint when cache exists (~2-3s faster cold start)
 - **theme(link-previews)**: add dead link indicator styling for broken internal links
@@ -49,24 +95,6 @@
 - **core(changelog)**: make releases filter domain-aware; respect content type strategy
 - **templates(changelog)**: trust ChangelogStrategy sorting, fix `sort_by` None handling
 
-### 🔧 Cache & Incremental Build Improvements ✅
-- **cache**: implement unified CacheCoordinator for coordinated cache invalidation across subsystems
-  - Centralized path registry, rebuild manifest, and invalidation coordination
-  - Documented in architecture docs with PathRegistry and RebuildManifest patterns
-- **core(cache)**: implement Output Cache Architecture RFC
-  - Content-hash embedding in rendered output for O(1) change detection
-  - Output type classification (authored, generated, static)
-  - GeneratedPageCache for taxonomy/archive page deduplication
-  - ContentHashRegistry for centralized hash storage
-- **orchestration(incremental)**: add IncrementalFilterEngine for rebuild decision hardening
-  - Unified filter pipeline for config, content, and dependency checks
-  - Fix FilterResult/ConfigCheckResult `__iter__` for proper unpacking
-- **incremental**: skip cascade rebuild on body-only changes to `_index.md` sections
-- **incremental**: fix section-level optimization to detect subsection changes; autodoc uses fingerprints as fallback
-- **server**: enable content-hash change detection; integrate into build_trigger and dev_server
-- **core(initialization)**: detect missing autodoc output on warm CI builds
-- **core(build)**: detect missing special pages (graph, search) on warm CI builds
-
 ### 🔴 Error System Improvements ✅
 - **errors**: consolidate error handling per RFC with 5 new exception classes
   - `BengalParsingError`, `BengalAutodocError`, `BengalValidatorError`, `BengalBuildError`, `BengalTemplateFunctionError`
@@ -74,27 +102,43 @@
   - Add O/V/B error code categories for orchestration, validation, and build errors
   - 43 unit+integration tests for error handling
 
-### 🏗️ Architecture ✅
+### 🏗️ Protocol Layer ✅
 - **protocols**: add `bengal.protocols` module as central protocol layer
   - Migrate `Cacheable`, `ProgressReporter`, `HighlightService` to shared protocols
   - Documented in architecture docs with protocol layer diagrams
 - **refactor**: migrate to external `patitas` package; delete embedded parser (~15k lines removed)
-  - Parser now maintained as separate PyPI package
   - ContextVar configuration pattern for Parser and HtmlRenderer
   - ParserPool, RendererPool, RenderMetadata, RequestContext for framework integration
 
 ### 🔨 Refactoring & Code Health ✅
 - **refactor(rendering)**: decompose HtmlRenderer into block/inline/directive modules (Phase 3)
-  - Cleaner separation of concerns for markdown rendering subsystem
 - **refactor(utils)**: split into domain-aligned sub-packages; extract shared protocols
 - **core**: implement RFC code health improvements (Phase 1-2)
-  - Reduced coupling, improved testability, clearer module boundaries
+- **directives**: add Patitas-native glossary directive
+
+### 📚 Documentation Audit ✅
+- **docs**: comprehensive staleness audit across all doc sections
+  - Fix stale claims in about, building, content, extending, get-started, reference, and theming sections
+  - Align page URL properties to match codebase (`page.href`, `page._path`)
+  - Replace Jinja2-style block endings with `{% end %}` in Kida examples
+  - Add external cross-links for Kida, Patitas, Rosettes in about section
+- **autodoc**: fix section-index pages blocked by stale URL claims from cache
+
+### 🔧 CI & Packaging ✅
+- **ci**: add `python-publish.yml` GitHub Actions workflow for trusted PyPI publishing
+- **ci**: add `--clean-output` to pages build to fix 404s on `/api/` and `/cli/`
+- **tests**: restore imports stripped by ruff auto-fix in deprecation tests
+- **tests**: prefix unused variables with underscore
+- **tests**: guard bs4 import in integration tests
 
 ### 🐛 Bug Fixes
-- **core(taxonomy)**: fix duplicate tag page generation in incremental builds; track already-generated tags to prevent double append
-- **rendering(link_transformer)**: fix `.md` link normalization to preserve anchor fragments (e.g., `page.md#section` → `/page/#section`)
+- **core(taxonomy)**: fix duplicate tag page generation in incremental builds
+- **rendering(link_transformer)**: fix `.md` link normalization to preserve anchor fragments
 - **server(dev)**: fix serve-first not activating when baseurl is `/`
-- **cache**: fix Python 3.14 import scoping issue in cache loading; move BengalCacheError import to function scope
+- **cache**: fix Python 3.14 import scoping issue in cache loading
+- **core**: fix undefined name references in site and sitemap
+- **orchestration**: fix incremental tag term page generation
+- **tests**: fix CI failures from missing module, wrong kwarg, and unimplemented gaps
 
 ### 📦 Dependencies
 - Bump `patitas` to >=0.1.1 (adds `_reinit()` for parser pooling)
