@@ -290,7 +290,6 @@ Don't render 1000 items on one page:
 ```yaml
 # Paginate blog listing
 pagination:
-  enabled: true
   per_page: 20
 ```
 

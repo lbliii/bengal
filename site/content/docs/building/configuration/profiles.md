@@ -204,6 +204,8 @@ bengal build --dev --quiet
 ```bash
 # Fast, clean builds - default profile
 bengal serve
+# or with explicit profile:
+bengal serve --profile writer
 ```
 
 The writer profile gives you:
@@ -215,7 +217,7 @@ The writer profile gives you:
 
 ```bash
 # Template-focused debugging
-bengal serve --theme-dev
+bengal serve --profile theme-dev
 ```
 
 The theme-dev profile gives you:

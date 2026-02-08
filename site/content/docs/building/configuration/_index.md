@@ -182,7 +182,7 @@ strict_mode = true
 - When debugging template issues
 
 **What it catches:**
-- Jinja2 syntax errors (unclosed tags, invalid filters)
+- Template syntax errors (unclosed tags, invalid filters) in [[ext:kida:|Kida]] and Jinja2
 - Unknown filter names
 - Template assertion errors
 

@@ -46,7 +46,7 @@ This validates all templates during build, even those not used by every page. Co
 - Invalid template syntax
 
 :::{note}
-Kida supports universal `{% end %}` to close any block, or specific end tags like `{% endif %}`, `{% endfor %}`.
+[[ext:kida:|Kida]] supports universal `{% end %}` to close any block, or specific end tags like `{% endif %}`, `{% endfor %}`.
 :::
 
 :::{example-label} Error Message
@@ -135,7 +135,7 @@ Did you mean:
 | `markdownify` | `markdownify` |
 | `truncatewords` | `truncatewords` |
 | `plainify` | `plainify` (alias: `strip_html`) |
-| `urlize` | `urlencode` |
+| `urlize` | `url_encode` |
 | `safeHTML` | `safe` |
 | `in_section` | `{% if page.parent %}` |
 | `is_ancestor` | Compare `page.url` values |
