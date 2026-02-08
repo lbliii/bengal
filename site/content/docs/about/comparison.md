@@ -50,7 +50,7 @@ Bengal is a static site generator that produces HTML, CSS, and JavaScript from M
 | **Highlighting** | [[ext:rosettes:|Rosettes]] (up to 3.75x faster than Pygments, 55+ languages) |
 | **Content Types** | Docs, blog, pages, changelog (mixed) |
 | **Incremental Builds** | Yes (35-80ms single-page, cache-validated) |
-| **Free-Threading (GIL=0)** | Yes (Kida, Patitas, Rosettes are all GIL-independent) |
+| **Free-Threading (GIL=0)** | Yes ([[ext:kida:|Kida]], [[ext:patitas:|Patitas]], [[ext:rosettes:|Rosettes]] are all GIL-independent) |
 | **Image Processing** | fill, fit, resize, WebP/AVIF, srcset |
 | **Content Collections** | Dataclass and Pydantic schema validation |
 | **Deploy Detection** | GitHub Pages, Netlify, Vercel (zero-config) |

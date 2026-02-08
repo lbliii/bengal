@@ -42,7 +42,7 @@ flowchart LR
 | **Page** | A single content file (`.md`) → single HTML output |
 | **Section** | A directory with `_index.md` → list page with children |
 | **Leaf Bundle** | A directory with `index.md` → page with co-located assets |
-| **Template** | Kida/Jinja2 HTML that wraps your content |
+| **Template** | [[ext:kida:|Kida]]/Jinja2 HTML that wraps your content |
 | **Asset** | CSS, JS, images — processed, optimized, and fingerprinted |
 | **Cascade** | Metadata inheritance from section `_index.md` to child pages |
 
