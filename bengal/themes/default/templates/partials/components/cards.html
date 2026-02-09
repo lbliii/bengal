@@ -1,0 +1,133 @@
+{#
+================================================================================
+Shared Card Components (Kida-Native)
+================================================================================
+
+Reusable card components using Kida's {% embed %} and {% def %} features.
+Import these in any template:
+
+  {% from 'partials/components/cards.html' import related_card, post_card %}
+
+KIDA FEATURES USED:
+- {% def %} with {% slot %} for composable components
+- {% embed %} for card-base block overrides
+- Optional chaining (?.) and null coalescing (??)
+- {% match %} for conditional rendering
+
+================================================================================
+#}
+
+{# =============================================================================
+   RELATED POST CARD
+   Compact card for "Related Posts" sections.
+   Used by: page.html, post.html
+   ============================================================================= #}
+{% def related_card(post) %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_excerpt = post?.excerpt ?? '' %}
+
+{% embed 'partials/components/card-base.html' with
+    card_variant='compact',
+    card_href=post_href,
+    gradient_border=true
+%}
+  {% block header %}
+    <h3>{{ post_title }}</h3>
+  {% end %}
+  {% block body %}
+    {% if post_excerpt %}
+    <p>{{ post_excerpt }}</p>
+    {% end %}
+  {% end %}
+  {% block footer %}
+    {% if post_date %}
+    <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+    {% end %}
+  {% end %}
+{% end %}
+{% enddef %}
+
+{# =============================================================================
+   POST CARD (Full)
+   Card with optional image, date, and excerpt for blog listings.
+   Used by: home.html, archive templates
+   ============================================================================= #}
+{% def post_card_full(post) %}
+{% let post_meta = post?.metadata ?? {} %}
+{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+
+{% embed 'partials/components/card-base.html' with
+    card_variant='default',
+    gradient_border=true
+%}
+  {% block header %}
+    {% if post_image %}
+    <div class="post-card-image">
+      <a href="{{ post_href }}">
+        <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+      </a>
+    </div>
+    {% end %}
+    <h3 class="post-card-title"><a href="{{ post_href }}">{{ post_title }}</a></h3>
+  {% end %}
+  {% block body %}
+    {% if post_desc %}
+    <p class="post-card-excerpt">{{ post_desc | truncate(150) }}</p>
+    {% end %}
+  {% end %}
+  {% block footer %}
+    {% if post_date %}
+    <time datetime="{{ post_date | date_iso }}" class="post-card-date">
+      {{ post_date | dateformat('%B %d, %Y') }}
+    </time>
+    {% end %}
+  {% end %}
+  {% block actions %}
+    <a href="{{ post_href }}" class="read-more">Read more →</a>
+  {% end %}
+{% end %}
+{% enddef %}
+
+{# =============================================================================
+   FEATURE CARD
+   Card for feature highlights on landing pages.
+   Used by: home.html
+   ============================================================================= #}
+{% def feature_card(feature) %}
+{% let feat_icon = feature?.icon ?? '' %}
+{% let feat_title = feature?.title ?? '' %}
+{% let feat_desc = feature?.description ?? '' %}
+{% let feat_link = feature?.link %}
+
+{% embed 'partials/components/card-base.html' with
+    card_variant='feature',
+    card_elevation='none'
+%}
+  {% block icon %}
+    {% if feat_icon %}
+    <div class="feature-icon" aria-hidden="true">{{ feat_icon }}</div>
+    {% end %}
+  {% end %}
+  {% block header %}
+    <h3 class="feature-title">{{ feat_title }}</h3>
+  {% end %}
+  {% block body %}
+    <p class="feature-description">{{ feat_desc }}</p>
+  {% end %}
+  {% block actions %}
+    {% if feat_link %}
+    {% let link_url = feat_link?.href ?? feat_link?.url ?? '#' %}
+    {% let link_text = feat_link?.text ?? 'Learn more' %}
+    <a href="{{ link_url | absolute_url }}" class="feature-link">
+      {{ link_text }} <span aria-hidden="true">→</span>
+    </a>
+    {% end %}
+  {% end %}
+{% end %}
+{% enddef %}

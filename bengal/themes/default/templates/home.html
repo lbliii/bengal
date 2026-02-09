@@ -12,7 +12,8 @@ KIDA FEATURES USED:
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
 - Pipeline operator (|>) for filter chains
-- {% def %} for reusable components
+- {% from ... import %} for shared card components
+- {% embed %} via card-base.html (in imported components)
 - {% cache %} for recent posts computation
 
 USAGE:
@@ -20,65 +21,8 @@ Auto-selected for site home page (index.html)
 ================================================================================
 #}
 
-{# =============================================================================
-POST CARD COMPONENT
-============================================================================= #}
-{% def post_card(post) %}
-{% let post_meta = post?.metadata ?? {} %}
-{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
-
-<article class="post-card gradient-border fluid-combined">
-    {% if post_image %}
-    <div class="post-card-image">
-        <a href="{{ post_href }}">
-            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
-        </a>
-    </div>
-    {% end %}
-    <div class="post-card-content">
-        <h3 class="post-card-title"><a href="{{ post_href }}">{{ post_title }}</a></h3>
-        {% if post_date %}
-        <time datetime="{{ post_date | date_iso }}" class="post-card-date">
-            {{ post_date | dateformat('%B %d, %Y') }}
-        </time>
-        {% end %}
-        {% if post_desc %}
-        <p class="post-card-excerpt">{{ post_desc | truncate(150) }}</p>
-        {% end %}
-        <a href="{{ post_href }}" class="read-more">Read more →</a>
-    </div>
-</article>
-{% end %}
-
-{# =============================================================================
-FEATURE CARD COMPONENT
-============================================================================= #}
-{% def feature_card(feature) %}
-{% let feat_icon = feature?.icon ?? '' %}
-{% let feat_title = feature?.title ?? '' %}
-{% let feat_desc = feature?.description ?? '' %}
-{% let feat_link = feature?.link %}
-
-<article class="feature-card">
-    {% if feat_icon %}
-    <div class="feature-icon" aria-hidden="true">{{ feat_icon }}</div>
-    {% end %}
-    <h3 class="feature-title">{{ feat_title }}</h3>
-    <p class="feature-description">{{ feat_desc }}</p>
-    {% if feat_link %}
-    {% let link_url = feat_link?.href ?? feat_link?.url ?? '#' %}
-    {% let link_text = feat_link?.text ?? 'Learn more' %}
-    <a href="{{ link_url | absolute_url }}" class="feature-link">
-        {{ link_text }}
-        <span aria-hidden="true">→</span>
-    </a>
-    {% end %}
-</article>
-{% end %}
+{# Import shared card components (uses {% embed %} with card-base) #}
+{% from 'partials/components/cards.html' import post_card_full as post_card, feature_card %}
 
 {# =============================================================================
 MAIN TEMPLATE

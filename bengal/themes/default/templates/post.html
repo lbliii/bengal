@@ -11,7 +11,8 @@ KIDA FEATURES USED:
 - {% let %} for template-scoped variables
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
-- {% def %} for reusable components
+- {% from ... import %} for shared card components
+- {% embed %} via card-base.html (in imported components)
 
 USAGE:
 Auto-selected for posts without a specific type
@@ -20,27 +21,7 @@ Auto-selected for posts without a specific type
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
-   RELATED POST CARD COMPONENT
-   ============================================================================= #}
-{% def related_card(post) %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_excerpt = post?.excerpt ?? '' %}
-{% let post_content = post?.content ?? '' %}
-
-<article class="related-post-card gradient-border fluid-combined">
-  <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
-  {% if post_date %}
-  <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
-  {% end %}
-  {% if post_content %}
-  <p>{{ post_excerpt }}</p>
-  {% end %}
-</article>
-{% end %}
+{% from 'partials/components/cards.html' import related_card %}
 
 {# =============================================================================
    MAIN TEMPLATE
