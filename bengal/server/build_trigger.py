@@ -194,6 +194,17 @@ class BuildTrigger:
                 )
                 return
 
+            # Template fast path: when only template blocks changed, recompile
+            # them in-place and push site-scoped fragments without a full rebuild.
+            # Falls back to _execute_build for page-scoped block changes.
+            # (RFC: content-only-hot-reload Phase 4)
+            if self._try_template_fragment_update(changed_paths, event_types):
+                logger.info(
+                    "template_fragment_fast_path_complete",
+                    changed_count=len(changed_paths),
+                )
+                return
+
             self._execute_build(changed_paths, event_types)
         finally:
             # Check for queued changes before releasing lock
@@ -952,6 +963,164 @@ class BuildTrigger:
         except Exception as e:
             logger.debug(
                 "fragment_fast_path_error",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return False
+
+    def _try_template_fragment_update(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+    ) -> bool:
+        """Attempt template-change fragment update without full rebuild.
+
+        When only template files change and Kida can recompile just the
+        changed blocks in-place, this method renders site-scoped blocks
+        once and pushes them to connected browsers via SSE. Since
+        site-scoped blocks (header, footer, nav, sidebar) render
+        identically for every page, one render is sufficient.
+
+        Conditions for the fast path:
+        1. Only ``modified`` events
+        2. All changed files are ``.html`` in template directories
+        3. Kida block recompilation succeeds for each changed template
+        4. ALL recompiled blocks are site-scoped (same across all pages)
+        5. A representative page is available to build context
+
+        If any page-scoped block was recompiled, falls back to the normal
+        incremental build (which must re-render each affected page).
+
+        Args:
+            changed_paths: Set of changed file paths
+            event_types: Set of event types
+
+        Returns:
+            True if all changes handled via fragment push, False otherwise.
+
+        RFC: content-only-hot-reload (Phase 4)
+        """
+        # Gate 1: Only modified events
+        if event_types != {"modified"}:
+            return False
+
+        # Gate 2: Only .html template files
+        if not all(p.suffix.lower() == ".html" for p in changed_paths):
+            return False
+
+        template_dirs = self._get_template_dirs()
+        if not template_dirs:
+            return False
+
+        # All changed files must be in template directories
+        if not all(self._is_in_template_dir(p, template_dirs) for p in changed_paths):
+            return False
+
+        try:
+            from bengal.protocols import EngineCapability
+            from bengal.rendering.block_cache import BlockCache
+            from bengal.rendering.engines import create_engine
+
+            engine = create_engine(self.site)
+
+            # Must support block-level detection
+            if not engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION):
+                return False
+
+            block_cache = BlockCache()
+
+            # Recompile each changed template and collect recompiled block names
+            all_recompiled: set[str] = set()
+            template_names: list[str] = []
+
+            for path in changed_paths:
+                # Derive template name from the file.
+                # For partials (e.g., partials/nav.html), the parent template
+                # needs recompilation — Kida's loader handles this internally
+                # by invalidating the source hash.
+                tpl_name = path.stem + ".html"
+                recompiled = block_cache.recompile_changed_blocks(engine, tpl_name)
+                if not recompiled:
+                    # Recompilation failed or no changes detected — can't fast-path
+                    logger.debug(
+                        "template_fragment_no_recompile",
+                        template=tpl_name,
+                        file=str(path),
+                    )
+                    return False
+                all_recompiled.update(recompiled)
+                template_names.append(tpl_name)
+
+            if not all_recompiled:
+                return False
+
+            # Gate 4: Check if ALL recompiled blocks are site-scoped.
+            # Site-scoped blocks render the same for every page, so we only
+            # need one render. Page-scoped blocks differ per page and require
+            # a full incremental build.
+            for tpl_name in template_names:
+                cacheable = block_cache.analyze_template(engine, tpl_name)
+                for block_name in all_recompiled:
+                    scope = cacheable.get(block_name, "unknown")
+                    if scope != "site":
+                        logger.debug(
+                            "template_fragment_page_scoped",
+                            block=block_name,
+                            scope=scope,
+                            template=tpl_name,
+                        )
+                        return False
+
+            # Gate 5: Need a representative page to build context
+            page_map = self.site.page_by_source_path
+            if not page_map:
+                return False
+            # Pick first available page
+            _representative_path, representative_page = next(iter(page_map.items()))
+
+            # Build context for the representative page
+            from markupsafe import Markup
+
+            from bengal.rendering.context import build_page_context
+            from bengal.rendering.pipeline.output import determine_template
+            from bengal.server.live_reload import send_fragment_payload
+
+            html_content = getattr(representative_page, "html_content", "") or ""
+            context = build_page_context(
+                page=representative_page,
+                site=self.site,
+                content=Markup(html_content),
+                lazy=False,
+            )
+
+            template_name = determine_template(representative_page)
+
+            # Render and push each recompiled block
+            total_html_size = 0
+            for block_name in sorted(all_recompiled):
+                rendered = engine.render_fragment(template_name, block_name, context)
+                if rendered is None:
+                    # Block render failed — fall back
+                    logger.debug(
+                        "template_fragment_render_failed",
+                        block=block_name,
+                        template=template_name,
+                    )
+                    return False
+                total_html_size += len(rendered)
+                send_fragment_payload(block_name, rendered, "template-change")
+
+            logger.info(
+                "template_fragment_fast_path_used",
+                templates=template_names,
+                blocks=sorted(all_recompiled),
+                html_size=total_html_size,
+            )
+            return True
+
+        except Exception as e:
+            logger.debug(
+                "template_fragment_fast_path_error",
                 error=str(e),
                 error_type=type(e).__name__,
             )
