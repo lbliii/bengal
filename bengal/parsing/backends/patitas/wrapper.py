@@ -290,8 +290,20 @@ class PatitasParser(BaseMarkdownParser):
                     from bengal.server.fragment_update import ContentASTCache
 
                     body_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
-                    raw_ast = self._try_incremental_parse(content, Path(source_path))
-                    ContentASTCache.put(Path(source_path), body_hash, content, raw_ast)
+
+                    # Fast path: if the content hash matches, the cached AST
+                    # is already correct — skip parsing entirely.
+                    cached_ast = ContentASTCache.get_by_hash(
+                        Path(source_path), body_hash
+                    )
+                    if cached_ast is None:
+                        # Hash miss — parse (incrementally if possible) and cache
+                        raw_ast = self._try_incremental_parse(
+                            content, Path(source_path)
+                        )
+                        ContentASTCache.put(
+                            Path(source_path), body_hash, content, raw_ast
+                        )
                 except Exception:
                     pass  # Best-effort — don't impact build
 

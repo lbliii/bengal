@@ -259,9 +259,6 @@ def ast_changes_to_context_paths(changes: tuple[Any, ...]) -> frozenset[str]:
 
 
 # RFC: reactive-rebuild-architecture Phase 4c
-# Known frontmatter keys that affect taxonomy blocks (page-level, non-nav)
-_TAXONOMY_KEYS: frozenset[str] = frozenset({"tags", "categories", "topics", "series"})
-
 # Frontmatter key → context path mapping for fragment targeting.
 # Keys not in this map (and not in NAV_AFFECTING_KEYS) get generic "metadata".
 _FM_KEY_TO_CONTEXT: dict[str, tuple[str, ...]] = {

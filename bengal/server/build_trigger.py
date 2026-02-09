@@ -147,6 +147,17 @@ class BuildTrigger:
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
 
+        # Restore AST cache from disk for instant fragment diffs on restart
+        try:
+            from bengal.server.fragment_update import ContentASTCache
+
+            cache_dir = Path(site.root_path) / ".bengal" / "cache" / "ast"
+            loaded = ContentASTCache.load_from_disk(cache_dir)
+            if loaded > 0:
+                logger.info("ast_cache_restored", count=loaded)
+        except Exception:
+            pass  # Best-effort — cold start is fine
+
     def trigger_build(
         self,
         changed_paths: set[Path],
@@ -455,12 +466,33 @@ class BuildTrigger:
                 if p.suffix.lower() in (".md", ".markdown"):
                     self._is_content_only_change(p)
 
+            # Persist AST cache to disk so next server restart has warm ASTs
+            try:
+                from bengal.server.fragment_update import ContentASTCache
+
+                cache_dir = Path(self.site.root_path) / ".bengal" / "cache" / "ast"
+                saved = ContentASTCache.save_to_disk(cache_dir)
+                if saved > 0:
+                    logger.debug("ast_cache_persisted", count=saved)
+            except Exception:
+                pass  # Best-effort
+
             logger.info(
                 "rebuild_complete",
                 duration_seconds=round(build_duration, 2),
                 pages_built=result.pages_built,
                 incremental=use_incremental,
             )
+
+            # Log AST cache stats for observability
+            try:
+                from bengal.server.fragment_update import ContentASTCache
+
+                ast_stats = ContentASTCache.stats()
+                if ast_stats.get("size", 0) > 0:
+                    logger.info("ast_cache_stats", **ast_stats)
+            except Exception:
+                pass
 
             # Open the build gate BEFORE notifying browser so that when
             # the client receives the SSE reload event and requests the
