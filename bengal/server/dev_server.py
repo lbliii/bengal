@@ -726,11 +726,15 @@ class DevServer:
         watch_dirs.append(self.site.root_path)
 
         # Create watcher runner
+        # Reduced debounce (150ms) since the fragment fast path handles content-only
+        # changes in ~40ms — no need for the conservative 300ms delay.
+        # Full rebuilds still work correctly; BuildTrigger queues changes that
+        # arrive during a build and processes them after completion.
         watcher_runner = WatcherRunner(
             paths=watch_dirs,
             ignore_filter=ignore_filter,
             on_changes=build_trigger.trigger_build,
-            debounce_ms=300,
+            debounce_ms=150,
         )
 
         logger.debug(

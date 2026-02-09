@@ -184,6 +184,16 @@ class BuildTrigger:
             self._building = True
 
         try:
+            # Fast path: attempt content-only fragment update without full rebuild.
+            # If successful, skips the expensive build + browser reload cycle and
+            # pushes rendered HTML fragments directly via SSE (~175ms vs ~536ms+).
+            if self._try_fragment_update(changed_paths, event_types):
+                logger.info(
+                    "fragment_fast_path_complete",
+                    changed_count=len(changed_paths),
+                )
+                return
+
             self._execute_build(changed_paths, event_types)
         finally:
             # Check for queued changes before releasing lock
@@ -373,6 +383,14 @@ class BuildTrigger:
             # Record success for session tracking
             self._last_successful_build = datetime.now()
             get_dev_server_state().record_success()
+
+            # Prime content hash cache for changed .md files so the NEXT edit
+            # can use the fragment fast path immediately (without a warm-up miss).
+            # _is_content_only_change() stores (mtime, fm_hash, content_hash)
+            # on first call and detects changes on subsequent calls.
+            for p in changed_paths:
+                if p.suffix.lower() in (".md", ".markdown"):
+                    self._is_content_only_change(p)
 
             logger.info(
                 "rebuild_complete",
@@ -734,6 +752,150 @@ class BuildTrigger:
 
         except (FileNotFoundError, PermissionError, OSError) as e:
             logger.debug("content_hash_check_failed", file=str(path), error=str(e))
+            return False
+
+    def _try_fragment_update(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+    ) -> bool:
+        """Attempt content-only fragment update without full rebuild.
+
+        When only the markdown body changes (frontmatter unchanged), this method
+        re-parses the content, renders the "content" template block, and pushes it
+        to connected browsers via SSE fragment replacement. The browser swaps the
+        ``<main data-bengal-fragment="content">`` element's innerHTML in-place —
+        no page reload, no scroll jump, no flash.
+
+        Conditions for the fast path:
+        1. Only ``modified`` events (no creates/deletes/moves)
+        2. All changed files are ``.md`` content files
+        3. Only the markdown body changed (frontmatter hash unchanged)
+        4. Each file maps to an existing Page in the warm Site model
+        5. The template engine can render the ``content`` block
+
+        If any condition fails, returns ``False`` and the caller falls through
+        to the existing full rebuild path. Zero risk of breaking current behavior.
+
+        Args:
+            changed_paths: Set of changed file paths
+            event_types: Set of event types (created, modified, deleted, moved)
+
+        Returns:
+            True if all changes were handled via fragment push, False to fall back
+            to full rebuild.
+
+        RFC: content-only-hot-reload (Phase 1)
+        """
+        # Gate 1: Only modified events (structural changes need full rebuild)
+        if event_types != {"modified"}:
+            return False
+
+        # Gate 2: Only .md content files
+        if not all(p.suffix.lower() in (".md", ".markdown") for p in changed_paths):
+            return False
+
+        # Gate 3: Check each file is a content-only change (frontmatter unchanged)
+        content_only_paths = [p for p in changed_paths if self._is_content_only_change(p)]
+
+        if not content_only_paths:
+            return False
+
+        # If some paths are content-only and others aren't, fall back to full rebuild
+        # (mixed changes are too complex for the fast path)
+        if len(content_only_paths) != len(changed_paths):
+            return False
+
+        # Gate 4: All paths must have existing pages in warm Site model
+        page_map = self.site.page_by_source_path
+        pages_to_update: list[tuple[Path, Any]] = []
+        for path in content_only_paths:
+            page = page_map.get(path)
+            if page is None:
+                logger.debug("fragment_fast_path_no_page", file=str(path))
+                return False
+            pages_to_update.append((path, page))
+
+        # Attempt fragment rendering and push
+        try:
+            from markupsafe import Markup
+
+            from bengal.rendering.context import build_page_context
+            from bengal.rendering.engines import create_engine
+            from bengal.rendering.pipeline.output import determine_template
+            from bengal.rendering.pipeline.thread_local import get_thread_parser
+            from bengal.rendering.pipeline.transforms import (
+                escape_template_syntax_in_html,
+            )
+            from bengal.server.live_reload import send_fragment_payload
+
+            markdown_engine = self.site.config.get("markdown_engine", "patitas")
+            parser = get_thread_parser(markdown_engine)
+            engine = create_engine(self.site)
+
+            for path, page in pages_to_update:
+                # Read new source
+                source = path.read_text(encoding="utf-8")
+
+                # Split frontmatter and body
+                match = re.match(
+                    r"^---\s*\n(.*?)\n---\s*\n(.*)$", source, flags=re.DOTALL
+                )
+                if not match:
+                    return False
+
+                body = match.group(2)
+
+                # Parse markdown body to HTML using the site's parser
+                metadata = dict(page.metadata)
+                metadata["_source_path"] = page.source_path
+                html_content = parser.parse(body, metadata)
+                html_content = escape_template_syntax_in_html(html_content)
+
+                # Update page's html_content so context building picks it up
+                page.html_content = html_content
+
+                # Build template context with the new content
+                content_markup = Markup(html_content)
+                context = build_page_context(
+                    page=page,
+                    site=self.site,
+                    content=content_markup,
+                    lazy=False,
+                )
+
+                # Resolve template name for this page
+                template_name = determine_template(page)
+
+                # Render just the "content" block (matches data-bengal-fragment="content"
+                # on <main> in base.html)
+                rendered = engine.render_fragment(template_name, "content", context)
+                if rendered is None:
+                    logger.debug(
+                        "fragment_fast_path_render_failed",
+                        file=str(path),
+                        template=template_name,
+                    )
+                    return False
+
+                # Push the rendered fragment to all connected browsers
+                send_fragment_payload("content", rendered, str(path))
+
+                logger.info(
+                    "fragment_fast_path_used",
+                    file=str(path.name),
+                    template=template_name,
+                    html_size=len(rendered),
+                )
+
+            return True
+
+        except Exception as e:
+            logger.debug(
+                "fragment_fast_path_error",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return False
 
     def _get_template_dirs(self) -> list[Path]:
