@@ -833,6 +833,11 @@ class BuildTrigger:
             parser = get_thread_parser(markdown_engine)
             engine = create_engine(self.site)
 
+            from bengal.server.fragment_update import (
+                diff_content_ast,
+                get_affected_blocks,
+            )
+
             for path, page in pages_to_update:
                 # Read new source
                 source = path.read_text(encoding="utf-8")
@@ -845,6 +850,26 @@ class BuildTrigger:
                     return False
 
                 body = match.group(2)
+
+                # Phase 2: AST-level diff to determine which context paths changed.
+                # If only paragraphs changed, we render only "content". If headings
+                # changed, we also render TOC-dependent blocks.
+                ast_result = diff_content_ast(path, body)
+                if ast_result is not None:
+                    changed_ctx_paths, _new_ast = ast_result
+                    if not changed_ctx_paths:
+                        # No structural change — content is semantically identical
+                        logger.debug("fragment_fast_path_no_change", file=str(path))
+                        continue
+
+                    # If heading/title changed, fall back to full rebuild
+                    # (TOC and navigation may need updating across the whole page)
+                    if "page.title" in changed_ctx_paths:
+                        logger.debug(
+                            "fragment_fast_path_title_changed",
+                            file=str(path),
+                        )
+                        return False
 
                 # Parse markdown body to HTML using the site's parser
                 metadata = dict(page.metadata)
@@ -867,25 +892,46 @@ class BuildTrigger:
                 # Resolve template name for this page
                 template_name = determine_template(page)
 
-                # Render just the "content" block (matches data-bengal-fragment="content"
-                # on <main> in base.html)
-                rendered = engine.render_fragment(template_name, "content", context)
-                if rendered is None:
-                    logger.debug(
-                        "fragment_fast_path_render_failed",
-                        file=str(path),
-                        template=template_name,
+                # Phase 2: Determine which blocks are affected by the changes.
+                # Use block_metadata to find blocks whose depends_on intersects
+                # with the changed context paths.
+                blocks_to_render = ["content"]  # Always render content block
+                if ast_result is not None:
+                    changed_ctx_paths, _ = ast_result
+                    affected = get_affected_blocks(
+                        engine, template_name, changed_ctx_paths
                     )
-                    return False
+                    if affected:
+                        # Merge: always include "content", add any other affected
+                        blocks_to_render = list(
+                            dict.fromkeys(["content", *affected])
+                        )
 
-                # Push the rendered fragment to all connected browsers
-                send_fragment_payload("content", rendered, str(path))
+                # Render and push each affected block
+                total_html_size = 0
+                for block_name in blocks_to_render:
+                    rendered = engine.render_fragment(
+                        template_name, block_name, context
+                    )
+                    if rendered is None and block_name == "content":
+                        # The "content" block is required — fall back
+                        logger.debug(
+                            "fragment_fast_path_render_failed",
+                            file=str(path),
+                            template=template_name,
+                            block=block_name,
+                        )
+                        return False
+                    if rendered is not None:
+                        total_html_size += len(rendered)
+                        send_fragment_payload(block_name, rendered, str(path))
 
                 logger.info(
                     "fragment_fast_path_used",
                     file=str(path.name),
                     template=template_name,
-                    html_size=len(rendered),
+                    blocks=blocks_to_render,
+                    html_size=total_html_size,
                 )
 
             return True
