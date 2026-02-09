@@ -80,9 +80,11 @@ class RSSGenerator:
             site: Site instance
             collector: Optional output collector for hot reload tracking
         """
+        from bengal.core.output.collector import NULL_COLLECTOR
+
         self.site = site
         self.logger = get_logger(__name__)
-        self._collector = collector
+        self._collector = collector or NULL_COLLECTOR
         # Normalize config structure so tests using flat baseurl keep working
         try:
             cfg = getattr(self.site, "config", {}) or {}
@@ -224,11 +226,10 @@ class RSSGenerator:
                 with AtomicFile(rss_path, "wb") as f:
                     tree.write(f, encoding="utf-8", xml_declaration=True)
 
-                # Record output for hot reload tracking
-                if self._collector:
-                    from bengal.core.output import OutputType
+                # Record output for hot reload tracking (collector is always valid)
+                from bengal.core.output import OutputType
 
-                    self._collector.record(rss_path, OutputType.XML, phase="postprocess")
+                self._collector.record(rss_path, OutputType.XML, phase="postprocess")
 
                 self.logger.info(
                     "rss_generation_complete",

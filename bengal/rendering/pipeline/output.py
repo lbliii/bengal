@@ -220,7 +220,7 @@ def _track_and_record(
     Args:
         page: Page with output_path set
         site: Site instance
-        collector: Optional output collector for hot reload
+        collector: Optional output collector for hot reload (normalized to NULL_COLLECTOR)
         build_cache: Optional BuildCache for direct cache access.
 
     """
@@ -237,10 +237,12 @@ def _track_and_record(
         cache.track_output(page.source_path, page.output_path, site.output_dir)
 
     # Record output for hot reload tracking
-    if collector and page.output_path:
+    # Collector is always valid (NULL_COLLECTOR at worst), no None-guard needed.
+    if page.output_path:
         from bengal.core.output import OutputType
+        from bengal.core.output.collector import NULL_COLLECTOR
 
-        collector.record(page.output_path, OutputType.HTML, phase="render")
+        (collector or NULL_COLLECTOR).record(page.output_path, OutputType.HTML, phase="render")
 
 
 def format_html(html: str, page: PageLike, site: SiteLike) -> str:

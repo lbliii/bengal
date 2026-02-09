@@ -147,14 +147,11 @@ class AssetOrchestrator:
         Record asset output for hot reload tracking.
 
         Called after successful copy_to_output() to track the asset
-        in the output collector (if present).
+        in the output collector (always valid -- NULL_COLLECTOR at worst).
 
         Args:
             asset: Asset that was just written to output
         """
-        if self._collector is None:
-            return
-
         output_path = getattr(asset, "output_path", None)
         if not isinstance(output_path, Path):
             return
@@ -182,8 +179,10 @@ class AssetOrchestrator:
             progress_manager: Live progress manager (optional)
             collector: Optional output collector for hot reload tracking
         """
-        # Store collector for use by _process_* methods
-        self._collector = collector
+        # Store collector for use by _process_* methods (normalize to no-op sentinel)
+        from bengal.core.output.collector import NULL_COLLECTOR
+
+        self._collector = collector or NULL_COLLECTOR
 
         # Optional Node-based pipeline: compile SCSS/PostCSS and bundle JS/TS first
         try:
