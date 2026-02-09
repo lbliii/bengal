@@ -27,6 +27,7 @@ See Also:
 from __future__ import annotations
 
 import re
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -105,6 +106,11 @@ class RenderingPipeline:
         pipeline.render_page(page)
 
     """
+
+    # Track which builds have already emitted the output_collector warning
+    # so we warn once per build, not once per worker thread.
+    _warned_builds: set[str] = set()
+    _warned_builds_lock = threading.Lock()
 
     def __init__(
         self,
@@ -210,12 +216,22 @@ class RenderingPipeline:
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
-        # Debug: Warn if output collector is missing (hot reload won't track outputs)
+        # Warn once per build if output collector is missing (hot reload won't track outputs)
         if build_context and not self._output_collector:
-            logger.warning(
-                "output_collector_missing_in_pipeline",
-                has_build_context=bool(build_context),
-            )
+            build_id = getattr(build_context, "build_id", "unknown")
+            with RenderingPipeline._warned_builds_lock:
+                already_warned = build_id in RenderingPipeline._warned_builds
+                if not already_warned:
+                    RenderingPipeline._warned_builds.add(build_id)
+            if not already_warned:
+                logger.warning(
+                    "output_collector_missing_in_pipeline",
+                    build_id=build_id,
+                    incremental=getattr(build_context, "incremental", False),
+                    parallel=getattr(build_context, "parallel", True),
+                    impact="hot reload won't track written files for typed reload decisions",
+                    hint="pass output_collector= to BuildContext or check build orchestration",
+                )
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
