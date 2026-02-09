@@ -360,9 +360,16 @@ class KidaTemplateEngine:
         except KidaTemplateNotFoundError as e:
             raise TemplateNotFoundError(name, self.template_dirs) from e
         except KidaTemplateSyntaxError as e:
+            # Use format_compact() for a structured message when available
+            if hasattr(e, "format_compact"):
+                msg = f"Template syntax error in '{name}':\n{e.format_compact()}"
+            else:
+                msg = f"Template syntax error in '{name}': {e}"
             raise BengalRenderingError(
-                message=f"Template syntax error in '{name}': {e}",
+                message=msg,
                 original_error=e,
+                file_path=getattr(e, "filename", None),
+                line_number=getattr(e, "lineno", None),
             ) from e
         except TypeError as e:
             # Enhanced error message for "NoneType is not callable"
@@ -396,11 +403,21 @@ class KidaTemplateEngine:
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
+                file_path=getattr(e, "filename", None),
+                line_number=getattr(e, "lineno", None),
             ) from e
         except Exception as e:
+            # Use format_compact() for Kida errors that reach the generic handler
+            if hasattr(e, "format_compact"):
+                msg = f"Template render error in '{name}':\n{e.format_compact()}"
+            else:
+                msg = f"Template render error in '{name}': {e}"
             raise BengalRenderingError(
-                message=f"Template render error in '{name}': {e}",
+                message=msg,
                 original_error=e,
+                file_path=getattr(e, "filename", None),
+                line_number=getattr(e, "lineno", None),
+                suggestion=getattr(e, "hint", None),
             ) from e
 
     def render_string(
@@ -448,14 +465,28 @@ class KidaTemplateEngine:
             # This allows preprocessing to handle documentation examples gracefully
             if not strict:
                 return ""
+            if hasattr(e, "format_compact"):
+                msg = f"Template string render error:\n{e.format_compact()}"
+            else:
+                msg = f"Template string render error: {e}"
             raise BengalRenderingError(
-                message=f"Template string render error: {e}",
+                message=msg,
                 original_error=e,
+                file_path=getattr(e, "filename", None),
+                line_number=getattr(e, "lineno", None),
+                suggestion=getattr(e, "hint", None),
             ) from e
         except Exception as e:
+            if hasattr(e, "format_compact"):
+                msg = f"Template string render error:\n{e.format_compact()}"
+            else:
+                msg = f"Template string render error: {e}"
             raise BengalRenderingError(
-                message=f"Template string render error: {e}",
+                message=msg,
                 original_error=e,
+                file_path=getattr(e, "filename", None),
+                line_number=getattr(e, "lineno", None),
+                suggestion=getattr(e, "hint", None),
             ) from e
 
     def template_exists(self, name: str) -> bool:

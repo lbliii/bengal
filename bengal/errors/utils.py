@@ -226,6 +226,17 @@ def extract_error_attributes(error: Exception) -> dict[str, Any]:
     if hasattr(error, "lineno") and result["line_number"] is None:
         result["line_number"] = getattr(error, "lineno", None)
 
+    # Kida template engine attributes (source_snippet, error code, format_compact)
+    if hasattr(error, "source_snippet"):
+        result["source_snippet"] = getattr(error, "source_snippet", None)
+    if hasattr(error, "code") and result["code"] is None:
+        # Kida ErrorCode enum — extract its string value for Bengal compatibility
+        kida_code = getattr(error, "code", None)
+        if kida_code is not None and hasattr(kida_code, "value"):
+            result["kida_error_code"] = kida_code.value
+    if hasattr(error, "format_compact"):
+        result["format_compact"] = getattr(error, "format_compact")
+
     return result
 
 
@@ -261,7 +272,11 @@ def get_error_message(error: Any) -> str:
     else:
         msg = str(error)
 
-    # Handle Kida's empty-message TemplateRuntimeError format
+    # Prefer Kida's structured format_compact() when available
+    if hasattr(error, "format_compact"):
+        return error.format_compact()
+
+    # Fallback: parse Kida's empty-message TemplateRuntimeError string format
     # Format: "Runtime Error: \n  Location: template.html:37\n  ..."
     if msg.startswith("Runtime Error:") and "\n" in msg:
         lines = msg.split("\n")
