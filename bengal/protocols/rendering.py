@@ -99,6 +99,8 @@ class EngineCapability(Flag):
     INTROSPECTION = auto()  # Can analyze template structure
     PIPELINE_OPERATORS = auto()  # Supports |> operator
     PATTERN_MATCHING = auto()  # Supports match/case in templates
+    CONTEXT_VALIDATION = auto()  # Can validate context before rendering
+    FRAGMENT_RENDERING = auto()  # Can render individual blocks/fragments
 
 
 # =============================================================================

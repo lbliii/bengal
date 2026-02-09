@@ -50,7 +50,7 @@ graph TB
             Cacheable["Cacheable<br/>Cache serialization"]
             OutputTarget["OutputTarget<br/>File output"]
             ContentSourceProtocol["ContentSourceProtocol<br/>Remote content"]
-            OutputCollector["OutputCollector<br/>CSS collection"]
+            OutputCollector["OutputCollector<br/>Output tracking"]
         end
     end
     

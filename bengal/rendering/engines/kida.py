@@ -747,6 +747,8 @@ class KidaTemplateEngine:
             | EngineCapability.INTROSPECTION
             | EngineCapability.PIPELINE_OPERATORS
             | EngineCapability.PATTERN_MATCHING
+            | EngineCapability.CONTEXT_VALIDATION
+            | EngineCapability.FRAGMENT_RENDERING
         )
 
     def has_capability(self, cap: EngineCapability) -> bool:
@@ -872,6 +874,88 @@ class KidaTemplateEngine:
             for block_name, meta in info["blocks"].items()
             if meta.cache_scope in ("site", "page") and meta.is_pure == "pure"
         }
+
+    # =========================================================================
+    # CONTEXT VALIDATION (RFC: kida-context-validation)
+    # =========================================================================
+
+    def validate_context(
+        self,
+        template_name: str,
+        context: dict[str, Any],
+    ) -> list[str]:
+        """Validate a context dict for missing variables before rendering.
+
+        Uses Kida's introspection to determine which variables a template
+        requires, then checks if they're present in the provided context.
+        Catches missing variables *before* rendering, avoiding runtime
+        UndefinedError.
+
+        Args:
+            template_name: Template to validate against
+            context: Context dict that would be passed to render()
+
+        Returns:
+            List of missing top-level variable names, sorted alphabetically.
+            Empty list if all required variables are present or if
+            introspection is unavailable.
+
+        Example:
+            >>> missing = engine.validate_context("page.html", {"site": site})
+            >>> # ['page', 'content']
+        """
+        try:
+            template = self._env.get_template(template_name)
+            return template.validate_context(context)
+        except Exception:
+            return []
+
+    # =========================================================================
+    # FRAGMENT RENDERING (RFC: kida-fragment-rendering)
+    # =========================================================================
+
+    def render_fragment(
+        self,
+        template_name: str,
+        block_name: str,
+        context: dict[str, Any],
+    ) -> str | None:
+        """Render a single block/fragment from a template.
+
+        Uses Kida's ``render_block()`` to render just one named block
+        without rendering the full template. This is useful for:
+        - Dev server partial updates (render only changed content)
+        - Pre-warming block caches
+        - htmx-style fragment delivery
+
+        Args:
+            template_name: Template containing the block
+            block_name: Name of the block to render
+            context: Variables available to the block
+
+        Returns:
+            Rendered HTML string, or None if block not found or
+            rendering failed
+
+        Example:
+            >>> html = engine.render_fragment("base.html", "nav", {"site": site})
+        """
+        try:
+            template = self._env.get_template(template_name)
+
+            # Build context with site globals
+            ctx = {"site": self.site, "config": self.site.config}
+            ctx.update(context.items())
+
+            # Add page-aware functions if available
+            page = context.get("page")
+            if hasattr(self._env, "_page_aware_factory"):
+                page_functions = self._env._page_aware_factory(page)
+                ctx.update(page_functions)
+
+            return template.render_block(block_name, ctx)
+        except Exception:
+            return None
 
     # =========================================================================
     # COMPATIBILITY METHODS (for Bengal internals)

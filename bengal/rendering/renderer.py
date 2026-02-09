@@ -452,6 +452,9 @@ class Renderer:
                 }
             )
 
+        # Validate context in dev mode (catch missing variables before rendering)
+        self._validate_context_if_dev(template_name, context)
+
         # Render with template
         try:
             result = self.template_engine.render(template_name, context)
@@ -524,6 +527,46 @@ class Renderer:
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)
+
+    def _validate_context_if_dev(self, template_name: str, context: dict[str, Any]) -> None:
+        """Validate template context in development mode.
+
+        Uses Kida's ``validate_context()`` to check for missing variables
+        before rendering, providing clear warnings instead of cryptic
+        UndefinedError tracebacks.
+
+        Only runs in development mode (auto_reload=True) to avoid
+        performance overhead in production builds.
+
+        Args:
+            template_name: Template being rendered
+            context: Context dict to validate
+        """
+        try:
+            from bengal.protocols import EngineCapability
+
+            # Only validate in dev mode and with engines that support it
+            if not hasattr(self.template_engine, "has_capability"):
+                return
+            if not self.template_engine.has_capability(EngineCapability.CONTEXT_VALIDATION):
+                return
+
+            # Check if we're in dev mode (auto_reload is a proxy for development)
+            config = self.site.config
+            dev_config = config.get("development", {})
+            if not dev_config.get("auto_reload", False):
+                return
+
+            missing = self.template_engine.validate_context(template_name, context)
+            if missing:
+                logger.warning(
+                    "template_context_missing_variables",
+                    template=template_name,
+                    missing=missing,
+                    hint="These variables are referenced in the template but not in context",
+                )
+        except Exception:
+            pass  # Validation is advisory, never fail the build
 
     def _add_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """

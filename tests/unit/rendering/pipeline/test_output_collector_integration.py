@@ -1,12 +1,11 @@
 """Tests for RenderingPipeline output_collector integration.
 
-Regression: The pipeline extracted the output collector from BuildContext
-using ``not self._output_collector`` which tested *truthiness*.
-BuildOutputCollector.__bool__ returns False when empty (always the case
-at pipeline init), so every pipeline thought the collector was missing.
+Verifies that the pipeline correctly extracts the output collector from
+BuildContext and falls back to NULL_COLLECTOR (no-op sentinel) when one
+is not provided. This eliminates None-guards in all downstream consumers.
 
-The fix changed the check to ``self._output_collector is None``.
-These tests verify the collector is correctly extracted and used.
+Key invariant: ``pipeline._output_collector`` is *never* None.
+It is either the real BuildOutputCollector or the NULL_COLLECTOR sentinel.
 """
 
 from __future__ import annotations
