@@ -124,9 +124,11 @@ wheels = [
 
 [[package]]
 name = "bengal"
-version = "0.1.9"
+version = "0.1.10"
 source = { editable = "." }
 dependencies = [
+    { name = "bengal-chirp" },
+    { name = "bengal-pounce" },
     { name = "click" },
     { name = "httpx" },
     { name = "jinja2" },
@@ -214,6 +216,8 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
+    { name = "bengal-chirp", specifier = ">=0.1.0" },
+    { name = "bengal-pounce", specifier = ">=0.1.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
@@ -270,6 +274,32 @@ dev = [
     { name = "types-pygments", specifier = ">=2.18.0" },
     { name = "types-python-dateutil", specifier = ">=2.9.0" },
     { name = "types-pyyaml", specifier = ">=6.0.12" },
+]
+
+[[package]]
+name = "bengal-chirp"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "bengal-pounce" },
+    { name = "kida-templates" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/f5/d980384d8845050fafe14f0c091d77d70c48c2df017aed2ca8252c080f7b/bengal_chirp-0.1.0.tar.gz", hash = "sha256:c7a7a5d810c54d1fc0062b5787ab73cf8f90fd310db37b933579e22246427d26", size = 160292, upload-time = "2026-02-09T15:11:23.566Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b4/42/766dc92b65b6bca0c8c5d815d0336d273aca7c9ae8832f74ef813cb54739/bengal_chirp-0.1.0-py3-none-any.whl", hash = "sha256:7e2488b6d28532693680aa61d766266958376d3edd64e929fc46388de6583ca1", size = 122955, upload-time = "2026-02-09T15:11:21.682Z" },
+]
+
+[[package]]
+name = "bengal-pounce"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/ea/61cbae9b285f99f50ece96500dc05e285bb8a10db40c0628b106db06d291/bengal_pounce-0.1.0.tar.gz", hash = "sha256:8ede19f6f493e15623ee4661b4ef394cafaf1d19b05605b701cc66df33191380", size = 62371, upload-time = "2026-02-09T15:10:46.863Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/98/58ab07900615c8d9d25a0fea54c958fe395bc325022d270444d0ef7d55bf/bengal_pounce-0.1.0-py3-none-any.whl", hash = "sha256:3112797fab6091a3140483b722f665affe5ba528b4097d927563fb06018b7871", size = 77345, upload-time = "2026-02-09T15:10:44.897Z" },
 ]
 
 [[package]]

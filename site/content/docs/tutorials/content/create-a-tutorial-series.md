@@ -197,11 +197,12 @@ series:
 ---
 ```
 
+:::{/step}
+
 :::{tip}
 **Naming Convention**
 Prefix files with numbers (`01-`, `02-`) to keep them sorted in your file manager. Use `weight` for actual ordering.
 :::
-:::{/step}
 
 :::{step} Create the Series Navigation Component
 :description: Build a reusable prev/next navigation for series pages.

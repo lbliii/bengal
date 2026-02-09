@@ -381,6 +381,12 @@ class BuildTrigger:
                 incremental=use_incremental,
             )
 
+            # Open the build gate BEFORE notifying browser so that when
+            # the client receives the SSE reload event and requests the
+            # page, BuildGateMiddleware serves actual content instead of
+            # the "rebuilding" interstitial.
+            self._set_build_in_progress(False)
+
             # Handle reload decision
             self._handle_reload(changed_files, result.changed_outputs)
 

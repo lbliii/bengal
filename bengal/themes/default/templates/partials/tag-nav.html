@@ -28,7 +28,7 @@ Variables:
 <nav class="docs-nav" aria-label="Tags">
   <div class="docs-nav-tree">
     {# Link to all tags page #}
-    {% let is_all_tags = current_tag | length == 0 %}
+    {% let is_all_tags = (current_tag ?? '') | length == 0 %}
     <a href="{{ '/tags/' | absolute_url }}" class="docs-nav-link{{ ' active' if is_all_tags else '' }}"
       {{ 'aria-current="page"' | safe if is_all_tags else '' }}>
       All Tags

@@ -311,6 +311,35 @@ class TestBuildOutputCollector:
         assert len(events) == 0
 
 
+class TestOutputCollectorTruthiness:
+    """Tests for truthiness vs identity semantics.
+
+    Regression: RenderingPipeline used ``not collector`` to check if the
+    output collector was provided.  But BuildOutputCollector.__bool__ returns
+    False when empty (no outputs recorded yet).  At pipeline creation time
+    the collector is always empty, so the check always evaluated as "missing".
+
+    The fix changed the check to ``collector is None``.  These tests guard
+    against the regression recurring.
+    """
+
+    def test_empty_collector_is_not_none(self) -> None:
+        """A freshly created collector must pass an ``is not None`` check."""
+        collector = BuildOutputCollector()
+        # __bool__ is False (empty)
+        assert not collector
+        # but identity check sees a real object
+        assert collector is not None
+
+    def test_collector_truthiness_after_record(self) -> None:
+        """After recording an output, bool(collector) should be True."""
+        collector = BuildOutputCollector()
+        assert not collector  # empty
+
+        collector.record(Path("index.html"), OutputType.HTML, phase="render")
+        assert collector  # now truthy
+
+
 class TestOutputCollectorProtocol:
     """Tests for OutputCollector protocol conformance."""
 

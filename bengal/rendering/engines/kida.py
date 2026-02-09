@@ -119,6 +119,12 @@ class KidaTemplateEngine:
         fragment_cache_size = kida_config.get("fragment_cache_size", 2000)
         fragment_ttl = kida_config.get("fragment_ttl", 3600.0)  # 1 hour for SSG
 
+        # Build static context for partial evaluation (RFC: kida-partial-eval)
+        # Site-level values that are constant across all page renders.
+        # Kida's partial evaluator bakes these into compiled bytecode,
+        # eliminating dict lookups for {{ site.title }}, {{ config.x }}, etc.
+        static_context = self._build_static_context()
+
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
@@ -131,11 +137,49 @@ class KidaTemplateEngine:
             # Fragment caching for {% cache "key" %}...{% end %} blocks
             fragment_cache_size=fragment_cache_size,
             fragment_ttl=fragment_ttl,
+            # Partial evaluation: bake site-level constants into compiled templates
+            static_context=static_context,
         )
 
         # Register Bengal-specific globals and filters
         # Uses register_all() which works because Kida has same interface as Jinja2
         self._register_bengal_template_functions()
+
+    def _build_static_context(self) -> dict[str, Any] | None:
+        """Build static context for Kida partial evaluation.
+
+        Returns site-level values that are constant across all page renders.
+        Kida evaluates expressions depending only on these values at compile
+        time, replacing them with constants in the bytecode.
+
+        Only includes values that are truly immutable during a build:
+        - site.title, site.baseurl, site.language, etc.
+        - config (frozen after load)
+        - theme configuration
+        - bengal metadata
+
+        Does NOT include page-level values (page, content, toc, etc.)
+        which vary per render.
+
+        Returns:
+            Static context dict, or None if building fails
+        """
+        try:
+            from bengal.rendering.context import get_engine_globals
+
+            globals_dict = get_engine_globals(self.site)
+
+            # Extract only the truly static values
+            # (site, config, theme wrappers are constant for the build)
+            static: dict[str, Any] = {}
+            for key in ("site", "config", "theme", "bengal", "versioning_enabled", "versions"):
+                if key in globals_dict:
+                    static[key] = globals_dict[key]
+
+            return static if static else None
+        except Exception:
+            # Static context is optional — if it fails, templates still work
+            return None
 
     def _build_template_dirs(self) -> list[Path]:
         """Build ordered list of template search directories.

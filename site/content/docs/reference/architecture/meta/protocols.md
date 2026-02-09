@@ -328,6 +328,6 @@ from bengal.protocols import SectionLike, TemplateEngine, HighlightService
 
 ## Related Documentation
 
-- [Extension Points](extension-points/) — Using protocols for customization
+- [Extension Points](extension-points) — Using protocols for customization
 - [Custom Template Engine](/docs/theming/templating/custom-engine/) — Implementing TemplateEngine
-- [Object Model](../core/object-model/) — PageLike and SectionLike implementations
+- [Object Model](../core/object-model) — PageLike and SectionLike implementations

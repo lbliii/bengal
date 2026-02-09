@@ -128,7 +128,7 @@ search:
     min_query_length: 2
 ```
 
-See [Search Documentation](/docs/reference/search/) for full configuration options.
+See [Output Formats & Search](/docs/building/output-formats/) for full configuration options.
 
 ### 4. Add Navigation
 
