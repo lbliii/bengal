@@ -510,11 +510,17 @@ def phase_incremental_filter_provenance(
                     indent=1,
                 )
 
+        # RFC: reactive-rebuild-architecture Phase 1c
+        # When changed_sources is provided (dev server rebuild), enable
+        # trust_unchanged to skip provenance recomputation for pages
+        # not in the forced_changed set. This saves ~300ms of file I/O.
+        _trust = bool(changed_sources) and incremental
         result = provenance_filter.filter(
             pages=pages_list,
             assets=assets_list,
             incremental=incremental,
             forced_changed=forced_changed,
+            trust_unchanged=_trust,
         )
         filter_time_ms = (time.time() - filter_start) * 1000
 

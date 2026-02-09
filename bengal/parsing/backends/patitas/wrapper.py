@@ -272,6 +272,29 @@ class PatitasParser(BaseMarkdownParser):
             # 2. Parse & Substitute in ONE pass (the "window thing")
             ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
 
+            # RFC: reactive-rebuild-architecture Phase 2a + 2b
+            # Cache the raw Patitas AST for incremental diffing in the fragment
+            # fast path. We parse a separate "clean" AST (without variable
+            # substitution) so diff_content_ast() compares structural content.
+            #
+            # Phase 2b: If a cached AST exists, try incremental parsing for
+            # the raw AST. This is O(change) instead of O(document).
+            # This only affects the fragment cache — the main `ast` above is
+            # always fully parsed with variable substitution.
+            source_path = metadata.get("_source_path")
+            if source_path is not None:
+                try:
+                    import hashlib
+                    from pathlib import Path
+
+                    from bengal.server.fragment_update import ContentASTCache
+
+                    body_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+                    raw_ast = self._try_incremental_parse(content, Path(source_path))
+                    ContentASTCache.put(Path(source_path), body_hash, content, raw_ast)
+                except Exception:
+                    pass  # Best-effort — don't impact build
+
             # 3. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
             # Heading IDs are injected during render, TOC collected in same pass
             html, toc, _toc_items = self._md.render_ast_with_toc(
@@ -306,6 +329,72 @@ class PatitasParser(BaseMarkdownParser):
                 f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>',
                 "",
             )
+
+    def _try_incremental_parse(self, content: str, source_path: Any) -> Any:
+        """Try incremental parsing against cached AST, fall back to full parse.
+
+        Uses Patitas ``parse_incremental()`` when a cached AST exists and the
+        edit region can be determined from old/new source text. This is O(change)
+        instead of O(document) for common single-edit scenarios.
+
+        RFC: reactive-rebuild-architecture Phase 2b
+
+        Args:
+            content: New preprocessed markdown content.
+            source_path: Source file path for cache lookup.
+
+        Returns:
+            Patitas Document AST (either incrementally or fully parsed).
+        """
+        from bengal.server.fragment_update import ContentASTCache
+
+        cached = ContentASTCache.get(source_path)
+        if cached is None:
+            # No cached AST — full parse
+            return self._md.parse_to_ast(content)
+
+        old_body, old_ast = cached
+        if old_body == content:
+            # Content unchanged — reuse cached AST
+            return old_ast
+
+        try:
+            from patitas.incremental import parse_incremental
+
+            # Find the first differing character (edit_start)
+            min_len = min(len(old_body), len(content))
+            edit_start = 0
+            for i in range(min_len):
+                if old_body[i] != content[i]:
+                    edit_start = i
+                    break
+            else:
+                # Difference is at the end (one is longer)
+                edit_start = min_len
+
+            # Find the last differing character from the end (edit_end)
+            old_end = len(old_body) - 1
+            new_end = len(content) - 1
+            while old_end > edit_start and new_end > edit_start:
+                if old_body[old_end] != content[new_end]:
+                    break
+                old_end -= 1
+                new_end -= 1
+
+            edit_end = old_end + 1  # exclusive end in old source
+            new_length = new_end - edit_start + 1  # length of replacement in new source
+
+            return parse_incremental(
+                content,
+                old_ast,
+                edit_start,
+                edit_end,
+                new_length,
+                source_file=str(source_path),
+            )
+        except Exception:
+            # Incremental parsing failed — fall back to full parse
+            return self._md.parse_to_ast(content)
 
     def _apply_post_processing(self, html: str, metadata: dict[str, Any]) -> str:
         """Apply common post-processing to HTML output."""

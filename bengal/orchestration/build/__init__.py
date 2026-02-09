@@ -202,6 +202,9 @@ class BuildOrchestrator:
                 except Exception as e:
                     logger.debug("phase_callback_error", phase=phase_name, error=str(e))
 
+        # --- Measure build startup overhead (gap before header appears) ---
+        _build_entry_time = time.time()
+
         # Import profile utilities
         from bengal.output import init_cli_output
         from bengal.utils.observability.profile import BuildProfile
@@ -266,11 +269,13 @@ class BuildOrchestrator:
         self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
+        _startup_ms = (time.time() - _build_entry_time) * 1000
         logger.info(
             "build_start",
             force_sequential=force_sequential,
             incremental=incremental,
             root_path=str(self.site.root_path),
+            startup_overhead_ms=f"{_startup_ms:.0f}",
         )
 
         # Attach a diagnostics collector for core-model events (core must not log).
@@ -284,10 +289,15 @@ class BuildOrchestrator:
             except Exception:
                 pass
 
-        # Show build header with version
+        # Show build header with version and startup overhead
         from bengal import __version__
 
-        cli.header(f"Building your site... (Bengal v{__version__})")
+        # RFC: reactive-rebuild-architecture Phase 3c
+        # Include startup_overhead_ms in header so users see the "blind gap" cost
+        _header = f"Building your site... (Bengal v{__version__})"
+        if _startup_ms > 10:  # Only show if meaningful (>10ms)
+            _header += f" [startup: {_startup_ms:.0f}ms]"
+        cli.header(_header)
         mode_label = "incremental" if incremental else "full"
         _auto_reason = locals().get("auto_reason")
         profile_label = profile.value if profile else "writer"
@@ -392,6 +402,7 @@ class BuildOrchestrator:
             incremental,
             build_context=early_ctx,
             build_cache=cache,
+            changed_sources=changed_sources,
         )
 
         # Phase 3: Cache Discovery Metadata
@@ -504,6 +515,7 @@ class BuildOrchestrator:
                 cli,
                 pages_to_build,
                 parallel=not force_sequential,
+                changed_sources=changed_sources,
             )
         parsing_duration_ms = (time.time() - parsing_start) * 1000
         if hasattr(self.stats, "parsing_time_ms"):
@@ -617,6 +629,22 @@ class BuildOrchestrator:
             progress_manager.add_phase("rendering", "Rendering", total=total_pages)
             progress_manager.start_phase("rendering")
 
+        # RFC: reactive-rebuild-architecture Phase 3b
+        # Wrap rendering with Kida profiled_render() in dev mode.
+        # This collects per-block timing, macro counts, include counts.
+        _render_metrics = None
+        _render_profiler_ctx = None
+        _use_render_profiling = getattr(self.site, "dev_mode", False)
+
+        if _use_render_profiling:
+            try:
+                from kida.render_accumulator import profiled_render
+
+                _render_profiler_ctx = profiled_render()
+                _render_metrics = _render_profiler_ctx.__enter__()
+            except ImportError:
+                _render_profiler_ctx = None
+
         # Phase 14: Render Pages (with cached content from discovery)
         # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
         try:
@@ -643,6 +671,32 @@ class BuildOrchestrator:
                 rendering_elapsed_ms = (time.time() - rendering_start) * 1000
                 progress_manager.complete_phase("rendering", elapsed_ms=rendering_elapsed_ms)
                 progress_manager.stop()
+
+            # Close render profiler context
+            if _render_profiler_ctx is not None:
+                _render_profiler_ctx.__exit__(None, None, None)
+
+        # Report Kida render profiling if available
+        if _render_metrics is not None:
+            summary = _render_metrics.summary()
+            self.logger.info(
+                "kida_render_profiling",
+                total_ms=summary.get("total_ms"),
+                block_count=summary.get("block_count"),
+                macro_calls=summary.get("macro_calls"),
+                include_count=summary.get("include_count"),
+                filter_calls=summary.get("filter_calls"),
+            )
+
+        # Report Kida cache statistics in dev mode
+        if _use_render_profiling:
+            try:
+                engine = getattr(self.site, "template_engine", None)
+                if engine is not None and hasattr(engine, "cache_info"):
+                    cache_stats = engine.cache_info()
+                    self.logger.info("kida_cache_info", **cache_stats)
+            except Exception:
+                pass  # Best-effort
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
         rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)

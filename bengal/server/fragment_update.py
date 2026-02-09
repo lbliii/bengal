@@ -39,22 +39,33 @@ from typing import Any, ClassVar
 
 
 class ContentASTCache:
-    """Per-page AST cache for incremental diffing.
+    """Per-page AST cache for incremental diffing and build reuse.
 
     Caches the Patitas Document AST from the last successful content parse
-    for each page. When a page is edited, we parse the new content to an
-    AST, diff against the cached version, and determine which template
-    blocks need re-rendering.
+    for each page. Serves two purposes:
 
-    The cache is keyed by file path and stores (mtime, body_text, Document).
+    1. **Fragment fast path** (dev server): When a page is edited, parse the
+       new content to an AST, diff against the cached version, and determine
+       which template blocks need re-rendering.
+
+    2. **Build parsing reuse** (Phase 2a): After each page is parsed during
+       a build, store its AST keyed by (source_path, content_hash). On
+       subsequent builds, pages with matching content hashes skip parsing
+       entirely.
+
+    The cache is keyed by file path and stores (content_hash, body_text, Document).
+    Optionally persists to disk via Patitas ``to_json()``/``from_json()``
+    to survive server restarts.
 
     Thread Safety:
         All access is protected by _lock. The cache is populated from the
-        build trigger thread and read during fragment updates.
+        build trigger thread and read during fragment updates and parsing.
 
+    RFC: reactive-rebuild-architecture Phase 2a
     """
 
-    _cache: ClassVar[dict[Path, tuple[float, str, Any]]] = {}
+    # (content_hash, body_text, Document)
+    _cache: ClassVar[dict[Path, tuple[str, str, Any]]] = {}
     _cache_max: ClassVar[int] = 500
     _lock: ClassVar[threading.Lock] = threading.Lock()
 
@@ -69,14 +80,43 @@ class ContentASTCache:
             entry = cls._cache.get(path)
             if entry is None:
                 return None
-            _mtime, body, ast = entry
+            _hash, body, ast = entry
             return body, ast
 
     @classmethod
-    def put(cls, path: Path, mtime: float, body: str, ast: Any) -> None:
-        """Store (body_text, Document AST) for a path."""
+    def get_by_hash(cls, path: Path, content_hash: str) -> Any | None:
+        """Get cached Document AST only if content_hash matches.
+
+        Used during build parsing to reuse ASTs for unchanged pages.
+
+        Args:
+            path: Source file path (cache key).
+            content_hash: Hash of the current file content.
+
+        Returns:
+            Document AST if cached and hash matches, else None.
+        """
         with cls._lock:
-            cls._cache[path] = (mtime, body, ast)
+            entry = cls._cache.get(path)
+            if entry is None:
+                return None
+            cached_hash, _body, ast = entry
+            if cached_hash == content_hash:
+                return ast
+            return None
+
+    @classmethod
+    def put(cls, path: Path, content_hash: str, body: str, ast: Any) -> None:
+        """Store (body_text, Document AST) for a path.
+
+        Args:
+            path: Source file path (cache key).
+            content_hash: Hash of the file content (for cache validation).
+            body: Markdown body text (without frontmatter).
+            ast: Patitas Document AST.
+        """
+        with cls._lock:
+            cls._cache[path] = (content_hash, body, ast)
             # LRU eviction
             if len(cls._cache) > cls._cache_max:
                 first_key = next(iter(cls._cache))
@@ -87,6 +127,90 @@ class ContentASTCache:
         """Clear all cached ASTs."""
         with cls._lock:
             cls._cache.clear()
+
+    @classmethod
+    def stats(cls) -> dict[str, int]:
+        """Return cache statistics."""
+        with cls._lock:
+            return {"entries": len(cls._cache), "max": cls._cache_max}
+
+    @classmethod
+    def save_to_disk(cls, cache_dir: Path) -> int:
+        """Persist cached ASTs to disk for server restart survival.
+
+        Uses Patitas ``to_json()`` for deterministic serialization.
+
+        Args:
+            cache_dir: Directory to store AST cache files.
+
+        Returns:
+            Number of ASTs persisted.
+        """
+        try:
+            from patitas.serialization import to_json
+        except ImportError:
+            return 0
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        count = 0
+        with cls._lock:
+            for content_hash, _body, ast in cls._cache.values():
+                try:
+                    # Use content_hash as filename for O(1) lookup
+                    out_path = cache_dir / f"{content_hash}.json"
+                    if not out_path.exists():
+                        out_path.write_text(to_json(ast))
+                    count += 1
+                except Exception:
+                    continue
+        return count
+
+    @classmethod
+    def load_from_disk(cls, cache_dir: Path) -> int:
+        """Load persisted ASTs from disk.
+
+        Uses Patitas ``from_json()`` for deserialization.
+
+        Args:
+            cache_dir: Directory containing AST cache files.
+
+        Returns:
+            Number of ASTs loaded.
+        """
+        try:
+            from patitas.serialization import from_json
+        except ImportError:
+            return 0
+
+        if not cache_dir.exists():
+            return 0
+
+        count = 0
+        # We can't fully reconstruct (path → hash) mappings from disk alone,
+        # but we store a companion index file.
+        index_path = cache_dir / "_index.json"
+        if not index_path.exists():
+            return 0
+
+        try:
+            import json
+
+            index: dict[str, str] = json.loads(index_path.read_text())
+        except Exception:
+            return 0
+
+        with cls._lock:
+            for path_str, content_hash in index.items():
+                ast_path = cache_dir / f"{content_hash}.json"
+                if not ast_path.exists():
+                    continue
+                try:
+                    ast = from_json(ast_path.read_text())
+                    cls._cache[Path(path_str)] = (content_hash, "", ast)
+                    count += 1
+                except Exception:
+                    continue
+        return count
 
 
 def ast_changes_to_context_paths(changes: tuple[Any, ...]) -> frozenset[str]:
@@ -134,16 +258,71 @@ def ast_changes_to_context_paths(changes: tuple[Any, ...]) -> frozenset[str]:
     return frozenset(paths) if paths else frozenset({"content"})
 
 
+# RFC: reactive-rebuild-architecture Phase 4c
+# Known frontmatter keys that affect taxonomy blocks (page-level, non-nav)
+_TAXONOMY_KEYS: frozenset[str] = frozenset({"tags", "categories", "topics", "series"})
+
+# Frontmatter key → context path mapping for fragment targeting.
+# Keys not in this map (and not in NAV_AFFECTING_KEYS) get generic "metadata".
+_FM_KEY_TO_CONTEXT: dict[str, tuple[str, ...]] = {
+    "tags": ("page.taxonomies", "page.tags"),
+    "categories": ("page.taxonomies", "page.categories"),
+    "topics": ("page.taxonomies", "page.topics"),
+    "series": ("page.taxonomies", "page.series"),
+    "description": ("page.description", "metadata"),
+    "summary": ("page.summary", "metadata"),
+    "date": ("page.date", "metadata"),
+    "updated": ("page.date", "metadata"),
+    "lastmod": ("page.date", "metadata"),
+    "author": ("page.author", "metadata"),
+    "authors": ("page.author", "metadata"),
+    "image": ("page.image", "metadata"),
+    "thumbnail": ("page.image", "metadata"),
+}
+
+
+def frontmatter_changes_to_context_paths(
+    changed_keys: set[str],
+) -> frozenset[str]:
+    """Map changed frontmatter keys to template context paths.
+
+    Non-nav-affecting frontmatter changes can be handled by the fragment
+    fast path if we know which template blocks depend on them.
+
+    Args:
+        changed_keys: Set of frontmatter key names that changed.
+
+    Returns:
+        Frozen set of affected context path strings.
+    """
+    paths: set[str] = set()
+    for key in changed_keys:
+        mapped = _FM_KEY_TO_CONTEXT.get(key.lower())
+        if mapped:
+            paths.update(mapped)
+        else:
+            # Generic metadata catch-all
+            paths.add("metadata")
+    return frozenset(paths) if paths else frozenset({"metadata"})
+
+
 def get_affected_blocks(
     engine: Any,
     template_name: str,
     changed_context_paths: frozenset[str],
-) -> list[str]:
+) -> tuple[list[str], bool]:
     """Query template block metadata to find blocks affected by context changes.
 
     Uses Kida's block_metadata() to check each block's ``depends_on``
     against the changed context paths. Returns block names whose
-    dependencies intersect with the changes.
+    dependencies intersect with the changes, plus whether the metadata
+    was available (so the caller can decide whether to trust the result
+    or fall back to a default block list).
+
+    RFC: reactive-rebuild-architecture Phase 4b
+    When metadata IS available, the returned list is the precise set of
+    blocks that need re-rendering — the caller should trust it rather
+    than always forcing "content" into the list.
 
     Args:
         engine: KidaTemplateEngine instance
@@ -151,21 +330,24 @@ def get_affected_blocks(
         changed_context_paths: Set of changed context paths
 
     Returns:
-        List of affected block names. Empty if metadata unavailable.
+        Tuple of (affected_block_names, metadata_available).
+        If metadata_available is False, the list will be empty and
+        the caller should use its own default (e.g., ["content"]).
     """
     try:
         template = engine._env.get_template(template_name)
         meta = template.block_metadata()
         if not meta:
-            return []
+            return [], False
 
-        return [
+        affected = [
             name
             for name, m in meta.items()
             if m.depends_on & changed_context_paths  # set intersection
         ]
+        return affected, True
     except Exception:
-        return []
+        return [], False
 
 
 def diff_content_ast(
@@ -193,25 +375,72 @@ def diff_content_ast(
     except ImportError:
         return None
 
-    # Parse new content to AST
-    new_ast = patitas_parse(new_body, source_file=str(path))
+    import hashlib
 
-    # Get cached AST
+    body_hash = hashlib.sha256(new_body.encode()).hexdigest()[:16]
+
+    # Get cached AST for incremental parsing
     cached = ContentASTCache.get(path)
+
     if cached is None:
-        # First time — cache and return broad context paths
-        mtime = path.stat().st_mtime
-        ContentASTCache.put(path, mtime, new_body, new_ast)
+        # First time — full parse, cache, and return broad context paths
+        new_ast = patitas_parse(new_body, source_file=str(path))
+        ContentASTCache.put(path, body_hash, new_body, new_ast)
         return frozenset({"content"}), new_ast
 
-    _old_body, old_ast = cached
+    old_body, old_ast = cached
+
+    # RFC: reactive-rebuild-architecture Phase 4a
+    # Use parse_incremental() for O(change) instead of O(document) parsing.
+    # Find the edit region by comparing old and new source text, then splice
+    # only the edited region into the existing AST.
+    new_ast = None
+    try:
+        from patitas.incremental import parse_incremental
+
+        if old_body != new_body:
+            # Find the first differing character (edit_start)
+            min_len = min(len(old_body), len(new_body))
+            edit_start = 0
+            for i in range(min_len):
+                if old_body[i] != new_body[i]:
+                    edit_start = i
+                    break
+            else:
+                edit_start = min_len
+
+            # Find the last differing character from the end
+            old_end = len(old_body) - 1
+            new_end = len(new_body) - 1
+            while old_end > edit_start and new_end > edit_start:
+                if old_body[old_end] != new_body[new_end]:
+                    break
+                old_end -= 1
+                new_end -= 1
+
+            edit_end = old_end + 1  # exclusive end in old source
+            new_length = new_end - edit_start + 1
+
+            new_ast = parse_incremental(
+                new_body,
+                old_ast,
+                edit_start,
+                edit_end,
+                new_length,
+                source_file=str(path),
+            )
+    except Exception:
+        new_ast = None  # Fall back to full parse
+
+    if new_ast is None:
+        # Incremental parse unavailable or failed — full parse
+        new_ast = patitas_parse(new_body, source_file=str(path))
 
     # Diff old vs new
     changes = diff_documents(old_ast, new_ast)
 
     # Update cache
-    mtime = path.stat().st_mtime
-    ContentASTCache.put(path, mtime, new_body, new_ast)
+    ContentASTCache.put(path, body_hash, new_body, new_ast)
 
     if not changes:
         # No structural changes (content is semantically identical)

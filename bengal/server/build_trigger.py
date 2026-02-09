@@ -184,26 +184,54 @@ class BuildTrigger:
             self._building = True
 
         try:
+            trigger_start = time.time()
+
             # Fast path: attempt content-only fragment update without full rebuild.
             # If successful, skips the expensive build + browser reload cycle and
             # pushes rendered HTML fragments directly via SSE (~175ms vs ~536ms+).
             if self._try_fragment_update(changed_paths, event_types):
+                elapsed_ms = (time.time() - trigger_start) * 1000
                 logger.info(
                     "fragment_fast_path_complete",
                     changed_count=len(changed_paths),
+                    elapsed_ms=f"{elapsed_ms:.0f}",
                 )
                 return
+
+            fragment_elapsed = (time.time() - trigger_start) * 1000
 
             # Template fast path: when only template blocks changed, recompile
             # them in-place and push site-scoped fragments without a full rebuild.
             # Falls back to _execute_build for page-scoped block changes.
             # (RFC: content-only-hot-reload Phase 4)
             if self._try_template_fragment_update(changed_paths, event_types):
+                elapsed_ms = (time.time() - trigger_start) * 1000
                 logger.info(
                     "template_fragment_fast_path_complete",
                     changed_count=len(changed_paths),
+                    elapsed_ms=f"{elapsed_ms:.0f}",
                 )
                 return
+
+            template_elapsed = (time.time() - trigger_start) * 1000
+
+            # RFC: reactive-rebuild-architecture Phase 3c
+            # Surface fast-path timing to CLI so users see what happens
+            # between "File changed" and "Building your site..."
+            from bengal.output import init_cli_output
+
+            _cli = init_cli_output()
+            _cli.info(
+                f"  Fast-path check: {template_elapsed:.0f}ms "
+                f"(fragment {fragment_elapsed:.0f}ms, "
+                f"template {template_elapsed - fragment_elapsed:.0f}ms)"
+            )
+            logger.info(
+                "fast_path_timing",
+                fragment_check_ms=f"{fragment_elapsed:.0f}",
+                template_check_ms=f"{template_elapsed - fragment_elapsed:.0f}",
+                total_before_build_ms=f"{template_elapsed:.0f}",
+            )
 
             self._execute_build(changed_paths, event_types)
         finally:
@@ -274,22 +302,29 @@ class BuildTrigger:
             timestamp = get_timestamp()
             cli = CLIOutput()
             cli.file_change_notice(file_name=file_name, timestamp=timestamp)
-            show_building_indicator("Rebuilding")
+
+            # --- Pre-build timing: measure the silent gap before site.build() ---
+            prebuild_start = time.time()
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
             if controller._use_content_hashes:
+                t0 = time.time()
                 controller.capture_content_hash_baseline(self.site.output_dir)
+                baseline_ms = (time.time() - t0) * 1000
+                logger.info("prebuild_timing_baseline", baseline_hash_ms=f"{baseline_ms:.0f}")
 
             # Run pre-build hooks
             config = getattr(self.site, "config", {}) or {}
             # run_pre_build_hooks expects a dict, use .raw for serialization
             config_dict = config.raw if hasattr(config, "raw") else config
+            t0 = time.time()
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
+            hooks_ms = (time.time() - t0) * 1000
 
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
@@ -303,7 +338,9 @@ class BuildTrigger:
             # Site.prepare_for_rebuild() is the single source of truth for what
             # must be reset between warm builds — including cascade snapshot,
             # content registry, page caches, and URL registry.
+            t0 = time.time()
             self.site.prepare_for_rebuild()
+            prepare_ms = (time.time() - t0) * 1000
 
             build_opts = BuildOptions(
                 force_sequential=False,  # Auto-detect based on page count
@@ -317,6 +354,21 @@ class BuildTrigger:
             # Apply version scope if set
             if self.version_scope:
                 self.site.config["_version_scope"] = self.version_scope
+
+            total_prebuild_ms = (time.time() - prebuild_start) * 1000
+
+            # RFC: reactive-rebuild-architecture Phase 3c
+            # Surface pre-build timing to CLI for visibility into the "blind gap"
+            cli.info(
+                f"  Pre-build: {total_prebuild_ms:.0f}ms "
+                f"(hooks {hooks_ms:.0f}ms, prepare {prepare_ms:.0f}ms)"
+            )
+            logger.info(
+                "prebuild_timing_total",
+                hooks_ms=f"{hooks_ms:.0f}",
+                prepare_ms=f"{prepare_ms:.0f}",
+                total_prebuild_ms=f"{total_prebuild_ms:.0f}",
+            )
 
             # Execute warm build directly on the existing site
             build_start = time.time()
@@ -765,28 +817,130 @@ class BuildTrigger:
             logger.debug("content_hash_check_failed", file=str(path), error=str(e))
             return False
 
+    def _classify_markdown_change(
+        self, path: Path
+    ) -> tuple[bool, bool, set[str], bool] | None:
+        """Classify a markdown file change for fragment path decisions.
+
+        Returns richer detail than ``_is_content_only_change()``:
+        which frontmatter keys changed, whether they're nav-affecting, etc.
+
+        RFC: reactive-rebuild-architecture Phase 4c
+
+        Args:
+            path: Path to the markdown file
+
+        Returns:
+            Tuple of (content_changed, fm_changed, changed_fm_keys, nav_affecting),
+            or None if the file can't be classified (no frontmatter, not .md, etc.)
+        """
+        import hashlib
+
+        import yaml
+
+        if path.suffix.lower() not in (".md", ".markdown"):
+            return None
+
+        try:
+            # Read file and split frontmatter/content
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+
+            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
+            if not match:
+                return None
+
+            fm_text = match.group(1)
+            content_text = match.group(2)
+
+            fm_hash = hashlib.sha256(fm_text.encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(content_text.encode()).hexdigest()[:16]
+            mtime = path.stat().st_mtime
+
+            cached = self._content_hash_cache.get(path)
+
+            if cached is None:
+                # First time — cache and return "unknown" (can't compare)
+                if len(self._content_hash_cache) >= self._content_hash_cache_max:
+                    first_key = next(iter(self._content_hash_cache))
+                    del self._content_hash_cache[first_key]
+                self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+                return None
+
+            _cached_mtime, cached_fm_hash, cached_content_hash = cached
+            self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+
+            content_changed = cached_content_hash != content_hash
+            fm_changed = cached_fm_hash != fm_hash
+
+            if not content_changed and not fm_changed:
+                return content_changed, fm_changed, set(), False
+
+            # Determine which frontmatter keys changed
+            changed_fm_keys: set[str] = set()
+            nav_affecting = False
+
+            if fm_changed:
+                try:
+                    # Parse old and new frontmatter to compare keys
+                    new_fm = yaml.safe_load(fm_text) or {}
+                    if not isinstance(new_fm, dict):
+                        return None  # Can't classify non-dict frontmatter
+
+                    # Re-read cached text from the cache entry we just replaced
+                    # We need the old frontmatter text — read from source hash cache
+                    # Since we already hashed it, we compare key-by-key using the
+                    # page's metadata (warm model) and the new frontmatter
+                    page_map = self.site.page_by_source_path
+                    page = page_map.get(path)
+                    if page is not None:
+                        old_fm = dict(getattr(page, "metadata", {}))
+                        for key in set(new_fm) | set(old_fm):
+                            if new_fm.get(key) != old_fm.get(key):
+                                changed_fm_keys.add(key)
+                    else:
+                        # No warm page — can't diff keys, treat as full fm change
+                        changed_fm_keys = set(new_fm.keys())
+
+                    from bengal.orchestration.constants import NAV_AFFECTING_KEYS
+
+                    nav_affecting = any(
+                        k.lower() in NAV_AFFECTING_KEYS for k in changed_fm_keys
+                    )
+                except yaml.YAMLError:
+                    return None
+
+            return content_changed, fm_changed, changed_fm_keys, nav_affecting
+
+        except (FileNotFoundError, PermissionError, OSError):
+            return None
+
     def _try_fragment_update(
         self,
         changed_paths: set[Path],
         event_types: set[str],
     ) -> bool:
-        """Attempt content-only fragment update without full rebuild.
+        """Attempt fragment update without full rebuild.
 
-        When only the markdown body changes (frontmatter unchanged), this method
-        re-parses the content, renders the "content" template block, and pushes it
-        to connected browsers via SSE fragment replacement. The browser swaps the
-        ``<main data-bengal-fragment="content">`` element's innerHTML in-place —
-        no page reload, no scroll jump, no flash.
+        Handles content body changes, heading changes, non-nav frontmatter
+        changes (tags, description, date, etc.), and taxonomy changes by
+        re-parsing content, determining affected blocks via Kida block_metadata,
+        and pushing only those blocks via SSE fragment replacement.
+
+        RFC: reactive-rebuild-architecture Phase 4c — expanded from Phase 1's
+        content-only path to handle heading, frontmatter, and taxonomy changes.
 
         Conditions for the fast path:
         1. Only ``modified`` events (no creates/deletes/moves)
         2. All changed files are ``.md`` content files
-        3. Only the markdown body changed (frontmatter hash unchanged)
-        4. Each file maps to an existing Page in the warm Site model
-        5. The template engine can render the ``content`` block
+        3. Change is classifiable (not unknown/first-time)
+        4. No nav-affecting frontmatter changes (title, slug, weight, etc.)
+        5. Each file maps to an existing Page in the warm Site model
+        6. No cross-page cascade dependencies
+        7. The template engine can render the affected blocks
 
         If any condition fails, returns ``False`` and the caller falls through
-        to the existing full rebuild path. Zero risk of breaking current behavior.
+        to the existing full rebuild path.
 
         Args:
             changed_paths: Set of changed file paths
@@ -795,8 +949,6 @@ class BuildTrigger:
         Returns:
             True if all changes were handled via fragment push, False to fall back
             to full rebuild.
-
-        RFC: content-only-hot-reload (Phase 1)
         """
         # Gate 1: Only modified events (structural changes need full rebuild)
         if event_types != {"modified"}:
@@ -806,37 +958,82 @@ class BuildTrigger:
         if not all(p.suffix.lower() in (".md", ".markdown") for p in changed_paths):
             return False
 
-        # Gate 3: Check each file is a content-only change (frontmatter unchanged)
-        content_only_paths = [p for p in changed_paths if self._is_content_only_change(p)]
+        # Gate 3 (Phase 4c): Classify each change — content, frontmatter, or both.
+        # Nav-affecting frontmatter changes require full rebuild (title, slug, weight, etc.)
+        # Non-nav frontmatter changes (tags, description, date) stay on the fast path.
+        from bengal.server.fragment_update import frontmatter_changes_to_context_paths
 
-        if not content_only_paths:
-            return False
+        classified_paths: list[
+            tuple[Path, bool, bool, set[str], frozenset[str]]
+        ] = []  # (path, content_changed, fm_changed, changed_fm_keys, extra_ctx_paths)
 
-        # If some paths are content-only and others aren't, fall back to full rebuild
-        # (mixed changes are too complex for the fast path)
-        if len(content_only_paths) != len(changed_paths):
+        for path in changed_paths:
+            result = self._classify_markdown_change(path)
+            if result is None:
+                # Can't classify (first time, no frontmatter, etc.) — try old method
+                if self._is_content_only_change(path):
+                    classified_paths.append(
+                        (path, True, False, set(), frozenset())
+                    )
+                else:
+                    return False
+                continue
+
+            content_changed, fm_changed, changed_fm_keys, nav_affecting = result
+
+            if nav_affecting:
+                # Nav-affecting frontmatter changes need full rebuild
+                logger.debug(
+                    "fragment_fast_path_nav_fm_changed",
+                    file=str(path),
+                    nav_keys=sorted(changed_fm_keys),
+                )
+                return False
+
+            if not content_changed and not fm_changed:
+                # No actual change — skip
+                continue
+
+            # Map non-nav frontmatter changes to context paths
+            extra_ctx = frozenset[str]()
+            if fm_changed and changed_fm_keys:
+                extra_ctx = frontmatter_changes_to_context_paths(changed_fm_keys)
+                logger.debug(
+                    "fragment_fast_path_fm_change",
+                    file=str(path),
+                    changed_keys=sorted(changed_fm_keys),
+                    context_paths=sorted(extra_ctx),
+                )
+
+            classified_paths.append(
+                (path, content_changed, fm_changed, changed_fm_keys, extra_ctx)
+            )
+
+        if not classified_paths:
             return False
 
         # Gate 4: All paths must have existing pages in warm Site model
         page_map = self.site.page_by_source_path
-        pages_to_update: list[tuple[Path, Any]] = []
-        for path in content_only_paths:
+        pages_to_update: list[
+            tuple[Path, Any, bool, frozenset[str]]
+        ] = []  # (path, page, content_changed, extra_ctx_paths)
+        for path, content_changed, _fm_changed, _fm_keys, extra_ctx in classified_paths:
             page = page_map.get(path)
             if page is None:
                 logger.debug("fragment_fast_path_no_page", file=str(path))
                 return False
-            pages_to_update.append((path, page))
+            pages_to_update.append((path, page, content_changed, extra_ctx))
 
         # Gate 5: Check for cross-page cascades via BuildCache reverse dependencies.
         # If other pages depend on the changed files (e.g., shared content, includes),
         # the fragment fast path can't safely skip them — fall back to full rebuild.
-        # (RFC: content-only-hot-reload Phase 3)
         from bengal.server.fragment_update import check_cascade_safety
 
-        if not check_cascade_safety(self.site, changed_paths):
+        all_paths = {p for p, _, _, _ in pages_to_update}
+        if not check_cascade_safety(self.site, all_paths):
             logger.debug(
                 "fragment_fast_path_cascade_detected",
-                changed_count=len(changed_paths),
+                changed_count=len(all_paths),
             )
             return False
 
@@ -862,7 +1059,7 @@ class BuildTrigger:
                 get_affected_blocks,
             )
 
-            for path, page in pages_to_update:
+            for path, page, content_changed, extra_ctx in pages_to_update:
                 # Read new source
                 source = path.read_text(encoding="utf-8")
 
@@ -875,25 +1072,47 @@ class BuildTrigger:
 
                 body = match.group(2)
 
-                # Phase 2: AST-level diff to determine which context paths changed.
-                # If only paragraphs changed, we render only "content". If headings
-                # changed, we also render TOC-dependent blocks.
-                ast_result = diff_content_ast(path, body)
-                if ast_result is not None:
-                    changed_ctx_paths, _new_ast = ast_result
-                    if not changed_ctx_paths:
-                        # No structural change — content is semantically identical
-                        logger.debug("fragment_fast_path_no_change", file=str(path))
-                        continue
+                # Phase 4c: Collect all context paths from both AST diff and
+                # frontmatter classification.
+                all_changed_ctx: set[str] = set(extra_ctx)
+                ast_result = None
 
-                    # If heading/title changed, fall back to full rebuild
-                    # (TOC and navigation may need updating across the whole page)
-                    if "page.title" in changed_ctx_paths:
-                        logger.debug(
-                            "fragment_fast_path_title_changed",
-                            file=str(path),
-                        )
-                        return False
+                if content_changed:
+                    # AST-level diff to determine which content context paths changed
+                    ast_result = diff_content_ast(path, body)
+                    if ast_result is not None:
+                        ast_ctx_paths, _new_ast = ast_result
+                        all_changed_ctx.update(ast_ctx_paths)
+
+                        if not ast_ctx_paths and not extra_ctx:
+                            # No structural change and no fm change — skip
+                            logger.debug(
+                                "fragment_fast_path_no_change", file=str(path)
+                            )
+                            continue
+
+                # Phase 4c: Heading/title changes are now handled via block
+                # targeting instead of bailing out. "page.title" in changed
+                # context paths will cause get_affected_blocks to target the
+                # title/header/toc blocks that depend on it.
+
+                # Phase 4c: For frontmatter changes, update the page's metadata
+                # in the warm model so context building reflects the new values.
+                if extra_ctx:
+                    import yaml
+
+                    fm_match = re.match(
+                        r"^---\s*\n(.*?)\n---\s*(?:\n|$)",
+                        source,
+                        flags=re.DOTALL,
+                    )
+                    if fm_match:
+                        try:
+                            new_fm = yaml.safe_load(fm_match.group(1)) or {}
+                            if isinstance(new_fm, dict):
+                                page.metadata.update(new_fm)
+                        except yaml.YAMLError:
+                            pass  # Best effort — context building will use stale fm
 
                 # Parse markdown body to HTML using the site's parser
                 metadata = dict(page.metadata)
@@ -916,20 +1135,26 @@ class BuildTrigger:
                 # Resolve template name for this page
                 template_name = determine_template(page)
 
-                # Phase 2: Determine which blocks are affected by the changes.
-                # Use block_metadata to find blocks whose depends_on intersects
-                # with the changed context paths.
-                blocks_to_render = ["content"]  # Always render content block
-                if ast_result is not None:
-                    changed_ctx_paths, _ = ast_result
-                    affected = get_affected_blocks(
-                        engine, template_name, changed_ctx_paths
+                # Phase 4b + 4c: Determine which blocks are affected by all
+                # context path changes (content AST + frontmatter combined).
+                # Use block_metadata().depends_on for precise block targeting.
+                frozen_ctx = frozenset(all_changed_ctx) if all_changed_ctx else frozenset({"content"})
+                blocks_to_render = ["content"]  # Default
+                affected, meta_available = get_affected_blocks(
+                    engine, template_name, frozen_ctx
+                )
+                if meta_available and affected:
+                    # Trust block_metadata — render only what's affected
+                    blocks_to_render = list(dict.fromkeys(affected))
+                elif meta_available and not affected:
+                    # No blocks depend on changed context paths — skip
+                    logger.debug(
+                        "fragment_fast_path_no_blocks_affected",
+                        file=str(path),
+                        changed_ctx_paths=sorted(frozen_ctx),
                     )
-                    if affected:
-                        # Merge: always include "content", add any other affected
-                        blocks_to_render = list(
-                            dict.fromkeys(["content", *affected])
-                        )
+                    continue
+                # else: meta not available, use default ["content"]
 
                 # Render and push each affected block
                 total_html_size = 0
@@ -956,6 +1181,8 @@ class BuildTrigger:
                     template=template_name,
                     blocks=blocks_to_render,
                     html_size=total_html_size,
+                    content_changed=content_changed,
+                    fm_ctx_paths=sorted(extra_ctx) if extra_ctx else [],
                 )
 
             return True

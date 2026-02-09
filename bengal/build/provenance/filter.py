@@ -130,6 +130,7 @@ class ProvenanceFilter:
         assets: list[Asset],
         incremental: bool = True,
         forced_changed: set[Path] | None = None,
+        trust_unchanged: bool = False,
     ) -> ProvenanceFilterResult:
         """
         Filter pages and assets to only those that need rebuilding.
@@ -139,6 +140,15 @@ class ProvenanceFilter:
             assets: All assets in site
             incremental: Whether incremental mode is enabled
             forced_changed: Paths to treat as changed (from file watcher)
+            trust_unchanged: When True and forced_changed is set, pages NOT in
+                           forced_changed that have a stored provenance hash are
+                           immediately treated as cache hits without recomputing
+                           provenance. This avoids file I/O for unchanged pages
+                           during dev server rebuilds. Safe because:
+                           - Source file didn't change (not in forced_changed)
+                           - Cascade sources are expanded by _expand_forced_changed
+                           - Config changes trigger full rebuilds
+                           (RFC: reactive-rebuild-architecture Phase 1c)
 
         Returns:
             ProvenanceFilterResult with pages_to_build, assets_to_process, etc.
@@ -183,6 +193,10 @@ class ProvenanceFilter:
         affected_sections: set[str] = set()
         changed_page_paths: set[Path] = set()
 
+        # RFC: reactive-rebuild-architecture Phase 1c
+        # Track how many pages we skip via trust_unchanged for observability
+        trust_skipped = 0
+
         for page in pages:
             page_path = self._get_page_key(page)
 
@@ -201,6 +215,19 @@ class ProvenanceFilter:
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
+                continue
+
+            # RFC: reactive-rebuild-architecture Phase 1c
+            # When trust_unchanged is enabled and forced_changed is provided,
+            # pages NOT in forced_changed with a stored hash can be trusted
+            # immediately — no file hashing needed. This is safe during dev
+            # server rebuilds because:
+            # - The file watcher tells us exactly what changed
+            # - Cascade sources are expanded before we get here
+            # - Config changes trigger full (non-incremental) rebuilds
+            if trust_unchanged and forced:
+                pages_skipped.append(page)
+                trust_skipped += 1
                 continue
 
             # Cache entry exists - check if it's still valid
@@ -254,6 +281,13 @@ class ProvenanceFilter:
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
+
+        if trust_skipped > 0:
+            logger.info(
+                "provenance_trust_unchanged",
+                trust_skipped=trust_skipped,
+                recomputed=len(pages) - trust_skipped - len([p for p in pages if p.source_path in forced]),
+            )
 
         # For assets, check file modification
         assets_to_process: list[Asset] = [

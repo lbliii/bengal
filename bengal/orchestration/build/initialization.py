@@ -15,6 +15,8 @@ from bengal.orchestration.build.results import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.cache.build_cache import BuildCache
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
@@ -315,6 +317,7 @@ def phase_discovery(
     incremental: bool,
     build_context: BuildContext | None = None,
     build_cache: BuildCache | None = None,
+    changed_sources: set[Path] | None = None,
 ) -> None:
     """
     Phase 2: Content Discovery.
@@ -334,6 +337,10 @@ def phase_discovery(
                       When provided, enables build-integrated validation optimization.
         build_cache: Optional BuildCache for registering autodoc dependencies.
                     When provided, enables selective autodoc rebuilds.
+        changed_sources: Optional set of changed file paths from the file watcher.
+                        When set and all paths are content files (.md/.markdown),
+                        expensive phases like autodoc scanning are skipped.
+                        (RFC: reactive-rebuild-architecture Phase 1a)
 
     Side effects:
         - Populates orchestrator.site.pages with discovered pages
@@ -389,6 +396,7 @@ def phase_discovery(
             cache=page_discovery_cache,
             build_context=build_context,
             build_cache=build_cache,
+            changed_sources=changed_sources,
         )
         content_ms = (time.time() - content_start) * 1000
 

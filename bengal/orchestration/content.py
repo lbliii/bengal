@@ -86,6 +86,7 @@ class ContentOrchestrator:
         cache: PageDiscoveryCache | None = None,
         build_context: BuildContext | None = None,
         build_cache: BuildCache | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Discover all content and assets.
@@ -100,12 +101,14 @@ class ContentOrchestrator:
                           validators, eliminating redundant disk I/O during health checks.
             build_cache: Optional BuildCache for registering autodoc dependencies.
                         When provided, enables selective autodoc rebuilds.
+            changed_sources: Optional set of changed file paths for smart phase skipping.
         """
         self.discover_content(
             incremental=incremental,
             cache=cache,
             build_context=build_context,
             build_cache=build_cache,
+            changed_sources=changed_sources,
         )
         self.discover_assets()
 
@@ -116,6 +119,7 @@ class ContentOrchestrator:
         cache: PageDiscoveryCache | None = None,
         build_context: BuildContext | None = None,
         build_cache: BuildCache | None = None,
+        changed_sources: set[Path] | None = None,
     ) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -133,6 +137,9 @@ class ContentOrchestrator:
                           validators, eliminating redundant disk I/O during health checks.
             build_cache: Optional BuildCache for registering autodoc dependencies.
                         When provided, enables selective autodoc rebuilds.
+            changed_sources: Optional set of changed file paths. When all paths are
+                            content files (.md/.markdown), autodoc is skipped since
+                            no Python sources changed. (RFC: reactive-rebuild Phase 1a)
         """
         if content_dir is None:
             content_dir = self.site.root_path / "content"
@@ -221,10 +228,31 @@ class ContentOrchestrator:
         # deferred to the rendering phase (after menus are built) to ensure full
         # template context (including navigation) is available.
         # Pass build_cache (not page discovery cache) for autodoc dependency registration
-        t0 = time.perf_counter()
-        autodoc_pages, autodoc_sections = self._discover_autodoc_content(
-            cache=cache, build_cache=build_cache
+        #
+        # RFC: reactive-rebuild-architecture Phase 1a
+        # Skip autodoc when changed_sources are all content files (.md/.markdown).
+        # Autodoc scans Python/CLI/OpenAPI sources — none of which changed when
+        # only markdown was edited. Previously-generated autodoc pages are already
+        # in the build cache and will be picked up by provenance filtering.
+        _CONTENT_SUFFIXES = {".md", ".markdown"}
+        skip_autodoc = (
+            changed_sources is not None
+            and len(changed_sources) > 0
+            and all(p.suffix.lower() in _CONTENT_SUFFIXES for p in changed_sources)
         )
+
+        t0 = time.perf_counter()
+        if skip_autodoc:
+            autodoc_pages: list[Page] = []
+            autodoc_sections: list[SectionLike] = []
+            logger.info(
+                "autodoc_skipped_content_only_change",
+                changed_count=len(changed_sources),
+            )
+        else:
+            autodoc_pages, autodoc_sections = self._discover_autodoc_content(
+                cache=cache, build_cache=build_cache
+            )
         breakdown_ms["autodoc"] = (time.perf_counter() - t0) * 1000
         if autodoc_pages or autodoc_sections:
             self.site.pages.extend(autodoc_pages)
