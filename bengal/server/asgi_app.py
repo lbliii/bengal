@@ -298,6 +298,12 @@ def create_dev_app(
     """
     app = App()
 
+    # -- Lifespan: register the event loop so sync→async bridging works --
+
+    @app.on_worker_startup
+    async def _register_loop() -> None:
+        state.set_loop(asyncio.get_running_loop())
+
     # -- SSE live reload endpoint --
 
     @app.route(LIVE_RELOAD_PATH)
