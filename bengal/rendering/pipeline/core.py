@@ -208,11 +208,14 @@ class RenderingPipeline:
         # Extract output collector from build context, falling back to no-op sentinel.
         # NULL_COLLECTOR satisfies the OutputCollector protocol so downstream code
         # never needs None-guards.
+        # NOTE: Use `is None` not truthiness -- BuildOutputCollector.__bool__ returns
+        # False when empty (no outputs yet), which is always the case at init time.
         from bengal.core.output.collector import NULL_COLLECTOR
 
-        self._output_collector = (
+        _extracted = (
             getattr(build_context, "output_collector", None) if build_context else None
-        ) or NULL_COLLECTOR
+        )
+        self._output_collector = _extracted if _extracted is not None else NULL_COLLECTOR
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
@@ -296,6 +299,20 @@ class RenderingPipeline:
         from bengal.rendering.template_functions.get_page import clear_get_page_cache
 
         clear_get_page_cache()
+
+        # Re-extract output_collector from build_context so that thread-local
+        # pipeline reuse across builds always picks up the current collector.
+        # Without this, cached pipelines retain a stale (or None) collector and
+        # the dev server falls back to full-page reloads instead of CSS-only.
+        collector = (
+            getattr(self.build_context, "output_collector", None)
+            if self.build_context
+            else None
+        )
+        if collector is not self._output_collector:
+            self._output_collector = collector
+            self._cache_checker.output_collector = collector
+            self._autodoc_renderer.output_collector = collector
 
         self._process_page_impl(page)
 

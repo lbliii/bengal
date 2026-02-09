@@ -228,6 +228,59 @@ class TestDirectiveContracts:
         assert any(v.violation_type == "forbidden_child" for v in violations)
 
 
+class TestStepsContract:
+    """Tests for STEPS_CONTRACT / STEP_CONTRACT validation.
+
+    Regression: A ``:::{tip}`` nested inside ``:::{step}`` inside
+    ``:::{steps}`` violated the steps contract (only ``step`` children
+    allowed), but there were no unit tests for this contract.
+    """
+
+    def test_steps_contract_allows_only_step_children(self) -> None:
+        """STEPS_CONTRACT.allows_children must be exactly ('step',)."""
+        from bengal.parsing.backends.patitas.directives.contracts import STEPS_CONTRACT
+
+        assert STEPS_CONTRACT.allows_children == ("step",)
+
+    def test_steps_contract_rejects_tip_child(self) -> None:
+        """A 'tip' directive inside 'steps' must produce a violation."""
+        from patitas.location import SourceLocation
+
+        from bengal.parsing.backends.patitas.directives.contracts import STEPS_CONTRACT
+
+        loc = SourceLocation(1, 1)
+        tip = Directive(loc, "tip", None, frozenset(), ())
+
+        violations = STEPS_CONTRACT.validate_children("steps", [tip])
+        assert len(violations) > 0
+        assert any(v.violation_type == "forbidden_child" for v in violations)
+
+    def test_step_inside_steps_no_violation(self) -> None:
+        """A 'step' directive inside 'steps' must NOT produce a violation."""
+        from patitas.location import SourceLocation
+
+        from bengal.parsing.backends.patitas.directives.contracts import STEPS_CONTRACT
+
+        loc = SourceLocation(1, 1)
+        step = Directive(loc, "step", None, frozenset(), ())
+
+        violations = STEPS_CONTRACT.validate_children("steps", [step])
+        assert len(violations) == 0
+
+    def test_step_contract_requires_steps_parent(self) -> None:
+        """STEP_CONTRACT requires 'steps' as parent."""
+        from bengal.parsing.backends.patitas.directives.contracts import STEP_CONTRACT
+
+        # Valid parent
+        result = STEP_CONTRACT.validate_parent("step", "steps")
+        assert result is None
+
+        # Invalid parent
+        result = STEP_CONTRACT.validate_parent("step", "note")
+        assert result is not None
+        assert result.violation_type == "wrong_parent"
+
+
 class TestDirectiveRegistry:
     """Tests for DirectiveRegistry."""
 

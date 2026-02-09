@@ -870,10 +870,11 @@ class BuildTrigger:
         """
         Check if incremental template update is possible.
 
-        Incremental update is possible when:
+        Uses Kida's block recompilation to patch only changed blocks
+        in-place, avoiding full template recompilation. Incremental
+        update is possible when:
         1. Block-level detection is available (Kida engine)
-        2. Only site-scoped blocks changed (nav, footer, etc.)
-        3. All affected pages can be re-rendered individually
+        2. Block recompilation can patch the live template
 
         Args:
             template_path: Path to the changed template
@@ -891,7 +892,20 @@ class BuildTrigger:
             if not engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION):
                 return False
 
-            # Check if we have block cache support
+            # Try block recompilation (patches template in-place)
+            from bengal.rendering.block_cache import BlockCache
+
+            block_cache = BlockCache()
+            recompiled = block_cache.recompile_changed_blocks(engine, template_path.stem + ".html")
+            if recompiled:
+                logger.debug(
+                    "template_block_recompiled",
+                    template=str(template_path),
+                    blocks=sorted(recompiled),
+                )
+                return True
+
+            # Fallback to block detection check
             from bengal.orchestration.incremental.template_detector import (
                 TemplateChangeDetector,
             )

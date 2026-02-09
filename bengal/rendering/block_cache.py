@@ -536,7 +536,9 @@ class BlockCache:
     ) -> builtins.set[str]:
         """Detect which blocks changed since last build.
 
-        Compares current block hashes to cached hashes.
+        Uses Kida's AST-based block comparison when available (frozen
+        dataclass ``==`` gives O(1) equality on unchanged subtrees),
+        falling back to SHA-256 hashing when AST comparison isn't possible.
 
         Args:
             engine: KidaTemplateEngine instance
@@ -548,6 +550,12 @@ class BlockCache:
         Thread-Safety:
             Uses lock for hash dict updates. Safe for concurrent calls.
         """
+        # Try Kida's AST-based detection first (more accurate, no hashing)
+        delta = self._detect_via_ast(engine, template_name)
+        if delta is not None:
+            return set(delta.all_affected)
+
+        # Fallback to hash-based detection
         current_hashes = self.compute_block_hashes(engine, template_name)
         changed = set()
 
@@ -561,6 +569,134 @@ class BlockCache:
                     self._block_hashes[key] = current_hash
 
         return changed
+
+    def _detect_via_ast(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+    ) -> Any:
+        """Detect block changes via Kida's AST comparison.
+
+        Uses ``kida.compiler.block_recompile.detect_block_changes()``
+        which compares frozen-dataclass AST nodes for O(1) equality
+        on unchanged subtrees.
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to analyze
+
+        Returns:
+            BlockDelta if AST comparison succeeded, None otherwise
+        """
+        try:
+            from kida.compiler.block_recompile import detect_block_changes
+
+            template = engine.env.get_template(template_name)
+            new_ast = template._optimized_ast
+            if new_ast is None:
+                return None
+
+            # Get previous AST from our cache
+            cache_key = f"_ast:{template_name}"
+            old_ast = self._block_hashes.get(cache_key)
+            if old_ast is None:
+                # First build — store AST and report all blocks as changed
+                with self._hash_lock:
+                    self._block_hashes[cache_key] = new_ast
+                return None
+
+            # Compare ASTs
+            delta = detect_block_changes(old_ast, new_ast)
+
+            # Update stored AST
+            with self._hash_lock:
+                self._block_hashes[cache_key] = new_ast
+
+            return delta
+        except Exception:
+            return None
+
+    def recompile_changed_blocks(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+    ) -> frozenset[str]:
+        """Detect changed blocks and recompile them in-place.
+
+        Combines detection and recompilation: detects which blocks changed
+        via AST comparison, then patches the live Template object with
+        recompiled block functions. Only the changed blocks are recompiled
+        (O(changed_blocks) instead of O(template)).
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to recompile
+
+        Returns:
+            frozenset of recompiled block names (empty if no changes
+            or recompilation not possible)
+
+        Thread-Safety:
+            ``recompile_blocks()`` mutates the template namespace — callers
+            must ensure the template is not being rendered concurrently.
+            Bengal's build_trigger serializes rebuilds, so this is safe.
+        """
+        try:
+            from kida.compiler.block_recompile import (
+                detect_block_changes,
+                recompile_blocks,
+            )
+
+            template = engine.env.get_template(template_name)
+            new_ast = template._optimized_ast
+            if new_ast is None:
+                return frozenset()
+
+            # Get previous AST
+            cache_key = f"_ast:{template_name}"
+            old_ast = self._block_hashes.get(cache_key)
+            if old_ast is None:
+                # First build — store and skip recompilation
+                with self._hash_lock:
+                    self._block_hashes[cache_key] = new_ast
+                return frozenset()
+
+            # Detect changes
+            delta = detect_block_changes(old_ast, new_ast)
+            if not delta.has_changes:
+                return frozenset()
+
+            # Recompile and patch in-place
+            recompiled = recompile_blocks(engine.env, template, new_ast, delta)
+
+            # Update stored AST
+            with self._hash_lock:
+                self._block_hashes[cache_key] = new_ast
+
+            # Invalidate cached blocks that were recompiled
+            for block_name in recompiled:
+                key = f"{template_name}:{block_name}"
+                with self._site_blocks_lock:
+                    self._site_blocks.pop(key, None)
+
+            if recompiled:
+                logger.info(
+                    "block_recompile_patched",
+                    template=template_name,
+                    recompiled=sorted(recompiled),
+                    changed=sorted(delta.changed),
+                    added=sorted(delta.added),
+                    removed=sorted(delta.removed),
+                )
+
+            return recompiled
+        except Exception as e:
+            logger.debug(
+                "block_recompile_failed",
+                template=template_name,
+                error=str(e),
+            )
+            return frozenset()
 
     def update_block_hashes(
         self,
