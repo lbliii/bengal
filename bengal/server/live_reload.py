@@ -198,6 +198,28 @@ LIVE_RELOAD_SCRIPT = r"""
                 sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
                 sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
                 location.reload();
+            } else if (action === 'replace-fragment') {
+                // Fragment-level update: replace a specific block without full reload
+                const fragment = payload.fragment;
+                const html = payload.html;
+                if (fragment && html) {
+                    console.log('🧩 Bengal: Updating fragment:', fragment);
+                    // Find target element by data-fragment attribute or id
+                    const target = document.querySelector(
+                        '[data-bengal-fragment="' + fragment + '"]'
+                    ) || document.getElementById('bengal-fragment-' + fragment);
+                    if (target) {
+                        target.innerHTML = html;
+                        // Dispatch event for enhancement scripts to re-bind
+                        target.dispatchEvent(new CustomEvent('bengal:fragment-updated', {
+                            bubbles: true, detail: { fragment: fragment }
+                        }));
+                    } else {
+                        // Fragment target not found — fall back to full reload
+                        console.log('🧩 Bengal: Fragment target not found, full reload');
+                        location.reload();
+                    }
+                }
             }
         };
 
@@ -831,6 +853,68 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
         changed_paths=changed_paths[:5],
         generation=_reload_generation,
         sent_count=_reload_sent_count,
+    )
+
+
+def send_fragment_payload(
+    fragment_name: str,
+    html: str,
+    source_path: str = "",
+) -> None:
+    """Send a fragment replacement event to all connected SSE clients.
+
+    Instead of a full page reload, this sends the rendered HTML for a
+    specific named fragment. The client-side JS replaces the fragment's
+    innerHTML, preserving scroll position, DOM state, and avoiding a
+    white flash.
+
+    Args:
+        fragment_name: Fragment identifier (matches data-bengal-fragment
+                      attribute or id="bengal-fragment-{name}" in the DOM)
+        html: Rendered HTML content for the fragment
+        source_path: Source file that triggered the change (for logging)
+
+    Example:
+        >>> send_fragment_payload("content", "<div>Updated content...</div>")
+    """
+    global _reload_generation
+    if _reload_events_disabled():
+        return
+
+    try:
+        payload = json.dumps(
+            {
+                "action": "replace-fragment",
+                "fragment": fragment_name,
+                "html": html,
+                "source": source_path,
+                "generation": _reload_generation + 1,
+            }
+        )
+    except Exception as e:
+        logger.warning(
+            "fragment_payload_serialization_failed",
+            fragment=fragment_name,
+            error=str(e),
+        )
+        return
+
+    global _reload_sent_count
+    with _reload_condition:
+        _reload_generation += 1
+        _reload_sent_count += 1
+        _reload_condition.notify_all()
+
+    # Push to ASGI SSE clients
+    if _broadcast_hook is not None:
+        _broadcast_hook(payload)
+
+    logger.info(
+        "fragment_update_sent",
+        fragment=fragment_name,
+        html_size=len(html),
+        source=source_path,
+        generation=_reload_generation,
     )
 
 

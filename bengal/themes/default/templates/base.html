@@ -482,11 +482,11 @@ HELPER: Render a menu item (desktop/mobile)
             'partials/theme-controls.html' %}{% end %}</div>
     </dialog>
 
-    <main id="main-content" role="main">{% block content %}{% end %}</main>
+    <main id="main-content" role="main" data-bengal-fragment="content">{% block content %}{% end %}</main>
 
     {# Footer #}
     {% block site_footer %}
-    <footer role="contentinfo">
+    <footer role="contentinfo" data-bengal-fragment="footer">
         <div class="container">
             <div class="footer-bottom">
                 <div class="footer-left">
