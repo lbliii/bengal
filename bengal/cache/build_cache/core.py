@@ -133,12 +133,6 @@ class BuildCache(
     # Caches parsed module data to skip AST parsing for unchanged sources
     autodoc_content_cache: dict[str, Any] = field(default_factory=dict)
 
-    # AST cache: source_path → {content_hash, ast_json}
-    # Stores serialized Patitas Document ASTs per page. On subsequent builds,
-    # unchanged files load their AST from cache and skip parsing entirely.
-    # Key: relative source path, Value: {content_hash: str, ast_json: str}
-    ast_cache: dict[str, dict[str, str]] = field(default_factory=dict)
-
     # Discovered assets from previous build (source_path relative to root -> output_path relative to assets)
     # Enables skipping asset discovery walk during hot reload if no assets changed.
     discovered_assets: dict[str, str] = field(default_factory=dict)
