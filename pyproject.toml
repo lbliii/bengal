@@ -207,6 +207,14 @@ dev = [
     "pytest-randomly>=3.15.0",
 ]
 
+[tool.uv.sources]
+kida-templates = { path = "../kida", editable = true }
+
+bengal-pounce = { path = "../pounce", editable = true }
+bengal-chirp = { path = "../chirp", editable = true }
+patitas = { path = "../patitas", editable = true }
+rosettes = { path = "../rosettes", editable = true }
+
 # =============================================================================
 # Task Runner (poethepoet) - use: poe <task>
 # =============================================================================

@@ -816,6 +816,19 @@ class BuildTrigger:
                 return False
             pages_to_update.append((path, page))
 
+        # Gate 5: Check for cross-page cascades via BuildCache reverse dependencies.
+        # If other pages depend on the changed files (e.g., shared content, includes),
+        # the fragment fast path can't safely skip them — fall back to full rebuild.
+        # (RFC: content-only-hot-reload Phase 3)
+        from bengal.server.fragment_update import check_cascade_safety
+
+        if not check_cascade_safety(self.site, changed_paths):
+            logger.debug(
+                "fragment_fast_path_cascade_detected",
+                changed_count=len(changed_paths),
+            )
+            return False
+
         # Attempt fragment rendering and push
         try:
             from markupsafe import Markup

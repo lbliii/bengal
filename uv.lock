@@ -216,18 +216,18 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-chirp", specifier = ">=0.1.0" },
-    { name = "bengal-pounce", specifier = ">=0.1.0" },
+    { name = "bengal-chirp", editable = "../chirp" },
+    { name = "bengal-pounce", editable = "../pounce" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jinja2", specifier = ">=3.1.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.1.2" },
+    { name = "kida-templates", editable = "../kida" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "packaging", specifier = ">=23.0" },
-    { name = "patitas", specifier = ">=0.1.1" },
+    { name = "patitas", editable = "../patitas" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pillow", marker = "extra == 'avif'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
@@ -238,7 +238,7 @@ requires-dist = [
     { name = "pyvips", marker = "extra == 'fast-images'", specifier = ">=2.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
-    { name = "rosettes", specifier = ">=0.1.0" },
+    { name = "rosettes", editable = "../rosettes" },
     { name = "smartcrop", marker = "extra == 'smartcrop'", specifier = ">=0.3" },
     { name = "textual", specifier = ">=0.96" },
     { name = "textual-serve", specifier = ">=0.1.0" },
@@ -279,27 +279,98 @@ dev = [
 [[package]]
 name = "bengal-chirp"
 version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../chirp" }
 dependencies = [
     { name = "anyio" },
     { name = "bengal-pounce" },
     { name = "kida-templates" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/f5/d980384d8845050fafe14f0c091d77d70c48c2df017aed2ca8252c080f7b/bengal_chirp-0.1.0.tar.gz", hash = "sha256:c7a7a5d810c54d1fc0062b5787ab73cf8f90fd310db37b933579e22246427d26", size = 160292, upload-time = "2026-02-09T15:11:23.566Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/42/766dc92b65b6bca0c8c5d815d0336d273aca7c9ae8832f74ef813cb54739/bengal_chirp-0.1.0-py3-none-any.whl", hash = "sha256:7e2488b6d28532693680aa61d766266958376d3edd64e929fc46388de6583ca1", size = 122955, upload-time = "2026-02-09T15:11:21.682Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "aiosqlite", marker = "extra == 'all'", specifier = ">=0.20.0" },
+    { name = "aiosqlite", marker = "extra == 'data'", specifier = ">=0.20.0" },
+    { name = "aiosqlite", marker = "extra == 'full'", specifier = ">=0.20.0" },
+    { name = "anyio", specifier = ">=4.0" },
+    { name = "argon2-cffi", marker = "extra == 'all'", specifier = ">=23.1.0" },
+    { name = "argon2-cffi", marker = "extra == 'auth'", specifier = ">=23.1.0" },
+    { name = "argon2-cffi", marker = "extra == 'full'", specifier = ">=23.1.0" },
+    { name = "asyncpg", marker = "extra == 'data-pg'", specifier = ">=0.30.0" },
+    { name = "bengal-pounce", editable = "../pounce" },
+    { name = "httpx", marker = "extra == 'ai'", specifier = ">=0.27.0" },
+    { name = "httpx", marker = "extra == 'all'", specifier = ">=0.27.0" },
+    { name = "httpx", marker = "extra == 'full'", specifier = ">=0.27.0" },
+    { name = "httpx", marker = "extra == 'testing'", specifier = ">=0.27.0" },
+    { name = "itsdangerous", marker = "extra == 'all'", specifier = ">=2.2.0" },
+    { name = "itsdangerous", marker = "extra == 'full'", specifier = ">=2.2.0" },
+    { name = "itsdangerous", marker = "extra == 'sessions'", specifier = ">=2.2.0" },
+    { name = "kida-templates", specifier = ">=0.1.2" },
+    { name = "python-multipart", marker = "extra == 'all'", specifier = ">=0.0.18" },
+    { name = "python-multipart", marker = "extra == 'forms'", specifier = ">=0.0.18" },
+    { name = "python-multipart", marker = "extra == 'full'", specifier = ">=0.0.18" },
+]
+provides-extras = ["forms", "sessions", "auth", "testing", "data", "data-pg", "ai", "all", "full"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "itsdangerous", specifier = ">=2.2.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.5.0" },
+    { name = "python-multipart", specifier = ">=0.0.18" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
+]
+docs = [
+    { name = "bengal", specifier = ">=0.1.10" },
+    { name = "lunr", specifier = ">=0.7.0" },
 ]
 
 [[package]]
 name = "bengal-pounce"
 version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../pounce" }
 dependencies = [
     { name = "h11" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/96/ea/61cbae9b285f99f50ece96500dc05e285bb8a10db40c0628b106db06d291/bengal_pounce-0.1.0.tar.gz", hash = "sha256:8ede19f6f493e15623ee4661b4ef394cafaf1d19b05605b701cc66df33191380", size = 62371, upload-time = "2026-02-09T15:10:46.863Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/98/58ab07900615c8d9d25a0fea54c958fe395bc325022d270444d0ef7d55bf/bengal_pounce-0.1.0-py3-none-any.whl", hash = "sha256:3112797fab6091a3140483b722f665affe5ba528b4097d927563fb06018b7871", size = 77345, upload-time = "2026-02-09T15:10:44.897Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "h11", specifier = ">=0.14.0" },
+    { name = "h2", marker = "extra == 'full'", specifier = ">=4.0" },
+    { name = "h2", marker = "extra == 'h2'", specifier = ">=4.0" },
+    { name = "httptools", marker = "extra == 'fast'", specifier = ">=0.6" },
+    { name = "truststore", marker = "extra == 'full'", specifier = ">=0.9" },
+    { name = "truststore", marker = "extra == 'tls'", specifier = ">=0.9" },
+    { name = "wsproto", marker = "extra == 'full'", specifier = ">=1.2" },
+    { name = "wsproto", marker = "extra == 'ws'", specifier = ">=1.2" },
+]
+provides-extras = ["h2", "ws", "tls", "fast", "full"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "h2", specifier = ">=4.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "pytest-benchmark", specifier = ">=5.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.5.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
+    { name = "wsproto", specifier = ">=1.2" },
+]
+docs = [
+    { name = "bengal", specifier = ">=0.1.10" },
+    { name = "lunr", specifier = ">=0.7.0" },
 ]
 
 [[package]]
@@ -546,12 +617,28 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/aa/59/38f1862fb0bbea99f28f6817c9bfe4dea09681461bc1ac57ab86b4d97673/kida_templates-0.1.2.tar.gz", hash = "sha256:4e9c2b3dba5196e5237b0dda3daa81f0b52a64202606f69f52af436294204fa9", size = 245434, upload-time = "2026-01-13T19:59:07.791Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/72/c96b8ba697ba5a8a963e0bcb3db3b000036800438edeb1bcbf4d886ade87/kida_templates-0.1.2-py3-none-any.whl", hash = "sha256:1fb5028befd0e8ed6d02652981fbd71ffeb4ac696fb06994192fd6fc4ddcb5b2", size = 176293, upload-time = "2026-01-13T19:59:06.335Z" },
+version = "0.2.0"
+source = { editable = "../kida" }
+
+[package.metadata]
+requires-dist = [{ name = "bengal", marker = "extra == 'docs'", specifier = ">=0.1.10" }]
+provides-extras = ["docs"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "jinja2", specifier = ">=3.1.6,<3.2" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "pytest-benchmark", specifier = ">=4.0.0" },
+    { name = "pytest-cov", specifier = ">=4.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.3.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
 ]
+docs = [{ name = "bengal", specifier = ">=0.1.10" }]
 
 [[package]]
 name = "linkify-it-py"
@@ -758,11 +845,28 @@ wheels = [
 [[package]]
 name = "patitas"
 version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ad/c5/79b5580e4fee50affdf78a854efb736f4a5de4873563511fd82825d99a4c/patitas-0.1.1.tar.gz", hash = "sha256:32705ecd5ab99e269dcb8c0ae32d09efd68852f5e8ea340c816e1e27e0d30b65", size = 152186, upload-time = "2026-01-13T20:14:53.817Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/09/033a643b15c43c873dcfd0f4813937f3c7932dea5db3fa5035992e03c830/patitas-0.1.1-py3-none-any.whl", hash = "sha256:a9f30d6b4dfbff6454ed5dd41da7cf13c87dd1caba7236fbe0c02924cd5c568b", size = 184473, upload-time = "2026-01-13T20:14:51.987Z" },
+source = { editable = "../patitas" }
+
+[package.metadata]
+requires-dist = [
+    { name = "rosettes", marker = "extra == 'all'", specifier = ">=0.1.0" },
+    { name = "rosettes", marker = "extra == 'syntax'", specifier = ">=0.1.0" },
 ]
+provides-extras = ["syntax", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-benchmark", specifier = ">=4.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.5.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
+]
+docs = [{ name = "bengal", specifier = ">=0.1.10" }]
 
 [[package]]
 name = "pillow"
@@ -1186,11 +1290,21 @@ wheels = [
 [[package]]
 name = "rosettes"
 version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/05/ed/c7cd18850e152328554769cff932acd559c19ccb77dc73f1484d82014ce5/rosettes-0.1.0.tar.gz", hash = "sha256:522ff64ccbaeb894598589cbad1913faab2241548ba88e3cbf508a4820ada6d4", size = 120889, upload-time = "2026-01-05T16:32:49.32Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/78/49062bb7e4c8bc9d5aedc0318882dd2cb45080bad643e1d2856c878b9f3d/rosettes-0.1.0-py3-none-any.whl", hash = "sha256:0ab50208b15f6aa50c50d7945e9bd157e170d0cf9fb4a219ff6bd05da41de699", size = 186474, upload-time = "2026-01-05T16:32:45.419Z" },
+source = { editable = "../rosettes" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
 ]
+docs = [{ name = "bengal", specifier = ">=0.1.10" }]
 
 [[package]]
 name = "ruff"

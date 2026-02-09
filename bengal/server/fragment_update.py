@@ -220,3 +220,77 @@ def diff_content_ast(
     # Map changes to context paths
     context_paths = ast_changes_to_context_paths(changes)
     return context_paths, new_ast
+
+
+def check_cascade_safety(
+    site: Any,
+    changed_paths: set[Any],
+) -> bool:
+    """Check if content changes might cascade to other pages.
+
+    Uses two data sources to detect cross-page dependencies:
+
+    1. **BuildCache.reverse_dependencies** (persisted) — maps each dependency
+       to the set of source files that declared it.  If a changed content
+       file appears as a dependency of *another* page, the fast path is
+       unsafe.
+
+    2. **BuildEffectTracer.outputs_needing_rebuild** (in-memory, from last
+       build) — computes the transitive closure of which outputs would need
+       regeneration.  If more outputs are affected than the changed files
+       themselves, there's a cascade.
+
+    For body-only changes (frontmatter unchanged), cascades are rare:
+    - Other pages depend on templates/partials, not on other page bodies
+    - Navigation/taxonomy depends on frontmatter (excluded by Gate 3)
+    - The main cascade scenario is shared content (_shared/ directory)
+
+    Args:
+        site: Site instance with _cache or build cache access
+        changed_paths: Set of changed file Paths
+
+    Returns:
+        True if it's safe to use the fast path (no cascades detected).
+        False if cascades are possible (should fall back to full rebuild).
+
+    RFC: content-only-hot-reload (Phase 3)
+    """
+    try:
+        # --- Check 1: BuildCache reverse_dependencies (persisted graph) ---
+        cache = getattr(site, "_cache", None)
+        if cache is not None:
+            reverse_deps = getattr(cache, "reverse_dependencies", {})
+            for path in changed_paths:
+                path_str = str(path)
+                dependents = reverse_deps.get(path_str, set())
+                if dependents:
+                    # Filter out self-references (a page depends on its own source)
+                    other_dependents = dependents - {path_str}
+                    if other_dependents:
+                        return False
+
+        # --- Check 2: EffectTracer transitive outputs (in-memory) ---
+        # BuildEffectTracer is a singleton that persists across builds.
+        # If it has recorded effects from the last build, use its transitive
+        # output computation for a more precise cascade check.
+        try:
+            from bengal.effects.render_integration import BuildEffectTracer
+
+            tracer_instance = BuildEffectTracer.get_instance()
+            if tracer_instance._enabled and tracer_instance._tracer.effects:
+                outputs = tracer_instance._tracer.outputs_needing_rebuild(changed_paths)
+                # If there are outputs beyond the directly changed files' own
+                # outputs, other pages are affected → cascade detected.
+                # A page's own source always maps to its own output, so
+                # we expect exactly len(changed_paths) outputs if no cascade.
+                if outputs and len(outputs) > len(changed_paths):
+                    return False
+        except Exception:
+            pass  # EffectTracer not available — rely on reverse_deps only
+
+        return True
+
+    except Exception:
+        # On any error, assume safe (conservative fallback is already
+        # handled by the full rebuild path)
+        return True

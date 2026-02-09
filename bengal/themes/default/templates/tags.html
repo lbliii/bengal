@@ -2,28 +2,32 @@
 
 {#
 ================================================================================
-All Tags Page Template (Kida-Native)
+All Tags Index Page (Kida-Native)
 ================================================================================
 
-Displays all tags in a cloud/grid layout.
+Displays all tags in a weighted cloud/grid with sidebar navigation.
+Auto-generated at /tags/.
 
 KIDA FEATURES USED:
 - {% let %} for template-scoped variables
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
 
-USAGE:
-Auto-generated at /tags/
+CONTEXT:
+- tags: List of tag objects with .name, .slug, .count, .pages
+- total_tags: Total number of tags
 ================================================================================
 #}
 
 {% block content %}
-{# Template-scoped variables #}
+{# =============================================================================
+   TEMPLATE VARIABLES
+   ============================================================================= #}
 {% let page_title = page?.title ?? 'All Tags' %}
 {% let all_tags = tags ?? [] %}
 {% let total_tags = total_tags ?? (all_tags | length) %}
 
-{# Two-column layout similar to docs #}
+{# Two-column docs layout with tag sidebar #}
 <div class="docs-layout">
   {# Left Sidebar: Tag Navigation #}
   <aside class="docs-sidebar" id="tag-sidebar" role="navigation" aria-label="Tag navigation">
@@ -32,23 +36,15 @@ Auto-generated at /tags/
   </aside>
 
   {# Main Content #}
-  <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
+  <div class="docs-main" data-bengal-fragment="content">
     {% include 'partials/action-bar.html' %}
 
     <article class="prose">
       <header class="page-header">
         <h1>{{ page_title }}</h1>
         <p class="page-description">
-          Browse all {{ total_tags }} tags
+          Browse all {{ total_tags }} tag{% if total_tags != 1 %}s{% end %}
         </p>
-        <div style="margin-top: 1rem;">
-          <a href="{{ '/graph/' | absolute_url }}" class="button button-outline"
-            style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>🗺️</span>
-            <span>Explore Knowledge Graph</span>
-          </a>
-        </div>
       </header>
 
       {% if all_tags | length > 0 %}
@@ -56,12 +52,12 @@ Auto-generated at /tags/
         {% for tag in all_tags %}
         {% let tag_name = tag?.name ?? '' %}
         {% let tag_count = tag?.count ?? 0 %}
-        <div class="tag-item">
-          <a href="{{ tag_url(tag_name) }}" class="tag-link">
-            <span class="tag-name">{{ tag_name }}</span>
-            <span class="tag-count">{{ tag_count }} post{% if tag_count != 1 %}s{% end %}</span>
-          </a>
-        </div>
+        {# Size class for weighted cloud: sm < 5, md 5-19, lg 20+ #}
+        {% let size_class = 'tag-sm' if tag_count < 5 else ('tag-lg' if tag_count >= 20 else 'tag-md') %}
+        <a href="{{ tag_url(tag_name) }}" class="tag-link {{ size_class }}">
+          <span class="tag-name">#{{ tag_name }}</span>
+          <span class="tag-count">{{ tag_count }}</span>
+        </a>
         {% end %}
       </div>
       {% else %}

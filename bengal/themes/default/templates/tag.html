@@ -2,18 +2,26 @@
 
 {#
 ================================================================================
-Single Tag Page Template (Kida-Native)
+Single Tag Page (Kida-Native)
 ================================================================================
 
-Displays all posts with a specific tag.
+Displays all posts with a specific tag, with pagination.
+Auto-generated for each tag in the site.
 
 KIDA FEATURES USED:
 - {% let %} for template-scoped variables
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
+- {% from ... import %} for shared components
+- {% unless %} for negated conditionals
 
-USAGE:
-Auto-generated for each tag in the site
+CONTEXT:
+- tag: Tag name (str)
+- tag_slug: Tag slug (str)
+- posts: Paginated list of post objects for current page
+- total_posts: Total count of posts with this tag
+- current_page, total_pages: Pagination state
+- base_url: Base URL for pagination links
 ================================================================================
 #}
 
@@ -21,7 +29,9 @@ Auto-generated for each tag in the site
 {% from 'partials/navigation-components.html' import pagination %}
 
 {% block content %}
-{# Template-scoped variables #}
+{# =============================================================================
+   TEMPLATE VARIABLES
+   ============================================================================= #}
 {% let current_tag = tag ?? '' %}
 {% let tag_posts = posts ?? [] %}
 {% let total_posts = total_posts ?? (tag_posts | length) %}
@@ -29,7 +39,7 @@ Auto-generated for each tag in the site
 {% let current_page = current_page ?? 1 %}
 {% let base_url = base_url ?? tag_url(current_tag) %}
 
-{# Two-column layout similar to docs #}
+{# Two-column docs layout with tag sidebar #}
 <div class="docs-layout">
   {# Left Sidebar: Tag Navigation #}
   <aside class="docs-sidebar" id="tag-sidebar" role="navigation" aria-label="Tag navigation">
@@ -37,8 +47,7 @@ Auto-generated for each tag in the site
   </aside>
 
   {# Main Content #}
-  <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
+  <div class="docs-main" data-bengal-fragment="content">
     {% include 'partials/action-bar.html' %}
 
     <article class="prose">
@@ -47,7 +56,6 @@ Auto-generated for each tag in the site
           <span class="tag-icon">#</span>
           {{ current_tag }}
         </h1>
-
         <p class="page-description">
           {{ total_posts }} post{% if total_posts != 1 %}s{% end %} tagged with "{{ current_tag }}"
         </p>
@@ -56,9 +64,7 @@ Auto-generated for each tag in the site
       {% if tag_posts | length > 0 %}
       <div class="archive-list">
         {% for post in tag_posts %}
-        {# Skip autodoc pages using efficient function check instead of string manipulation #}
-        {% let is_autodoc = is_autodoc_page(post) if is_autodoc_page is defined else false %}
-        {% unless is_autodoc %}
+        {% unless is_autodoc_page(post) %}
         {{ article_card(post, show_excerpt=true) }}
         {% end %}
         {% end %}

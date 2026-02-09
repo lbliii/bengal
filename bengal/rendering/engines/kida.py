@@ -163,23 +163,19 @@ class KidaTemplateEngine:
 
         Returns:
             Static context dict, or None if building fails
+
+        Note:
+            Currently disabled (returns None). Kida's partial evaluator
+            can only fold expressions into primitive Constant nodes
+            (str, int, float, bool, None). The site/config/theme globals
+            are complex wrapper objects containing nested dicts, which
+            triggers K-RUN-007 ("invalid type in Constant: dict").
+            Re-enable once Kida supports dict/object constants in the AST
+            or we extract only scalar leaf values here.
         """
-        try:
-            from bengal.rendering.context import get_engine_globals
-
-            globals_dict = get_engine_globals(self.site)
-
-            # Extract only the truly static values
-            # (site, config, theme wrappers are constant for the build)
-            static: dict[str, Any] = {}
-            for key in ("site", "config", "theme", "bengal", "versioning_enabled", "versions"):
-                if key in globals_dict:
-                    static[key] = globals_dict[key]
-
-            return static if static else None
-        except Exception:
-            # Static context is optional — if it fails, templates still work
-            return None
+        # TODO: Re-enable when Kida's partial evaluator handles complex types.
+        # See: K-RUN-007 — dict values can't be stored as AST Constant nodes.
+        return None
 
     def _build_template_dirs(self) -> list[Path]:
         """Build ordered list of template search directories.

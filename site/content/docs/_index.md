@@ -26,6 +26,8 @@ icon: book-open
 
 # Documentation
 
+
+
 ## Start Here
 
 New to Bengal? Begin with installation and choose a learning path based on your role.

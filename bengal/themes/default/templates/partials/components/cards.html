@@ -28,11 +28,10 @@ KIDA FEATURES USED:
 {% let post_date = post?.date %}
 {% let post_excerpt = post?.excerpt ?? '' %}
 
-{% embed 'partials/components/card-base.html' with
-    card_variant='compact',
-    card_href=post_href,
-    gradient_border=true
-%}
+{% let card_variant = 'compact' %}
+{% let card_href = post_href %}
+{% let gradient_border = true %}
+{% embed 'partials/components/card-base.html' with context %}
   {% block header %}
     <h3>{{ post_title }}</h3>
   {% end %}
@@ -62,10 +61,9 @@ KIDA FEATURES USED:
 {% let post_date = post?.date %}
 {% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
 
-{% embed 'partials/components/card-base.html' with
-    card_variant='default',
-    gradient_border=true
-%}
+{% let card_variant = 'default' %}
+{% let gradient_border = true %}
+{% embed 'partials/components/card-base.html' with context %}
   {% block header %}
     {% if post_image %}
     <div class="post-card-image">
@@ -105,10 +103,9 @@ KIDA FEATURES USED:
 {% let feat_desc = feature?.description ?? '' %}
 {% let feat_link = feature?.link %}
 
-{% embed 'partials/components/card-base.html' with
-    card_variant='feature',
-    card_elevation='none'
-%}
+{% let card_variant = 'feature' %}
+{% let card_elevation = 'none' %}
+{% embed 'partials/components/card-base.html' with context %}
   {% block icon %}
     {% if feat_icon %}
     <div class="feature-icon" aria-hidden="true">{{ feat_icon }}</div>
