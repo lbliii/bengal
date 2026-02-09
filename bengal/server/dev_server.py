@@ -74,6 +74,47 @@ from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# Access-log filter for Pounce (matches legacy RequestLogger filtering)
+# ---------------------------------------------------------------------------
+
+_SKIP_PATTERNS = ("/.well-known/", "/favicon.ico", "/favicon.png")
+_ASSET_PREFIXES = ("/assets/", "/static/")
+_OPTIONAL_404S = frozenset({"/search-index.json"})
+
+
+def _should_log_request(_method: str, path: str, status: int) -> bool:
+    """Return True if the request should appear in the access log.
+
+    Suppresses noisy requests that cluttered the old dev-server output:
+    - Favicon / well-known probes
+    - Successful or cached asset loads (``/assets/``, ``/static/``)
+    - All 304 Not Modified (cache hits)
+    - Expected 404s for optional resources (e.g. search index)
+    """
+    # Always-skip patterns (favicon, well-known)
+    for pattern in _SKIP_PATTERNS:
+        if pattern in path:
+            return False
+
+    is_asset = any(path.startswith(p) for p in _ASSET_PREFIXES)
+    is_cached = status == 304
+    is_success = 200 <= status < 300
+
+    # Successful or cached asset loads are noise
+    if is_asset and (is_cached or is_success):
+        return False
+
+    # 304s are just cache revalidations — nothing interesting
+    if is_cached:
+        return False
+
+    # Optional resources that 404 when not installed
+    if status == 404 and path in _OPTIONAL_404S:
+        return False
+
+    return True
+
 
 class DevServer:
     """
@@ -914,6 +955,7 @@ class DevServer:
             compression=True,
             server_timing=True,
             access_log=True,
+            access_log_filter=_should_log_request,
             log_level="warning",  # Bengal handles its own logging
             server_header="bengal",
             shutdown_timeout=5.0,

@@ -20,7 +20,8 @@ bengal new site mysite && cd mysite && bengal serve
 - **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern** — Python 3.14+ with free-threading support, fully typed
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
-- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
+- **Purpose-built stack** — Every engine is a sibling project designed together: [Kida](https://lbliii.github.io/kida/) (templates), [Patitas](https://lbliii.github.io/patitas/) (Markdown), [Rosettes](https://lbliii.github.io/rosettes/) (syntax highlighting) — all free-threading native, all typed, all zero-dependency
+- **Static-to-dynamic** — Start with `bengal build` for static HTML. Add [Chirp](https://lbliii.github.io/chirp/) routes and serve with [Pounce](https://lbliii.github.io/pounce/) when you need search, APIs, or real-time updates — same content, same templates, no rewrite
 
 ---
 
@@ -279,7 +280,7 @@ Bengal ships with a modern, accessible default theme:
 
 - Dark mode with system preference detection
 - Responsive design with mobile navigation
-- Syntax highlighting with copy buttons
+- Syntax highlighting via [Rosettes](https://lbliii.github.io/rosettes/) with copy buttons
 - Table of contents with scroll spy
 - Full-text search (Lunr.js)
 
@@ -301,14 +302,15 @@ Bengal ships with a modern, accessible default theme:
 
 ## Pluggable Engines
 
-Bengal follows a "bring your own" pattern — swap engines without changing your content.
+Bengal follows a "bring your own" pattern — swap engines without changing your content. The
+defaults are purpose-built siblings, designed together for free-threading and typed APIs.
 
 <details>
 <summary><strong>Template Engines</strong></summary>
 
 | Engine | Description | Install |
 |--------|-------------|---------|
-| **Kida** (default) | Bengal's native engine. 2-5x faster than Jinja2, free-threading safe, Jinja2-compatible syntax | Built-in |
+| **[Kida](https://lbliii.github.io/kida/)** (default) | AST-native, 2-5x faster than Jinja2, free-threading safe | Built-in |
 | **Jinja2** | Industry-standard with extensive ecosystem | Built-in |
 
 ```yaml
@@ -323,7 +325,7 @@ template_engine: kida  # or jinja2
 
 | Parser | Description | Best For |
 |--------|-------------|----------|
-| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Python 3.14+, large sites |
+| **[Patitas](https://lbliii.github.io/patitas/)** (default) | Typed AST, O(n) FSM parsing, ReDoS-proof, thread-safe | Python 3.14+, large sites |
 | **Mistune** | Fast, modern parser | General use |
 | **Python-Markdown** | Full-featured, extensive extensions | Complex edge cases |
 
@@ -340,7 +342,7 @@ markdown:
 
 | Backend | Description | Performance |
 |---------|-------------|-------------|
-| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | 3.4x faster than Pygments |
+| **[Rosettes](https://lbliii.github.io/rosettes/)** (default) | Lock-free state machines, 55+ languages, O(n) guaranteed | 3.4x faster than Pygments |
 
 ```yaml
 # config/_default/theme.yaml
@@ -348,9 +350,61 @@ highlighting:
   backend: rosettes
 ```
 
-Rosettes is now a standalone package: [`pip install rosettes`](https://pypi.org/project/rosettes/)
-
 Custom backends can be registered via `register_backend()`.
+
+</details>
+
+---
+
+## Beyond Static
+
+Bengal builds static HTML. But a Bengal site can also become a live application — same
+content, same templates, no migration.
+
+<details>
+<summary><strong>Purr</strong> — Content-reactive runtime</summary>
+
+[Purr](https://github.com/lbliii/purr) turns a Bengal site into a reactive dev server. Edit
+a Markdown file, and the browser updates just the affected paragraph — not the page, not the
+site, just the content that changed. Incremental re-parse, AST diff, selective block
+recompile, SSE broadcast.
+
+```bash
+purr dev my-site/     # Reactive local development
+purr build my-site/   # Static export (same as bengal build)
+purr serve my-site/   # Live production server
+```
+
+</details>
+
+<details>
+<summary><strong>Chirp</strong> — Add dynamic routes alongside content</summary>
+
+[Chirp](https://lbliii.github.io/chirp/) is the web framework for the Bengal ecosystem. Add
+Python routes alongside your static content — search, APIs, dashboards — sharing the same
+Kida templates and URL space.
+
+```python
+# routes/search.py
+from chirp import Request
+
+async def get(request: Request):
+    results = site.search(request.query.get("q", ""))
+    return request.template("search.html", results=results)
+```
+
+</details>
+
+<details>
+<summary><strong>Pounce</strong> — Free-threading ASGI server</summary>
+
+[Pounce](https://lbliii.github.io/pounce/) serves Bengal/Chirp apps using real OS threads
+sharing a single interpreter. N workers, one copy of the app, zero synchronization for
+immutable data.
+
+```bash
+pounce myapp:app --workers 4
+```
 
 </details>
 
@@ -381,6 +435,17 @@ If you need multi-year stability, pin your version.
 
 📚 **[lbliii.github.io/bengal](https://lbliii.github.io/bengal/)**
 
+| Section | Description |
+|---------|-------------|
+| [Get Started](https://lbliii.github.io/bengal/docs/get-started/) | Installation and quickstart |
+| [Content](https://lbliii.github.io/bengal/docs/content/) | Markdown, directives, collections, sources |
+| [Theming](https://lbliii.github.io/bengal/docs/theming/) | Templates, layouts, image processing |
+| [Building](https://lbliii.github.io/bengal/docs/building/) | Configuration, deployment, performance |
+| [Extending](https://lbliii.github.io/bengal/docs/extending/) | Custom engines, plugins |
+| [Tutorials](https://lbliii.github.io/bengal/docs/tutorials/) | Guides and walkthroughs |
+| [Reference](https://lbliii.github.io/bengal/docs/reference/) | API documentation |
+| [About](https://lbliii.github.io/bengal/docs/about/) | Architecture and design |
+
 ---
 
 ## Development
@@ -394,16 +459,19 @@ pytest
 
 ---
 
-## The Bengal Cat Family
+## The Bengal Ecosystem
 
-Bengal's core components are written in pure Python:
+A structured reactive stack — every layer written in pure Python for 3.14t free-threading.
 
-| | | |
-|--:|---|---|
-| **ᓚᘏᗢ** | **Bengal** | Static site generator ← You are here |
-| **)彡** | [Kida](https://github.com/lbliii/kida) | Template engine |
-| **⌾⌾⌾** | [Rosettes](https://github.com/lbliii/rosettes) | Syntax highlighter |
-| **ฅᨐฅ** | [Patitas](https://github.com/lbliii/patitas) | Markdown parser |
+| | | | |
+|--:|---|---|---|
+| **ᓚᘏᗢ** | **Bengal** | Static site generator ← You are here | [Docs](https://lbliii.github.io/bengal/) |
+| **∿∿** | [Purr](https://github.com/lbliii/purr) | Content runtime | — |
+| **⌁⌁** | [Chirp](https://github.com/lbliii/chirp) | Web framework | [Docs](https://lbliii.github.io/chirp/) |
+| **=^..^=** | [Pounce](https://github.com/lbliii/pounce) | ASGI server | [Docs](https://lbliii.github.io/pounce/) |
+| **)彡** | [Kida](https://github.com/lbliii/kida) | Template engine | [Docs](https://lbliii.github.io/kida/) |
+| **ฅᨐฅ** | [Patitas](https://github.com/lbliii/patitas) | Markdown parser | [Docs](https://lbliii.github.io/patitas/) |
+| **⌾⌾⌾** | [Rosettes](https://github.com/lbliii/rosettes) | Syntax highlighter | [Docs](https://lbliii.github.io/rosettes/) |
 
 Python-native. Free-threading ready. No npm required.
 

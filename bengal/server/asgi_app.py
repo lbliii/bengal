@@ -309,6 +309,8 @@ def create_dev_app(
     @app.route(LIVE_RELOAD_PATH)
     def sse_reload() -> EventStream:
         async def stream() -> Any:
+            # Advise client on reconnect delay and confirm the stream is live
+            yield SSEEvent(data="connected", retry=2000)
             queue = state.subscribe()
             try:
                 while True:
