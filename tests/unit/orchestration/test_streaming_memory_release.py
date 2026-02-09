@@ -32,7 +32,8 @@ class MockPage:
 
     path: Path
     # Cache attributes from Page dataclass (core/page/__init__.py)
-    _ast_cache: list[dict[str, Any]] | None = field(default=None)
+    # Type is Any to match the Patitas Document AST (AST-First Page Model)
+    _ast_cache: Any = field(default=None)
     _html_cache: str | None = field(default=None)
     _plain_text_cache: str | None = field(default=None)
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None)

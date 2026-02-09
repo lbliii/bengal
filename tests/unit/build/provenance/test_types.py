@@ -17,6 +17,7 @@ from bengal.build.provenance.types import (
     InputRecord,
     Provenance,
     ProvenanceRecord,
+    hash_ast,
     hash_content,
     hash_dict,
     hash_file,
@@ -356,3 +357,125 @@ class TestProvenanceRecord:
         assert recovered.output_hash == original.output_hash
         assert recovered.build_id == original.build_id
         assert len(recovered.provenance.inputs) == len(original.provenance.inputs)
+
+    def test_ast_hash_roundtrip(self) -> None:
+        """ProvenanceRecord with ast_hash survives serialization roundtrip."""
+        prov = Provenance().with_input(
+            "content", CacheKey("content/page.md"), ContentHash("abc123")
+        )
+        original = ProvenanceRecord(
+            page_path=CacheKey("content/page.md"),
+            provenance=prov,
+            output_hash=ContentHash("output456"),
+            ast_hash=ContentHash("ast_hash_789"),
+            build_id="build-002",
+        )
+
+        data = original.to_dict()
+        assert data["ast_hash"] == "ast_hash_789"
+
+        recovered = ProvenanceRecord.from_dict(data)
+        assert recovered.ast_hash == ContentHash("ast_hash_789")
+
+    def test_ast_hash_none_not_serialized(self) -> None:
+        """ProvenanceRecord without ast_hash omits it from dict."""
+        prov = Provenance().with_input(
+            "content", CacheKey("content/page.md"), ContentHash("abc123")
+        )
+        record = ProvenanceRecord(
+            page_path=CacheKey("content/page.md"),
+            provenance=prov,
+            output_hash=ContentHash("output456"),
+        )
+
+        data = record.to_dict()
+        assert "ast_hash" not in data
+
+        recovered = ProvenanceRecord.from_dict(data)
+        assert recovered.ast_hash is None
+
+
+# =============================================================================
+# hash_ast Tests
+# =============================================================================
+
+
+class TestHashAST:
+    """Tests for hash_ast function (semantic AST hashing)."""
+
+    @staticmethod
+    def _serialization_available() -> bool:
+        """Check if patitas.serialization is importable."""
+        try:
+            from patitas.serialization import to_json  # noqa: F401
+
+            return True
+        except ImportError:
+            return False
+
+    def test_hashes_patitas_document(self) -> None:
+        """Real Patitas Document produces a valid hash."""
+        if not self._serialization_available():
+            pytest.skip("patitas.serialization not available")
+
+        from patitas import parse
+
+        doc = parse("## Hello\n\nWorld.\n")
+        result = hash_ast(doc)
+
+        assert isinstance(result, str)
+        assert len(result) == 16
+        assert result != "_no_ast_"
+
+    def test_deterministic(self) -> None:
+        """Same AST produces same hash."""
+        from patitas import parse
+
+        doc1 = parse("## Hello\n\nWorld.\n")
+        doc2 = parse("## Hello\n\nWorld.\n")
+
+        assert hash_ast(doc1) == hash_ast(doc2)
+
+    def test_different_content_different_hash(self) -> None:
+        """Different ASTs produce different hashes."""
+        if not self._serialization_available():
+            pytest.skip("patitas.serialization not available")
+
+        from patitas import parse
+
+        doc1 = parse("## Hello\n\nWorld.\n")
+        doc2 = parse("## Goodbye\n\nWorld.\n")
+
+        assert hash_ast(doc1) != hash_ast(doc2)
+
+    def test_identical_content_same_hash(self) -> None:
+        """Identical markdown content always produces the same AST hash."""
+        from patitas import parse
+
+        # Exact same content, parsed independently
+        source = "## Hello\n\nWorld.\n"
+        doc1 = parse(source)
+        doc2 = parse(source)
+
+        assert hash_ast(doc1) == hash_ast(doc2)
+
+    def test_custom_truncation(self) -> None:
+        """Custom truncation length is respected."""
+        if not self._serialization_available():
+            pytest.skip("patitas.serialization not available")
+
+        from patitas import parse
+
+        doc = parse("Hello.\n")
+        result = hash_ast(doc, truncate=8)
+        assert len(result) == 8
+
+    def test_non_serializable_returns_fallback(self) -> None:
+        """Non-serializable input returns _no_ast_ sentinel."""
+        result = hash_ast("not a document")
+        assert result == "_no_ast_"
+
+    def test_none_returns_fallback(self) -> None:
+        """None input returns _no_ast_ sentinel."""
+        result = hash_ast(None)
+        assert result == "_no_ast_"

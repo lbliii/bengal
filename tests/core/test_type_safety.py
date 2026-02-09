@@ -248,9 +248,13 @@ class TestASTTypeConsistency:
             "PageContentMixin missing _ast_cache annotation"
         )
 
-        # Both annotations should reference ASTNode
+        # Both annotations should be Any (Patitas Document — external dependency)
         page_annotation = str(Page.__annotations__["_ast_cache"])
         mixin_annotation = str(PageContentMixin.__annotations__["_ast_cache"])
 
-        assert "ASTNode" in page_annotation or "dict" in page_annotation.lower()
-        assert "ASTNode" in mixin_annotation or "dict" in mixin_annotation.lower()
+        # Accept Any, ASTNode, or dict (backward compat)
+        for label, annotation in [("Page", page_annotation), ("Mixin", mixin_annotation)]:
+            assert any(
+                token in annotation.lower()
+                for token in ("any", "astnode", "dict")
+            ), f"{label}._ast_cache annotation unexpected: {annotation}"
