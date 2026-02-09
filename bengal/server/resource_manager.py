@@ -123,54 +123,61 @@ class ResourceManager:
             self._resources.append((name, resource, cleanup_fn))
         return resource
 
-    def register_sse_shutdown(self) -> None:
+    def register_pounce_server(self, server: Any) -> Any:
         """
-        Register SSE client shutdown for graceful cleanup.
+        Register Pounce ASGI server for cleanup.
 
-        This must be registered AFTER the HTTP server because cleanup happens
-        in LIFO (reverse) order. By registering SSE shutdown last, it runs
-        FIRST during cleanup, signaling SSE handlers to exit before the
-        server shutdown is attempted.
+        Pounce's ``shutdown()`` is thread-safe and idempotent — safe to
+        call from any thread or from a signal handler.
 
-        The SSE shutdown:
-        1. Sets a global shutdown flag
-        2. Wakes all SSE handlers waiting on the condition variable
-        3. Handlers check the flag and exit their loops cleanly
-        4. Brief sleep allows handlers to complete their exit
+        Also registers DevState cleanup to clear the broadcast hook and
+        the legacy SSE shutdown for any remaining threading-based SSE
+        handlers.
 
-        Without this, long-lived SSE connections (/__bengal_reload__) would
-        block server shutdown indefinitely, causing orphaned processes.
+        Args:
+            server: pounce.server.Server instance
 
-        Note:
-            Call this AFTER register_server() to ensure correct cleanup order.
+        Returns:
+            The server
         """
         from bengal.server.live_reload import reset_sse_shutdown, shutdown_sse_clients
 
         # Reset shutdown flag in case a previous server instance set it
         reset_sse_shutdown()
 
+        def cleanup(s: Any) -> None:
+            icons = get_icons()
+            try:
+                # Signal legacy SSE handlers to exit (if any still exist)
+                shutdown_sse_clients()
+
+                # Shutdown Pounce (thread-safe, idempotent)
+                s.shutdown()
+            except Exception as e:
+                print(f"  {icons.warning} Error shutting down server: {e}")
+
+        return self.register("Pounce Server", server, cleanup)
+
+    # Legacy methods kept for backward compatibility
+
+    def register_sse_shutdown(self) -> None:
+        """Register SSE client shutdown for graceful cleanup (legacy)."""
+        from bengal.server.live_reload import reset_sse_shutdown, shutdown_sse_clients
+
+        reset_sse_shutdown()
+
         def cleanup(_: None) -> None:
             shutdown_sse_clients()
-            # Give SSE handlers a moment to exit cleanly
             time.sleep(0.1)
 
         self.register("SSE Clients", None, cleanup)
 
     def register_server(self, server: Any) -> Any:
-        """
-        Register HTTP server for cleanup.
-
-        Args:
-            server: socketserver.TCPServer instance
-
-        Returns:
-            The server
-        """
+        """Register HTTP server for cleanup (legacy TCPServer)."""
 
         def cleanup(s: Any) -> None:
             icons = get_icons()
             try:
-                # Shutdown in a thread with timeout to avoid hanging
                 shutdown_thread = threading.Thread(target=s.shutdown)
                 shutdown_thread.daemon = True
                 shutdown_thread.start()
@@ -180,7 +187,6 @@ class ResourceManager:
                     print(
                         f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"
                     )
-
                 s.server_close()
             except Exception as e:
                 print(f"  {icons.warning} Error closing server: {e}")

@@ -4,10 +4,14 @@ Development server with file watching, hot reload, and auto-rebuild.
 Provides a complete local development environment for Bengal sites with
 HTTP serving, file watching, incremental builds, and browser live reload.
 
+Powered by the Bengal ecosystem stack:
+- **Pounce**: Free-threading-native ASGI server (HTTP/1.1, HTTP/2, zstd/gzip)
+- **Chirp**: SSE-first web framework (EventStream, StaticFiles middleware)
+
 Features:
 - Serve-first startup: Serves cached content immediately for instant first paint
 - Background validation: Validates cache and hot-reloads if stale
-- HTTP server for viewing the built site locally
+- ASGI server (Pounce) with compression, Server-Timing, free-threading
 - File watching with automatic incremental rebuilds
 - Live reload via Server-Sent Events (no full page refresh for CSS)
 - Graceful shutdown handling (Ctrl+C, SIGTERM)
@@ -26,34 +30,22 @@ The DevServer coordinates several subsystems:
 
 1. Serve-First Check: If cached output exists, serve immediately
 2. Background Validation: Run incremental build to detect stale content
-3. HTTP Server: ThreadingTCPServer with BengalRequestHandler
+3. ASGI Server: Pounce serving a Chirp app (StaticFiles + SSE + middleware)
 4. File Watcher: WatcherRunner with watchfiles backend
 5. Build Trigger: Handles file changes and triggers rebuilds
 6. Resource Manager: Ensures cleanup on all exit scenarios
 
-Startup Flow (serve-first, when cache exists):
-1. Check for cached output in public/
-2. Start HTTP server immediately (instant first paint)
-3. Open browser
-4. Run validation build in background
-5. Hot reload if stale content detected
-
-Startup Flow (build-first, when no cache):
-1. Run full build
-2. Start HTTP server
-3. Open browser
-
 Build Pipeline:
 FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor → Site.build()
                                   ↓
-                         ReloadController → LiveReload → Browser
+                         ReloadController → DevState → SSE → Browser
 
 Related:
+- bengal/server/asgi_app.py: Chirp ASGI app factory + DevState + middleware
 - bengal/server/watcher_runner.py: Async file watching bridge
 - bengal/server/build_trigger.py: Build orchestration
 - bengal/server/build_executor.py: Process-isolated builds
-- bengal/server/request_handler.py: HTTP request handling
-- bengal/server/live_reload.py: SSE-based hot reload
+- bengal/server/live_reload.py: SSE broadcast, LIVE_RELOAD_SCRIPT
 - bengal/server/resource_manager.py: Cleanup coordination
 
 """
@@ -62,7 +54,6 @@ from __future__ import annotations
 
 import os
 import socket
-import socketserver
 import threading
 import time
 from pathlib import Path
@@ -71,11 +62,11 @@ from typing import Any
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.server.asgi_app import DevState, cleanup_dev_state, create_dev_app, init_dev_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.pid_manager import PIDManager
-from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
@@ -155,6 +146,10 @@ class DevServer:
         self.open_browser = open_browser
         self.version_scope = version_scope
 
+        # Pounce server and shared state (set during start)
+        self._pounce_server: Any = None
+        self._dev_state: DevState | None = None
+
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
 
@@ -222,6 +217,9 @@ class DevServer:
                 can_serve_first=can_serve_first,
             )
 
+            # Initialize shared DevState (bridges build pipeline → ASGI SSE)
+            self._dev_state = init_dev_state()
+
             if can_serve_first:
                 # SERVE-FIRST: Instant first paint, validate in background
                 logger.info("serve_first_mode", reason="cached_output_exists")
@@ -231,10 +229,10 @@ class DevServer:
                 PIDManager.write_pid_file(pid_file)
                 rm.register_pidfile(pid_file)
 
-                # Create HTTP server immediately
-                httpd, actual_port = self._create_server()
-                rm.register_server(httpd)
-                rm.register_sse_shutdown()
+                # Create Pounce server immediately
+                pounce_server, actual_port = self._create_server()
+                self._pounce_server = pounce_server
+                rm.register_pounce_server(pounce_server)
 
                 # Start file watcher if enabled
                 if self.watch:
@@ -252,9 +250,14 @@ class DevServer:
                 # Print startup message
                 self._print_startup_message(actual_port, serve_first=True)
 
-                # Start serving in background thread while we validate
-                server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                # Start Pounce in background thread while we validate
+                server_thread = threading.Thread(
+                    target=pounce_server.run, daemon=True, name="pounce-server",
+                )
                 server_thread.start()
+
+                # Give the event loop a moment to start so we can register it
+                time.sleep(0.1)
 
                 # Run validation build in foreground (shows progress)
                 self._run_validation_build(BuildProfile.WRITER, actual_port)
@@ -276,7 +279,7 @@ class DevServer:
                 except KeyboardInterrupt:
                     print("\n  👋 Shutting down server...")
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
-                    httpd.shutdown()
+                    pounce_server.shutdown()
 
             else:
                 # BUILD-FIRST: No cache, must build before serving
@@ -302,9 +305,6 @@ class DevServer:
                     duration_ms=stats.build_time_ms,
                 )
 
-                # Clear HTML cache after build
-                self._clear_html_cache_after_build()
-
                 # Set active palette for rebuilding page styling
                 self._set_active_palette()
 
@@ -316,10 +316,10 @@ class DevServer:
                 PIDManager.write_pid_file(pid_file)
                 rm.register_pidfile(pid_file)
 
-                # Create HTTP server
-                httpd, actual_port = self._create_server()
-                rm.register_server(httpd)
-                rm.register_sse_shutdown()
+                # Create Pounce server
+                pounce_server, actual_port = self._create_server()
+                self._pounce_server = pounce_server
+                rm.register_pounce_server(pounce_server)
 
                 # Start file watcher if enabled
                 if self.watch:
@@ -346,12 +346,17 @@ class DevServer:
                     mode="build_first",
                 )
 
-                # Run until interrupted
+                # Run Pounce (blocking) until interrupted
                 try:
-                    httpd.serve_forever()
+                    pounce_server.run()
                 except KeyboardInterrupt:
                     print("\n  👋 Shutting down server...")
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
+
+            # Clean up DevState
+            cleanup_dev_state()
+            self._dev_state = None
+            self._pounce_server = None
             # ResourceManager cleanup happens automatically via __exit__
 
     def _has_cached_output(self) -> bool:
@@ -414,9 +419,6 @@ class DevServer:
             duration_ms=stats.build_time_ms,
         )
 
-        # Clear HTML cache after validation
-        self._clear_html_cache_after_build()
-
         # Set active palette
         self._set_active_palette()
 
@@ -449,21 +451,12 @@ class DevServer:
             icons = get_icons()
             print(f"\n  {icons.success} Cache validated - content is fresh")
 
-    def _clear_html_cache_after_build(self) -> None:
-        """Clear HTML injection cache after a build to ensure fresh pages."""
-        try:
-            with BengalRequestHandler._html_cache_lock:
-                BengalRequestHandler._html_cache.clear()
-            logger.debug("html_cache_cleared_after_build")
-        except Exception as e:
-            logger.debug("html_cache_clear_failed", error=str(e))
-
     def _set_active_palette(self) -> None:
         """Set active palette for rebuilding page styling."""
         try:
             default_palette = self.site.config.get("default_palette")
-            if default_palette:
-                BengalRequestHandler._active_palette = default_palette
+            if default_palette and self._dev_state is not None:
+                self._dev_state.active_palette = default_palette
                 logger.debug("rebuilding_page_palette_set", palette=default_palette)
         except Exception:
             pass
@@ -831,24 +824,28 @@ class DevServer:
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
 
-    def _create_server(self) -> tuple[socketserver.ThreadingTCPServer, int]:
+    def _create_server(self) -> tuple[Any, int]:
         """
-        Create HTTP server (does not start it).
+        Create Pounce ASGI server with Chirp app (does not start it).
 
-        Changes to the output directory and creates a TCP server on the
-        specified port. If the port is unavailable and auto_port is enabled,
-        automatically finds the next available port.
+        Creates a Chirp ASGI app with static file serving, SSE live reload,
+        and HTML injection middleware, then wraps it in a Pounce server.
+
+        If the port is unavailable and auto_port is enabled, automatically
+        finds the next available port.
 
         Returns:
-            Tuple of (httpd, actual_port) where httpd is the TCPServer instance
-            and actual_port is the port it's bound to
+            Tuple of (pounce_server, actual_port) where pounce_server is
+            the Pounce Server instance and actual_port is the port to bind to.
 
         Raises:
-            OSError: If no available port can be found
+            BengalServerError: If no available port can be found
         """
-        # Store output directory for handler (don't rely on CWD - it can become invalid during rebuilds)
-        output_dir = str(self.site.output_dir)
-        logger.debug("serving_directory", path=output_dir)
+        from pounce.config import ServerConfig
+        from pounce.server import Server as PounceServer
+
+        output_dir = self.site.output_dir
+        logger.debug("serving_directory", path=str(output_dir))
 
         # Determine port to use
         actual_port = self.port
@@ -904,33 +901,35 @@ class DevServer:
                     suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
                 )
 
-        # Allow address reuse to prevent "address already in use" errors on restart
-        socketserver.TCPServer.allow_reuse_address = True
+        assert self._dev_state is not None, "DevState must be initialized before creating server"
 
-        # Use a custom server class to increase the socket backlog (request queue size)
-        # which helps avoid temporary stalls under bursts of rapid navigation.
-        class BengalThreadingTCPServer(socketserver.ThreadingTCPServer):
-            request_queue_size = 128
+        # Create Chirp ASGI app
+        asgi_app = create_dev_app(output_dir, self._dev_state)
 
-        # Create handler with directory bound (avoids os.getcwd() which fails if CWD is deleted during rebuild)
-        from functools import partial
-
-        handler = partial(BengalRequestHandler, directory=output_dir)
-
-        # Create threaded server so SSE long-lived connections don't block other requests
-        # (don't use context manager - ResourceManager handles cleanup)
-        httpd = BengalThreadingTCPServer((self.host, actual_port), handler)
-        httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
-
-        logger.info(
-            "http_server_created",
+        # Configure Pounce
+        config = ServerConfig(
             host=self.host,
             port=actual_port,
-            handler_class="BengalRequestHandler",
-            threaded=True,
+            workers=1,
+            compression=True,
+            server_timing=True,
+            access_log=True,
+            log_level="warning",  # Bengal handles its own logging
+            server_header="bengal",
+            shutdown_timeout=5.0,
         )
 
-        return httpd, actual_port
+        pounce_server = PounceServer(config, asgi_app)
+
+        logger.info(
+            "pounce_server_created",
+            host=self.host,
+            port=actual_port,
+            compression=True,
+            server_timing=True,
+        )
+
+        return pounce_server, actual_port
 
     def _print_startup_message(self, port: int, serve_first: bool = False) -> None:
         """

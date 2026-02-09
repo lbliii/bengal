@@ -1063,28 +1063,24 @@ class BuildTrigger:
             send_reload_payload(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
-        """Signal build state to request handler."""
+        """Signal build state to the dev server ASGI app."""
         try:
-            from bengal.server.request_handler import BengalRequestHandler
+            from bengal.server.asgi_app import get_dev_state
 
-            BengalRequestHandler.set_build_in_progress(building)
+            state = get_dev_state()
+            if state is not None:
+                state.set_build_in_progress(building)
         except Exception as e:
             logger.debug("build_state_signal_failed", error=str(e))
 
     def _clear_html_cache(self) -> None:
-        """Clear HTML cache after rebuild."""
-        try:
-            from bengal.server.request_handler import BengalRequestHandler
+        """Clear caches after rebuild.
 
-            # Clear HTML injection cache
-            with BengalRequestHandler._html_cache_lock:
-                cache_size = len(BengalRequestHandler._html_cache)
-                BengalRequestHandler._html_cache.clear()
-
-            if cache_size > 0:
-                logger.debug("html_cache_cleared", entries=cache_size)
-        except Exception as e:
-            logger.debug("html_cache_clear_failed", error=str(e))
+        With the Chirp/Pounce ASGI stack, HTML injection happens per-request
+        via middleware (no cache needed). This method is kept for compatibility
+        but is effectively a no-op.
+        """
+        logger.debug("html_cache_clear_noop", reason="asgi_middleware_no_cache")
 
     def shutdown(self) -> None:
         """Shutdown the executor."""

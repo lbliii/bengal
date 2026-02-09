@@ -1,15 +1,24 @@
 """
 Development server for Bengal SSG.
 
-Provides a local HTTP server with file watching and automatic rebuilds
-for a smooth development experience.
+Powered by the Bengal ecosystem stack:
+- **Pounce**: Free-threading-native ASGI server (HTTP/1.1, HTTP/2, compression)
+- **Chirp**: SSE-first web framework (EventStream, StaticFiles middleware)
+
+Provides a local development server with file watching, automatic rebuilds,
+and browser live reload for a smooth development experience.
 
 Components:
 Core Server:
-- DevServer: Main orchestrator with HTTP serving and file watching
-- BengalRequestHandler: HTTP handler with live reload and custom 404s
+- DevServer: Main orchestrator with ASGI serving and file watching
+- DevState: Shared state bridge between build pipeline and ASGI app
 - ResourceManager: Graceful cleanup of resources on shutdown
 - PIDManager: Process tracking and stale process recovery
+
+ASGI App (bengal/server/asgi_app.py):
+- create_dev_app: Chirp app factory with SSE, static files, middleware
+- HtmlInjectionMiddleware: Injects live reload script into HTML responses
+- BuildGateMiddleware: Returns rebuilding page during active builds
 
 File Watching:
 - FileWatcher: Rust-based file watching (watchfiles backend)
@@ -22,35 +31,16 @@ Build System:
 - ReloadController: Smart reload decisions (CSS-only vs full)
 
 Live Reload:
-- LiveReloadMixin: SSE endpoint and HTML script injection
+- SSE endpoint via Chirp EventStream at /__bengal_reload__
 - notify_clients_reload: Trigger browser refresh
 - send_reload_payload: Send structured reload events
-
-Utilities:
-- RequestLogger: Beautiful, filtered HTTP request logging
-
-Features:
-- Automatic incremental rebuilds on file changes
-- Event type detection (created/modified/deleted) for smart rebuild decisions
-- CSS-only hot reload (no page refresh for style changes)
-- Beautiful, minimal request logging with filtering
-- Custom 404 error pages (serves user's 404.html if present)
-- Graceful shutdown handling (Ctrl+C, SIGTERM)
-- Stale process detection and cleanup
-- Automatic port fallback if port is in use
-- Optional browser auto-open
-- Pre/post build hooks for custom workflows
-- Process-isolated builds for crash resilience
-- Configurable ignore patterns (exclude_patterns, exclude_regex)
-- Fast file watching via watchfiles (Rust-based, 10-50x faster)
-- Rebuilding placeholder page during active builds
 
 Architecture:
 The dev server coordinates several subsystems in a pipeline:
 
 FileWatcher → WatcherRunner → BuildTrigger → BuildExecutor
                                    ↓
-                          ReloadController → LiveReload → Browser
+                          ReloadController → DevState → SSE → Browser
 
 All resources are managed by ResourceManager for reliable cleanup.
 
@@ -71,14 +61,6 @@ Usage:
     server.start()
     ```
 
-Watched Directories:
-- content/ - Markdown content files
-- assets/ - CSS, JS, images
-- templates/ - Jinja2 templates
-- data/ - YAML/JSON data files
-- themes/ - Theme files
-- bengal.toml - Configuration file
-
 Related:
 - bengal/cli/serve.py: CLI command for starting dev server
 - bengal/orchestration/build_orchestrator.py: Build logic
@@ -93,7 +75,7 @@ from typing import TYPE_CHECKING, Any
 # when users are not running the dev server.
 
 if TYPE_CHECKING:
-    # For type checkers only; does not execute at runtime
+    from bengal.server.asgi_app import DevState as DevState
     from bengal.server.build_executor import BuildExecutor as BuildExecutor
     from bengal.server.build_executor import BuildRequest as BuildRequest
     from bengal.server.build_executor import BuildResult as BuildResult
@@ -109,6 +91,7 @@ __all__ = [
     "BuildResult",
     "BuildTrigger",
     "DevServer",
+    "DevState",
     "FileWatcher",
     "IgnoreFilter",
     "WatcherRunner",
@@ -116,23 +99,15 @@ __all__ = [
 
 
 def __getattr__(name: str) -> Any:
-    """
-    Lazy import pattern for server components.
-
-    Args:
-        name: The attribute name being accessed
-
-    Returns:
-        The requested attribute
-
-    Raises:
-        AttributeError: If the attribute is not found
-
-    """
+    """Lazy import pattern for server components."""
     if name == "DevServer":
         from bengal.server.dev_server import DevServer
 
         return DevServer
+    if name == "DevState":
+        from bengal.server.asgi_app import DevState
+
+        return DevState
     if name == "WatcherRunner":
         from bengal.server.watcher_runner import WatcherRunner
 

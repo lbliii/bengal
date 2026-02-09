@@ -46,6 +46,8 @@ dependencies = [
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
+    "bengal-pounce>=0.1.0",                    # ASGI server (free-threading native, dev server)
+    "bengal-chirp>=0.1.0",                     # Web framework (SSE, static files, dev server)
 ]
 
 [project.optional-dependencies]

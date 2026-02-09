@@ -69,6 +69,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from collections.abc import Callable
 from io import BufferedIOBase
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Protocol
@@ -109,6 +110,24 @@ _reload_condition = threading.Condition()
 
 # Shutdown flag to signal SSE handlers to exit
 _shutdown_requested: bool = False
+
+
+# Broadcast hook for ASGI SSE bridge (set by asgi_app.init_dev_state)
+_broadcast_hook: Callable[[str], None] | None = None
+
+
+def register_broadcast_hook(hook: Callable[[str], None] | None) -> None:
+    """Register (or clear) a callback that receives every reload payload.
+
+    The ASGI dev server registers DevState.broadcast_reload here so that
+    existing callers of send_reload_payload / notify_clients_reload
+    automatically push events to Chirp SSE clients without changes.
+
+    Args:
+        hook: Callable that accepts a payload string, or None to clear.
+    """
+    global _broadcast_hook
+    _broadcast_hook = hook
 
 
 # Diagnostic: allow suppressing reload events via environment variable
@@ -734,6 +753,11 @@ def notify_clients_reload() -> None:
     with _reload_condition:
         _reload_generation += 1
         _reload_condition.notify_all()
+
+    # Push to ASGI SSE clients (if dev server is running)
+    if _broadcast_hook is not None:
+        _broadcast_hook("reload")
+
     logger.info("reload_notification_sent", generation=_reload_generation)
 
 
@@ -794,6 +818,10 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
         _reload_generation += 1
         _reload_sent_count += 1
         _reload_condition.notify_all()
+
+    # Push to ASGI SSE clients (if dev server is running)
+    if _broadcast_hook is not None:
+        _broadcast_hook(payload)
 
     logger.info(
         "reload_notification_sent_structured",
