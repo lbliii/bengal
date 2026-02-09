@@ -47,11 +47,12 @@ def kida_env() -> Environment:
 
 
 SAMPLE_TAGS = [
-    {"name": "python", "count": 12},
-    {"name": "rust", "count": 5},
-    {"name": "testing", "count": 3},
+    ("python", 12),
+    ("rust", 5),
+    ("testing", 3),
 ]
-"""Minimal tag list used across tests (dict-style with .name/.count)."""
+"""Minimal tag list as tuples (name, count) -- matches the format
+passed by Bengal's tag pages to the template."""
 
 
 # ---------------------------------------------------------------------------

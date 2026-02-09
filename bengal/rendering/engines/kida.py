@@ -795,6 +795,58 @@ class KidaTemplateEngine:
         except Exception:
             return None
 
+    def get_template_dependencies(self, name: str) -> frozenset[str]:
+        """Get all context paths a template depends on.
+
+        Uses Kida's introspection API to determine which context paths
+        (e.g., "page.title", "site.pages", "config.theme") a template
+        accesses. This enables fine-grained incremental invalidation:
+        only pages whose changed fields are actually used by their
+        template need re-rendering.
+
+        Args:
+            name: Template identifier (e.g., "page.html")
+
+        Returns:
+            frozenset of context paths, or empty frozenset if
+            introspection is unavailable
+
+        Example:
+            >>> deps = engine.get_template_dependencies("base.html")
+            >>> # frozenset({'site.title', 'page.title', 'config.search'})
+        """
+        try:
+            template = self._env.get_template(name)
+            return template.depends_on()
+        except Exception:
+            return frozenset()
+
+    def get_block_dependencies(self, name: str) -> dict[str, frozenset[str]]:
+        """Get per-block dependency information for a template.
+
+        Returns a mapping of block name to the context paths that
+        block accesses, using Kida's block metadata analysis.
+
+        Args:
+            name: Template identifier
+
+        Returns:
+            Dict of block_name -> frozenset of context paths
+
+        Example:
+            >>> deps = engine.get_block_dependencies("base.html")
+            >>> # {'nav': frozenset({'site.pages'}), 'content': frozenset({'page.content'})}
+        """
+        try:
+            template = self._env.get_template(name)
+            meta = template.block_metadata()
+            return {
+                block_name: block_meta.depends_on
+                for block_name, block_meta in meta.items()
+            }
+        except Exception:
+            return {}
+
     def get_cacheable_blocks(self, name: str) -> dict[str, str]:
         """Get blocks that can be cached and their cache scope.
 

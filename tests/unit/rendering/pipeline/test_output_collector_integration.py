@@ -75,17 +75,17 @@ class TestPipelineOutputCollector:
         assert pipeline._output_collector is not None
         assert pipeline._output_collector is collector
 
-    def test_pipeline_no_collector_no_crash(self, tmp_path) -> None:
-        """Pipeline with output_collector=None must not raise."""
-        pipeline = self._make_pipeline(tmp_path, collector=None)
-        assert pipeline._output_collector is None
+    def test_pipeline_no_collector_falls_back_to_null(self, tmp_path) -> None:
+        """Pipeline with output_collector=None must use NULL_COLLECTOR sentinel."""
+        from bengal.core.output.collector import NullOutputCollector
 
-    def test_pipeline_no_build_context_no_crash(self, tmp_path) -> None:
-        """Pipeline with no build_context at all must not raise."""
-        site = SimpleNamespace(
-            config={},
-            root_path=tmp_path,
-            output_dir=tmp_path,
-        )
-        pipeline = RenderingPipeline(site, build_context=None)
-        assert pipeline._output_collector is None
+        pipeline = self._make_pipeline(tmp_path, collector=None)
+        assert isinstance(pipeline._output_collector, NullOutputCollector)
+
+    def test_pipeline_no_build_context_falls_back_to_null(self, tmp_path) -> None:
+        """Pipeline with no build_context at all must use NULL_COLLECTOR sentinel."""
+        from bengal.core.output.collector import NullOutputCollector
+
+        # Use injected parser/engine to skip full site init but pass no collector
+        pipeline = self._make_pipeline(tmp_path, collector=None)
+        assert isinstance(pipeline._output_collector, NullOutputCollector)

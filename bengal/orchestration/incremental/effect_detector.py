@@ -132,7 +132,13 @@ class EffectBasedDetector:
         return result.requires_rebuild
 
     def _pages_for_template(self, template_path: Path) -> set[Path]:
-        """Get pages affected by a template change."""
+        """Get pages affected by a template change.
+
+        Uses Kida's template introspection when available to determine
+        which context paths the template depends on. If the template only
+        uses site-level context (e.g., site.title), a template change
+        may not require re-rendering pages whose content didn't change.
+        """
         pages: set[Path] = set()
         template_name = template_path.name
 
@@ -150,7 +156,53 @@ class EffectBasedDetector:
                 if hasattr(page, "template") and page.template == template_name:
                     pages.add(page.source_path)
 
+        # Use introspection to check if template only depends on site-level
+        # context. If so, only re-render if the template itself structurally
+        # changed (block recompilation handles this), not all dependent pages.
+        if pages:
+            pages = self._filter_by_template_deps(template_name, pages)
+
         return pages
+
+    def _filter_by_template_deps(
+        self, template_name: str, pages: set[Path],
+    ) -> set[Path]:
+        """Filter pages using Kida's template dependency introspection.
+
+        If the template only depends on site-level context paths
+        (site.*, config.*, theme.*) and not page-level paths (page.*),
+        a template structural change doesn't require re-rendering all
+        pages — block recompilation handles it.
+
+        Args:
+            template_name: Template to check
+            pages: Candidate pages to filter
+
+        Returns:
+            Filtered set of pages that actually need re-rendering
+        """
+        try:
+            from bengal.protocols import EngineCapability
+            from bengal.rendering.engines import create_engine
+
+            engine = create_engine(self.site)
+            if not engine.has_capability(EngineCapability.INTROSPECTION):
+                return pages
+
+            deps = engine.get_template_dependencies(template_name)
+            if not deps:
+                return pages  # No introspection data, assume all affected
+
+            # Check if template depends on any page-level context
+            page_deps = {d for d in deps if d.startswith("page.")}
+            if not page_deps:
+                # Template only uses site-level context — block recompilation
+                # handles the update, no need to re-render all pages
+                return set()
+
+            return pages
+        except Exception:
+            return pages
 
     def _pages_for_data_file(self, data_path: Path) -> set[Path]:
         """Get pages affected by a data file change."""

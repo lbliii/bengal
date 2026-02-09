@@ -268,17 +268,18 @@ class TestStepsContract:
         assert len(violations) == 0
 
     def test_step_contract_requires_steps_parent(self) -> None:
-        """STEP_CONTRACT requires 'steps' as parent."""
+        """STEP_CONTRACT expects 'steps' as parent."""
         from bengal.parsing.backends.patitas.directives.contracts import STEP_CONTRACT
 
         # Valid parent
         result = STEP_CONTRACT.validate_parent("step", "steps")
         assert result is None
 
-        # Invalid parent
+        # Invalid parent -- STEP_CONTRACT uses allows_parent (soft), not
+        # requires_parent (hard), so the violation is 'suggested_parent'.
         result = STEP_CONTRACT.validate_parent("step", "note")
         assert result is not None
-        assert result.violation_type == "wrong_parent"
+        assert result.violation_type == "suggested_parent"
 
 
 class TestDirectiveRegistry:
