@@ -281,7 +281,12 @@ class PatitasParser(BaseMarkdownParser):
             # the raw AST. This is O(change) instead of O(document).
             # This only affects the fragment cache — the main `ast` above is
             # always fully parsed with variable substitution.
+            # AST-first page model: store the raw AST (without variable substitution)
+            # so the pipeline can attach it to page._ast_cache after parsing.
+            # This is the canonical structural representation of the page's content.
             source_path = metadata.get("_source_path")
+            self._last_document_ast = None  # Reset for each parse call
+
             if source_path is not None:
                 try:
                     import hashlib
@@ -296,7 +301,9 @@ class PatitasParser(BaseMarkdownParser):
                     cached_ast = ContentASTCache.get_by_hash(
                         Path(source_path), body_hash
                     )
-                    if cached_ast is None:
+                    if cached_ast is not None:
+                        self._last_document_ast = cached_ast
+                    else:
                         # Hash miss — parse (incrementally if possible) and cache
                         raw_ast = self._try_incremental_parse(
                             content, Path(source_path)
@@ -304,6 +311,7 @@ class PatitasParser(BaseMarkdownParser):
                         ContentASTCache.put(
                             Path(source_path), body_hash, content, raw_ast
                         )
+                        self._last_document_ast = raw_ast
                 except Exception:
                     pass  # Best-effort — don't impact build
 

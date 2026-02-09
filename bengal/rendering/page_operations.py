@@ -104,13 +104,21 @@ class PageOperationsMixin:
         """
         Extract all links from the page content.
 
-        Skips content inside fenced code blocks to avoid false positives
-        from code examples in documentation.
+        Prefers AST extraction when a Patitas Document AST is available
+        (O(n) walk, no regex). Falls back to regex-based extraction from
+        raw markdown source for legacy parsers.
 
         Returns:
             List of link URLs found in the page
         """
-        # Regex-based extraction from raw markdown source
+        # AST-first: extract links from Patitas Document AST (O(n) walk, no regex)
+        if hasattr(self, "_ast_cache") and self._ast_cache is not None:
+            from bengal.parsing.ast.patitas_extract import extract_links_from_document
+
+            self.links = extract_links_from_document(self._ast_cache)
+            return self.links
+
+        # Fallback: regex-based extraction from raw markdown source
         # Remove fenced code blocks before extracting links
         # Process larger fences first (4+ backticks) to handle nested code blocks
         content_without_code = self._source

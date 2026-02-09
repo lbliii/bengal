@@ -139,6 +139,8 @@ class ContentASTCache:
         """Persist cached ASTs to disk for server restart survival.
 
         Uses Patitas ``to_json()`` for deterministic serialization.
+        Also writes ``_index.json`` mapping source paths to content hashes
+        so ``load_from_disk()`` can reconstruct the cache.
 
         Args:
             cache_dir: Directory to store AST cache files.
@@ -151,18 +153,28 @@ class ContentASTCache:
         except ImportError:
             return 0
 
+        import json
+
         cache_dir.mkdir(parents=True, exist_ok=True)
         count = 0
+        index: dict[str, str] = {}
         with cls._lock:
-            for content_hash, _body, ast in cls._cache.values():
+            for path, (content_hash, _body, ast) in cls._cache.items():
                 try:
                     # Use content_hash as filename for O(1) lookup
                     out_path = cache_dir / f"{content_hash}.json"
                     if not out_path.exists():
                         out_path.write_text(to_json(ast))
+                    index[str(path)] = content_hash
                     count += 1
                 except Exception:
                     continue
+
+        # Write index for load_from_disk() reconstruction
+        if index:
+            index_path = cache_dir / "_index.json"
+            index_path.write_text(json.dumps(index))
+
         return count
 
     @classmethod
@@ -350,17 +362,21 @@ def get_affected_blocks(
 def diff_content_ast(
     path: Path,
     new_body: str,
+    page_ast: Any = None,
 ) -> tuple[frozenset[str], Any] | None:
-    """Diff new content against cached AST and return affected context paths.
+    """Diff new content against old AST and return affected context paths.
 
-    Parses the new body text to a Patitas AST, diffs against the cached
-    AST for this path, and maps the changes to context paths.
+    Parses the new body text to a Patitas AST, diffs against the old AST
+    (from page._ast_cache or ContentASTCache fallback), and maps the
+    changes to context paths.
 
     Also updates the cache with the new AST for future diffs.
 
     Args:
         path: File path (cache key)
         new_body: New markdown body text (without frontmatter)
+        page_ast: Optional old AST from page._ast_cache (preferred source).
+            When provided, skips ContentASTCache lookup entirely.
 
     Returns:
         Tuple of (affected_context_paths, new_document_ast) if diff
@@ -376,26 +392,37 @@ def diff_content_ast(
 
     body_hash = hashlib.sha256(new_body.encode()).hexdigest()[:16]
 
-    # Get cached AST for incremental parsing
-    cached = ContentASTCache.get(path)
+    # Resolve old AST: prefer page._ast_cache, fall back to ContentASTCache
+    old_ast = page_ast
+    old_body = None
 
-    if cached is None:
+    if old_ast is not None:
+        # Have AST from page model — get old body from ContentASTCache if available
+        cached = ContentASTCache.get(path)
+        if cached is not None:
+            old_body = cached[0]
+    else:
+        # No page AST — try ContentASTCache
+        cached = ContentASTCache.get(path)
+        if cached is not None:
+            old_body, old_ast = cached
+
+    if old_ast is None:
         # First time — full parse, cache, and return broad context paths
         new_ast = patitas_parse(new_body, source_file=str(path))
         ContentASTCache.put(path, body_hash, new_body, new_ast)
         return frozenset({"content"}), new_ast
 
-    old_body, old_ast = cached
-
     # RFC: reactive-rebuild-architecture Phase 4a
     # Use parse_incremental() for O(change) instead of O(document) parsing.
     # Find the edit region by comparing old and new source text, then splice
     # only the edited region into the existing AST.
+    # Requires old_body for edit region detection — falls back to full parse if unavailable.
     new_ast = None
     try:
         from patitas.incremental import parse_incremental
 
-        if old_body != new_body:
+        if old_body is not None and old_body != new_body:
             # Find the first differing character (edit_start)
             min_len = min(len(old_body), len(new_body))
             edit_start = 0

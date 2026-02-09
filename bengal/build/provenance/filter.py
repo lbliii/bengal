@@ -23,6 +23,7 @@ from bengal.build.provenance.types import (
     ContentHash,
     Provenance,
     ProvenanceRecord,
+    hash_ast,
     hash_content,
     hash_dict,
     hash_file,
@@ -278,6 +279,17 @@ class ProvenanceFilter:
             if provenance.combined_hash == stored_hash:
                 pages_skipped.append(page)
             else:
+                # Phase D: Semantic comparison via AST hash.
+                # If the file hash changed but the AST structure didn't,
+                # this was a whitespace-only edit and the page can skip rebuilding.
+                if not is_virtual:
+                    stored_record = self.cache.get(page_path)
+                    if stored_record and stored_record.ast_hash:
+                        new_ast_hash = self._quick_ast_hash(page)
+                        if new_ast_hash and new_ast_hash == stored_record.ast_hash:
+                            pages_skipped.append(page)
+                            continue
+
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
@@ -343,10 +355,20 @@ class ProvenanceFilter:
             )
             return
 
+        # Compute AST-based semantic hash if page has a Patitas Document AST.
+        # This enables Phase D semantic comparison: on subsequent builds, if
+        # the file hash changed but the AST hash didn't, the change was
+        # whitespace-only and the page can skip rebuilding.
+        page_ast_hash: ContentHash | None = None
+        page_ast = getattr(page, "_ast_cache", None)
+        if page_ast is not None:
+            page_ast_hash = hash_ast(page_ast)
+
         record = ProvenanceRecord(
             page_path=page_path,
             provenance=provenance,
             output_hash=output_hash or ContentHash("_rendered_"),
+            ast_hash=page_ast_hash,
         )
         self.cache.store(record)
 
@@ -385,6 +407,65 @@ class ProvenanceFilter:
             if path not in self._file_hashes:
                 self._file_hashes[path] = computed
             return self._file_hashes[path]
+
+    def _get_content_hash(self, page: Page) -> ContentHash:
+        """Get content hash for a page, preferring AST-based semantic hashing.
+
+        For markdown pages with a cached Patitas AST, hashes the AST structure
+        instead of raw file bytes. This makes provenance semantic: whitespace
+        and formatting changes that don't alter the AST produce the same hash.
+
+        Falls back to file hashing when no AST is available.
+
+        Args:
+            page: The page to hash
+
+        Returns:
+            ContentHash (AST-based or file-based)
+        """
+        # Prefer AST-based hash for semantic provenance
+        ast = getattr(page, "_ast_cache", None)
+        if ast is not None:
+            ast_h = hash_ast(ast)
+            if ast_h != ContentHash("_no_ast_"):
+                return ast_h
+
+        # Fallback: raw file hash
+        return self._get_file_hash(page.source_path)
+
+    def _quick_ast_hash(self, page: Page) -> ContentHash | None:
+        """Quick-parse a page's source file to get an AST hash for semantic comparison.
+
+        Used during provenance filtering to detect whitespace-only changes.
+        Only called for file-hash misses that have a stored AST hash, so the
+        parse cost is amortized against the full rebuild cost saved.
+
+        This performs a minimal parse: reads file → strips frontmatter → parses
+        body to Patitas AST → hashes the AST. No variable substitution or plugin
+        processing is performed.
+
+        Returns:
+            ContentHash of the AST, or None if parsing fails.
+        """
+        try:
+            source = page.source_path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+        # Strip frontmatter (YAML between --- delimiters)
+        body = source
+        if source.startswith("---"):
+            end = source.find("\n---", 3)
+            if end != -1:
+                body = source[end + 4:].lstrip("\n")
+
+        try:
+            from patitas import parse
+
+            doc = parse(body)
+            return hash_ast(doc)
+        except Exception:
+            return None
 
     def _get_cascade_sources(self, page: Page) -> list[Path]:
         """
@@ -499,8 +580,8 @@ class ProvenanceFilter:
             if not page.source_path.exists():
                 return None  # File missing - need full check
 
-            # Fast path: Compute content hash
-            content_hash = self._get_file_hash(page.source_path)
+            # AST-first: prefer semantic AST hash, fall back to file hash
+            content_hash = self._get_content_hash(page)
         except OSError:
             # File system error (deleted, permission denied, etc.)
             return None
@@ -560,10 +641,10 @@ class ProvenanceFilter:
         is_virtual = getattr(page, "_virtual", False)
 
         if not is_virtual:
-            # Real content page - hash the markdown file
+            # Real content page — prefer AST-based semantic hash, fall back to file hash
             try:
                 if page.source_path.exists():
-                    content_hash = self._get_file_hash(page.source_path)
+                    content_hash = self._get_content_hash(page)
                     provenance = provenance.with_input("content", rel_path, content_hash)
             except OSError:
                 pass  # File system error - skip content input

@@ -1110,11 +1110,17 @@ class BuildTrigger:
                 ast_result = None
 
                 if content_changed:
-                    # AST-level diff to determine which content context paths changed
-                    ast_result = diff_content_ast(path, body)
+                    # AST-level diff to determine which content context paths changed.
+                    # Pass page._ast_cache as the old AST (preferred over side-channel).
+                    ast_result = diff_content_ast(
+                        path, body, page_ast=getattr(page, "_ast_cache", None)
+                    )
                     if ast_result is not None:
-                        ast_ctx_paths, _new_ast = ast_result
+                        ast_ctx_paths, new_ast = ast_result
                         all_changed_ctx.update(ast_ctx_paths)
+
+                        # Update the page's AST so it stays current for next diff
+                        page._ast_cache = new_ast
 
                         if not ast_ctx_paths and not extra_ctx:
                             # No structural change and no fm change — skip

@@ -39,6 +39,29 @@ def hash_file(path: Path, truncate: int = 16) -> ContentHash:
         return ContentHash("_missing_")
 
 
+def hash_ast(ast: Any, truncate: int = 16) -> ContentHash:
+    """Compute semantic hash from a Patitas Document AST.
+
+    Hashes the AST structure (via JSON serialization) instead of raw file
+    bytes. This makes provenance semantic: whitespace/formatting changes
+    that don't alter the AST produce the same hash.
+
+    Args:
+        ast: Patitas Document (frozen dataclass)
+        truncate: Hash truncation length
+
+    Returns:
+        ContentHash of the AST structure, or "_no_ast_" if serialization fails
+    """
+    try:
+        from patitas.serialization import to_json
+
+        json_str = to_json(ast)
+        return ContentHash(hash_str(json_str, truncate=truncate))
+    except Exception:
+        return ContentHash("_no_ast_")
+
+
 def hash_dict(data: dict[str, Any], truncate: int = 16) -> ContentHash:
     """Compute hash of dictionary (for config, metadata)."""
     return ContentHash(_hash_dict(data, truncate=truncate))
@@ -137,13 +160,20 @@ class ProvenanceRecord:
     # Output hash (for integrity verification)
     output_hash: ContentHash
 
+    # AST-based semantic hash (Phase D of AST-First Page Model).
+    # Computed from the Patitas Document AST after parsing.
+    # When present, allows semantic comparison: if the file hash changed
+    # but the AST hash didn't, the change was whitespace-only and the
+    # page can skip rebuilding.
+    ast_hash: ContentHash | None = None
+
     # Metadata
     created_at: datetime = field(default_factory=datetime.now)
     build_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to JSON-compatible dict."""
-        return {
+        result: dict[str, Any] = {
             "page_path": self.page_path,
             "inputs": [
                 {"type": inp.input_type, "path": inp.path, "hash": inp.hash}
@@ -154,6 +184,9 @@ class ProvenanceRecord:
             "created_at": self.created_at.isoformat(),
             "build_id": self.build_id,
         }
+        if self.ast_hash is not None:
+            result["ast_hash"] = self.ast_hash
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ProvenanceRecord:
@@ -162,6 +195,7 @@ class ProvenanceRecord:
             InputRecord(inp["type"], CacheKey(inp["path"]), ContentHash(inp["hash"]))
             for inp in data.get("inputs", [])
         )
+        ast_hash_raw = data.get("ast_hash")
         return cls(
             page_path=CacheKey(data["page_path"]),
             provenance=Provenance(
@@ -169,6 +203,7 @@ class ProvenanceRecord:
                 combined_hash=ContentHash(data.get("combined_hash", "")),
             ),
             output_hash=ContentHash(data.get("output_hash", "")),
+            ast_hash=ContentHash(ast_hash_raw) if ast_hash_raw else None,
             created_at=datetime.fromisoformat(data.get("created_at", datetime.now().isoformat())),
             build_id=data.get("build_id", ""),
         )

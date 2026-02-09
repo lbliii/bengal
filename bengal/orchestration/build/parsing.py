@@ -125,6 +125,36 @@ def phase_parse_content(
                 changed_sources_count=len(changed_sources),
             )
 
+    # Phase E: Load cached ASTs for pages that won't be re-parsed.
+    # Pages with html_content from the snapshot cache still need their
+    # _ast_cache populated for AST-first features (links, toc, plain_text)
+    # and provenance hashing. Uses ContentASTCache loaded at build start.
+    import hashlib
+
+    from bengal.server.fragment_update import ContentASTCache
+
+    _ast_cache_loaded = 0
+    for page in pages_to_build:
+        # Only populate AST for pages that already have cached html_content
+        # (i.e., not in pages_to_parse — those will get ASTs from parsing)
+        if page in pages_to_parse:
+            continue
+        raw = getattr(page, "_raw_content", None) or getattr(page, "content", None)
+        if not isinstance(raw, str) or not raw:
+            continue
+        body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        cached_ast = ContentASTCache.get_by_hash(page.source_path, body_hash)
+        if cached_ast is not None:
+            page._ast_cache = cached_ast  # type: ignore[attr-defined]
+            _ast_cache_loaded += 1
+
+    if _ast_cache_loaded > 0:
+        logger.info(
+            "ast_cache_loaded_for_cached_pages",
+            loaded=_ast_cache_loaded,
+            total_cached=len(pages_to_build) - len(pages_to_parse),
+        )
+
     # Parse pages that need parsing
     def parse_page(page: Page) -> None:
         """Parse a single page's markdown content."""
@@ -220,12 +250,27 @@ def phase_parse_content(
             pages_parsed=len(pages_to_parse),
         )
 
+    # Phase E: Populate ContentASTCache with ASTs from freshly parsed pages.
+    # These will be persisted to disk in the build __init__.py after this phase.
+    _ast_cache_stored = 0
+    for page in pages_to_parse:
+        page_ast = getattr(page, "_ast_cache", None)
+        if page_ast is not None:
+            raw = getattr(page, "_raw_content", None) or getattr(page, "content", None)
+            if isinstance(raw, str) and raw:
+                body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
+                ContentASTCache.put(page.source_path, body_hash, raw, page_ast)
+                _ast_cache_stored += 1
+
+    if _ast_cache_stored > 0:
+        logger.info("ast_cache_stored_after_parsing", stored=_ast_cache_stored)
+
     parsing_duration_ms = (time.time() - parsing_start) * 1000
     if hasattr(orchestrator.stats, "parsing_time_ms"):
         orchestrator.stats.parsing_time_ms = parsing_duration_ms
 
-    # Track cache statistics
+    # Track cache statistics (include AST cache loads)
     if hasattr(orchestrator.stats, "parsing_cache_hits"):
-        orchestrator.stats.parsing_cache_hits = cache_hits
+        orchestrator.stats.parsing_cache_hits = cache_hits + _ast_cache_loaded
 
     return len(pages_to_parse)

@@ -331,6 +331,15 @@ class BuildOrchestrator:
         with logger.phase("initialization"):
             cache = self.incremental.initialize(enabled=True)  # Always load cache
 
+        # Phase E: Load disk-cached ASTs for incremental build parsing reuse.
+        # Pages with matching content hashes can skip full parsing entirely.
+        from bengal.server.fragment_update import ContentASTCache
+
+        ast_cache_dir = self.site.root_path / ".bengal" / "cache" / "ast"
+        ast_loaded = ContentASTCache.load_from_disk(ast_cache_dir)
+        if ast_loaded > 0:
+            cli.detail(f"Loaded {ast_loaded} cached ASTs", indent=1, icon=cli.icons.arrow)
+
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
         from bengal.cache.generated_page_cache import GeneratedPageCache
@@ -524,6 +533,22 @@ class BuildOrchestrator:
         cli.phase(
             "Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages"
         )
+
+        # Phase E: Save page ASTs to disk after parsing for incremental reuse.
+        # Populates ContentASTCache from page._ast_cache, then persists to disk.
+        import hashlib
+
+        for page in pages_to_build:
+            page_ast = getattr(page, "_ast_cache", None)
+            if page_ast is not None:
+                raw = getattr(page, "_raw_content", None)
+                if isinstance(raw, str) and raw:
+                    body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
+                    ContentASTCache.put(page.source_path, body_hash, raw, page_ast)
+
+        ast_saved = ContentASTCache.save_to_disk(ast_cache_dir)
+        if ast_saved > 0:
+            logger.info("ast_cache_saved", count=ast_saved, cache_dir=str(ast_cache_dir))
 
         # === SNAPSHOT CREATION (after parsing, before rendering) ===
         # Create immutable snapshot for lock-free parallel rendering

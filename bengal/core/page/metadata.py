@@ -347,8 +347,9 @@ class PageMetadataMixin:
         """
         Get structured TOC data (lazy evaluation).
 
-        Only extracts TOC structure when accessed by templates, saving
-        HTMLParser overhead for pages that don't use toc_items.
+        Prefers AST extraction when a Patitas Document AST is available
+        (direct walk, no HTMLParser). Falls back to HTML-based extraction
+        from ``page.toc`` for legacy parsers.
 
         Important: This property does NOT cache empty results. This allows
         toc_items to be accessed before parsing (during xref indexing) without
@@ -357,10 +358,22 @@ class PageMetadataMixin:
         Returns:
             List of TOC items with id, title, and level
         """
-        # Only extract and cache if we haven't extracted yet AND toc exists
+        # Return cached value immediately
+        if self._toc_items_cache is not None:
+            return self._toc_items_cache
+
+        # AST-first: extract TOC from Patitas Document AST (direct walk, no HTMLParser)
+        if hasattr(self, "_ast_cache") and self._ast_cache is not None:
+            from bengal.parsing.ast.patitas_extract import extract_toc_from_document
+
+            items = extract_toc_from_document(self._ast_cache)
+            if items:
+                self._toc_items_cache = items
+                return items
+
+        # Fallback: HTML-based extraction from toc string
         # Don't cache empty results - toc might be set later during parsing
-        if self._toc_items_cache is None and self.toc:
-            # Import here to avoid circular dependency
+        if self.toc:
             from bengal.rendering.pipeline import extract_toc_structure
 
             self._toc_items_cache = extract_toc_structure(self.toc)

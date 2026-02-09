@@ -508,8 +508,16 @@ class RenderingPipeline:
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
-            # Extract AST for caching
-            if (
+            # AST-first page model: attach the Patitas Document AST to the page.
+            # The wrapper stores it as _last_document_ast during parsing (no extra
+            # parse call needed). This makes page._ast_cache the canonical structural
+            # representation of the page's content.
+            if hasattr(self.parser, "_last_document_ast") and self.parser._last_document_ast is not None:
+                page._ast_cache = self.parser._last_document_ast
+
+            # Legacy: Extract AST tokens for old persist_tokens config path.
+            # This is kept for backward compatibility with mistune-style ASTs.
+            elif (
                 hasattr(self.parser, "supports_ast")
                 and self.parser.supports_ast
                 and hasattr(self.parser, "parse_to_ast")

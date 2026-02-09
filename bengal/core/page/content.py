@@ -1,49 +1,42 @@
 """
 Page Content Mixin - AST-based content representation.
 
-This module provides the true AST architecture for content processing,
-providing structured content access (HTML, plain text, AST).
+This module provides the AST-first content architecture where
+the Patitas Document AST is the structural source of truth.
 
 Architecture:
-- _ast: True AST from parser (list of tokens) - Phase 3
-- html: HTML rendered from AST (or html_content field)
-- plain_text: Plain text for search/LLM (AST walk or raw markdown)
+- _ast_cache: Patitas Document AST (frozen dataclass tree)
+- html_content: HTML rendered from AST (derived view)
+- plain_text: Plain text for search/LLM (AST walk or HTML stripping)
 
 Benefits:
-- Parse once, use many times
-- Faster post-processing (O(n) AST walks vs regex)
-- Cleaner transformations (shortcodes at AST level)
-- Better caching (cache AST separately from HTML)
-
-See: plan/active/rfc-content-ast-architecture.md
+- Parse once, use many times (HTML, TOC, plain text, links)
+- Incremental diffing via Patitas diff_documents()
+- Fragment updates via AST comparison
+- Semantic provenance hashing (AST structure, not raw bytes)
+- Better caching (AST serializable via to_json/from_json)
 
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
 
-from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.text import strip_html_and_normalize
-
-if TYPE_CHECKING:
-    from bengal.parsing.ast.types import ASTNode
 
 
 class PageContentMixin:
     """
     Mixin providing AST-based content properties for pages.
 
-    This mixin handles content representation across multiple formats:
-    - AST (Abstract Syntax Tree) - structural representation (Phase 3)
-    - HTML - rendered for display (via .content property)
-    - Plain text - for search indexing and LLM
-
-    All properties use lazy evaluation with caching for performance.
+    The Patitas Document AST is the canonical content representation.
+    HTML, plain text, and TOC are derived views of the AST.
 
     Key Properties:
         content: Rendered HTML content (template-ready, display output)
         html: Alias for content (rendered HTML)
+        ast: Patitas Document AST (frozen dataclass tree)
+        plain_text: Plain text for search indexing and LLM
         _source: Raw markdown source (internal use, via PageComputedMixin)
 
     """
@@ -55,7 +48,8 @@ class PageContentMixin:
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)
-    _ast_cache: list[ASTNode] | None
+    # _ast_cache: Patitas Document (frozen dataclass) or None
+    _ast_cache: Any
     _html_cache: str | None
     _plain_text_cache: str | None
 
@@ -84,27 +78,23 @@ class PageContentMixin:
         return self.html
 
     @property
-    def ast(self) -> list[ASTNode] | None:
+    def ast(self) -> Any:
         """
-        True AST - list of tokens from markdown parser.
+        Patitas Document AST — the structural source of truth.
 
-        Returns the structural representation of content as parsed by the
-        markdown engine. This enables efficient multi-output generation:
-        - HTML rendering
-        - Plain text extraction
-        - TOC generation
-        - Link extraction
+        Returns the frozen Patitas Document dataclass tree parsed from
+        the page's markdown content. This enables:
+        - Incremental diffing (diff_documents)
+        - Fragment updates (AST comparison)
+        - Multi-output generation (HTML, TOC, plain text, links)
+        - Semantic provenance hashing
 
         Returns:
-            List of AST tokens if available, None if parser doesn't support AST.
-
-        Note:
-            Returns None until Phase 3 AST support is implemented.
-            See plan/active/rfc-content-ast-architecture.md for timeline.
+            Patitas Document (frozen dataclass) if available, None otherwise.
 
         Example:
             >>> page.ast
-            [{'type': 'heading', 'level': 1, 'children': [...]}, ...]
+            Document(children=(Heading(...), Paragraph(...), ...))
         """
         if hasattr(self, "_ast_cache"):
             return self._ast_cache
@@ -113,10 +103,12 @@ class PageContentMixin:
     @property
     def html(self) -> str:
         """
-        HTML content rendered from AST or legacy parser.
+        HTML content rendered from the pipeline or AST fallback.
 
-        This is the preferred way to access rendered HTML content.
-        Preferred access over direct html_content field.
+        Prefers html_content (set by the full rendering pipeline with
+        variable substitution, heading IDs, and post-processing).
+        Falls back to rendering from the Patitas AST when html_content
+        is missing (e.g., page loaded from disk cache).
 
         Returns:
             Rendered HTML string
@@ -125,26 +117,30 @@ class PageContentMixin:
             >>> page.html
             '<h1>Hello World</h1><p>Content here...</p>'
         """
-        # Check cache first (for when AST is available)
+        # Primary: html_content from the rendering pipeline
+        if self.html_content:
+            return self.html_content
+
+        # Secondary: cached HTML (from previous AST render)
         if hasattr(self, "_html_cache") and self._html_cache is not None:
             return self._html_cache
 
-        # If we have true AST, render from it (Phase 3)
+        # Fallback: render from Patitas AST if available
         if hasattr(self, "_ast_cache") and self._ast_cache is not None:
             html = self._render_ast_to_html()
-            if hasattr(self, "_html_cache"):
+            if html and hasattr(self, "_html_cache"):
                 self._html_cache = html
             return html
 
-        return self.html_content if self.html_content else ""
+        return ""
 
     @property
     def plain_text(self) -> str:
         """
         Plain text extracted from content (for search/LLM).
 
-        Uses AST extraction when available (faster, more accurate),
-        falling back to HTML tag stripping for legacy content.
+        Uses Patitas Document AST extraction when available (faster, more
+        accurate), falling back to HTML tag stripping for legacy content.
 
         Returns:
             Plain text content
@@ -157,14 +153,17 @@ class PageContentMixin:
         if hasattr(self, "_plain_text_cache") and self._plain_text_cache is not None:
             return self._plain_text_cache
 
-        # Prefer AST extraction (Phase 3) - faster and more accurate
-        if hasattr(self, "_ast_cache") and self._ast_cache:
-            from bengal.parsing.ast.utils import extract_plain_text
+        # Prefer Patitas Document AST extraction (fast, accurate)
+        if hasattr(self, "_ast_cache") and self._ast_cache is not None:
+            from bengal.parsing.ast.patitas_extract import (
+                extract_plain_text_from_document,
+            )
 
-            text = extract_plain_text(self._ast_cache)
-            if hasattr(self, "_plain_text_cache"):
-                self._plain_text_cache = text
-            return text
+            text = extract_plain_text_from_document(self._ast_cache)
+            if text:
+                if hasattr(self, "_plain_text_cache"):
+                    self._plain_text_cache = text
+                return text
 
         # Fallback: Use HTML-based extraction (works correctly with directives)
         html_content = getattr(self, "html_content", None) or ""
@@ -180,11 +179,12 @@ class PageContentMixin:
 
     def _render_ast_to_html(self) -> str:
         """
-        Render AST tokens to HTML.
+        Render Patitas Document AST to HTML.
 
-        Internal method for future AST-based pipeline (Phase 3).
-        Currently returns empty string — Patitas renders directly to HTML
-        and does not populate _ast_cache.
+        Uses Patitas' own HtmlRenderer for correct output. In the normal
+        pipeline, html_content is set during parsing and this method is not
+        called. It serves as a fallback when html_content is missing but
+        the AST is available (e.g., loaded from disk cache).
 
         Returns:
             Rendered HTML string
@@ -192,20 +192,13 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        # Future: implement AST-to-HTML rendering when AST pipeline lands
-        emit_diagnostic(
-            self,
-            "debug",
-            "page_ast_to_html_not_implemented",
-            action="returning_empty_string",
-        )
-        return ""
+        from bengal.parsing.ast.patitas_extract import render_document_to_html
+
+        return render_document_to_html(self._ast_cache)
 
     def _extract_text_from_ast(self) -> str:
         """
-        Extract plain text from AST tokens.
-
-        Delegates to ast_utils.extract_plain_text for consistency.
+        Extract plain text from Patitas Document AST.
 
         Returns:
             Plain text string
@@ -213,15 +206,15 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        from bengal.parsing.ast.utils import extract_plain_text
+        from bengal.parsing.ast.patitas_extract import (
+            extract_plain_text_from_document,
+        )
 
-        return extract_plain_text(self._ast_cache)
+        return extract_plain_text_from_document(self._ast_cache)
 
     def _extract_links_from_ast(self) -> list[str]:
         """
-        Extract links from AST tokens.
-
-        Delegates to ast_utils.extract_links_from_ast for consistency.
+        Extract links from Patitas Document AST.
 
         Returns:
             List of link URLs
@@ -229,9 +222,11 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return []
 
-        from bengal.parsing.ast.utils import extract_links_from_ast
+        from bengal.parsing.ast.patitas_extract import (
+            extract_links_from_document,
+        )
 
-        return extract_links_from_ast(self._ast_cache)
+        return extract_links_from_document(self._ast_cache)
 
     def _strip_html_to_text(self, html: str) -> str:
         """

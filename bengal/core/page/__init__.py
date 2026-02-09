@@ -64,7 +64,6 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.series import Series
     from bengal.core.site import Site
-    from bengal.parsing.ast.types import ASTNode
     from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
@@ -222,9 +221,12 @@ class Page(
     _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
     _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
 
-    # Private caches for AST-based content (Phase 3 of RFC)
-    # See: plan/active/rfc-content-ast-architecture.md
-    _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
+    # Patitas Document AST — the structural source of truth for this page's content.
+    # Populated during parsing by the Patitas wrapper. Enables incremental diffing,
+    # fragment updates, multi-output derivation (HTML, TOC, plain text), and
+    # AST-driven provenance hashing.
+    # Type is Any because Patitas is an external dependency (cannot import into core).
+    _ast_cache: Any = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 
