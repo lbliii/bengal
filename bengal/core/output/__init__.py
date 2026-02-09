@@ -18,7 +18,19 @@ False
 
 """
 
-from bengal.core.output.collector import BuildOutputCollector, OutputCollector
+from bengal.core.output.collector import (
+    NULL_COLLECTOR,
+    BuildOutputCollector,
+    NullOutputCollector,
+    OutputCollector,
+)
 from bengal.core.output.types import OutputRecord, OutputType
 
-__all__ = ["BuildOutputCollector", "OutputCollector", "OutputRecord", "OutputType"]
+__all__ = [
+    "NULL_COLLECTOR",
+    "BuildOutputCollector",
+    "NullOutputCollector",
+    "OutputCollector",
+    "OutputRecord",
+    "OutputType",
+]

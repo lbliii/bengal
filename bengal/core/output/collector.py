@@ -23,7 +23,60 @@ if TYPE_CHECKING:
     from typing import Literal
 
 # Re-export for backwards compatibility
-__all__ = ["BuildOutputCollector", "OutputCollector"]
+__all__ = ["NULL_COLLECTOR", "BuildOutputCollector", "NullOutputCollector", "OutputCollector"]
+
+
+class NullOutputCollector:
+    """No-op OutputCollector sentinel. Satisfies the protocol, records nothing.
+
+    Use as a default when no real collector is needed, eliminating
+    None-guards in consumers. Mirrors the NO_SECTION sentinel pattern.
+
+    Example:
+        >>> collector = NULL_COLLECTOR
+        >>> collector.record(Path("test.html"))  # no-op
+        >>> collector.get_outputs()
+        []
+    """
+
+    __slots__ = ()
+
+    def record(
+        self,
+        path: Path,
+        output_type: OutputType | None = None,
+        phase: Literal["render", "asset", "postprocess"] = "render",
+    ) -> None:
+        """No-op: discard the record."""
+
+    def get_outputs(
+        self,
+        output_type: OutputType | None = None,
+    ) -> list[OutputRecord]:
+        """Return empty list."""
+        return []
+
+    def css_only(self) -> bool:
+        """No outputs means not CSS-only."""
+        return False
+
+    def clear(self) -> None:
+        """No-op: nothing to clear."""
+
+    def __len__(self) -> int:
+        """Always zero outputs."""
+        return 0
+
+    def __bool__(self) -> bool:
+        """Falsy so existing ``if collector:`` guards still work during migration."""
+        return False
+
+    def __repr__(self) -> str:
+        return "NULL_COLLECTOR"
+
+
+# Module-level sentinel (immutable, no state, safe to share across threads)
+NULL_COLLECTOR = NullOutputCollector()
 
 
 class BuildOutputCollector:
