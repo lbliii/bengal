@@ -134,6 +134,14 @@ class TestFlagPropagation:
         assert hasattr(options, "strict")
         assert options.strict is False  # Should default to False
 
+    def test_build_options_has_target_outputs(self):
+        """Test that target_outputs field exists in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
+
+        options = BuildOptions()
+        assert hasattr(options, "target_outputs")
+        assert options.target_outputs == frozenset()
+
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""
         import inspect
@@ -172,6 +180,18 @@ class TestValidateFlag:
 
     # Note: Full integration test would require a test site with templates
     # This is covered by integration tests
+
+
+class TestTargetOutputFlag:
+    """Test --target-output flag functionality."""
+
+    def test_target_output_flag_exists(self):
+        """Test that --target-output flag is recognized."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["site", "build", "--help"])
+
+        assert "--target-output" in result.output
+        assert "output keys" in result.output.lower()
 
 
 class TestStrictMode:
@@ -299,9 +319,9 @@ class TestFastMode:
             # The command will fail at Site.from_config but should parse --fast flag
             result = runner.invoke(main, ["site", "build", "--fast", "."])
 
-            # Flag should be accepted without validation error
-            # (The actual behavior - quiet output and parallel - is tested in integration tests)
-            assert "--fast" not in result.output  # No error about unknown flag
+            # Flag should be accepted without parse-time option errors.
+            # (Actual behavior is covered by integration tests.)
+            assert "No such option: --fast" not in result.output
 
     def test_no_fast_flag_disables_fast_mode(self):
         """Test that --no-fast explicitly disables fast mode."""

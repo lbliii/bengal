@@ -164,7 +164,8 @@ class ContentASTCache:
 
         Uses Patitas ``to_json()`` for deterministic serialization.
         Also writes ``_index.json`` mapping source paths to content hashes
-        so ``load_from_disk()`` can reconstruct the cache.
+        and body text so ``load_from_disk()`` can reconstruct the cache and
+        preserve incremental parse quality after restart.
 
         Args:
             cache_dir: Directory to store AST cache files.
@@ -181,9 +182,9 @@ class ContentASTCache:
 
         cache_dir.mkdir(parents=True, exist_ok=True)
         count = 0
-        index: dict[str, str] = {}
+        index: dict[str, dict[str, str]] = {}
         with cls._lock:
-            for path, (content_hash, _body, ast) in cls._cache.items():
+            for path, (content_hash, body, ast) in cls._cache.items():
                 if not is_document_ast(ast):
                     continue
                 try:
@@ -191,7 +192,7 @@ class ContentASTCache:
                     out_path = cache_dir / f"{content_hash}.json"
                     if not out_path.exists():
                         out_path.write_text(to_json(ast))
-                    index[str(path)] = content_hash
+                    index[str(path)] = {"hash": content_hash, "body": body}
                     count += 1
                 except Exception as save_err:
                     logger.debug(
@@ -239,19 +240,35 @@ class ContentASTCache:
         try:
             import json
 
-            index: dict[str, str] = json.loads(index_path.read_text())
+            index_data: dict[str, str | dict[str, str]] = json.loads(index_path.read_text())
         except Exception:
             return 0
 
         with cls._lock:
-            for path_str, content_hash in index.items():
+            for path_str, entry in index_data.items():
+                if isinstance(entry, str):
+                    # Backward compatibility with legacy index format:
+                    # {"path": "content_hash"}
+                    content_hash = entry
+                    body = ""
+                else:
+                    content_hash = entry.get("hash", "")
+                    body = entry.get("body", "")
+
+                if not content_hash:
+                    continue
+
                 ast_path = cache_dir / f"{content_hash}.json"
                 if not ast_path.exists():
                     continue
                 try:
                     ast = from_json(ast_path.read_text())
                     if is_document_ast(ast):
-                        cls._cache[Path(path_str)] = (content_hash, "", ast)
+                        cls._cache[Path(path_str)] = (
+                            content_hash,
+                            body if isinstance(body, str) else "",
+                            ast,
+                        )
                         count += 1
                 except Exception:
                     continue

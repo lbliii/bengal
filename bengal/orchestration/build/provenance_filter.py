@@ -32,6 +32,7 @@ from bengal.orchestration.build.results import (
 )
 from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.output import determine_output_path
+from bengal.snapshots.utils import resolve_template_name
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -78,7 +79,21 @@ def _detect_changed_data_files(
                 changed.add(data_file)
                 continue
 
-            # Check if file changed (compare hash)
+            try:
+                stat = data_file.stat()
+            except OSError:
+                # File error - treat as changed
+                changed.add(data_file)
+                continue
+
+            # Fast path: unchanged mtime + size means unchanged content.
+            if (
+                stored.get("mtime") == stat.st_mtime
+                and stored.get("size") == stat.st_size
+            ):
+                continue
+
+            # Slow path: mtime/size changed, verify by content hash.
             try:
                 current_hash = hash_file(data_file)
                 if stored.get("hash") != current_hash:
@@ -135,6 +150,21 @@ def _detect_changed_templates(
             stored = cache.file_fingerprints.get(file_key)
 
             try:
+                stat = tpl_file.stat()
+            except OSError:
+                # File error - treat as changed, skip fingerprint update
+                changed.add(tpl_file)
+                continue
+
+            # Fast path: unchanged mtime + size means unchanged template.
+            if (
+                stored is not None
+                and stored.get("mtime") == stat.st_mtime
+                and stored.get("size") == stat.st_size
+            ):
+                continue
+
+            try:
                 current_hash = hash_file(tpl_file)
             except OSError:
                 # File error - treat as changed, skip fingerprint update
@@ -146,15 +176,11 @@ def _detect_changed_templates(
 
             # Always store current fingerprint so the cache has it for
             # the next incremental build (store-after-compare pattern).
-            try:
-                stat = tpl_file.stat()
-                cache.file_fingerprints[file_key] = {
-                    "mtime": stat.st_mtime,
-                    "size": stat.st_size,
-                    "hash": current_hash,
-                }
-            except OSError:
-                pass
+            cache.file_fingerprints[file_key] = {
+                "mtime": stat.st_mtime,
+                "size": stat.st_size,
+                "hash": current_hash,
+            }
 
     if changed:
         logger.debug(
@@ -184,12 +210,16 @@ def _get_pages_for_data_file(
         Set of page source paths that depend on this data file
     """
     dep_key = f"data:{data_file}"
-    pages: set[Path] = set()
+    dependents = cache.reverse_dependencies.get(dep_key, set())
+    if dependents:
+        return {Path(page_str) for page_str in dependents}
 
+    # Backward-compatible fallback for older caches that only have
+    # forward dependency edges.
+    pages: set[Path] = set()
     for page_str, deps in cache.dependencies.items():
         if dep_key in deps:
             pages.add(Path(page_str))
-
     return pages
 
 
@@ -210,20 +240,110 @@ def _get_pages_for_template(
     Returns:
         Set of page source paths that use this template
     """
-    pages: set[Path] = set()
     template_key = str(template_path)
 
-    # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
-    for page_str in dependents:
-        pages.add(Path(page_str))
+    if dependents:
+        return {Path(page_str) for page_str in dependents}
 
-    # Also check forward dependencies (for completeness)
+    # Backward-compatible fallback for older caches that only have
+    # forward dependency edges.
+    pages: set[Path] = set()
     for page_str, deps in cache.dependencies.items():
         if template_key in deps:
             pages.add(Path(page_str))
 
     return pages
+
+
+def _template_dirs_for_site(site: SiteLike) -> list[Path]:
+    """Return all template directories used by the site."""
+    template_dirs: list[Path] = []
+    site_templates = site.root_path / "templates"
+    if site_templates.exists():
+        template_dirs.append(site_templates)
+
+    theme_path = getattr(site, "theme_path", None)
+    if isinstance(theme_path, Path):
+        theme_templates = theme_path / "templates"
+        if theme_templates.exists():
+            template_dirs.append(theme_templates)
+
+    return template_dirs
+
+
+def _resolve_template_names_for_page(page: Page) -> set[str]:
+    """Extract best-effort template names for a page."""
+    names: set[str] = set()
+    metadata = getattr(page, "metadata", {})
+    for key in ("template", "layout", "_autodoc_template"):
+        value = metadata.get(key)
+        if value:
+            names.add(str(value))
+
+    # Include resolver fallback so pages without explicit template metadata
+    # still get template dependency indexing.
+    resolved = resolve_template_name(page)
+    if resolved:
+        names.add(str(resolved))
+
+    return names
+
+
+def _resolve_template_candidates(name: str, template_dirs: list[Path]) -> list[Path]:
+    """Resolve template name to candidate template files."""
+    raw = Path(name)
+    candidates: list[Path] = []
+
+    # Absolute path already points to a concrete template.
+    if raw.is_absolute():
+        return [raw]
+
+    names = {name}
+    if raw.suffix == "":
+        names.add(f"{name}.html")
+
+    for template_dir in template_dirs:
+        for candidate_name in names:
+            candidates.append(template_dir / candidate_name)
+
+    return candidates
+
+
+def _index_template_dependencies(cache: BuildCache, site: SiteLike, pages: list[Page]) -> None:
+    """Populate BuildCache template dependency graph from discovered pages."""
+    template_dirs = _template_dirs_for_site(site)
+    if not template_dirs:
+        return
+
+    template_dir_prefixes = tuple(str(path) for path in template_dirs)
+    html_suffix = ".html"
+
+    for page in pages:
+        source_key = str(page.source_path)
+        existing = cache.dependencies.get(source_key, set())
+        template_deps = {
+            dep
+            for dep in existing
+            if dep.endswith(html_suffix) and dep.startswith(template_dir_prefixes)
+        }
+
+        # Remove stale template dependencies from forward+reverse graphs.
+        for dep_key in template_deps:
+            existing.discard(dep_key)
+            reverse = cache.reverse_dependencies.get(dep_key)
+            if reverse is not None:
+                reverse.discard(source_key)
+                if not reverse:
+                    del cache.reverse_dependencies[dep_key]
+
+        if not existing and source_key in cache.dependencies:
+            del cache.dependencies[source_key]
+
+        for template_name in _resolve_template_names_for_page(page):
+            for candidate in _resolve_template_candidates(template_name, template_dirs):
+                if candidate.exists():
+                    cache.add_dependency(page.source_path, candidate)
 
 
 def _get_taxonomy_term_pages_for_member(
@@ -303,20 +423,34 @@ def _expand_forced_changed(
                 expanded.add(page_path)
                 reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
 
-    # Gap 3: Detect template changes
-    # Per-page template dependencies are not yet recorded in BuildCache,
-    # so _get_pages_for_template() would always return empty.  Instead,
-    # fall back to rebuilding ALL pages when any template changes -- any
-    # page could reference any template via extends/includes.
+    # Gap 3: Detect template changes.
+    # Build per-page template dependency index first so template changes
+    # can invalidate only affected pages.
+    _index_template_dependencies(cache, site, pages)
     changed_templates = _detect_changed_templates(cache, site)
     if changed_templates:
-        template_names = ", ".join(t.name for t in changed_templates)
-        for page in pages:
-            if page.source_path not in expanded:
-                expanded.add(page.source_path)
-                reasons.setdefault(str(page.source_path), []).append(
-                    f"template_changed:{template_names}"
-                )
+        dependency_hit = False
+        for template_path in changed_templates:
+            affected_pages = _get_pages_for_template(cache, template_path)
+            if affected_pages:
+                dependency_hit = True
+                for page_path in affected_pages:
+                    if page_path not in expanded:
+                        expanded.add(page_path)
+                        reasons.setdefault(str(page_path), []).append(
+                            f"template:{template_path.name}"
+                        )
+
+        # Safety fallback: dependency graph may be incomplete (e.g. includes/extends
+        # not captured yet), so preserve correctness by rebuilding all pages.
+        if not dependency_hit:
+            template_names = ", ".join(t.name for t in changed_templates)
+            for page in pages:
+                if page.source_path not in expanded:
+                    expanded.add(page.source_path)
+                    reasons.setdefault(str(page.source_path), []).append(
+                        f"template_changed:{template_names}"
+                    )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
@@ -390,17 +524,16 @@ def phase_incremental_filter_provenance(
         # - Data file changes → dependent pages
         # - Template changes → dependent pages
         # - Content changes → taxonomy term pages
-        pages_list_for_deps = list(site.pages)
+        pages_list = list(site.pages)
         forced_changed, dependency_reasons = _expand_forced_changed(
             forced_changed,
             cache,
             site,
-            pages_list_for_deps,
+            pages_list,
         )
 
         # Filter pages and assets
         filter_start = time.time()
-        pages_list = list(site.pages)
         assets_list = list(site.assets)
 
         # CRITICAL: If no pages were discovered, attempt recovery
@@ -528,6 +661,7 @@ def phase_incremental_filter_provenance(
         if result.affected_tags and incremental:
             taxonomy_pages_to_add: list[Page] = []
             pages_to_build_sources = {p.source_path for p in result.pages_to_build}
+            affected_tag_lowers = {t.lower() for t in result.affected_tags}
 
             for page in pages_list:
                 # Check if this is a taxonomy term page
@@ -550,7 +684,7 @@ def phase_incremental_filter_provenance(
 
                 if (
                     term
-                    and str(term).lower() in {t.lower() for t in result.affected_tags}
+                    and str(term).lower() in affected_tag_lowers
                     and page.source_path not in pages_to_build_sources
                 ):
                     # This taxonomy page lists a tag that was affected.
@@ -669,15 +803,18 @@ def phase_incremental_filter_provenance(
         output_dir = site.output_dir
         output_assets_dir = output_dir / "assets"
 
-        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        output_entries_count = (
+            sum(1 for _ in output_dir.iterdir()) if output_dir.exists() else 0
+        )
+        output_html_missing = output_entries_count == 0
 
         # Check for CSS entry points instead of arbitrary file count
         # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
         css_dir = output_assets_dir / "css"
+        has_css_entry = css_dir.exists() and any(css_dir.glob("style*.css"))
         css_entry_missing = (
             not output_assets_dir.exists()
-            or not css_dir.exists()
-            or not any(css_dir.glob("style*.css"))
+            or not has_css_entry
         )
         output_assets_missing = css_entry_missing
 

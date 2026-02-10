@@ -59,6 +59,47 @@ class TestBuildTrigger:
 
         mock_executor.shutdown.assert_called_once_with(wait=True)
 
+    def test_rebuild_classifier_is_injected(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """BuildTrigger delegates full-rebuild checks to injected classifier."""
+
+        class DummyClassifier:
+            def classify(self, *args: object, **kwargs: object) -> object:
+                return type("Decision", (), {"full_rebuild": True, "reason": "test"})()
+
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            rebuild_classifier=DummyClassifier(),
+        )
+
+        assert trigger._needs_full_rebuild({Path("test.md")}, {"modified"}) is True
+
+    def test_fragment_fast_path_is_injected(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """BuildTrigger delegates fragment fast path to injected collaborator."""
+
+        class DummyFastPath:
+            def try_content_update(
+                self, _changed_paths: set[Path], _event_types: set[str]
+            ) -> bool:
+                return True
+
+            def try_template_update(
+                self, _changed_paths: set[Path], _event_types: set[str]
+            ) -> bool:
+                return False
+
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            fragment_fast_path=DummyFastPath(),
+        )
+
+        assert trigger._try_fragment_update({Path("test.md")}, {"modified"}) is True
+
     def test_needs_full_rebuild_for_structural_changes(
         self, mock_site: MagicMock, mock_executor: MagicMock
     ) -> None:

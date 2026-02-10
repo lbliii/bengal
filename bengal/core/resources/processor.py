@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
-import json
 import os
 import tempfile
 import threading
@@ -38,6 +37,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.services.image_processing_io import (
+    read_cache_metadata,
+    write_cache_metadata_atomic,
+)
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -217,8 +220,7 @@ class ImageProcessor:
             return None
 
         try:
-            with open(meta_path) as f:
-                meta = json.load(f)
+            meta = read_cache_metadata(meta_path)
 
             return CachedResult(
                 output_path=image_path,
@@ -228,7 +230,7 @@ class ImageProcessor:
                 format=meta["format"],
                 file_size=image_path.stat().st_size,
             )
-        except (json.JSONDecodeError, KeyError, OSError):
+        except (ValueError, KeyError, OSError):
             # Invalid cache entry, will reprocess
             return None
 
@@ -237,28 +239,13 @@ class ImageProcessor:
 
         Uses tempfile + rename pattern for atomic writes.
         """
-        meta_path = self.cache_dir / f"{cache_key}.json"
-
-        # Write metadata atomically
-        fd, temp_path = tempfile.mkstemp(
-            dir=self.cache_dir,
-            prefix=f".{cache_key}_",
-            suffix=".tmp",
-        )
-        try:
-            meta = {
-                "rel_permalink": result.rel_permalink,
-                "width": result.width,
-                "height": result.height,
-                "format": result.format,
-            }
-            with os.fdopen(fd, "w") as f:
-                json.dump(meta, f)
-            os.replace(temp_path, meta_path)
-        except Exception:
-            with contextlib.suppress(OSError):
-                os.unlink(temp_path)
-            raise
+        meta = {
+            "rel_permalink": result.rel_permalink,
+            "width": result.width,
+            "height": result.height,
+            "format": result.format,
+        }
+        write_cache_metadata_atomic(self.cache_dir, cache_key, meta)
 
     def _do_process(
         self,

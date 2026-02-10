@@ -6,6 +6,7 @@ Tests ProvenanceFilter for incremental filtering and thread safety.
 
 from __future__ import annotations
 
+import json
 import threading
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -199,6 +200,45 @@ class TestOSErrorHandling:
         result = provenance_filter._is_asset_changed(asset)
 
         assert result is True
+
+
+class TestAssetHashTracking:
+    """Tests for persisted asset hash + mtime tracking."""
+
+    def test_asset_change_detection_skips_hash_when_mtime_unchanged(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        asset = MagicMock()
+        asset.source_path = mock_site.root_path / "static" / "style.css"
+        asset.source_path.parent.mkdir(parents=True, exist_ok=True)
+        asset.source_path.write_text("body{}", encoding="utf-8")
+        asset_key = provenance_filter._get_asset_key(asset)
+        mtime = asset.source_path.stat().st_mtime
+        provenance_filter._asset_hashes[asset_key] = {
+            "hash": "placeholder_hash",
+            "mtime": mtime,
+        }
+
+        def _hash_should_not_run(path: Path) -> ContentHash:
+            raise AssertionError(f"_get_file_hash should not be called for unchanged asset: {path}")
+
+        monkeypatch.setattr(provenance_filter, "_get_file_hash", _hash_should_not_run)
+
+        assert provenance_filter._is_asset_changed(asset) is False
+
+    def test_load_asset_hashes_supports_legacy_string_format(
+        self, cache_dir: Path, mock_site: MagicMock
+    ) -> None:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        legacy_path = cache_dir / "asset_hashes.json"
+        legacy_path.write_text(json.dumps({"assets/style.css": "deadbeef"}), encoding="utf-8")
+
+        pf = ProvenanceFilter(site=mock_site, cache=ProvenanceCache(cache_dir=cache_dir))
+
+        assert pf._asset_hashes
+        record = pf._asset_hashes[next(iter(pf._asset_hashes))]
+        assert record["hash"] == "deadbeef"
+        assert record["mtime"] is None
 
 
 # =============================================================================

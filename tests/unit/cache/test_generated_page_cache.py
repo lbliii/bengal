@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from bengal.cache.generated_page_cache import (
     GeneratedPageCache,
     GeneratedPageCacheEntry,
@@ -67,6 +69,20 @@ class TestGeneratedPageCacheEntry:
 
 class TestGeneratedPageCache:
     """Tests for GeneratedPageCache class."""
+
+    def test_can_skip_load_on_init(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """load_on_init=False avoids loading persisted cache at startup."""
+        load_calls: list[bool] = []
+
+        original = GeneratedPageCache._load_cache
+
+        def _wrapped(self) -> None:
+            load_calls.append(True)
+            original(self)
+
+        monkeypatch.setattr(GeneratedPageCache, "_load_cache", _wrapped)
+        GeneratedPageCache(tmp_path / "cache.json", load_on_init=False)
+        assert load_calls == []
 
     def test_get_cache_key(self, tmp_path: Path) -> None:
         """Cache key combines type and id."""

@@ -164,6 +164,7 @@ class DevServer:
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        target_outputs: frozenset[str] = frozenset(),
     ) -> None:
         """
         Initialize the dev server.
@@ -178,6 +179,7 @@ class DevServer:
             open_browser: Whether to automatically open the browser
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            target_outputs: Optional output keys for goal-driven pipeline planning.
         """
         self.site = site
         self.host = host
@@ -186,6 +188,7 @@ class DevServer:
         self.auto_port = auto_port
         self.open_browser = open_browser
         self.version_scope = version_scope
+        self.target_outputs = target_outputs
 
         # Pounce server and shared state (set during start)
         self._pounce_server: Any = None
@@ -336,6 +339,7 @@ class DevServer:
                 build_opts = BuildOptions(
                     profile=BuildProfile.WRITER,
                     incremental=not baseurl_was_cleared,
+                    target_outputs=self.target_outputs,
                 )
                 stats = self.site.build(build_opts)
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -440,6 +444,7 @@ class DevServer:
         build_opts = BuildOptions(
             profile=profile,
             incremental=True,
+            target_outputs=self.target_outputs,
         )
 
         # RFC: Output Cache Architecture - Capture content hash baseline before build
@@ -711,6 +716,7 @@ class DevServer:
             host=self.host,
             port=actual_port,
             version_scope=self.version_scope,
+            target_outputs=self.target_outputs,
         )
 
         # Create ignore filter from config using class method

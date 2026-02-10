@@ -59,6 +59,12 @@ from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
 from bengal.protocols.core import SiteLike
 from bengal.services.config import ConfigService
+from bengal.services.site_runtime import (
+    build_site,
+    create_query_index_registry,
+    reset_rendering_runtime_state,
+    start_dev_server,
+)
 
 # Import mixins
 from .config_normalized import SiteNormalizedConfigMixin
@@ -462,9 +468,7 @@ class Site(
     def indexes(self) -> QueryIndexRegistry:
         """Access to query indexes for O(1) page lookups."""
         if self._query_registry is None:
-            from bengal.cache.query_index_registry import QueryIndexRegistry
-
-            self._query_registry = QueryIndexRegistry(
+            self._query_registry = create_query_index_registry(
                 cast(SiteLike, self), self.paths.indexes_dir
             )
         return self._query_registry
@@ -1110,10 +1114,7 @@ class Site(
             >>> options = BuildOptions(strict=True)
             >>> stats = site.build(options)
         """
-        from bengal.orchestration import BuildOrchestrator
-
-        orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(options)
+        return build_site(self, options)
 
     def serve(
         self,
@@ -1123,6 +1124,7 @@ class Site(
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        target_outputs: frozenset[str] = frozenset(),
     ) -> None:
         """
         Start a development server.
@@ -1136,10 +1138,9 @@ class Site(
             open_browser: Whether to automatically open the browser
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            target_outputs: Optional output keys for goal-driven pipeline planning.
         """
-        from bengal.server.dev_server import DevServer
-
-        server = DevServer(
+        start_dev_server(
             self,
             host=host,
             port=port,
@@ -1147,8 +1148,8 @@ class Site(
             auto_port=auto_port,
             open_browser=open_browser,
             version_scope=version_scope,
+            target_outputs=target_outputs,
         )
-        server.start()
 
     def clean(self) -> None:
         """
@@ -1259,15 +1260,8 @@ class Site(
         if hasattr(self, "_kida_asset_manifest_cache"):
             delattr(self, "_kida_asset_manifest_cache")
 
-        # Clear thread-local rendering caches
-        from bengal.rendering.pipeline.thread_local import get_created_dirs
-
-        get_created_dirs().clear()
-
-        # Clear thread-local asset manifest context
-        from bengal.rendering.assets import reset_asset_manifest
-
-        reset_asset_manifest()
+        # Clear rendering thread-local state through runtime service layer.
+        reset_rendering_runtime_state()
 
     @property
     def build_state(self) -> BuildState | None:

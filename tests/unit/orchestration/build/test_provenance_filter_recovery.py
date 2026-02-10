@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.build.provenance.filter import ProvenanceFilterResult
+from bengal.orchestration.build import provenance_filter as provenance_filter_module
 from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
 
 
@@ -53,13 +54,23 @@ def _make_orchestrator(tmp_path: Path, pages: list[SimpleNamespace]) -> SimpleNa
 
 def _make_cache_stub() -> SimpleNamespace:
     taxonomy_index = SimpleNamespace(page_tags={})
-    return SimpleNamespace(
+    cache = SimpleNamespace(
         file_fingerprints={},
         dependencies={},
         reverse_dependencies={},
         output_sources={},
         taxonomy_index=taxonomy_index,
     )
+    def _add_dependency(source: Path, dependency: Path) -> None:
+        source_key = str(source)
+        dep_key = str(dependency)
+        deps = cache.dependencies.setdefault(source_key, set())
+        deps.add(dep_key)
+        reverse = cache.reverse_dependencies.setdefault(dep_key, set())
+        reverse.add(source_key)
+
+    cache.add_dependency = _add_dependency
+    return cache
 
 
 def test_recovery_success_uses_recovered_pages(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -281,3 +292,135 @@ def test_recovery_mismatch_clears_provenance_cache(
     assert cache_instances[0]._index == {}
     assert cache_instances[0]._loaded is False
     assert filter_instances[0]._asset_hashes == {}
+
+
+def test_detect_changed_data_files_skips_hash_when_stat_unchanged(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    data_file = data_dir / "payload.json"
+    data_file.write_text('{"ok": true}', encoding="utf-8")
+    stat = data_file.stat()
+
+    cache = _make_cache_stub()
+    cache.file_fingerprints[str(data_file)] = {
+        "mtime": stat.st_mtime,
+        "size": stat.st_size,
+        "hash": "unchanged",
+    }
+    site = SimpleNamespace(root_path=tmp_path)
+
+    def _hash_should_not_run(path: Path) -> str:
+        raise AssertionError(f"hash_file should not be called for unchanged file: {path}")
+
+    monkeypatch.setattr(provenance_filter_module, "hash_file", _hash_should_not_run)
+
+    changed = provenance_filter_module._detect_changed_data_files(cache, site)
+    assert changed == set()
+
+
+def test_detect_changed_templates_skips_hash_when_stat_unchanged(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    templates_dir = tmp_path / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    template_file = templates_dir / "base.html"
+    template_file.write_text("<html></html>", encoding="utf-8")
+    stat = template_file.stat()
+
+    cache = _make_cache_stub()
+    cache.file_fingerprints[str(template_file)] = {
+        "mtime": stat.st_mtime,
+        "size": stat.st_size,
+        "hash": "unchanged",
+    }
+    site = SimpleNamespace(root_path=tmp_path, theme_path=None)
+
+    def _hash_should_not_run(path: Path) -> str:
+        raise AssertionError(f"hash_file should not be called for unchanged template: {path}")
+
+    monkeypatch.setattr(provenance_filter_module, "hash_file", _hash_should_not_run)
+
+    changed = provenance_filter_module._detect_changed_templates(cache, site)
+    assert changed == set()
+
+
+def test_expand_forced_changed_uses_template_dependency_index(
+    tmp_path: Path,
+) -> None:
+    templates_dir = tmp_path / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    page_template = templates_dir / "page.html"
+    list_template = templates_dir / "list.html"
+    page_template.write_text("<main>{{ content }}</main>", encoding="utf-8")
+    list_template.write_text("<ul>{{ content }}</ul>", encoding="utf-8")
+
+    page_source = tmp_path / "content" / "page.md"
+    list_source = tmp_path / "content" / "list.md"
+    page_source.parent.mkdir(parents=True, exist_ok=True)
+    page_source.write_text("# Page", encoding="utf-8")
+    list_source.write_text("# List", encoding="utf-8")
+
+    pages = [
+        SimpleNamespace(source_path=page_source, metadata={"template": "page.html"}),
+        SimpleNamespace(source_path=list_source, metadata={"template": "list.html"}),
+    ]
+    site = SimpleNamespace(root_path=tmp_path, theme_path=None)
+    cache = _make_cache_stub()
+
+    # Prime fingerprints, then mutate page.html so only that template is "changed".
+    page_stat_before = page_template.stat()
+    list_stat_before = list_template.stat()
+    cache.file_fingerprints[str(page_template)] = {
+        "mtime": page_stat_before.st_mtime,
+        "size": page_stat_before.st_size,
+        "hash": provenance_filter_module.hash_file(page_template),
+    }
+    cache.file_fingerprints[str(list_template)] = {
+        "mtime": list_stat_before.st_mtime,
+        "size": list_stat_before.st_size,
+        "hash": provenance_filter_module.hash_file(list_template),
+    }
+    page_template.write_text("<main class='changed'>{{ content }}</main>", encoding="utf-8")
+
+    expanded, reasons = provenance_filter_module._expand_forced_changed(
+        forced_changed=set(),
+        cache=cache,
+        site=site,
+        pages=pages,
+    )
+
+    assert page_source in expanded
+    assert list_source not in expanded
+    assert reasons[str(page_source)] == ["template:page.html"]
+
+
+def test_get_pages_for_template_prefers_reverse_dependencies() -> None:
+    class _NoItemsDict(dict):
+        def items(self):  # pragma: no cover - executed on regression only
+            raise AssertionError("forward dependency scan should not run")
+
+    template_path = Path("/tmp/templates/page.html")
+    page_path = Path("/tmp/content/page.md")
+    cache = _make_cache_stub()
+    cache.reverse_dependencies = {str(template_path): {str(page_path)}}
+    cache.dependencies = _NoItemsDict()
+
+    pages = provenance_filter_module._get_pages_for_template(cache, template_path)
+    assert pages == {page_path}
+
+
+def test_get_pages_for_data_file_prefers_reverse_dependencies() -> None:
+    class _NoItemsDict(dict):
+        def items(self):  # pragma: no cover - executed on regression only
+            raise AssertionError("forward dependency scan should not run")
+
+    data_path = Path("/tmp/data/products.yaml")
+    page_path = Path("/tmp/content/catalog.md")
+    cache = _make_cache_stub()
+    cache.reverse_dependencies = {f"data:{data_path}": {str(page_path)}}
+    cache.dependencies = _NoItemsDict()
+
+    pages = provenance_filter_module._get_pages_for_data_file(cache, data_path)
+    assert pages == {page_path}

@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass
 
 from bengal.orchestration.pipeline.executor import BatchExecutor
+from bengal.orchestration.pipeline import execute_pipeline
 from bengal.orchestration.pipeline.scheduler import TaskScheduler
 from bengal.orchestration.pipeline.task import BuildTask
 from bengal.orchestration.tasks import INITIAL_KEYS, all_tasks
@@ -136,3 +137,223 @@ def test_executor_treats_skip_predicate_errors_as_failures() -> None:
     assert result.task_results[0].status == "failed"
     assert result.task_results[0].error is not None
     assert ctx.executed == []
+
+
+def test_scheduler_plan_for_outputs_builds_minimal_subgraph() -> None:
+    """Reverse planning includes only tasks needed for target outputs."""
+
+    def _noop(_ctx: _DummyContext) -> None:
+        return
+
+    tasks = [
+        BuildTask(
+            name="discover",
+            requires=frozenset({"site"}),
+            produces=frozenset({"pages"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="parse",
+            requires=frozenset({"pages"}),
+            produces=frozenset({"parsed"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="render",
+            requires=frozenset({"parsed"}),
+            produces=frozenset({"html"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="assets",
+            requires=frozenset({"site"}),
+            produces=frozenset({"asset_manifest"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="health",
+            requires=frozenset({"html", "asset_manifest"}),
+            produces=frozenset({"report"}),
+            execute=_noop,
+        ),
+    ]
+    scheduler = TaskScheduler(tasks, initial_keys=frozenset({"site"}))
+    planned = scheduler.plan_for_outputs(frozenset({"asset_manifest"}))
+    planned_names = [task.name for batch in planned for task in batch]
+
+    assert planned_names == ["assets"]
+
+
+def test_scheduler_plan_for_outputs_preserves_dependency_order() -> None:
+    """Planned batches still satisfy topological dependencies."""
+
+    def _noop(_ctx: _DummyContext) -> None:
+        return
+
+    tasks = [
+        BuildTask(
+            name="discover",
+            requires=frozenset({"site"}),
+            produces=frozenset({"pages"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="parse",
+            requires=frozenset({"pages"}),
+            produces=frozenset({"parsed"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="render",
+            requires=frozenset({"parsed"}),
+            produces=frozenset({"html"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="assets",
+            requires=frozenset({"site"}),
+            produces=frozenset({"asset_manifest"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="health",
+            requires=frozenset({"html", "asset_manifest"}),
+            produces=frozenset({"report"}),
+            execute=_noop,
+        ),
+    ]
+    scheduler = TaskScheduler(tasks, initial_keys=frozenset({"site"}))
+    planned = scheduler.plan_for_outputs(frozenset({"report"}))
+    task_to_batch: dict[str, int] = {}
+    for batch_idx, batch in enumerate(planned):
+        for task in batch:
+            task_to_batch[task.name] = batch_idx
+
+    assert task_to_batch["discover"] < task_to_batch["parse"] < task_to_batch["render"]
+    assert task_to_batch["assets"] < task_to_batch["health"]
+    assert task_to_batch["render"] < task_to_batch["health"]
+
+
+def test_execute_pipeline_respects_target_outputs() -> None:
+    """execute_pipeline should run only tasks needed for target outputs."""
+
+    @dataclass
+    class _Ctx:
+        executed: list[str]
+
+    def _make_exec(name: str):
+        def _exec(ctx: _Ctx) -> None:
+            ctx.executed.append(name)
+
+        return _exec
+
+    tasks = [
+        BuildTask(
+            name="discover",
+            requires=frozenset({"site"}),
+            produces=frozenset({"pages"}),
+            execute=_make_exec("discover"),
+        ),
+        BuildTask(
+            name="parse",
+            requires=frozenset({"pages"}),
+            produces=frozenset({"parsed"}),
+            execute=_make_exec("parse"),
+        ),
+        BuildTask(
+            name="render",
+            requires=frozenset({"parsed"}),
+            produces=frozenset({"rendered_pages"}),
+            execute=_make_exec("render"),
+        ),
+        BuildTask(
+            name="assets",
+            requires=frozenset({"site"}),
+            produces=frozenset({"asset_manifest"}),
+            execute=_make_exec("assets"),
+        ),
+    ]
+
+    ctx = _Ctx(executed=[])
+    result = execute_pipeline(
+        tasks=tasks,
+        ctx=ctx,
+        initial_keys=frozenset({"site"}),
+        target_outputs=frozenset({"asset_manifest"}),
+        parallel=False,
+    )
+
+    assert result.success
+    assert ctx.executed == ["assets"]
+
+
+def test_scheduler_plan_for_rendered_pages_fast_uses_lean_chain() -> None:
+    """Fast render target should prune related/index tasks."""
+    scheduler = TaskScheduler(
+        all_tasks(target_outputs=frozenset({"rendered_pages_fast"})),
+        initial_keys=INITIAL_KEYS,
+    )
+
+    batches = scheduler.plan_for_outputs(frozenset({"rendered_pages_fast"}))
+    task_names = {task.name for batch in batches for task in batch}
+
+    assert "render_pages_targeted" in task_names
+    assert "render_pages" not in task_names
+    assert "build_related" not in task_names
+    assert "build_indexes" not in task_names
+
+
+def test_scheduler_prioritizes_critical_path_with_timing_hints() -> None:
+    """Timing hints should prioritize longer downstream critical paths."""
+
+    def _noop(_ctx: _DummyContext) -> None:
+        return
+
+    tasks = [
+        BuildTask(
+            name="root",
+            requires=frozenset({"site"}),
+            produces=frozenset({"root_out"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="branch_heavy",
+            requires=frozenset({"root_out"}),
+            produces=frozenset({"heavy_out"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="branch_light",
+            requires=frozenset({"root_out"}),
+            produces=frozenset({"light_out"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="heavy_leaf",
+            requires=frozenset({"heavy_out"}),
+            produces=frozenset({"done_heavy"}),
+            execute=_noop,
+        ),
+        BuildTask(
+            name="light_leaf",
+            requires=frozenset({"light_out"}),
+            produces=frozenset({"done_light"}),
+            execute=_noop,
+        ),
+    ]
+
+    scheduler = TaskScheduler(
+        tasks,
+        initial_keys=frozenset({"site"}),
+        task_durations_ms={
+            "root": 1.0,
+            "branch_heavy": 50.0,
+            "branch_light": 5.0,
+            "heavy_leaf": 100.0,
+            "light_leaf": 1.0,
+        },
+    )
+
+    # Batch 1 should contain both branch tasks with heavy branch first.
+    branch_batch = scheduler.batches[1]
+    assert [task.name for task in branch_batch] == ["branch_heavy", "branch_light"]

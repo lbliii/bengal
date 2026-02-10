@@ -92,6 +92,12 @@ from bengal.protocols.rendering import (
     TemplateRenderer,
     TemplateValidator,
 )
+from bengal.protocols.server import (
+    FragmentFastPathProtocol,
+    ReloadControllerProtocol,
+    RebuildDecisionLike,
+    RebuildClassifierProtocol,
+)
 from bengal.protocols.stats import (
     BuildStatsProtocol,
 )
@@ -109,6 +115,7 @@ __all__ = [
     "ContentSourceProtocol",
     "DirectiveHandler",
     "EngineCapability",
+    "FragmentFastPathProtocol",
     "HasActionRebuild",
     # Capabilities (TypeGuard protocols)
     "HasClearTemplateCache",
@@ -131,8 +138,11 @@ __all__ = [
     # Infrastructure
     "ProgressReporter",
     "QueryableSection",
+    "ReloadControllerProtocol",
     "RenderContext",
     "RenderResult",
+    "RebuildClassifierProtocol",
+    "RebuildDecisionLike",
     "Renderable",
     # Rendering - Roles and Directives
     "RoleHandler",

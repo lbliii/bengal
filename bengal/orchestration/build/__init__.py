@@ -34,6 +34,7 @@ See Also:
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -136,6 +137,7 @@ class BuildOrchestrator:
         changed_sources = options.changed_sources or None
         nav_changed_sources = options.nav_changed_sources or None
         structural_changed = options.structural_changed
+        target_outputs = options.target_outputs
 
         # Explain mode options (RFC: rfc-incremental-build-observability Phase 2)
         explain = options.explain
@@ -295,17 +297,22 @@ class BuildOrchestrator:
         # Pages with matching content hashes can skip full parsing entirely.
         from bengal.server.fragment_update import ContentASTCache
 
-        ast_cache_dir = self.site.root_path / ".bengal" / "cache" / "ast"
-        ast_loaded = ContentASTCache.load_from_disk(ast_cache_dir)
-        if ast_loaded > 0:
-            cli.detail(f"Loaded {ast_loaded} cached ASTs", indent=1, icon=cli.icons.arrow)
+        # Cold-build optimization: skip AST cache disk load when we know there
+        # is no incremental state to reuse.
+        ast_loaded = 0
+        if incremental or cache.file_fingerprints:
+            ast_cache_dir = self.site.root_path / ".bengal" / "cache" / "ast"
+            ast_loaded = ContentASTCache.load_from_disk(ast_cache_dir)
+            if ast_loaded > 0:
+                cli.detail(f"Loaded {ast_loaded} cached ASTs", indent=1, icon=cli.icons.arrow)
 
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
         from bengal.cache.generated_page_cache import GeneratedPageCache
 
         generated_page_cache = GeneratedPageCache(
-            self.site.paths.state_dir / "generated_page_cache.json"
+            self.site.paths.state_dir / "generated_page_cache.json",
+            load_on_init=bool(incremental or cache.file_fingerprints),
         )
         # Note: GeneratedPageCache loads automatically in __init__
 
@@ -383,10 +390,27 @@ class BuildOrchestrator:
         from bengal.orchestration.pipeline import execute_pipeline
         from bengal.orchestration.tasks import INITIAL_KEYS, all_tasks
 
+        # Experimental: goal-driven pipeline planning via environment variable.
+        # Example: BENGAL_PIPELINE_TARGETS=asset_manifest,rendered_pages
+        if not target_outputs:
+            env_targets = os.getenv("BENGAL_PIPELINE_TARGETS", "").strip()
+            if env_targets:
+                parsed_targets = {
+                    key.strip()
+                    for key in env_targets.split(",")
+                    if key.strip()
+                }
+                target_outputs = frozenset(parsed_targets)
+                logger.info(
+                    "pipeline_target_outputs_enabled",
+                    targets=sorted(target_outputs),
+                )
+
         pipeline_result = execute_pipeline(
-            tasks=all_tasks(),
+            tasks=all_tasks(target_outputs=target_outputs or None),
             ctx=early_ctx,
             initial_keys=INITIAL_KEYS,
+            target_outputs=target_outputs or None,
             parallel=not force_sequential,
             on_task_start=on_phase_start,
             on_task_complete=on_phase_complete,

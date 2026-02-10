@@ -100,6 +100,10 @@ class BuildOptions:
     nav_changed_sources: set[Path] = field(default_factory=set)
     structural_changed: bool = False
 
+    # Experimental: restrict pipeline execution to tasks needed for target outputs.
+    # Intended for reverse-planned / goal-driven execution experiments.
+    target_outputs: frozenset[str] = frozenset()
+
     # Phase streaming callbacks (RFC: rfc-dashboard-api-integration)
     # These enable real-time build progress updates in the dashboard.
     # Callbacks are optional (None = no streaming).

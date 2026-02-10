@@ -29,7 +29,7 @@ INITIAL_KEYS: frozenset[str] = frozenset({
 })
 
 
-def all_tasks() -> list[BuildTask]:
+def all_tasks(target_outputs: frozenset[str] | None = None) -> list[BuildTask]:
     """
     Return every registered build task.
 
@@ -49,11 +49,17 @@ def all_tasks() -> list[BuildTask]:
     from bengal.orchestration.tasks.postprocess import TASK as postprocess_task
     from bengal.orchestration.tasks.related import TASK as related_task
     from bengal.orchestration.tasks.rendering import TASK as rendering_task
+    from bengal.orchestration.tasks.rendering_targeted import TASK as rendering_targeted_task
     from bengal.orchestration.tasks.sections import TASK as sections_task
     from bengal.orchestration.tasks.taxonomy import TASK as taxonomy_task
     from bengal.orchestration.tasks.validation import TASK as validation_task
 
-    return [
+    use_targeted_render = bool(
+        target_outputs
+        and target_outputs.issubset(frozenset({"rendered_pages_fast"}))
+    )
+
+    common_tasks = [
         config_task,
         fonts_task,
         discovery_task,
@@ -66,8 +72,9 @@ def all_tasks() -> list[BuildTask]:
         parsing_task,
         assets_task,
         validation_task,
-        rendering_task,
-        postprocess_task,
-        health_task,
-        cache_task,
     ]
+
+    if use_targeted_render:
+        return [*common_tasks, rendering_targeted_task]
+
+    return [*common_tasks, rendering_task, postprocess_task, health_task, cache_task]

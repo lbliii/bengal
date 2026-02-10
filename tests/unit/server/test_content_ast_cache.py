@@ -148,6 +148,11 @@ class TestContentASTCacheDiskPersistence:
         ast2 = ContentASTCache.get_by_hash(path2, "hash_b")
         assert ast2 is not None
 
+        # Verify body text was restored too (for incremental parse fast-path)
+        cached1 = ContentASTCache.get(path1)
+        assert cached1 is not None
+        assert cached1[0] == "# Hello\n\nWorld"
+
     def test_save_creates_directory(self, tmp_path: Path) -> None:
         """save_to_disk() creates cache directory if missing."""
         try:
@@ -195,8 +200,8 @@ class TestContentASTCacheDiskPersistence:
         saved = ContentASTCache.save_to_disk(cache_dir)
         assert saved == 0
 
-    def test_index_maps_paths_to_hashes(self, tmp_path: Path) -> None:
-        """_index.json maps source paths to content hashes."""
+    def test_index_maps_paths_to_hash_and_body(self, tmp_path: Path) -> None:
+        """_index.json maps source paths to content hash + body text."""
         try:
             import json
 
@@ -217,4 +222,32 @@ class TestContentASTCacheDiskPersistence:
         index_path = cache_dir / "_index.json"
         index = json.loads(index_path.read_text())
         assert str(path) in index
-        assert index[str(path)] == "content_hash_abc"
+        assert index[str(path)]["hash"] == "content_hash_abc"
+        assert index[str(path)]["body"] == "# Hello"
+
+    def test_load_supports_legacy_index_format(self, tmp_path: Path) -> None:
+        """load_from_disk() supports legacy path->hash index entries."""
+        try:
+            import json
+
+            from patitas import parse
+            from patitas.serialization import to_json
+        except ImportError:
+            pytest.skip("patitas + serialization not available")
+
+        cache_dir = tmp_path / "ast_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        doc = parse("# Legacy")
+        content_hash = "legacy_hash_123"
+        (cache_dir / f"{content_hash}.json").write_text(to_json(doc))
+        (cache_dir / "_index.json").write_text(
+            json.dumps({"/content/legacy.md": content_hash})
+        )
+
+        loaded = ContentASTCache.load_from_disk(cache_dir)
+        assert loaded == 1
+
+        cached = ContentASTCache.get(Path("/content/legacy.md"))
+        assert cached is not None
+        assert cached[0] == ""

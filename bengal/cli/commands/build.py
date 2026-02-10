@@ -161,6 +161,15 @@ from bengal.utils.observability.logger import close_all_loggers, print_all_summa
     help="Preview build without writing files (shows what WOULD happen)",
 )
 @click.option(
+    "--target-output",
+    "target_output",
+    multiple=True,
+    help=(
+        "Limit pipeline to specific output keys. Repeat or comma-separate values "
+        "(e.g., --target-output rendered_pages_fast). Experimental."
+    ),
+)
+@click.option(
     "--log-file",
     type=click.Path(),
     help="Write detailed logs to file (default: .bengal/logs/build.log)",
@@ -203,6 +212,7 @@ def build(
     explain: bool,
     explain_json: bool,
     dry_run: bool,
+    target_output: tuple[str, ...],
     log_file: str,
     build_version: str | None,
     all_versions: bool,
@@ -291,6 +301,13 @@ def build(
         configure_traceback(debug=debug, traceback=traceback, site=site)
 
         # Resolve build options with unified precedence: CLI > config > DEFAULTS
+        target_outputs = frozenset({
+            key.strip()
+            for value in target_output
+            for key in value.split(",")
+            if key.strip()
+        })
+
         cli_flags = CLIFlags(
             force_sequential=no_parallel,
             incremental=incremental,
@@ -428,6 +445,7 @@ def build(
                         memory_optimized=memory_optimized,
                         strict=strict,
                         full_output=full_output,
+                        target_outputs=target_outputs,
                     )
                     worktree_site.build(worktree_build_opts)
 
@@ -523,6 +541,7 @@ def build(
                 memory_optimized=memory_optimized,
                 strict=strict,
                 full_output=full_output,
+                target_outputs=target_outputs,
             )
             stats = site.build(options=perf_build_opts)
 
@@ -584,6 +603,7 @@ def build(
                 explain=explain,
                 dry_run=dry_run,
                 explain_json=explain_json,
+                target_outputs=target_outputs,
             )
             stats = site.build(options=build_opts)
 

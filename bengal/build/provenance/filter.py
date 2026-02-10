@@ -116,7 +116,8 @@ class ProvenanceFilter:
         self._config_hash = hash_dict(dict(site.config))
 
         # Asset hash tracking (loaded from cache)
-        self._asset_hashes: dict[CacheKey, ContentHash] = {}
+        # Structure: {asset_key: {"hash": str, "mtime": float | None}}
+        self._asset_hashes: dict[CacheKey, dict[str, Any]] = {}
         self._load_asset_hashes()
 
         # Session caches to avoid redundant I/O and computation
@@ -399,14 +400,32 @@ class ProvenanceFilter:
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
         try:
             data = json_load(asset_cache_path)
-            self._asset_hashes = {CacheKey(k): ContentHash(v) for k, v in data.items()}
+            parsed: dict[CacheKey, dict[str, Any]] = {}
+            for key, value in data.items():
+                # Backward compatibility: older cache format stored raw hash strings.
+                if isinstance(value, str):
+                    parsed[CacheKey(key)] = {"hash": value, "mtime": None}
+                elif isinstance(value, dict):
+                    hash_value = value.get("hash")
+                    if isinstance(hash_value, str):
+                        parsed[CacheKey(key)] = {
+                            "hash": hash_value,
+                            "mtime": value.get("mtime"),
+                        }
+            self._asset_hashes = parsed
         except (FileNotFoundError, JSONDecodeError, KeyError):
             self._asset_hashes = {}
 
     def _save_asset_hashes(self) -> None:
         """Save asset hashes to disk (atomic write for crash safety)."""
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
-        json_dump(dict(self._asset_hashes), asset_cache_path)
+        json_dump(
+            {
+                str(asset_key): {"hash": record.get("hash"), "mtime": record.get("mtime")}
+                for asset_key, record in self._asset_hashes.items()
+            },
+            asset_cache_path,
+        )
 
     def _get_file_hash(self, path: Path) -> ContentHash:
         """Get file hash from session cache or compute it (thread-safe)."""
@@ -788,17 +807,23 @@ class ProvenanceFilter:
             return True  # File system error - treat as changed
 
         asset_path = self._get_asset_key(asset)
-        stored_hash = self._asset_hashes.get(asset_path)
+        stored = self._asset_hashes.get(asset_path)
+        current_mtime: float | None = None
 
-        # OPTIMIZATION: If we have a stored hash, check mtime first
-        # This avoids expensive file hashing for unchanged files
-        if stored_hash is not None:
+        if stored is not None:
             try:
-                # Get mtime for quick check (much faster than hashing)
-                _ = asset.source_path.stat().st_mtime
-                # For now, we still hash to be safe, but we could cache mtime too
+                current_mtime = asset.source_path.stat().st_mtime
             except OSError:
                 return True  # File error - treat as changed
+
+            # Fast path: if mtime unchanged and hash exists, skip hashing.
+            stored_hash = stored.get("hash")
+            if (
+                isinstance(stored_hash, str)
+                and stored.get("mtime") is not None
+                and stored.get("mtime") == current_mtime
+            ):
+                return False
 
         # Compute hash (necessary for correctness)
         try:
@@ -806,15 +831,30 @@ class ProvenanceFilter:
         except OSError:
             return True  # File error - treat as changed
 
-        if stored_hash is None:
+        if stored is None:
             # First time seeing this asset
-            self._asset_hashes[asset_path] = current_hash
+            if current_mtime is None:
+                try:
+                    current_mtime = asset.source_path.stat().st_mtime
+                except OSError:
+                    current_mtime = None
+            self._asset_hashes[asset_path] = {"hash": str(current_hash), "mtime": current_mtime}
             return True
 
-        if stored_hash != current_hash:
+        stored_hash = stored.get("hash")
+        if stored_hash != str(current_hash):
             # Asset content changed
-            self._asset_hashes[asset_path] = current_hash
+            if current_mtime is None:
+                try:
+                    current_mtime = asset.source_path.stat().st_mtime
+                except OSError:
+                    current_mtime = None
+            self._asset_hashes[asset_path] = {"hash": str(current_hash), "mtime": current_mtime}
             return True
+
+        # Content unchanged but mtime changed (e.g., touched file): refresh mtime.
+        if current_mtime is not None and stored.get("mtime") != current_mtime:
+            self._asset_hashes[asset_path] = {"hash": str(current_hash), "mtime": current_mtime}
 
         return False
 
@@ -835,7 +875,8 @@ class ProvenanceFilter:
                 return
             current_hash = self._get_file_hash(asset.source_path)
             asset_key = self._get_asset_key(asset)
-            self._asset_hashes[asset_key] = current_hash
+            current_mtime = asset.source_path.stat().st_mtime
+            self._asset_hashes[asset_key] = {"hash": str(current_hash), "mtime": current_mtime}
         except OSError:
             pass  # Skip assets that can't be hashed
 

@@ -59,9 +59,16 @@ from typing import Any, ClassVar
 import yaml
 
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
+from bengal.orchestration.fragment.fast_path import FragmentFastPathService
+from bengal.orchestration.rebuild.classifier import RebuildClassifier
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
 from bengal.output import CLIOutput
-from bengal.protocols import SiteLike
+from bengal.protocols import (
+    FragmentFastPathProtocol,
+    RebuildClassifierProtocol,
+    ReloadControllerProtocol,
+    SiteLike,
+)
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
@@ -120,6 +127,10 @@ class BuildTrigger:
         port: int = 5173,
         executor: BuildExecutor | None = None,
         version_scope: str | None = None,
+        target_outputs: frozenset[str] = frozenset(),
+        rebuild_classifier: RebuildClassifierProtocol | None = None,
+        fragment_fast_path: FragmentFastPathProtocol | None = None,
+        reload_controller: ReloadControllerProtocol | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -131,11 +142,16 @@ class BuildTrigger:
             executor: BuildExecutor instance (created if not provided)
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            target_outputs: Optional output keys for goal-driven pipeline planning.
+            rebuild_classifier: Optional full/incremental classifier dependency.
+            fragment_fast_path: Optional fragment fast-path dependency.
+            reload_controller: Optional reload decision collaborator.
         """
         self.site = site
         self.host = host
         self.port = port
         self.version_scope = version_scope
+        self.target_outputs = target_outputs
         self._executor = executor or BuildExecutor(max_workers=1)
         self._building = False
         self._build_lock = threading.Lock()
@@ -146,6 +162,15 @@ class BuildTrigger:
         self._template_dirs = None
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
+        self._rebuild_classifier = rebuild_classifier or RebuildClassifier()
+        self._reload_controller = reload_controller or controller
+        self._fragment_fast_path = fragment_fast_path or FragmentFastPathService(
+            self.site,
+            classify_markdown_change=self._classify_markdown_change,
+            is_content_only_change=self._is_content_only_change,
+            get_template_dirs=self._get_template_dirs,
+            is_in_template_dir=self._is_in_template_dir,
+        )
 
         # Restore AST cache from disk for instant fragment diffs on restart
         try:
@@ -157,6 +182,11 @@ class BuildTrigger:
                 logger.info("ast_cache_restored", count=loaded)
         except Exception:
             pass  # Best-effort — cold start is fine
+
+    def _refresh_service_bindings(self) -> None:
+        """Keep injected services aligned when the Site instance is replaced."""
+        if isinstance(self._fragment_fast_path, FragmentFastPathService):
+            self._fragment_fast_path.site = self.site
 
     def trigger_build(
         self,
@@ -360,6 +390,7 @@ class BuildTrigger:
                 changed_sources={Path(p) for p in changed_files} if changed_files else None,
                 nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,
+                target_outputs=self.target_outputs,
             )
 
             # Apply version scope if set
@@ -436,6 +467,7 @@ class BuildTrigger:
                     logger.info("warm_build_recovery", action="reinitializing_site")
                     self.site = Site.from_config(self.site.root_path)
                     self.site.dev_mode = True
+                    self._refresh_service_bindings()
                 except Exception as reinit_error:
                     logger.error(
                         "warm_build_recovery_failed",
@@ -548,54 +580,18 @@ class BuildTrigger:
         changed_paths: set[Path],
         event_types: set[str],
     ) -> bool:
-        """
-        Determine if a full rebuild is needed.
-
-        Full rebuild triggers:
-        - Structural changes (created/deleted/moved files)
-        - Template changes (.html in templates/themes)
-        - Autodoc source changes (.py, OpenAPI specs)
-        - SVG icon changes (inlined in HTML)
-        - Shared content changes (_shared/ directory) [versioned sites]
-        - Version config changes (versioning.yaml)
-        """
-        # Structural changes always need full rebuild
-        if {"created", "deleted", "moved"} & event_types:
-            return True
-
-        # Check for template changes
-        if self._is_template_change(changed_paths):
-            logger.debug("full_rebuild_triggered_by_template")
-            return True
-
-        # Check for autodoc changes
-        if self._should_regenerate_autodoc(changed_paths):
-            logger.debug("full_rebuild_triggered_by_autodoc")
-            return True
-
-        # Check for SVG icon changes (inlined in HTML)
-        for path in changed_paths:
-            path_str = to_posix(path)
-            if (
-                path.suffix.lower() == ".svg"
-                and "/themes/" in path_str
-                and "/assets/icons/" in path_str
-            ):
-                logger.debug("full_rebuild_triggered_by_svg", file=str(path))
-                return True
-
-        # RFC: rfc-versioned-docs-pipeline-integration
-        # Check for shared content changes (forces full rebuild for versioned sites)
-        if self._is_shared_content_change(changed_paths):
-            logger.debug("full_rebuild_triggered_by_shared_content")
-            return True
-
-        # Check for version config changes (forces full rebuild)
-        if self._is_version_config_change(changed_paths):
-            logger.debug("full_rebuild_triggered_by_version_config")
-            return True
-
-        return False
+        """Determine if a full rebuild is needed via classifier service."""
+        decision = self._rebuild_classifier.classify(
+            changed_paths,
+            event_types,
+            is_template_change=self._is_template_change,
+            should_regenerate_autodoc=self._should_regenerate_autodoc,
+            is_shared_content_change=self._is_shared_content_change,
+            is_version_config_change=self._is_version_config_change,
+        )
+        if decision.full_rebuild:
+            logger.debug("full_rebuild_triggered", reason=decision.reason)
+        return decision.full_rebuild
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -952,444 +948,16 @@ class BuildTrigger:
         changed_paths: set[Path],
         event_types: set[str],
     ) -> bool:
-        """Attempt fragment update without full rebuild.
-
-        Handles content body changes, heading changes, non-nav frontmatter
-        changes (tags, description, date, etc.), and taxonomy changes by
-        re-parsing content, determining affected blocks via Kida block_metadata,
-        and pushing only those blocks via SSE fragment replacement.
-
-        RFC: reactive-rebuild-architecture Phase 4c — expanded from Phase 1's
-        content-only path to handle heading, frontmatter, and taxonomy changes.
-
-        Conditions for the fast path:
-        1. Only ``modified`` events (no creates/deletes/moves)
-        2. All changed files are ``.md`` content files
-        3. Change is classifiable (not unknown/first-time)
-        4. No nav-affecting frontmatter changes (title, slug, weight, etc.)
-        5. Each file maps to an existing Page in the warm Site model
-        6. No cross-page cascade dependencies
-        7. The template engine can render the affected blocks
-
-        If any condition fails, returns ``False`` and the caller falls through
-        to the existing full rebuild path.
-
-        Args:
-            changed_paths: Set of changed file paths
-            event_types: Set of event types (created, modified, deleted, moved)
-
-        Returns:
-            True if all changes were handled via fragment push, False to fall back
-            to full rebuild.
-        """
-        # Gate 1: Only modified events (structural changes need full rebuild)
-        if event_types != {"modified"}:
-            return False
-
-        # Gate 2: Only .md content files
-        if not all(p.suffix.lower() in (".md", ".markdown") for p in changed_paths):
-            return False
-
-        # Gate 3 (Phase 4c): Classify each change — content, frontmatter, or both.
-        # Nav-affecting frontmatter changes require full rebuild (title, slug, weight, etc.)
-        # Non-nav frontmatter changes (tags, description, date) stay on the fast path.
-        from bengal.server.fragment_update import frontmatter_changes_to_context_paths
-
-        classified_paths: list[
-            tuple[Path, bool, bool, set[str], frozenset[str]]
-        ] = []  # (path, content_changed, fm_changed, changed_fm_keys, extra_ctx_paths)
-
-        for path in changed_paths:
-            result = self._classify_markdown_change(path)
-            if result is None:
-                # Can't classify (first time, no frontmatter, etc.) — try old method
-                if self._is_content_only_change(path):
-                    classified_paths.append(
-                        (path, True, False, set(), frozenset())
-                    )
-                else:
-                    return False
-                continue
-
-            content_changed, fm_changed, changed_fm_keys, nav_affecting = result
-
-            if nav_affecting:
-                # Nav-affecting frontmatter changes need full rebuild
-                logger.debug(
-                    "fragment_fast_path_nav_fm_changed",
-                    file=str(path),
-                    nav_keys=sorted(changed_fm_keys),
-                )
-                return False
-
-            if not content_changed and not fm_changed:
-                # No actual change — skip
-                continue
-
-            # Map non-nav frontmatter changes to context paths
-            extra_ctx = frozenset[str]()
-            if fm_changed and changed_fm_keys:
-                extra_ctx = frontmatter_changes_to_context_paths(changed_fm_keys)
-                logger.debug(
-                    "fragment_fast_path_fm_change",
-                    file=str(path),
-                    changed_keys=sorted(changed_fm_keys),
-                    context_paths=sorted(extra_ctx),
-                )
-
-            classified_paths.append(
-                (path, content_changed, fm_changed, changed_fm_keys, extra_ctx)
-            )
-
-        if not classified_paths:
-            return False
-
-        # Gate 4: All paths must have existing pages in warm Site model
-        page_map = self.site.page_by_source_path
-        pages_to_update: list[
-            tuple[Path, Any, bool, frozenset[str]]
-        ] = []  # (path, page, content_changed, extra_ctx_paths)
-        for path, content_changed, _fm_changed, _fm_keys, extra_ctx in classified_paths:
-            page = page_map.get(path)
-            if page is None:
-                logger.debug("fragment_fast_path_no_page", file=str(path))
-                return False
-            pages_to_update.append((path, page, content_changed, extra_ctx))
-
-        # Gate 5: Check for cross-page cascades via BuildCache reverse dependencies.
-        # If other pages depend on the changed files (e.g., shared content, includes),
-        # the fragment fast path can't safely skip them — fall back to full rebuild.
-        from bengal.server.fragment_update import check_cascade_safety
-
-        all_paths = {p for p, _, _, _ in pages_to_update}
-        if not check_cascade_safety(self.site, all_paths):
-            logger.debug(
-                "fragment_fast_path_cascade_detected",
-                changed_count=len(all_paths),
-            )
-            return False
-
-        # Attempt fragment rendering and push
-        try:
-            from markupsafe import Markup
-
-            from bengal.rendering.context import build_page_context
-            from bengal.rendering.engines import create_engine
-            from bengal.rendering.pipeline.output import determine_template
-            from bengal.rendering.pipeline.thread_local import get_thread_parser
-            from bengal.rendering.pipeline.transforms import (
-                escape_template_syntax_in_html,
-            )
-            from bengal.server.live_reload import send_fragment_payload
-
-            markdown_engine = self.site.config.get("markdown_engine", "patitas")
-            parser = get_thread_parser(markdown_engine)
-            engine = create_engine(self.site)
-
-            from bengal.server.fragment_update import (
-                diff_content_ast,
-                get_affected_blocks,
-            )
-
-            for path, page, content_changed, extra_ctx in pages_to_update:
-                # Read new source
-                source = path.read_text(encoding="utf-8")
-
-                # Split frontmatter and body
-                match = re.match(
-                    r"^---\s*\n(.*?)\n---\s*\n(.*)$", source, flags=re.DOTALL
-                )
-                if not match:
-                    return False
-
-                body = match.group(2)
-
-                # Phase 4c: Collect all context paths from both AST diff and
-                # frontmatter classification.
-                all_changed_ctx: set[str] = set(extra_ctx)
-                ast_result = None
-
-                if content_changed:
-                    # AST-level diff to determine which content context paths changed.
-                    # Pass page._ast_cache as the old AST (preferred over side-channel).
-                    ast_result = diff_content_ast(
-                        path, body, page_ast=getattr(page, "_ast_cache", None)
-                    )
-                    if ast_result is not None:
-                        ast_ctx_paths, new_ast = ast_result
-                        all_changed_ctx.update(ast_ctx_paths)
-
-                        # Update the page's AST so it stays current for next diff
-                        page._ast_cache = new_ast
-
-                        if not ast_ctx_paths and not extra_ctx:
-                            # No structural change and no fm change — skip
-                            logger.debug(
-                                "fragment_fast_path_no_change", file=str(path)
-                            )
-                            continue
-
-                # Phase 4c: Heading/title changes are now handled via block
-                # targeting instead of bailing out. "page.title" in changed
-                # context paths will cause get_affected_blocks to target the
-                # title/header/toc blocks that depend on it.
-
-                # Phase 4c: For frontmatter changes, update the page's metadata
-                # in the warm model so context building reflects the new values.
-                if extra_ctx:
-                    import yaml
-
-                    fm_match = re.match(
-                        r"^---\s*\n(.*?)\n---\s*(?:\n|$)",
-                        source,
-                        flags=re.DOTALL,
-                    )
-                    if fm_match:
-                        try:
-                            new_fm = yaml.safe_load(fm_match.group(1)) or {}
-                            if isinstance(new_fm, dict):
-                                page.metadata.update(new_fm)
-                        except yaml.YAMLError:
-                            pass  # Best effort — context building will use stale fm
-
-                # Parse markdown body to HTML using the site's parser
-                metadata = dict(page.metadata)
-                metadata["_source_path"] = page.source_path
-                html_content = parser.parse(body, metadata)
-                html_content = escape_template_syntax_in_html(html_content)
-
-                # Update page's html_content so context building picks it up
-                page.html_content = html_content
-
-                # Build template context with the new content
-                content_markup = Markup(html_content)
-                context = build_page_context(
-                    page=page,
-                    site=self.site,
-                    content=content_markup,
-                    lazy=False,
-                )
-
-                # Resolve template name for this page
-                template_name = determine_template(page)
-
-                # Phase 4b + 4c: Determine which blocks are affected by all
-                # context path changes (content AST + frontmatter combined).
-                # Use block_metadata().depends_on for precise block targeting.
-                frozen_ctx = frozenset(all_changed_ctx) if all_changed_ctx else frozenset({"content"})
-                blocks_to_render = ["content"]  # Default
-                affected, meta_available = get_affected_blocks(
-                    engine, template_name, frozen_ctx
-                )
-                if meta_available and affected:
-                    # Trust block_metadata — render only what's affected
-                    blocks_to_render = list(dict.fromkeys(affected))
-                elif meta_available and not affected:
-                    # No blocks depend on changed context paths — skip
-                    logger.debug(
-                        "fragment_fast_path_no_blocks_affected",
-                        file=str(path),
-                        changed_ctx_paths=sorted(frozen_ctx),
-                    )
-                    continue
-                # else: meta not available, use default ["content"]
-
-                # Render and push each affected block
-                total_html_size = 0
-                for block_name in blocks_to_render:
-                    rendered = engine.render_fragment(
-                        template_name, block_name, context
-                    )
-                    if rendered is None and block_name == "content":
-                        # The "content" block is required — fall back
-                        logger.debug(
-                            "fragment_fast_path_render_failed",
-                            file=str(path),
-                            template=template_name,
-                            block=block_name,
-                        )
-                        return False
-                    if rendered is not None:
-                        total_html_size += len(rendered)
-                        send_fragment_payload(block_name, rendered, str(path))
-
-                logger.info(
-                    "fragment_fast_path_used",
-                    file=str(path.name),
-                    template=template_name,
-                    blocks=blocks_to_render,
-                    html_size=total_html_size,
-                    content_changed=content_changed,
-                    fm_ctx_paths=sorted(extra_ctx) if extra_ctx else [],
-                )
-
-            return True
-
-        except Exception as e:
-            logger.debug(
-                "fragment_fast_path_error",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            return False
+        """Attempt fragment update through the orchestration fast-path service."""
+        return self._fragment_fast_path.try_content_update(changed_paths, event_types)
 
     def _try_template_fragment_update(
         self,
         changed_paths: set[Path],
         event_types: set[str],
     ) -> bool:
-        """Attempt template-change fragment update without full rebuild.
-
-        When only template files change and Kida can recompile just the
-        changed blocks in-place, this method renders site-scoped blocks
-        once and pushes them to connected browsers via SSE. Since
-        site-scoped blocks (header, footer, nav, sidebar) render
-        identically for every page, one render is sufficient.
-
-        Conditions for the fast path:
-        1. Only ``modified`` events
-        2. All changed files are ``.html`` in template directories
-        3. Kida block recompilation succeeds for each changed template
-        4. ALL recompiled blocks are site-scoped (same across all pages)
-        5. A representative page is available to build context
-
-        If any page-scoped block was recompiled, falls back to the normal
-        incremental build (which must re-render each affected page).
-
-        Args:
-            changed_paths: Set of changed file paths
-            event_types: Set of event types
-
-        Returns:
-            True if all changes handled via fragment push, False otherwise.
-
-        RFC: content-only-hot-reload (Phase 4)
-        """
-        # Gate 1: Only modified events
-        if event_types != {"modified"}:
-            return False
-
-        # Gate 2: Only .html template files
-        if not all(p.suffix.lower() == ".html" for p in changed_paths):
-            return False
-
-        template_dirs = self._get_template_dirs()
-        if not template_dirs:
-            return False
-
-        # All changed files must be in template directories
-        if not all(self._is_in_template_dir(p, template_dirs) for p in changed_paths):
-            return False
-
-        try:
-            from bengal.protocols import EngineCapability
-            from bengal.rendering.block_cache import BlockCache
-            from bengal.rendering.engines import create_engine
-
-            engine = create_engine(self.site)
-
-            # Must support block-level detection
-            if not engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION):
-                return False
-
-            block_cache = BlockCache()
-
-            # Recompile each changed template and collect recompiled block names
-            all_recompiled: set[str] = set()
-            template_names: list[str] = []
-
-            for path in changed_paths:
-                # Derive template name from the file.
-                # For partials (e.g., partials/nav.html), the parent template
-                # needs recompilation — Kida's loader handles this internally
-                # by invalidating the source hash.
-                tpl_name = path.stem + ".html"
-                recompiled = block_cache.recompile_changed_blocks(engine, tpl_name)
-                if not recompiled:
-                    # Recompilation failed or no changes detected — can't fast-path
-                    logger.debug(
-                        "template_fragment_no_recompile",
-                        template=tpl_name,
-                        file=str(path),
-                    )
-                    return False
-                all_recompiled.update(recompiled)
-                template_names.append(tpl_name)
-
-            if not all_recompiled:
-                return False
-
-            # Gate 4: Check if ALL recompiled blocks are site-scoped.
-            # Site-scoped blocks render the same for every page, so we only
-            # need one render. Page-scoped blocks differ per page and require
-            # a full incremental build.
-            for tpl_name in template_names:
-                cacheable = block_cache.analyze_template(engine, tpl_name)
-                for block_name in all_recompiled:
-                    scope = cacheable.get(block_name, "unknown")
-                    if scope != "site":
-                        logger.debug(
-                            "template_fragment_page_scoped",
-                            block=block_name,
-                            scope=scope,
-                            template=tpl_name,
-                        )
-                        return False
-
-            # Gate 5: Need a representative page to build context
-            page_map = self.site.page_by_source_path
-            if not page_map:
-                return False
-            # Pick first available page
-            _representative_path, representative_page = next(iter(page_map.items()))
-
-            # Build context for the representative page
-            from markupsafe import Markup
-
-            from bengal.rendering.context import build_page_context
-            from bengal.rendering.pipeline.output import determine_template
-            from bengal.server.live_reload import send_fragment_payload
-
-            html_content = getattr(representative_page, "html_content", "") or ""
-            context = build_page_context(
-                page=representative_page,
-                site=self.site,
-                content=Markup(html_content),
-                lazy=False,
-            )
-
-            template_name = determine_template(representative_page)
-
-            # Render and push each recompiled block
-            total_html_size = 0
-            for block_name in sorted(all_recompiled):
-                rendered = engine.render_fragment(template_name, block_name, context)
-                if rendered is None:
-                    # Block render failed — fall back
-                    logger.debug(
-                        "template_fragment_render_failed",
-                        block=block_name,
-                        template=template_name,
-                    )
-                    return False
-                total_html_size += len(rendered)
-                send_fragment_payload(block_name, rendered, "template-change")
-
-            logger.info(
-                "template_fragment_fast_path_used",
-                templates=template_names,
-                blocks=sorted(all_recompiled),
-                html_size=total_html_size,
-            )
-            return True
-
-        except Exception as e:
-            logger.debug(
-                "template_fragment_fast_path_error",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            return False
+        """Attempt template fragment update through the fast-path service."""
+        return self._fragment_fast_path.try_template_update(changed_paths, event_types)
 
     def _get_template_dirs(self) -> list[Path]:
         """

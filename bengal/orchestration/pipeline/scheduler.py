@@ -53,6 +53,7 @@ class TaskScheduler:
         self,
         tasks: list[BuildTask],
         initial_keys: frozenset[str] | None = None,
+        task_durations_ms: dict[str, float] | None = None,
     ) -> None:
         self._tasks: dict[str, BuildTask] = {}
         for t in tasks:
@@ -62,6 +63,7 @@ class TaskScheduler:
             self._tasks[t.name] = t
 
         self._initial_keys = initial_keys or frozenset()
+        self._task_durations_ms = task_durations_ms or {}
         self._batches: list[list[BuildTask]] = []
         self._validate_and_schedule()
 
@@ -83,6 +85,54 @@ class TaskScheduler:
     def task_count(self) -> int:
         """Total number of registered tasks."""
         return len(self._tasks)
+
+    def plan_for_outputs(self, target_keys: frozenset[str]) -> list[list[BuildTask]]:
+        """
+        Compute a minimal schedule that produces *target_keys*.
+
+        This is a reverse-planning helper for "leaf-to-trunk" experiments:
+        walk dependencies backwards from desired output keys to identify the
+        minimal required task subgraph, then schedule that subgraph forward.
+
+        Args:
+            target_keys: Logical keys we want produced.
+
+        Returns:
+            Topologically sorted execution batches for the required subgraph.
+            Returns an empty list when none of the targets are produced by tasks.
+        """
+        if not target_keys:
+            return self._batches
+
+        producers: dict[str, str] = {}
+        for task in self._tasks.values():
+            for key in task.produces:
+                producers[key] = task.name
+
+        needed_tasks: set[str] = set()
+        keys_to_resolve = deque(target_keys)
+        resolved_keys: set[str] = set()
+
+        while keys_to_resolve:
+            key = keys_to_resolve.popleft()
+            if key in resolved_keys:
+                continue
+            resolved_keys.add(key)
+
+            producer = producers.get(key)
+            if producer is None or producer in needed_tasks:
+                continue
+
+            needed_tasks.add(producer)
+            task = self._tasks[producer]
+            for req in task.requires:
+                if req not in self._initial_keys:
+                    keys_to_resolve.append(req)
+
+        if not needed_tasks:
+            return []
+
+        return self._schedule_subset(needed_tasks)
 
     def describe(self) -> str:
         """Return a human-readable summary of the schedule."""
@@ -141,14 +191,17 @@ class TaskScheduler:
             for d in dep_set:
                 dependents[d].append(name)
 
-        queue: deque[str] = deque(
-            name for name, degree in in_degree.items() if degree == 0
-        )
+        critical_scores = self._compute_critical_scores(dependents)
+
+        queue: deque[str] = deque(name for name, degree in in_degree.items() if degree == 0)
 
         scheduled = 0
         while queue:
             # Everything in the current queue has in-degree 0 → one batch
-            batch_names = list(queue)
+            batch_names = sorted(
+                queue,
+                key=lambda name: (-critical_scores.get(name, 0.0), name),
+            )
             queue.clear()
 
             self._batches.append([self._tasks[n] for n in batch_names])
@@ -169,3 +222,83 @@ class TaskScheduler:
             raise CyclicDependencyError(
                 f"Cyclic dependency detected among tasks: {unscheduled}"
             )
+
+    def _schedule_subset(self, subset_names: set[str]) -> list[list[BuildTask]]:
+        """Topologically schedule a subset of tasks."""
+        deps: dict[str, set[str]] = {name: set() for name in subset_names}
+        producers: dict[str, str] = {}
+        for name in subset_names:
+            for key in self._tasks[name].produces:
+                producers[key] = name
+
+        for name in subset_names:
+            task = self._tasks[name]
+            for req in task.requires:
+                dep_name = producers.get(req)
+                if dep_name is not None and dep_name != name:
+                    deps[name].add(dep_name)
+
+        in_degree: dict[str, int] = {name: len(dep_set) for name, dep_set in deps.items()}
+        dependents: dict[str, list[str]] = defaultdict(list)
+        for name, dep_set in deps.items():
+            for dep in dep_set:
+                dependents[dep].append(name)
+
+        critical_scores = self._compute_critical_scores(dependents)
+
+        queue: deque[str] = deque(name for name, degree in in_degree.items() if degree == 0)
+        batches: list[list[BuildTask]] = []
+        scheduled = 0
+
+        while queue:
+            batch_names = sorted(
+                queue,
+                key=lambda name: (-critical_scores.get(name, 0.0), name),
+            )
+            queue.clear()
+            batches.append([self._tasks[name] for name in batch_names])
+            scheduled += len(batch_names)
+            for name in batch_names:
+                for dependent in dependents[name]:
+                    in_degree[dependent] -= 1
+                    if in_degree[dependent] == 0:
+                        queue.append(dependent)
+
+        if scheduled != len(subset_names):
+            unscheduled = {
+                name
+                for name in subset_names
+                if name not in {t.name for batch in batches for t in batch}
+            }
+            raise CyclicDependencyError(
+                f"Cyclic dependency detected in planned subset: {unscheduled}"
+            )
+
+        return batches
+
+    def _compute_critical_scores(
+        self,
+        dependents: dict[str, list[str]],
+    ) -> dict[str, float]:
+        """Compute estimated critical-path scores for task prioritization."""
+        memo: dict[str, float] = {}
+
+        def score(name: str) -> float:
+            cached = memo.get(name)
+            if cached is not None:
+                return cached
+
+            own = self._task_durations_ms.get(name, 1.0)
+            children = dependents.get(name, [])
+            if not children:
+                memo[name] = own
+                return own
+
+            child_max = max(score(child) for child in children)
+            total = own + child_max
+            memo[name] = total
+            return total
+
+        for task_name in self._tasks:
+            score(task_name)
+        return memo

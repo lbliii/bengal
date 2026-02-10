@@ -66,10 +66,8 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.utils.pagination import Paginator
 
-# Import PageOperationsMixin from rendering layer where it logically belongs.
-# This is an intentional cross-layer import - the mixin contains rendering logic
-# that is mixed into the Page class for API convenience.
-from bengal.rendering.page_operations import PageOperationsMixin
+# Import via services adapter to avoid direct core->rendering dependency.
+from bengal.services.page_operations import PageOperationsMixin
 
 from .bundle import BundleType, PageResource, PageResources
 from .content import PageContentMixin

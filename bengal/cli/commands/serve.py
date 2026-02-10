@@ -87,6 +87,15 @@ from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 @click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
+@click.option(
+    "--lean-pipeline/--full-pipeline",
+    "lean_pipeline",
+    default=True,
+    help=(
+        "Use lean goal-driven pipeline during serve rebuilds for faster iteration "
+        "(default: enabled)."
+    ),
+)
 @click.argument("source", type=click.Path(exists=True), default=".")
 @handle_cli_errors(show_art=True)
 def serve(
@@ -104,6 +113,7 @@ def serve(
     debug: bool,
     traceback: str | None,
     config: str,
+    lean_pipeline: bool,
     source: str,
 ) -> None:
     """
@@ -176,6 +186,7 @@ def serve(
 
     # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
     # Start server with optional version scope
+    target_outputs = frozenset({"rendered_pages_fast"}) if lean_pipeline else frozenset()
     site.serve(
         host=host,
         port=port,
@@ -183,4 +194,5 @@ def serve(
         auto_port=auto_port,
         open_browser=open_browser,
         version_scope=version_scope,
+        target_outputs=target_outputs,
     )

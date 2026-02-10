@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import time
 from typing import TYPE_CHECKING
 
@@ -43,18 +42,8 @@ def _execute(ctx: BuildContext) -> None:
     if ctx.cli is not None:
         ctx.cli.phase("Parsing", duration_ms=duration_ms, details=f"{len(pages_to_build)} pages")
 
-    # Save page ASTs to ContentASTCache for incremental reuse.
-    # Only accept Patitas Document ASTs (frozen dataclass with children/location
-    # attributes). Skip legacy tuple-based tokens from the snapshot cache.
-    from bengal.server.fragment_update import ContentASTCache, is_document_ast
-
-    for page in pages_to_build:
-        page_ast = getattr(page, "_ast_cache", None)
-        if page_ast is not None and is_document_ast(page_ast):
-            raw = getattr(page, "_raw_content", None)
-            if isinstance(raw, str) and raw:
-                body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
-                ContentASTCache.put(page.source_path, body_hash, raw, page_ast)
+    # Persist AST cache after parsing phase has populated it.
+    from bengal.server.fragment_update import ContentASTCache
 
     ast_cache_dir = ctx.site.root_path / ".bengal" / "cache" / "ast"
     ContentASTCache.save_to_disk(ast_cache_dir)

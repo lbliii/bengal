@@ -170,6 +170,7 @@ class GeneratedPageCache(PersistentCacheMixin):
         self,
         cache_path: Path,
         html_cache_threshold: int = 100_000,
+        load_on_init: bool = True,
     ) -> None:
         """
         Initialize generated page cache.
@@ -177,6 +178,9 @@ class GeneratedPageCache(PersistentCacheMixin):
         Args:
             cache_path: Path to cache file
             html_cache_threshold: Max HTML size to cache (bytes, default 100KB)
+            load_on_init: Whether to load cache contents immediately.
+                Set to False for cold-build fast startup; cache can still be
+                populated and saved later in the same build.
 
         """
         self.cache_path = cache_path
@@ -184,7 +188,8 @@ class GeneratedPageCache(PersistentCacheMixin):
         self.entries: dict[str, GeneratedPageCacheEntry] = {}
         self._lock = threading.Lock()
         self._dirty = False
-        self._load_cache()
+        if load_on_init:
+            self._load_cache()
 
     # =========================================================================
     # PersistentCacheMixin implementation
