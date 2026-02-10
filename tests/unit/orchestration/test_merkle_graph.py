@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from bengal.orchestration.build.merkle_graph import collect_merkle_advisory
+from bengal.orchestration.build.merkle_graph import analyze_merkle_advisory
 
 
 @dataclass
@@ -95,3 +96,17 @@ def test_merkle_advisory_detects_content_and_template_changes(tmp_path: Path) ->
     advisory_template = collect_merkle_advisory(site, tmp_path)
     assert "doc.html" in advisory_template.dirty_templates
     assert str(page_path) in advisory_template.dirty_pages
+
+
+def test_analyze_without_persist_does_not_create_state_file(tmp_path: Path) -> None:
+    page_path = tmp_path / "doc.md"
+    page_path.write_text("content")
+    site = _Site(
+        pages=[_Page(source_path=page_path, metadata={"template": "doc.html"})],
+        template_engine=_TemplateEngine(manifests={}),
+    )
+
+    advisory = analyze_merkle_advisory(site, tmp_path, persist=False)
+    assert advisory.previous_root is None
+    state_file = tmp_path / ".bengal" / "state" / "merkle_graph.json"
+    assert not state_file.exists()

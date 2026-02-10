@@ -34,16 +34,9 @@ jobs:
             uv-${{ runner.os }}-
 
       - name: Checkout sibling editable dependencies
-        run: |
-          OWNER="${{ github.repository_owner }}"
-          for repo in chirp pounce kida patitas rosettes; do
-            if [ -d "../$repo/.git" ]; then
-              echo "Using existing ../$repo"
-              continue
-            fi
-            git clone --depth 1 "https://github.com/${OWNER}/${repo}.git" "../$repo" || \
-              git clone --depth 1 "https://github.com/lbliii/${repo}.git" "../$repo"
-          done
+        uses: ./.github/actions/checkout-editable-deps
+        with:
+          repository-owner: ${{ github.repository_owner }}
 
       - name: Install bengal
         run: uv sync --extra search

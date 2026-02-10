@@ -1,0 +1,34 @@
+name: Checkout editable dependencies
+description: Clone sibling repos required by uv editable path sources
+
+inputs:
+  repository-owner:
+    description: GitHub owner to clone from
+    required: true
+  fallback-owner:
+    description: Fallback owner if the primary clone fails
+    required: false
+    default: lbliii
+  repos:
+    description: Space-separated repo names to clone as siblings
+    required: false
+    default: "chirp pounce kida patitas rosettes"
+
+runs:
+  using: composite
+  steps:
+    - name: Clone sibling editable repositories
+      shell: bash
+      run: |
+        owner="${{ inputs.repository-owner }}"
+        fallback="${{ inputs.fallback-owner }}"
+
+        for repo in ${{ inputs.repos }}; do
+          if [ -d "../${repo}/.git" ]; then
+            echo "Using existing ../${repo}"
+            continue
+          fi
+
+          git clone --depth 1 "https://github.com/${owner}/${repo}.git" "../${repo}" || \
+            git clone --depth 1 "https://github.com/${fallback}/${repo}.git" "../${repo}"
+        done
