@@ -685,17 +685,14 @@ def _emit_deprecation_warnings(
     if fast is not None:
         click.echo(
             "Warning: --fast/--no-fast is deprecated; use --mode perf (or --mode dev).",
-            err=True,
         )
     if use_dev:
         click.echo(
             "Warning: --dev is deprecated; use --profile dev.",
-            err=True,
         )
     if use_theme_dev:
         click.echo(
             "Warning: --theme-dev is deprecated; use --profile theme-dev.",
-            err=True,
         )
 
 

@@ -158,8 +158,12 @@ class FragmentFastPathService:
                             new_fm = yaml.safe_load(fm_match.group(1)) or {}
                             if isinstance(new_fm, dict):
                                 page.metadata.update(new_fm)
-                        except yaml.YAMLError:
-                            pass
+                        except yaml.YAMLError as exc:
+                            logger.debug(
+                                "fragment_fast_path_front_matter_yaml_error",
+                                file=str(path),
+                                error=str(exc),
+                            )
 
                 metadata = dict(page.metadata)
                 metadata["_source_path"] = page.source_path

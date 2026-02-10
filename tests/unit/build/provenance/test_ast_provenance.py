@@ -387,10 +387,8 @@ class TestSentinelGuard:
         # but record_build should NOT store it - ast_hash should be None
         try:
             from patitas.serialization import to_json  # noqa: F401
-
             # Serialization available: ast_hash should be a real hash or None
             # (mock_ast_object likely fails to_json, so still None)
-            pass
         except ImportError:
             # Serialization unavailable: ast_hash MUST be None, not _no_ast_
             if stored is not None:

@@ -535,7 +535,7 @@ class BuildTrigger:
                 if ast_stats.get("size", 0) > 0:
                     logger.info("ast_cache_stats", **ast_stats)
             except Exception:
-                pass
+                pass  # Best-effort: stats logging is non-critical
 
             # Open the build gate BEFORE notifying browser so that when
             # the client receives the SSE reload event and requests the

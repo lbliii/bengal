@@ -304,11 +304,16 @@ class RenderingPipeline:
         # pipeline reuse across builds always picks up the current collector.
         # Without this, cached pipelines retain a stale (or None) collector and
         # the dev server falls back to full-page reloads instead of CSS-only.
-        collector = (
+        # Normalize to NULL_COLLECTOR (same as __init__) so downstream code
+        # never sees None.
+        from bengal.core.output.collector import NULL_COLLECTOR
+
+        _extracted = (
             getattr(self.build_context, "output_collector", None)
             if self.build_context
             else None
         )
+        collector = _extracted if _extracted is not None else NULL_COLLECTOR
         if collector is not self._output_collector:
             self._output_collector = collector
             self._cache_checker.output_collector = collector

@@ -54,7 +54,7 @@ def _execute(ctx: BuildContext) -> None:
 
         ctx.data_service = DataService.from_root(ctx.site.root_path)
     except Exception:
-        pass
+        pass  # DataService is optional; sites without data/ dir skip it
 
     # --- Render profiling setup ---
     _render_metrics = None
@@ -124,7 +124,7 @@ def _execute(ctx: BuildContext) -> None:
             if engine is not None and hasattr(engine, "cache_info"):
                 orchestrator.logger.info("kida_cache_info", **engine.cache_info())
         except Exception:
-            pass
+            pass  # Best-effort: profiling diagnostics are non-critical
 
     # Phase 15: Update site pages
     rendering.phase_update_site_pages(

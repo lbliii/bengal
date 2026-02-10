@@ -85,6 +85,11 @@ class TestPipelineOutputCollector:
         """Pipeline with no build_context at all must use NULL_COLLECTOR sentinel."""
         from bengal.core.output.collector import NullOutputCollector
 
-        # Use injected parser/engine to skip full site init but pass no collector
-        pipeline = self._make_pipeline(tmp_path, collector=None)
+        # Construct pipeline with build_context=None to exercise the fallback
+        site = SimpleNamespace(
+            config={},
+            root_path=tmp_path,
+            output_dir=tmp_path,
+        )
+        pipeline = RenderingPipeline(site, build_context=None)
         assert isinstance(pipeline._output_collector, NullOutputCollector)
