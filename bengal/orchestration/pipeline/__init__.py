@@ -55,6 +55,7 @@ def execute_pipeline(
     max_workers: int | None = None,
     on_task_start: object | None = None,
     on_task_complete: object | None = None,
+    use_timing_hints: bool = True,
 ) -> PipelineResult:
     """
     Schedule and execute a build pipeline.
@@ -80,7 +81,11 @@ def execute_pipeline(
         :class:`PipelineResult` with per-task outcomes and timing.
     """
     root_path = _try_get_root_path(ctx)
-    task_timings = load_task_timings(root_path) if root_path is not None else None
+    task_timings = (
+        load_task_timings(root_path)
+        if use_timing_hints and root_path is not None
+        else None
+    )
 
     scheduler = TaskScheduler(
         tasks,
@@ -99,7 +104,8 @@ def execute_pipeline(
         on_task_complete=on_task_complete,  # type: ignore[arg-type]
     )
     result = executor.execute(planned_batches, ctx)  # type: ignore[arg-type]
-    _try_persist_timings(root_path, result)
+    if use_timing_hints:
+        _try_persist_timings(root_path, result)
     return result
 
 

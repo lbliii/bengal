@@ -7,8 +7,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.server.build_trigger import BuildTrigger
+import bengal.server.build_trigger as build_trigger_module
+from bengal.server.build_trigger import BuildTrigger as _BuildTrigger
 from bengal.server.reload_controller import ReloadDecision
+
+
+def BuildTrigger(*args: object, **kwargs: object) -> _BuildTrigger:
+    """Create BuildTrigger with patched/default reload controller for tests."""
+    patched_controller = getattr(build_trigger_module, "controller", None)
+    kwargs.setdefault("reload_controller", patched_controller or MagicMock())
+    return _BuildTrigger(*args, **kwargs)
 
 
 def _make_build_stats(changed_outputs: list | None = None) -> MagicMock:

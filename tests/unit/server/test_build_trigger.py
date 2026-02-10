@@ -7,7 +7,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.server.build_trigger import BuildTrigger
+import bengal.server.build_trigger as build_trigger_module
+from bengal.server.build_trigger import BuildTrigger as _BuildTrigger
+from bengal.server.reload_controller import ReloadDecision
+
+
+def BuildTrigger(*args: object, **kwargs: object) -> _BuildTrigger:
+    """Create BuildTrigger with patched/default reload controller for tests."""
+    patched_controller = getattr(build_trigger_module, "controller", None)
+    kwargs.setdefault("reload_controller", patched_controller or MagicMock())
+    return _BuildTrigger(*args, **kwargs)
 
 
 class TestBuildTrigger:
@@ -99,6 +108,60 @@ class TestBuildTrigger:
         )
 
         assert trigger._try_fragment_update({Path("test.md")}, {"modified"}) is True
+
+    def test_reload_controller_is_injected(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """BuildTrigger uses injected reload controller for decisions."""
+
+        class DummyReloadController:
+            _use_content_hashes = False
+            _baseline_content_hashes = None
+
+            def __init__(self) -> None:
+                self.from_outputs_called = 0
+
+            def capture_content_hash_baseline(self, _output_dir: Path) -> None:
+                return None
+
+            def decide_from_outputs(self, _records: list[object]) -> ReloadDecision:
+                self.from_outputs_called += 1
+                return ReloadDecision(action="none", reason="test", changed_paths=[])
+
+            def decide_from_changed_paths(self, _changed_paths: list[str]) -> ReloadDecision:
+                return ReloadDecision(action="none", reason="test", changed_paths=[])
+
+            def decide_with_content_hashes(self, _output_dir: Path) -> object:
+                return type("EnhancedDecision", (), {"meaningful_change_count": 0})()
+
+        dummy = DummyReloadController()
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            reload_controller=dummy,
+        )
+
+        trigger._handle_reload(
+            changed_files=["docs/test.md"],
+            changed_outputs=(("public/index.html", "html", "render"),),
+        )
+        assert dummy.from_outputs_called == 1
+
+    def test_build_state_setter_callback_is_used(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """BuildTrigger uses injected build-state callback before global fallback."""
+        states: list[bool] = []
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            build_state_setter=states.append,
+        )
+
+        trigger._set_build_in_progress(True)
+        trigger._set_build_in_progress(False)
+
+        assert states == [True, False]
 
     def test_needs_full_rebuild_for_structural_changes(
         self, mock_site: MagicMock, mock_executor: MagicMock

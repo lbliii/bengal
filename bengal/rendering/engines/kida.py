@@ -871,6 +871,22 @@ class KidaTemplateEngine:
             if meta.cache_scope in ("site", "page") and meta.is_pure == "pure"
         }
 
+    def get_template_manifest(self, name: str) -> dict[str, Any] | None:
+        """Get lightweight structure manifest (extends/blocks/hashes/deps)."""
+        try:
+            manifest = self._env.get_template_structure(name)
+            if manifest is None:
+                return None
+            return {
+                "name": manifest.name,
+                "extends": manifest.extends,
+                "block_names": manifest.block_names,
+                "block_hashes": manifest.block_hashes,
+                "dependencies": manifest.dependencies,
+            }
+        except Exception:
+            return None
+
     # =========================================================================
     # CONTEXT VALIDATION (RFC: kida-context-validation)
     # =========================================================================

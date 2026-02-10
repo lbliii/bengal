@@ -1,0 +1,86 @@
+{
+  "generated_at": "2026-02-10T02:56:24.912128+00:00",
+  "runs_per_scenario": 1,
+  "payloads": {
+    "current": {
+      "repo_root": "/Users/llane/Documents/github/python/bengal",
+      "site_dir": "/Users/llane/Documents/github/python/bengal/site",
+      "results": [
+        {
+          "scenario": "cold_full",
+          "elapsed_ms": 31321.580958901905,
+          "success": true,
+          "return_code": 0,
+          "stderr_preview": ""
+        },
+        {
+          "scenario": "warm_incremental",
+          "elapsed_ms": 3807.928499998525,
+          "success": true,
+          "return_code": 0,
+          "stderr_preview": ""
+        }
+      ],
+      "summary": {
+        "cold_full": {
+          "runs": 1,
+          "successes": 1,
+          "mean_ms": 31321.580958901905,
+          "median_ms": 31321.580958901905,
+          "min_ms": 31321.580958901905,
+          "max_ms": 31321.580958901905,
+          "failures": []
+        },
+        "warm_incremental": {
+          "runs": 1,
+          "successes": 1,
+          "mean_ms": 3807.928499998525,
+          "median_ms": 3807.928499998525,
+          "min_ms": 3807.928499998525,
+          "max_ms": 3807.928499998525,
+          "failures": []
+        }
+      }
+    },
+    "main": {
+      "repo_root": "/Users/llane/Documents/github/python/bengal/bengal-bench-8om9wkyb/repo",
+      "site_dir": "/Users/llane/Documents/github/python/bengal/bengal-bench-8om9wkyb/repo/site",
+      "results": [
+        {
+          "scenario": "cold_full",
+          "elapsed_ms": 40170.60470802244,
+          "success": true,
+          "return_code": 0,
+          "stderr_preview": "Directive contract violation: steps: 'tip' is not allowed inside 'steps'\nDirective contract violation: steps: 'tip' is not allowed inside 'steps'"
+        },
+        {
+          "scenario": "warm_incremental",
+          "elapsed_ms": 3831.8803750444204,
+          "success": true,
+          "return_code": 0,
+          "stderr_preview": ""
+        }
+      ],
+      "summary": {
+        "cold_full": {
+          "runs": 1,
+          "successes": 1,
+          "mean_ms": 40170.60470802244,
+          "median_ms": 40170.60470802244,
+          "min_ms": 40170.60470802244,
+          "max_ms": 40170.60470802244,
+          "failures": []
+        },
+        "warm_incremental": {
+          "runs": 1,
+          "successes": 1,
+          "mean_ms": 3831.8803750444204,
+          "median_ms": 3831.8803750444204,
+          "min_ms": 3831.8803750444204,
+          "max_ms": 3831.8803750444204,
+          "failures": []
+        }
+      }
+    }
+  }
+}

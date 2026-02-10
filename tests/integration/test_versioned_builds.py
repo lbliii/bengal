@@ -21,7 +21,14 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.server.build_trigger import BuildTrigger
+from bengal.server.build_trigger import BuildTrigger as _BuildTrigger
+from bengal.server.wiring import get_reload_controller
+
+
+def BuildTrigger(*args: object, **kwargs: object) -> _BuildTrigger:
+    """Create BuildTrigger with explicit reload controller dependency."""
+    kwargs.setdefault("reload_controller", get_reload_controller())
+    return _BuildTrigger(*args, **kwargs)
 
 
 class TestSharedContentCascade:

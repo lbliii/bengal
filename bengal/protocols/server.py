@@ -79,3 +79,21 @@ class ReloadControllerProtocol(Protocol):
 
     def decide_with_content_hashes(self, output_dir: Path) -> object:
         ...
+
+    def decide_and_update(self, output_dir: Path) -> object:
+        ...
+
+    def set_min_notify_interval_ms(self, interval_ms: int) -> None:
+        ...
+
+    def set_ignored_globs(self, globs: list[str] | None) -> None:
+        ...
+
+    def set_hashing_options(
+        self,
+        *,
+        hash_on_suspect: bool,
+        suspect_hash_limit: int | None = None,
+        suspect_size_limit_bytes: int | None = None,
+    ) -> None:
+        ...

@@ -378,6 +378,7 @@ class TestBuildTriggerIntegration:
 
         from bengal.server.build_trigger import BuildTrigger
         from bengal.server.request_handler import BengalRequestHandler
+        from bengal.server.wiring import get_reload_controller
 
         # Create a mock site
         mock_site = MagicMock()
@@ -389,7 +390,11 @@ class TestBuildTriggerIntegration:
         mock_executor = MagicMock()
 
         # Creating a BuildTrigger verifies the integration with BengalRequestHandler
-        trigger = BuildTrigger(mock_site, executor=mock_executor)
+        trigger = BuildTrigger(
+            mock_site,
+            executor=mock_executor,
+            reload_controller=get_reload_controller(),
+        )
 
         # Ensure initial state
         BengalRequestHandler.set_build_in_progress(False)

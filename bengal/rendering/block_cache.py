@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import builtins
 import hashlib
+import os
 from collections.abc import Iterator
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Literal
@@ -57,6 +58,11 @@ if TYPE_CHECKING:
     from bengal.rendering.engines.kida import KidaTemplateEngine
 
 logger = get_logger(__name__)
+
+
+def _use_kida_block_hashes() -> bool:
+    raw = os.getenv("BENGAL_USE_KIDA_BLOCK_HASHES", "1").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 class BlockCache:
@@ -167,7 +173,7 @@ class BlockCache:
                 "block_cache_analysis",
                 template=template_name,
                 cacheable_blocks=list(cacheable.keys()),
-                scopes={k: v for k, v in cacheable.items()},
+                scopes=dict(cacheable),
             )
 
         self._cacheable_blocks[template_name] = cacheable
@@ -512,6 +518,21 @@ class BlockCache:
         Thread-Safety:
             Read-only operation, safe for concurrent calls.
         """
+        if _use_kida_block_hashes():
+            try:
+                info = engine.get_template_introspection(template_name)
+                if info and "blocks" in info:
+                    hashes = {
+                        block_name: meta.block_hash
+                        for block_name, meta in info["blocks"].items()
+                        if getattr(meta, "block_hash", "")
+                    }
+                    if hashes:
+                        return hashes
+            except Exception:
+                # Fall through to legacy serialization-based hashing.
+                pass
+
         try:
             template = engine.env.get_template(template_name)
         except Exception:

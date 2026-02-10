@@ -62,6 +62,7 @@ from typing import Any
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.protocols import ReloadControllerProtocol
 from bengal.server.asgi_app import DevState, cleanup_dev_state, create_dev_app, init_dev_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
@@ -165,6 +166,7 @@ class DevServer:
         open_browser: bool = False,
         version_scope: str | None = None,
         target_outputs: frozenset[str] = frozenset(),
+        reload_controller: ReloadControllerProtocol | None = None,
     ) -> None:
         """
         Initialize the dev server.
@@ -180,7 +182,14 @@ class DevServer:
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
             target_outputs: Optional output keys for goal-driven pipeline planning.
+            reload_controller: Reload decision collaborator. If None, use
+                the default wired controller.
         """
+        if reload_controller is None:
+            from bengal.server.wiring import get_reload_controller
+
+            reload_controller = get_reload_controller()
+
         self.site = site
         self.host = host
         self.port = port
@@ -189,6 +198,7 @@ class DevServer:
         self.open_browser = open_browser
         self.version_scope = version_scope
         self.target_outputs = target_outputs
+        self._reload_controller = reload_controller
 
         # Pounce server and shared state (set during start)
         self._pounce_server: Any = None
@@ -196,6 +206,11 @@ class DevServer:
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
+
+    def _set_build_in_progress_on_state(self, building: bool) -> None:
+        """Apply build-state updates to this server's DevState instance."""
+        if self._dev_state is not None:
+            self._dev_state.set_build_in_progress(building)
 
     def start(self) -> None:
         """
@@ -448,12 +463,10 @@ class DevServer:
         )
 
         # RFC: Output Cache Architecture - Capture content hash baseline before build
-        from bengal.server.reload_controller import controller
-
-        if controller._use_content_hashes:
-            controller.capture_content_hash_baseline(self.site.output_dir)
+        if self._reload_controller._use_content_hashes:
+            self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
         else:
-            controller.decide_and_update(self.site.output_dir)  # Set baseline (legacy)
+            self._reload_controller.decide_and_update(self.site.output_dir)  # Set baseline (legacy)
 
         stats = self.site.build(build_opts)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -472,12 +485,12 @@ class DevServer:
         self._init_reload_controller()
 
         # RFC: Output Cache Architecture - Use content-hash detection for accurate change counts
-        if controller._use_content_hashes:
-            decision = controller.decide_with_content_hashes(self.site.output_dir)
+        if self._reload_controller._use_content_hashes:
+            decision = self._reload_controller.decide_with_content_hashes(self.site.output_dir)
             # Report actual content changes, not regeneration noise
             actual_changes = decision.meaningful_change_count
         else:
-            decision = controller.decide_and_update(self.site.output_dir)
+            decision = self._reload_controller.decide_and_update(self.site.output_dir)
             actual_changes = len(decision.changed_paths)
 
         if decision.action != "none":
@@ -510,14 +523,13 @@ class DevServer:
     def _init_reload_controller(self) -> None:
         """Initialize reload controller with configuration."""
         try:
-            from bengal.server.reload_controller import controller
             from bengal.server.utils import get_dev_config
 
             cfg = getattr(self.site, "config", {}) or {}
 
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
-                controller.set_min_notify_interval_ms(int(min_interval))
+                self._reload_controller.set_min_notify_interval_ms(int(min_interval))
             except Exception as e:
                 logger.warning("reload_config_min_interval_failed", error=str(e))
 
@@ -531,7 +543,9 @@ class DevServer:
                 ignore_paths = get_dev_config(
                     cfg, "reload", "ignore_paths", default=default_ignores
                 )
-                controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
+                self._reload_controller.set_ignored_globs(
+                    list(ignore_paths) if ignore_paths else None
+                )
             except Exception as e:
                 logger.warning("reload_config_ignores_failed", error=str(e))
 
@@ -542,7 +556,7 @@ class DevServer:
                 suspect_size_limit = get_dev_config(
                     cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
                 )
-                controller.set_hashing_options(
+                self._reload_controller.set_hashing_options(
                     hash_on_suspect=bool(
                         get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
                     ),
@@ -717,6 +731,8 @@ class DevServer:
             port=actual_port,
             version_scope=self.version_scope,
             target_outputs=self.target_outputs,
+            reload_controller=self._reload_controller,
+            build_state_setter=self._set_build_in_progress_on_state,
         )
 
         # Create ignore filter from config using class method

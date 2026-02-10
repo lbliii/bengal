@@ -52,6 +52,7 @@ from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
+from .feature_flags import resolve_build_feature_flags
 from .options import BuildOptions
 
 logger = get_logger(__name__)
@@ -341,6 +342,30 @@ class BuildOrchestrator:
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
 
+        # Resolve runtime feature policy (cold vs incremental).
+        feature_flags = resolve_build_feature_flags(incremental=bool(incremental))
+        if options.use_pipeline_timing_hints is not None:
+            feature_flags = feature_flags.__class__(
+                use_kida_block_hashes=feature_flags.use_kida_block_hashes,
+                use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
+                use_timing_hints=options.use_pipeline_timing_hints,
+                lean_cold_build=feature_flags.lean_cold_build,
+            )
+        if options.use_kida_block_hashes is not None:
+            feature_flags = feature_flags.__class__(
+                use_kida_block_hashes=options.use_kida_block_hashes,
+                use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
+                use_timing_hints=feature_flags.use_timing_hints,
+                lean_cold_build=feature_flags.lean_cold_build,
+            )
+        if options.use_patitas_recursive_diff is not None:
+            feature_flags = feature_flags.__class__(
+                use_kida_block_hashes=feature_flags.use_kida_block_hashes,
+                use_patitas_recursive_diff=options.use_patitas_recursive_diff,
+                use_timing_hints=feature_flags.use_timing_hints,
+                lean_cold_build=feature_flags.lean_cold_build,
+            )
+
         # Store options and cache for phase-level optimizations
         self.site._last_build_options = options
         self.site._cache = self.incremental.cache
@@ -383,6 +408,7 @@ class BuildOrchestrator:
         early_ctx._orchestrator = self
         early_ctx._build_options = options
         early_ctx._generated_page_cache = generated_page_cache
+        early_ctx.feature_flags = feature_flags
 
         # =====================================================================
         # Execute data-driven pipeline
@@ -414,6 +440,7 @@ class BuildOrchestrator:
             parallel=not force_sequential,
             on_task_start=on_phase_start,
             on_task_complete=on_phase_complete,
+            use_timing_hints=feature_flags.use_timing_hints,
         )
 
         # Check for pipeline failures — propagate first error

@@ -174,7 +174,11 @@ class TestIsInTemplateDirPathResolution:
 
         mock_executor = MagicMock()
 
-        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            reload_controller=MagicMock(),
+        )
 
         result = trigger._is_in_template_dir(path_with_dot, [templates_dir])
 
@@ -209,7 +213,11 @@ class TestIsInTemplateDirPathResolution:
 
         mock_executor = MagicMock()
 
-        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            reload_controller=MagicMock(),
+        )
 
         # Check file in real dir against symlink dir
         result = trigger._is_in_template_dir(template_file, [link_templates])

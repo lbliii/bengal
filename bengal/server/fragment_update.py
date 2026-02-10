@@ -33,6 +33,7 @@ Related:
 
 from __future__ import annotations
 
+import os
 import threading
 from pathlib import Path
 from typing import Any, ClassVar
@@ -40,6 +41,11 @@ from typing import Any, ClassVar
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _use_patitas_recursive_diff() -> bool:
+    raw = os.getenv("BENGAL_USE_PATITAS_RECURSIVE_DIFF", "1").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 def is_document_ast(ast: Any) -> bool:
@@ -511,7 +517,7 @@ def diff_content_ast(
         new_ast = patitas_parse(new_body, source_file=str(path))
 
     # Diff old vs new
-    changes = diff_documents(old_ast, new_ast)
+    changes = diff_documents(old_ast, new_ast, recursive=_use_patitas_recursive_diff())
 
     # Update cache
     ContentASTCache.put(path, body_hash, new_body, new_ast)

@@ -234,6 +234,7 @@ class BuildContext:
 
     # GeneratedPageCache for tag page incremental skipping
     _generated_page_cache: Any = field(default=None, repr=False)
+    feature_flags: Any = field(default=None, repr=False)
 
     # =========================================================================
     # Build-Scoped Caching (RFC: Cache Lifecycle Hardening)

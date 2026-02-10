@@ -52,6 +52,7 @@ import contextlib
 import re
 import threading
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any, ClassVar
@@ -71,13 +72,16 @@ from bengal.protocols import (
 )
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
-from bengal.server.reload_controller import ReloadDecision, controller
+from bengal.server.reload_controller import ReloadDecision
 from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
+
+# Compatibility shim for older tests that patch module-level controller.
+controller: ReloadControllerProtocol | None = None
 
 
 class BuildTrigger:
@@ -102,7 +106,12 @@ class BuildTrigger:
         - Template dirs cache: Resolved template directories (avoids exists() calls)
 
     Example:
-            >>> trigger = BuildTrigger(site, host="localhost", port=5173)
+            >>> trigger = BuildTrigger(
+            ...     site,
+            ...     host="localhost",
+            ...     port=5173,
+            ...     reload_controller=my_reload_controller,
+            ... )
             >>> trigger.trigger_build(changed_paths, event_types)
 
     """
@@ -131,6 +140,7 @@ class BuildTrigger:
         rebuild_classifier: RebuildClassifierProtocol | None = None,
         fragment_fast_path: FragmentFastPathProtocol | None = None,
         reload_controller: ReloadControllerProtocol | None = None,
+        build_state_setter: Callable[[bool], None] | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -145,7 +155,8 @@ class BuildTrigger:
             target_outputs: Optional output keys for goal-driven pipeline planning.
             rebuild_classifier: Optional full/incremental classifier dependency.
             fragment_fast_path: Optional fragment fast-path dependency.
-            reload_controller: Optional reload decision collaborator.
+            reload_controller: Reload decision collaborator (required).
+            build_state_setter: Optional callback to signal build state.
         """
         self.site = site
         self.host = host
@@ -163,7 +174,10 @@ class BuildTrigger:
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
         self._rebuild_classifier = rebuild_classifier or RebuildClassifier()
-        self._reload_controller = reload_controller or controller
+        if reload_controller is None:
+            raise ValueError("reload_controller is required")
+        self._reload_controller = reload_controller
+        self._build_state_setter = build_state_setter
         self._fragment_fast_path = fragment_fast_path or FragmentFastPathService(
             self.site,
             classify_markdown_change=self._classify_markdown_change,
@@ -349,9 +363,9 @@ class BuildTrigger:
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
-            if controller._use_content_hashes:
+            if self._reload_controller._use_content_hashes:
                 t0 = time.time()
-                controller.capture_content_hash_baseline(self.site.output_dir)
+                self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
                 baseline_ms = (time.time() - t0) * 1000
                 logger.info("prebuild_timing_baseline", baseline_hash_ms=f"{baseline_ms:.0f}")
 
@@ -1213,7 +1227,7 @@ class BuildTrigger:
                     logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
-                decision = controller.decide_from_outputs(records)
+                decision = self._reload_controller.decide_from_outputs(records)
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",
@@ -1223,7 +1237,7 @@ class BuildTrigger:
             else:
                 # Fallback: Path-based decision (when type reconstruction fails)
                 paths = [path for path, _type, _phase in changed_outputs]
-                decision = controller.decide_from_changed_paths(paths)
+                decision = self._reload_controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
                 logger.warning(
                     "reload_decision_fallback",
@@ -1256,11 +1270,11 @@ class BuildTrigger:
         # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
         if (
             decision.action == "reload"
-            and controller._use_content_hashes
-            and hasattr(controller, "_baseline_content_hashes")
-            and controller._baseline_content_hashes
+            and self._reload_controller._use_content_hashes
+            and hasattr(self._reload_controller, "_baseline_content_hashes")
+            and self._reload_controller._baseline_content_hashes
         ):
-            enhanced = controller.decide_with_content_hashes(self.site.output_dir)
+            enhanced = self._reload_controller.decide_with_content_hashes(self.site.output_dir)
             if enhanced.meaningful_change_count == 0:
                 # All changes are aggregate-only (sitemap, feeds, search index)
                 decision = ReloadDecision(
@@ -1306,15 +1320,18 @@ class BuildTrigger:
             send_reload_payload(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
-        """Signal build state to the dev server ASGI app."""
-        try:
-            from bengal.server.asgi_app import get_dev_state
-
-            state = get_dev_state()
-            if state is not None:
-                state.set_build_in_progress(building)
-        except Exception as e:
-            logger.debug("build_state_signal_failed", error=str(e))
+        """Signal build state through injected callback only."""
+        if self._build_state_setter is not None:
+            try:
+                self._build_state_setter(building)
+                return
+            except Exception as e:
+                logger.debug("build_state_callback_failed", error=str(e))
+        logger.debug(
+            "build_state_signal_skipped",
+            reason="no_build_state_setter",
+            building=building,
+        )
 
     def _clear_html_cache(self) -> None:
         """Clear caches after rebuild.

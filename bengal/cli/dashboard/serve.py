@@ -222,6 +222,7 @@ class BengalServeDashboard(BengalDashboard):
         import threading
 
         from bengal.server.dev_server import DevServer
+        from bengal.server.wiring import get_reload_controller
 
         self._stop_event = threading.Event()
 
@@ -236,6 +237,7 @@ class BengalServeDashboard(BengalDashboard):
                     watch=self.watch,
                     auto_port=True,
                     open_browser=self.auto_open_browser,
+                    reload_controller=get_reload_controller(),
                 )
 
                 # Get actual port (may have changed due to auto_port)

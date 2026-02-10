@@ -90,3 +90,38 @@ def test_execute_pipeline_persists_completed_task_timings(tmp_path: Path) -> Non
     timings = load_task_timings(tmp_path)
     assert "a" in timings
     assert "b" in timings
+
+
+def test_execute_pipeline_skips_timing_hints_when_disabled(tmp_path: Path) -> None:
+    """execute_pipeline should not persist timing hints when disabled."""
+
+    @dataclass
+    class _Site:
+        root_path: Path
+
+    @dataclass
+    class _Ctx:
+        site: _Site
+
+    def _run(_ctx: _Ctx) -> None:
+        return
+
+    tasks = [
+        BuildTask(
+            name="single",
+            requires=frozenset(),
+            produces=frozenset({"single_out"}),
+            execute=_run,
+        )
+    ]
+
+    result = execute_pipeline(
+        tasks=tasks,
+        ctx=_Ctx(site=_Site(root_path=tmp_path)),
+        initial_keys=frozenset(),
+        parallel=False,
+        use_timing_hints=False,
+    )
+
+    assert result.success
+    assert load_task_timings(tmp_path) == {}

@@ -41,6 +41,7 @@ def start_dev_server(
 ) -> None:
     """Start dev server for a site."""
     from bengal.server.dev_server import DevServer
+    from bengal.server.wiring import get_reload_controller
 
     server = DevServer(
         site,
@@ -51,6 +52,7 @@ def start_dev_server(
         open_browser=open_browser,
         version_scope=version_scope,
         target_outputs=target_outputs,
+        reload_controller=get_reload_controller(),
     )
     server.start()
 

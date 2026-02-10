@@ -142,6 +142,18 @@ class TestFlagPropagation:
         assert hasattr(options, "target_outputs")
         assert options.target_outputs == frozenset()
 
+    def test_build_options_has_runtime_policy_flags(self):
+        """Test that runtime policy feature fields exist in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
+
+        options = BuildOptions()
+        assert hasattr(options, "use_pipeline_timing_hints")
+        assert hasattr(options, "use_kida_block_hashes")
+        assert hasattr(options, "use_patitas_recursive_diff")
+        assert options.use_pipeline_timing_hints is None
+        assert options.use_kida_block_hashes is None
+        assert options.use_patitas_recursive_diff is None
+
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""
         import inspect

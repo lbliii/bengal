@@ -104,6 +104,11 @@ class BuildOptions:
     # Intended for reverse-planned / goal-driven execution experiments.
     target_outputs: frozenset[str] = frozenset()
 
+    # Runtime policy + feature integration flags (cold vs incremental behavior).
+    use_pipeline_timing_hints: bool | None = None
+    use_kida_block_hashes: bool | None = None
+    use_patitas_recursive_diff: bool | None = None
+
     # Phase streaming callbacks (RFC: rfc-dashboard-api-integration)
     # These enable real-time build progress updates in the dashboard.
     # Callbacks are optional (None = no streaming).
