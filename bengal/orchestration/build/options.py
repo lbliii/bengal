@@ -108,6 +108,8 @@ class BuildOptions:
     use_pipeline_timing_hints: bool | None = None
     use_kida_block_hashes: bool | None = None
     use_patitas_recursive_diff: bool | None = None
+    use_merkle_advisory: bool | None = None
+    use_merkle_enforcement: bool | None = None
 
     # Phase streaming callbacks (RFC: rfc-dashboard-api-integration)
     # These enable real-time build progress updates in the dashboard.

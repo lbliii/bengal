@@ -24,3 +24,15 @@ def test_resolve_build_feature_flags_env_override(monkeypatch):
     monkeypatch.setenv("BENGAL_USE_PIPELINE_TIMING_HINTS", "1")
     flags = resolve_build_feature_flags(incremental=False)
     assert flags.use_timing_hints is True
+
+
+def test_merkle_advisory_defaults_enabled(monkeypatch):
+    monkeypatch.delenv("BENGAL_USE_MERKLE_ADVISORY", raising=False)
+    flags = resolve_build_feature_flags(incremental=True)
+    assert flags.use_merkle_advisory is True
+
+
+def test_merkle_advisory_env_disable(monkeypatch):
+    monkeypatch.setenv("BENGAL_USE_MERKLE_ADVISORY", "0")
+    flags = resolve_build_feature_flags(incremental=True)
+    assert flags.use_merkle_advisory is False

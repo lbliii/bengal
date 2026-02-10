@@ -21,6 +21,8 @@ class BuildFeatureFlags:
     use_patitas_recursive_diff: bool
     use_timing_hints: bool
     lean_cold_build: bool
+    use_merkle_advisory: bool
+    use_merkle_enforcement: bool
 
 
 def resolve_build_feature_flags(*, incremental: bool) -> BuildFeatureFlags:
@@ -35,4 +37,6 @@ def resolve_build_feature_flags(*, incremental: bool) -> BuildFeatureFlags:
         use_patitas_recursive_diff=_env_flag("BENGAL_USE_PATITAS_RECURSIVE_DIFF", default=True),
         use_timing_hints=_env_flag("BENGAL_USE_PIPELINE_TIMING_HINTS", default=not is_cold_mode),
         lean_cold_build=lean_cold_build,
+        use_merkle_advisory=_env_flag("BENGAL_USE_MERKLE_ADVISORY", default=True),
+        use_merkle_enforcement=_env_flag("BENGAL_USE_MERKLE_ENFORCEMENT", default=False),
     )

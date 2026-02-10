@@ -7,15 +7,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import bengal.server.build_trigger as build_trigger_module
 from bengal.server.build_trigger import BuildTrigger as _BuildTrigger
 from bengal.server.reload_controller import ReloadDecision
 
+DEFAULT_RELOAD_CONTROLLER: object | None = None
+
 
 def BuildTrigger(*args: object, **kwargs: object) -> _BuildTrigger:
-    """Create BuildTrigger with patched/default reload controller for tests."""
-    patched_controller = getattr(build_trigger_module, "controller", None)
-    kwargs.setdefault("reload_controller", patched_controller or MagicMock())
+    """Create BuildTrigger with explicit test reload controller."""
+    kwargs.setdefault("reload_controller", DEFAULT_RELOAD_CONTROLLER or MagicMock())
     return _BuildTrigger(*args, **kwargs)
 
 
@@ -72,7 +72,7 @@ def mock_site(tmp_path: Path) -> MagicMock:
 @patch("bengal.server.build_trigger.show_building_indicator")
 @patch("bengal.server.build_trigger.CLIOutput")
 @patch("bengal.server.build_trigger.display_build_stats")
-@patch("bengal.server.build_trigger.controller")
+@patch("tests.unit.server.test_css_only_reload.DEFAULT_RELOAD_CONTROLLER")
 @patch("bengal.server.live_reload.send_reload_payload")
 def test_css_only_change_triggers_reload_css(
     mock_send_reload: MagicMock,
@@ -125,7 +125,7 @@ def test_css_only_change_triggers_reload_css(
 @patch("bengal.server.build_trigger.show_building_indicator")
 @patch("bengal.server.build_trigger.CLIOutput")
 @patch("bengal.server.build_trigger.display_build_stats")
-@patch("bengal.server.build_trigger.controller")
+@patch("tests.unit.server.test_css_only_reload.DEFAULT_RELOAD_CONTROLLER")
 @patch("bengal.server.live_reload.send_reload_payload")
 def test_mixed_change_triggers_full_reload(
     mock_send_reload: MagicMock,

@@ -150,9 +150,11 @@ class TestFlagPropagation:
         assert hasattr(options, "use_pipeline_timing_hints")
         assert hasattr(options, "use_kida_block_hashes")
         assert hasattr(options, "use_patitas_recursive_diff")
+        assert hasattr(options, "use_merkle_advisory")
         assert options.use_pipeline_timing_hints is None
         assert options.use_kida_block_hashes is None
         assert options.use_patitas_recursive_diff is None
+        assert options.use_merkle_advisory is None
 
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""

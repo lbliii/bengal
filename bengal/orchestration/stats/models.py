@@ -120,6 +120,7 @@ class BuildStats:
     # RFC: rfc-incremental-build-observability
     incremental_decision: Any = None  # IncrementalDecision when set
     filter_decision_log: Any = None  # FilterDecisionLog when set
+    merkle_advisory: dict[str, Any] | None = None
 
     # Warnings and errors
     warnings: list[Any] = field(default_factory=list)

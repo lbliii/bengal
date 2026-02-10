@@ -7,15 +7,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import bengal.server.build_trigger as build_trigger_module
 from bengal.server.build_trigger import BuildTrigger as _BuildTrigger
 from bengal.server.reload_controller import ReloadDecision
 
+DEFAULT_RELOAD_CONTROLLER: object | None = None
+
 
 def BuildTrigger(*args: object, **kwargs: object) -> _BuildTrigger:
-    """Create BuildTrigger with patched/default reload controller for tests."""
-    patched_controller = getattr(build_trigger_module, "controller", None)
-    kwargs.setdefault("reload_controller", patched_controller or MagicMock())
+    """Create BuildTrigger with explicit test reload controller."""
+    kwargs.setdefault("reload_controller", DEFAULT_RELOAD_CONTROLLER or MagicMock())
     return _BuildTrigger(*args, **kwargs)
 
 
@@ -322,7 +322,7 @@ class TestVersionScopedBuilds:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_version_scope_passed_to_build_request(
         self,
@@ -367,7 +367,7 @@ class TestVersionScopedBuilds:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_no_version_scope_in_build_request(
         self,
@@ -435,7 +435,7 @@ class TestBuildTriggerIntegration:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_trigger_build_calls_site_build(
         self,
@@ -682,7 +682,7 @@ class TestBuildTriggerErrorHandling:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.show_error")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.build_trigger.create_dev_error")
     @patch("bengal.server.build_trigger.get_dev_server_state")
     def test_changed_paths_not_mutated_on_error(
@@ -732,7 +732,7 @@ class TestBuildTriggerErrorHandling:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.show_error")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.build_trigger.create_dev_error")
     @patch("bengal.server.build_trigger.get_dev_server_state")
     def test_trigger_file_extracted_without_mutation(
@@ -819,7 +819,7 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_changes_queued_when_build_in_progress(
         self,
@@ -881,7 +881,7 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_queued_changes_trigger_another_build(
         self,
@@ -946,7 +946,7 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_multiple_queued_changes_batched(
         self,
@@ -1015,7 +1015,7 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_stabilization_delay_before_queued_build(
         self,
@@ -1112,7 +1112,7 @@ class TestReloadDecisionFlow:
         executor = MagicMock()
         return executor
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_typed_outputs_css_only_reload(
         self,
@@ -1142,7 +1142,7 @@ class TestReloadDecisionFlow:
         mock_controller.decide_from_outputs.assert_called_once()
         mock_send_reload.assert_called_once_with("reload-css", "css-only", ["style.css"])
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_typed_outputs_full_reload(
         self,
@@ -1171,7 +1171,7 @@ class TestReloadDecisionFlow:
         mock_controller.decide_from_outputs.assert_called_once()
         mock_send_reload.assert_called_once_with("reload", "content-changed", ["index.html"])
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_no_outputs_but_sources_changed_triggers_reload(
         self,
@@ -1191,7 +1191,7 @@ class TestReloadDecisionFlow:
         # Should trigger full reload via fallback
         mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", [])
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     def test_no_outputs_no_sources_suppresses_reload(
         self,
         mock_controller: MagicMock,
@@ -1208,7 +1208,7 @@ class TestReloadDecisionFlow:
         mock_controller.decide_from_outputs.assert_not_called()
         mock_controller.decide_from_changed_paths.assert_not_called()
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_fallback_to_path_based_decision(
         self,
@@ -1270,7 +1270,7 @@ class TestBuildStabilizationTiming:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("tests.unit.server.test_build_trigger.DEFAULT_RELOAD_CONTROLLER")
     @patch("bengal.server.live_reload.send_reload_payload")
     def test_no_delay_for_first_build(
         self,

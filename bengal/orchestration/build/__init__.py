@@ -53,6 +53,7 @@ from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
 from .feature_flags import resolve_build_feature_flags
+from .merkle_graph import collect_merkle_advisory
 from .options import BuildOptions
 
 logger = get_logger(__name__)
@@ -350,6 +351,8 @@ class BuildOrchestrator:
                 use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
                 use_timing_hints=options.use_pipeline_timing_hints,
                 lean_cold_build=feature_flags.lean_cold_build,
+                use_merkle_advisory=feature_flags.use_merkle_advisory,
+                use_merkle_enforcement=feature_flags.use_merkle_enforcement,
             )
         if options.use_kida_block_hashes is not None:
             feature_flags = feature_flags.__class__(
@@ -357,6 +360,8 @@ class BuildOrchestrator:
                 use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
                 use_timing_hints=feature_flags.use_timing_hints,
                 lean_cold_build=feature_flags.lean_cold_build,
+                use_merkle_advisory=feature_flags.use_merkle_advisory,
+                use_merkle_enforcement=feature_flags.use_merkle_enforcement,
             )
         if options.use_patitas_recursive_diff is not None:
             feature_flags = feature_flags.__class__(
@@ -364,6 +369,26 @@ class BuildOrchestrator:
                 use_patitas_recursive_diff=options.use_patitas_recursive_diff,
                 use_timing_hints=feature_flags.use_timing_hints,
                 lean_cold_build=feature_flags.lean_cold_build,
+                use_merkle_advisory=feature_flags.use_merkle_advisory,
+                use_merkle_enforcement=feature_flags.use_merkle_enforcement,
+            )
+        if options.use_merkle_advisory is not None:
+            feature_flags = feature_flags.__class__(
+                use_kida_block_hashes=feature_flags.use_kida_block_hashes,
+                use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
+                use_timing_hints=feature_flags.use_timing_hints,
+                lean_cold_build=feature_flags.lean_cold_build,
+                use_merkle_advisory=options.use_merkle_advisory,
+                use_merkle_enforcement=feature_flags.use_merkle_enforcement,
+            )
+        if options.use_merkle_enforcement is not None:
+            feature_flags = feature_flags.__class__(
+                use_kida_block_hashes=feature_flags.use_kida_block_hashes,
+                use_patitas_recursive_diff=feature_flags.use_patitas_recursive_diff,
+                use_timing_hints=feature_flags.use_timing_hints,
+                lean_cold_build=feature_flags.lean_cold_build,
+                use_merkle_advisory=feature_flags.use_merkle_advisory,
+                use_merkle_enforcement=options.use_merkle_enforcement,
             )
 
         # Store options and cache for phase-level optimizations
@@ -482,6 +507,21 @@ class BuildOrchestrator:
 
         # Finalize build timing
         self.stats.build_time_ms = (time.time() - build_start) * 1000
+
+        if feature_flags.use_merkle_advisory:
+            try:
+                advisory = collect_merkle_advisory(self.site, self.site.root_path)
+                self.stats.merkle_advisory = advisory.to_dict()
+                logger.info(
+                    "merkle_advisory",
+                    dirty_content=len(advisory.dirty_content),
+                    dirty_templates=len(advisory.dirty_templates),
+                    dirty_pages=len(advisory.dirty_pages),
+                    previous_root=advisory.previous_root,
+                    current_root=advisory.current_root,
+                )
+            except Exception as e:
+                logger.debug("merkle_advisory_failed", error=str(e))
 
         # Restore console logging
         if not verbose:

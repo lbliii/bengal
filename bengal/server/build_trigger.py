@@ -80,9 +80,6 @@ from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
 
-# Compatibility shim for older tests that patch module-level controller.
-controller: ReloadControllerProtocol | None = None
-
 
 class BuildTrigger:
     """

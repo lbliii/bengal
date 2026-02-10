@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 
 
 def _execute(ctx: BuildContext) -> None:
+    from pathlib import Path
+
+    from bengal.orchestration.build.merkle_graph import analyze_merkle_advisory
     from bengal.orchestration.build.provenance_filter import (
         phase_incremental_filter_provenance,
     )
@@ -18,6 +21,15 @@ def _execute(ctx: BuildContext) -> None:
     opts = ctx._build_options
     changed_sources = opts.changed_sources if opts else None
     nav_changed_sources = opts.nav_changed_sources if opts else None
+
+    feature_flags = getattr(ctx, "feature_flags", None)
+    use_merkle_enforcement = bool(
+        feature_flags is not None and getattr(feature_flags, "use_merkle_enforcement", False)
+    )
+    if use_merkle_enforcement and ctx.site is not None:
+        advisory = analyze_merkle_advisory(ctx.site, ctx.site.root_path, persist=False)
+        merkle_changed = {Path(path) for path in advisory.dirty_pages}
+        changed_sources = set(changed_sources or set()) | merkle_changed
 
     filter_result = phase_incremental_filter_provenance(
         ctx._orchestrator,
