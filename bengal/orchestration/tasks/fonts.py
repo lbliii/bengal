@@ -27,7 +27,7 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="resolve_fonts",
-    requires=frozenset({"site", "cli"}),
+    requires=frozenset({"site", "cli", "orchestrator"}),
     produces=frozenset({"font_css"}),
     execute=_execute,
     skip_if=_skip,

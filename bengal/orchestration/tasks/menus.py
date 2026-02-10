@@ -24,7 +24,12 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="build_menus",
-    requires=frozenset({"finalized_sections", "orchestrator"}),
+    requires=frozenset({
+        "finalized_sections",
+        "taxonomy_index",
+        "changed_page_paths",
+        "orchestrator",
+    }),
     produces=frozenset({"menu_tree"}),
     execute=_execute,
     skip_if=_skip,

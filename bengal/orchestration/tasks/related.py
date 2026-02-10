@@ -31,7 +31,7 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="build_related",
-    requires=frozenset({"discovered_pages", "orchestrator"}),
+    requires=frozenset({"discovered_pages", "pages_to_build", "orchestrator"}),
     produces=frozenset({"related_index"}),
     execute=_execute,
     skip_if=_skip,

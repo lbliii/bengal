@@ -31,6 +31,7 @@ from bengal.orchestration.build.results import (
     SkipReasonCode,
 )
 from bengal.protocols import SiteLike
+from bengal.rendering.pipeline.output import determine_output_path
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -128,7 +129,7 @@ def _detect_changed_templates(
             theme_templates_dirs.append(theme_templates)
 
     # Scan all template directories
-    for tpl_dir in [templates_dir] + theme_templates_dirs:
+    for tpl_dir in [templates_dir, *theme_templates_dirs]:
         for tpl_file in tpl_dir.glob("**/*.html"):
             file_key = str(tpl_file)
             stored = cache.file_fingerprints.get(file_key)
@@ -318,9 +319,6 @@ def _expand_forced_changed(
                 )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
-    # Build a mapping of source paths to pages for efficient lookup
-    page_by_source: dict[Path, Page] = {p.source_path: p for p in pages}
-
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
     content_changes = [p for p in forced_changed if p.suffix == ".md"]
     for content_path in content_changes:
@@ -550,13 +548,16 @@ def phase_incremental_filter_provenance(
                     or page.metadata.get("title", "").lower()
                 )
 
-                if term and str(term).lower() in {t.lower() for t in result.affected_tags}:
-                    # This taxonomy page lists a tag that was affected
-                    if page.source_path not in pages_to_build_sources:
-                        taxonomy_pages_to_add.append(page)
-                        dependency_reasons.setdefault(str(page.source_path), []).append(
-                            f"taxonomy_cascade:tag={term}"
-                        )
+                if (
+                    term
+                    and str(term).lower() in {t.lower() for t in result.affected_tags}
+                    and page.source_path not in pages_to_build_sources
+                ):
+                    # This taxonomy page lists a tag that was affected.
+                    taxonomy_pages_to_add.append(page)
+                    dependency_reasons.setdefault(str(page.source_path), []).append(
+                        f"taxonomy_cascade:tag={term}"
+                    )
 
             if taxonomy_pages_to_add:
                 # Create new result with taxonomy pages added
@@ -709,15 +710,32 @@ def phase_incremental_filter_provenance(
         if incremental and result.pages_skipped and cache and hasattr(cache, "output_sources"):
             skipped_by_source = {str(page.source_path): page for page in result.pages_skipped}
             missing_pages: list = []
+            seen_missing_sources: set[str] = set()
+            mapped_sources: set[str] = set()
 
             for rel_output, source_str in (cache.output_sources or {}).items():
                 page = skipped_by_source.get(source_str)
                 if not page:
                     continue
+                mapped_sources.add(source_str)
                 output_path = site.output_dir / rel_output
                 page.output_path = page.output_path or output_path
-                if not output_path.exists():
+                if not output_path.exists() and source_str not in seen_missing_sources:
                     missing_pages.append(page)
+                    seen_missing_sources.add(source_str)
+
+            # Fallback path when output mapping is missing/stale:
+            # derive expected output path from URL strategy and validate it exists.
+            for page in result.pages_skipped:
+                source_key = str(page.source_path)
+                if source_key in mapped_sources or source_key in seen_missing_sources:
+                    continue
+                expected_output = page.output_path or determine_output_path(page, site)
+                page.output_path = expected_output
+                if not expected_output.exists():
+                    missing_pages.append(page)
+                    seen_missing_sources.add(source_key)
+
             if missing_pages:
                 pages_to_build = list(result.pages_to_build) + missing_pages
                 pages_skipped = [p for p in result.pages_skipped if p not in missing_pages]

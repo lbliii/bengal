@@ -73,10 +73,10 @@ class TestDetectEnvironment:
         with patch.dict(os.environ, {"GITLAB_CI": "true"}, clear=True):
             assert detect_environment() == Environment.CI
 
-    def test_generic_ci_detection(self) -> None:
-        """Detects generic CI environment variable."""
+    def test_generic_ci_variable_does_not_force_ci(self) -> None:
+        """Generic CI var alone should not force CI mode."""
         with patch.dict(os.environ, {"CI": "true"}, clear=True):
-            assert detect_environment() == Environment.CI
+            assert detect_environment() == Environment.LOCAL
 
     def test_circleci_detection(self) -> None:
         """Detects CircleCI environment."""
@@ -238,7 +238,7 @@ class TestGetOptimalWorkers:
 
     def test_auto_detects_environment(self) -> None:
         """Auto-detects environment when not specified."""
-        with patch.dict(os.environ, {"CI": "true"}, clear=True):
+        with patch.dict(os.environ, {"GITLAB_CI": "true"}, clear=True):
             result = get_optimal_workers(100, workload_type=WorkloadType.CPU_BOUND)
             assert result <= 2  # CI caps at 2
 
@@ -456,7 +456,7 @@ class TestGetProfile:
 
     def test_auto_detects_environment(self) -> None:
         """Auto-detects environment when not specified."""
-        with patch.dict(os.environ, {"CI": "true"}, clear=True):
+        with patch.dict(os.environ, {"GITLAB_CI": "true"}, clear=True):
             profile = get_profile(WorkloadType.CPU_BOUND)
             # CI profile
             assert profile.max_workers == 2
@@ -521,7 +521,7 @@ class TestIntegration:
 
     def test_full_workflow_ci(self) -> None:
         """Full workflow in CI environment."""
-        with patch.dict(os.environ, {"CI": "true"}, clear=True):
+        with patch.dict(os.environ, {"GITLAB_CI": "true"}, clear=True):
             # Detect environment
             env = detect_environment()
             assert env == Environment.CI
@@ -551,7 +551,7 @@ class TestIntegration:
 
     def test_user_override_bypasses_all(self) -> None:
         """User override bypasses environment and workload type."""
-        with patch.dict(os.environ, {"CI": "true"}, clear=True):
+        with patch.dict(os.environ, {"GITLAB_CI": "true"}, clear=True):
             workers = get_optimal_workers(
                 100,
                 workload_type=WorkloadType.CPU_BOUND,

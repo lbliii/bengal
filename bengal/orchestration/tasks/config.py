@@ -21,7 +21,7 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="check_config",
-    requires=frozenset({"site", "cache", "cli"}),
+    requires=frozenset({"site", "cache", "cli", "orchestrator"}),
     produces=frozenset({"config_check_result"}),
     execute=_execute,
     skip_if=None,  # always runs (fast)

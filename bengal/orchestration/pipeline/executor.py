@@ -104,6 +104,7 @@ class BatchExecutor:
         self._max_workers = max_workers
         self._on_task_start = on_task_start
         self._on_task_complete = on_task_complete
+        self._task_dependencies: dict[str, frozenset[str]] = {}
 
     # ------------------------------------------------------------------
     # Public
@@ -118,6 +119,7 @@ class BatchExecutor:
         pipeline_start = time.perf_counter()
         result = PipelineResult()
         failed_tasks: set[str] = set()
+        self._task_dependencies = self._build_task_dependencies(batches)
 
         for batch_idx, batch in enumerate(batches):
             batch_results = self._execute_batch(
@@ -125,9 +127,9 @@ class BatchExecutor:
             )
             result.task_results.extend(batch_results)
 
-            # Track failures for dependency cancellation
+            # Track failures/cancellations for dependency cancellation
             for r in batch_results:
-                if r.status == "failed":
+                if r.status in {"failed", "cancelled"}:
                     failed_tasks.add(r.name)
 
         result.total_duration_ms = (time.perf_counter() - pipeline_start) * 1000
@@ -174,24 +176,17 @@ class BatchExecutor:
         batch_idx: int,
         failed_upstream: set[str],
     ) -> list[TaskResult]:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from concurrent.futures import ThreadPoolExecutor
 
-        results: list[TaskResult] = []
         max_workers = self._max_workers or len(batch)
 
         with ThreadPoolExecutor(
             max_workers=max_workers,
             thread_name_prefix=f"Pipeline-B{batch_idx}",
         ) as pool:
-            future_to_task = {
-                pool.submit(
-                    self._execute_task, task, ctx, failed_upstream
-                ): task
-                for task in batch
-            }
-            results.extend(future.result() for future in as_completed(future_to_task))
-
-        return results
+            futures = [pool.submit(self._execute_task, task, ctx, failed_upstream) for task in batch]
+            # Preserve task order for deterministic result processing.
+            return [future.result() for future in futures]
 
     # ------------------------------------------------------------------
     # Single-task execution
@@ -204,6 +199,17 @@ class BatchExecutor:
         failed_upstream: set[str],
     ) -> TaskResult:
         """Run one task with skip / timing / error handling."""
+        # 0. Cancel when any direct dependency task has failed/cancelled.
+        # This blocks downstream work and prevents misleading follow-on failures.
+        upstream_failed = self._task_dependencies.get(task.name, frozenset()) & failed_upstream
+        if upstream_failed:
+            logger.warning(
+                "task_cancelled_upstream_failed",
+                task=task.name,
+                upstream_tasks=sorted(upstream_failed),
+            )
+            self._notify_complete(task.name, 0.0, "cancelled")
+            return TaskResult(name=task.name, status="cancelled")
 
         # 1. Check skip predicate
         if task.skip_if is not None:
@@ -212,10 +218,18 @@ class BatchExecutor:
                     logger.info("task_skipped", task=task.name)
                     return TaskResult(name=task.name, status="skipped")
             except Exception as exc:
-                logger.warning(
+                logger.error(
                     "task_skip_check_failed",
                     task=task.name,
                     error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+                self._notify_complete(task.name, 0.0, "failed")
+                return TaskResult(
+                    name=task.name,
+                    status="failed",
+                    duration_ms=0.0,
+                    error=exc,
                 )
 
         # 2. Notify start
@@ -231,7 +245,7 @@ class BatchExecutor:
             logger.info(
                 "task_completed",
                 task=task.name,
-                duration_ms=f"{duration_ms:.1f}",
+                duration_ms=round(duration_ms, 1),
             )
             self._notify_complete(task.name, duration_ms, "completed")
             return TaskResult(
@@ -242,7 +256,7 @@ class BatchExecutor:
             logger.error(
                 "task_failed",
                 task=task.name,
-                duration_ms=f"{duration_ms:.1f}",
+                duration_ms=round(duration_ms, 1),
                 error=str(exc),
                 error_type=type(exc).__name__,
             )
@@ -264,3 +278,24 @@ class BatchExecutor:
         if self._on_task_complete is not None:
             with contextlib.suppress(Exception):
                 self._on_task_complete(name, duration_ms, status)
+
+    def _build_task_dependencies(
+        self,
+        batches: list[list[BuildTask]],
+    ) -> dict[str, frozenset[str]]:
+        """Map task -> direct upstream task names from requires/produces."""
+        tasks = [task for batch in batches for task in batch]
+        producers: dict[str, str] = {}
+        for task in tasks:
+            for key in task.produces:
+                producers[key] = task.name
+
+        dependencies: dict[str, frozenset[str]] = {}
+        for task in tasks:
+            upstream = {
+                producers[key]
+                for key in task.requires
+                if key in producers and producers[key] != task.name
+            }
+            dependencies[task.name] = frozenset(upstream)
+        return dependencies

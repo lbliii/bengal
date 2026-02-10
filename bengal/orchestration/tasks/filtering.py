@@ -55,7 +55,14 @@ TASK = BuildTask(
         "cli",
         "orchestrator",
     }),
-    produces=frozenset({"filter_result", "pages_to_build"}),
+    produces=frozenset({
+        "filter_result",
+        "pages_to_build",
+        "assets_to_process",
+        "affected_tags",
+        "changed_page_paths",
+        "affected_sections",
+    }),
     execute=_execute,
     skip_if=None,
 )

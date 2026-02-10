@@ -24,7 +24,13 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="build_indexes",
-    requires=frozenset({"finalized_sections", "cache", "orchestrator"}),
+    requires=frozenset({
+        "finalized_sections",
+        "taxonomy_index",
+        "pages_to_build",
+        "cache",
+        "orchestrator",
+    }),
     produces=frozenset({"query_indexes"}),
     execute=_execute,
     skip_if=_skip,

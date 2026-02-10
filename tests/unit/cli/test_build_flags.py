@@ -243,6 +243,19 @@ class TestConfigRespect:
         assert fast_option is not None
         assert fast_option.default is None, "--fast default should be None to allow config fallback"
 
+    def test_mode_flag_default_is_none(self):
+        """Test that --mode default allows config/profile fallback."""
+        from bengal.cli.commands.build import build
+
+        mode_option = None
+        for param in build.params:
+            if param.name == "mode":
+                mode_option = param
+                break
+
+        assert mode_option is not None
+        assert mode_option.default is None, "--mode default should be None"
+
 
 class TestFastMode:
     """Test --fast flag functionality."""
@@ -298,3 +311,52 @@ class TestFastMode:
         # Should show both --fast and --no-fast options
         assert "--fast" in result.output
         assert "--no-fast" in result.output
+
+    def test_fast_flag_shows_deprecation_warning(self):
+        """Test that --fast emits deprecation guidance."""
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            with open("bengal.toml", "w") as f:
+                f.write("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(main, ["site", "build", "--fast", "."])
+            assert "--fast/--no-fast is deprecated" in result.output
+
+
+class TestModeFlag:
+    """Test --mode flag functionality."""
+
+    def test_mode_flag_exists(self):
+        """Test that --mode flag is recognized in help."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["site", "build", "--help"])
+
+        assert result.exit_code == 0
+        assert "--mode" in result.output
+        assert "dev" in result.output
+        assert "ci" in result.output
+        assert "perf" in result.output
+
+
+class TestDeprecationWarnings:
+    """Test warnings for deprecated flag aliases."""
+
+    def test_dev_flag_shows_deprecation_warning(self):
+        """Test that --dev emits deprecation guidance."""
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            with open("bengal.toml", "w") as f:
+                f.write("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(main, ["site", "build", "--dev", "."])
+            assert "--dev is deprecated" in result.output
+
+    def test_theme_dev_flag_shows_deprecation_warning(self):
+        """Test that --theme-dev emits deprecation guidance."""
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            with open("bengal.toml", "w") as f:
+                f.write("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(main, ["site", "build", "--theme-dev", "."])
+            assert "--theme-dev is deprecated" in result.output

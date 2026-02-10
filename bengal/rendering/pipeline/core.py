@@ -485,17 +485,23 @@ class RenderingPipeline:
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
+            # Inject source_path so the parser wrapper can cache the raw AST
+            # keyed by file path. Without this, _last_document_ast stays None
+            # and page._ast_cache is never populated during normal builds.
+            metadata_with_source = dict(page.metadata)
+            metadata_with_source["_source_path"] = page.source_path
+
             # Type narrowing: check if parser supports context methods (PatitasParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
                 if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
-                        page._source, page.metadata, context
+                        page._source, metadata_with_source, context
                     )
                 else:
                     parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
-                        page._source, page.metadata, context
+                        page._source, metadata_with_source, context
                     )
                     toc = ""
             else:
@@ -521,6 +527,7 @@ class RenderingPipeline:
                 hasattr(self.parser, "supports_ast")
                 and self.parser.supports_ast
                 and hasattr(self.parser, "parse_to_ast")
+                and type(self.parser).__name__ != "PatitasParser"
                 and persist_tokens
             ):
                 try:

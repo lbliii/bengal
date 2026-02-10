@@ -156,8 +156,13 @@ class CacheChecker:
         page.toc = cached["toc"]
         page._toc_items_cache = cached.get("toc_items", [])
 
-        if cached.get("ast"):
-            page._ast_cache = cached["ast"]
+        cached_ast = cached.get("ast")
+        if cached_ast is not None:
+            # Only restore Patitas Document ASTs (frozen dataclass with children
+            # attribute). Skip legacy tuple-based AST tokens which are not
+            # serializable and would corrupt the ContentASTCache disk cache.
+            if hasattr(cached_ast, "children") and hasattr(cached_ast, "location"):
+                page._ast_cache = cached_ast
 
         if self.build_stats:
             if not hasattr(self.build_stats, "parsed_cache_hits"):

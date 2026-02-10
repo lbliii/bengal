@@ -51,6 +51,24 @@ class TestPatitasParserWrapper:
         assert "Section 1" in toc
         assert "Section 2" in toc
 
+    def test_parse_sets_last_document_ast(self, patitas_parser):
+        """parse() stores Patitas document AST for AST-first pipeline."""
+        _ = patitas_parser.parse("# Hello", {})
+        ast = patitas_parser._last_document_ast
+        assert ast is not None
+        assert not isinstance(ast, tuple)
+        assert hasattr(ast, "children")
+        assert hasattr(ast, "location")
+
+    def test_parse_with_context_sets_last_document_ast(self, patitas_parser):
+        """parse_with_context() stores canonical AST even without TOC path."""
+        _ = patitas_parser.parse_with_context("# Hello", {}, {"page": {}})
+        ast = patitas_parser._last_document_ast
+        assert ast is not None
+        assert not isinstance(ast, tuple)
+        assert hasattr(ast, "children")
+        assert hasattr(ast, "location")
+
     def test_toc_has_links(self, patitas_parser):
         """TOC contains anchor links."""
         _, toc = patitas_parser.parse_with_toc("## Section", {})

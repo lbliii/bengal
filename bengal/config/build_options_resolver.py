@@ -64,8 +64,25 @@ class CLIFlags:
     verbose: bool | None = None
     strict: bool | None = None
     fast: bool | None = None
+    mode: str | None = None
     memory_optimized: bool | None = None
     profile_templates: bool | None = None
+
+
+# Mode presets (Phase 1 simplification):
+# - dev: local-friendly defaults (no forced overrides)
+# - ci: deterministic CI posture
+# - perf: throughput-first posture
+_MODE_PRESETS: dict[str, dict[str, bool]] = {
+    "dev": {},
+    "ci": {
+        "quiet": True,
+        "strict_mode": True,
+    },
+    "perf": {
+        "fast_mode": True,
+    },
+}
 
 
 def _get_build_config_value(config: dict[str, Any] | Any, key: str) -> Any:
@@ -159,6 +176,8 @@ def resolve_build_options(
     """
     cli = cli_flags or CLIFlags()
     build_defaults = DEFAULTS.get("build", {})
+    mode_name = (cli.mode or "").lower()
+    mode_preset = _MODE_PRESETS.get(mode_name, {})
 
     def resolve(key: str, cli_value: Any, default_key: str | None = None) -> Any:
         """
@@ -172,6 +191,10 @@ def resolve_build_options(
         # CLI flag takes highest precedence
         if cli_value is not None:
             return cli_value
+
+        # Mode preset takes precedence over config values.
+        if key in mode_preset:
+            return mode_preset[key]
 
         # Check config (handles both flattened and nested paths)
         config_value = _get_build_config_value(config, key)

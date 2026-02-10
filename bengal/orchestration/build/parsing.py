@@ -131,7 +131,7 @@ def phase_parse_content(
     # and provenance hashing. Uses ContentASTCache loaded at build start.
     import hashlib
 
-    from bengal.server.fragment_update import ContentASTCache
+    from bengal.server.fragment_update import ContentASTCache, is_document_ast
 
     _ast_cache_loaded = 0
     for page in pages_to_build:
@@ -144,7 +144,7 @@ def phase_parse_content(
             continue
         body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
         cached_ast = ContentASTCache.get_by_hash(page.source_path, body_hash)
-        if cached_ast is not None:
+        if cached_ast is not None and is_document_ast(cached_ast):
             page._ast_cache = cached_ast  # type: ignore[attr-defined]
             _ast_cache_loaded += 1
 
@@ -190,9 +190,21 @@ def phase_parse_content(
 
     try:
         if pages_to_parse:
-            if parallel and len(pages_to_parse) > 1:
+            use_parallel_parsing = parallel and len(pages_to_parse) > 1
+            if use_parallel_parsing:
+                from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
+
+                use_parallel_parsing = should_parallelize(
+                    len(pages_to_parse), workload_type=WorkloadType.CPU_BOUND
+                )
+
+            if use_parallel_parsing:
+                from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+
                 # Parallel parsing
-                max_workers = min(len(pages_to_parse), 8)  # Reasonable limit
+                max_workers = get_optimal_workers(
+                    len(pages_to_parse), workload_type=WorkloadType.CPU_BOUND
+                )
                 with ThreadPoolExecutor(
                     max_workers=max_workers,
                     thread_name_prefix="Bengal-Parse",
@@ -255,7 +267,7 @@ def phase_parse_content(
     _ast_cache_stored = 0
     for page in pages_to_parse:
         page_ast = getattr(page, "_ast_cache", None)
-        if page_ast is not None:
+        if page_ast is not None and is_document_ast(page_ast):
             raw = getattr(page, "_raw_content", None) or getattr(page, "content", None)
             if isinstance(raw, str) and raw:
                 body_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]

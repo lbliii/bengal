@@ -107,10 +107,8 @@ tags: ["python", "tutorial"]
 Learn the fundamentals of Python programming...
 ```
 
-:::{tip}
-**Avoid Repetition**
-Instead of repeating full author data in every post, you can define authors in a data file and reference them. We'll cover this later.
-:::
+> **Tip:** Avoid repetition.
+> Instead of repeating full author data in every post, you can define authors in a data file and reference them. We'll cover this later.
 :::{/step}
 
 :::{step} Create an Author Byline Component
@@ -372,13 +370,10 @@ Create the author page template at `templates/authors/single.html`:
 {% end %}
 ```
 
-:::{tip}
-**Performance Tip: Use Author Index**
-
-The `site.indexes.author` provides O(1) lookup for author posts, which is much faster than filtering all pages with `where('author.name', ...)`. The author index is automatically built during site generation and maps author names to their post references.
-
-For even more advanced use cases, consider using the `author_view` filter (see the [default theme implementation](https://github.com/lbliii/bengal/blob/main/bengal/themes/default/templates/author/single.html) for examples).
-:::
+> **Performance tip: use the author index.**
+> The `site.indexes.author` provides O(1) lookup for author posts, which is much faster than filtering all pages with `where('author.name', ...)`. The author index is automatically built during site generation and maps author names to their post references.
+>
+> For even more advanced use cases, consider using the `author_view` filter (see the [default theme implementation](https://github.com/lbliii/bengal/blob/main/bengal/themes/default/templates/author/single.html) for examples).
 
 Add styles to `assets/css/author.css`:
 

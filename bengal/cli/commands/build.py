@@ -66,6 +66,12 @@ from bengal.utils.observability.logger import close_all_loggers, print_all_summa
     help="Environment name (auto-detects if not specified)",
 )
 @click.option(
+    "--mode",
+    type=click.Choice(["dev", "ci", "perf"], case_sensitive=False),
+    default=None,
+    help="Simplified build intent preset: dev, ci, or perf.",
+)
+@click.option(
     "--profile",
     type=click.Choice(["writer", "theme-dev", "dev"]),
     help="Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)",
@@ -176,6 +182,7 @@ def build(
     incremental: bool | None,
     memory_optimized: bool,
     environment: str | None,
+    mode: str | None,
     profile: str,
     perf_profile: str,
     profile_templates: bool,
@@ -262,6 +269,7 @@ def build(
 
     # Create CLIOutput once at the start with quiet/verbose flags
     cli = get_cli_output(quiet=quiet, verbose=verbose)
+    _emit_deprecation_warnings(fast=fast, use_dev=use_dev, use_theme_dev=use_theme_dev)
 
     try:
         # Load site using helper
@@ -290,6 +298,7 @@ def build(
             verbose=verbose,
             strict=strict,
             fast=fast,
+            mode=mode,
             memory_optimized=memory_optimized,
             profile_templates=profile_templates,
         )
@@ -644,6 +653,30 @@ def build(
     finally:
         # Always close log file handles
         close_all_loggers()
+
+
+def _emit_deprecation_warnings(
+    *,
+    fast: bool | None,
+    use_dev: bool,
+    use_theme_dev: bool,
+) -> None:
+    """Emit compatibility warnings for deprecated CLI flags."""
+    if fast is not None:
+        click.echo(
+            "Warning: --fast/--no-fast is deprecated; use --mode perf (or --mode dev).",
+            err=True,
+        )
+    if use_dev:
+        click.echo(
+            "Warning: --dev is deprecated; use --profile dev.",
+            err=True,
+        )
+    if use_theme_dev:
+        click.echo(
+            "Warning: --theme-dev is deprecated; use --profile theme-dev.",
+            err=True,
+        )
 
 
 def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:

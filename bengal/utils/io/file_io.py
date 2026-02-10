@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import errno
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -625,6 +626,43 @@ def _remove_hidden_files(dir_path: Path) -> int:
     return removed
 
 
+def _quarantine_path(path: Path) -> Path:
+    """
+    Build a unique sibling path used for quarantine deletion.
+
+    Moving a busy directory out of its original location lets callers continue
+    (the original path becomes free immediately) while cleanup proceeds on the
+    quarantined copy.
+    """
+    suffix = f".bengal-delete-{os.getpid()}-{time.monotonic_ns()}"
+    return path.with_name(f".{path.name}{suffix}")
+
+
+def _delete_with_rm_rf(path: Path, caller: str) -> bool:
+    """Delete path via rm -rf and return whether it succeeded."""
+    result = subprocess.run(
+        ["rm", "-rf", str(path)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        logger.debug(
+            "rmtree_rm_success",
+            path=str(path),
+            caller=caller,
+        )
+        return True
+
+    logger.error(
+        "rmtree_rm_failed",
+        path=str(path),
+        returncode=result.returncode,
+        stderr=result.stderr.strip() if result.stderr else None,
+        caller=caller,
+    )
+    return False
+
+
 def rmtree_robust(
     path: Path,
     max_retries: int = 3,
@@ -721,27 +759,49 @@ def rmtree_robust(
                     path=str(path),
                     caller=caller,
                 )
-                result = subprocess.run(
-                    ["rm", "-rf", str(path)],
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode == 0:
-                    logger.debug(
-                        "rmtree_rm_success",
-                        path=str(path),
-                        caller=caller,
-                    )
+                if _delete_with_rm_rf(path, caller):
                     return
 
-                # rm -rf failed - include its stderr in error
-                logger.error(
-                    "rmtree_rm_failed",
+            # Final fallback: quarantine the directory so the original path is free
+            # even if background cleanup takes longer.
+            quarantine_path = _quarantine_path(path)
+            try:
+                path.rename(quarantine_path)
+                logger.debug(
+                    "rmtree_quarantined",
                     path=str(path),
-                    returncode=result.returncode,
-                    stderr=result.stderr.strip() if result.stderr else None,
+                    quarantine_path=str(quarantine_path),
                     caller=caller,
                 )
+            except OSError as rename_error:
+                logger.debug(
+                    "rmtree_quarantine_failed",
+                    path=str(path),
+                    quarantine_path=str(quarantine_path),
+                    error=str(rename_error),
+                    caller=caller,
+                )
+            else:
+                try:
+                    shutil.rmtree(quarantine_path)
+                    logger.debug(
+                        "rmtree_quarantine_removed",
+                        quarantine_path=str(quarantine_path),
+                        caller=caller,
+                    )
+                except OSError as quarantine_error:
+                    logger.debug(
+                        "rmtree_quarantine_remove_failed",
+                        quarantine_path=str(quarantine_path),
+                        error=str(quarantine_error),
+                        caller=caller,
+                    )
+                    # Keep trying platform fallback after quarantine.
+                    if platform.system() == "Darwin":
+                        _delete_with_rm_rf(quarantine_path, caller)
+                # Original path was moved out of the way; caller can continue.
+                if not path.exists():
+                    return
 
             # All retries exhausted - raise original error with context
             raise OSError(

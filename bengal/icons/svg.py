@@ -174,7 +174,7 @@ ICON_MAP: dict[str, str] = {
     "chevron-left": "chevron-left",
     "chevron-up": "chevron-up",
     "chevron-down": "chevron-down",
-    "external": "arrow-square-out",
+    "external": "external",
     "link": "link",
     "search": "magnifying-glass",
     "menu": "list",

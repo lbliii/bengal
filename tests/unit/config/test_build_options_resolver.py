@@ -168,6 +168,49 @@ class TestFastMode:
         assert options.quiet is True  # Fast mode from CLI forces quiet
 
 
+class TestModePresets:
+    """Test simplified mode preset resolution."""
+
+    def test_perf_mode_enables_fast_behavior(self):
+        """perf mode should apply fast-mode quiet behavior."""
+        config = {"quiet": False, "fast_mode": False}
+        cli = CLIFlags(mode="perf")
+
+        options = resolve_build_options(config, cli)
+
+        assert options.quiet is True
+
+    def test_ci_mode_enables_strict_when_not_explicit(self):
+        """ci mode should set strict defaults."""
+        config = {"strict_mode": False}
+        cli = CLIFlags(mode="ci")
+
+        options = resolve_build_options(config, cli)
+
+        assert options.strict is True
+        assert options.quiet is True
+
+    def test_explicit_cli_overrides_mode_preset(self):
+        """Explicit CLI flags must still win over mode defaults."""
+        config = {}
+        cli = CLIFlags(mode="ci", strict=False, quiet=False)
+
+        options = resolve_build_options(config, cli)
+
+        assert options.strict is False
+        assert options.quiet is False
+
+    def test_mode_preset_overrides_config_values(self):
+        """Mode should take precedence over config when CLI not explicit."""
+        config = {"quiet": False, "strict_mode": False}
+        cli = CLIFlags(mode="ci")
+
+        options = resolve_build_options(config, cli)
+
+        assert options.quiet is True
+        assert options.strict is True
+
+
 class TestAllBuildOptions:
     """Test resolution of all build options."""
 

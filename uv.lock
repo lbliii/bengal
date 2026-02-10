@@ -288,14 +288,13 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiosqlite", marker = "extra == 'all'", specifier = ">=0.20.0" },
-    { name = "aiosqlite", marker = "extra == 'data'", specifier = ">=0.20.0" },
-    { name = "aiosqlite", marker = "extra == 'full'", specifier = ">=0.20.0" },
     { name = "anyio", specifier = ">=4.0" },
     { name = "argon2-cffi", marker = "extra == 'all'", specifier = ">=23.1.0" },
     { name = "argon2-cffi", marker = "extra == 'auth'", specifier = ">=23.1.0" },
     { name = "argon2-cffi", marker = "extra == 'full'", specifier = ">=23.1.0" },
+    { name = "asyncpg", marker = "extra == 'all'", specifier = ">=0.30.0" },
     { name = "asyncpg", marker = "extra == 'data-pg'", specifier = ">=0.30.0" },
+    { name = "asyncpg", marker = "extra == 'full'", specifier = ">=0.30.0" },
     { name = "bengal-pounce", editable = "../pounce" },
     { name = "httpx", marker = "extra == 'ai'", specifier = ">=0.27.0" },
     { name = "httpx", marker = "extra == 'all'", specifier = ">=0.27.0" },
@@ -304,12 +303,12 @@ requires-dist = [
     { name = "itsdangerous", marker = "extra == 'all'", specifier = ">=2.2.0" },
     { name = "itsdangerous", marker = "extra == 'full'", specifier = ">=2.2.0" },
     { name = "itsdangerous", marker = "extra == 'sessions'", specifier = ">=2.2.0" },
-    { name = "kida-templates", specifier = ">=0.1.2" },
+    { name = "kida-templates", editable = "../kida" },
     { name = "python-multipart", marker = "extra == 'all'", specifier = ">=0.0.18" },
     { name = "python-multipart", marker = "extra == 'forms'", specifier = ">=0.0.18" },
     { name = "python-multipart", marker = "extra == 'full'", specifier = ">=0.0.18" },
 ]
-provides-extras = ["forms", "sessions", "auth", "testing", "data", "data-pg", "ai", "all", "full"]
+provides-extras = ["forms", "sessions", "auth", "testing", "data-pg", "ai", "all", "full"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -844,7 +843,7 @@ wheels = [
 
 [[package]]
 name = "patitas"
-version = "0.1.1"
+version = "0.2.0"
 source = { editable = "../patitas" }
 
 [package.metadata]

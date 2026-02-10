@@ -656,8 +656,10 @@ def phase_render(
 
     # Print rendering summary in quiet mode
     if quiet_mode:
-        # Call helper method on orchestrator
-        orchestrator._print_rendering_summary()
+        # Optional helper hook for quiet-mode summary (legacy compatibility).
+        summary_hook = getattr(orchestrator, "_print_rendering_summary", None)
+        if callable(summary_hook):
+            summary_hook()
 
     # Show summary of suppressed duplicate errors (from build stats)
     if orchestrator.stats is not None:

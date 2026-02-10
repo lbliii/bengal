@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -203,3 +204,41 @@ def test_wave_scheduler_handles_errors(site, build_site):
 
     finally:
         RenderingPipeline.process_page = original_process_page
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_wave_scheduler_propagates_asset_manifest_context(site):
+    """Worker threads should inherit asset manifest ContextVar values."""
+    snapshot = create_site_snapshot(site)
+    stats = MagicMock()
+
+    from bengal.orchestration.build_context import BuildContext
+    from bengal.rendering.assets import AssetManifestContext, asset_manifest_context, get_asset_manifest
+    from bengal.rendering.pipeline import RenderingPipeline
+
+    build_context = BuildContext(site=site, pages=site.pages, stats=stats)
+    build_context.snapshot = snapshot
+
+    scheduler = WaveScheduler(
+        snapshot=snapshot,
+        site=site,
+        quiet=True,
+        stats=stats,
+        build_context=build_context,
+        max_workers=2,
+    )
+
+    observed_context_presence: list[bool] = []
+
+    def capture_process_page(self, page):
+        observed_context_presence.append(get_asset_manifest() is not None)
+        page.rendered_html = "<p>ok</p>"
+        return None
+
+    manifest_ctx = AssetManifestContext(entries={"css/style.css": "assets/css/style.abc123.css"})
+    with patch.object(RenderingPipeline, "process_page", capture_process_page):
+        with asset_manifest_context(manifest_ctx):
+            scheduler.render_all(list(site.pages))
+
+    assert observed_context_presence
+    assert all(observed_context_presence)

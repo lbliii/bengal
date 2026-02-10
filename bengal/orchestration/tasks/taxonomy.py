@@ -54,12 +54,12 @@ def _execute(ctx: BuildContext) -> None:
 TASK = BuildTask(
     name="build_taxonomies",
     requires=frozenset({
-        "discovered_pages",
+        "finalized_sections",
         "filter_result",
         "cache",
         "orchestrator",
     }),
-    produces=frozenset({"taxonomy_pages", "taxonomy_index"}),
+    produces=frozenset({"taxonomy_pages", "taxonomy_index", "pages_to_render"}),
     execute=_execute,
     skip_if=_skip,
 )

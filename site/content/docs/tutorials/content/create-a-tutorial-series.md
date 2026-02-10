@@ -199,10 +199,8 @@ series:
 
 :::{/step}
 
-:::{tip}
-**Naming Convention**
-Prefix files with numbers (`01-`, `02-`) to keep them sorted in your file manager. Use `weight` for actual ordering.
-:::
+> **Tip:** naming convention.
+> Prefix files with numbers (`01-`, `02-`) to keep them sorted in your file manager. Use `weight` for actual ordering.
 
 :::{step} Create the Series Navigation Component
 :description: Build a reusable prev/next navigation for series pages.
@@ -377,19 +375,17 @@ Add the styles to `assets/css/series.css`:
 
 Create `templates/series-index/list.html` for the series overview page. Since `_index.md` files are section indexes, Bengal's template resolution looks for `{type}/list.html` templates.
 
-:::{tip}
-**Template Resolution**
-
-When you set `type: series-index` in frontmatter, Bengal follows this template cascade:
-1. `templates/series-index/list.html` (for section indexes)
-2. `templates/list.html` (fallback)
-3. `templates/index.html` (final fallback)
-
-If you prefer a different template name, use explicit `template:` frontmatter:
-```yaml
-template: "series-overview.html"
-```
-:::
+> **Tip:** template resolution.
+>
+> When you set `type: series-index` in frontmatter, Bengal follows this template cascade:
+> 1. `templates/series-index/list.html` (for section indexes)
+> 2. `templates/list.html` (fallback)
+> 3. `templates/index.html` (final fallback)
+>
+> If you prefer a different template name, use explicit `template:` frontmatter:
+> ```yaml
+> template: "series-overview.html"
+> ```
 
 ```html
 {% extends "default/base.html" %}

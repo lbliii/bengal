@@ -464,7 +464,7 @@ HELPER: Render a menu item (desktop/mobile)
                 {% if _auto_nav %}
                 <li class="{{ 'active' if _page_url == '/' else '' }}"><a href="{{ '/' | absolute_url }}">Home</a></li>
                 {% for item in _auto_nav %}<li
-                    class="{{ 'active' if (_page_url.startswith(item._path) if _page_url is string and item._path != '/' else false) else '' }}">
+                    class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
                     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                 </li>{% end %}
                 {% end %}

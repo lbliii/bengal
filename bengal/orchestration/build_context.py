@@ -218,6 +218,24 @@ class BuildContext:
     build_start: float = 0.0
 
     # =========================================================================
+    # Pipeline Integration (data-driven build pipeline)
+    # =========================================================================
+    # These fields are populated by build() before execute_pipeline() runs.
+    # Tasks access them as ctx._orchestrator, ctx._build_options, etc.
+
+    # Reference to the BuildOrchestrator instance (tasks delegate to sub-orchestrators)
+    _orchestrator: Any = field(default=None, repr=False)
+
+    # The original BuildOptions object (tasks read flags like force_sequential, dry_run)
+    _build_options: Any = field(default=None, repr=False)
+
+    # Result of the incremental filtering phase (set by filter_pages task)
+    filter_result: Any = field(default=None, repr=False)
+
+    # GeneratedPageCache for tag page incremental skipping
+    _generated_page_cache: Any = field(default=None, repr=False)
+
+    # =========================================================================
     # Build-Scoped Caching (RFC: Cache Lifecycle Hardening)
     # =========================================================================
     # Unique build identifier and build-scoped cache prevent cross-build

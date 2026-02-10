@@ -35,7 +35,7 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="process_assets",
-    requires=frozenset({"discovered_assets", "cli", "orchestrator"}),
+    requires=frozenset({"discovered_assets", "assets_to_process", "cli", "orchestrator"}),
     produces=frozenset({"asset_manifest"}),
     execute=_execute,
     skip_if=_skip,

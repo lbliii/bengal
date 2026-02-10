@@ -150,9 +150,13 @@ class WaveScheduler:
         """
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.rendering.pipeline.thread_local import thread_local
+        from bengal.rendering.assets import get_asset_manifest, set_asset_manifest
+        from bengal.rendering.template_functions.memo import get_build_context, set_build_context
         from bengal.utils.paths.url_strategy import URLStrategy
 
         stats = RenderStats()
+        asset_manifest_ctx = get_asset_manifest()
+        memo_build_context = get_build_context()
 
         # Filter to pages we can render
         pages_to_render = [p for p in pages_to_build if p.source_path in self._page_map]
@@ -260,6 +264,11 @@ class WaveScheduler:
                     def process_page(page: Page) -> Page:
                         """Process page with thread-local pipeline."""
                         if not hasattr(thread_local, "pipeline"):
+                            # Install required render context once per worker thread.
+                            if memo_build_context is not None:
+                                set_build_context(memo_build_context)
+                            if asset_manifest_ctx is not None:
+                                set_asset_manifest(asset_manifest_ctx)
                             thread_local.pipeline = RenderingPipeline(
                                 self.site,
                                 quiet=self.quiet,
@@ -310,9 +319,13 @@ class WaveScheduler:
         """
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.rendering.pipeline.thread_local import thread_local
+        from bengal.rendering.assets import get_asset_manifest, set_asset_manifest
+        from bengal.rendering.template_functions.memo import get_build_context, set_build_context
         from bengal.utils.paths.url_strategy import URLStrategy
 
         stats = RenderStats()
+        asset_manifest_ctx = get_asset_manifest()
+        memo_build_context = get_build_context()
 
         pages_to_render = [p for p in pages_to_build if p.source_path in self._page_map]
 
@@ -383,6 +396,10 @@ class WaveScheduler:
 
                     def process_page_with_pipeline(page: Page) -> Page:
                         if not hasattr(thread_local, "pipeline"):
+                            if memo_build_context is not None:
+                                set_build_context(memo_build_context)
+                            if asset_manifest_ctx is not None:
+                                set_asset_manifest(asset_manifest_ctx)
                             thread_local.pipeline = RenderingPipeline(
                                 self.site,
                                 quiet=self.quiet,

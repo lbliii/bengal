@@ -25,7 +25,12 @@ def _execute(ctx: BuildContext) -> None:
 
 TASK = BuildTask(
     name="finalize_sections",
-    requires=frozenset({"discovered_sections", "cli", "orchestrator"}),
+    requires=frozenset({
+        "discovered_sections",
+        "affected_sections",
+        "cli",
+        "orchestrator",
+    }),
     produces=frozenset({"finalized_sections"}),
     execute=_execute,
     skip_if=_skip,

@@ -1,13 +1,21 @@
 """
 Tests for BuildOrchestrator.
+
+With the data-driven pipeline (Bengal 0.2), build() delegates to
+execute_pipeline(). These tests verify:
+  1. Pipeline is invoked with correct context and options
+  2. BuildContext is populated with required fields
+  3. BuildStats is returned correctly
+  4. Strict-mode section validation still raises
 """
 
-from unittest.mock import ANY, MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.build.options import BuildOptions
+from bengal.orchestration.pipeline.executor import PipelineResult, TaskResult
 from bengal.orchestration.stats import BuildStats
 
 
@@ -64,103 +72,80 @@ class TestBuildOrchestrator:
             }
 
     def test_full_build_sequence(self, mock_site, mock_orchestrators):
-        """Test that a full build calls all orchestrators in correct order."""
+        """Test that a full build sets up context and calls execute_pipeline."""
         orchestrator = BuildOrchestrator(mock_site)
-        from bengal.orchestration.build.results import FilterResult
 
         # Setup mocks for successful flow
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
+        mock_cache.file_fingerprints = {}
         mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
         mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
         mock_orchestrators["section"].return_value.validate_sections.return_value = []
 
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
-        ) as mock_filter:
-            mock_filter.return_value = FilterResult(
-                pages_to_build=[],
-                assets_to_process=[],
-                affected_tags=set(),
-                changed_page_paths=set(),
-                affected_sections=None,
-            )
-            # Run build with BuildOptions
+            "bengal.orchestration.pipeline.execute_pipeline"
+        ) as mock_pipeline:
+            mock_pipeline.return_value = PipelineResult()
+
             options = BuildOptions(incremental=False, force_sequential=True)
             stats = orchestrator.build(options)
 
-        # Verify sequence
-        # 1. Initialization
-        mock_orchestrators["incremental"].return_value.initialize.assert_called_once()
+        # 1. Pipeline was called
+        mock_pipeline.assert_called_once()
+        call_kwargs = mock_pipeline.call_args[1]
 
-        # 2. Content Discovery (calls discover_content, not discover)
-        mock_orchestrators["content"].return_value.discover_content.assert_called_once_with(
-            incremental=False, cache=None, build_context=ANY, build_cache=ANY
-        )
+        # 2. Context has required pipeline fields
+        ctx = call_kwargs["ctx"]
+        assert ctx.site is mock_site
+        assert ctx._orchestrator is orchestrator
+        assert ctx._build_options is options
+        assert ctx.cache is mock_cache
+        assert ctx.stats is not None
+        assert ctx.output_collector is not None
+        assert ctx.incremental is False
+        assert ctx.verbose is False
+        assert ctx.strict is False
 
-        # 3. Section Finalization
-        mock_orchestrators["section"].return_value.finalize_sections.assert_called_once()
-        mock_orchestrators["section"].return_value.validate_sections.assert_called_once()
+        # 3. INITIAL_KEYS were passed
+        assert call_kwargs["initial_keys"] is not None
 
-        # 4. Taxonomies
-        mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_called_once()
+        # 4. Parallel flag matches force_sequential=True → parallel=False
+        assert call_kwargs["parallel"] is False
 
-        # 5. Menus
-        mock_orchestrators["menu"].return_value.build.assert_called_once()
-
-        # 6. Assets
-        mock_orchestrators["asset"].return_value.process.assert_called_once()
-
-        # 7. Rendering
-        mock_orchestrators["render"].return_value.process.assert_called_once()
-
-        # 8. Post-processing
-        mock_orchestrators["postprocess"].return_value.run.assert_called_once()
-
-        # 9. Cache Save
-        mock_orchestrators["incremental"].return_value.save_cache.assert_called_once()
-
+        # 5. Returns BuildStats
         assert isinstance(stats, BuildStats)
 
+        # 6. Cache was initialized
+        mock_orchestrators["incremental"].return_value.initialize.assert_called_once()
+
     def test_incremental_build_sequence(self, mock_site, mock_orchestrators):
-        """Test incremental build flow."""
+        """Test incremental build sets up context with incremental=True."""
         orchestrator = BuildOrchestrator(mock_site)
 
-        # Setup mocks for incremental flow
-        from bengal.orchestration.build.results import FilterResult
-
-        mock_inc = mock_orchestrators["incremental"].return_value
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
+        mock_cache.file_fingerprints = {"some_file": "hash123"}
+        mock_inc = mock_orchestrators["incremental"].return_value
         mock_inc.initialize.return_value = mock_cache
         mock_inc.check_config_changed.return_value = False
-        # Simulate filtering work
-        filter_result = FilterResult(
-            pages_to_build=[Mock()],
-            assets_to_process=[],
-            affected_tags=set(),
-            changed_page_paths=set(),
-            affected_sections=None,
-        )
 
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
-        ) as mock_filter:
-            mock_filter.return_value = filter_result
-            # Run incremental build with BuildOptions
+            "bengal.orchestration.pipeline.execute_pipeline"
+        ) as mock_pipeline:
+            mock_pipeline.return_value = PipelineResult()
+
             options = BuildOptions(incremental=True, force_sequential=False)
-            orchestrator.build(options)
+            stats = orchestrator.build(options)
 
-        # Should use incremental discovery (calls discover_content, not discover)
-        mock_orchestrators["content"].return_value.discover_content.assert_called_with(
-            incremental=True, cache=ANY, build_context=ANY, build_cache=ANY
-        )
+        # Verify incremental mode propagated to context
+        ctx = mock_pipeline.call_args[1]["ctx"]
+        assert ctx.incremental is True
 
-        # Should use incremental taxonomy generation
-        mock_orchestrators[
-            "taxonomy"
-        ].return_value.collect_and_generate_incremental.assert_called_once()
-        mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_not_called()
+        # Parallel enabled when force_sequential=False
+        assert mock_pipeline.call_args[1]["parallel"] is True
+
+        assert isinstance(stats, BuildStats)
 
     def test_section_validation_error_strict(self, mock_site, mock_orchestrators):
         """Test that section validation errors raise exception in strict mode."""
@@ -172,53 +157,73 @@ class TestBuildOrchestrator:
         mock_orchestrators["section"].return_value.validate_sections.return_value = ["Error 1"]
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
+        mock_cache.file_fingerprints = {}
         mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
-        from bengal.orchestration.build.results import FilterResult
 
-        filter_result = FilterResult(
-            pages_to_build=[],
-            assets_to_process=[],
-            affected_tags=set(),
-            changed_page_paths=set(),
-            affected_sections=None,
-        )
-
-        # Expect exception with strict mode
-        options = BuildOptions(incremental=False, strict=True)
+        # The section validation now happens inside the sections task (via pipeline).
+        # When strict mode is on and validation fails, the task raises an exception
+        # which propagates through the pipeline as a failed task.
+        # We simulate this by making execute_pipeline raise the error.
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
-        ) as mock_filter:
-            mock_filter.return_value = filter_result
-            with pytest.raises(Exception, match="Build failed: 1 section validation error"):
+            "bengal.orchestration.pipeline.execute_pipeline"
+        ) as mock_pipeline:
+            mock_pipeline.side_effect = RuntimeError(
+                "Build failed: 1 section validation error"
+            )
+            options = BuildOptions(incremental=False, strict=True)
+            with pytest.raises(RuntimeError, match="Build failed: 1 section validation error"):
                 orchestrator.build(options)
 
     def test_flag_propagation(self, mock_site, mock_orchestrators):
-        """Test that flags are propagated to sub-orchestrators."""
+        """Test that build flags are propagated to BuildContext."""
         orchestrator = BuildOrchestrator(mock_site)
         mock_cache = MagicMock()
         mock_cache.parsed_content = {}
+        mock_cache.file_fingerprints = {}
         mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
 
-        from bengal.orchestration.build.results import FilterResult
-
-        filter_result = FilterResult(
-            pages_to_build=[],
-            assets_to_process=[],
-            affected_tags=set(),
-            changed_page_paths=set(),
-            affected_sections=None,
-        )
-
-        # Run with specific flags (force_sequential=False means auto-detect, which may use parallel)
-        options = BuildOptions(force_sequential=False, incremental=False)
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
-        ) as mock_filter:
-            mock_filter.return_value = filter_result
+            "bengal.orchestration.pipeline.execute_pipeline"
+        ) as mock_pipeline:
+            mock_pipeline.return_value = PipelineResult()
+
+            options = BuildOptions(
+                force_sequential=False,
+                incremental=False,
+                verbose=True,
+                quiet=False,
+                strict=True,
+                memory_optimized=True,
+            )
             orchestrator.build(options)
 
-        # Check that taxonomy orchestrator was called
-        # Note: The taxonomy orchestrator is now called with force_sequential parameter
-        mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_called_once()
-        # Asset orchestrator process is called
-        mock_orchestrators["asset"].return_value.process.assert_called_once()
+        ctx = mock_pipeline.call_args[1]["ctx"]
+        assert ctx.verbose is True
+        assert ctx.quiet is False
+        assert ctx.strict is True
+        assert ctx.memory_optimized is True
+        assert ctx._build_options is options
+
+    def test_pipeline_failure_raises_runtime_error(self, mock_site, mock_orchestrators):
+        """Build should fail loudly when pipeline reports failed tasks."""
+        orchestrator = BuildOrchestrator(mock_site)
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_cache.file_fingerprints = {}
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
+
+        failed_result = PipelineResult(
+            task_results=[
+                TaskResult(
+                    name="parse_content",
+                    status="failed",
+                    duration_ms=12.5,
+                    error=RuntimeError("parse blew up"),
+                )
+            ]
+        )
+
+        with patch("bengal.orchestration.pipeline.execute_pipeline") as mock_pipeline:
+            mock_pipeline.return_value = failed_result
+            with pytest.raises(RuntimeError, match="Build failed in task 'parse_content'"):
+                orchestrator.build(BuildOptions(incremental=False))

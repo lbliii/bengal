@@ -282,11 +282,22 @@ class ProvenanceFilter:
                 # Phase D: Semantic comparison via AST hash.
                 # If the file hash changed but the AST structure didn't,
                 # this was a whitespace-only edit and the page can skip rebuilding.
+                # Guard: reject the "_no_ast_" sentinel on both sides to prevent
+                # false matches when patitas.serialization is unavailable.
+                _sentinel = ContentHash("_no_ast_")
                 if not is_virtual:
                     stored_record = self.cache.get(page_path)
-                    if stored_record and stored_record.ast_hash:
+                    if (
+                        stored_record
+                        and stored_record.ast_hash
+                        and stored_record.ast_hash != _sentinel
+                    ):
                         new_ast_hash = self._quick_ast_hash(page)
-                        if new_ast_hash and new_ast_hash == stored_record.ast_hash:
+                        if (
+                            new_ast_hash
+                            and new_ast_hash != _sentinel
+                            and new_ast_hash == stored_record.ast_hash
+                        ):
                             pages_skipped.append(page)
                             continue
 
@@ -359,10 +370,16 @@ class ProvenanceFilter:
         # This enables Phase D semantic comparison: on subsequent builds, if
         # the file hash changed but the AST hash didn't, the change was
         # whitespace-only and the page can skip rebuilding.
+        #
+        # Guard: only store a real hash, never the "_no_ast_" sentinel.
+        # If serialization is unavailable, store None so the filter loop
+        # doesn't falsely match every page as "unchanged".
         page_ast_hash: ContentHash | None = None
         page_ast = getattr(page, "_ast_cache", None)
         if page_ast is not None:
-            page_ast_hash = hash_ast(page_ast)
+            candidate = hash_ast(page_ast)
+            if candidate != ContentHash("_no_ast_"):
+                page_ast_hash = candidate
 
         record = ProvenanceRecord(
             page_path=page_path,

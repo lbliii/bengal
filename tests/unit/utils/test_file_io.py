@@ -3,15 +3,19 @@ Tests for file I/O utilities.
 """
 
 import json
+import errno
+from pathlib import Path
 
 import pytest
 
+from bengal.utils.io import file_io
 from bengal.utils.io.file_io import (
     load_data_file,
     load_json,
     load_toml,
     load_yaml,
     read_text_file,
+    rmtree_robust,
     write_json,
     write_text_file,
 )
@@ -469,3 +473,49 @@ class TestWriteJson:
 
         with pytest.raises(TypeError):
             write_json(file_path, {"obj": NonSerializable()})
+
+
+class TestRmtreeRobust:
+    """Tests for robust directory tree deletion."""
+
+    def test_rename_quarantine_fallback_frees_original_path(self, tmp_path, monkeypatch):
+        """Final fallback should free original path even when rmtree/rm fail."""
+        target = tmp_path / "public"
+        (target / "api").mkdir(parents=True)
+        (target / "api" / "index.html").write_text("x")
+
+        def raise_enotempty(_path: Path) -> None:
+            raise OSError(errno.ENOTEMPTY, "Directory not empty")
+
+        monkeypatch.setattr(file_io.shutil, "rmtree", raise_enotempty)
+        monkeypatch.setattr(file_io.platform, "system", lambda: "Darwin")
+        monkeypatch.setattr(file_io.time, "sleep", lambda _s: None)
+        monkeypatch.setattr(file_io, "_remove_hidden_files", lambda _p: 0)
+        monkeypatch.setattr(file_io, "_delete_with_rm_rf", lambda _p, _c: False)
+
+        rmtree_robust(target, max_retries=1, caller="test")
+
+        assert not target.exists()
+        quarantine_dirs = [p for p in tmp_path.iterdir() if p.name.startswith(".public.bengal-delete-")]
+        assert len(quarantine_dirs) == 1
+
+    def test_raises_when_quarantine_rename_fails(self, tmp_path, monkeypatch):
+        """Error should propagate when every fallback path fails."""
+        target = tmp_path / "public"
+        target.mkdir()
+
+        def raise_enotempty(_path: Path) -> None:
+            raise OSError(errno.ENOTEMPTY, "Directory not empty")
+
+        def raise_rename(_self: Path, _other: Path) -> None:
+            raise OSError(errno.EPERM, "rename blocked")
+
+        monkeypatch.setattr(file_io.shutil, "rmtree", raise_enotempty)
+        monkeypatch.setattr(file_io.platform, "system", lambda: "Darwin")
+        monkeypatch.setattr(file_io.time, "sleep", lambda _s: None)
+        monkeypatch.setattr(file_io, "_remove_hidden_files", lambda _p: 0)
+        monkeypatch.setattr(file_io, "_delete_with_rm_rf", lambda _p, _c: False)
+        monkeypatch.setattr(Path, "rename", raise_rename)
+
+        with pytest.raises(OSError, match="Failed to remove directory after 1 attempts"):
+            rmtree_robust(target, max_retries=1, caller="test")

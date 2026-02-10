@@ -37,6 +37,21 @@ import threading
 from pathlib import Path
 from typing import Any, ClassVar
 
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def is_document_ast(ast: Any) -> bool:
+    """Return True for Patitas Document-like AST objects.
+
+    Bengal must reject legacy mistune tuple ASTs in this cache because
+    Patitas serialization (`to_json`) only supports document objects.
+    """
+    if ast is None or isinstance(ast, tuple):
+        return False
+    return hasattr(ast, "children") and hasattr(ast, "location")
+
 
 class ContentASTCache:
     """Per-page AST cache for incremental diffing and build reuse.
@@ -81,6 +96,9 @@ class ContentASTCache:
             if entry is None:
                 return None
             _hash, body, ast = entry
+            if not is_document_ast(ast):
+                del cls._cache[path]
+                return None
             return body, ast
 
     @classmethod
@@ -101,6 +119,9 @@ class ContentASTCache:
             if entry is None:
                 return None
             cached_hash, _body, ast = entry
+            if not is_document_ast(ast):
+                del cls._cache[path]
+                return None
             if cached_hash == content_hash:
                 return ast
             return None
@@ -115,6 +136,9 @@ class ContentASTCache:
             body: Markdown body text (without frontmatter).
             ast: Patitas Document AST.
         """
+        if not is_document_ast(ast):
+            return
+
         with cls._lock:
             cls._cache[path] = (content_hash, body, ast)
             # LRU eviction
@@ -160,6 +184,8 @@ class ContentASTCache:
         index: dict[str, str] = {}
         with cls._lock:
             for path, (content_hash, _body, ast) in cls._cache.items():
+                if not is_document_ast(ast):
+                    continue
                 try:
                     # Use content_hash as filename for O(1) lookup
                     out_path = cache_dir / f"{content_hash}.json"
@@ -167,7 +193,13 @@ class ContentASTCache:
                         out_path.write_text(to_json(ast))
                     index[str(path)] = content_hash
                     count += 1
-                except Exception:
+                except Exception as save_err:
+                    logger.debug(
+                        "ast_cache_save_failed",
+                        ast_type=type(ast).__name__,
+                        error_type=type(save_err).__name__,
+                        error=str(save_err),
+                    )
                     continue
 
         # Write index for load_from_disk() reconstruction
@@ -218,8 +250,9 @@ class ContentASTCache:
                     continue
                 try:
                     ast = from_json(ast_path.read_text())
-                    cls._cache[Path(path_str)] = (content_hash, "", ast)
-                    count += 1
+                    if is_document_ast(ast):
+                        cls._cache[Path(path_str)] = (content_hash, "", ast)
+                        count += 1
                 except Exception:
                     continue
         return count

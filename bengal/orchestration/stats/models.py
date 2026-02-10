@@ -4,6 +4,7 @@ Build statistics data models.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -132,6 +133,9 @@ class BuildStats:
 
     # Enhanced error collection by category
     errors_by_category: dict[str, ErrorCategory] = field(default_factory=dict)
+
+    # Thread-safety lock for parallel pipeline task updates
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def get_error_deduplicator(self) -> ErrorDeduplicator:
         """

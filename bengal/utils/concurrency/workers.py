@@ -149,9 +149,12 @@ def detect_environment() -> Environment:
     if env_value == "local":
         return Environment.LOCAL
 
-    # CI detection (common CI environment variables)
+    # CI detection (provider-specific environment variables).
+    # NOTE:
+    #   A generic CI variable is frequently set in local tooling wrappers,
+    #   which can accidentally force CI caps on developer machines.
+    #   Use provider-specific signals to avoid false-positive CI detection.
     ci_indicators = [
-        "CI",  # Generic CI
         "GITHUB_ACTIONS",  # GitHub Actions
         "GITLAB_CI",  # GitLab CI
         "CIRCLECI",  # CircleCI

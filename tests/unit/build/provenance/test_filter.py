@@ -553,3 +553,51 @@ class TestCascadeProvenance:
         assert prov is not None
         # Should have at least 3 inputs: content, cascade_0, config
         assert prov.input_count >= 3
+
+    def test_get_cascade_sources_handles_circular_parent_reference(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Circular section references should not loop forever."""
+        docs_dir = mock_site.root_path / "content" / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        index_path = docs_dir / "_index.md"
+        index_path.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+
+        index_page = MagicMock()
+        index_page.source_path = index_path
+
+        section = MagicMock()
+        section.index_page = index_page
+        section.parent = section  # Self-reference cycle
+
+        page = MagicMock()
+        page.source_path = docs_dir / "intro.md"
+        page._section = section
+
+        sources = provenance_filter._get_cascade_sources(page)
+        assert sources == [index_path]
+
+    def test_get_cascade_sources_stops_at_max_depth(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Deep hierarchies should be bounded by max depth safety guard."""
+        docs_dir = mock_site.root_path / "content" / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+
+        index_path = docs_dir / "_index.md"
+        index_path.write_text("---\ncascade:\n  type: doc\n---\n# Docs")
+
+        index_page = MagicMock()
+        index_page.source_path = index_path
+
+        section_chain = [MagicMock() for _ in range(120)]
+        for i, section in enumerate(section_chain):
+            section.index_page = index_page
+            section.parent = section_chain[i + 1] if i < len(section_chain) - 1 else None
+
+        page = MagicMock()
+        page.source_path = docs_dir / "deep.md"
+        page._section = section_chain[0]
+
+        sources = provenance_filter._get_cascade_sources(page)
+        assert len(sources) == 100

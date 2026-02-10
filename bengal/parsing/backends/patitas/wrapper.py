@@ -18,7 +18,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from patitas.nodes import Block
+from patitas.location import SourceLocation
+from patitas.nodes import Block, Document
 
 from bengal.parsing.backends.patitas import create_markdown, parse_to_ast
 from bengal.parsing.base import BaseMarkdownParser
@@ -87,6 +88,7 @@ class PatitasParser(BaseMarkdownParser):
 
         # Variable substitution plugin (stored for placeholder restoration)
         self._var_plugin: Any | None = None
+        self._last_document_ast: Any | None = None
 
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML.
@@ -102,7 +104,9 @@ class PatitasParser(BaseMarkdownParser):
             return ""
 
         try:
-            html = self._md(content)
+            ast = self._md.parse_to_ast(content)
+            self._last_document_ast = self._to_document_ast(ast, content, metadata.get("_source_path"))
+            html = self._md.render_ast(ast, content)
 
             # Post-process cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
@@ -157,6 +161,7 @@ class PatitasParser(BaseMarkdownParser):
 
         # Parse to AST using configured markdown instance
         ast = self._md.parse_to_ast(content)
+        self._last_document_ast = self._to_document_ast(ast, content, metadata.get("_source_path"))
 
         # Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
         # Heading IDs are injected during render, TOC collected in same pass
@@ -205,13 +210,23 @@ class PatitasParser(BaseMarkdownParser):
             # 2. Parse & Substitute in ONE pass (the "window thing")
             # The Lexer handles variable substitution as it scans lines.
             # This is O(n) with zero extra passes or AST walks.
-            html = self._md(
+            ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
+            html = self._md.render_ast(
+                ast,
                 content,
                 text_transformer=var_plugin.substitute_variables,
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
             )
+
+            # Store canonical structural AST (without variable substitution).
+            # This keeps AST-first callers aligned with parse_with_toc_and_context.
+            source_path = metadata.get("_source_path")
+            if source_path is not None:
+                self._capture_document_ast(content, source_path)
+            else:
+                self._last_document_ast = self._to_document_ast(self._md.parse_to_ast(content), content)
 
             # 3. Restore placeholders: restore BENGALESCAPED placeholders
             html = var_plugin.restore_placeholders(html)
@@ -285,35 +300,10 @@ class PatitasParser(BaseMarkdownParser):
             # so the pipeline can attach it to page._ast_cache after parsing.
             # This is the canonical structural representation of the page's content.
             source_path = metadata.get("_source_path")
-            self._last_document_ast = None  # Reset for each parse call
-
             if source_path is not None:
-                try:
-                    import hashlib
-                    from pathlib import Path
-
-                    from bengal.server.fragment_update import ContentASTCache
-
-                    body_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
-
-                    # Fast path: if the content hash matches, the cached AST
-                    # is already correct — skip parsing entirely.
-                    cached_ast = ContentASTCache.get_by_hash(
-                        Path(source_path), body_hash
-                    )
-                    if cached_ast is not None:
-                        self._last_document_ast = cached_ast
-                    else:
-                        # Hash miss — parse (incrementally if possible) and cache
-                        raw_ast = self._try_incremental_parse(
-                            content, Path(source_path)
-                        )
-                        ContentASTCache.put(
-                            Path(source_path), body_hash, content, raw_ast
-                        )
-                        self._last_document_ast = raw_ast
-                except Exception:
-                    pass  # Best-effort — don't impact build
+                self._capture_document_ast(content, source_path)
+            else:
+                self._last_document_ast = self._to_document_ast(self._md.parse_to_ast(content), content)
 
             # 3. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
             # Heading IDs are injected during render, TOC collected in same pass
@@ -350,6 +340,30 @@ class PatitasParser(BaseMarkdownParser):
                 "",
             )
 
+    def _capture_document_ast(self, content: str, source_path: Any) -> None:
+        """Capture canonical Document AST for AST-first page cache."""
+        self._last_document_ast = None
+        try:
+            import hashlib
+            from pathlib import Path
+
+            from bengal.server.fragment_update import ContentASTCache
+
+            path = Path(source_path)
+            body_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+            cached_ast = ContentASTCache.get_by_hash(path, body_hash)
+            if cached_ast is not None:
+                self._last_document_ast = cached_ast
+                return
+
+            raw_ast = self._try_incremental_parse(content, path)
+            ContentASTCache.put(path, body_hash, content, raw_ast)
+            self._last_document_ast = raw_ast
+        except Exception:
+            # Best-effort only: parser output should still render even if
+            # AST capture/cache fails.
+            self._last_document_ast = None
+
     def _try_incremental_parse(self, content: str, source_path: Any) -> Any:
         """Try incremental parsing against cached AST, fall back to full parse.
 
@@ -371,7 +385,7 @@ class PatitasParser(BaseMarkdownParser):
         cached = ContentASTCache.get(source_path)
         if cached is None:
             # No cached AST — full parse
-            return self._md.parse_to_ast(content)
+            return self._to_document_ast(self._md.parse_to_ast(content), content, source_path)
 
         old_body, old_ast = cached
         if old_body == content:
@@ -414,7 +428,29 @@ class PatitasParser(BaseMarkdownParser):
             )
         except Exception:
             # Incremental parsing failed — fall back to full parse
-            return self._md.parse_to_ast(content)
+            return self._to_document_ast(self._md.parse_to_ast(content), content, source_path)
+
+    def _to_document_ast(
+        self,
+        ast: Any,
+        source: str,
+        source_path: Any | None = None,
+    ) -> Document:
+        """Normalize parser AST output to a Patitas Document."""
+        if isinstance(ast, Document):
+            return ast
+
+        source_file = str(source_path) if source_path is not None else None
+        return Document(
+            location=SourceLocation(
+                lineno=1,
+                col_offset=1,
+                offset=0,
+                end_offset=len(source),
+                source_file=source_file,
+            ),
+            children=tuple(ast),
+        )
 
     def _apply_post_processing(self, html: str, metadata: dict[str, Any]) -> str:
         """Apply common post-processing to HTML output."""
