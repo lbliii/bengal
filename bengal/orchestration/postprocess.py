@@ -26,6 +26,7 @@ See Also:
 from __future__ import annotations
 
 import concurrent.futures
+import contextvars
 from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -299,7 +300,13 @@ class PostprocessOrchestrator:
 
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as executor:
-                futures = {executor.submit(task_fn): name for name, task_fn in tasks}
+                futures = {
+                    executor.submit(
+                        contextvars.copy_context().run,  # type: ignore[arg-type]
+                        task_fn,  # type: ignore[arg-type]
+                    ): name
+                    for name, task_fn in tasks
+                }
 
                 for future in concurrent.futures.as_completed(futures):
                     # Get task name outside try block (dictionary lookup is fast)

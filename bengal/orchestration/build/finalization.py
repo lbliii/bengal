@@ -46,13 +46,29 @@ def phase_postprocess(
     with orchestrator.logger.phase("postprocessing", parallel=parallel):
         postprocess_start = time.time()
 
-        orchestrator.postprocess.run(
-            parallel=parallel,
-            progress_manager=None,
-            build_context=ctx,
-            incremental=incremental,
-            collector=collector,
-        )
+        # Share asset manifest through ContextVar so post-processing template renders
+        # (e.g., special pages) resolve fingerprinted assets without disk fallback.
+        from bengal.assets.manifest import AssetManifest
+        from bengal.rendering.assets import AssetManifestContext, asset_manifest_context
+
+        manifest_path = orchestrator.site.output_dir / "asset-manifest.json"
+        manifest = AssetManifest.load(manifest_path)
+        if manifest is not None:
+            manifest_entries = {k: v.output_path for k, v in manifest.entries.items()}
+            manifest_mtime = manifest_path.stat().st_mtime if manifest_path.exists() else None
+        else:
+            manifest_entries = {}
+            manifest_mtime = None
+        asset_ctx = AssetManifestContext(entries=manifest_entries, mtime=manifest_mtime)
+
+        with asset_manifest_context(asset_ctx):
+            orchestrator.postprocess.run(
+                parallel=parallel,
+                progress_manager=None,
+                build_context=ctx,
+                incremental=incremental,
+                collector=collector,
+            )
 
         orchestrator.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
