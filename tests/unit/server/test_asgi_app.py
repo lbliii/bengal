@@ -1,12 +1,12 @@
 """
-Tests for the ASGI app skeleton (create_bengal_dev_app).
+Tests for the ASGI app (create_bengal_dev_app).
 
-Skeleton returns 501 for /__bengal_reload__ and 404 for other paths.
-Full implementation (SSE, static serving) will be added during Pounce wiring.
+SSE endpoint streams live reload events; other paths return 404 until static wired.
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -15,7 +15,7 @@ from bengal.server.asgi_app import create_bengal_dev_app
 
 
 async def _noop_receive() -> dict:
-    """ASGI receive stub (skeleton app never reads body)."""
+    """ASGI receive stub (app never reads body for GET)."""
     return {}
 
 
@@ -30,26 +30,42 @@ def _make_send_capture() -> tuple[list[dict], object]:
 
 
 @pytest.mark.asyncio
-async def test_reload_endpoint_returns_501(tmp_path: Path) -> None:
-    """GET /__bengal_reload__ returns 501 until SSE is wired."""
+async def test_reload_endpoint_streams_sse(tmp_path: Path) -> None:
+    """GET /__bengal_reload__ returns 200 and streams SSE (retry, connected)."""
     app = create_bengal_dev_app(
         output_dir=tmp_path,
         build_in_progress=lambda: False,
+        sse_keepalive_interval=0.05,
     )
-    sent, send = _make_send_capture()
+    sent: list[dict] = []
+    call_count = 0
+
+    async def send_raise_after_handshake(message: dict) -> None:
+        nonlocal call_count
+        sent.append(message)
+        call_count += 1
+        # Disconnect after headers + retry + connected + 2 keepalives (~0.1s)
+        if call_count >= 6:
+            raise ConnectionResetError("Simulated client disconnect")
 
     await app(
         scope={"type": "http", "method": "GET", "path": "/__bengal_reload__"},
         receive=_noop_receive,
-        send=send,
+        send=send_raise_after_handshake,
     )
 
-    assert len(sent) == 2
+    assert len(sent) >= 2
     assert sent[0]["type"] == "http.response.start"
-    assert sent[0]["status"] == 501
-    assert sent[1]["type"] == "http.response.body"
-    assert b"SSE not yet implemented" in sent[1]["body"]
-    assert b"Pounce" in sent[1]["body"]
+    assert sent[0]["status"] == 200
+    assert any(
+        h[0] == b"content-type" and b"event-stream" in h[1]
+        for h in sent[0]["headers"]
+    )
+    body_parts = b"".join(
+        m["body"] for m in sent[1:] if m["type"] == "http.response.body" and m["body"]
+    )
+    assert b"retry:" in body_parts
+    assert b"connected" in body_parts
 
 
 @pytest.mark.asyncio
