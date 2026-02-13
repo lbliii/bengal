@@ -19,6 +19,7 @@ class TestBuildInProgressState:
 
     def test_set_build_in_progress_true(self):
         """Test setting build state to in progress."""
+        from bengal.server.build_state import build_state
         from bengal.server.request_handler import BengalRequestHandler
 
         # Clear any existing state
@@ -27,18 +28,17 @@ class TestBuildInProgressState:
         # Set to in progress
         BengalRequestHandler.set_build_in_progress(True)
 
-        with BengalRequestHandler._build_lock:
-            assert BengalRequestHandler._build_in_progress is True
+        assert build_state.get_build_in_progress() is True
 
     def test_set_build_in_progress_false(self):
         """Test clearing build state."""
+        from bengal.server.build_state import build_state
         from bengal.server.request_handler import BengalRequestHandler
 
         BengalRequestHandler.set_build_in_progress(True)
         BengalRequestHandler.set_build_in_progress(False)
 
-        with BengalRequestHandler._build_lock:
-            assert BengalRequestHandler._build_in_progress is False
+        assert build_state.get_build_in_progress() is False
 
     def test_build_state_is_thread_safe(self):
         """Test that build state can be accessed from multiple threads."""
@@ -132,8 +132,9 @@ class TestListDirectoryOverride:
         BengalRequestHandler.set_build_in_progress(False)
 
         # Verify the state is correctly set
-        with BengalRequestHandler._build_lock:
-            assert BengalRequestHandler._build_in_progress is False
+        from bengal.server.build_state import build_state
+
+        assert build_state.get_build_in_progress() is False
 
         # The implementation intentionally does NOT show rebuilding page when
         # build is not in progress (even for API paths without index.html).
@@ -190,7 +191,7 @@ class TestRebuildingPageContent:
 
     def test_rebuilding_page_contains_loading_animation(self):
         """Test that rebuilding page has a loading animation."""
-        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+        from bengal.server.responses import REBUILDING_PAGE_HTML
 
         # Page should have CSS animation (pulse for logo, orbit for dots)
         assert b"animation" in REBUILDING_PAGE_HTML
@@ -198,25 +199,25 @@ class TestRebuildingPageContent:
 
     def test_rebuilding_page_has_auto_refresh(self):
         """Test that rebuilding page has auto-refresh."""
-        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+        from bengal.server.responses import REBUILDING_PAGE_HTML
 
         assert b"refresh" in REBUILDING_PAGE_HTML.lower()
 
     def test_rebuilding_page_has_live_reload_script(self):
         """Test that rebuilding page connects to live reload."""
-        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+        from bengal.server.responses import REBUILDING_PAGE_HTML
 
         assert b"__bengal_reload__" in REBUILDING_PAGE_HTML
 
     def test_rebuilding_page_has_path_placeholder(self):
         """Test that rebuilding page has placeholder for path."""
-        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+        from bengal.server.responses import REBUILDING_PAGE_HTML
 
         assert b"%PATH%" in REBUILDING_PAGE_HTML
 
     def test_rebuilding_page_has_bengal_branding(self):
         """Test that rebuilding page includes Bengal branding."""
-        from bengal.server.request_handler import REBUILDING_PAGE_HTML
+        from bengal.server.responses import REBUILDING_PAGE_HTML
 
         # Should have Bengal brand name
         assert b"Bengal" in REBUILDING_PAGE_HTML
@@ -229,7 +230,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_replaces_path(self):
         """Test that get_rebuilding_page_html replaces the path placeholder."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/api/bengal/config/")
         assert b"/api/bengal/config/" in html
@@ -237,7 +238,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_default_palette(self):
         """Test that get_rebuilding_page_html uses default palette when none specified."""
-        from bengal.server.request_handler import (
+        from bengal.server.responses import (
             DEFAULT_PALETTE,
             PALETTE_COLORS,
             get_rebuilding_page_html,
@@ -254,7 +255,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_charcoal_palette(self):
         """Test that charcoal-bengal palette uses golden accent color."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "charcoal-bengal")
 
@@ -264,7 +265,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_snow_lynx_palette(self):
         """Test that snow-lynx palette uses icy teal accent color."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "snow-lynx")
 
@@ -274,7 +275,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_blue_bengal_palette(self):
         """Test that blue-bengal palette uses powder blue accent color."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "blue-bengal")
 
@@ -284,7 +285,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_brown_bengal_palette(self):
         """Test that brown-bengal palette uses warm amber accent color."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "brown-bengal")
 
@@ -294,7 +295,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_silver_bengal_palette(self):
         """Test that silver-bengal palette uses pure silver accent color."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "silver-bengal")
 
@@ -304,7 +305,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_unknown_palette_uses_default(self):
         """Test that unknown palette names fall back to default."""
-        from bengal.server.request_handler import (
+        from bengal.server.responses import (
             DEFAULT_PALETTE,
             PALETTE_COLORS,
             get_rebuilding_page_html,
@@ -318,7 +319,7 @@ class TestRebuildingPagePalette:
 
     def test_get_rebuilding_page_html_none_palette_uses_default(self):
         """Test that None palette uses default."""
-        from bengal.server.request_handler import (
+        from bengal.server.responses import (
             DEFAULT_PALETTE,
             PALETTE_COLORS,
             get_rebuilding_page_html,
@@ -332,7 +333,7 @@ class TestRebuildingPagePalette:
 
     def test_all_placeholders_replaced(self):
         """Test that all color placeholders are replaced."""
-        from bengal.server.request_handler import get_rebuilding_page_html
+        from bengal.server.responses import get_rebuilding_page_html
 
         html = get_rebuilding_page_html("/test/", "charcoal-bengal")
 
@@ -345,11 +346,12 @@ class TestRebuildingPagePalette:
         assert b"%BG_TERTIARY%" not in html
 
     def test_handler_uses_active_palette(self, tmp_path):
-        """Test that BengalRequestHandler uses the _active_palette class attribute."""
+        """Test that BengalRequestHandler uses the active palette from build_state."""
+        from bengal.server.build_state import build_state
         from bengal.server.request_handler import BengalRequestHandler
 
         # Set charcoal as active palette
-        BengalRequestHandler._active_palette = "charcoal-bengal"
+        build_state.set_active_palette("charcoal-bengal")
         BengalRequestHandler.set_build_in_progress(True)
 
         try:
@@ -366,7 +368,7 @@ class TestRebuildingPagePalette:
             assert b"#C9A84D" in content
         finally:
             BengalRequestHandler.set_build_in_progress(False)
-            BengalRequestHandler._active_palette = None
+            build_state.set_active_palette(None)
 
 
 class TestBuildTriggerIntegration:
@@ -395,10 +397,9 @@ class TestBuildTriggerIntegration:
         BengalRequestHandler.set_build_in_progress(False)
 
         # Verify initial state is False
-        with BengalRequestHandler._build_lock:
-            initial_state = BengalRequestHandler._build_in_progress
+        from bengal.server.build_state import build_state
 
-        assert initial_state is False
+        assert build_state.get_build_in_progress() is False
 
         # Clean up
         trigger.shutdown()

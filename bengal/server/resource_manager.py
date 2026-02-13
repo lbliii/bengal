@@ -158,10 +158,10 @@ class ResourceManager:
 
     def register_server(self, server: Any) -> Any:
         """
-        Register HTTP server for cleanup.
+        Register HTTP server or ServerBackend for cleanup.
 
         Args:
-            server: socketserver.TCPServer instance
+            server: socketserver.TCPServer or ServerBackend instance
 
         Returns:
             The server
@@ -170,7 +170,11 @@ class ResourceManager:
         def cleanup(s: Any) -> None:
             icons = get_icons()
             try:
-                # Shutdown in a thread with timeout to avoid hanging
+                # ServerBackend has start() and port; TCPServer does not
+                if hasattr(s, "start") and hasattr(s, "port"):
+                    s.shutdown()
+                    return
+                # TCPServer path
                 shutdown_thread = threading.Thread(target=s.shutdown)
                 shutdown_thread.daemon = True
                 shutdown_thread.start()

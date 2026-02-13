@@ -63,6 +63,7 @@ from bengal.orchestration.stats import display_build_stats, show_building_indica
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
+from bengal.server.build_state import build_state
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.server.utils import get_timestamp
@@ -1063,11 +1064,9 @@ class BuildTrigger:
             send_reload_payload(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
-        """Signal build state to request handler."""
+        """Signal build state to shared registry (handler and ASGI app read from it)."""
         try:
-            from bengal.server.request_handler import BengalRequestHandler
-
-            BengalRequestHandler.set_build_in_progress(building)
+            build_state.set_build_in_progress(building)
         except Exception as e:
             logger.debug("build_state_signal_failed", error=str(e))
 

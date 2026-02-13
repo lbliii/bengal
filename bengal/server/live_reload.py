@@ -69,6 +69,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from collections.abc import Callable
 from io import BufferedIOBase
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Protocol
@@ -118,6 +119,68 @@ def _reload_events_disabled() -> bool:
         return val in ("1", "true", "yes", "on")
     except Exception:
         return False
+
+
+def _get_keepalive_interval() -> float:
+    """Get keepalive interval from env (default 15s, clamped 5-120)."""
+    try:
+        ka_env = os.environ.get("BENGAL_SSE_KEEPALIVE_SECS", "15").strip()
+        return float(max(5, min(120, int(ka_env))))
+    except Exception as e:
+        logger.debug("keepalive_env_parse_failed", error=str(e))
+        return 15.0
+
+
+def run_sse_loop(
+    write_fn: Callable[[bytes], None],
+    *,
+    keepalive_interval: float | None = None,
+) -> tuple[int, int]:
+    """
+    Run the SSE event loop, yielding retry, connected, data events, and keepalives.
+
+    Transport-agnostic: call write_fn with each chunk of bytes to send.
+    The caller is responsible for headers; this sends the stream body only.
+
+    Args:
+        write_fn: Called with each SSE frame (bytes). Must handle write + flush.
+        keepalive_interval: Seconds between keepalives (default from env, 5-120).
+
+    Returns:
+        Tuple of (messages_sent, keepalives_sent).
+
+    Raises:
+        BrokenPipeError, ConnectionResetError: Propagated from write_fn on disconnect.
+    """
+    interval = keepalive_interval if keepalive_interval is not None else _get_keepalive_interval()
+    message_count = 0
+    keepalive_count = 0
+
+    # Send opening frames
+    write_fn(b"retry: 2000\n\n")
+    write_fn(b": connected\n\n")
+
+    with _reload_condition:
+        last_seen_generation = _reload_generation
+
+    while True:
+        with _reload_condition:
+            if _shutdown_requested:
+                break
+            _reload_condition.wait(timeout=interval)
+            if _shutdown_requested:
+                break
+            current_generation = _reload_generation
+
+        if current_generation != last_seen_generation:
+            write_fn(f"data: {_last_action}\n\n".encode())
+            message_count += 1
+            last_seen_generation = current_generation
+        else:
+            write_fn(b": keepalive\n\n")
+            keepalive_count += 1
+
+    return (message_count, keepalive_count)
 
 
 # Live reload script to inject into HTML pages
@@ -296,6 +359,9 @@ class LiveReloadMixin:
         client_addr = getattr(self, "client_address", ["unknown", 0])[0]
         logger.info("sse_client_connected", client_address=client_addr)
 
+        message_count = 0
+        keepalive_count = 0
+
         try:
             # Send SSE headers
             self.send_response(200)
@@ -313,97 +379,27 @@ class LiveReloadMixin:
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
-            # Advise client on retry delay and send an opening comment to start the stream
-            # Protected against early client disconnect during handshake
-            try:
-                self.wfile.write(b"retry: 2000\n\n")
-                self.wfile.write(b": connected\n\n")
+            def write_sse(chunk: bytes) -> None:
+                self.wfile.write(chunk)
                 self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
-                # Client disconnected during handshake - exit cleanly
-                logger.debug(
-                    "sse_client_disconnected_during_handshake",
-                    client_address=client_addr,
-                )
-                return
 
-            keepalive_count = 0
-            message_count = 0
-            # IMPORTANT: Initialize last_seen_generation to current to avoid replaying
-            # the last action on new connections/reconnects
-            with _reload_condition:
-                last_seen_generation = _reload_generation
+            logger.info(
+                "sse_stream_started",
+                keepalive_interval_secs=_get_keepalive_interval(),
+            )
 
-            # Keepalive interval (seconds). Default 15s; override via env BENGAL_SSE_KEEPALIVE_SECS
+            # Run event loop; handle early disconnect during handshake or stream
             try:
-                ka_env = os.environ.get("BENGAL_SSE_KEEPALIVE_SECS", "15").strip()
-                keepalive_interval = max(5, min(120, int(ka_env)))
-            except Exception as e:
-                logger.debug("keepalive_env_parse_failed", error=str(e))
-                keepalive_interval = 15
-
-            logger.info("sse_stream_started", keepalive_interval_secs=keepalive_interval)
-
-            # Keep connection alive and send messages when generation increments
-            while True:
-                try:
-                    with _reload_condition:
-                        # Check shutdown flag before waiting
-                        if _shutdown_requested:
-                            logger.debug(
-                                "sse_handler_shutdown_detected",
-                                client_address=client_addr,
-                                reason="shutdown_flag_set_before_wait",
-                            )
-                            break
-
-                        # Wait up to keepalive_interval for a generation change, then send keepalive
-                        _reload_condition.wait(timeout=keepalive_interval)
-
-                        # Check shutdown flag after waking up
-                        if _shutdown_requested:
-                            logger.debug(
-                                "sse_handler_shutdown_detected",
-                                client_address=client_addr,
-                                reason="shutdown_flag_set_after_wait",
-                            )
-                            break
-
-                        current_generation = _reload_generation
-
-                    if current_generation != last_seen_generation:
-                        # Send the last action (e.g., reload, reload-css, reload-page)
-                        self.wfile.write(f"data: {_last_action}\n\n".encode())
-                        self.wfile.flush()
-                        message_count += 1
-                        last_seen_generation = current_generation
-                        logger.debug(
-                            "sse_message_sent",
-                            client_address=client_addr,
-                            event_data=_last_action,
-                            message_count=message_count,
-                        )
-                    else:
-                        # Send keepalive comment (interval-based) to keep the connection alive
-                        self.wfile.write(b": keepalive\n\n")
-                        self.wfile.flush()
-                        keepalive_count += 1
-                        logger.debug(
-                            "sse_keepalive_sent",
-                            client_address=client_addr,
-                            keepalives_sent=keepalive_count,
-                        )
-                except (BrokenPipeError, ConnectionResetError) as e:
-                    # Client disconnected
-                    logger.debug(
-                        "sse_client_disconnected_error",
-                        error_code=ErrorCode.S004.name,
-                        client_address=client_addr,
-                        error_type=type(e).__name__,
-                        messages_sent=message_count,
-                        keepalives_sent=keepalive_count,
-                    )
-                    break
+                message_count, keepalive_count = run_sse_loop(write_sse)
+            except (BrokenPipeError, ConnectionResetError) as exc:
+                logger.debug(
+                    "sse_client_disconnected_error",
+                    error_code=ErrorCode.S004.name,
+                    client_address=client_addr,
+                    error_type=type(exc).__name__,
+                    messages_sent=message_count,
+                    keepalives_sent=keepalive_count,
+                )
         finally:
             logger.info(
                 "sse_client_disconnected",

@@ -52,6 +52,9 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Pounce ASGI server for bengal serve (future backend)
+serve = ["pounce>=0.1.0"]
+
 # Image processing (RFC: hugo-inspired-features)
 # Note: Pillow is already a core dependency for social cards
 # These extras add advanced image processing features
