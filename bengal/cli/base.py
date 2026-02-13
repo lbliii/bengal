@@ -252,6 +252,46 @@ class BengalCommand(click.Command):
             super().format_help(ctx, formatter)
 
 
+class LazyCommand(BengalCommand):
+    """
+    Lazy-loading command that defers module imports until invoked.
+
+    This significantly speeds up CLI startup by only importing command
+    modules when they're actually executed, not when the CLI loads.
+
+    Example:
+        >>> @click.command(cls=LazyCommand)
+        >>> @click.option('--verbose', is_flag=True)
+        >>> def my_command(verbose):
+        ...     '''My command description.'''
+        ...     pass
+
+    Args:
+        import_path: Module path and attribute (e.g., "bengal.cli.commands.build:build")
+    """
+
+    def __init__(self, import_path: str, **kwargs):
+        self._import_path = import_path
+        self._cached_command: click.Command | None = None
+        super().__init__(**kwargs)
+
+    def _resolve_command(self) -> click.Command:
+        """Lazily import and cache the actual command."""
+        if self._cached_command is None:
+            module_path, attr = self._import_path.split(":", 1)
+            module = __import__(module_path, fromlist=[attr])
+            self._cached_command = getattr(module, attr)
+        return self._cached_command
+
+    def invoke(self, ctx: click.Context):
+        """Invoke the lazy-loaded command."""
+        return self._resolve_command().invoke(ctx)
+
+    def get_params(self, ctx: click.Context):
+        """Get parameters from the lazy-loaded command."""
+        return self._resolve_command().get_params(ctx)
+
+
 class BengalGroup(click.Group):
     """
     Custom Click group with typo detection and themed help output.

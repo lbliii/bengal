@@ -29,8 +29,8 @@ CHANGE CATEGORY COMPONENT
 ============================================================================= #}
 {% def change_category(title, icon, items, is_breaking=false) %}
 {% if items and items | length > 0 %}
-<div class="changelog-category{{ ' changelog-category--breaking' if is_breaking else '' }}">
-  <h3 class="category-title{{ ' category-title--breaking' if is_breaking else '' }}">{{ icon }} {{ title }}</h3>
+<div class="{{ ['changelog-category', 'changelog-category--breaking' if is_breaking] | classes }}">
+  <h3 class="{{ ['category-title', 'category-title--breaking' if is_breaking] | classes }}">{{ icon }} {{ title }}</h3>
   <ul class="changelog-list{{ ' changelog-list--breaking' if is_breaking else '' }}">
     {% for item in items %}
     <li class="{{ 'changelog-item--breaking' if is_breaking else '' }}">{{ item }}</li>

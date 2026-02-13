@@ -126,7 +126,7 @@ MAIN TEMPLATE
                     {% let btn_text = button?.text ?? 'Button' %}
                     {% let btn_style = button?.style ?? 'primary' %}
                     <a href="{{ btn_url | absolute_url }}"
-                        class="hero__button hero__button--{{ btn_style }}{{ ' gradient-border' if btn_style != 'primary' else '' }}">
+                        class="{{ ['hero__button', 'hero__button--' ~ btn_style, 'gradient-border' if btn_style != 'primary'] | classes }}">
                         {{ btn_text }}
                     </a>
                     {% end %}
