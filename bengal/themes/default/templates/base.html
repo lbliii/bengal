@@ -44,7 +44,7 @@ HELPER: Render a menu item (desktop/mobile)
 {% let is_trail = item.active_trail ?? false %}
 
 <li
-    class="{{ 'has-submenu' if has_children else '' }} {{ 'active' if is_active else '' }} {{ 'active-trail' if is_trail else '' }}">
+    class="{{ ['has-submenu' if has_children, 'active' if is_active, 'active-trail' if is_trail] | classes }}">
     {% if is_mobile and has_children %}
     {# Mobile: Split button pattern - link + chevron toggle #}
     <div class="mobile-nav-item-row">
@@ -68,7 +68,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% if has_children %}
     <ul class="submenu">
         {% for child in item.children %}
-        <li class="{{ 'active' if child.active else '' }}">
+        <li class="{{ ['active' if child.active] | classes }}">
             <a href="{{ child.href | absolute_url }}">
                 {% with child.icon as icon_name %}
                 {% if icon_name %}<span class="submenu-icon">{{ icon(icon_name, size=16) }}</span>{% end %}
@@ -394,11 +394,11 @@ HELPER: Render a menu item (desktop/mobile)
                 <ul class="nav-main hidden-mobile">
                     {% for item in _main_menu %}{{ render_menu_item(item) }}{% end %}
                     {% if _auto_nav %}
-                    <li class="{{ 'active' if _page_url == '/' else '' }}"><a href="{{ '/' | absolute_url }}">Home</a>
+                    <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a>
                     </li>
                     {% for item in _auto_nav %}
                     <li
-                        class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
+                        class="{{ ['active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/')] | classes }}">
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                     </li>
                     {% end %}
@@ -462,9 +462,9 @@ HELPER: Render a menu item (desktop/mobile)
             <ul>
                 {% for item in _main_menu %}{{ render_menu_item(item, is_mobile=true) }}{% end %}
                 {% if _auto_nav %}
-                <li class="{{ 'active' if _page_url == '/' else '' }}"><a href="{{ '/' | absolute_url }}">Home</a></li>
+                <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a></li>
                 {% for item in _auto_nav %}<li
-                    class="{{ 'active' if (_page_url.startswith(item._path) if _page_url is string and item._path != '/' else false) else '' }}">
+                    class="{{ ['active' if (_page_url.startswith(item._path) if _page_url is string and item._path != '/' else false)] | classes }}">
                     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                 </li>{% end %}
                 {% end %}

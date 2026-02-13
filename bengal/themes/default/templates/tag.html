@@ -49,7 +49,7 @@ Auto-generated for each tag in the site
         </h1>
 
         <p class="page-description">
-          {{ total_posts }} post{% if total_posts != 1 %}s{% end %} tagged with "{{ current_tag }}"
+          {{ total_posts | pluralize('post', 'posts') }} tagged with "{{ current_tag }}"
         </p>
       </header>
 
