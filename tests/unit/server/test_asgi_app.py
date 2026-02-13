@@ -1,12 +1,11 @@
 """
 Tests for the ASGI app (create_bengal_dev_app).
 
-SSE endpoint streams live reload events; other paths return 404 until static wired.
+SSE endpoint streams live reload events; static files served with HTML injection.
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -69,8 +68,8 @@ async def test_reload_endpoint_streams_sse(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_other_paths_return_404(tmp_path: Path) -> None:
-    """All other paths return 404 until static serving is wired."""
+async def test_missing_path_returns_404(tmp_path: Path) -> None:
+    """GET / returns 404 when index.html does not exist."""
     app = create_bengal_dev_app(
         output_dir=tmp_path,
         build_in_progress=lambda: False,
@@ -88,6 +87,114 @@ async def test_other_paths_return_404(tmp_path: Path) -> None:
     assert sent[0]["status"] == 404
     assert sent[1]["type"] == "http.response.body"
     assert sent[1]["body"] == b"Not Found"
+
+
+@pytest.mark.asyncio
+async def test_get_index_html_serves_file(tmp_path: Path) -> None:
+    """GET / serves index.html with injected live reload script."""
+    (tmp_path / "index.html").write_text("<html><body>Hello</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    body = sent[1]["body"]
+    assert b"Hello" in body
+    assert b"EventSource" in body or b"__bengal_reload__" in body
+
+
+@pytest.mark.asyncio
+async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
+    """GET /assets/style.css serves file with correct content-type."""
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "style.css").write_text("body { color: red; }")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/assets/style.css"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert any(
+        h[0] == b"content-type" and b"text/css" in h[1]
+        for h in sent[0]["headers"]
+    )
+    assert sent[1]["body"] == b"body { color: red; }"
+
+
+@pytest.mark.asyncio
+async def test_build_in_progress_serves_rebuilding_page(tmp_path: Path) -> None:
+    """When build in progress and path is HTML-like, serve rebuilding page."""
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: True,
+        active_palette="snow-lynx",
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/blog/post"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert b"Rebuilding" in sent[1]["body"]
+    assert b"/blog/post" in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_custom_404_served_when_present(tmp_path: Path) -> None:
+    """404 serves custom 404.html with injection when present."""
+    (tmp_path / "404.html").write_text("<html><body>Custom 404</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/nonexistent"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
+    assert b"Custom 404" in sent[1]["body"]
+    assert b"__bengal_reload__" in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_path_traversal_returns_404(tmp_path: Path) -> None:
+    """Path traversal (..) returns 404."""
+    (tmp_path / "index.html").write_text("ok")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/../etc/passwd"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
 
 
 @pytest.mark.asyncio

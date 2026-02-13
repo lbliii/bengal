@@ -2,7 +2,7 @@
 ASGI application for Bengal dev server.
 
 Provides create_bengal_dev_app() for Pounce/ASGI backends. Handles SSE live
-reload and static file serving (with HTML injection when wired).
+reload, static file serving with HTML injection, and build-aware behavior.
 """
 
 from __future__ import annotations
@@ -14,7 +14,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from bengal.server.live_reload import run_sse_loop
+from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, run_sse_loop
+from bengal.server.responses import get_rebuilding_page_html
+from bengal.server.utils import find_html_injection_point, get_content_type
 
 # ASGI app type: async (scope, receive, send) -> None
 ASGIApp = Callable[..., Any]
@@ -31,12 +33,13 @@ def create_bengal_dev_app(
     Create an ASGI app for Bengal dev server.
 
     Handles GET /__bengal_reload__ with SSE live reload stream. All other
-    paths return 404 until static serving is wired (Phase 1.2).
+    GET paths are served as static files with HTML injection and build-aware
+    behavior (rebuilding page during builds).
 
     Args:
-        output_dir: Directory for static file serving (used when wired)
+        output_dir: Directory for static file serving
         build_in_progress: Callable returning True when a build is active
-        active_palette: Theme for rebuilding page styling (used when wired)
+        active_palette: Theme for rebuilding page styling
         sse_keepalive_interval: Seconds between SSE keepalives (default from env).
             Use 0.05 for fast tests.
 
@@ -55,22 +58,146 @@ def create_bengal_dev_app(
             await _handle_sse(send, keepalive_interval=sse_keepalive_interval)
             return
 
-        # All other paths: 404 until static serving is wired
+        if method == "GET":
+            await _serve_static(
+                send,
+                output_dir=output_dir,
+                path=path,
+                build_in_progress=build_in_progress,
+                active_palette=active_palette,
+            )
+            return
+
+        await _send_404(send, output_dir=output_dir)
+    return app
+
+
+def _inject_live_reload_into_html(content: bytes) -> bytes:
+    """Inject live reload script into HTML body before </body> or </html>."""
+    script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+    idx = find_html_injection_point(content)
+    if idx != -1:
+        return content[:idx] + script_bytes + content[idx:]
+    return content + script_bytes
+
+
+def _is_html_path(path: str) -> bool:
+    """True if path looks like an HTML request (no extension, .html, .htm, or dir)."""
+    stripped = path.rstrip("/").split("/")[-1] if "/" in path else path
+    if "." not in stripped:
+        return True
+    ext = stripped.split(".")[-1].lower()
+    return ext in ("html", "htm")
+
+
+def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
+    """
+    Resolve request path to filesystem path under output_dir.
+
+    Handles / -> index.html, trailing slash -> index.html, path traversal.
+    Returns None if path escapes output_dir or is invalid.
+    """
+    base = output_dir.resolve()
+    raw = path.split("?")[0].lstrip("/")
+    if not raw:
+        raw = "index.html"
+    elif raw.endswith("/"):
+        raw = raw + "index.html"
+    full = (base / raw).resolve()
+    if not str(full).startswith(str(base)):
+        return None
+    return full
+
+
+async def _serve_static(
+    send: Any,
+    *,
+    output_dir: Path,
+    path: str,
+    build_in_progress: Callable[[], bool],
+    active_palette: str | None,
+) -> None:
+    """Serve static files with HTML injection and build-aware rebuilding page."""
+    # Build in progress + HTML path -> rebuilding page
+    if build_in_progress() and _is_html_path(path):
+        html = get_rebuilding_page_html(path, active_palette)
         await send(
             {
                 "type": "http.response.start",
-                "status": 404,
-                "headers": [[b"content-type", b"text/plain"]],
+                "status": 200,
+                "headers": [
+                    [b"content-type", b"text/html; charset=utf-8"],
+                    [b"content-length", str(len(html)).encode()],
+                    [b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"],
+                ],
             }
         )
-        await send(
-            {
-                "type": "http.response.body",
-                "body": b"Not Found",
-            }
-        )
+        await send({"type": "http.response.body", "body": html})
+        return
 
-    return app
+    resolved = _resolve_file_path(output_dir, path)
+    if resolved is None:
+        await _send_404(send, output_dir=output_dir)
+        return
+
+    # Directory -> try index.html
+    if resolved.is_dir():
+        for name in ("index.html", "index.htm"):
+            candidate = resolved / name
+            if candidate.is_file():
+                resolved = candidate
+                break
+        else:
+            await _send_404(send)
+            return
+
+    if not resolved.is_file():
+        await _send_404(send, output_dir=output_dir)
+        return
+
+    content = resolved.read_bytes()
+    content_type = get_content_type(str(resolved))
+
+    # HTML: inject live reload script
+    if content_type.startswith("text/html"):
+        content = _inject_live_reload_into_html(content)
+
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [
+                [b"content-type", content_type.encode()],
+                [b"content-length", str(len(content)).encode()],
+                [b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"],
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": content})
+
+
+async def _send_404(send: Any, *, output_dir: Path | None = None) -> None:
+    """Send 404. If output_dir has 404.html, serve it with injection."""
+    body = b"Not Found"
+    content_type = b"text/plain"
+    if output_dir is not None:
+        custom_404 = output_dir / "404.html"
+        if custom_404.is_file():
+            body = custom_404.read_bytes()
+            body = _inject_live_reload_into_html(body)
+            content_type = b"text/html; charset=utf-8"
+
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 404,
+            "headers": [
+                [b"content-type", content_type],
+                [b"content-length", str(len(body)).encode()],
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": body})
 
 
 async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> None:
