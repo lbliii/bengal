@@ -200,6 +200,7 @@ navigation.footer_nav = true
 content.code_copy = true
 content.heading_anchors = true
 content.reading_time = true
+content.math = true           # LaTeX math via KaTeX (~200KB)
 
 # Search
 search.enabled = true

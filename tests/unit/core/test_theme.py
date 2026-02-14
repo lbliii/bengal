@@ -228,6 +228,7 @@ class TestThemeFromConfig:
                     "navigation.back_to_top",
                     "content.code.copy",
                     "content.lightbox",
+                    "content.math",
                     "search.suggest",
                     "search.highlight",
                     "accessibility.skip_link",
@@ -240,7 +241,7 @@ class TestThemeFromConfig:
         assert theme.name == "my-theme"
         assert theme.default_appearance == "system"
         assert theme.default_palette == "blue-bengal"
-        assert len(theme.features) == 10
+        assert len(theme.features) == 11
         assert theme.has_feature("navigation.toc") is True
         assert theme.has_feature("content.code.copy") is True
         assert theme.config == {"sidebar_width": "280px"}

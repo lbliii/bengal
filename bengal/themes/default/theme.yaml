@@ -15,6 +15,7 @@ features:
     code.annotate: false
     tabs.link: false
     lightbox: true
+    math: false
     reading_time: true
     link_previews: true
     author: true

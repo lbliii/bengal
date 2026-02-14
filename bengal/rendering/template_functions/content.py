@@ -28,8 +28,38 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "demote_headings": demote_headings,
             "prefix_heading_ids": prefix_heading_ids,
             "urlize": urlize,
+            "highlight": filter_highlight,
         }
     )
+
+
+def filter_highlight(code: str, language: str = "text") -> str:
+    """Syntax-highlight code using rosettes.
+
+    Use with {{ code | highlight("python") | safe }} in templates.
+    Falls back to escaped `<pre><code>` block on LookupError or missing rosettes.
+
+    Args:
+        code: Source code to highlight.
+        language: Language identifier (e.g., "python", "javascript").
+
+    Returns:
+        HTML with syntax highlighting.
+
+    Example:
+        {{ snippet | highlight("python") | safe }}
+    """
+    if not code:
+        return ""
+
+    try:
+        import rosettes  # type: ignore[import-not-found]
+
+        return rosettes.highlight(code, language)
+    except Exception:
+        escaped = html_module.escape(code)
+        lang_class = f' class="language-{html_module.escape(language)}"' if language else ""
+        return f"<pre><code{lang_class}>{escaped}</code></pre>"
 
 
 def safe_html(text: str) -> str:

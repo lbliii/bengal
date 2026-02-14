@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.1.10"
+version = "0.2.0"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -31,7 +31,7 @@ dependencies = [
     "click>=8.1.7",
 
     "jinja2>=3.1.0",
-    "rosettes>=0.1.0",
+    "rosettes>=0.2.0",
     "kida-templates>=0.2.0",                   # Kida template engine (AST-native, free-threading ready)
     "patitas>=0.2.0",                          # Modern Markdown parser (CommonMark, free-threading ready)
     "pyyaml>=6.0",

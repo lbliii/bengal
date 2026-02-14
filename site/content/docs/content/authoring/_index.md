@@ -37,6 +37,13 @@ Link to Python stdlib, NumPy, and other Bengal sites.
 Syntax highlighting, line numbers, and file includes.
 :::{/card}
 
+:::{card} Math and LaTeX
+:icon: function
+:link: ./math/
+
+Inline and block equations with $...$ and $$...$$.
+:::{/card}
+
 :::{card} Images & Media
 :icon: image
 :link: ./images-media/
@@ -87,6 +94,17 @@ Tabs, dropdowns, steps, and cards.
 [[ext:python:pathlib.Path]]
 ```
 :::
+
+:::{tab-item} Math
+```markdown
+$E = mc^2$
+$$
+\sum_{i=1}^n x_i
+$$
+{math}`\frac{a}{b}`
+```
+:::
+
 
 :::{tab-item} Code
 ````markdown

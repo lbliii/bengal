@@ -25,6 +25,7 @@ theme:
     # Content
     - content.code.copy           # Copy button on code blocks
     - content.lightbox            # Image lightbox on click
+    # - content.math              # LaTeX math via KaTeX (opt-in, ~200KB)
     - content.reading_time        # Display "X min read" on pages
     - graph.contextual            # Per-page contextual graph (minimap)
     - content.author              # Display author information when present

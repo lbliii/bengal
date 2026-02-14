@@ -1,5 +1,32 @@
 ## [Unreleased]
 
+### Math / LaTeX Rendering
+- **themes**: add `content.math` feature for KaTeX client-side math rendering
+  - Opt-in via `theme.features`; loads KaTeX CSS/JS when enabled
+  - New `math.js` enhancement renders `.math` and `.math-block` elements
+- **patitas**: unify MathRole output with plugin (raw LaTeX for KaTeX compatibility)
+- **docs**: add Math and LaTeX authoring guide; document `content.math` in theme reference
+
+## 0.2.0 - 2026-02-14
+
+### ⚡ Rosettes Epic & Highlight Caching
+- **rendering(highlight)**: add block-level code block caching via `HighlightCache`
+  - Cache keyed on `rosettes.content_hash(code, language)`; extended key for `hl_lines`/`show_linenos`
+  - Avoids re-highlighting identical blocks across pages
+  - Integrated into `CodeBlockCollector.flush()` with batch uncached → merge flow
+- **deps**: require `rosettes>=0.2.0` (content_hash, HighlightItem, unified highlight_many)
+
+### 🚀 Dev Server: Pounce ASGI Backend
+- **server**: replace ThreadingTCPServer with Pounce ASGI backend (`bengal-pounce>=0.2.0`)
+  - Static serving and HTML injection in ASGI app
+  - SSE live reload, fragment-based partial page updates
+  - Delightful request logging
+
+### 📦 Kida & Patitas 0.2.0
+- **deps**: require `kida-templates>=0.2.0`, `patitas>=0.2.0`
+- **rendering**: consume Kida structured error attributes instead of string parsing
+- **rendering**: Kida AST-based block recompilation, fragment fast path, partial evaluation
+
 ## 0.1.9 - 2026-02-08
 
 ### 🏗️ Architecture Decomposition ✅
