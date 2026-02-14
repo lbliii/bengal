@@ -236,38 +236,50 @@ class TestUrlQuery:
 class TestNotebookDownloadUrl:
     """Tests for notebook_download_url template function."""
 
+    def _make_notebook_page(
+        self, source: str, slug: str | None, output: str, output_dir: str = "/site/public"
+    ) -> tuple:
+        """Create a mock notebook page and site with output_path set."""
+        page = Mock()
+        page.source_path = Path(source)
+        page.slug = slug
+        page.output_path = Path(output)
+        site = Mock()
+        site.output_dir = Path(output_dir)
+        return page, site
+
     def test_notebook_page_returns_download_path(self) -> None:
-        """Notebook page with _path and slug returns .ipynb URL path."""
-        page = Mock()
-        page.source_path = Path("content/notebooks/demo.ipynb")
-        page._path = "/notebooks/demo/"
-        page.slug = "demo"
-        page.href = "/notebooks/demo/"
+        """Notebook page with output_path and slug returns .ipynb URL path."""
+        page, site = self._make_notebook_page(
+            source="content/notebooks/demo.ipynb",
+            slug="demo",
+            output="/site/public/notebooks/demo/index.html",
+        )
 
-        result = notebook_download_url(page)
+        result = notebook_download_url(page, site)
         assert result == "/notebooks/demo/demo.ipynb"
-
-    def test_notebook_page_uses_href_when_path_missing(self) -> None:
-        """Falls back to href when _path is not set."""
-        page = Mock()
-        page.source_path = Path("content/examples/tutorial.ipynb")
-        page._path = None
-        page.slug = "tutorial"
-        page.href = "/examples/tutorial/"
-
-        result = notebook_download_url(page)
-        assert result == "/examples/tutorial/tutorial.ipynb"
 
     def test_notebook_page_uses_stem_when_slug_missing(self) -> None:
         """Falls back to source_path.stem when slug is not set."""
-        page = Mock()
-        page.source_path = Path("content/notebooks/analysis.ipynb")
-        page._path = "/notebooks/analysis/"
-        page.slug = None
-        page.href = "/notebooks/analysis/"
+        page, site = self._make_notebook_page(
+            source="content/notebooks/analysis.ipynb",
+            slug=None,
+            output="/site/public/notebooks/analysis/index.html",
+        )
 
-        result = notebook_download_url(page)
+        result = notebook_download_url(page, site)
         assert result == "/notebooks/analysis/analysis.ipynb"
+
+    def test_notebook_nested_path(self) -> None:
+        """Notebook in a nested content directory returns correct path."""
+        page, site = self._make_notebook_page(
+            source="content/docs/tutorials/demo.ipynb",
+            slug="demo",
+            output="/site/public/docs/tutorials/demo/index.html",
+        )
+
+        result = notebook_download_url(page, site)
+        assert result == "/docs/tutorials/demo/demo.ipynb"
 
     def test_non_notebook_page_returns_empty(self) -> None:
         """Markdown page returns empty string."""
@@ -287,6 +299,28 @@ class TestNotebookDownloadUrl:
         page = Mock(spec=[])
         result = notebook_download_url(page)
         assert result == ""
+
+    def test_no_site_no_page_site_returns_empty(self) -> None:
+        """Returns empty when no site passed and page._site is None."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        page.slug = "demo"
+        page._site = None
+
+        result = notebook_download_url(page)
+        assert result == ""
+
+    def test_falls_back_to_page_site(self) -> None:
+        """Uses page._site when site arg is not provided."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        page.slug = "demo"
+        page.output_path = Path("/site/public/notebooks/demo/index.html")
+        page._site = Mock()
+        page._site.output_dir = Path("/site/public")
+
+        result = notebook_download_url(page)
+        assert result == "/notebooks/demo/demo.ipynb"
 
 
 class TestNotebookColabUrl:
@@ -321,6 +355,17 @@ class TestNotebookColabUrl:
         page = Mock()
         page.source_path = Path("content/notebooks/demo.ipynb")
         site = Mock()
+        site.params = {}
+        site.config = {"params": {}}
+
+        result = notebook_colab_url(page, site)
+        assert result == ""
+
+    def test_empty_params_dict_returns_empty(self) -> None:
+        """Empty params dict (falsy) still returns empty, no crash."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        site = Mock(spec=["params"])
         site.params = {}
 
         result = notebook_colab_url(page, site)

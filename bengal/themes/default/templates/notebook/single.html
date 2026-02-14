@@ -57,9 +57,9 @@ KIDA FEATURES USED:
 {% let page_title = page?.title ?? 'Notebook' %}
 {% let page_tags = page?.tags ?? [] %}
 {% let page_href = page?.href ?? '' %}
-{% let download_url = params?.download_url ?? params?.source_url ?? notebook_download_url(page) ?? '' %}
-{% let binder_url = params?.binder_url ?? '' %}
-{% let colab_url = params?.colab_url ?? notebook_colab_url(page) ?? '' %}
+{% let download_url = params?.download_url or params?.source_url or notebook_download_url(page) or '' %}
+{% let binder_url = params?.binder_url or '' %}
+{% let colab_url = params?.colab_url or notebook_colab_url(page) or '' %}
 {% let kernel_name = params?.notebook?.kernel_name ?? params?.kernel ?? '' %}
 {% let cell_count = params?.notebook?.cell_count ?? 0 %}
 {% let css_class = params?.css_class ?? '' %}

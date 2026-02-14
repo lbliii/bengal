@@ -92,3 +92,51 @@ content_type: notebook
         ipynb_content = ipynb_path.read_text()
         assert "Demo Notebook" in ipynb_content
         assert "print(42)" in ipynb_content
+
+        # Download button rendered with correct href
+        assert "demo.ipynb" in html_content, "Download link not found in rendered HTML"
+        assert "Download .ipynb" in html_content, "Download button label not rendered"
+
+    def test_notebook_colab_button_rendered(self, tmp_path: Path) -> None:
+        """Colab button appears when repo_url is configured."""
+        site_dir = tmp_path / "site"
+        site_dir.mkdir()
+
+        (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Notebook Test"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+
+[theme]
+name = "default"
+
+[params]
+repo_url = "https://github.com/testowner/testrepo"
+colab_branch = "main"
+""")
+
+        content_dir = site_dir / "content"
+        content_dir.mkdir()
+
+        (content_dir / "_index.md").write_text("---\ntitle: Home\n---\nWelcome.\n")
+
+        notebooks_dir = content_dir / "notebooks"
+        notebooks_dir.mkdir()
+
+        (notebooks_dir / "_index.md").write_text(
+            "---\ntitle: Notebooks\ncontent_type: notebook\n---\n"
+        )
+        (notebooks_dir / "demo.ipynb").write_text(_MINIMAL_NOTEBOOK, encoding="utf-8")
+
+        site = Site.from_config(site_dir)
+        site.build(BuildOptions(incremental=False))
+
+        html_path = site_dir / "public" / "notebooks" / "demo" / "index.html"
+        html_content = html_path.read_text()
+
+        assert "Open in Colab" in html_content, "Colab button not rendered"
+        assert "colab.research.google.com" in html_content, "Colab URL not in HTML"
+        assert "testowner/testrepo" in html_content, "Repo not in Colab URL"

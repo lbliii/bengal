@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
+from bengal.utils.paths.url_strategy import URLStrategy
+
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
 
@@ -48,7 +50,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     )
 
     def notebook_download_url_with_site(page) -> str:
-        return notebook_download_url(page)
+        return notebook_download_url(page, site)
 
     def notebook_colab_url_with_site(page) -> str:
         return notebook_colab_url(page, site)
@@ -63,16 +65,21 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     )
 
 
-def notebook_download_url(page) -> str:
+def notebook_download_url(page, site: SiteLike | None = None) -> str:
     """
     Return the download URL path for a notebook page's .ipynb file.
+
+    Uses the same output path logic as the build: compute where the page
+    is rendered, then append the .ipynb filename. No fallbacks—single
+    source of truth via URLStrategy.
 
     Returns empty string if the page is not from a notebook source.
     The .ipynb is copied to output alongside the HTML during build.
     Use with | absolute_url in templates for full URL.
 
     Args:
-        page: Page object with source_path and _path
+        page: Page object with source_path; output_path may be set by build
+        site: Site (from template context); fallback when page._site is unset
 
     Returns:
         Relative URL path to the .ipynb file, or empty string
@@ -82,13 +89,31 @@ def notebook_download_url(page) -> str:
     """
     if not page or not getattr(page, "source_path", None):
         return ""
-    if str(page.source_path).lower().endswith(".ipynb"):
-        path = getattr(page, "_path", None) or getattr(page, "href", "") or ""
-        slug = getattr(page, "slug", None) or (page.source_path.stem if hasattr(page.source_path, "stem") else "")
-        if path and slug:
-            base = (path or "/").rstrip("/")
-            return f"{base}/{slug}.ipynb"
-    return ""
+    if not str(page.source_path).lower().endswith(".ipynb"):
+        return ""
+
+    slug = getattr(page, "slug", None) or (
+        page.source_path.stem if hasattr(page.source_path, "stem") else ""
+    )
+    if not slug:
+        return ""
+
+    site = site or getattr(page, "_site", None)
+    if not site or not getattr(site, "output_dir", None):
+        return ""
+
+    # Use output_path if set by build; otherwise compute (same logic as discovery/render)
+    out = getattr(page, "output_path", None)
+    if not out:
+        out = URLStrategy.compute_regular_page_output_path(page, site)
+
+    try:
+        path = URLStrategy.url_from_output_path(out, site)
+    except Exception:
+        return ""
+
+    base = path.rstrip("/") or "/"
+    return f"{base}/{slug}.ipynb"
 
 
 def notebook_colab_url(page, site: SiteLike) -> str:
@@ -120,7 +145,13 @@ def notebook_colab_url(page, site: SiteLike) -> str:
     if not str(page.source_path).lower().endswith(".ipynb"):
         return ""
 
-    params = getattr(site, "params", None) or {}
+    params = getattr(site, "params", None)
+    if params is None:
+        config = getattr(site, "config", None)
+        if isinstance(config, dict) or (config is not None and hasattr(config, "get")):
+            params = config.get("params") or {}
+        else:
+            params = {}
     repo_url = params.get("repo_url") or ""
     if not repo_url:
         return ""
