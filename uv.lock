@@ -127,6 +127,7 @@ name = "bengal"
 version = "0.1.10"
 source = { editable = "." }
 dependencies = [
+    { name = "bengal-pounce" },
     { name = "click" },
     { name = "httpx" },
     { name = "jinja2" },
@@ -214,6 +215,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
+    { name = "bengal-pounce", specifier = ">=0.2.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
@@ -270,6 +272,18 @@ dev = [
     { name = "types-pygments", specifier = ">=2.18.0" },
     { name = "types-python-dateutil", specifier = ">=2.9.0" },
     { name = "types-pyyaml", specifier = ">=6.0.12" },
+]
+
+[[package]]
+name = "bengal-pounce"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/6f/7b36a0fb77bb22eaa910c10d70e743282c78b2fa2388fb63bdc672818c34/bengal_pounce-0.2.0.tar.gz", hash = "sha256:2c5c1787016aedc93b3d334803a4ca6eeb91b8290fe054543fb12f8b4efeb21b", size = 99897, upload-time = "2026-02-13T23:59:51.528Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/46/2b5b9c5943337c8c89cbee6d40cbc72aec5f3582a92610a3410f8678f19d/bengal_pounce-0.2.0-py3-none-any.whl", hash = "sha256:328e0e0530c18efbcbd95a9862260a0b75ff19e33043db08403fa2af163da443", size = 121393, upload-time = "2026-02-13T23:59:49.832Z" },
 ]
 
 [[package]]
