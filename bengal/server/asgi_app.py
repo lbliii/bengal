@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, run_sse_loop
-from bengal.server.responses import get_rebuilding_page_html
+from bengal.server.responses import (
+    get_rebuilding_badge_script,
+    get_rebuilding_page_html,
+)
 from bengal.server.utils import find_html_injection_point, get_content_type
 
 # ASGI app type: async (scope, receive, send) -> None
@@ -144,6 +147,15 @@ def _inject_live_reload_into_html(content: bytes) -> bytes:
     return content + script_bytes
 
 
+def _inject_rebuilding_badge_into_html(content: bytes) -> bytes:
+    """Inject small rebuilding badge into HTML when build is in progress."""
+    badge_bytes = get_rebuilding_badge_script().encode("utf-8")
+    idx = find_html_injection_point(content)
+    if idx != -1:
+        return content[:idx] + badge_bytes + content[idx:]
+    return content + badge_bytes
+
+
 def _is_html_path(path: str) -> bool:
     """True if path looks like an HTML request (no extension, .html, .htm, or dir)."""
     stripped = path.rstrip("/").split("/")[-1] if "/" in path else path
@@ -182,27 +194,12 @@ async def _serve_static(
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | str | None,
 ) -> None:
-    """Serve static files with HTML injection and build-aware rebuilding page."""
-    # Build in progress + HTML path -> rebuilding page
-    if build_in_progress() and _is_html_path(path):
-        palette = (
-            active_palette() if callable(active_palette) else active_palette
-        )
-        html = get_rebuilding_page_html(path, palette)
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [
-                    [b"content-type", b"text/html; charset=utf-8"],
-                    [b"content-length", str(len(html)).encode()],
-                    [b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"],
-                ],
-            }
-        )
-        await send({"type": "http.response.body", "body": html})
-        return
+    """Serve static files with HTML injection and build-aware behavior.
 
+    When a build is in progress, serves cached content (if available) with a
+    small rebuilding badge injected. Only shows the full placeholder page when
+    the requested file does not exist yet (e.g., new page being created).
+    """
     resolved = _resolve_file_path(output_dir, path)
     if resolved is None:
         await _send_404(send, output_dir=output_dir)
@@ -216,19 +213,42 @@ async def _serve_static(
                 resolved = candidate
                 break
         else:
-            await _send_404(send, output_dir=output_dir)
-            return
+            resolved = resolved / "index.html"  # Expected path for 404 case
 
+    # File doesn't exist: show placeholder during build (new page), else 404
     if not resolved.is_file():
-        await _send_404(send, output_dir=output_dir)
+        if build_in_progress() and _is_html_path(path):
+            palette = (
+                active_palette() if callable(active_palette) else active_palette
+            )
+            html = get_rebuilding_page_html(path, palette)
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [
+                        [b"content-type", b"text/html; charset=utf-8"],
+                        [b"content-length", str(len(html)).encode()],
+                        [
+                            b"cache-control",
+                            b"no-store, no-cache, must-revalidate, max-age=0",
+                        ],
+                    ],
+                }
+            )
+            await send({"type": "http.response.body", "body": html})
+        else:
+            await _send_404(send, output_dir=output_dir)
         return
 
     content = await asyncio.to_thread(resolved.read_bytes)
     content_type = get_content_type(str(resolved))
 
-    # HTML: inject live reload script
+    # HTML: inject live reload script; add rebuilding badge when build in progress
     if content_type.startswith("text/html"):
         content = _inject_live_reload_into_html(content)
+        if build_in_progress():
+            content = _inject_rebuilding_badge_into_html(content)
 
     await send(
         {
