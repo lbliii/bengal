@@ -121,7 +121,7 @@ class TestAutodocPageTypes:
     """Test all autodoc page types are rendered correctly."""
 
     @pytest.mark.parametrize(
-        "page_path,page_type",
+        ("page_path", "page_type"),
         [
             ("api/index.html", "root_index"),
             ("api/core/index.html", "section_index"),
@@ -141,7 +141,7 @@ class TestAutodocPageTypes:
         assert "</html>" in html
 
     @pytest.mark.parametrize(
-        "page_path,page_type",
+        ("page_path", "page_type"),
         [
             ("api/index.html", "root_index"),
             ("api/core/index.html", "section_index"),

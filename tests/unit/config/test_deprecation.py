@@ -42,7 +42,7 @@ class TestDeprecatedKeys:
 
     def test_deprecation_structure(self):
         """Each deprecation has (section, new_key, note) tuple."""
-        for _old_key, value in DEPRECATED_KEYS.items():
+        for value in DEPRECATED_KEYS.values():
             assert isinstance(value, tuple)
             assert len(value) == 3
             section, new_key, note = value
@@ -238,7 +238,7 @@ class TestGetDeprecationSummary:
     def test_includes_new_locations(self):
         """Includes new locations for deprecated keys."""
         result = get_deprecation_summary()
-        for _old_key, (section, new_key, _) in DEPRECATED_KEYS.items():
+        for (section, new_key, _) in DEPRECATED_KEYS.values():
             assert f"`{section}.{new_key}`" in result
 
 
@@ -251,7 +251,7 @@ class TestRenamedKeys:
 
     def test_structure_if_populated(self):
         """If RENAMED_KEYS has entries, they have correct structure."""
-        for _old_key, value in RENAMED_KEYS.items():
+        for value in RENAMED_KEYS.values():
             assert isinstance(value, tuple)
             assert len(value) == 2
             new_key, note = value

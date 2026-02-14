@@ -116,7 +116,7 @@ def test_function(x: int, y: str = "default") -> bool:
 
         # Update the cache with corrupted payload
         corrupted_payload = cached_payload.copy()
-        corrupted_payload["elements"]["python"] = [corrupted_element] + python_elements[1:]
+        corrupted_payload["elements"]["python"] = [corrupted_element, *python_elements[1:]]
         cache.set_page_cache(cache_key, corrupted_payload)
         cache.save(cache_path, use_lock=False)
 
@@ -239,7 +239,7 @@ source_dirs = ["src"]
                     typed_meta["data"] = {}  # Empty dict missing required fields
 
             corrupted_payload = cached_payload.copy()
-            corrupted_payload["elements"]["python"] = [corrupted_element] + python_elements[1:]
+            corrupted_payload["elements"]["python"] = [corrupted_element, *python_elements[1:]]
             cache.set_page_cache(cache_key, corrupted_payload)
             cache.save(cache_path, use_lock=False)
 

@@ -99,7 +99,7 @@ class TestPredictAffected:
         affected = predict_affected(Path("content/about.md"), snapshot)
 
         assert len(affected) == 1
-        assert list(affected)[0].source_path == Path("content/about.md")
+        assert next(iter(affected)).source_path == Path("content/about.md")
 
     def test_template_file_predicts_using_pages(self):
         """Test that .html template change predicts pages using it."""

@@ -25,7 +25,7 @@ class TestPythonSignaturesComprehensive:
     """
 
     @pytest.mark.parametrize(
-        "code,expected_sig",
+        ("code", "expected_sig"),
         [
             # Basic
             ("def f(a, b): pass", "def f(a, b)"),

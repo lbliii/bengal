@@ -31,7 +31,7 @@ class TestHeadingRendering:
     """Heading HTML rendering."""
 
     @pytest.mark.parametrize(
-        "level,expected_tag",
+        ("level", "expected_tag"),
         [
             (1, "h1"),
             (2, "h2"),

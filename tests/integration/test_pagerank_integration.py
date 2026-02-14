@@ -38,7 +38,7 @@ def sample_site(tmp_path):
 
     # Create mock site
     site = Mock()
-    site.pages = [hub_page] + spoke_pages + [orphan_page]
+    site.pages = [hub_page, *spoke_pages, orphan_page]
     site.sections = []
     site.menus = {}
     site.config = {"taxonomies": {}}

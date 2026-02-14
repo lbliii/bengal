@@ -240,7 +240,7 @@ class TestPathAnalyzer:
         spokes = [Mock(source_path=Path(f"spoke{i}.md"), metadata={}) for i in range(4)]
 
         graph = Mock()
-        graph.get_analysis_pages.return_value = [center] + spokes
+        graph.get_analysis_pages.return_value = [center, *spokes]
         graph.outgoing_refs = defaultdict(set)
 
         # Center connects to all spokes (directed out from center)

@@ -45,7 +45,7 @@ def connected_site():
         page.metadata = {}
         cluster_b.append(page)
 
-    all_pages = [hub, bridge] + cluster_a + cluster_b
+    all_pages = [hub, bridge, *cluster_a, *cluster_b]
 
     # Create mock site
     site = Mock()

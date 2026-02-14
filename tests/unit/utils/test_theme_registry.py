@@ -78,6 +78,9 @@ def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
     tpath = pkginfo.resolve_resource_path("templates")
     apath = pkginfo.resolve_resource_path("assets")
     mpath = pkginfo.resolve_resource_path("theme.toml")
-    assert tpath and tpath.exists()
-    assert apath and apath.exists()
-    assert mpath and mpath.exists()
+    assert tpath
+    assert tpath.exists()
+    assert apath
+    assert apath.exists()
+    assert mpath
+    assert mpath.exists()

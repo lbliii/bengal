@@ -120,7 +120,7 @@ class TestTruncateAtSentence:
         text = "Hello world. This is a test. More text here that makes it longer."
         result = truncate_at_sentence(text, length=30)
         # Should truncate at "Hello world. This is a test." (29 chars) or nearby
-        assert result.endswith(".") or result.endswith("...")
+        assert result.endswith((".", "..."))
 
     def test_truncates_at_exclamation(self) -> None:
         """Text is truncated at exclamation mark."""

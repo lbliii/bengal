@@ -64,7 +64,7 @@ def transform_css_nesting(content: str) -> str:
 
         # Detect nested selector starting with &
         if stripped.startswith("&") and parent_stack:
-            parent_selector, parent_level = parent_stack[-1]
+            parent_selector, _parent_level = parent_stack[-1]
 
             # Extract what comes after &
             nested_part = stripped[1:].strip()  # Remove &
@@ -89,7 +89,7 @@ def transform_css_nesting(content: str) -> str:
             # Replace the line with transformed selector
             # Preserve indentation of the opening brace
             if "{" in nested_part:
-                before_brace = nested_part.split("{")[0]
+                nested_part.split("{")[0]
                 after_brace = "{" + "{".join(nested_part.split("{")[1:])
                 new_line = " " * indent + new_selector + after_brace
             else:

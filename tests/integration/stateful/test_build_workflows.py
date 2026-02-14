@@ -364,7 +364,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
             return
 
         # Pick first page (Hypothesis will vary state)
-        name = list(self.pages.keys())[0]
+        name = next(iter(self.pages.keys()))
         new_title = f"{self.pages[name]['title']} (modified)"
         self.pages[name]["title"] = new_title
         write_page(self.site_dir, name, new_title)
@@ -421,9 +421,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 # - site-wide LLM/JSON (build timestamps, page ordering)
                 # - per-page JSON/txt (can have timestamps, not critical for determinism)
                 if (
-                    file_path in ("llm-full.txt", "index.json")
-                    or file_path.endswith("/index.json")
-                    or file_path.endswith("/index.txt")
+                    file_path in ("llm-full.txt", "index.json") or file_path.endswith(("/index.json", "/index.txt"))
                 ):
                     continue
                 full_hash = self.full_build_hashes[file_path]

@@ -314,7 +314,7 @@ class TestHumanizeBytesProperties:
         Property: Sizes < 1024 should use 'B' unit.
         """
         result = humanize_bytes(size)
-        assert result.endswith("B") or result.endswith("bytes"), (
+        assert result.endswith(("B", "bytes")), (
             f"Size {size} should use bytes: '{result}'"
         )
 

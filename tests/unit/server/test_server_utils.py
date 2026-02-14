@@ -19,7 +19,8 @@ def test_apply_dev_no_cache_headers_adds_headers():
         collected[key] = value
 
     apply_dev_no_cache_headers(SimpleNamespace(send_header=sender))
-    assert "Cache-Control" in collected and "no-store" in collected["Cache-Control"]
+    assert "Cache-Control" in collected
+    assert "no-store" in collected["Cache-Control"]
     assert collected["Pragma"] == "no-cache"
 
 

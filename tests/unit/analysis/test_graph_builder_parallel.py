@@ -238,7 +238,7 @@ class TestParallelMetrics:
         assert len(builder.link_metrics) > 0
 
         # Check that metrics are valid LinkMetrics objects
-        for _page, metrics in builder.link_metrics.items():
+        for metrics in builder.link_metrics.values():
             assert hasattr(metrics, "explicit")
             assert hasattr(metrics, "related")
             assert hasattr(metrics, "total_links")

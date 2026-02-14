@@ -147,7 +147,7 @@ class TestAutodocPageTypes:
             )
 
     @pytest.mark.parametrize(
-        "autodoc_type,expected_type",
+        ("autodoc_type", "expected_type"),
         [
             ("python", "autodoc-python"),
             ("cli", "autodoc-cli"),

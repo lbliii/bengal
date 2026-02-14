@@ -14,7 +14,7 @@ class TestEmphasisVariants:
     """Emphasis with different delimiters and contexts."""
 
     @pytest.mark.parametrize(
-        "source,expected",
+        ("source", "expected"),
         [
             ("*em*", "<em>em</em>"),
             ("_em_", "<em>em</em>"),

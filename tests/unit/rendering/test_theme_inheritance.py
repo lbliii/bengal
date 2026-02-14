@@ -62,7 +62,8 @@ def test_theme_chain_child_overrides_parent(tmp_path: Path):
     # Assert: child templates dir appears before parent
     child_dir = str(tmp_path / "themes" / "child" / "templates")
     parent_dir = str(tmp_path / "themes" / "parent" / "templates")
-    assert child_dir in dirs and parent_dir in dirs
+    assert child_dir in dirs
+    assert parent_dir in dirs
     assert dirs.index(child_dir) < dirs.index(parent_dir)
 
 

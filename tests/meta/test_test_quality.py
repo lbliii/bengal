@@ -48,7 +48,7 @@ class TestNoWeakAssertions:
     """Tests that catch weak/useless assertions."""
 
     @pytest.mark.parametrize(
-        "pattern,description,threshold",
+        ("pattern", "description", "threshold"),
         [
             (r"^\s*assert\s+True\s*$", "assert True", 10),  # Start with baseline, reduce over time
             (r"^\s*assert\s+False\s*$", "assert False (always fails)", 0),

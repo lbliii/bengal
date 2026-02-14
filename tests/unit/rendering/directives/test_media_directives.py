@@ -670,7 +670,7 @@ class TestFigureDirective:
         """Test decorative image with empty alt."""
         markdown = """\
 :::{figure} /images/decorative.png
-:alt: 
+:alt:
 :::
 """
         result = parser.parse(markdown, {})

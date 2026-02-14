@@ -336,7 +336,7 @@ class TestContentTypeURLConsistency:
 
         # Discover and get page
         orchestrator.discover()
-        page = [p for p in site.pages if p.source_path.stem == "page"][0]
+        page = next(p for p in site.pages if p.source_path.stem == "page")
 
         # URL should be correct after full discovery
         assert page.href == "/docs/page/", f"URL wrong after cascade: {page.href}"

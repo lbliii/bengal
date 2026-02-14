@@ -71,7 +71,7 @@ def analyze_results(results: dict[str, Any]) -> dict[str, Any]:
 
     for bench in benchmarks:
         test_name = bench.get("name", "")
-        site_fixture, page_count, config_str = parse_test_name(test_name, bench)
+        _site_fixture, page_count, config_str = parse_test_name(test_name, bench)
 
         if page_count > 0:
             bench_data = {

@@ -21,8 +21,8 @@ from bengal.assets.css_minifier import minify_css
 def test_case(
     name: str,
     css: str,
-    expected_contains: list[str] = None,
-    expected_not_contains: list[str] = None,
+    expected_contains: list[str] | None = None,
+    expected_not_contains: list[str] | None = None,
 ):
     """Test a CSS minification case."""
     print(f"\n{'=' * 60}")

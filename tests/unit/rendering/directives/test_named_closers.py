@@ -337,7 +337,7 @@ Inner tip
         markdown = """\
 :::{note}
 Content
-:::{/note}   
+:::{/note}
 """
         result = parser.parse(markdown, {})
         assert 'class="admonition note"' in result

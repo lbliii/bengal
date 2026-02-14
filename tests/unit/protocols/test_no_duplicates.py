@@ -163,9 +163,8 @@ class TestNoDuplicateProtocols:
 
             protocol_defs = []
             for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    if self._is_protocol_class(node):
-                        protocol_defs.append(node.name)
+                if isinstance(node, ast.ClassDef) and self._is_protocol_class(node):
+                    protocol_defs.append(node.name)
 
             assert not protocol_defs, (
                 f"{filepath.relative_to(bengal_dir)} defines protocols instead of re-exporting:\n"

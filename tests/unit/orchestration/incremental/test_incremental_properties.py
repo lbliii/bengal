@@ -393,5 +393,6 @@ class TestCacheProperties:
             fp2 = cache2.file_fingerprints.get(str(test_file))
 
             # PROPERTY: Different content should produce different fingerprint
-            assert fp1 is not None and fp2 is not None
+            assert fp1 is not None
+            assert fp2 is not None
             assert fp1["hash"] != fp2["hash"], "Different content produced same fingerprint"

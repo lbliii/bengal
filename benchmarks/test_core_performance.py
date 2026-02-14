@@ -100,7 +100,7 @@ def site_1000_pages(tmp_path_factory):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_100_pages", 100),
         ("site_500_pages", 500),

@@ -182,7 +182,7 @@ class TestNavigationComponentsConsistency:
     """Test that all navigation components handle baseurl consistently."""
 
     @pytest.mark.parametrize(
-        "baseurl_value,expected_prefix",
+        ("baseurl_value", "expected_prefix"),
         [
             ("/repo", "/repo"),
             ("/blog", "/blog"),

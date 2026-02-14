@@ -56,7 +56,8 @@ class TestHtmlEscape:
 
     def test_escape_quotes(self):
         result = html_escape('Say "Hello"')
-        assert "Hello" in result and "&" in result
+        assert "Hello" in result
+        assert "&" in result
 
     def test_empty_string(self):
         assert html_escape("") == ""
@@ -112,12 +113,14 @@ class TestSmartquotes:
     def test_double_quotes(self):
         result = smartquotes('"Hello"')
         # Check for Unicode curly quotes (U+201C and U+201D)
-        assert "\u201c" in result and "\u201d" in result
+        assert "\u201c" in result
+        assert "\u201d" in result
 
     def test_single_quotes(self):
         result = smartquotes("'Hello'")
         # Check for Unicode curly quotes (U+2018 and U+2019)
-        assert "\u2018" in result and "\u2019" in result
+        assert "\u2018" in result
+        assert "\u2019" in result
 
     def test_em_dash(self):
         result = smartquotes("Hello---World")

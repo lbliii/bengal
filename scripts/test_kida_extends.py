@@ -19,7 +19,7 @@ def test_extends():
 
         from bengal.core.site import Site
 
-        site = Site(root)
+        Site(root)
 
         from kida import Environment, FileSystemLoader
 

@@ -21,7 +21,7 @@ class TestFullSiteUrlConsistency:
     """
 
     @pytest.mark.parametrize(
-        "page_path, expected_url",
+        ("page_path", "expected_url"),
         [
             ("content/page_0.md", "/page_0/"),
             ("content/page_1.md", "/page_1/"),

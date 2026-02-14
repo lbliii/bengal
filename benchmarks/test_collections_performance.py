@@ -261,7 +261,7 @@ class TestCollectionPathMatchingPerformance:
         iterations = 1000
         start = time.perf_counter()
         for _ in range(iterations):
-            name, config = get_collection_for_path(file_path, content_root, collections_10)
+            name, _config = get_collection_for_path(file_path, content_root, collections_10)
         elapsed = time.perf_counter() - start
 
         assert name == "collection_5"
@@ -282,7 +282,7 @@ class TestCollectionPathMatchingPerformance:
         iterations = 1000
         start = time.perf_counter()
         for _ in range(iterations):
-            name, config = get_collection_for_path(file_path, content_root, collections_100)
+            name, _config = get_collection_for_path(file_path, content_root, collections_100)
         elapsed = time.perf_counter() - start
 
         assert name == "collection_50"
@@ -304,7 +304,7 @@ class TestCollectionPathMatchingPerformance:
         iterations = 1000
         start = time.perf_counter()
         for _ in range(iterations):
-            name, config = get_collection_for_path(
+            name, _config = get_collection_for_path(
                 file_path, content_root, collections_10, trie=trie
             )
         elapsed = time.perf_counter() - start
@@ -328,7 +328,7 @@ class TestCollectionPathMatchingPerformance:
         iterations = 1000
         start = time.perf_counter()
         for _ in range(iterations):
-            name, config = get_collection_for_path(
+            name, _config = get_collection_for_path(
                 file_path, content_root, collections_100, trie=trie
             )
         elapsed = time.perf_counter() - start

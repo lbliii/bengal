@@ -34,7 +34,8 @@ def test_build_with_path_baseurl(site, build_site):
     assert isinstance(data.get("pages"), list)
     if data["pages"]:
         sample = data["pages"][0]
-        assert "url" in sample and "uri" in sample
+        assert "url" in sample
+        assert "uri" in sample
 
 
 @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
@@ -127,10 +128,7 @@ def test_internal_markdown_links_transformed(site, build_site):
         for link in internal_links:
             # Skip asset links, known template links, and root
             if (
-                link.startswith("/bengal/assets/")
-                or link == "/"
-                or link in template_links
-                or link.startswith("/bengal")
+                link.startswith(("/bengal/assets/", "/bengal")) or link == "/" or link in template_links
             ):
                 continue
 
