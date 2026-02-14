@@ -172,7 +172,14 @@ class ResourceManager:
             try:
                 # ServerBackend has start() and port; TCPServer does not
                 if hasattr(s, "start") and hasattr(s, "port"):
-                    s.shutdown()
+                    shutdown_thread = threading.Thread(target=s.shutdown)
+                    shutdown_thread.daemon = True
+                    shutdown_thread.start()
+                    shutdown_thread.join(timeout=2.0)
+                    if shutdown_thread.is_alive():
+                        print(
+                            f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"
+                        )
                     return
                 # TCPServer path
                 shutdown_thread = threading.Thread(target=s.shutdown)

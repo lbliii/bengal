@@ -7,6 +7,8 @@ Shared by the HTTP handler and future ASGI app.
 
 from __future__ import annotations
 
+import html
+
 # HTML template for "rebuilding" page shown during builds
 # Uses CSS animation and auto-retry via meta refresh + live reload script
 # Features Bengal branding with rosette logo and cat theme
@@ -253,13 +255,14 @@ def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
 
     accent, accent_rgb, bg_primary, bg_secondary, bg_tertiary = PALETTE_COLORS[palette_key]
 
-    # Apply all replacements
-    html = REBUILDING_PAGE_HTML
-    html = html.replace(b"%PATH%", path.encode("utf-8"))
-    html = html.replace(b"%ACCENT%", accent.encode("utf-8"))
-    html = html.replace(b"%ACCENT_RGB%", accent_rgb.encode("utf-8"))
-    html = html.replace(b"%BG_PRIMARY%", bg_primary.encode("utf-8"))
-    html = html.replace(b"%BG_SECONDARY%", bg_secondary.encode("utf-8"))
-    html = html.replace(b"%BG_TERTIARY%", bg_tertiary.encode("utf-8"))
+    # Apply all replacements (escape path for HTML context to prevent reflected XSS)
+    escaped_path = html.escape(path)
+    result = REBUILDING_PAGE_HTML
+    result = result.replace(b"%PATH%", escaped_path.encode("utf-8"))
+    result = result.replace(b"%ACCENT%", accent.encode("utf-8"))
+    result = result.replace(b"%ACCENT_RGB%", accent_rgb.encode("utf-8"))
+    result = result.replace(b"%BG_PRIMARY%", bg_primary.encode("utf-8"))
+    result = result.replace(b"%BG_SECONDARY%", bg_secondary.encode("utf-8"))
+    result = result.replace(b"%BG_TERTIARY%", bg_tertiary.encode("utf-8"))
 
-    return html
+    return result

@@ -446,6 +446,9 @@ def create_jinja_environment(
         """Join list of CSS class names, dropping falsy values."""
         if value is None:
             return ""
+        if isinstance(value, (str, bytes)):
+            s = str(value).strip()
+            return s if s else ""
         parts: list[str] = []
         try:
             items = list(value)

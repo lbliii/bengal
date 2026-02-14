@@ -4,8 +4,9 @@ Request Log Widget.
 HTTP request logging display for dev server dashboard.
 Shows method, path, status, and duration for each request.
 
-Note: Request callback integration with Pounce ASGI is not yet implemented.
-The log displays requests when wired via create_bengal_dev_app middleware (future).
+Note: Request callback integration with Pounce ASGI is provided via
+create_bengal_dev_app middleware and DevServer's request callback holder.
+The log displays requests when wired through this middleware in the dev server.
 
 RFC: rfc-dashboard-api-integration
 

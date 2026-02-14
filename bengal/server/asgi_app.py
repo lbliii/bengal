@@ -167,7 +167,9 @@ def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
     elif raw.endswith("/"):
         raw = raw + "index.html"
     full = (base / raw).resolve()
-    if not str(full).startswith(str(base)):
+    try:
+        full.relative_to(base)
+    except ValueError:
         return None
     return full
 
@@ -214,14 +216,14 @@ async def _serve_static(
                 resolved = candidate
                 break
         else:
-            await _send_404(send)
+            await _send_404(send, output_dir=output_dir)
             return
 
     if not resolved.is_file():
         await _send_404(send, output_dir=output_dir)
         return
 
-    content = resolved.read_bytes()
+    content = await asyncio.to_thread(resolved.read_bytes)
     content_type = get_content_type(str(resolved))
 
     # HTML: inject live reload script
@@ -249,7 +251,7 @@ async def _send_404(send: Any, *, output_dir: Path | None = None) -> None:
     if output_dir is not None:
         custom_404 = output_dir / "404.html"
         if custom_404.is_file():
-            body = custom_404.read_bytes()
+            body = await asyncio.to_thread(custom_404.read_bytes)
             body = _inject_live_reload_into_html(body)
             content_type = b"text/html; charset=utf-8"
 
@@ -306,11 +308,7 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
 
     try:
         while True:
-            try:
-                chunk = q.get_nowait()
-            except queue.Empty:
-                await asyncio.sleep(0.01)
-                continue
+            chunk = await asyncio.to_thread(q.get)
             if chunk is None:
                 break
             await send(
