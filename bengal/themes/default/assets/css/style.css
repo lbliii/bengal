@@ -351,6 +351,23 @@
    CUSTOM GLOBAL STYLES
    ============================================ */
 
+/* Page layout helpers */
+.page-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.page-footer {
+  margin-top: auto;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
 /* Main Content Area */
 main {
   flex: 1 0 auto;
@@ -402,7 +419,8 @@ main {
 
 }
 
-.breadcrumbs li {
+.breadcrumbs li,
+.breadcrumb__item {
   display: flex;
   align-items: center;
   gap: var(--space-2);

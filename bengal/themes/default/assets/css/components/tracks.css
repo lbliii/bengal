@@ -679,6 +679,23 @@
    TRACK PROGRESS INDICATOR (Step Dots)
    ============================================ */
 
+/* Bootstrap-style progress bar (used in track_nav) */
+.progress {
+  display: flex;
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
 .track-progress {
     display: flex;
     flex-direction: column;

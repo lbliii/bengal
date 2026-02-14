@@ -186,6 +186,10 @@
   gap: var(--space-1);
 }
 
+.version-banner__link-text {
+  display: inline;
+}
+
 .version-banner__link {
   color: inherit;
   font-weight: var(--weight-semibold);

@@ -8,6 +8,11 @@
  * - .page-hero--magazine: Editorial-style consolidated header
  */
 
+/* Base page-hero container */
+.page-hero {
+  margin-bottom: var(--space-8);
+}
+
 /* ============================================================================
    MAGAZINE VARIANT
    Editorial-style consolidated header inspired by magazine layouts.

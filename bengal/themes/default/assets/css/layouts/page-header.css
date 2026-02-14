@@ -63,6 +63,11 @@
    MODIFIERS
    ============================================ */
 
+/* Classic variant - uses action-bar + standard layout */
+.page-header--classic {
+  /* Inherits base .page-header styles */
+}
+
 /* Centered variant - for landing pages, blog indexes, etc. */
 .page-header--centered {
   text-align: center;

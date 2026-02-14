@@ -1,5 +1,11 @@
 /* Empty/Error state component (used by 404) */
 
+.empty-help {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+}
+
 .empty-state {
     text-align: center;
     max-width: 600px;
