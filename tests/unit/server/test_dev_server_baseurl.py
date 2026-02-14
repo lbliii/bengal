@@ -17,9 +17,7 @@ class TestBaseurlClearingLogic:
         """Simulate the baseurl clearing decision from _prepare_dev_config."""
         baseurl = (baseurl_value or "").strip()
         # "/" is equivalent to no baseurl (dev server serves from root)
-        if not baseurl or baseurl == "/":
-            return False  # No baseurl to clear
-        return True
+        return bool(baseurl and baseurl != "/")
 
     def test_empty_baseurl_does_not_trigger_clear(self):
         """Empty baseurl should not trigger cache clearing."""

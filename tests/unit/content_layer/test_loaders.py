@@ -49,7 +49,7 @@ class TestRemoteLoaderImports:
             assert loader.source_type == "github"
         else:
             with pytest.raises(ImportError, match=r"(?i)aiohttp|github"):
-                from bengal.content.sources.loaders import github_loader  # noqa: F401
+                from bengal.content.sources.loaders import github_loader
 
     def test_rest_loader_import_error(self) -> None:
         """Test rest_loader raises ImportError if aiohttp not installed."""
@@ -60,7 +60,7 @@ class TestRemoteLoaderImports:
             assert loader.source_type == "rest"
         else:
             with pytest.raises(ImportError, match=r"(?i)aiohttp|rest"):
-                from bengal.content.sources.loaders import rest_loader  # noqa: F401
+                from bengal.content.sources.loaders import rest_loader
 
     def test_notion_loader_import_error(self) -> None:
         """Test notion_loader raises ImportError if aiohttp not installed."""
@@ -72,4 +72,4 @@ class TestRemoteLoaderImports:
                 notion_loader(database_id="abc123")
         else:
             with pytest.raises(ImportError, match=r"(?i)aiohttp|notion"):
-                from bengal.content.sources.loaders import notion_loader  # noqa: F401
+                from bengal.content.sources.loaders import notion_loader

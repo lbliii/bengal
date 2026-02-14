@@ -235,10 +235,10 @@ class TestBreadcrumbLogic:
 
         # Get ancestors (no root)
         ancestors = page.ancestors
-        breadcrumb_items = []
-
-        for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
+        breadcrumb_items = [
+            {"title": ancestor.title, "url": ancestor._path}
+            for ancestor in reversed(ancestors)
+        ]
 
         # Should only have docs (no root)
         assert len(breadcrumb_items) == 1
@@ -271,10 +271,10 @@ class TestBreadcrumbLogic:
 
         # Get ancestors (no root)
         ancestors = page.ancestors
-        breadcrumb_items = []
-
-        for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
+        breadcrumb_items = [
+            {"title": ancestor.title, "url": ancestor._path}
+            for ancestor in reversed(ancestors)
+        ]
 
         # Should have: Api → V2 (no root)
         assert len(breadcrumb_items) == 2

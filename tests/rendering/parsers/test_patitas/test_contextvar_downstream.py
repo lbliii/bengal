@@ -385,7 +385,7 @@ class TestRequestContext:
         """report_error() raises in strict mode."""
         ctx = RequestContext(strict_mode=True)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="test"):
             ctx.report_error(ValueError("test"), "context")
 
     def test_report_error_silent(self):
@@ -482,25 +482,27 @@ print("test")
 """
 
         # Layer 1: Configuration
-        with parse_config_context(ParseConfig()), render_config_context(RenderConfig()):
-            # Layer 2: Request context
-            with request_context(
+        with (
+            parse_config_context(ParseConfig()),
+            render_config_context(RenderConfig()),
+            request_context(
                 source_file=Path("/test.md"),
                 source_content=source,
-            ):
-                # Layer 3: Metadata accumulation
-                with metadata_context() as meta:
-                    # Layer 4: Pooled instances
-                    with ParserPool.acquire(source) as parser:
-                        ast = parser.parse()
+            ),
+        ):
+            # Layer 3: Metadata accumulation
+            with metadata_context() as meta:
+                # Layer 4: Pooled instances
+                with ParserPool.acquire(source) as parser:
+                    ast = parser.parse()
 
-                    with RendererPool.acquire(source) as renderer:
-                        html = renderer.render(ast)
+                with RendererPool.acquire(source) as renderer:
+                    html = renderer.render(ast)
 
-                    # Verify all contexts worked
-                    assert "<h1" in html
-                    assert meta.has_code_blocks is True
-                    assert "https://example.com" in meta.external_links
+                # Verify all contexts worked
+                assert "<h1" in html
+                assert meta.has_code_blocks is True
+                assert "https://example.com" in meta.external_links
 
 
 class TestPoolPerformance:

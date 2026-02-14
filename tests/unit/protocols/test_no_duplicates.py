@@ -95,9 +95,10 @@ class TestNoDuplicateProtocols:
             if isinstance(base, ast.Name) and base.id == "Protocol":
                 return True
             # Subscripted Protocol (e.g., Protocol[T])
-            if isinstance(base, ast.Subscript):
-                if isinstance(base.value, ast.Name) and base.value.id == "Protocol":
-                    return True
+            if isinstance(base, ast.Subscript) and isinstance(
+                base.value, ast.Name
+            ) and base.value.id == "Protocol":
+                return True
         return False
 
     def test_no_protocol_redefinitions(self, bengal_source_files: list[Path]) -> None:

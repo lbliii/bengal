@@ -96,18 +96,17 @@ class TestDiagnosticsAPIConsistency:
             except SyntaxError:
                 continue
 
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call) and (
-                    isinstance(node.func, ast.Attribute)
-                    and node.func.attr == "emit"
-                    and isinstance(node.func.value, ast.Attribute)
-                    and node.func.value.attr in ("diagnostics", "_diagnostics")
-                    and len(node.args) > 1
-                ):
-                    violations.append(
-                        f"{py_file.relative_to(core_dir.parent.parent)}:{node.lineno} - "
-                        f"Direct .emit() call with multiple args (use emit_diagnostic helper)"
-                    )
+            rel_base = py_file.relative_to(core_dir.parent.parent)
+            violations.extend(
+                f"{rel_base}:{node.lineno} - Direct .emit() call with multiple args (use emit_diagnostic helper)"
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "emit"
+                and isinstance(node.func.value, ast.Attribute)
+                and node.func.value.attr in ("diagnostics", "_diagnostics")
+                and len(node.args) > 1
+            )
 
         assert not violations, "Found diagnostics.emit() calls with multiple args:\n" + "\n".join(
             violations

@@ -91,17 +91,15 @@ class TestCycleDetectionEdgeCases:
     def test_deeply_nested_no_cycle(self):
         """Test deeply nested menu (10+ levels) without cycle."""
         builder = MenuBuilder()
-        config = [{"name": "Level 0", "url": "/l0", "identifier": "l0"}]
-
-        for i in range(1, 15):
-            config.append(
-                {
-                    "name": f"Level {i}",
-                    "url": f"/l{i}",
-                    "parent": f"l{i - 1}",
-                    "identifier": f"l{i}",
-                }
-            )
+        config = [{"name": "Level 0", "url": "/l0", "identifier": "l0"}] + [
+            {
+                "name": f"Level {i}",
+                "url": f"/l{i}",
+                "parent": f"l{i - 1}",
+                "identifier": f"l{i}",
+            }
+            for i in range(1, 15)
+        ]
 
         builder.add_from_config(config)
         roots = builder.build_hierarchy()
@@ -121,19 +119,16 @@ class TestCycleDetectionEdgeCases:
     def test_wide_tree_no_cycle(self):
         """Test wide tree (many children at each level) without cycle."""
         builder = MenuBuilder()
-        config = [{"name": "Root", "url": "/root", "identifier": "root"}]
-
-        # Add 50 children to root
-        for i in range(50):
-            config.append(
-                {
-                    "name": f"Child {i}",
-                    "url": f"/child{i}",
-                    "parent": "root",
-                    "identifier": f"child{i}",
-                    "weight": i,
-                }
-            )
+        config = [{"name": "Root", "url": "/root", "identifier": "root"}] + [
+            {
+                "name": f"Child {i}",
+                "url": f"/child{i}",
+                "parent": "root",
+                "identifier": f"child{i}",
+                "weight": i,
+            }
+            for i in range(50)
+        ]
 
         builder.add_from_config(config)
         roots = builder.build_hierarchy()

@@ -341,9 +341,9 @@ def run_cache_corruption_test():
             elif initial_files[path] != final_files[path]:
                 mismatches.append(f"Content mismatch: {path}")
 
-        for path in final_files:
-            if path not in initial_files:
-                mismatches.append(f"Extra file: {path}")
+        mismatches.extend(
+            f"Extra file: {path}" for path in final_files if path not in initial_files
+        )
 
         # Report results
         print(f"\n{'=' * 80}")

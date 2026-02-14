@@ -65,16 +65,15 @@ class TestChildPageTilesMacro:
         assert guides_section is not None
 
         # Simulate macro: {% for page in posts %}
-        tile_data = []
-        for page in guides_section.pages:
-            if page.source_path.stem != "_index":
-                tile_data.append(
-                    {
-                        "title": page.title,
-                        "url": page.href,  # This is what templates access
-                        "description": page.metadata.get("description", ""),
-                    }
-                )
+        tile_data = [
+            {
+                "title": page.title,
+                "url": page.href,
+                "description": page.metadata.get("description", ""),
+            }
+            for page in guides_section.pages
+            if page.source_path.stem != "_index"
+        ]
 
         # Verify all URLs have section prefix
         assert len(tile_data) >= 3
@@ -145,8 +144,11 @@ class TestNavigationComponentURLs:
                     urls.append(page.href)
 
             # Subsections
-            for subsection in section.subsections:
-                urls.extend(collect_nav_urls(subsection, prefix))
+            urls.extend(
+                url
+                for subsection in section.subsections
+                for url in collect_nav_urls(subsection, prefix)
+            )
 
             return urls
 

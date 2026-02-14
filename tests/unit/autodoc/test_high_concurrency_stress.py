@@ -31,22 +31,19 @@ class TestHighConcurrencyStress:
         colliding_names = [f"CommonClass{i}" for i in range(num_classes_per_module)]
 
         for m_idx in range(num_modules):
-            module_content = [f'"""Module {m_idx}."""']
-            for c_name in colliding_names:
-                module_content.append(f"class {c_name}: pass")
-
+            module_content = [f'"""Module {m_idx}."""'] + [
+                f"class {c_name}: pass" for c_name in colliding_names
+            ]
             (pkg_dir / f"module{m_idx}.py").write_text("\n".join(module_content))
 
         # Initialize extractor with parallel mode forced
         extractor = PythonExtractor(config={"parallel_autodoc": True})
 
         # Mock core count to force high concurrency if machine has few cores
-        with patch("multiprocessing.cpu_count", return_value=16):
-            # Also mock optimal workers to be high
-            with patch(
-                "bengal.autodoc.extractors.python.extractor.get_optimal_workers", return_value=16
-            ):
-                elements = extractor.extract(pkg_dir)
+        with patch("multiprocessing.cpu_count", return_value=16), patch(
+            "bengal.autodoc.extractors.python.extractor.get_optimal_workers", return_value=16
+        ):
+            elements = extractor.extract(pkg_dir)
 
         # 1. Total modules extracted
         assert len(elements) == num_modules

@@ -27,10 +27,11 @@ def extract_health_codes_from_file(file_path: Path) -> list[tuple[str, int, str]
     # Pattern matches code="H###" or code='H###'
     pattern = re.compile(r"""code\s*=\s*["']([HV]\d{3})["']""")
 
-    for i, line in enumerate(content.splitlines(), 1):
-        for match in pattern.finditer(line):
-            codes.append((match.group(1), i, file_path.name))
-
+    codes.extend(
+        (match.group(1), i, file_path.name)
+        for i, line in enumerate(content.splitlines(), 1)
+        for match in pattern.finditer(line)
+    )
     return codes
 
 
@@ -90,10 +91,9 @@ class TestHealthCheckCodeUniqueness:
         """Health check codes should follow H### or V### convention."""
         codes_map = get_all_health_codes()
 
-        invalid_codes = []
-        for code in codes_map:
-            if not re.match(r"^[HV]\d{3}$", code):
-                invalid_codes.append(code)
+        invalid_codes = [
+            code for code in codes_map if not re.match(r"^[HV]\d{3}$", code)
+        ]
 
         if invalid_codes:
             pytest.fail(f"Invalid health check codes (should be H### or V###): {invalid_codes}")

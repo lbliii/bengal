@@ -112,9 +112,10 @@ class TestContextVarManagerContextManager:
         manager: ContextVarManager[str] = ContextVarManager("test_cm_exception")
         manager.reset()
 
-        with pytest.raises(ValueError), manager("value"):
+        with manager("value"):
             assert manager.get() == "value"
-            raise ValueError("Test exception")
+            with pytest.raises(ValueError, match="Test exception"):
+                raise ValueError("Test exception")
 
         assert manager.get() is None
 
