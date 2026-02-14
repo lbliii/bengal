@@ -70,16 +70,13 @@ from typing import Any
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
-from bengal.server.backend import (
-    ThreadingTCPServerBackend,
-    create_threading_tcp_backend,
-)
+from bengal.server.backend import ServerBackend, create_pounce_backend
 from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.pid_manager import PIDManager
-from bengal.server.request_handler import BengalRequestHandler
+from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
@@ -458,8 +455,8 @@ class DevServer:
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""
         try:
-            with BengalRequestHandler._html_cache_lock:
-                BengalRequestHandler._html_cache.clear()
+            with LiveReloadMixin._html_cache_lock:
+                LiveReloadMixin._html_cache.clear()
             logger.debug("html_cache_cleared_after_build")
         except Exception as e:
             logger.debug("html_cache_clear_failed", error=str(e))
@@ -837,21 +834,21 @@ class DevServer:
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
 
-    def _create_server(self) -> ThreadingTCPServerBackend:
+    def _create_server(self) -> ServerBackend:
         """
         Create HTTP server backend (does not start it).
 
         Resolves port (with fallback if auto_port) and creates a
-        ThreadingTCPServerBackend bound to the output directory.
+        PounceBackend serving the Bengal ASGI app.
 
         Returns:
-            ServerBackend instance (ThreadingTCPServerBackend)
+            ServerBackend instance (PounceBackend)
 
         Raises:
             OSError: If no available port can be found
         """
-        output_dir = str(self.site.output_dir)
-        logger.debug("serving_directory", path=output_dir)
+        output_dir = self.site.output_dir
+        logger.debug("serving_directory", path=str(output_dir))
 
         actual_port = self.port
 
@@ -904,17 +901,19 @@ class DevServer:
                     suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
                 )
 
-        backend = create_threading_tcp_backend(
+        backend = create_pounce_backend(
             host=self.host,
             port=actual_port,
             output_dir=output_dir,
+            build_in_progress=build_state.get_build_in_progress,
+            active_palette=build_state.get_active_palette,
         )
 
         logger.info(
             "http_server_created",
             host=self.host,
             port=actual_port,
-            handler_class="BengalRequestHandler",
+            handler_class="PounceBackend",
             threaded=True,
         )
 

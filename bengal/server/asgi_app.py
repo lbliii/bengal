@@ -26,7 +26,7 @@ def create_bengal_dev_app(
     *,
     output_dir: Path,
     build_in_progress: Callable[[], bool],
-    active_palette: str | None = None,
+    active_palette: Callable[[], str | None] | str | None = None,
     sse_keepalive_interval: float | None = None,
 ) -> ASGIApp:
     """
@@ -39,7 +39,7 @@ def create_bengal_dev_app(
     Args:
         output_dir: Directory for static file serving
         build_in_progress: Callable returning True when a build is active
-        active_palette: Theme for rebuilding page styling
+        active_palette: Callable returning current palette, or static value
         sse_keepalive_interval: Seconds between SSE keepalives (default from env).
             Use 0.05 for fast tests.
 
@@ -115,12 +115,15 @@ async def _serve_static(
     output_dir: Path,
     path: str,
     build_in_progress: Callable[[], bool],
-    active_palette: str | None,
+    active_palette: Callable[[], str | None] | str | None,
 ) -> None:
     """Serve static files with HTML injection and build-aware rebuilding page."""
     # Build in progress + HTML path -> rebuilding page
     if build_in_progress() and _is_html_path(path):
-        html = get_rebuilding_page_html(path, active_palette)
+        palette = (
+            active_palette() if callable(active_palette) else active_palette
+        )
+        html = get_rebuilding_page_html(path, palette)
         await send(
             {
                 "type": "http.response.start",

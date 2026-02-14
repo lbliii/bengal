@@ -1,5 +1,5 @@
 """
-Tests for the server backend abstraction (ThreadingTCPServerBackend, create_threading_tcp_backend).
+Tests for the server backend abstraction (PounceBackend, ThreadingTCPServerBackend).
 """
 
 from __future__ import annotations
@@ -10,7 +10,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.server.backend import (
+    PounceBackend,
     ThreadingTCPServerBackend,
+    create_pounce_backend,
     create_threading_tcp_backend,
 )
 
@@ -37,6 +39,27 @@ def test_backend_start_calls_serve_forever() -> None:
     backend = ThreadingTCPServerBackend(mock_httpd, 0)
     backend.start()
     mock_httpd.serve_forever.assert_called_once()
+
+
+def test_create_pounce_backend_returns_backend(tmp_path: Path) -> None:
+    """create_pounce_backend returns a PounceBackend with expected port."""
+    backend = create_pounce_backend(
+        host="127.0.0.1",
+        port=8080,
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+        active_palette=lambda: None,
+    )
+    assert isinstance(backend, PounceBackend)
+    assert backend.port == 8080
+
+
+def test_pounce_backend_shutdown_calls_server_shutdown() -> None:
+    """PounceBackend.shutdown() calls server.shutdown()."""
+    mock_server = MagicMock()
+    backend = PounceBackend(mock_server, 5173)
+    backend.shutdown()
+    mock_server.shutdown.assert_called_once()
 
 
 @patch("bengal.server.backend.socketserver.ThreadingTCPServer", MagicMock())

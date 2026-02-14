@@ -43,6 +43,7 @@ dependencies = [
     "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
+    "bengal-pounce>=0.2.0",                    # ASGI server for dev server (replaces ThreadingTCPServer)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
