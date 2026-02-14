@@ -878,11 +878,11 @@ class DevServer:
                         search_range=(self.port + 1, self.port + 10),
                         user_action="check_running_processes",
                     )
-                    raise BengalServerError(
-                        f"Port {self.port} is already in use",
-                        code=ErrorCode.S001,
-                        suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
-                    ) from e
+                raise BengalServerError(
+                    f"Port {self.port} is already in use",
+                    code=ErrorCode.S001,
+                    suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
+                ) from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
                 print("\nTo fix this issue:")
@@ -901,12 +901,14 @@ class DevServer:
                     suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
                 )
 
+        self._request_callback_holder: list = [None]
         backend = create_pounce_backend(
             host=self.host,
             port=actual_port,
             output_dir=output_dir,
             build_in_progress=build_state.get_build_in_progress,
             active_palette=build_state.get_active_palette,
+            request_callback=lambda: self._request_callback_holder[0],
         )
 
         logger.info(
@@ -1004,9 +1006,19 @@ class DevServer:
         console.print()
 
         # Request log header
+        from datetime import datetime
+
         from bengal.output import CLIOutput
 
         cli = CLIOutput()
+
+        def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
+            ts = datetime.now().strftime("%H:%M:%S")
+            cli.http_request(ts, method, str(status), path, is_asset=False)
+
+        if hasattr(self, "_request_callback_holder"):
+            self._request_callback_holder[0] = _log_request
+
         cli.request_log_header()
 
     def _open_browser_delayed(self, port: int) -> None:

@@ -8,8 +8,10 @@ reload, static file serving with HTML injection, and build-aware behavior.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import queue
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,12 @@ from bengal.server.utils import find_html_injection_point, get_content_type
 # ASGI app type: async (scope, receive, send) -> None
 ASGIApp = Callable[..., Any]
 
+# Type for request callback: (method, path, status, duration_ms) -> None
+RequestCallback = Callable[[str, str, int, float], None]
+
+# Getter for lazy callback resolution (set after backend creation)
+RequestCallbackGetter = Callable[[], RequestCallback | None]
+
 
 def create_bengal_dev_app(
     *,
@@ -28,6 +36,7 @@ def create_bengal_dev_app(
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | str | None = None,
     sse_keepalive_interval: float | None = None,
+    request_callback: RequestCallbackGetter | None = None,
 ) -> ASGIApp:
     """
     Create an ASGI app for Bengal dev server.
@@ -42,6 +51,9 @@ def create_bengal_dev_app(
         active_palette: Callable returning current palette, or static value
         sse_keepalive_interval: Seconds between SSE keepalives (default from env).
             Use 0.05 for fast tests.
+        request_callback: Optional getter returning (method, path, status, duration_ms)
+            callback for request logging. Only invoked for document requests (not static
+            assets). Getter allows callback to be set after backend creation.
 
     Returns:
         ASGI application callable
@@ -69,7 +81,58 @@ def create_bengal_dev_app(
             return
 
         await _send_404(send, output_dir=output_dir)
+
+    if request_callback is not None:
+        return _request_logging_middleware(app, request_callback)
     return app
+
+
+def _is_document_request(path: str) -> bool:
+    """True if path is a document request worth logging (HTML, key JSON)."""
+    if path.startswith(("/assets/", "/bengal/")):
+        return False
+    path_lower = path.lower()
+    static_extensions = (
+        ".woff2", ".woff", ".ttf", ".otf", ".eot",
+        ".css", ".js", ".map", ".ico", ".webmanifest",
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif",
+    )
+    return not any(path_lower.endswith(ext) for ext in static_extensions)
+
+
+def _request_logging_middleware(
+    app: ASGIApp,
+    request_callback: RequestCallbackGetter,
+) -> ASGIApp:
+    """Wrap app to log document requests via callback on response complete."""
+
+    async def wrapped(scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") != "http":
+            await app(scope, receive, send)
+            return
+
+        method = scope.get("method", "GET")
+        path = scope.get("path", "")
+        start = time.perf_counter()
+        status = 500
+
+        async def send_wrapper(message: dict[str, Any]) -> None:
+            nonlocal status
+            if message.get("type") == "http.response.start":
+                status = message.get("status", 500)
+            await send(message)
+
+        try:
+            await app(scope, receive, send_wrapper)
+        finally:
+            if _is_document_request(path):
+                cb = request_callback()
+                if cb is not None:
+                    duration_ms = (time.perf_counter() - start) * 1000
+                    with contextlib.suppress(Exception):
+                        cb(method, path, status, duration_ms)
+
+    return wrapped
 
 
 def _inject_live_reload_into_html(content: bytes) -> bytes:
@@ -260,7 +323,7 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
     except (ConnectionResetError, BrokenPipeError, OSError):
         client_disconnected.set()
     finally:
-        try:
+        with contextlib.suppress(ConnectionResetError, BrokenPipeError, OSError):
             await send(
                 {
                     "type": "http.response.body",
@@ -268,5 +331,3 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
                     "more_body": False,
                 }
             )
-        except (ConnectionResetError, BrokenPipeError, OSError):
-            pass

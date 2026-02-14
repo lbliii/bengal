@@ -57,6 +57,8 @@ def create_pounce_backend(
     output_dir: Path,
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | None = None,
+    request_callback: Callable[[], Callable[[str, str, int, float], None] | None]
+    | None = None,
 ) -> PounceBackend:
     """
     Create a PounceBackend serving the Bengal dev ASGI app.
@@ -67,6 +69,8 @@ def create_pounce_backend(
         output_dir: Directory for static file serving
         build_in_progress: Callable returning True when a build is active
         active_palette: Callable returning current palette (or None)
+        request_callback: Optional getter returning request log callback. When set,
+            Pounce access logs are disabled and Bengal logs document requests.
 
     Returns:
         Configured backend (not started)
@@ -76,19 +80,16 @@ def create_pounce_backend(
 
     from bengal.server.asgi_app import create_bengal_dev_app
 
-    def _skip_sse_in_access_log(_method: str, path: str, _status: int) -> bool:
-        return path != "/__bengal_reload__"
-
     app = create_bengal_dev_app(
         output_dir=output_dir,
         build_in_progress=build_in_progress,
         active_palette=active_palette,
+        request_callback=request_callback,
     )
     config = ServerConfig(
         host=host,
         port=port,
-        access_log=True,
-        access_log_filter=_skip_sse_in_access_log,
+        access_log=request_callback is None,
         compression=True,
         debug=True,
         shutdown_timeout=5.0,

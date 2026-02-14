@@ -232,3 +232,54 @@ async def test_post_reload_returns_404(tmp_path: Path) -> None:
 
     assert len(sent) == 2
     assert sent[0]["status"] == 404
+
+
+@pytest.mark.asyncio
+async def test_request_callback_invoked_for_document(tmp_path: Path) -> None:
+    """Request callback is invoked for document requests (HTML, no extension)."""
+    (tmp_path / "index.html").write_text("<html><body>Hi</body></html>")
+    logged: list[tuple[str, str, int, float]] = []
+    holder: list = [lambda m, p, s, d: logged.append((m, p, s, d))]
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+        request_callback=lambda: holder[0],
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert len(logged) == 1
+    assert logged[0][0] == "GET"
+    assert logged[0][1] == "/"
+    assert logged[0][2] == 200
+    assert logged[0][3] >= 0
+
+
+@pytest.mark.asyncio
+async def test_request_callback_not_invoked_for_static(tmp_path: Path) -> None:
+    """Request callback is not invoked for static assets."""
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "style.css").write_text("body {}")
+    logged: list[tuple[str, str, int, float]] = []
+    holder: list = [lambda m, p, s, d: logged.append((m, p, s, d))]
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+        request_callback=lambda: holder[0],
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/assets/style.css"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert len(logged) == 0
