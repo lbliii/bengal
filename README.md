@@ -15,11 +15,15 @@ bengal new site mysite && cd mysite && bengal serve
 
 ---
 
-## Why Bengal?
+## What is Bengal?
+
+Bengal is a high-performance static site generator for Python 3.14+. Parallel builds, incremental rebuilds, Zstandard-compressed caching. Drop `.ipynb` into content and build — no conversion step, no extra deps.
+
+**What's good about it:**
 
 - **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern** — Python 3.14+ with free-threading support, fully typed
-- **Notebooks** — Drop `.ipynb` into content and build; no conversion step, no extra deps
+- **Notebooks** — Native Jupyter `.ipynb` rendering, Binder/Colab links
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
 - **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
 
@@ -310,7 +314,7 @@ Bengal follows a "bring your own" pattern — swap engines without changing your
 
 | Engine | Description | Install |
 |--------|-------------|---------|
-| **Kida** (default) | Bengal's native engine. 2-5x faster than Jinja2, free-threading safe, Jinja2-compatible syntax | Built-in |
+| **Kida** (default) | Bengal's native engine. AST-native, free-threading safe, Jinja2-compatible syntax | Built-in |
 | **Jinja2** | Industry-standard with extensive ecosystem | Built-in |
 
 ```yaml
@@ -323,11 +327,11 @@ template_engine: kida  # or jinja2
 <details>
 <summary><strong>Markdown Parsers</strong></summary>
 
-| Parser | Description | Best For |
-|--------|-------------|----------|
-| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Python 3.14+, large sites |
-| **Mistune** | Fast, modern parser | General use |
-| **Python-Markdown** | Full-featured, extensive extensions | Complex edge cases |
+| Parser | Description | Install |
+|--------|-------------|---------|
+| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Built-in |
+| **Mistune** | Fast, modern parser | Built-in |
+| **Python-Markdown** | Full-featured, extensive extensions | Built-in |
 
 ```yaml
 # config/_default/content.yaml
@@ -340,9 +344,9 @@ markdown:
 <details>
 <summary><strong>Syntax Highlighters</strong></summary>
 
-| Backend | Description | Performance |
-|---------|-------------|-------------|
-| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | 3.4x faster than Pygments |
+| Backend | Description | Install |
+|---------|-------------|---------|
+| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | `pip install rosettes` |
 
 ```yaml
 # config/_default/theme.yaml
