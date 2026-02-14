@@ -7,6 +7,7 @@ Provides URL manipulation filters and functions for working with URLs in templat
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
@@ -95,7 +96,11 @@ def notebook_colab_url(page, site: SiteLike) -> str:
     Build Colab URL for a notebook page from repo config.
 
     Requires [params] repo_url (e.g. https://github.com/owner/repo).
-    Optional: colab_branch (default: main).
+    Optional: colab_branch (default: main), colab_path_prefix (for sites in subdirs).
+
+    When the site lives in a repo subdirectory (e.g. site/), set colab_path_prefix
+    to that directory name so the path matches the repo layout. Example: for
+    site/content/docs/notebook.ipynb in repo, use colab_path_prefix: "site".
 
     Returns empty string if repo_url is missing, not a GitHub URL,
     or page is not from a notebook source.
@@ -126,7 +131,28 @@ def notebook_colab_url(page, site: SiteLike) -> str:
 
     owner, repo = match.group(1), match.group(2).rstrip("/")
     branch = params.get("colab_branch") or params.get("repo_branch") or "main"
-    path = str(page.source_path).replace("\\", "/")
+
+    # Resolve path relative to repo root (Colab expects repo-relative path)
+    raw_path = str(page.source_path).replace("\\", "/")
+    root_path = getattr(site, "root_path", None)
+    path_rel: str
+    if root_path:
+        try:
+            src = Path(page.source_path)
+            root = Path(root_path)
+            if src.is_absolute() and root.is_absolute() and str(src).startswith(str(root)):
+                path_rel = str(src.relative_to(root)).replace("\\", "/")
+            else:
+                path_rel = raw_path
+        except (ValueError, TypeError):
+            path_rel = raw_path
+    else:
+        path_rel = raw_path
+
+    # Prepend colab_path_prefix when site is in a repo subdirectory
+    prefix = (params.get("colab_path_prefix") or "").strip().rstrip("/")
+    path = f"{prefix}/{path_rel}".lstrip("/") if prefix else path_rel
+
     return f"{_COLAB_BASE}/{owner}/{repo}/blob/{branch}/{path}"
 
 

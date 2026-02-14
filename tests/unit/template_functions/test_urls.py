@@ -352,3 +352,17 @@ class TestNotebookColabUrl:
         site.params = {"repo_url": "https://github.com/owner/repo"}
         result = notebook_colab_url(None, site)
         assert result == ""
+
+    def test_colab_path_prefix_prepends_to_path(self) -> None:
+        """colab_path_prefix prepends path when site is in repo subdirectory."""
+        page = Mock()
+        page.source_path = Path("content/docs/notebooks/demo.ipynb")
+        site = Mock()
+        site.params = {
+            "repo_url": "https://github.com/org/proj",
+            "colab_path_prefix": "site",
+        }
+        site.root_path = None
+
+        result = notebook_colab_url(page, site)
+        assert "blob/main/site/content/docs/notebooks/demo.ipynb" in result

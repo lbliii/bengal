@@ -10,3 +10,6 @@ params:
 
   # Colab: branch for auto-generated "Open in Colab" links on notebook pages
   colab_branch: "main"
+
+  # Colab: path prefix when site lives in repo subdirectory (e.g. site/content/...)
+  colab_path_prefix: "site"

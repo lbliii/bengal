@@ -72,6 +72,7 @@ binder_url: https://mybinder.org/v2/gh/your-org/your-repo/main?filepath=content/
 [params]
 repo_url = "https://github.com/your-org/your-repo"
 colab_branch = "main"   # optional, default: main
+colab_path_prefix = "site"   # when site lives in repo subdirectory (e.g. site/content/...)
 ```
 
 The Colab button will appear on every notebook page. Override per-page with `colab_url` in frontmatter if needed.
