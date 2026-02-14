@@ -5,8 +5,9 @@
 Single Notebook Template (Kida-Native)
 ================================================================================
 
-Individual Jupyter notebook page. Provides download badge, kernel info,
-and prose layout for converted notebook content.
+Individual Jupyter notebook page. Uses same docs layout as standard docs:
+left sidebar (nav), center content, right sidebar (TOC). Provides download
+badge, kernel info, and prose layout for converted notebook content.
 
 FRONTMATTER (from notebook metadata):
 ---
@@ -30,7 +31,7 @@ KIDA FEATURES USED:
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
@@ -63,45 +64,82 @@ KIDA FEATURES USED:
 {# Template-scoped variables with null-safe access #}
 {% let page_title = page?.title ?? 'Notebook' %}
 {% let page_tags = page?.tags ?? [] %}
+{% let page_href = page?.href ?? '' %}
 {% let download_url = params?.download_url ?? params?.source_url ?? notebook_download_url(page) ?? '' %}
 {% let binder_url = params?.binder_url ?? '' %}
 {% let kernel_name = params?.notebook?.kernel_name ?? params?.kernel ?? '' %}
 {% let cell_count = params?.notebook?.cell_count ?? 0 %}
 {% let css_class = params?.css_class ?? '' %}
 
-<article class="notebook-single">
-  {# Action Bar: Breadcrumbs + Share #}
-  {% include 'partials/action-bar.html' %}
+{# Three-column documentation layout (same as doc/single) #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
 
-  <header class="notebook-header">
-    <h1>{{ page_title }}</h1>
+  {# Main Content #}
+  <div class="docs-main">
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
-    <div class="notebook-meta">
-      {% spaceless %}
-      {{ notebook_badge('Kernel', kernel_name, '') }}
-      {{ notebook_badge('Cells', cell_count, '') }}
-      {{ notebook_link(download_url, 'Download .ipynb') }}
-      {% if binder_url %}
-      {{ notebook_link(binder_url, 'Run in Binder', '↗') }}
+    <article class="notebook-single">
+      <header class="notebook-header">
+        <h1>{{ page_title }}</h1>
+
+        <div class="notebook-meta">
+          {% spaceless %}
+          {{ notebook_badge('Kernel', kernel_name, '') }}
+          {{ notebook_badge('Cells', cell_count, '') }}
+          {{ notebook_link(download_url, 'Download .ipynb') }}
+          {% if binder_url %}
+          {{ notebook_link(binder_url, 'Run in Binder', '↗') }}
+          {% end %}
+          {% end %}
+        </div>
+      </header>
+
+      <div class="notebook-content prose {{ css_class }}">
+        {{ content | safe }}
+      </div>
+
+      {% if page_tags | length > 0 %}
+      <footer class="notebook-footer">
+        <div class="tags">
+          <strong>Tags:</strong>
+          {{ tag_list(page_tags) }}
+        </div>
+      </footer>
       {% end %}
-      {% end %}
-    </div>
-  </header>
+    </article>
 
-  <div class="notebook-content prose {{ css_class }}">
-    {{ content | safe }}
+    {# Page navigation (prev/next) #}
+    {{ page_navigation(page) }}
   </div>
 
-  {% if page_tags | length > 0 %}
-  <footer class="notebook-footer">
-    <div class="tags">
-      <strong>Tags:</strong>
-      {{ tag_list(page_tags) }}
+  {# Right Sidebar: Contextual Graph + TOC (empty aside when no toc → CSS collapses) #}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {% if toc_items %}
+    {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
+    {% if show_graph %}
+    <div class="graph-contextual" data-page-url="{{ page_href }}">
+      <div class="graph-contextual-container graph-loading"></div>
     </div>
-  </footer>
-  {% end %}
-</article>
+    {% end %}
 
-{# Page navigation (prev/next) #}
-{{ page_navigation(page) }}
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
+    {% end %}
+  </aside>
+</div>
+
+{# Mobile sidebar toggle button #}
+{% spaceless %}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+  aria-controls="docs-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+{% end %}
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}
