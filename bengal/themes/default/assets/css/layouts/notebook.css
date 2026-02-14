@@ -1,0 +1,58 @@
+/* Notebook layout - Jupyter notebook pages */
+.notebook-single {
+  max-width: var(--prose-width);
+  margin: 0 auto;
+}
+
+.notebook-header {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notebook-header h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-4);
+}
+
+.notebook-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.notebook-meta-badge {
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.notebook-link {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.notebook-link:hover {
+  text-decoration: underline;
+}
+
+.notebook-content {
+  margin-top: var(--space-6);
+}
+
+.notebook-content .notebook-error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.notebook-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}

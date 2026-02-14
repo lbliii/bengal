@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{#
+================================================================================
+Single Notebook Template (Kida-Native)
+================================================================================
+
+Individual Jupyter notebook page. Provides download badge, kernel info,
+and prose layout for converted notebook content.
+
+FRONTMATTER (from notebook metadata):
+---
+title: Analysis
+type: notebook
+notebook:
+  kernel_name: python3
+  cell_count: 12
+  language_version: python
+download_url: /path/to/notebook.ipynb  (optional)
+binder_url: https://... (optional)
+---
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable badge/link components
+- {% match %} for kernel-specific badges
+- {% spaceless %} for compact meta bar
+================================================================================
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+{% from 'partials/components/tags.html' import tag_list %}
+
+{# =============================================================================
+   NOTEBOOK BADGE COMPONENT
+   ============================================================================= #}
+{% def notebook_badge(label, value, icon='') %}
+{% if value %}
+<span class="notebook-meta-badge" title="{{ label }}">
+  {{ icon }} {{ value }}
+</span>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   NOTEBOOK LINK COMPONENT
+   ============================================================================= #}
+{% def notebook_link(href, label, icon='↓') %}
+{% if href %}
+<a href="{{ href | absolute_url }}" class="notebook-link" target="_blank" rel="noopener noreferrer">
+  {{ icon }} {{ label }}
+</a>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
+{% block content %}
+{# Template-scoped variables with null-safe access #}
+{% let page_title = page?.title ?? 'Notebook' %}
+{% let page_tags = page?.tags ?? [] %}
+{% let download_url = params?.download_url ?? params?.source_url ?? notebook_download_url(page) ?? '' %}
+{% let binder_url = params?.binder_url ?? '' %}
+{% let kernel_name = params?.notebook?.kernel_name ?? params?.kernel ?? '' %}
+{% let cell_count = params?.notebook?.cell_count ?? 0 %}
+{% let css_class = params?.css_class ?? '' %}
+
+<article class="notebook-single">
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
+
+  <header class="notebook-header">
+    <h1>{{ page_title }}</h1>
+
+    <div class="notebook-meta">
+      {% spaceless %}
+      {{ notebook_badge('Kernel', kernel_name, '') }}
+      {{ notebook_badge('Cells', cell_count, '') }}
+      {{ notebook_link(download_url, 'Download .ipynb') }}
+      {% if binder_url %}
+      {{ notebook_link(binder_url, 'Run in Binder', '↗') }}
+      {% end %}
+      {% end %}
+    </div>
+  </header>
+
+  <div class="notebook-content prose {{ css_class }}">
+    {{ content | safe }}
+  </div>
+
+  {% if page_tags | length > 0 %}
+  <footer class="notebook-footer">
+    <div class="tags">
+      <strong>Tags:</strong>
+      {{ tag_list(page_tags) }}
+    </div>
+  </footer>
+  {% end %}
+</article>
+
+{# Page navigation (prev/next) #}
+{{ page_navigation(page) }}
+{% end %}

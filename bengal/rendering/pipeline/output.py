@@ -158,7 +158,7 @@ def write_output(
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
         write_behind.enqueue(page.output_path, page.rendered_html)
-        # Still track output mapping and record output (these are fast)
+        _copy_notebook_source(page)
         _track_and_record(page, site, collector, build_cache=build_cache)
         return
 
@@ -206,7 +206,29 @@ def write_output(
                 ensure_parent=False,
             )
 
+    _copy_notebook_source(page)
     _track_and_record(page, site, collector, build_cache=build_cache)
+
+
+def _copy_notebook_source(page: PageLike) -> None:
+    """Copy notebook .ipynb to output directory for download link."""
+    if not page.output_path or not getattr(page, "source_path", None):
+        return
+    src = page.source_path
+    if not str(src).lower().endswith(".ipynb") or not src.exists():
+        return
+    dest = page.output_path.parent / f"{src.stem}.ipynb"
+    try:
+        import shutil
+
+        shutil.copy2(src, dest)
+    except OSError as e:
+        logger.warning(
+            "notebook_copy_failed",
+            source=str(src),
+            dest=str(dest),
+            error=str(e),
+        )
 
 
 def _track_and_record(

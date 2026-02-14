@@ -53,6 +53,7 @@ from .strategies import (
     ChangelogStrategy,
     CliReferenceStrategy,
     DocsStrategy,
+    NotebookStrategy,
     PageStrategy,
     TrackStrategy,
     TutorialStrategy,
@@ -75,6 +76,7 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "archive": ArchiveStrategy(),
     "changelog": ChangelogStrategy(),
     "doc": DocsStrategy(),
+    "notebook": NotebookStrategy(),
     "autodoc-python": ApiReferenceStrategy(),
     "autodoc-cli": CliReferenceStrategy(),
     "tutorial": TutorialStrategy(),
@@ -226,6 +228,7 @@ def detect_content_type(section: SectionLike, config: Config | dict[str, Any] | 
         "autodoc-cli",
         "blog",
         "changelog",  # Detect changelog/releases sections
+        "notebook",  # Detect notebooks/examples sections
         "tutorial",
         "doc",
     ]

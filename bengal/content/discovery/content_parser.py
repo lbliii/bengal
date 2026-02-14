@@ -95,6 +95,10 @@ class ContentParser:
         """
         import yaml
 
+        # Notebook files use a different parser
+        if file_path.suffix.lower() == ".ipynb":
+            return self._parse_notebook(file_path)
+
         # Read file once using file_io utility for robust encoding handling
         from bengal.utils.io.file_io import read_text_file
 
@@ -118,6 +122,25 @@ class ContentParser:
 
         except Exception as e:
             return self._handle_parse_error(file_path, file_content or "", e)
+
+    def _parse_notebook(self, file_path: Path) -> tuple[str, dict[str, Any]]:
+        """Parse a Jupyter notebook (.ipynb) file."""
+        from bengal.content.notebook.converter import NotebookConverter
+        from bengal.utils.io.file_io import read_text_file
+
+        file_content = read_text_file(
+            file_path, fallback_encoding="utf-8", on_error="raise", caller="content_discovery"
+        )
+
+        if self._build_context is not None and file_content is not None:
+            self._build_context.cache_content(file_path, file_content)
+
+        content, metadata = NotebookConverter.convert(file_path, file_content)
+
+        if "type" not in metadata:
+            metadata["type"] = "notebook"
+
+        return content, metadata
 
     def _handle_yaml_error(
         self, file_path: Path, file_content: str, error: Exception
