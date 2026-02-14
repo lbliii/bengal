@@ -219,6 +219,10 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
 
     """
 
+    rendered_html: str  # Mutable build artifact, set during rendering
+
+    _prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
+
 
 # =============================================================================
 # Section Protocol
@@ -319,6 +323,11 @@ class SectionLike(Protocol):
         """Non-index pages in this section."""
         ...
 
+    @property
+    def hierarchy(self) -> list[str]:
+        """Full hierarchy path (e.g., ['docs', 'guide'] for docs/guide/)."""
+        ...
+
 
 # =============================================================================
 # Site Role Protocols
@@ -394,6 +403,11 @@ class SiteConfig(Protocol):
     @property
     def build_time(self) -> datetime | None:
         """Build timestamp."""
+        ...
+
+    @property
+    def paths(self) -> Any:
+        """Paths to .bengal state directory (BengalPaths)."""
         ...
 
 

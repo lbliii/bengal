@@ -6,6 +6,7 @@ Phases 1-5: Font processing, template validation, content discovery, cache metad
 
 from __future__ import annotations
 
+import logging
 import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
@@ -344,6 +345,8 @@ def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
     site = input.site
     build_cache = input.cache
 
+    _log = logging.getLogger(__name__)
+
     # Load cache for incremental builds (lazy loading)
     page_discovery_cache = None
     if input.incremental:
@@ -351,34 +354,48 @@ def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
             from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
             page_discovery_cache = PageDiscoveryCache(site.paths.page_cache)
-        except Exception:
-            pass
+        except Exception as e:
+            _log.debug(
+                "page_discovery_cache_load_failed: %s (%s)",
+                e,
+                type(e).__name__,
+            )
 
     # Load cached URL claims for incremental build safety
     if input.incremental and build_cache and hasattr(build_cache, "url_claims"):
         try:
             if site.url_registry and build_cache.url_claims:
                 site.url_registry.load_from_dict(build_cache.url_claims)
-        except Exception:
-            pass
+        except Exception as e:
+            _log.debug(
+                "url_claims_cache_load_failed: %s (%s)",
+                e,
+                type(e).__name__,
+            )
 
     content = (
         input.content_orchestrator
         if input.content_orchestrator is not None
         else ContentOrchestrator(site)
     )
+    content_start = time.time()
     content.discover_content(
         incremental=input.incremental,
         cache=page_discovery_cache,
         build_context=input.build_context,
         build_cache=build_cache,
     )
+    content_ms = (time.time() - content_start) * 1000
+    assets_start = time.time()
     content.discover_assets()
+    assets_ms = (time.time() - assets_start) * 1000
 
     return DiscoveryPhaseOutput(
         pages=site.pages,
         sections=site.sections,
         assets=site.assets,
+        content_ms=content_ms,
+        assets_ms=assets_ms,
     )
 
 
@@ -405,10 +422,6 @@ def phase_discovery(
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
         discovery_start = time.time()
-        content_ms: float | None = None
-        assets_ms: float | None = None
-
-        content_start = time.time()
         content_orchestrator = getattr(orchestrator, "content", None)
         phase_input = DiscoveryPhaseInput(
             site=orchestrator.site,
@@ -418,8 +431,8 @@ def phase_discovery(
             content_orchestrator=content_orchestrator,
         )
         output = run_discovery_phase(phase_input)
-        content_ms = (time.time() - content_start) * 1000
-        assets_ms = 0.0  # Combined with content in run_discovery_phase
+        content_ms = output.content_ms
+        assets_ms = output.assets_ms
 
         if build_context and build_context.has_cached_content:
             orchestrator.logger.debug(

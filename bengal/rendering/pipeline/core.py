@@ -28,7 +28,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
+
+from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -578,11 +580,15 @@ class RenderingPipeline:
                 with effect_recorder:
                     html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
-                    page.rendered_html = format_html(page.rendered_html, page, self.site)
+                    page.rendered_html = format_html(
+                        page.rendered_html, page, cast(SiteLike, self.site)
+                    )
             else:
                 html_content = self.renderer.render_content(page.html_content or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
-                page.rendered_html = format_html(page.rendered_html, page, self.site)
+                page.rendered_html = format_html(
+                    page.rendered_html, page, cast(SiteLike, self.site)
+                )
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
@@ -593,7 +599,7 @@ class RenderingPipeline:
         # Write output (sync or async via write-behind)
         write_output(
             page,
-            self.site,
+            cast(SiteLike, self.site),
             collector=self._output_collector,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
@@ -724,7 +730,7 @@ class RenderingPipeline:
         """Write rendered page to output directory (backward compatibility wrapper)."""
         write_output(
             page,
-            self.site,
+            cast(SiteLike, self.site),
             collector=self._output_collector,
             build_cache=self.build_cache,
         )

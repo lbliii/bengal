@@ -314,7 +314,8 @@ class BuildTrigger:
                         self.changed_outputs = tuple(
                             (str(r.path), r.output_type.value, r.phase)
                             for r in stats.changed_outputs
-                        ) if hasattr(stats, 'changed_outputs') else ()
+                        ) if hasattr(stats, "changed_outputs") else ()
+                        self.reload_hint = getattr(stats, "reload_hint", None)
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
@@ -386,7 +387,7 @@ class BuildTrigger:
             self._handle_reload(
                 changed_files,
                 result.changed_outputs,
-                reload_hint=getattr(result, "reload_hint", None),
+                reload_hint=result.reload_hint,
             )
 
             # Clear HTML cache
@@ -959,6 +960,10 @@ class BuildTrigger:
             changed_files: List of source file paths that changed (for logging)
             changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
         """
+        if reload_hint == "none":
+            logger.info("reload_suppressed", reason="reload-hint-none")
+            return
+
         decision = None
         decision_source = "none"
 

@@ -68,11 +68,18 @@ class BuildInput:
             options=options,
             site_root=Path(site_root),
             config_hash=config_hash or "",
-            changed_sources=changed_sources or frozenset(options.changed_sources or ()),
-            nav_changed_sources=nav_changed_sources
-            or frozenset(options.nav_changed_sources or ()),
+            changed_sources=(
+                changed_sources
+                if changed_sources is not None
+                else frozenset(options.changed_sources or ())
+            ),
+            nav_changed_sources=(
+                nav_changed_sources
+                if nav_changed_sources is not None
+                else frozenset(options.nav_changed_sources or ())
+            ),
             structural_changed=structural_changed if structural_changed is not None else options.structural_changed,
-            event_types=event_types or frozenset(),
+            event_types=event_types if event_types is not None else frozenset(),
             version_scope=version_scope,
         )
 
@@ -81,7 +88,7 @@ class BuildInput:
         """Create BuildInput from BuildRequest (e.g. in subprocess)."""
         from bengal.utils.observability.profile import BuildProfile
 
-        profile = getattr(BuildProfile, request.profile, BuildProfile.WRITER)
+        profile = BuildProfile.from_string(request.profile)
         options = BuildOptions(
             force_sequential=request.force_sequential,
             incremental=request.incremental,
@@ -111,7 +118,9 @@ class BuildInput:
             site_root=str(self.site_root),
             changed_paths=tuple(str(p) for p in self.changed_sources),
             incremental=bool(self.options.incremental) if self.options.incremental is not None else True,
-            profile=self.options.profile.value if self.options.profile else "WRITER",
+            profile=(
+                self.options.profile.value if self.options.profile else "writer"
+            ),
             nav_changed_paths=tuple(str(p) for p in self.nav_changed_sources),
             structural_changed=self.structural_changed,
             force_sequential=self.options.force_sequential,

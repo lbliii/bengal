@@ -67,11 +67,15 @@ class DiscoveryPhaseOutput:
         pages: Discovered content pages
         sections: Discovered sections
         assets: Discovered assets
+        content_ms: Time spent on content discovery (ms)
+        assets_ms: Time spent on asset discovery (ms)
     """
 
     pages: list[Page]
     sections: list[Section]
     assets: list[Asset]
+    content_ms: float = 0.0
+    assets_ms: float = 0.0
 
 
 class RebuildReasonCode(Enum):
