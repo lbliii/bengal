@@ -33,7 +33,7 @@ dependencies = [
     "jinja2>=3.1.0",
     "rosettes>=0.1.0",
     "kida-templates>=0.2.0",                   # Kida template engine (AST-native, free-threading ready)
-    "patitas>=0.1.1",                          # Modern Markdown parser (CommonMark, free-threading ready)
+    "patitas>=0.2.0",                          # Modern Markdown parser (CommonMark, free-threading ready)
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",
     "jsmin>=3.0.1",
@@ -95,6 +95,10 @@ bengal = [
     "scaffolds/**/*",
     "py.typed",
 ]
+
+[tool.uv.sources]
+# Use local patitas until 0.2.0 is published to PyPI
+patitas = { path = "../patitas" }
 
 [tool.ruff]
 line-length = 100

@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from patitas.nodes import Block
+from patitas.nodes import Block, Document
 
-from bengal.parsing.backends.patitas import create_markdown, parse_to_ast
+from bengal.parsing.backends.patitas import create_markdown, parse_to_ast, parse_to_document
 from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
 
@@ -362,6 +362,26 @@ class PatitasParser(BaseMarkdownParser):
         ast = parse_to_ast(content)
         return [self._node_to_dict(node) for node in ast]
 
+    def parse_to_document(self, content: str, metadata: dict[str, Any]) -> Document:
+        """Parse Markdown content to typed Document AST.
+
+        Returns Document for serialization via patitas.to_dict(doc).
+        Used when persist_tokens is enabled for canonical AST cache format.
+
+        Args:
+            content: Raw Markdown content
+            metadata: Page metadata (unused)
+
+        Returns:
+            Document AST
+        """
+        text_transformer = None
+        if self._var_plugin:
+            text_transformer = self._var_plugin.substitute_variables
+        return parse_to_document(
+            content, plugins=self._plugins, text_transformer=text_transformer
+        )
+
     def render_ast(self, ast: list[dict[str, Any]]) -> str:
         """Render AST tokens to HTML.
 
@@ -374,6 +394,48 @@ class PatitasParser(BaseMarkdownParser):
         # Convert back to typed nodes and render
         # For now, just re-parse (TODO: proper dict->node conversion)
         return ""
+
+    def render_ast_from_dict(
+        self,
+        ast_dict: dict[str, Any],
+        source: str,
+        *,
+        page: Any = None,
+        site: Any = None,
+    ) -> tuple[str, str] | None:
+        """Render Patitas Document dict to HTML and TOC.
+
+        Fallback when cached HTML is missing; requires patitas>=0.2.0.
+
+        Args:
+            ast_dict: Serialized Document from patitas.to_dict(doc)
+            source: Original source buffer (required for ZCLH)
+            page: Page for directive context (optional)
+            site: Site for xref_index (optional)
+
+        Returns:
+            (html, toc) or None if not supported (patitas < 0.2.0 or invalid format)
+        """
+        if not isinstance(ast_dict, dict) or ast_dict.get("_type") != "Document":
+            return None
+        try:
+            import patitas
+        except ImportError:
+            return None
+        if not hasattr(patitas, "from_dict"):
+            return None
+        doc = patitas.from_dict(ast_dict)
+        xref_index = getattr(site, "xref_index", None) if site else None
+        html, toc, _ = self._md.render_ast_with_toc(
+            doc.children,
+            source,
+            page_context=page,
+            xref_index=xref_index,
+            site=site,
+        )
+        metadata = getattr(page, "metadata", {}) if page else {}
+        html = self._apply_post_processing(html, metadata)
+        return html, toc
 
     def _node_to_dict(self, node: Block) -> dict[str, Any]:
         """Convert AST node to dictionary representation.

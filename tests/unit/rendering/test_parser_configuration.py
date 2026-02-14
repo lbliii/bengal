@@ -122,6 +122,24 @@ class TestParserSelection:
             "Flat markdown_engine should take precedence for backward compatibility"
         )
 
+    def test_parser_version_includes_patitas_version(self, tmp_path):
+        """parser_version includes patitas version when PatitasParser (cache invalidation)."""
+        site = Mock()
+        site.config = {"markdown": {"parser": "mistune"}, "theme": "default"}
+        site.theme = "default"
+        site.xref_index = {}
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.version_config = None
+
+        pipeline = RenderingPipeline(site, quiet=True)
+        version = pipeline._get_parser_version()
+
+        assert version.startswith("patitas-"), f"Expected patitas- prefix, got {version}"
+        import patitas
+
+        assert patitas.__version__ in version, f"Expected {patitas.__version__} in {version}"
+
     def test_parser_reuse_across_threads(self, tmp_path):
         """Test that parsers are reused within the same thread."""
         site1 = Mock()

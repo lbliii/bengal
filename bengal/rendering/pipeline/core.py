@@ -232,6 +232,7 @@ class RenderingPipeline:
             output_collector=self._output_collector,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
+            parser=self.parser,
         )
         self._json_accumulator = JsonAccumulator(site, build_context)
         self._autodoc_renderer = AutodocRenderer(
@@ -498,12 +499,17 @@ class RenderingPipeline:
             if (
                 hasattr(self.parser, "supports_ast")
                 and self.parser.supports_ast
-                and hasattr(self.parser, "parse_to_ast")
                 and persist_tokens
             ):
                 try:
-                    ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
-                    page._ast_cache = ast_tokens  # type: ignore[assignment]
+                    if hasattr(self.parser, "parse_to_document"):
+                        import patitas
+
+                        doc = self.parser.parse_to_document(page._source, page.metadata)
+                        page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
+                    elif hasattr(self.parser, "parse_to_ast"):
+                        ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
+                        page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -701,6 +707,10 @@ class RenderingPipeline:
                     base_version = f"markdown-{markdown.__version__}"
                 except (ImportError, AttributeError):
                     base_version = "markdown-unknown"
+            case "PatitasParser":
+                import patitas
+
+                base_version = f"patitas-{patitas.__version__}"
             case _:
                 base_version = f"{parser_name}-unknown"
 

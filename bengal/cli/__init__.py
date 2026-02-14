@@ -190,7 +190,9 @@ clean_cmd = _create_lazy_command("bengal.cli.commands.clean:clean", "clean")
 validate_cli = _create_lazy_command("bengal.cli.commands.validate:validate", "validate")
 fix_cli = _create_lazy_command("bengal.cli.commands.fix:fix", "fix")
 explain_cli = _create_lazy_command("bengal.cli.commands.explain:explain", "explain")
-new = _create_lazy_command("bengal.cli.commands.new:new", "new")
+new = _create_lazy_group(
+    "bengal.cli.commands.new:new", "new", "Create new site, page, layout, partial, or theme"
+)
 upgrade_cmd = _create_lazy_command("bengal.cli.commands.upgrade.command:upgrade", "upgrade")
 graph_analyze_cmd = _create_lazy_command("bengal.cli.commands.graph:analyze", "analyze")
 

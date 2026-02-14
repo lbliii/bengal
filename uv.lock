@@ -225,7 +225,7 @@ requires-dist = [
     { name = "kida-templates", specifier = ">=0.2.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "packaging", specifier = ">=23.0" },
-    { name = "patitas", specifier = ">=0.1.1" },
+    { name = "patitas", directory = "../patitas" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pillow", marker = "extra == 'avif'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
@@ -741,12 +741,29 @@ wheels = [
 
 [[package]]
 name = "patitas"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ad/c5/79b5580e4fee50affdf78a854efb736f4a5de4873563511fd82825d99a4c/patitas-0.1.1.tar.gz", hash = "sha256:32705ecd5ab99e269dcb8c0ae32d09efd68852f5e8ea340c816e1e27e0d30b65", size = 152186, upload-time = "2026-01-13T20:14:53.817Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/09/033a643b15c43c873dcfd0f4813937f3c7932dea5db3fa5035992e03c830/patitas-0.1.1-py3-none-any.whl", hash = "sha256:a9f30d6b4dfbff6454ed5dd41da7cf13c87dd1caba7236fbe0c02924cd5c568b", size = 184473, upload-time = "2026-01-13T20:14:51.987Z" },
+version = "0.2.0"
+source = { directory = "../patitas" }
+
+[package.metadata]
+requires-dist = [
+    { name = "rosettes", marker = "extra == 'all'", specifier = ">=0.1.0" },
+    { name = "rosettes", marker = "extra == 'syntax'", specifier = ">=0.1.0" },
 ]
+provides-extras = ["syntax", "all"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-benchmark", specifier = ">=4.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.5.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ty", specifier = ">=0.0.11" },
+]
+docs = [{ name = "bengal", specifier = ">=0.1.10" }]
 
 [[package]]
 name = "pillow"
