@@ -41,6 +41,29 @@
     /* Match docs/resume text color pattern */
 }
 
+.blog-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.blog-home-hero-content {
+  text-align: center;
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+.blog-post {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
+.view-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 /* Blog Section Titles */
 .blog-section-title {
     font-size: var(--text-2xl);

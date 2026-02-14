@@ -9,6 +9,11 @@
    TUTORIAL LIST PAGE
    ============================================ */
 
+.tutorial-page {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
 .tutorial-container {
     max-width: var(--content-max-width, 1200px);
     margin: 0 auto;

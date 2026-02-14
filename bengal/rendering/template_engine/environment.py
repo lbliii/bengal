@@ -440,6 +440,29 @@ def create_jinja_environment(
 
     env.filters["safe_access"] = filter_safe_access
 
+    # classes filter: Kida-compatible CSS class joiner (drops falsy, flattens nested)
+    # Usage: {{ ['card', 'active' if is_active, 'done' if todo.done] | classes }}
+    def filter_classes(value: Any) -> str:
+        """Join list of CSS class names, dropping falsy values."""
+        if value is None:
+            return ""
+        if isinstance(value, (str, bytes)):
+            s = str(value).strip()
+            return s if s else ""
+        parts: list[str] = []
+        try:
+            items = list(value)
+        except TypeError:
+            return str(value)
+        for item in items:
+            if isinstance(item, (list, tuple)):
+                parts.extend(str(sub) for sub in item if sub)
+            elif item:
+                parts.append(str(item))
+        return " ".join(parts)
+
+    env.filters["classes"] = filter_classes
+
     # === Shared engine globals ===
     # Single source of truth: site, config, theme, menus, bengal, versions, getattr, etc.
     # See bengal/rendering/context/__init__.py:get_engine_globals()

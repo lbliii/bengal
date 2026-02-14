@@ -5,12 +5,16 @@ Tests the PatitasParser wrapper and factory integration.
 
 from __future__ import annotations
 
+import patitas
+import pytest
+
 from bengal.parsing import create_markdown_parser
 from bengal.parsing.backends.patitas import (
     Markdown,
     create_markdown,
     parse,
     parse_to_ast,
+    parse_to_document,
     render_ast,
 )
 from bengal.parsing.backends.patitas.wrapper import PatitasParser
@@ -70,6 +74,39 @@ class TestPatitasParserWrapper:
         ast = patitas_parser.parse_to_ast("# Heading", {})
         assert isinstance(ast, list)
         assert len(ast) > 0
+
+    def test_parse_to_document_method(self, patitas_parser):
+        """parse_to_document method returns Document for serialization."""
+        doc = patitas_parser.parse_to_document("# Heading", {})
+        assert hasattr(doc, "children")
+        assert len(doc.children) > 0
+
+    def test_render_ast_from_dict(self, patitas_parser):
+        """render_ast_from_dict returns HTML and TOC from Patitas Document dict."""
+        if not hasattr(patitas, "to_dict"):
+            pytest.skip("patitas.to_dict requires patitas>=0.2.0")
+        source = "# Hello\n\nParagraph."
+        doc = patitas_parser.parse_to_document(source, {})
+        ast_dict = patitas.to_dict(doc)
+        result = patitas_parser.render_ast_from_dict(ast_dict, source)
+        assert result is not None
+        html, toc = result
+        assert "<h1" in html
+        assert "Hello" in html
+        assert "Paragraph" in html
+        assert "Hello" in toc
+
+    def test_parse_to_document_to_dict_roundtrip(self):
+        """Cached AST in Patitas format round-trips via to_dict/from_dict."""
+        if not hasattr(patitas, "to_dict"):
+            pytest.skip("patitas.to_dict requires patitas>=0.2.0")
+        source = "# Hello\n\nParagraph with **bold**."
+        doc = parse_to_document(source)
+        data = patitas.to_dict(doc)
+        assert isinstance(data, dict)
+        assert data.get("_type") == "Document"
+        restored = patitas.from_dict(data)
+        assert len(restored.children) == len(doc.children)
 
     def test_error_handling(self, patitas_parser):
         """Parser handles errors gracefully."""

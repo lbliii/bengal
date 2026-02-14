@@ -193,6 +193,7 @@ __all__ = [
     "parse_config_context",
     "parse_many",
     "parse_to_ast",
+    "parse_to_document",
     "render_ast",
     "render_config_context",
     "request_context",
@@ -353,6 +354,28 @@ def parse_to_ast(
     finally:
         reset_patitas_parse_config()
         reset_parse_config(parse_token)
+
+
+def parse_to_document(
+    source: str,
+    source_file: str | None = None,
+    *,
+    plugins: list[str] | None = None,
+    text_transformer: Callable[[str], str] | None = None,
+) -> Document:
+    """Parse Markdown source into a typed Document AST.
+
+    Returns Document for serialization via patitas.to_dict(doc).
+    """
+    blocks = parse_to_ast(source, source_file, plugins=plugins, text_transformer=text_transformer)
+    loc = SourceLocation(
+        lineno=1,
+        col_offset=1,
+        offset=0,
+        end_offset=len(source),
+        source_file=source_file,
+    )
+    return Document(location=loc, children=tuple(blocks))
 
 
 def render_ast(

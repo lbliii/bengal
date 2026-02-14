@@ -21,6 +21,12 @@
   font-size: var(--font-size-sm, 0.875rem);
 }
 
+.table-empty {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+}
+
 /* Error state */
 .bengal-data-table-error {
   padding: var(--space-md, 1rem);

@@ -52,8 +52,32 @@ ALLOWLIST = frozenset(
         "hljs",
         # Generic HTML/accessibility classes
         "prose",  # Defined in typography.css via complex selectors
-        # Jinja/Kida template variable classes (dynamic)
-        # These are patterns that may be generated at runtime
+        # Jinja/Kida template variable names (used in class="... {{ var }}")
+        "and",
+        "or",
+        "join",
+        "kind",
+        "card_classes",
+        "hero_classes",
+        "css_class",
+        "params",
+        "current_version",
+        "deprecated",
+        # Bootstrap-like utility classes (from external or composed)
+        "alert-heading",
+        "btn-outline-primary",
+        "btn-primary",
+        "btn-sm",
+        "btn-success",
+        "fs-6",
+        "h5",
+        "me-2",
+        "small",
+        "expanded",
+        # Prose/typography (from typography.css or prose)
+        "prose-sm",
+        # Icon placeholder (generic)
+        "icon",
     }
 )
 
@@ -127,6 +151,21 @@ DYNAMIC_CLASS_PATTERNS = [
     r"^saturate-",  # saturate utilities
     r"^sepia-",  # sepia utilities
     r"^drop-",  # drop shadow utilities
+    # BEM modifiers with dynamic suffixes (template variables)
+    r"^api-hub-tile--",
+    r"^api-hub-tile__type-badge--",
+    r"^api-method--",
+    r"^api-schema-viewer--depth-",
+    r"^api-playground-bar--",
+    r"^hero__button--",
+    r"^page-kind-",
+    r"^share-",
+    r"^status-",
+    r"^toc-level-",
+    r"^tutorial-badge-",
+    r"^version-banner--",
+    # highlight.js language classes (language-bash, language-python, etc.)
+    r"^language-",
 ]
 
 

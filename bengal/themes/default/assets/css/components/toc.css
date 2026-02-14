@@ -641,6 +641,11 @@ details.toc-group:not([open]) .toc-subitems {
     color: var(--color-text-secondary);
 }
 
+.toc-meta-more {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
 /* Edit Link - Minimal */
 .toc-edit-link {
     display: flex;

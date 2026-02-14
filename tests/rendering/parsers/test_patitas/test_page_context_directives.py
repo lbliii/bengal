@@ -227,28 +227,14 @@ class TestChildCardsWithPageContext:
 
 
 class TestParserParityForChildCards:
-    """Ensure Mistune and Patitas produce equivalent output for child-cards.
+    """Ensure Patitas renders child-cards with context (not placeholder).
 
-    This parity test would have caught the patitas placeholder bug.
-
+    Mistune has been removed; this test verifies Patitas produces actual cards.
     """
 
-    @pytest.fixture
-    def mistune_parser(self):
-        """Create a PatitasParser instance."""
-        from bengal.parsing import PatitasParser
-
-        return PatitasParser()
-
-    @pytest.fixture
-    def patitas_parser(self) -> PatitasParser:
-        """Create a PatitasParser instance."""
-        return PatitasParser()
-
-    def test_both_parsers_render_child_cards_not_placeholder(
-        self, mistune_parser, patitas_parser
-    ) -> None:
-        """Both parsers should render actual cards, not placeholder text."""
+    def test_patitas_render_child_cards_not_placeholder(self) -> None:
+        """Patitas with parse_with_context should render actual cards, not placeholder."""
+        parser = PatitasParser()
         subsection = create_mock_subsection(
             "test-section",
             "Test Section",
@@ -270,22 +256,9 @@ class TestParserParityForChildCards:
 :fields: title, description
 :::
 """
-        # Mistune uses renderer._current_page
-        mistune_parser.md.renderer._current_page = current_page
-        mistune_result = mistune_parser.parse(content, {})
-
-        # Patitas uses parse_with_context
         context = {"page": current_page, "site": Mock()}
-        patitas_result = patitas_parser.parse_with_context(content, {}, context)
+        result = parser.parse_with_context(content, {}, context)
 
-        # Neither should have the placeholder
-        assert "Child cards will be generated at build time" not in mistune_result
-        assert "Child cards will be generated at build time" not in patitas_result
-
-        # Both should have actual card content
-        assert "Test Section" in mistune_result
-        assert "Test Section" in patitas_result
-
-        # Both should have card-grid
-        assert "card-grid" in mistune_result
-        assert "card-grid" in patitas_result
+        assert "Child cards will be generated at build time" not in result
+        assert "Test Section" in result
+        assert "card-grid" in result

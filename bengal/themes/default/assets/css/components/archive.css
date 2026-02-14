@@ -1,6 +1,72 @@
 /* Archive Components - Year/Month Archives and Sidebar Widget */
 
 /* ============================================
+   Archive Page (main archive list)
+   ============================================ */
+
+.archive {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.archive-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.archive-more-featured {
+  margin-top: var(--space-6);
+}
+
+.archive-pagination {
+  margin-top: var(--space-8);
+}
+
+.archive-empty {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--color-text-muted);
+}
+
+.archive-item {
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.archive-subsection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.archive-subsection-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.archive-subsection-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.archive-subsection-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ============================================
    Archive Year Page
    ============================================ */
 
@@ -106,6 +172,32 @@
 
 [data-theme="dark"] .archive-post-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.post-header {
+  margin-bottom: var(--space-4);
+}
+
+.post-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.post-section {
+  margin-bottom: var(--space-8);
+}
+
+.posts-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.regular-posts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .post-date {

@@ -63,6 +63,7 @@ from bengal.orchestration.stats import display_build_stats, show_building_indica
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
+from bengal.server.build_state import build_state
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.server.utils import get_timestamp
@@ -1063,23 +1064,20 @@ class BuildTrigger:
             send_reload_payload(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
-        """Signal build state to request handler."""
+        """Signal build state to shared registry (handler and ASGI app read from it)."""
         try:
-            from bengal.server.request_handler import BengalRequestHandler
-
-            BengalRequestHandler.set_build_in_progress(building)
+            build_state.set_build_in_progress(building)
         except Exception as e:
             logger.debug("build_state_signal_failed", error=str(e))
 
     def _clear_html_cache(self) -> None:
-        """Clear HTML cache after rebuild."""
+        """Clear HTML injection cache after rebuild."""
         try:
-            from bengal.server.request_handler import BengalRequestHandler
+            from bengal.server.live_reload import LiveReloadMixin
 
-            # Clear HTML injection cache
-            with BengalRequestHandler._html_cache_lock:
-                cache_size = len(BengalRequestHandler._html_cache)
-                BengalRequestHandler._html_cache.clear()
+            with LiveReloadMixin._html_cache_lock:
+                cache_size = len(LiveReloadMixin._html_cache)
+                LiveReloadMixin._html_cache.clear()
 
             if cache_size > 0:
                 logger.debug("html_cache_cleared", entries=cache_size)

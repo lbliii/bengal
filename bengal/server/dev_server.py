@@ -26,7 +26,7 @@ The DevServer coordinates several subsystems:
 
 1. Serve-First Check: If cached output exists, serve immediately
 2. Background Validation: Run incremental build to detect stale content
-3. HTTP Server: ThreadingTCPServer with BengalRequestHandler
+3. HTTP Server: Pounce ASGI with Bengal dev app
 4. File Watcher: WatcherRunner with watchfiles backend
 5. Build Trigger: Handles file changes and triggers rebuilds
 6. Resource Manager: Ensures cleanup on all exit scenarios
@@ -52,7 +52,7 @@ Related:
 - bengal/server/watcher_runner.py: Async file watching bridge
 - bengal/server/build_trigger.py: Build orchestration
 - bengal/server/build_executor.py: Process-isolated builds
-- bengal/server/request_handler.py: HTTP request handling
+- bengal/server/asgi_app.py: ASGI app with static serving and live reload
 - bengal/server/live_reload.py: SSE-based hot reload
 - bengal/server/resource_manager.py: Cleanup coordination
 
@@ -62,7 +62,6 @@ from __future__ import annotations
 
 import os
 import socket
-import socketserver
 import threading
 import time
 from pathlib import Path
@@ -71,11 +70,13 @@ from typing import Any
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.server.backend import ServerBackend, create_pounce_backend
+from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.pid_manager import PIDManager
-from bengal.server.request_handler import BengalRequestHandler
+from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
@@ -232,9 +233,10 @@ class DevServer:
                 rm.register_pidfile(pid_file)
 
                 # Create HTTP server immediately
-                httpd, actual_port = self._create_server()
-                rm.register_server(httpd)
+                backend = self._create_server()
+                rm.register_server(backend)
                 rm.register_sse_shutdown()
+                actual_port = backend.port
 
                 # Start file watcher if enabled
                 if self.watch:
@@ -253,7 +255,7 @@ class DevServer:
                 self._print_startup_message(actual_port, serve_first=True)
 
                 # Start serving in background thread while we validate
-                server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                server_thread = threading.Thread(target=backend.start, daemon=True)
                 server_thread.start()
 
                 # Run validation build in foreground (shows progress)
@@ -276,7 +278,7 @@ class DevServer:
                 except KeyboardInterrupt:
                     print("\n  👋 Shutting down server...")
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
-                    httpd.shutdown()
+                    backend.shutdown()
 
             else:
                 # BUILD-FIRST: No cache, must build before serving
@@ -317,9 +319,10 @@ class DevServer:
                 rm.register_pidfile(pid_file)
 
                 # Create HTTP server
-                httpd, actual_port = self._create_server()
-                rm.register_server(httpd)
+                backend = self._create_server()
+                rm.register_server(backend)
                 rm.register_sse_shutdown()
+                actual_port = backend.port
 
                 # Start file watcher if enabled
                 if self.watch:
@@ -348,7 +351,7 @@ class DevServer:
 
                 # Run until interrupted
                 try:
-                    httpd.serve_forever()
+                    backend.start()
                 except KeyboardInterrupt:
                     print("\n  👋 Shutting down server...")
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
@@ -452,8 +455,8 @@ class DevServer:
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""
         try:
-            with BengalRequestHandler._html_cache_lock:
-                BengalRequestHandler._html_cache.clear()
+            with LiveReloadMixin._html_cache_lock:
+                LiveReloadMixin._html_cache.clear()
             logger.debug("html_cache_cleared_after_build")
         except Exception as e:
             logger.debug("html_cache_clear_failed", error=str(e))
@@ -463,7 +466,7 @@ class DevServer:
         try:
             default_palette = self.site.config.get("default_palette")
             if default_palette:
-                BengalRequestHandler._active_palette = default_palette
+                build_state.set_active_palette(default_palette)
                 logger.debug("rebuilding_page_palette_set", palette=default_palette)
         except Exception:
             pass
@@ -831,35 +834,29 @@ class DevServer:
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
 
-    def _create_server(self) -> tuple[socketserver.ThreadingTCPServer, int]:
+    def _create_server(self) -> ServerBackend:
         """
-        Create HTTP server (does not start it).
+        Create HTTP server backend (does not start it).
 
-        Changes to the output directory and creates a TCP server on the
-        specified port. If the port is unavailable and auto_port is enabled,
-        automatically finds the next available port.
+        Resolves port (with fallback if auto_port) and creates a
+        PounceBackend serving the Bengal ASGI app.
 
         Returns:
-            Tuple of (httpd, actual_port) where httpd is the TCPServer instance
-            and actual_port is the port it's bound to
+            ServerBackend instance (PounceBackend)
 
         Raises:
             OSError: If no available port can be found
         """
-        # Store output directory for handler (don't rely on CWD - it can become invalid during rebuilds)
-        output_dir = str(self.site.output_dir)
-        logger.debug("serving_directory", path=output_dir)
+        output_dir = self.site.output_dir
+        logger.debug("serving_directory", path=str(output_dir))
 
-        # Determine port to use
         actual_port = self.port
 
-        # Check if requested port is available
         if not self._is_port_available(self.port):
             logger.warning("port_unavailable", port=self.port, auto_port_enabled=self.auto_port)
 
             icons = get_icons()
             if self.auto_port:
-                # Try to find an available port
                 try:
                     actual_port = self._find_available_port(self.port + 1)
                     print(f"{icons.warning} Port {self.port} is already in use")
@@ -881,11 +878,11 @@ class DevServer:
                         search_range=(self.port + 1, self.port + 10),
                         user_action="check_running_processes",
                     )
-                    raise BengalServerError(
-                        f"Port {self.port} is already in use",
-                        code=ErrorCode.S001,
-                        suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
-                    ) from e
+                raise BengalServerError(
+                    f"Port {self.port} is already in use",
+                    code=ErrorCode.S001,
+                    suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
+                ) from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
                 print("\nTo fix this issue:")
@@ -904,33 +901,25 @@ class DevServer:
                     suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
                 )
 
-        # Allow address reuse to prevent "address already in use" errors on restart
-        socketserver.TCPServer.allow_reuse_address = True
-
-        # Use a custom server class to increase the socket backlog (request queue size)
-        # which helps avoid temporary stalls under bursts of rapid navigation.
-        class BengalThreadingTCPServer(socketserver.ThreadingTCPServer):
-            request_queue_size = 128
-
-        # Create handler with directory bound (avoids os.getcwd() which fails if CWD is deleted during rebuild)
-        from functools import partial
-
-        handler = partial(BengalRequestHandler, directory=output_dir)
-
-        # Create threaded server so SSE long-lived connections don't block other requests
-        # (don't use context manager - ResourceManager handles cleanup)
-        httpd = BengalThreadingTCPServer((self.host, actual_port), handler)
-        httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
+        self._request_callback_holder: list = [None]
+        backend = create_pounce_backend(
+            host=self.host,
+            port=actual_port,
+            output_dir=output_dir,
+            build_in_progress=build_state.get_build_in_progress,
+            active_palette=build_state.get_active_palette,
+            request_callback=lambda: self._request_callback_holder[0],
+        )
 
         logger.info(
             "http_server_created",
             host=self.host,
             port=actual_port,
-            handler_class="BengalRequestHandler",
+            handler_class="PounceBackend",
             threaded=True,
         )
 
-        return httpd, actual_port
+        return backend
 
     def _print_startup_message(self, port: int, serve_first: bool = False) -> None:
         """
@@ -1017,9 +1006,19 @@ class DevServer:
         console.print()
 
         # Request log header
+        from datetime import datetime
+
         from bengal.output import CLIOutput
 
         cli = CLIOutput()
+
+        def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
+            ts = datetime.now().strftime("%H:%M:%S")
+            cli.http_request(ts, method, str(status), path, is_asset=False)
+
+        if hasattr(self, "_request_callback_holder"):
+            self._request_callback_holder[0] = _log_request
+
         cli.request_log_header()
 
     def _open_browser_delayed(self, port: int) -> None:

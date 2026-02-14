@@ -24,7 +24,7 @@ Import from bengal.cache instead for clear_build_cache and
 clear_output_directory.
 
 Related:
-- bengal/server/request_handler.py: Uses apply_dev_no_cache_headers
+- bengal/server/asgi_app.py: Uses cache headers in responses
 - bengal/server/dev_server.py: Uses get_dev_config for configuration
 - bengal/server/live_reload.py: Uses find_html_injection_point
 - bengal/cache/utils.py: Cache management utilities

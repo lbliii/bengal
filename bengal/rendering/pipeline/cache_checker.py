@@ -59,6 +59,7 @@ class CacheChecker:
         output_collector: Any = None,
         write_behind: Any = None,
         build_cache: Any = None,
+        parser: Any = None,
     ):
         """
         Initialize the cache checker.
@@ -70,6 +71,7 @@ class CacheChecker:
             output_collector: Optional output collector for hot reload tracking
             write_behind: Optional write-behind collector for async I/O
             build_cache: Optional BuildCache for direct cache access.
+            parser: Markdown parser for restore-from-AST fallback.
         """
         self.site = site
         self.renderer = renderer
@@ -77,6 +79,7 @@ class CacheChecker:
         self.output_collector = output_collector
         self.write_behind = write_behind
         self.build_cache = build_cache
+        self.parser = parser
 
     def try_rendered_cache(self, page: PageLike, template: str) -> bool:
         """
@@ -152,8 +155,30 @@ class CacheChecker:
         if not cached or is_missing(cached):
             return False
 
-        page.html_content = cached["html"]
-        page.toc = cached["toc"]
+        html = cached.get("html")
+        toc = cached.get("toc", "")
+        if not html and cached.get("ast"):
+            ast_data = cached["ast"]
+            if (
+                isinstance(ast_data, dict)
+                and ast_data.get("_type") == "Document"
+                and self.parser
+                and hasattr(self.parser, "render_ast_from_dict")
+            ):
+                result = self.parser.render_ast_from_dict(
+                    ast_data,
+                    page._source or "",
+                    page=page,
+                    site=self.site,
+                )
+                if result:
+                    html, toc = result
+
+        if not html:
+            return False
+
+        page.html_content = html
+        page.toc = toc
         page._toc_items_cache = cached.get("toc_items", [])
 
         if cached.get("ast"):
@@ -164,7 +189,7 @@ class CacheChecker:
                 self.build_stats.parsed_cache_hits = 0
             self.build_stats.parsed_cache_hits += 1
 
-        parsed_content = cached["html"]
+        parsed_content = page.html_content
 
         # Validate cached content is not empty
         if not parsed_content:
