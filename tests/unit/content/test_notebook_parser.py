@@ -7,8 +7,8 @@ from pathlib import Path
 from bengal.content.discovery.content_parser import ContentParser
 
 
-def test_parse_file_ipynb_branches_to_converter(tmp_path: Path) -> None:
-    """ContentParser branches to notebook converter for .ipynb files."""
+def test_parse_file_ipynb_branches_to_patitas(tmp_path: Path) -> None:
+    """ContentParser branches to patitas.parse_notebook for .ipynb files."""
     nb_content = """{
   "cells": [{"cell_type": "markdown", "metadata": {}, "source": ["# Test"]}],
   "metadata": {},

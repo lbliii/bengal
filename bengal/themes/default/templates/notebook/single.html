@@ -5,9 +5,9 @@
 Single Notebook Template (Kida-Native)
 ================================================================================
 
-Individual Jupyter notebook page. Uses same docs layout as standard docs:
-left sidebar (nav), center content, right sidebar (TOC). Provides download
-badge, kernel info, and prose layout for converted notebook content.
+Individual Jupyter notebook page. Uses same docs layout and page-hero style
+as standard docs: breadcrumbs, title, metadata, download/binder/colab actions.
+No legacy action-bar.
 
 FRONTMATTER (from notebook metadata):
 ---
@@ -17,41 +17,33 @@ notebook:
   kernel_name: python3
   cell_count: 12
   language_version: python
-download_url: /path/to/notebook.ipynb  (optional)
-binder_url: https://... (optional)
+download_url: /path/to/notebook.ipynb  (optional, auto from source)
+binder_url: https://mybinder.org/... (optional)
+colab_url: (optional; auto from repo_url + colab_branch when set in [params])
 ---
 
 KIDA FEATURES USED:
 - {% let %} for template-scoped variables
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
-- {% def %} for reusable badge/link components
-- {% match %} for kernel-specific badges
-- {% spaceless %} for compact meta bar
+- {% def %} for reusable components
+- {% spaceless %} for compact output
 ================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/page-hero/_macros.html' import _breadcrumb_eyebrow, _share_dropdown %}
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-   NOTEBOOK BADGE COMPONENT
+   NOTEBOOK ACTION LINK (Download, Binder, Colab)
    ============================================================================= #}
-{% def notebook_badge(label, value, icon='') %}
-{% if value %}
-<span class="notebook-meta-badge" title="{{ label }}">
-  {{ icon }} {{ value }}
-</span>
-{% end %}
-{% end %}
-
-{# =============================================================================
-   NOTEBOOK LINK COMPONENT
-   ============================================================================= #}
-{% def notebook_link(href, label, icon='↓') %}
+{% def notebook_action(href, label, icon_name='download') %}
 {% if href %}
-<a href="{{ href | absolute_url }}" class="notebook-link" target="_blank" rel="noopener noreferrer">
-  {{ icon }} {{ label }}
+<a href="{{ href | absolute_url }}" class="page-hero__notebook-action" target="_blank" rel="noopener noreferrer"
+  title="{{ label }}">
+  {{ icon(icon_name, size=16) }}
+  <span>{{ label }}</span>
 </a>
 {% end %}
 {% end %}
@@ -67,6 +59,7 @@ KIDA FEATURES USED:
 {% let page_href = page?.href ?? '' %}
 {% let download_url = params?.download_url ?? params?.source_url ?? notebook_download_url(page) ?? '' %}
 {% let binder_url = params?.binder_url ?? '' %}
+{% let colab_url = params?.colab_url ?? notebook_colab_url(page) ?? '' %}
 {% let kernel_name = params?.notebook?.kernel_name ?? params?.kernel ?? '' %}
 {% let cell_count = params?.notebook?.cell_count ?? 0 %}
 {% let css_class = params?.css_class ?? '' %}
@@ -80,35 +73,77 @@ KIDA FEATURES USED:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
+    {# Version Banner #}
+    {% include 'partials/version-banner.html' %}
 
-    <article class="notebook-single">
-      <header class="notebook-header">
-        <h1>{{ page_title }}</h1>
+    {# Stale Content Banner #}
+    {% include 'partials/stale-content-banner.html' %}
 
-        <div class="notebook-meta">
-          {% spaceless %}
-          {{ notebook_badge('Kernel', kernel_name, '') }}
-          {{ notebook_badge('Cells', cell_count, '') }}
-          {{ notebook_link(download_url, 'Download .ipynb') }}
-          {% if binder_url %}
-          {{ notebook_link(binder_url, 'Run in Binder', '↗') }}
-          {% end %}
-          {% end %}
+    {# Page Hero: Breadcrumbs + Title + Metadata (doc-style, no action-bar) #}
+    <div class="page-hero page-hero--editorial">
+      <div class="page-hero__top">
+        {{ _breadcrumb_eyebrow(page) }}
+        <div class="page-hero__actions">
+          {# Notebook-specific: Download, Binder, Colab #}
+          <div class="page-hero__notebook-actions">
+            {{ notebook_action(download_url, 'Download .ipynb', 'download') }}
+            {{ notebook_action(binder_url, 'Run in Binder', 'external') }}
+            {{ notebook_action(colab_url, 'Open in Colab', 'external') }}
+          </div>
+          {{ _share_dropdown(page) }}
         </div>
-      </header>
+      </div>
 
-      <div class="notebook-content prose {{ css_class }}">
+      <h1 class="page-hero__title">{{ page_title }}</h1>
+
+      {% with params?.description as desc %}
+      {% if desc %}<p class="page-hero__description">{{ desc }}</p>{% end %}
+      {% end %}
+
+      {# Metadata: kernel, cells, reading time, word count, date #}
+      {% let has_meta = kernel_name or cell_count or page?.word_count or page?.date or params?.lastmod %}
+      {% if has_meta %}
+      <div class="page-hero__meta">
+        {% if kernel_name %}
+        <span class="page-hero__meta-item">
+          {{ icon('code', size=16) }}
+          <span>{{ kernel_name }}</span>
+        </span>
+        {% end %}
+        {% if cell_count %}
+        <span class="page-hero__meta-item">
+          {{ icon('layers', size=16) }}
+          <span>{{ cell_count }} {{ 'cell' if cell_count == 1 else 'cells' }}</span>
+        </span>
+        {% end %}
+        {% if page?.word_count %}
+        <span class="page-hero__meta-item">
+          {{ icon('file-text', size=16) }}
+          <span>{{ t('meta.word_count', {'count': page.word_count}, default='{count} words') }}</span>
+        </span>
+        {% end %}
+        {% with params?.lastmod ?? page?.date as display_date %}
+        {% if display_date %}
+        <span class="page-hero__meta-item">
+          {{ icon('arrow-clockwise', size=16) }}
+          <span>{{ display_date |> time_ago }}</span>
+        </span>
+        {% end %}
+        {% end %}
+      </div>
+      {% end %}
+    </div>
+
+    {# Article Content #}
+    <article class="prose {{ css_class }}">
+      <div class="docs-content notebook-content">
         {{ content | safe }}
       </div>
 
       {% if page_tags | length > 0 %}
-      <footer class="notebook-footer">
-        <div class="tags">
-          <strong>Tags:</strong>
-          {{ tag_list(page_tags) }}
-        </div>
+      <footer class="docs-footer">
+        <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
+        {{ tag_list(page_tags) }}
       </footer>
       {% end %}
     </article>

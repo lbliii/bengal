@@ -392,6 +392,8 @@ uv sync --group dev
 pytest
 ```
 
+**Multi-repo workspace:** With bengal, patitas, rosettes, etc. as siblings, copy `workspace-root.example/pyproject.toml` to the parent directory and run `uv sync` from there. The workspace root overrides sources so all packages use local versions. CI and end users (no workspace root) use PyPI.
+
 ---
 
 ## The Bengal Ecosystem

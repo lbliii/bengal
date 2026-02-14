@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Notebook parsing (Patitas)
+- **content**: migrate notebook parsing from Bengal to Patitas
+  - Remove `bengal/content/notebook/` and `nbformat` dependency
+  - ContentParser now calls `patitas.parse_notebook()` for .ipynb files
+  - Require `patitas>=0.3.0` (adds zero-dependency `parse_notebook`)
+
 ### Versioning (S-Tier Docs)
 - **versioning**: emit Mike-compatible `versions.json` when versioning enabled
   - Lists versions with title, aliases, url_prefix for themes and external tools

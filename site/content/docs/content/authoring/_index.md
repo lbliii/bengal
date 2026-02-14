@@ -37,6 +37,13 @@ Link to Python stdlib, NumPy, and other Bengal sites.
 Syntax highlighting, line numbers, and file includes.
 :::{/card}
 
+:::{card} Notebooks
+:icon: book
+:link: ./notebooks/
+
+Drop Jupyter .ipynb into content—renders natively with download badge.
+:::{/card}
+
 :::{card} Math and LaTeX
 :icon: function
 :link: ./math/

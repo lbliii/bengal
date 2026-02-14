@@ -7,3 +7,6 @@ params:
 
   # Repository URL (renders GitHub icon in navigation if set)
   repo_url: "https://github.com/lbliii/bengal"
+
+  # Colab: branch for auto-generated "Open in Colab" links on notebook pages
+  colab_branch: "main"
