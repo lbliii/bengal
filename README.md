@@ -19,6 +19,7 @@ bengal new site mysite && cd mysite && bengal serve
 
 - **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern** — Python 3.14+ with free-threading support, fully typed
+- **Notebooks** — Drop `.ipynb` into content and build; no conversion step, no extra deps
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
 - **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
 
@@ -207,6 +208,7 @@ structure:
 | Feature | Description | Docs |
 |---------|-------------|------|
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
+| **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
 | **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
 | **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
 | **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/theming/templating/image-processing/) |
