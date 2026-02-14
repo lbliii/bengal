@@ -241,7 +241,7 @@ class CascadingParamsContext:
                 )
                 cache[name] = wrapped
                 return wrapped
-            return value if value is not None else ""
+            return value
 
         # Then section
         if name in section:
@@ -254,7 +254,7 @@ class CascadingParamsContext:
                 )
                 cache[name] = wrapped
                 return wrapped
-            return value if value is not None else ""
+            return value
 
         # Finally site
         if name in site:
@@ -263,10 +263,14 @@ class CascadingParamsContext:
                 wrapped = CascadingParamsContext({}, {}, value)
                 cache[name] = wrapped
                 return wrapped
-            return value if value is not None else ""
+            return value
 
-        # Not found anywhere
-        return ""
+        # Not found in any cascade layer → return None.
+        # Kida's resolution layers handle the conversion:
+        #   - Regular `.` access (_safe_getattr): None → "" for display
+        #   - Optional `?.` access (_getattr_preserve_none): None preserved
+        #     so `??` (null coalescing) can detect it and fall through
+        return None
 
     def __getitem__(self, key: str) -> Any:
         return self.__getattr__(key)
