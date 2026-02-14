@@ -720,6 +720,66 @@ class PageMetadataMixin:
         return not (render == "local" and is_production)
 
     # =========================================================================
+    # Variant / Edition Filtering (multi-variant builds)
+    # =========================================================================
+
+    @property
+    def edition(self) -> list[str]:
+        """
+        Get edition/variant list from frontmatter for multi-variant builds.
+
+        Used with params.edition to exclude pages from builds. Omit or use
+        [oss, enterprise] for shared content; use [enterprise] for enterprise-only.
+
+        Returns:
+            List of edition names (e.g. ["oss", "enterprise"]). Empty if not set.
+
+        Example:
+            ```yaml
+            ---
+            title: Enterprise Feature
+            edition: [enterprise]
+            ---
+            ```
+        """
+        val = self.metadata.get("edition")
+        if val is None:
+            return []
+        if isinstance(val, str):
+            return [val] if val else []
+        if isinstance(val, list):
+            return [str(v).strip() for v in val if v is not None and str(v).strip()]
+        return []
+
+    def in_variant(self, variant: str | None) -> bool:
+        """
+        Check if page should be included when building for the given variant.
+
+        When params.edition is set, pages are excluded if their edition list
+        does not include that value. Pages with no edition are included in all.
+
+        Args:
+            variant: Current build variant (e.g. "oss", "enterprise"). None = no filter.
+
+        Returns:
+            True if page should be included in this build
+
+        Example:
+            >>> page.in_variant(None)
+            True
+            >>> page.in_variant("enterprise")  # page has edition: [enterprise]
+            True
+            >>> page.in_variant("oss")  # page has edition: [enterprise]
+            False
+        """
+        if variant is None or not str(variant).strip():
+            return True
+        editions = self.edition
+        if not editions:
+            return True
+        return variant in editions
+
+    # =========================================================================
     # Metadata Access Helpers
     # =========================================================================
 

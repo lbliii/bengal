@@ -299,6 +299,41 @@ jobs:
 
 **3. Set secrets in GitHub:** **Settings** > **Secrets and variables** > **Actions** > **New repository secret**
 :::{/step}
+
+:::{step} Multi-Variant Builds (OSS vs Enterprise)
+
+Build separate doc sites from one repo. Use `params.edition` and page frontmatter `edition` to filter content.
+
+```yaml
+jobs:
+  build:
+    strategy:
+      matrix:
+        edition: [oss, enterprise]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+
+      - name: Install Bengal
+        run: pip install bengal
+
+      - name: Build ${{ matrix.edition }} site
+        run: bengal build --environment ${{ matrix.edition }} --strict --clean-output
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ matrix.edition }}
+          path: public/
+```
+
+Ensure `config/environments/oss.yaml` and `config/environments/enterprise.yaml` set `params.edition` accordingly. See [Multi-Variant Builds](/docs/building/configuration/variants) for full setup.
+:::{/step}
 :::{/steps}
 
 ## Alternative Platforms

@@ -184,6 +184,11 @@ class UnifiedConfigLoader:
         # Warn about common theme.features vs features confusion
         warn_search_ui_without_index(config)
 
+        # BENGAL_ prefix overrides (Hugo-style) - before platform inference
+        from bengal.config.env_config import apply_bengal_overrides
+
+        config = apply_bengal_overrides(config)
+
         # Platform env vars (Netlify, Vercel, GitHub)
         from bengal.config.env_overrides import apply_env_overrides
 

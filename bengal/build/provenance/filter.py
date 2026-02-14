@@ -255,11 +255,14 @@ class ProvenanceFilter:
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
 
-        # For assets, check file modification
+        # For assets, check file modification or forced change
+        # Include assets when: direct path match, dependency changed (e.g. @import'd CSS), or hash changed
         assets_to_process: list[Asset] = [
             asset
             for asset in assets
-            if asset.source_path in forced or self._is_asset_changed(asset)
+            if asset.source_path in forced
+            or self._is_forced_by_dependency(asset, forced)
+            or self._is_asset_changed(asset)
         ]
 
         return ProvenanceFilterResult(
@@ -638,6 +641,33 @@ class ProvenanceFilter:
     def _get_page_key(self, page: Page) -> CacheKey:
         """Get canonical page key for cache lookups."""
         return content_key(page.source_path, self.site.root_path)
+
+    def _is_forced_by_dependency(self, asset: Asset, forced: set[Path]) -> bool:
+        """
+        True if any path in forced is a dependency of this asset (e.g. @import'd CSS).
+
+        When notebook.css (imported by style.css) changes, the watcher reports
+        notebook.css in forced_changed. The style.css asset has source_path to
+        style.css, so the direct check fails. We must reprocess style.css when
+        any file under its directory changes, since bundle_css() inlines @imports.
+        """
+        if not forced:
+            return False
+        if asset.source_path in forced:
+            return True  # Direct match
+        if not asset.is_css_entry_point():
+            return False
+        try:
+            asset_dir = asset.source_path.parent.resolve()
+            for p in forced:
+                try:
+                    p.resolve().relative_to(asset_dir)
+                    return True  # p is under asset's directory (e.g. layouts/notebook.css)
+                except (ValueError, OSError):
+                    continue
+        except OSError:
+            pass
+        return False
 
     def _is_asset_changed(self, asset: Asset) -> bool:
         """

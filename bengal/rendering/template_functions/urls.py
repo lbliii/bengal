@@ -6,11 +6,15 @@ Provides URL manipulation filters and functions for working with URLs in templat
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
+
+_COLAB_BASE = "https://colab.research.google.com/github"
+_GITHUB_REPO_RE = re.compile(r"github\.com[/:]([^/]+)/([^/]+?)(?:\.git)?/?$", re.I)
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
@@ -45,11 +49,15 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def notebook_download_url_with_site(page) -> str:
         return notebook_download_url(page)
 
+    def notebook_colab_url_with_site(page) -> str:
+        return notebook_colab_url(page, site)
+
     env.globals.update(
         {
             "ensure_trailing_slash": ensure_trailing_slash,
             "build_artifact_url": build_artifact_url_with_site,
             "notebook_download_url": notebook_download_url_with_site,
+            "notebook_colab_url": notebook_colab_url_with_site,
         }
     )
 
@@ -80,6 +88,46 @@ def notebook_download_url(page) -> str:
             base = (path or "/").rstrip("/")
             return f"{base}/{slug}.ipynb"
     return ""
+
+
+def notebook_colab_url(page, site: SiteLike) -> str:
+    """
+    Build Colab URL for a notebook page from repo config.
+
+    Requires [params] repo_url (e.g. https://github.com/owner/repo).
+    Optional: colab_branch (default: main).
+
+    Returns empty string if repo_url is missing, not a GitHub URL,
+    or page is not from a notebook source.
+
+    Args:
+        page: Page object with source_path
+        site: Site for config (site.params.repo_url, site.params.colab_branch)
+
+    Returns:
+        Full Colab URL or empty string
+
+    Example:
+        {{ notebook_colab_url(page) }}
+    """
+    if not page or not getattr(page, "source_path", None):
+        return ""
+    if not str(page.source_path).lower().endswith(".ipynb"):
+        return ""
+
+    params = getattr(site, "params", None) or {}
+    repo_url = params.get("repo_url") or ""
+    if not repo_url:
+        return ""
+
+    match = _GITHUB_REPO_RE.search(repo_url.strip())
+    if not match:
+        return ""
+
+    owner, repo = match.group(1), match.group(2).rstrip("/")
+    branch = params.get("colab_branch") or params.get("repo_branch") or "main"
+    path = str(page.source_path).replace("\\", "/")
+    return f"{_COLAB_BASE}/{owner}/{repo}/blob/{branch}/{path}"
 
 
 def absolute_url(url: str, base_url: str) -> str:
