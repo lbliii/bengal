@@ -170,7 +170,4 @@ def filter_pages_by_language(
         return pages
 
     # Filter by page's lang attribute
-    return [
-        p for p in pages
-        if getattr(p, "lang", default_lang) == lang
-    ]
+    return [p for p in pages if getattr(p, "lang", default_lang) == lang]

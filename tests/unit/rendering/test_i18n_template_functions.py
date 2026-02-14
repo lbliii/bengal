@@ -76,4 +76,5 @@ def test_alternate_links(tmp_path: Path) -> None:
         "{% for l in alternate_links(page) %}{{ l.hreflang }}|{{ l.href }}\n{% endfor %}"
     )
     out = tmpl.render(page=en, site=site)
-    assert "en|" in out and "fr|" in out
+    assert "en|" in out
+    assert "fr|" in out

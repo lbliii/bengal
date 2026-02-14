@@ -16,8 +16,6 @@ Requirements:
 
 from __future__ import annotations
 
-import pytest
-
 # Sample code snippets for benchmarking
 PYTHON_SIMPLE = """def hello():
     print("Hello, World!")

@@ -72,9 +72,7 @@ class DirectiveRendererMixin:
                     is_cacheable = False
                 # Context-dependent directives (xref_index, site) are NOT cacheable
                 # because their output varies based on cross-reference resolution
-                if is_cacheable and (
-                    "xref_index" in sig.parameters or "site" in sig.parameters
-                ):
+                if is_cacheable and ("xref_index" in sig.parameters or "site" in sig.parameters):
                     is_cacheable = False
 
         # Check directive cache FIRST (before rendering children) - only for cacheable directives

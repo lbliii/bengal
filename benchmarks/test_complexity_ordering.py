@@ -33,7 +33,7 @@ class TestEstimationOverhead:
 
     @pytest.mark.benchmark(group="estimation")
     @pytest.mark.parametrize(
-        "size,label",
+        ("size", "label"),
         [
             (100, "100B"),
             (1000, "1KB"),
@@ -231,11 +231,8 @@ class TestRealWorldScenarios:
     def test_variance_ratio_interpretation(self) -> None:
         """Validate variance ratio interpretation from RFC."""
         # High variance scenario
-        high_var_pages = []
-        for i in range(10):
-            high_var_pages.append(_make_page("```\n```\n" * 30, f"heavy_{i}"))
-        for i in range(90):
-            high_var_pages.append(_make_page("short", f"light_{i}"))
+        high_var_pages = [_make_page("```\n```\n" * 30, f"heavy_{i}") for i in range(10)]
+        high_var_pages.extend(_make_page("short", f"light_{i}") for i in range(90))
 
         stats = get_complexity_stats(high_var_pages)
 

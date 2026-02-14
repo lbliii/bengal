@@ -73,10 +73,10 @@ class ScoutThread(threading.Thread):
         try:
             # Try to get template (will compile/load if needed)
             # This warms the engine's internal cache
-            if hasattr(self.template_engine, "template_exists"):
-                # Check if template exists first (avoids exceptions)
-                if not self.template_engine.template_exists(template_name):
-                    return
+            if hasattr(
+                self.template_engine, "template_exists"
+            ) and not self.template_engine.template_exists(template_name):
+                return
 
             # Use render_template method if available (safest approach)
             if hasattr(self.template_engine, "render_template"):

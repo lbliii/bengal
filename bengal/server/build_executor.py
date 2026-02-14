@@ -77,6 +77,10 @@ class BuildRequest:
         version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             Focus rebuilds on a single version (e.g., "v2", "latest").
             If None, all versions are rebuilt on changes.
+        memory_optimized: Use streaming build for memory efficiency
+        explain: Show detailed incremental build decisions
+        dry_run: Preview build without writing files
+        profile_templates: Enable template profiling
 
     """
 
@@ -88,6 +92,10 @@ class BuildRequest:
     structural_changed: bool = False
     force_sequential: bool = False
     version_scope: str | None = None
+    memory_optimized: bool = False
+    explain: bool = False
+    dry_run: bool = False
+    profile_templates: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +121,8 @@ class BuildResult:
     error_message: str | None = None
     # Serialized OutputRecords as (path_str, type_value, phase) tuples
     changed_outputs: tuple[tuple[str, str, str], ...] = field(default_factory=tuple)
+    # Advisory reload hint: "css-only", "full", or "none"
+    reload_hint: str | None = None
 
 
 def _execute_build(request: BuildRequest) -> BuildResult:
@@ -134,7 +144,6 @@ def _execute_build(request: BuildRequest) -> BuildResult:
     try:
         # Import lazily in subprocess
         from bengal.core.site import Site
-        from bengal.utils.observability.profile import BuildProfile
 
         # Load site from config
         site_root = Path(request.site_root)
@@ -152,30 +161,11 @@ def _execute_build(request: BuildRequest) -> BuildResult:
         if request.version_scope:
             cfg["_version_scope"] = request.version_scope
 
-        # Get build profile
-        profile = getattr(BuildProfile, request.profile, BuildProfile.WRITER)
+        # Convert BuildRequest to BuildInput for consistent build entry
+        from bengal.orchestration.build.inputs import BuildInput
 
-        # Convert changed paths to Path objects
-        changed_sources = (
-            {Path(p) for p in request.changed_paths} if request.changed_paths else None
-        )
-        nav_changed_sources = (
-            {Path(p) for p in request.nav_changed_paths} if request.nav_changed_paths else set()
-        )
-
-        # Execute build
-        # Use BuildOptions with force_sequential - parallel will be auto-detected
-        from bengal.orchestration.build.options import BuildOptions
-
-        build_opts = BuildOptions(
-            force_sequential=request.force_sequential,
-            incremental=request.incremental,
-            profile=profile,
-            changed_sources=changed_sources,
-            nav_changed_sources=nav_changed_sources,
-            structural_changed=request.structural_changed,
-        )
-        stats = site.build(options=build_opts)
+        build_input = BuildInput.from_build_request(request)
+        stats = site.build(build_input)
 
         build_time_ms = (time.time() - start_time) * 1000
 
@@ -192,6 +182,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
             pages_built=stats.total_pages,
             build_time_ms=build_time_ms,
             changed_outputs=changed_outputs,
+            reload_hint=getattr(stats, "reload_hint", None),
         )
 
     except Exception as e:

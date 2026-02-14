@@ -26,15 +26,12 @@ class TestRuntimeCheckable:
             if obj is None:
                 continue
             # Check if it's a class that's a Protocol
-            if isinstance(obj, type):
-                # Check if Protocol is in MRO (method resolution order)
-                # This handles both direct Protocol subclasses and composed protocols
-                if any(
-                    base.__name__ == "Protocol"
-                    for base in getattr(obj, "__mro__", [])
-                    if hasattr(base, "__name__")
-                ):
-                    result.append(obj)
+            if isinstance(obj, type) and any(
+                base.__name__ == "Protocol"
+                for base in getattr(obj, "__mro__", [])
+                if hasattr(base, "__name__")
+            ):
+                result.append(obj)
         return result
 
     def test_all_protocols_are_runtime_checkable(self, all_protocols: list[type]) -> None:
@@ -43,11 +40,11 @@ class TestRuntimeCheckable:
         This was identified as a bug when ProgressReporter was missing the decorator,
         making it inconsistent with other protocols in the same module.
         """
-        non_checkable = []
-        for proto in all_protocols:
-            # runtime_checkable protocols have _is_runtime_protocol attribute set to True
-            if not getattr(proto, "_is_runtime_protocol", False):
-                non_checkable.append(proto.__name__)
+        non_checkable = [
+            proto.__name__
+            for proto in all_protocols
+            if not getattr(proto, "_is_runtime_protocol", False)
+        ]
 
         assert not non_checkable, (
             f"Protocols missing @runtime_checkable: {non_checkable}\n"
@@ -69,10 +66,7 @@ class TestProtocolExports:
 
     def test_all_exports_are_importable(self) -> None:
         """All items in __all__ should be importable."""
-        missing = []
-        for name in protocols.__all__:
-            if not hasattr(protocols, name):
-                missing.append(name)
+        missing = [name for name in protocols.__all__ if not hasattr(protocols, name)]
 
         assert not missing, f"Items in __all__ not found in module: {missing}"
 

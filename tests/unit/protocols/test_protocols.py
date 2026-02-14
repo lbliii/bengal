@@ -98,7 +98,7 @@ class TestDeprecationWarnings:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            # Import from old path
+            # Import from old path (triggers deprecation - name unused by design)
             from bengal.core.section.protocols import SectionLike  # noqa: F401
 
             # Should emit exactly one deprecation warning
@@ -112,7 +112,7 @@ class TestDeprecationWarnings:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            # Import from old path
+            # Import from old path (triggers deprecation - name unused by design)
             from bengal.rendering.highlighting.protocol import HighlightBackend  # noqa: F401
 
             # Should emit exactly one deprecation warning
@@ -125,7 +125,7 @@ class TestDeprecationWarnings:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            # Import from old path
+            # Import from old path (triggers deprecation - name unused by design)
             from bengal.rendering.engines.protocol import TemplateEngineProtocol  # noqa: F401
 
             # Should emit exactly one deprecation warning
@@ -154,7 +154,7 @@ class TestBackwardsCompatibility:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            # Import from new canonical path
+            # Import from new canonical path (no deprecation - names unused by design)
             from bengal.protocols import HighlightService, SectionLike  # noqa: F401
 
             # Should NOT emit any deprecation warnings

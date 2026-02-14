@@ -73,9 +73,7 @@ class BenchmarkHistoryLogger:
 
         entries = []
         with open(self.log_file) as f:
-            for line in f:
-                if line.strip():
-                    entries.append(json.loads(line))
+            entries.extend(json.loads(line) for line in f if line.strip())
 
         if limit:
             return entries[-limit:]

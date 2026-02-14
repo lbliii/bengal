@@ -92,9 +92,7 @@ class TestBatchProgressUpdater:
     def test_finalize_flushes_pending(self) -> None:
         """finalize() should flush any pending updates."""
         mock_manager = MagicMock()
-        updater = BatchProgressUpdater(
-            mock_manager, phase="assets", batch_size=100
-        )
+        updater = BatchProgressUpdater(mock_manager, phase="assets", batch_size=100)
 
         # Increment a few times (won't trigger batch)
         for i in range(3):
@@ -120,9 +118,7 @@ class TestBatchProgressUpdater:
     def test_thread_safety(self) -> None:
         """Should be thread-safe for concurrent increments."""
         mock_manager = MagicMock()
-        updater = BatchProgressUpdater(
-            mock_manager, phase="parallel", batch_size=10
-        )
+        updater = BatchProgressUpdater(mock_manager, phase="parallel", batch_size=10)
 
         def increment_many():
             for i in range(100):
@@ -142,9 +138,7 @@ class TestBatchProgressUpdater:
     def test_passes_metadata_to_update(self) -> None:
         """Should pass additional metadata to update_phase."""
         mock_manager = MagicMock()
-        updater = BatchProgressUpdater(
-            mock_manager, phase="assets", batch_size=1
-        )
+        updater = BatchProgressUpdater(mock_manager, phase="assets", batch_size=1)
 
         updater.increment("style.css", minified=True, size=1024)
 

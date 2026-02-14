@@ -92,9 +92,7 @@ def build_template_cascade(
     # Add extra prefix templates (e.g., autodoc/ for autodoc/python)
     if extra_prefixes:
         candidates.extend(
-            f"{prefix}/{suffix}"
-            for prefix in extra_prefixes
-            for suffix in suffixes[page_type]
+            f"{prefix}/{suffix}" for prefix in extra_prefixes for suffix in suffixes[page_type]
         )
 
     # Add generic fallbacks

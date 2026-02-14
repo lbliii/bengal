@@ -20,6 +20,7 @@ Related:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
@@ -95,10 +96,8 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
         os.replace(temp_path, path)
     except Exception:
         # Clean up temp file on failure
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(temp_path)
-        except OSError:
-            pass
         raise
 
     ratio = original_size / compressed_size if compressed_size > 0 else 0

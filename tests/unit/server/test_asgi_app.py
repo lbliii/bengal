@@ -56,10 +56,7 @@ async def test_reload_endpoint_streams_sse(tmp_path: Path) -> None:
     assert len(sent) >= 2
     assert sent[0]["type"] == "http.response.start"
     assert sent[0]["status"] == 200
-    assert any(
-        h[0] == b"content-type" and b"event-stream" in h[1]
-        for h in sent[0]["headers"]
-    )
+    assert any(h[0] == b"content-type" and b"event-stream" in h[1] for h in sent[0]["headers"])
     body_parts = b"".join(
         m["body"] for m in sent[1:] if m["type"] == "http.response.body" and m["body"]
     )
@@ -129,10 +126,7 @@ async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
     )
 
     assert sent[0]["status"] == 200
-    assert any(
-        h[0] == b"content-type" and b"text/css" in h[1]
-        for h in sent[0]["headers"]
-    )
+    assert any(h[0] == b"content-type" and b"text/css" in h[1] for h in sent[0]["headers"])
     assert sent[1]["body"] == b"body { color: red; }"
 
 
@@ -271,7 +265,7 @@ async def test_request_callback_invoked_for_document(tmp_path: Path) -> None:
         build_in_progress=lambda: False,
         request_callback=lambda: holder[0],
     )
-    sent, send = _make_send_capture()
+    _sent, send = _make_send_capture()
 
     await app(
         scope={"type": "http", "method": "GET", "path": "/"},
@@ -299,7 +293,7 @@ async def test_request_callback_not_invoked_for_static(tmp_path: Path) -> None:
         build_in_progress=lambda: False,
         request_callback=lambda: holder[0],
     )
-    sent, send = _make_send_capture()
+    _sent, send = _make_send_capture()
 
     await app(
         scope={"type": "http", "method": "GET", "path": "/assets/style.css"},

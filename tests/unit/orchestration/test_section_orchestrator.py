@@ -77,7 +77,8 @@ class TestSectionOrchestrator:
         # Create section without index page
         section = Section(name="blog", path=tmp_path / "content" / "blog")
         page1 = Page(
-            source_path=tmp_path / "content" / "blog" / "post1.md", _raw_metadata={"title": "Post 1"}
+            source_path=tmp_path / "content" / "blog" / "post1.md",
+            _raw_metadata={"title": "Post 1"},
         )
         section.add_page(page1)
 
@@ -162,7 +163,8 @@ class TestSectionOrchestrator:
         """Test that generated archive pages have correct metadata."""
         section = Section(name="posts", path=tmp_path / "content" / "posts")
         page1 = Page(
-            source_path=tmp_path / "content" / "posts" / "hello.md", _raw_metadata={"title": "Hello"}
+            source_path=tmp_path / "content" / "posts" / "hello.md",
+            _raw_metadata={"title": "Hello"},
         )
         section.add_page(page1)
 

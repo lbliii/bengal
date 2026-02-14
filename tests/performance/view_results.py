@@ -74,7 +74,7 @@ def show_latest(manager: BenchmarkResults, benchmark: str):
     print()
 
 
-def compare_runs(manager: BenchmarkResults, benchmark: str, files: list[str] = None):
+def compare_runs(manager: BenchmarkResults, benchmark: str, files: list[str] | None = None):
     """Compare two benchmark runs."""
     try:
         if files:

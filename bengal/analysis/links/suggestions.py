@@ -407,7 +407,6 @@ class LinkSuggestionEngine:
         return category_map
 
 
-
 def suggest_links(
     graph: KnowledgeGraph, min_score: float = 0.3, max_suggestions_per_page: int = 10
 ) -> LinkSuggestionResults:

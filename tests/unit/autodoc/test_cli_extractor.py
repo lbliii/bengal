@@ -124,7 +124,7 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == "process"][0]
+        process_cmd = next(c for c in root.children if c.name == "process")
 
         assert process_cmd.element_type == "command"
         assert "Process a file" in process_cmd.description
@@ -140,7 +140,7 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == "process"][0]
+        process_cmd = next(c for c in root.children if c.name == "process")
 
         # Check for options
         params = process_cmd.children
@@ -159,7 +159,7 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == "process"][0]
+        process_cmd = next(c for c in root.children if c.name == "process")
 
         # Find the count option
         count_params = [p for p in process_cmd.children if "count" in p.name.lower()]
@@ -195,7 +195,7 @@ class TestCLIExtractor:
         # Click normalizes names to use dashes
         assert root.qualified_name == "sample-cli"
 
-        process_cmd = [c for c in root.children if c.name == "process"][0]
+        process_cmd = next(c for c in root.children if c.name == "process")
         assert process_cmd.qualified_name == "sample-cli.process"
 
     def test_get_output_path(self):
@@ -311,7 +311,7 @@ class TestCLIExtractorMetadata:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == "process"][0]
+        process_cmd = next(c for c in root.children if c.name == "process")
 
         # Check parameter types
         for param in process_cmd.children:
@@ -338,9 +338,9 @@ class TestNestedCommandGroups:
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        manage_group = [
+        manage_group = next(
             e for e in elements if e.name == "manage" and e.element_type == "command-group"
-        ][0]
+        )
         # Click normalizes names to use dashes
         assert manage_group.qualified_name == "sample-cli.manage"
 
@@ -359,8 +359,8 @@ class TestNestedCommandGroups:
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        create_cmd = [e for e in elements if e.name == "create"][0]
-        delete_cmd = [e for e in elements if e.name == "delete"][0]
+        create_cmd = next(e for e in elements if e.name == "create")
+        delete_cmd = next(e for e in elements if e.name == "delete")
 
         # Click normalizes names to use dashes
         assert create_cmd.qualified_name == "sample-cli.manage.create"
@@ -407,9 +407,9 @@ class TestNestedCommandGroups:
         assert extractor.get_output_path(root) == Path("_index.md")
 
         # Nested group should go to {name}/_index.md to avoid path collision
-        manage_group = [
+        manage_group = next(
             e for e in elements if e.name == "manage" and e.element_type == "command-group"
-        ][0]
+        )
         assert extractor.get_output_path(manage_group) == Path("manage/_index.md")
 
     def test_nested_subcommand_output_path(self):
@@ -417,8 +417,8 @@ class TestNestedCommandGroups:
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        create_cmd = [e for e in elements if e.name == "create"][0]
-        delete_cmd = [e for e in elements if e.name == "delete"][0]
+        create_cmd = next(e for e in elements if e.name == "create")
+        delete_cmd = next(e for e in elements if e.name == "delete")
 
         # Nested subcommands should be namespaced under their parent group
         assert extractor.get_output_path(create_cmd) == Path("manage/create.md")
@@ -443,9 +443,9 @@ class TestNestedCommandGroups:
             element_paths[path] = e
 
         # Specifically check that manage group generates _index.md, not both
-        manage_group = [
+        manage_group = next(
             e for e in elements if e.name == "manage" and e.element_type == "command-group"
-        ][0]
+        )
         manage_path = extractor.get_output_path(manage_group)
 
         # Should generate _index.md for the group
@@ -561,9 +561,9 @@ class TestTyperExtractor:
         extractor = CLIExtractor(framework="typer")
         elements = extractor.extract(typer_app)
 
-        process_cmd = [e for e in elements if e.name == "process" and e.element_type == "command"][
-            0
-        ]
+        process_cmd = next(
+            e for e in elements if e.name == "process" and e.element_type == "command"
+        )
 
         # Check for filename argument
         params = process_cmd.children
@@ -575,9 +575,9 @@ class TestTyperExtractor:
         extractor = CLIExtractor(framework="typer")
         elements = extractor.extract(typer_app)
 
-        process_cmd = [e for e in elements if e.name == "process" and e.element_type == "command"][
-            0
-        ]
+        process_cmd = next(
+            e for e in elements if e.name == "process" and e.element_type == "command"
+        )
 
         # Check for options
         params = process_cmd.children
@@ -591,7 +591,7 @@ class TestTyperExtractor:
         elements = extractor.extract(typer_app)
 
         # Find nested subcommand
-        create_cmd = [e for e in elements if e.name == "create"][0]
+        create_cmd = next(e for e in elements if e.name == "create")
 
         # Should have hierarchical qualified name
         assert "manage" in create_cmd.qualified_name
@@ -603,9 +603,9 @@ class TestTyperExtractor:
         elements = extractor.extract(typer_app)
 
         # Get manage group
-        manage_group = [
+        manage_group = next(
             e for e in elements if e.name == "manage" and e.element_type == "command-group"
-        ][0]
+        )
 
         # Should generate _index.md for nested group
         assert extractor.get_output_path(manage_group) == Path("manage/_index.md")

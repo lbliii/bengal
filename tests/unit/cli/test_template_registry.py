@@ -266,7 +266,7 @@ class TestRegistrySingleton:
 
         # Should return same data
         assert len(list1) == len(list2)
-        assert set(t[0] for t in list1) == set(t[0] for t in list2)
+        assert {t[0] for t in list1} == {t[0] for t in list2}
 
 
 class TestTemplateDiscovery:

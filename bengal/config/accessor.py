@@ -178,9 +178,8 @@ class Config:
             "assets",
             "output_formats",
             "features",
-        ):
-            if hasattr(self, key):
-                delattr(self, key)  # Clear cached_property
+        ) and hasattr(self, key):
+            delattr(self, key)  # Clear cached_property
 
     def get(self, key: str, default: Any = None) -> Any:
         return self._data.get(key, default)

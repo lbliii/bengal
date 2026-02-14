@@ -78,13 +78,8 @@ def generate_autodoc_style_content(num_items: int = 30) -> str:
     - Example blocks
     - Warning admonitions for deprecated items
     """
-    content_parts = ["# API Reference\n\n"]
-
-    for i in range(num_items):
-        # Note: Using consistent content to enable cache hits
-        content_parts.append(
-            """
-## `function_%d`
+    template = """
+## `function_{i}`
 
 :::{note}
 This function is part of the core API.
@@ -108,9 +103,8 @@ result = function("hello", 42)
 ---
 
 """
-            % i
-        )
-
+    content_parts = ["# API Reference\n\n"]
+    content_parts.extend(template.format(i=i) for i in range(num_items))
     return "".join(content_parts)
 
 
@@ -155,12 +149,13 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     by manually caching at the render level.
     """
     from bengal.directives.cache import DirectiveCache
+    from patitas.nodes import Directive
+    from patitas.stringbuilder import StringBuilder
+
     from bengal.parsing.backends.patitas import create_markdown
     from bengal.parsing.backends.patitas.directives.registry import create_default_registry
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
     from bengal.utils.primitives.hashing import hash_str
-    from patitas.nodes import Directive
-    from patitas.stringbuilder import StringBuilder
 
     cache = DirectiveCache(max_size=500)
     registry = create_default_registry()

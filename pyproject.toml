@@ -141,6 +141,8 @@ ignore = [
     "PT012",
     "SIM117",
 ]
+# Hypothesis @given injects parameter - pytest PT019 false positive
+"tests/unit/utils/test_dates_properties.py" = ["PT019"]
 
 [tool.ty.environment]
 python-version = "3.14"

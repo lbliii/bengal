@@ -21,7 +21,7 @@ class TestFullSiteUrlConsistency:
     """
 
     @pytest.mark.parametrize(
-        "page_path, expected_url",
+        ("page_path", "expected_url"),
         [
             ("content/page_0.md", "/page_0/"),
             ("content/page_1.md", "/page_1/"),
@@ -86,10 +86,9 @@ class TestFullSiteUrlConsistency:
             site.discover_assets()
             site.build(BuildOptions(force_sequential=True))
 
-        missing_output_path = []
-        for page in site.pages:
-            if page.output_path is None:
-                missing_output_path.append(str(page.source_path))
+        missing_output_path = [
+            str(page.source_path) for page in site.pages if page.output_path is None
+        ]
 
         assert not missing_output_path, "Pages missing output_path:\n" + "\n".join(
             missing_output_path

@@ -25,7 +25,7 @@ class TestMetaDescription:
         text = "First sentence. Second sentence. Third sentence."
         result = meta_description(text, length=30)
         # Should end at sentence boundary or with ellipsis
-        assert result.endswith(".") or result.endswith("…")
+        assert result.endswith((".", "…"))
 
     def test_html_stripping(self):
         html = "<p>This is <strong>HTML</strong> content.</p>"

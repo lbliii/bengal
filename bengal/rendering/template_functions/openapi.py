@@ -845,7 +845,7 @@ def get_response_example(
     # Try to get example from content
     content = response.get("content", {})
     if isinstance(content, dict):
-        for _media_type, media_def in content.items():
+        for media_def in content.values():
             if "example" in media_def:
                 return media_def["example"]
             if "examples" in media_def:

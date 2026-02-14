@@ -426,7 +426,7 @@ Note content.
 # =============================================================================
 
 
-@pytest.mark.parametrize("name,source", EDGE_CASES)
+@pytest.mark.parametrize(("name", "source"), EDGE_CASES)
 def test_edge_case_parity(
     name: str,
     source: str,
@@ -450,7 +450,7 @@ def test_edge_case_parity(
     assert_html_equal(patitas_html, mistune_html, f"edge case: {name}")
 
 
-@pytest.mark.parametrize("name,source", EDGE_CASES)
+@pytest.mark.parametrize(("name", "source"), EDGE_CASES)
 def test_edge_case_no_crash(
     name: str,
     source: str,

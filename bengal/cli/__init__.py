@@ -55,13 +55,14 @@ Related:
 
 from __future__ import annotations
 
+import contextlib
+
 import click
 
 from bengal import __version__
 
 # Import commands from new modular structure
 from .base import BengalCommand, BengalGroup
-
 
 # =============================================================================
 # LAZY COMMAND LOADING
@@ -145,15 +146,11 @@ project_cli = _create_lazy_group(
 assets_cli = _create_lazy_group(
     "bengal.cli.commands.assets:assets", "assets", "Asset pipeline management"
 )
-theme_cli = _create_lazy_group(
-    "bengal.cli.commands.theme:theme", "theme", "Theme utilities"
-)
+theme_cli = _create_lazy_group("bengal.cli.commands.theme:theme", "theme", "Theme utilities")
 sources_group = _create_lazy_group(
     "bengal.cli.commands.sources:sources_group", "sources", "Content source management"
 )
-utils_cli = _create_lazy_group(
-    "bengal.cli.commands.utils:utils_cli", "utils", "Utility commands"
-)
+utils_cli = _create_lazy_group("bengal.cli.commands.utils:utils_cli", "utils", "Utility commands")
 graph_cli = _create_lazy_group(
     "bengal.cli.commands.graph:graph_cli", "graph", "Site structure analysis"
 )
@@ -198,14 +195,12 @@ graph_analyze_cmd = _create_lazy_command("bengal.cli.commands.graph:analyze", "a
 
 # Experimental commands
 provenance_cli = None
-try:
+with contextlib.suppress(ImportError):
     provenance_cli = _create_lazy_group(
         "bengal.cli.commands.provenance:provenance_cli",
         "provenance",
         "Build provenance tracking",
     )
-except ImportError:
-    pass
 
 
 @click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
@@ -259,17 +254,6 @@ def main(
     import sys
 
     # Python 3.14+ required - warn early and clearly
-    if sys.version_info < (3, 14):
-        click.secho(
-            f"\n⚠️  WARNING: Bengal requires Python 3.14+\n"
-            f"   You are running Python {sys.version_info.major}.{sys.version_info.minor}\n"
-            f"   Some features (compression.zstd, performance optimizations) will fail.\n"
-            f"   Install Python 3.14: https://www.python.org/downloads/\n",
-            fg="yellow",
-            bold=True,
-            err=True,
-        )
-
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     # Lazy-load to avoid importing all of errors.traceback on startup

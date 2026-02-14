@@ -136,13 +136,11 @@ def format_field(key: str, value: Any) -> str:
             return f"{key}: [{items}]"
         else:
             lines = [f"{key}:"]
-            for item in value:
-                lines.append(f"  - {format_value(item)}")
+            lines.extend(f"  - {format_value(item)}" for item in value)
             return "\n".join(lines)
     elif isinstance(value, dict):
         lines = [f"{key}:"]
-        for k, v in sorted(value.items()):
-            lines.append(f"  {k}: {format_value(v)}")
+        lines.extend(f"  {k}: {format_value(v)}" for k, v in sorted(value.items()))
         return "\n".join(lines)
     else:
         return f"{key}: {format_value(value)}"

@@ -205,10 +205,7 @@ class ExplanationReporter:
             theme_str = f" [dim]({tpl.theme})[/dim]" if tpl.theme else ""
             node_text = f"{tpl.name}{theme_str}"
 
-            if i == 0:
-                node = tree.add(node_text)
-            else:
-                node = node.add(f"↳ extends: {node_text}")
+            node = tree.add(node_text) if i == 0 else node.add(f"↳ extends: {node_text}")
 
             # Add includes
             for include in tpl.includes[:5]:  # Limit to 5

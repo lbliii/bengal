@@ -70,7 +70,6 @@ from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
-    write_if_content_changed,
 )
 from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.io.atomic_write import AtomicFile

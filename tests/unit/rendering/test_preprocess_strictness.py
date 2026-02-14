@@ -44,7 +44,7 @@ def test_preprocess_syntax_error_reporting():
     assert out in ("", "None")
 
     # Actual syntax error (Should still fail)
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(Exception, match=r"expected|k-tpl|syntax|parse") as excinfo:
         engine.render_string("{{ invalid syntax %", {}, strict=False)
     msg = str(excinfo.value).lower()
     # Kida reports parse errors as "expected X, got Y" or "k-tpl-XXX"; accept either

@@ -150,7 +150,7 @@ def analyze_profile(profile_path: Path, top: int = 30, sort_by: str = "cumulativ
     print("\n" + "=" * 80)
 
 
-def compare_profiles(current_path: Path, baseline_path: Path, fail_threshold: float = None):
+def compare_profiles(current_path: Path, baseline_path: Path, fail_threshold: float | None = None):
     """Compare two profiles and detect regressions."""
     if not baseline_path.exists():
         print(f"❌ Baseline profile not found: {baseline_path}")

@@ -3,7 +3,7 @@
 **Status**: Implemented  
 **Created**: 2026-01-12  
 **Author**: Bengal Team  
-**Related**: `rfc-patitas-extraction.md`, `rfc-rosettes-extraction.md`
+**Related**: `rfc-patitas-external-migration.md`, `rfc-rosettes-extraction.md`
 
 ---
 

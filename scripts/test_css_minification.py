@@ -21,8 +21,8 @@ from bengal.assets.css_minifier import minify_css
 def test_case(
     name: str,
     css: str,
-    expected_contains: list[str] = None,
-    expected_not_contains: list[str] = None,
+    expected_contains: list[str] | None,
+    expected_not_contains: list[str] | None,
 ):
     """Test a CSS minification case."""
     print(f"\n{'=' * 60}")
@@ -39,14 +39,17 @@ def test_case(
         # Check expectations
         issues = []
         if expected_contains:
-            for expected in expected_contains:
-                if expected not in minified:
-                    issues.append(f"Missing expected: {expected}")
-
+            issues.extend(
+                f"Missing expected: {expected}"
+                for expected in expected_contains
+                if expected not in minified
+            )
         if expected_not_contains:
-            for unexpected in expected_not_contains:
-                if unexpected in minified:
-                    issues.append(f"Contains unexpected: {unexpected}")
+            issues.extend(
+                f"Contains unexpected: {unexpected}"
+                for unexpected in expected_not_contains
+                if unexpected in minified
+            )
 
         if issues:
             print("\n❌ ISSUES FOUND:")
@@ -76,7 +79,8 @@ def main():
         test_case(
             "Basic CSS",
             "body { color: blue; margin: 0; }",
-            expected_contains=["body{", "color:blue", "margin:0"],
+            ["body{", "color:blue", "margin:0"],
+            None,
         )
     )
 
@@ -85,8 +89,8 @@ def main():
         test_case(
             "CSS with comments",
             "/* Comment */ body { color: blue; }",
-            expected_contains=["body{", "color:blue"],
-            expected_not_contains=["Comment", "/*", "*/"],
+            ["body{", "color:blue"],
+            ["Comment", "/*", "*/"],
         )
     )
 
@@ -95,7 +99,8 @@ def main():
         test_case(
             "@layer blocks",
             "@layer tokens { :root { --color: blue; } }",
-            expected_contains=["@layer tokens", ":root{", "--color:blue"],
+            ["@layer tokens", ":root{", "--color:blue"],
+            None,
         )
     )
 
@@ -104,7 +109,8 @@ def main():
         test_case(
             "CSS nesting",
             ".button { color: blue; &:hover { color: red; } }",
-            expected_contains=["&:hover"],
+            ["&:hover"],
+            None,
         )
     )
 
@@ -113,7 +119,8 @@ def main():
         test_case(
             "Strings with quotes",
             'body { font-family: "Helvetica Neue", sans-serif; }',
-            expected_contains=["Helvetica Neue"],
+            ["Helvetica Neue"],
+            None,
         )
     )
 
@@ -122,7 +129,8 @@ def main():
         test_case(
             "Escaped quotes",
             'body { content: "Say \\"hello\\""; }',
-            expected_contains=['Say "hello"'],
+            ['Say "hello"'],
+            None,
         )
     )
 
@@ -131,7 +139,8 @@ def main():
         test_case(
             "CSS functions",
             "div { width: calc(100% - 20px); }",
-            expected_contains=["calc(100%-20px)"],
+            ["calc(100%-20px)"],
+            None,
         )
     )
 
@@ -140,7 +149,8 @@ def main():
         test_case(
             "color-mix function",
             "div { color: color-mix(in srgb, red 50%, blue 50%); }",
-            expected_contains=["color-mix(in srgb,red 50%,blue 50%)"],
+            ["color-mix(in srgb,red 50%,blue 50%)"],
+            None,
         )
     )
 
@@ -149,7 +159,8 @@ def main():
         test_case(
             "Multiple @layer blocks",
             "@layer tokens { :root { --color: blue; } } @layer base { body { margin: 0; } }",
-            expected_contains=["@layer tokens", "@layer base"],
+            ["@layer tokens", "@layer base"],
+            None,
         )
     )
 
@@ -158,7 +169,8 @@ def main():
         test_case(
             "@import statements",
             '@import "reset.css"; body { color: blue; }',
-            expected_contains=['@import"reset.css"'],
+            ['@import"reset.css"'],
+            None,
         )
     )
 
@@ -167,7 +179,8 @@ def main():
         test_case(
             "@media queries",
             "@media (min-width: 768px) { body { font-size: 18px; } }",
-            expected_contains=["@media(min-width:768px)"],
+            ["@media(min-width:768px)"],
+            None,
         )
     )
 
@@ -176,7 +189,8 @@ def main():
         test_case(
             "CSS custom properties",
             ":root { --spacing: 1rem; --color: #333; }",
-            expected_contains=["--spacing:1rem", "--color:#333"],
+            ["--spacing:1rem", "--color:#333"],
+            None,
         )
     )
 
@@ -185,7 +199,8 @@ def main():
         test_case(
             "Complex selectors",
             ".parent > .child + .sibling { color: blue; }",
-            expected_contains=[".parent>.child+.sibling"],
+            [".parent>.child+.sibling"],
+            None,
         )
     )
 
@@ -194,21 +209,21 @@ def main():
         test_case(
             "Attribute selectors",
             'a[href^="https"] { color: green; }',
-            expected_contains=['a[href^="https"]'],
+            ['a[href^="https"]'],
+            None,
         )
     )
 
     # Test 15: Pseudo-elements
-    results.append(
-        test_case("Pseudo-elements", "p::before { content: ''; }", expected_contains=["p::before"])
-    )
+    results.append(test_case("Pseudo-elements", "p::before { content: ''; }", ["p::before"], None))
 
     # Test 16: Multiple spaces
     results.append(
         test_case(
             "Multiple spaces",
             "body    {    color:    blue;    }",
-            expected_contains=["body{", "color:blue"],
+            ["body{", "color:blue"],
+            None,
         )
     )
 
@@ -217,7 +232,8 @@ def main():
         test_case(
             "Newlines and tabs",
             "body\n{\n\tcolor:\tblue;\n}",
-            expected_contains=["body{", "color:blue"],
+            ["body{", "color:blue"],
+            None,
         )
     )
 
@@ -226,7 +242,8 @@ def main():
         test_case(
             "Empty rules",
             ".empty { } .not-empty { color: blue; }",
-            expected_contains=[".empty{}", ".not-empty{", "color:blue"],
+            [".empty{}", ".not-empty{", "color:blue"],
+            None,
         )
     )
 
@@ -235,7 +252,8 @@ def main():
         test_case(
             "URLs in CSS",
             'body { background: url("image.png"); }',
-            expected_contains=['url("image.png")'],
+            ['url("image.png")'],
+            None,
         )
     )
 
@@ -244,8 +262,8 @@ def main():
         test_case(
             "Multiple comments",
             "/* First */ body { /* Second */ color: blue; /* Third */ }",
-            expected_contains=["body{", "color:blue"],
-            expected_not_contains=["First", "Second", "Third", "/*", "*/"],
+            ["body{", "color:blue"],
+            ["First", "Second", "Third", "/*", "*/"],
         )
     )
 

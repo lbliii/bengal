@@ -99,16 +99,18 @@ def _get_build_config_value(config: dict[str, Any] | Any, key: str) -> Any:
 
 
 # Build options that should be coerced from string booleans
-_BOOLEAN_BUILD_OPTIONS = frozenset({
-    "incremental",
-    "quiet",
-    "verbose",
-    "strict_mode",
-    "fast_mode",
-    "memory_optimized",
-    "profile_templates",
-    "strict",
-})
+_BOOLEAN_BUILD_OPTIONS = frozenset(
+    {
+        "incremental",
+        "quiet",
+        "verbose",
+        "strict_mode",
+        "fast_mode",
+        "memory_optimized",
+        "profile_templates",
+        "strict",
+    }
+)
 
 
 def resolve_build_options(

@@ -12,6 +12,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from bengal.collections.errors import ValidationError
 from bengal.collections.validator import SchemaValidator, ValidationResult
 
@@ -1153,7 +1155,3 @@ class TestPydanticIntegration:
 
         assert result.valid is True
         assert result.data.count == 42
-
-
-# Import pytest for importorskip
-import pytest

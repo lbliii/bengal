@@ -152,7 +152,7 @@ def site_1000_pages(tmp_path_factory):
 # Standard build benchmarks
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_100_pages", 100),
         ("site_500_pages", 500),
@@ -182,7 +182,7 @@ def test_standard_build(benchmark, request, site_fixture, page_count):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_100_pages", 100),
         ("site_500_pages", 500),
@@ -211,7 +211,7 @@ def test_fast_mode(benchmark, request, site_fixture, page_count):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_100_pages", 100),
         ("site_500_pages", 500),
@@ -240,7 +240,7 @@ def test_memory_optimized(benchmark, request, site_fixture, page_count):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_100_pages", 100),
         ("site_500_pages", 500),
@@ -269,7 +269,7 @@ def test_sequential_build(benchmark, request, site_fixture, page_count):
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "site_fixture,page_count",
+    ("site_fixture", "page_count"),
     [
         ("site_500_pages", 500),
         ("site_1000_pages", 1000),

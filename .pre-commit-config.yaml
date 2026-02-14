@@ -39,14 +39,20 @@ repos:
       - id: detect-private-key
         priority: 0
 
-  # Ruff for Python linting and formatting
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+  # Ruff - use project's locked version (uv run) for alignment with CI and poe lint
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix, --extend-ignore=E501]
+        name: ruff
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
         priority: 1
       - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
         priority: 1
 
   # Local hooks for Bengal-specific checks

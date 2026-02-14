@@ -138,10 +138,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
     ):
         if "general" not in stats.errors_by_category:
             lines.append("\nGENERAL:")
-        lines.extend(
-            f"  ⚠️  {warning.file_path}: {warning.message}"
-            for warning in stats.warnings
-        )
+        lines.extend(f"  ⚠️  {warning.file_path}: {warning.message}" for warning in stats.warnings)
 
     return "\n".join(lines)
 

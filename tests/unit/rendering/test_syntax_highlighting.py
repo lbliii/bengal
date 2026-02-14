@@ -9,19 +9,16 @@ fall back to plain text rendering with proper escaping.
 
 from __future__ import annotations
 
+# python-markdown is optional (patitas is default)
+import importlib.util
+
 import pytest
 
 from bengal.parsing import PatitasParser
 
-# python-markdown is optional (patitas is default)
-try:
-    import markdown as _markdown_mod  # noqa: F401
-
+HAS_MARKDOWN = importlib.util.find_spec("markdown") is not None
+if HAS_MARKDOWN:
     from bengal.parsing import PythonMarkdownParser
-
-    HAS_MARKDOWN = True
-except ImportError:
-    HAS_MARKDOWN = False
 
 
 class TestMistuneHighlightingAndMermaid:

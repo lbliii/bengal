@@ -252,7 +252,7 @@ class TestLouvainCommunityDetector:
         center = Mock(source_path=Path("center.md"), metadata={})
         spokes = [Mock(source_path=Path(f"spoke{i}.md"), metadata={}) for i in range(5)]
 
-        all_pages = [center] + spokes
+        all_pages = [center, *spokes]
 
         site = Mock()
         site.pages = all_pages

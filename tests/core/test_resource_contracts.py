@@ -17,12 +17,9 @@ import pytest
 
 def _pillow_available() -> bool:
     """Check if Pillow is installed."""
-    try:
-        from PIL import Image
+    import importlib.util
 
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("PIL") is not None
 
 
 class TestProcessParamsValidation:

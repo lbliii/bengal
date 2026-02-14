@@ -114,21 +114,13 @@ def _get_capabilities() -> dict[str, bool]:
     """
     capabilities: dict[str, bool] = {}
 
-    # Pre-built Lunr search index (requires `pip install bengal[search]`)
-    try:
-        from lunr import lunr  # type: ignore[import-not-found]
+    import importlib.util
 
-        capabilities["prebuilt_search"] = True
-    except ImportError:
-        capabilities["prebuilt_search"] = False
+    # Pre-built Lunr search index (requires `pip install bengal[search]`)
+    capabilities["prebuilt_search"] = importlib.util.find_spec("lunr") is not None
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
-    try:
-        import aiohttp
-
-        capabilities["remote_content"] = True
-    except ImportError:
-        capabilities["remote_content"] = False
+    capabilities["remote_content"] = importlib.util.find_spec("aiohttp") is not None
 
     return capabilities
 
@@ -170,7 +162,8 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
             )
             _bs = getattr(site, "build_state", None)
             cached = (
-                getattr(_bs, "template_metadata_cache", None) if _bs is not None
+                getattr(_bs, "template_metadata_cache", None)
+                if _bs is not None
                 else getattr(site, "_bengal_template_metadata_cache", None)
             )
             if (

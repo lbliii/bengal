@@ -102,7 +102,6 @@ def benchmark_template(
 ) -> BenchmarkResult:
     """Benchmark a template with both engines."""
     from jinja2 import Environment as JinjaEnv
-
     from kida import Environment as KidaEnv
 
     # Setup Jinja2
@@ -187,7 +186,7 @@ def kida_env():
     return Environment(autoescape=True)
 
 
-@pytest.mark.parametrize("template_name,template_source", SIMPLE_TEMPLATES.items())
+@pytest.mark.parametrize(("template_name", "template_source"), SIMPLE_TEMPLATES.items())
 def test_kida_faster_than_jinja(
     benchmark, template_name, template_source, simple_context, jinja_env, kida_env
 ):
@@ -217,7 +216,7 @@ def test_nested_loop_performance(benchmark, simple_context, kida_env):
     template = kida_env.from_string(
         "{% for row in rows %}{% for col in row %}{{ col }}{% endfor %}{% endfor %}"
     )
-    context = {"rows": [[j for j in range(10)] for i in range(100)]}
+    context = {"rows": [list(range(10)) for i in range(100)]}
     benchmark(template.render, **context)
 
 

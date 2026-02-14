@@ -17,7 +17,9 @@ def simple_site(tmp_path):
 
     # Create pages (slug is auto-derived from title)
     page1 = Page(
-        source_path=tmp_path / "page1.md", _raw_content="# Page 1", _raw_metadata={"title": "Page 1"}
+        source_path=tmp_path / "page1.md",
+        _raw_content="# Page 1",
+        _raw_metadata={"title": "Page 1"},
     )
 
     page2 = Page(
@@ -49,18 +51,24 @@ def site_with_links(tmp_path):
 
     # Create leaf pages that link to hub
     leaf1 = Page(
-        source_path=tmp_path / "leaf1.md", _raw_content="# Leaf 1", _raw_metadata={"title": "Leaf 1"}
+        source_path=tmp_path / "leaf1.md",
+        _raw_content="# Leaf 1",
+        _raw_metadata={"title": "Leaf 1"},
     )
     leaf1.related_posts = [hub]  # Simulates link
 
     leaf2 = Page(
-        source_path=tmp_path / "leaf2.md", _raw_content="# Leaf 2", _raw_metadata={"title": "Leaf 2"}
+        source_path=tmp_path / "leaf2.md",
+        _raw_content="# Leaf 2",
+        _raw_metadata={"title": "Leaf 2"},
     )
     leaf2.related_posts = [hub]  # Simulates link
 
     # Create orphan (no connections)
     orphan = Page(
-        source_path=tmp_path / "orphan.md", _raw_content="# Orphan", _raw_metadata={"title": "Orphan"}
+        source_path=tmp_path / "orphan.md",
+        _raw_content="# Orphan",
+        _raw_metadata={"title": "Orphan"},
     )
 
     site.pages = [hub, leaf1, leaf2, orphan]
@@ -164,7 +172,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hub = [p for p in site_with_links.pages if p.slug == "hub"][0]
+        hub = next(p for p in site_with_links.pages if p.slug == "hub")
         score = graph.get_connectivity_score(hub)
 
         # Hub has 2 incoming refs (from leaf1 and leaf2)
@@ -175,7 +183,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hub = [p for p in site_with_links.pages if p.slug == "hub"][0]
+        hub = next(p for p in site_with_links.pages if p.slug == "hub")
         conn = graph.get_connectivity(hub)
 
         assert isinstance(conn, PageConnectivity)
@@ -189,7 +197,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        orphan = [p for p in site_with_links.pages if p.slug == "orphan"][0]
+        orphan = next(p for p in site_with_links.pages if p.slug == "orphan")
         conn = graph.get_connectivity(orphan)
 
         assert conn.is_orphan is True
@@ -301,8 +309,12 @@ class TestFormatStats:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages that all reference each other
-        page1 = Page(source_path=tmp_path / "p1.md", _raw_content="", _raw_metadata={"title": "Page 1"})
-        page2 = Page(source_path=tmp_path / "p2.md", _raw_content="", _raw_metadata={"title": "Page 2"})
+        page1 = Page(
+            source_path=tmp_path / "p1.md", _raw_content="", _raw_metadata={"title": "Page 1"}
+        )
+        page2 = Page(
+            source_path=tmp_path / "p2.md", _raw_content="", _raw_metadata={"title": "Page 2"}
+        )
         page1.related_posts = [page2]
         page2.related_posts = [page1]
 

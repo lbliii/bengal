@@ -62,9 +62,9 @@ from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
-from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
-from bengal.server.build_state import build_state
+from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
+from bengal.server.build_state import build_state
 from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
@@ -302,7 +302,7 @@ class BuildTrigger:
             build_start = time.time()
             try:
                 stats = self.site.build(options=build_opts)
-                build_duration = (time.time() - build_start)
+                build_duration = time.time() - build_start
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
@@ -311,17 +311,22 @@ class BuildTrigger:
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
-                        self.changed_outputs = tuple(
-                            (str(r.path), r.output_type.value, r.phase)
-                            for r in stats.changed_outputs
-                        ) if hasattr(stats, 'changed_outputs') else ()
+                        self.changed_outputs = (
+                            tuple(
+                                (str(r.path), r.output_type.value, r.phase)
+                                for r in stats.changed_outputs
+                            )
+                            if hasattr(stats, "changed_outputs")
+                            else ()
+                        )
+                        self.reload_hint = getattr(stats, "reload_hint", None)
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
 
             except Exception as e:
                 # Build crashed - log error and reinitialize site for next build
-                build_duration = (time.time() - build_start)
+                build_duration = time.time() - build_start
                 error_msg = str(e)
 
                 show_error(f"Build failed: {error_msg}", show_art=False)
@@ -350,6 +355,7 @@ class BuildTrigger:
                 # This ensures the next build starts clean
                 try:
                     from bengal.core.site import Site
+
                     logger.info("warm_build_recovery", action="reinitializing_site")
                     self.site = Site.from_config(self.site.root_path)
                     self.site.dev_mode = True
@@ -383,7 +389,11 @@ class BuildTrigger:
             )
 
             # Handle reload decision
-            self._handle_reload(changed_files, result.changed_outputs)
+            self._handle_reload(
+                changed_files,
+                result.changed_outputs,
+                reload_hint=result.reload_hint,
+            )
 
             # Clear HTML cache
             self._clear_html_cache()
@@ -681,7 +691,7 @@ class BuildTrigger:
         """
         import hashlib
 
-        if not path.suffix.lower() == ".md":
+        if path.suffix.lower() != ".md":
             return False
 
         try:
@@ -939,10 +949,12 @@ class BuildTrigger:
         self,
         changed_files: list[str],
         changed_outputs: tuple[tuple[str, str, str], ...],
+        reload_hint: str | None = None,
     ) -> None:
         """Handle reload decision and notification.
 
-        Uses typed outputs from the build for accurate reload decisions:
+        Uses typed outputs from the build for accurate reload decisions.
+        reload_hint from BuildStats is advisory (css-only, full, none).
         1. Primary: Typed outputs from build (CSS-only vs full reload)
         2. Fallback: Path-based decision (when typed outputs unavailable)
 
@@ -953,6 +965,10 @@ class BuildTrigger:
             changed_files: List of source file paths that changed (for logging)
             changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
         """
+        if reload_hint == "none":
+            logger.info("reload_suppressed", reason="reload-hint-none")
+            return
+
         decision = None
         decision_source = "none"
 
@@ -971,7 +987,7 @@ class BuildTrigger:
                     logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
-                decision = controller.decide_from_outputs(records)
+                decision = controller.decide_from_outputs(records, reload_hint=reload_hint)
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",

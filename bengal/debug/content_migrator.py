@@ -217,10 +217,7 @@ class MovePreview:
 
         if self.affected_links:
             lines.append(f"🔗 {len(self.affected_links)} links would be updated:")
-            lines.extend(
-                f"   • {link.file_path}:{link.line}"
-                for link in self.affected_links[:5]
-            )
+            lines.extend(f"   • {link.file_path}:{link.line}" for link in self.affected_links[:5])
             if len(self.affected_links) > 5:
                 lines.append(f"   ... and {len(self.affected_links) - 5} more")
             lines.append("")
@@ -774,7 +771,7 @@ class ContentMigrator(DebugTool):
             path = path[:-3]
 
         # Handle index files
-        if path.endswith("/index") or path.endswith("/_index"):
+        if path.endswith(("/index", "/_index")):
             path = path.rsplit("/", 1)[0]
 
         return "/" + path.strip("/")

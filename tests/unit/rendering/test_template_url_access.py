@@ -65,16 +65,15 @@ class TestChildPageTilesMacro:
         assert guides_section is not None
 
         # Simulate macro: {% for page in posts %}
-        tile_data = []
-        for page in guides_section.pages:
-            if page.source_path.stem != "_index":
-                tile_data.append(
-                    {
-                        "title": page.title,
-                        "url": page.href,  # This is what templates access
-                        "description": page.metadata.get("description", ""),
-                    }
-                )
+        tile_data = [
+            {
+                "title": page.title,
+                "url": page.href,
+                "description": page.metadata.get("description", ""),
+            }
+            for page in guides_section.pages
+            if page.source_path.stem != "_index"
+        ]
 
         # Verify all URLs have section prefix
         assert len(tile_data) >= 3
@@ -85,7 +84,7 @@ class TestChildPageTilesMacro:
 
     def test_sorted_pages_iteration_urls(self, site_with_children):
         """Test URL access when iterating sorted_pages."""
-        guides_section = [s for s in site_with_children.sections if s.name == "guides"][0]
+        guides_section = next(s for s in site_with_children.sections if s.name == "guides")
 
         # Simulate: {% for page in section.sorted_pages %}
         for page in guides_section.sorted_pages:
@@ -130,7 +129,7 @@ class TestNavigationComponentURLs:
     def test_docs_nav_sidebar_urls(self, nested_nav_site):
         """Simulate docs-nav.html sidebar navigation."""
         # Find root docs section
-        root_section = [s for s in nested_nav_site.sections if s.name == "docs"][0]
+        root_section = next(s for s in nested_nav_site.sections if s.name == "docs")
 
         # Simulate navigation template iterating through hierarchy
         def collect_nav_urls(section, prefix="/"):
@@ -140,13 +139,14 @@ class TestNavigationComponentURLs:
                 urls.append(section.index_page.href)
 
             # Section pages
-            for page in section.pages:
-                if page != section.index_page:
-                    urls.append(page.href)
+            urls.extend(page.href for page in section.pages if page != section.index_page)
 
             # Subsections
-            for subsection in section.subsections:
-                urls.extend(collect_nav_urls(subsection, prefix))
+            urls.extend(
+                url
+                for subsection in section.subsections
+                for url in collect_nav_urls(subsection, prefix)
+            )
 
             return urls
 
@@ -343,7 +343,7 @@ class TestTemplateAccessPatterns:
 
     def test_loop_iteration_access(self, access_test_site):
         """Test: {% for page in section.pages %}{{ page.href }}{% endfor %}"""
-        section = [s for s in access_test_site.sections if s.name == "articles"][0]
+        section = next(s for s in access_test_site.sections if s.name == "articles")
 
         for page in section.pages:
             url = page.href  # Loop iteration access
@@ -352,7 +352,7 @@ class TestTemplateAccessPatterns:
 
     def test_array_index_access(self, access_test_site):
         """Test: {{ section.pages[0].url }}"""
-        section = [s for s in access_test_site.sections if s.name == "articles"][0]
+        section = next(s for s in access_test_site.sections if s.name == "articles")
         regular_pages = [p for p in section.pages if p.source_path.stem != "_index"]
 
         if regular_pages:

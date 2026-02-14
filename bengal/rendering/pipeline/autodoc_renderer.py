@@ -14,14 +14,14 @@ MetadataView: Dict wrapper for dotted attribute access.
 from __future__ import annotations
 
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from kida.environment.exceptions import (
     TemplateNotFoundError,
     TemplateSyntaxError,
 )
 
-from bengal.protocols import SiteConfig
+from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
@@ -145,7 +145,7 @@ class AutodocRenderer:
             self._render_autodoc_page(page)
             write_output(
                 page,
-                self.site,
+                cast(SiteLike, self.site),
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
@@ -164,25 +164,21 @@ class AutodocRenderer:
         # Complete pages should not be wrapped with another template
         prerendered = page._prerendered_html or ""
         prerendered_stripped = prerendered.strip()
-        is_complete_page = (
-            prerendered_stripped.startswith("<!DOCTYPE")
-            or prerendered_stripped.startswith("<html")
-            or prerendered_stripped.startswith("<!doctype")
-        )
+        is_complete_page = prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
 
         if is_complete_page:
             # Use pre-rendered HTML directly (it's already a complete page)
             page.rendered_html = prerendered
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
         else:
             # Wrap content fragment with template
             html_content = self.renderer.render_content(page.html_content or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
 
         write_output(
             page,
-            self.site,
+            cast(SiteLike, self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
@@ -240,7 +236,7 @@ class AutodocRenderer:
             page.html_content = page._prerendered_html
             page.toc = ""
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
             return
 
         # Render with full site context (same as regular pages)
@@ -307,7 +303,7 @@ class AutodocRenderer:
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
             return
 
         page._prerendered_html = html_content
@@ -315,7 +311,7 @@ class AutodocRenderer:
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
-        page.rendered_html = format_html(page.rendered_html, page, self.site)
+        page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.

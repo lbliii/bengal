@@ -70,10 +70,9 @@ class TestProductJSONLD:
 
     def test_product_page_has_structured_data_frontmatter(self, site) -> None:
         """Product pages with structured_data: true should be identified."""
-        pages_with_structured_data = []
-        for page in site.pages:
-            if page.metadata.get("structured_data") is True:
-                pages_with_structured_data.append(page)
+        pages_with_structured_data = [
+            page for page in site.pages if page.metadata.get("structured_data") is True
+        ]
 
         assert len(pages_with_structured_data) >= 1, (
             "At least 1 page should have structured_data: true"
@@ -164,9 +163,7 @@ class TestProductData:
         """Product data YAML file should exist in template."""
         from pathlib import Path
 
-        template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
-        )
+        template_dir = Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         data_file = template_dir / "data" / "products.yaml"
 
         assert data_file.exists(), f"Products data file should exist at {data_file}"
@@ -177,9 +174,7 @@ class TestProductData:
 
         import yaml
 
-        template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
-        )
+        template_dir = Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         data_file = template_dir / "data" / "products.yaml"
 
         with open(data_file) as f:

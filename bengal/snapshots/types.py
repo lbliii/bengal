@@ -251,9 +251,7 @@ class SiteSnapshot:
     # Pre-computed navigation trees keyed by version_id ("__default__" for unversioned).
     # Built at snapshot time from the fully-populated site, enabling lock-free
     # O(1) lookups during parallel rendering and eliminating NavTreeCache locks.
-    nav_trees: MappingProxyType[str, NavTree] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    nav_trees: MappingProxyType[str, NavTree] = field(default_factory=lambda: MappingProxyType({}))
 
     # Pre-computed top-level content (eliminates Renderer._cache_lock).
     # Pages and sections not nested in any parent section.

@@ -14,10 +14,10 @@ FRONTMATTER (from notebook metadata):
 title: Analysis
 type: notebook
 notebook:
-  kernel_name: python3
-  cell_count: 12
-  language_version: python
-download_url: /path/to/notebook.ipynb  (optional, auto from source)
+kernel_name: python3
+cell_count: 12
+language_version: python
+download_url: /path/to/notebook.ipynb (optional, auto from source)
 binder_url: https://mybinder.org/... (optional)
 colab_url: (optional; auto from repo_url + colab_branch when set in [params])
 ---
@@ -36,8 +36,8 @@ KIDA FEATURES USED:
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-   NOTEBOOK ACTION LINK (Download, Binder, Colab)
-   ============================================================================= #}
+NOTEBOOK ACTION LINK (Download, Binder, Colab)
+============================================================================= #}
 {% def notebook_action(href, label, icon_name='download') %}
 {% if href %}
 <a href="{{ href | absolute_url }}" class="page-hero__notebook-action" target="_blank" rel="noopener noreferrer"
@@ -49,8 +49,8 @@ KIDA FEATURES USED:
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Template-scoped variables with null-safe access #}

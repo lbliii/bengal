@@ -108,10 +108,9 @@ class TestIndexGeneratorVisibilityFiltering:
         metadata = {"title": "Regular Page"}
 
         search_exclude = False
-        if (
-            metadata.get("hidden", False)
-            or (isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True))
+        if metadata.get("hidden", False) or (
+            isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True)
         ):
             search_exclude = True
 
@@ -128,10 +127,9 @@ class TestIndexGeneratorVisibilityFiltering:
         }
 
         search_exclude = False
-        if (
-            metadata.get("hidden", False)
-            or (isinstance(metadata.get("visibility"), dict)
-            and not metadata["visibility"].get("search", True))
+        if metadata.get("hidden", False) or (
+            isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True)
         ):
             search_exclude = True
 

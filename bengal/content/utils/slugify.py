@@ -48,9 +48,8 @@ def path_to_slug(rel_path: Path | str, *, handle_index: bool = True) -> str:
     slug = to_posix(slug)
 
     # Handle index files
-    if handle_index:
-        if slug.endswith("/index") or slug == "index":
-            slug = slug.rsplit("/index", 1)[0] or "index"
+    if handle_index and (slug.endswith("/index") or slug == "index"):
+        slug = slug.rsplit("/index", 1)[0] or "index"
 
     return slug
 

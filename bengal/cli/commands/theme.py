@@ -454,7 +454,7 @@ def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str
         if current in visited:
             # Found a cycle - show the cycle path
             cycle_start = chain_path.index(current)
-            cycle = " → ".join(chain_path[cycle_start:] + [current])
+            cycle = " → ".join([*chain_path[cycle_start:], current])
             issues.append(f"Circular inheritance detected: {cycle}")
             break
         visited.add(current)
@@ -473,8 +473,7 @@ def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str
 
     chain = resolve_theme_chain(site_root, active_theme)
     issues.extend(
-        f"Theme '{theme_name}' not found in any location"
-        " (site, installed, or bundled)"
+        f"Theme '{theme_name}' not found in any location (site, installed, or bundled)"
         for theme_name in chain
         if not _theme_exists(site_root, theme_name)
     )

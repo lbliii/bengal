@@ -150,10 +150,7 @@ class MarimoDirective:
             generator.build()
             html = generator.render_html()
 
-            sb.append(
-                f'<div class="marimo-cell"'
-                f' data-cell-id="{cell_id}"{label_attr}>\n'
-            )
+            sb.append(f'<div class="marimo-cell" data-cell-id="{cell_id}"{label_attr}>\n')
             sb.append(html)
             sb.append("\n</div>\n")
 
@@ -164,8 +161,7 @@ class MarimoDirective:
                 label_attr=label_attr,
                 title="Marimo Not Installed",
                 message=(
-                    "Install Marimo to use executable code blocks: "
-                    "<code>pip install marimo</code>"
+                    "Install Marimo to use executable code blocks: <code>pip install marimo</code>"
                 ),
                 code=code,
             )
@@ -197,19 +193,13 @@ class MarimoDirective:
     ) -> None:
         """Render an error fallback for a Marimo cell."""
         code_escaped = html_escape(code)
-        sb.append(
-            f'<div class="marimo-cell marimo-error"'
-            f' data-cell-id="{cell_id}"{label_attr}>\n'
-        )
+        sb.append(f'<div class="marimo-cell marimo-error" data-cell-id="{cell_id}"{label_attr}>\n')
         sb.append('  <div class="admonition danger">\n')
         sb.append(f'    <p class="admonition-title">{title}</p>\n')
         sb.append(f"    <p>{message}</p>\n")
         sb.append("    <details>\n")
         sb.append("      <summary>Show code</summary>\n")
-        sb.append(
-            f'      <pre><code class="language-python">'
-            f"{code_escaped}</code></pre>\n"
-        )
+        sb.append(f'      <pre><code class="language-python">{code_escaped}</code></pre>\n')
         sb.append("    </details>\n")
         sb.append("  </div>\n")
         sb.append("</div>\n")

@@ -248,7 +248,8 @@ class TestRegressionPrevention:
             result = plugin._substitute_variables(example)
             result = plugin.restore_placeholders(result)
             # Should become HTML-escaped, not cause error
-            assert "&#123;&#123;" in result and "&#125;&#125;" in result
+            assert "&#123;&#123;" in result
+            assert "&#125;&#125;" in result
             assert "{{/*" not in result
 
     def test_jsx_syntax_in_docs(self):
@@ -282,7 +283,8 @@ class TestRegressionPrevention:
             result = plugin._substitute_variables(example)
             result = plugin.restore_placeholders(result)
             # Should preserve the dot syntax as HTML-escaped
-            assert "&#123;&#123;" in result and "&#125;&#125;" in result
+            assert "&#123;&#123;" in result
+            assert "&#125;&#125;" in result
             # Should not have the escape markers
             assert "{{/*" not in result
 

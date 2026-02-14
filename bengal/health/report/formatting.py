@@ -309,8 +309,7 @@ def format_verbose(
 
             # Show successes briefly (grouped at end)
             lines.extend(
-                f"    {icons.success} {result.formatted_message}"
-                for result in other_results
+                f"    {icons.success} {result.formatted_message}" for result in other_results
             )
 
             if not is_last_problem:

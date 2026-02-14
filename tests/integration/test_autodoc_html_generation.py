@@ -147,7 +147,7 @@ class TestAutodocPageTypes:
             )
 
     @pytest.mark.parametrize(
-        "autodoc_type,expected_type",
+        ("autodoc_type", "expected_type"),
         [
             ("python", "autodoc-python"),
             ("cli", "autodoc-cli"),
@@ -267,7 +267,8 @@ class TestAutodocHTMLContent:
 
         for page_path in list(api_dir.rglob("index.html"))[:10]:
             html = page_path.read_text()
-            assert "<title>" in html and "</title>" in html, f"Page {page_path} missing title tag"
+            assert "<title>" in html, f"Page {page_path} missing <title>"
+            assert "</title>" in html, f"Page {page_path} missing </title>"
 
     def test_pages_have_navigation(self, built_site_output: Path) -> None:
         """All autodoc pages should have navigation elements."""

@@ -272,4 +272,4 @@ async def headless_app():
         """Create an app instance for testing."""
         return app_class(*args, **kwargs)
 
-    yield _create_app
+    return _create_app

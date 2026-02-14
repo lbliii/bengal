@@ -236,7 +236,7 @@ class TestThreadSafeSet:
         with ThreadPoolExecutor(max_workers=10) as executor:
             # Each item submitted 5 times across threads
             for i in range(10):
-                for j in range(5):
+                for _j in range(5):
                     executor.submit(worker, f"item_{i}")
 
         # Should have exactly 10 True results (one per unique item)

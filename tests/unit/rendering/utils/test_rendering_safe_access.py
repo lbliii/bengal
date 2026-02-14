@@ -264,5 +264,3 @@ class TestEnsureDefined:
         """False is a valid value and should be returned."""
         assert ensure_defined(False) is False
         assert ensure_defined(False, True) is False
-
-

@@ -48,19 +48,15 @@ class TestI18nTranslations:
 
     def test_pages_have_lang_attribute(self, site) -> None:
         """Pages should have language attribute set."""
-        pages_with_lang = []
-        for page in site.pages:
-            if hasattr(page, "lang") and page.lang:
-                pages_with_lang.append(page)
+        pages_with_lang = [page for page in site.pages if hasattr(page, "lang") and page.lang]
 
         assert len(pages_with_lang) >= 2, "At least 2 pages should have lang attribute set"
 
     def test_translation_keys_present(self, site) -> None:
         """Pages should have translation_key for linking translations."""
-        pages_with_key = []
-        for page in site.pages:
-            if hasattr(page, "translation_key") and page.translation_key:
-                pages_with_key.append(page)
+        pages_with_key = [
+            page for page in site.pages if hasattr(page, "translation_key") and page.translation_key
+        ]
 
         assert len(pages_with_key) >= 2, "At least 2 pages should have translation_key for linking"
 

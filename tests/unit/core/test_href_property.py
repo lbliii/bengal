@@ -31,7 +31,7 @@ class TestPageHrefPath:
     """Test Page.href and Page._path properties."""
 
     @pytest.mark.parametrize(
-        "baseurl,expected_href,expected_path",
+        ("baseurl", "expected_href", "expected_path"),
         [
             ("", "/docs/getting-started/", "/docs/getting-started/"),
             ("/bengal", "/bengal/docs/getting-started/", "/docs/getting-started/"),
@@ -117,7 +117,7 @@ class TestSectionHrefPath:
     """Test Section.href and Section._path properties."""
 
     @pytest.mark.parametrize(
-        "baseurl,expected_href,expected_path",
+        ("baseurl", "expected_href", "expected_path"),
         [
             ("", "/docs/", "/docs/"),
             ("/bengal", "/bengal/docs/", "/docs/"),

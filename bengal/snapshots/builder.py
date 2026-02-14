@@ -37,15 +37,8 @@ from bengal.snapshots.scheduling import (
     _snapshot_menus,
     _snapshot_taxonomies,
 )
-from bengal.snapshots.speculative import (
-    ShadowModeValidator,
-    SpeculativeRenderer,
-    predict_affected,
-)
 from bengal.snapshots.templates import (
-    _get_transitive_dependents,
     _snapshot_templates,
-    pages_affected_by_template_change,
 )
 from bengal.snapshots.types import (
     NO_SECTION,
@@ -149,14 +142,10 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
             continue
 
         section = getattr(mutable_page, "_section", None)
-        section_snapshot = (
-            section_cache.get(id(section)) if section else NO_SECTION
-        ) or NO_SECTION
+        section_snapshot = (section_cache.get(id(section)) if section else NO_SECTION) or NO_SECTION
 
         if page_snapshot.section != section_snapshot:
-            page_cache[id(mutable_page)] = update_frozen(
-                page_snapshot, section=section_snapshot
-            )
+            page_cache[id(mutable_page)] = update_frozen(page_snapshot, section=section_snapshot)
 
     # Phase 4: Resolve prev/next navigation
     _resolve_navigation(page_cache, site)
@@ -182,19 +171,14 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
 
     # Create config snapshot
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
-    if isinstance(config_dict, dict):
-        config_dict = dict(config_dict)
-    else:
-        config_dict = {}
+    config_dict = dict(config_dict) if isinstance(config_dict, dict) else {}
     config_snapshot = ConfigSnapshot.from_dict(config_dict)
 
     # Build navigation trees
     nav_trees = _build_nav_trees(site)
 
     # Pre-compute top-level content and tag pages
-    top_level_pages, top_level_sections = _compute_top_level_content(
-        regular_pages, all_sections
-    )
+    top_level_pages, top_level_sections = _compute_top_level_content(regular_pages, all_sections)
     tag_pages = _compute_tag_pages(taxonomies)
 
     return SiteSnapshot(
@@ -415,10 +399,7 @@ def update_snapshot(
     # Reuse config if unchanged
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
     # Type narrowing: ensure config_dict is a dict
-    if isinstance(config_dict, dict):
-        config_dict = dict(config_dict)
-    else:
-        config_dict = {}
+    config_dict = dict(config_dict) if isinstance(config_dict, dict) else {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
 
     # Rebuild nav trees (structure may have changed)
@@ -504,12 +485,8 @@ def _compute_top_level_content(
         for sub in parent.subsections:
             nested_section_paths.add(sub.path)
 
-    top_pages = tuple(
-        p for p in regular_pages if p.source_path not in pages_in_sections
-    )
-    top_sections = tuple(
-        s for s in sections if s.path not in nested_section_paths
-    )
+    top_pages = tuple(p for p in regular_pages if p.source_path not in pages_in_sections)
+    top_sections = tuple(s for s in sections if s.path not in nested_section_paths)
 
     return top_pages, top_sections
 

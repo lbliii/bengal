@@ -49,7 +49,7 @@ def mock_site() -> Generator[MagicMock]:
     site.registry.register_section = Mock()
     site.registry.get_section = Mock(return_value=None)
 
-    yield site
+    return site
 
 
 @pytest.fixture
@@ -280,7 +280,7 @@ class TestPageTypes:
     """Test all autodoc page types."""
 
     @pytest.mark.parametrize(
-        "page_type,template",
+        ("page_type", "template"),
         [
             ("module", "autodoc/python/module"),
             ("class", "autodoc/python/class"),

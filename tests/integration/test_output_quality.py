@@ -10,12 +10,12 @@ from pathlib import Path
 
 import pytest
 
-bs4 = pytest.importorskip("bs4", reason="beautifulsoup4 required for output quality tests")
-BeautifulSoup = bs4.BeautifulSoup
-
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
 from bengal.rendering.errors import TemplateRenderError
+
+bs4 = pytest.importorskip("bs4", reason="beautifulsoup4 required for output quality tests")
+BeautifulSoup = bs4.BeautifulSoup
 
 
 @pytest.fixture(scope="class")

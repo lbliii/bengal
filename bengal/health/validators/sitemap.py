@@ -239,17 +239,16 @@ class SitemapValidator(BaseValidator):
         total_pages = len(publishable_pages)
 
         # Calculate coverage
-        if total_pages > 0:
-            if sitemap_count < total_pages:
-                missing = total_pages - sitemap_count
-                results.append(
-                    CheckResult.warning(
-                        f"Sitemap has {sitemap_count} URLs but site has {total_pages} publishable pages ({missing} missing)",
-                        code="H509",
-                        recommendation="Ensure all pages are included in sitemap. Check if some pages have output_path issues.",
-                    )
+        if total_pages > 0 and sitemap_count < total_pages:
+            missing = total_pages - sitemap_count
+            results.append(
+                CheckResult.warning(
+                    f"Sitemap has {sitemap_count} URLs but site has {total_pages} publishable pages ({missing} missing)",
+                    code="H509",
+                    recommendation="Ensure all pages are included in sitemap. Check if some pages have output_path issues.",
                 )
-            # Extra URLs (sitemap_count > total_pages) is normal - generated pages like tags/archives
-            # No success message - if coverage is good, silence is golden
+            )
+        # Extra URLs (sitemap_count > total_pages) is normal - generated pages like tags/archives
+        # No success message - if coverage is good, silence is golden
 
         return results

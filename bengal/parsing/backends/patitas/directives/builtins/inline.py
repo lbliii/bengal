@@ -55,6 +55,7 @@ def ensure_badge_base_class(css_class: str) -> str:
 
     return css_class
 
+
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
     from patitas.nodes import Block

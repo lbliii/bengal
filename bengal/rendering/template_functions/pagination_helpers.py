@@ -145,8 +145,7 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
         pages.append(None)  # Ellipsis
 
     # Add pages around current
-    for page in range(start, end + 1):
-        pages.append(page)
+    pages.extend(range(start, end + 1))
 
     # Add ellipsis before last page if needed
     if end < total_pages - 1:

@@ -281,7 +281,7 @@ class ErrorCode(Enum):
     B004 = "menu_build_failed"  # Menu building failure
     B005 = "taxonomy_collection_failed"  # Taxonomy collection failure
     B006 = "taxonomy_page_generation_failed"  # Taxonomy page generation failure
-    B007 = "asset_processing_failed"  # Asset processing failure
+    B007 = "build_asset_processing_failed"  # Asset processing failure
     B008 = "postprocess_task_failed"  # Post-processing task failure
     B009 = "section_finalization_failed"  # Section finalization failure
     B010 = "cache_initialization_failed"  # Cache/tracker initialization failure

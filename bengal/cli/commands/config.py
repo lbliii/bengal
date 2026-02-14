@@ -378,7 +378,7 @@ def _compute_diff(
     all_keys = set(config1.keys()) | set(config2.keys())
 
     for key in sorted(all_keys):
-        key_path = ".".join(path + [key])
+        key_path = ".".join([*path, key])
 
         if key not in config1:
             # Added in config2
@@ -390,7 +390,7 @@ def _compute_diff(
             # Changed
             if isinstance(config1[key], dict) and isinstance(config2[key], dict):
                 # Recurse into nested dicts
-                diffs.extend(_compute_diff(config1[key], config2[key], path + [key]))
+                diffs.extend(_compute_diff(config1[key], config2[key], [*path, key]))
             else:
                 diffs.append(
                     {

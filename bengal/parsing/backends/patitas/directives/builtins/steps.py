@@ -43,7 +43,6 @@ Matches Bengal's steps directive exactly.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape

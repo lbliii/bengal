@@ -248,7 +248,7 @@ class TestLinkSuggestionEngine:
             MockAnalysisPage(source_path=Path(f"target{i}.md"), tags=["python"]) for i in range(20)
         ]
 
-        graph = _create_mock_graph([source] + targets)
+        graph = _create_mock_graph([source, *targets])
 
         max_suggestions = 5
         engine = LinkSuggestionEngine(

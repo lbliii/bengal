@@ -37,7 +37,7 @@ def measure_memory(func, *args, iterations=10):
         try:
             func(*args)
         finally:
-            current, peak = tracemalloc.get_traced_memory()
+            _current, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
 
         measurements.append(peak / 1024)  # Convert to KB
@@ -92,6 +92,7 @@ def main():
 
     # Setup parsers
     from bengal.parsing.backends.mistune import MistuneParser
+
     from bengal.parsing.backends.patitas import create_markdown
 
     mistune_parser = MistuneParser(enable_highlighting=False)

@@ -78,6 +78,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug, split_url_path
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -116,14 +117,20 @@ class XRefIndexGenerator:
 
     """
 
-    def __init__(self, site: SiteLike) -> None:
+    def __init__(
+        self,
+        site: SiteLike,
+        collector: OutputCollector | None = None,
+    ) -> None:
         """
         Initialize the xref index generator.
 
         Args:
             site: Site instance with discovered pages
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
+        self._collector = collector
 
     def generate(self) -> Path:
         """
@@ -173,6 +180,11 @@ class XRefIndexGenerator:
         with AtomicFile(output_path, "w", encoding="utf-8") as f:
             f.write(json_str)
 
+        if self._collector:
+            from bengal.core.output import OutputType
+
+            self._collector.record(output_path, OutputType.JSON, phase="postprocess")
+
         logger.info(
             "xref_index_written",
             path=str(output_path),
@@ -213,7 +225,9 @@ class XRefIndexGenerator:
         else:
             self._add_content_page_entry(entries, page, page_url)
 
-    def _add_content_page_entry(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
+    def _add_content_page_entry(
+        self, entries: dict[str, Any], page: PageLike, page_url: str
+    ) -> None:
         """
         Add a content page entry to the index.
 
@@ -332,7 +346,9 @@ class XRefIndexGenerator:
                     "summary": page.metadata.get("description", "")[:200] or None,
                 }
 
-    def _add_cli_autodoc_entries(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
+    def _add_cli_autodoc_entries(
+        self, entries: dict[str, Any], page: PageLike, page_url: str
+    ) -> None:
         """
         Add CLI autodoc entries (commands, subcommands).
 

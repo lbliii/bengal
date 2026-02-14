@@ -79,7 +79,7 @@ class TestAtomicWriteText:
         # Mock write_text to raise an error after creating the temp file
         with (
             patch("pathlib.Path.write_text", side_effect=OSError("Mock write error")),
-            pytest.raises(OSError),
+            pytest.raises(OSError, match="Mock write error"),
         ):
             atomic_write_text(file_path, "content")
 

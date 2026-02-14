@@ -451,7 +451,6 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
         from bengal.effects.render_integration import (
             record_extra_dependency,
-            record_template_include,
         )
 
         cached_paths = self._referenced_template_paths_cache.get(template_name)

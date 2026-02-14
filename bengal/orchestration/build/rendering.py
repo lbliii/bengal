@@ -362,7 +362,7 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
         for template_name in templates_to_check:
             cacheable = engine.get_cacheable_blocks(template_name)
             if cacheable:
-                for _block_name, scope in cacheable.items():
+                for scope in cacheable.values():
                     if scope == "site":
                         site_cacheable += 1
                     elif scope == "page":
@@ -583,7 +583,7 @@ def phase_render(
                         write_behind=write_behind,
                         progress_manager=progress_manager,
                     )
-                    render_stats = scheduler.render_all(pages_to_build)
+                    _render_stats = scheduler.render_all(pages_to_build)
                     # RenderStats are for internal tracking only
                     # BuildStats tracks timing via rendering_time_ms (set below)
                     # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
@@ -695,11 +695,7 @@ def phase_update_site_pages(
 
         rendered_map = {}
         for page in pages_to_build:
-            if (
-                isinstance(page, PageProxy)
-                and page._lazy_loaded
-                and page._full_page is not None
-            ):
+            if isinstance(page, PageProxy) and page._lazy_loaded and page._full_page is not None:
                 rendered_map[page.source_path] = page._full_page
             else:
                 rendered_map[page.source_path] = page

@@ -45,7 +45,8 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from html import escape as html_escape, unescape as html_unescape
+from html import escape as html_escape
+from html import unescape as html_unescape
 from typing import TYPE_CHECKING, ClassVar
 
 from patitas.nodes import Directive

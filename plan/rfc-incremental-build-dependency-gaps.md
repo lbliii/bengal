@@ -1,9 +1,11 @@
 # RFC: Incremental Build Dependency Gaps
 
-## Status: Infrastructure Complete, Integration Pending 🟡
+## Status: Stale — Architecture Evolved
 ## Created: 2026-01-13
-## Updated: 2026-01-30
+## Updated: 2026-02-14
 ## Implemented: Partial (see Implementation Status below)
+
+> **Architecture note (2026-02-14)**: This RFC references `bengal/build/tracking/` which was never created. The codebase uses `bengal/orchestration/build/coordinator.py` (CacheCoordinator) and `bengal/orchestration/incremental/` (EffectBasedDetector). Re-verify paths before implementing remaining work.
 
 ---
 
@@ -30,13 +32,11 @@ The following tracking and invalidation methods were implemented:
 
 | Component | Location | Status |
 |-----------|----------|--------|
-| `track_data_file()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
-| `get_pages_using_data_file()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
-| `_record_reverse_taxonomy()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
-| `get_term_pages_for_member()` | `bengal/build/tracking/tracker.py` | ✅ Implemented |
-| `invalidate_for_data_file()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
-| `invalidate_for_template()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
-| `invalidate_taxonomy_cascade()` | `bengal/orchestration/build/coordinator.py` | ✅ Implemented |
+| `track_data_file()` | *(proposed `bengal/build/tracking/` — not created)* | Re-verify |
+| `get_pages_using_data_file()` | *(proposed `bengal/build/tracking/` — not created)* | Re-verify |
+| `_record_reverse_taxonomy()` | *(proposed `bengal/build/tracking/` — not created)* | Re-verify |
+| `get_term_pages_for_member()` | *(proposed `bengal/build/tracking/` — not created)* | Re-verify |
+| CacheCoordinator invalidation | `bengal/orchestration/build/coordinator.py` | ✅ Exists |
 
 ### ❌ Integration Pending
 

@@ -9,7 +9,6 @@ Also verifies BuildState delegation: per-build state (cascade, template
 caches, features_detected) is structurally fresh via BuildState.
 """
 
-
 import pytest
 
 from bengal.core.page import Page

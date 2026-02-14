@@ -63,9 +63,7 @@ class MockProgressManager:
         current: int | None = None,
         current_item: str | None = None,
     ) -> None:
-        self.updates.append(
-            {"phase": phase, "current": current, "current_item": current_item}
-        )
+        self.updates.append({"phase": phase, "current": current, "current_item": current_item})
 
 
 class MockSite:

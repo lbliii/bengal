@@ -58,7 +58,13 @@ class PatitasParser(BaseMarkdownParser):
     """
 
     # Default plugins to enable (matches mistune's plugins)
-    DEFAULT_PLUGINS: ClassVar[list[str]] = ["table", "strikethrough", "task_lists", "math", "footnotes"]
+    DEFAULT_PLUGINS: ClassVar[list[str]] = [
+        "table",
+        "strikethrough",
+        "task_lists",
+        "math",
+        "footnotes",
+    ]
 
     def __init__(
         self,
@@ -378,9 +384,7 @@ class PatitasParser(BaseMarkdownParser):
         text_transformer = None
         if self._var_plugin:
             text_transformer = self._var_plugin.substitute_variables
-        return parse_to_document(
-            content, plugins=self._plugins, text_transformer=text_transformer
-        )
+        return parse_to_document(content, plugins=self._plugins, text_transformer=text_transformer)
 
     def render_ast(self, ast: list[dict[str, Any]]) -> str:
         """Render AST tokens to HTML.

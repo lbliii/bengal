@@ -39,7 +39,7 @@ class TestContentTypeDetection:
         assert content_type == "custom"
 
     @pytest.mark.parametrize(
-        "section_name,expected_type",
+        ("section_name", "expected_type"),
         [
             # API Reference detection
             ("api", "autodoc-python"),
@@ -162,7 +162,9 @@ class TestContentTypeDetection:
 
         for i in range(3):
             page = Page(
-                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", _raw_metadata={}
+                source_path=Path(f"/content/docs/page{i}.md"),
+                _raw_content="Content",
+                _raw_metadata={},
             )
             section.add_page(page)
 
@@ -268,7 +270,9 @@ class TestPaginationDecision:
         # Add many pages
         for i in range(100):
             page = Page(
-                source_path=Path(f"/content/api/page{i}.md"), _raw_content="Content", _raw_metadata={}
+                source_path=Path(f"/content/api/page{i}.md"),
+                _raw_content="Content",
+                _raw_metadata={},
             )
             section.add_page(page)
 
@@ -316,7 +320,9 @@ class TestPaginationDecision:
         # Even with few pages, explicit override should enable pagination
         for i in range(5):
             page = Page(
-                source_path=Path(f"/content/docs/page{i}.md"), _raw_content="Content", _raw_metadata={}
+                source_path=Path(f"/content/docs/page{i}.md"),
+                _raw_content="Content",
+                _raw_metadata={},
             )
             section.add_page(page)
 

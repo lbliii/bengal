@@ -141,7 +141,7 @@ class PathRegistry:
         """
         path_str = str(path)
         generated_str = str(self._generated_dir)
-        return path_str.startswith(generated_str) or path_str.startswith(".bengal/generated")
+        return path_str.startswith((generated_str, ".bengal/generated"))
 
     def virtual_path_for_taxonomy(self, taxonomy: str, term: str) -> Path:
         """

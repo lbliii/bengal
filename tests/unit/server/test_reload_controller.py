@@ -255,6 +255,42 @@ def test_decide_from_outputs_xml_sitemap():
     assert decision.reason == "content-changed"
 
 
+def test_decide_from_outputs_reload_hint_none_returns_none():
+    """reload_hint='none' short-circuits to action='none' even with non-empty outputs."""
+    ctl = ReloadController(min_notify_interval_ms=0)
+
+    outputs = [
+        OutputRecord(Path("index.html"), OutputType.HTML, "render"),
+        OutputRecord(Path("assets/style.css"), OutputType.CSS, "asset"),
+    ]
+    decision = ctl.decide_from_outputs(outputs, reload_hint="none")
+
+    assert decision.action == "none"
+    assert decision.reason == "reload-hint-none"
+    assert decision.changed_paths == []
+
+
+def test_decide_from_outputs_other_hints_do_not_override_typed_outputs():
+    """Other reload_hint values (css-only, full) do not override typed output classification."""
+    ctl = ReloadController(min_notify_interval_ms=0)
+
+    # HTML outputs should trigger full reload regardless of hint
+    html_outputs = [
+        OutputRecord(Path("index.html"), OutputType.HTML, "render"),
+    ]
+    d_full = ctl.decide_from_outputs(html_outputs, reload_hint="css-only")
+    assert d_full.action == "reload"
+    assert d_full.reason == "content-changed"
+
+    # CSS-only outputs with css-only hint still get reload-css
+    css_outputs = [
+        OutputRecord(Path("assets/style.css"), OutputType.CSS, "asset"),
+    ]
+    d_css = ctl.decide_from_outputs(css_outputs, reload_hint="full")
+    assert d_css.action == "reload-css"
+    assert d_css.reason == "css-only"
+
+
 # ============================================================================
 # Tests for content hash baseline (CSS file capture fix)
 # ============================================================================

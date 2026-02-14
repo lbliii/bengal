@@ -327,7 +327,7 @@ class TestThreadSafeSetUsage:
         assert not errors, f"Thread safety errors: {errors}"
 
         # Each unique path should only be "new" once across all threads
-        set(path for path, _ in added_paths)
+        {path for path, _ in added_paths}
         new_counts = {}
         for path, was_new in added_paths:
             if was_new:

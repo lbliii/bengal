@@ -142,7 +142,7 @@ def run_benchmark(script_name: str, output_file=None) -> dict:
         }
 
 
-def run_benchmark_suite(benchmarks_to_run: list[str], output_path: str = None):
+def run_benchmark_suite(benchmarks_to_run: list[str], output_path: str | None = None):
     """
     Run a suite of benchmarks and generate summary.
 

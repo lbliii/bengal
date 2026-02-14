@@ -14,7 +14,7 @@ Key Concepts:
 
 Related Modules:
 - bengal.cache.build_cache: Cache storage
-- bengal.build.tracking: Dependency tracking
+- bengal.orchestration.incremental: Effect-based change detection
 - bengal.utils.cache_registry: Global cache coordination (complementary)
 
 See Also:

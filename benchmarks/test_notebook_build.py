@@ -14,12 +14,12 @@ Related:
 """
 
 import json
-import shutil
 import subprocess
 import time
 from pathlib import Path
 
 import pytest
+
 
 def _make_notebook(idx: int) -> dict:
     """Create minimal valid nbformat 4 notebook for index idx."""
@@ -98,7 +98,7 @@ def notebook_site_50(tmp_path):
     """50-notebook site (built once for incremental tests)."""
     site = create_notebook_site(50, tmp_path)
     _bengal_build(site)
-    yield site
+    return site
 
 
 @pytest.mark.benchmark

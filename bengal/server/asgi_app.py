@@ -96,9 +96,23 @@ def _is_document_request(path: str) -> bool:
         return False
     path_lower = path.lower()
     static_extensions = (
-        ".woff2", ".woff", ".ttf", ".otf", ".eot",
-        ".css", ".js", ".map", ".ico", ".webmanifest",
-        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif",
+        ".woff2",
+        ".woff",
+        ".ttf",
+        ".otf",
+        ".eot",
+        ".css",
+        ".js",
+        ".map",
+        ".ico",
+        ".webmanifest",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".svg",
+        ".avif",
     )
     return not any(path_lower.endswith(ext) for ext in static_extensions)
 
@@ -218,9 +232,7 @@ async def _serve_static(
     # File doesn't exist: show placeholder during build (new page), else 404
     if not resolved.is_file():
         if build_in_progress() and _is_html_path(path):
-            palette = (
-                active_palette() if callable(active_palette) else active_palette
-            )
+            palette = active_palette() if callable(active_palette) else active_palette
             html = get_rebuilding_page_html(path, palette)
             await send(
                 {

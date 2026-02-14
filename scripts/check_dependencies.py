@@ -37,9 +37,8 @@ import argparse
 import ast
 import sys
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
-
 
 # Define layer hierarchy (lower number = lower layer)
 LAYER_ORDER = {
@@ -131,10 +130,9 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int, bool]]:
                 if alias.name.startswith("bengal."):
                     is_tc = node.lineno in type_checking_lines
                     yield (module_name, alias.name, node.lineno, is_tc)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith("bengal."):
-                is_tc = node.lineno in type_checking_lines
-                yield (module_name, node.module, node.lineno, is_tc)
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("bengal."):
+            is_tc = node.lineno in type_checking_lines
+            yield (module_name, node.module, node.lineno, is_tc)
 
 
 def is_allowed_violation(importer: str, imported: str) -> bool:
@@ -241,11 +239,11 @@ def main() -> int:
             print(f"  • {importer}:{line} → {imported}")
             print(f"    ({desc})")
 
-    print(f"\n  📊 Summary:")
+    print("\n  📊 Summary:")
     print(f"    - Total violations: {len(violations)}")
     print(f"    - Modules affected: {len(by_module)}")
-    print(f"\n  💡 Fix: Move imports to TYPE_CHECKING blocks, use protocols,")
-    print(f"          or refactor to respect layer boundaries.")
+    print("\n  💡 Fix: Move imports to TYPE_CHECKING blocks, use protocols,")
+    print("          or refactor to respect layer boundaries.")
 
     return 1
 

@@ -186,11 +186,7 @@ class GlossaryDirective:
         opts = node.options
 
         # Parse tags from comma-separated string
-        tags = (
-            [t.strip().lower() for t in opts.tags.split(",") if t.strip()]
-            if opts.tags
-            else []
-        )
+        tags = [t.strip().lower() for t in opts.tags.split(",") if t.strip()] if opts.tags else []
 
         if not tags:
             sb.append('<div class="bengal-glossary-error" role="alert">\n')
@@ -208,9 +204,7 @@ class GlossaryDirective:
             error_msg = glossary_result["error"]
             sb.append('<div class="bengal-glossary-error" role="alert">\n')
             sb.append(f"  <strong>Glossary Error:</strong> {escape_html(error_msg)}\n")
-            sb.append(
-                f"  <br><small>Source: {escape_html(opts.source)}</small>\n"
-            )
+            sb.append(f"  <br><small>Source: {escape_html(opts.source)}</small>\n")
             sb.append("</div>\n")
             return
 
@@ -224,9 +218,7 @@ class GlossaryDirective:
                 "  <strong>Glossary Error:</strong>"
                 f" No terms found matching tags: {', '.join(tags)}\n"
             )
-            sb.append(
-                f"  <br><small>Source: {escape_html(opts.source)}</small>\n"
-            )
+            sb.append(f"  <br><small>Source: {escape_html(opts.source)}</small>\n")
             sb.append("</div>\n")
             return
 
@@ -256,12 +248,8 @@ class GlossaryDirective:
             count = len(hidden_terms)
             plural = "s" if count > 1 else ""
             sb.append('<details class="bengal-glossary-more">\n')
-            sb.append(
-                f"<summary>Show {count} more term{plural}</summary>\n"
-            )
-            sb.append(
-                '<dl class="bengal-glossary bengal-glossary-expanded">\n'
-            )
+            sb.append(f"<summary>Show {count} more term{plural}</summary>\n")
+            sb.append('<dl class="bengal-glossary bengal-glossary-expanded">\n')
             for term_data in hidden_terms:
                 _render_term(term_data, opts.show_tags, sb)
             sb.append("</dl>\n")
@@ -339,9 +327,7 @@ def _load_glossary_data(site: Any, source_path: str) -> dict[str, Any]:
         return {"error": f"Failed to parse glossary: {exc}"}
 
 
-def _resolve_from_site_data(
-    data: Any, source_path: str
-) -> dict[str, Any] | None:
+def _resolve_from_site_data(data: Any, source_path: str) -> dict[str, Any] | None:
     """Resolve glossary data from site.data hierarchy.
 
     Navigates the site.data object using the source path.
@@ -394,9 +380,7 @@ def _resolve_from_site_data(
 # =============================================================================
 
 
-def _filter_terms(
-    terms: list[dict[str, Any]], tags: list[str]
-) -> list[dict[str, Any]]:
+def _filter_terms(terms: list[dict[str, Any]], tags: list[str]) -> list[dict[str, Any]]:
     """Filter terms by tags (OR logic).
 
     A term matches if it has ANY of the requested tags.
@@ -418,9 +402,7 @@ def _filter_terms(
             term_tags = [term_tags]
 
         # Convert to lowercase for comparison
-        term_tags_lower = {
-            t.lower() for t in term_tags if isinstance(t, str)
-        }
+        term_tags_lower = {t.lower() for t in term_tags if isinstance(t, str)}
 
         # Match if any tag overlaps
         if term_tags_lower & tags_set:
@@ -434,9 +416,7 @@ def _filter_terms(
 # =============================================================================
 
 
-def _render_term(
-    term_data: dict[str, Any], show_tags: bool, sb: StringBuilder
-) -> None:
+def _render_term(term_data: dict[str, Any], show_tags: bool, sb: StringBuilder) -> None:
     """Render a single glossary term as dt/dd pair.
 
     Args:
@@ -458,8 +438,7 @@ def _render_term(
     # Optionally show tags as badges
     if show_tags and term_tags:
         tag_badges = " ".join(
-            f'<span class="bengal-glossary-tag">{escape_html(t)}</span>'
-            for t in term_tags
+            f'<span class="bengal-glossary-tag">{escape_html(t)}</span>' for t in term_tags
         )
         dd_content += f'\n<div class="bengal-glossary-tags">{tag_badges}</div>'
 

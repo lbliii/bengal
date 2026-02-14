@@ -2,8 +2,11 @@
 
 **Status**: Ready (Planned 2026-01-17)  
 **Created**: 2026-01-17  
+**Updated**: 2026-02-14  
 **Author**: AI Assistant  
 **Related**: `rfc-ty-type-hardening.md`, `rfc-protocol-consolidation.md`
+
+> **Path note (2026-02-14)**: References to `bengal/build/detectors/` updated; that package was never created.
 
 ---
 
@@ -150,7 +153,7 @@ self.normalized_config = normalize_autodoc_config(site.config)
 **Pattern**: After `hasattr(obj, "method")`, calling `obj.method()` fails.
 
 ```python
-# bengal/build/detectors/template.py:142-143
+# (Path updated 2026-02-14: bengal/build/ does not exist; template detection in orchestration/incremental/ or effects/)
 if hasattr(engine, "clear_template_cache"):
     engine.clear_template_cache(template_names)  # Error: Object of type `object` is not callable
 ```
@@ -515,7 +518,7 @@ After all phases, ~160 errors may remain. These require deeper analysis:
 
 ### Phase 2: __file__ Guards
 - `bengal/cli/commands/theme.py` (lines 182, 272, 508, 538)
-- `bengal/build/detectors/template.py` (line 94)
+- *(bengal/build/ not created; verify template detector location)*
 - `bengal/assets/pipeline.py` (line 455)
 
 ### Phase 3: Config Protocol
@@ -531,7 +534,7 @@ After all phases, ~160 errors may remain. These require deeper analysis:
 - `bengal/cli/dashboard/serve.py:501`
 
 ### Phase 5: hasattr Narrowing
-- `bengal/build/detectors/template.py:142`
+- *(bengal/build/detectors/ not created; verify template detector location)*
 - `bengal/cli/dashboard/app.py:232`
 - `bengal/cli/dashboard/screens.py:48,612`
 - `bengal/collections/validator.py:289`

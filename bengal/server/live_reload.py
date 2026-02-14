@@ -543,7 +543,7 @@ class LiveReloadMixin:
         # Only cache CSS/JS files in assets directory
         if "/assets/" not in path_lower:
             return False
-        return path_lower.endswith(".css") or path_lower.endswith(".js")
+        return path_lower.endswith((".css", ".js"))
 
     def _get_content_type(self, url_path: str) -> str:
         """Get content type for a file path."""

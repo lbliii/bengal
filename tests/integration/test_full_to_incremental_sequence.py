@@ -277,4 +277,3 @@ class TestIncrementalBuildRegression:
             f"BUG: Should use cache (config unchanged). "
             f"skipped={stats.skipped}, cache_hits={stats.cache_hits}"
         )
-

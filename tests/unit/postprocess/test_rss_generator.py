@@ -328,9 +328,12 @@ class TestRSSGeneratorXMLStructure:
         link = channel.find("link")
         description = channel.find("description")
 
-        assert title is not None and title.text == "Test Site"
-        assert link is not None and link.text == "https://example.com"
-        assert description is not None and description.text == "A test site"
+        assert title is not None
+        assert title.text == "Test Site"
+        assert link is not None
+        assert link.text == "https://example.com"
+        assert description is not None
+        assert description.text == "A test site"
 
     def test_item_has_required_elements(self) -> None:
         """Test that item has title, link, guid, description, pubDate."""

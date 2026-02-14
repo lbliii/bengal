@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2026-01-17  
 **Author**: AI Assistant  
-**Supersedes**: `rfc-protocol-driven-typing.md`, `plan-section-protocol-migration.md`
+**Supersedes**: `rfc-protocol-driven-typing.md`, `plan-section-protocol-migration.md` (deleted)
 
 ---
 
@@ -1189,7 +1189,7 @@ attention_scores = compute_from_analytics(page_views)
 ## Related Documents
 
 - `plan/rfc-protocol-driven-typing.md` - Superseded by this RFC
-- `plan/plan-section-protocol-migration.md` - Superseded by this RFC
+- `plan/plan-section-protocol-migration.md` - Superseded by this RFC (deleted)
 - `plan/rfc-bengal-v2-architecture.md` - Parent architecture vision
 - `bengal/rendering/pipeline/write_behind.py` - Existing async I/O (integrated)
 

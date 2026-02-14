@@ -28,7 +28,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
+
+from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -316,12 +318,13 @@ class RenderingPipeline:
             if is_autodoc:
                 # Optimized autodoc path: try rendered cache first
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
-                if not self._cache_checker.should_bypass_cache(page, self.changed_sources):
-                    if self._cache_checker.try_rendered_cache(page, template):
-                        # Cache hit - skip extraction and rendering
-                        self._json_accumulator.accumulate_unified_page_data(page)
-                        self._accumulate_asset_deps(page)
-                        return
+                if not self._cache_checker.should_bypass_cache(
+                    page, self.changed_sources
+                ) and self._cache_checker.try_rendered_cache(page, template):
+                    # Cache hit - skip extraction and rendering
+                    self._json_accumulator.accumulate_unified_page_data(page)
+                    self._accumulate_asset_deps(page)
+                    return
 
             self._autodoc_renderer.process_virtual_page(page)
             # Accumulate unified page data for virtual pages (JSON + search index)
@@ -498,11 +501,7 @@ class RenderingPipeline:
                     toc = ""
 
             # Extract AST for caching
-            if (
-                hasattr(self.parser, "supports_ast")
-                and self.parser.supports_ast
-                and persist_tokens
-            ):
+            if hasattr(self.parser, "supports_ast") and self.parser.supports_ast and persist_tokens:
                 try:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
@@ -576,11 +575,15 @@ class RenderingPipeline:
                 with effect_recorder:
                     html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
-                    page.rendered_html = format_html(page.rendered_html, page, self.site)
+                    page.rendered_html = format_html(
+                        page.rendered_html, page, cast(SiteLike, self.site)
+                    )
             else:
                 html_content = self.renderer.render_content(page.html_content or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
-                page.rendered_html = format_html(page.rendered_html, page, self.site)
+                page.rendered_html = format_html(
+                    page.rendered_html, page, cast(SiteLike, self.site)
+                )
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
@@ -591,7 +594,7 @@ class RenderingPipeline:
         # Write output (sync or async via write-behind)
         write_output(
             page,
-            self.site,
+            cast(SiteLike, self.site),
             collector=self._output_collector,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
@@ -604,7 +607,9 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: PageLike, tracked_assets: set[str] | None = None) -> None:
+    def _accumulate_asset_deps(
+        self, page: PageLike, tracked_assets: set[str] | None = None
+    ) -> None:
         """
         Accumulate asset dependencies during rendering.
 
@@ -722,7 +727,7 @@ class RenderingPipeline:
         """Write rendered page to output directory (backward compatibility wrapper)."""
         write_output(
             page,
-            self.site,
+            cast(SiteLike, self.site),
             collector=self._output_collector,
             build_cache=self.build_cache,
         )

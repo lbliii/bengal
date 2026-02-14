@@ -7,6 +7,8 @@ based on different configuration formats.
 
 from __future__ import annotations
 
+# python-markdown is optional (patitas is default)
+import importlib.util
 from unittest.mock import Mock
 
 import pytest
@@ -14,15 +16,9 @@ import pytest
 from bengal.parsing import PatitasParser
 from bengal.rendering.pipeline import RenderingPipeline
 
-# python-markdown is optional (patitas is default)
-try:
-    import markdown as _markdown_mod  # noqa: F401
-
+HAS_MARKDOWN = importlib.util.find_spec("markdown") is not None
+if HAS_MARKDOWN:
     from bengal.parsing import PythonMarkdownParser
-
-    HAS_MARKDOWN = True
-except ImportError:
-    HAS_MARKDOWN = False
 
 
 class TestParserSelection:

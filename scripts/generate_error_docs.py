@@ -1213,7 +1213,7 @@ def generate_glossary_page(codes: list[tuple[str, str, str]]) -> str:
 
     # Build category table (sorted alphabetically by prefix)
     category_info = []
-    for cat in categories.keys():
+    for cat in categories:
         prefix = get_category_prefix(cat)
         name = get_category_display_name(cat)
         desc = get_category_description(cat)
@@ -1319,9 +1319,9 @@ def main() -> None:
             print(f"Removed: {md_file}")
 
     # Collect all codes
-    codes: list[tuple[str, str, str]] = []
-    for code in ErrorCode:
-        codes.append((code.name, code.value, code.category))
+    codes: list[tuple[str, str, str]] = [
+        (code.name, code.value, code.category) for code in ErrorCode
+    ]
 
     # Generate glossary page
     glossary_content = generate_glossary_page(codes)

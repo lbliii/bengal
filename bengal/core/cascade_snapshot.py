@@ -408,9 +408,7 @@ class CascadeSnapshot:
             if section.path is None:
                 section_path = ""
             else:
-                section_path = cls._normalize_path_static(
-                    str(section.path), str(content_dir)
-                )
+                section_path = cls._normalize_path_static(str(section.path), str(content_dir))
 
             all_section_paths.append(section_path)
 

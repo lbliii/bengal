@@ -275,12 +275,10 @@ class TestValidatorCheckResultContracts:
         results = validator.validate(minimal_mock_site)
 
         for result in results:
-            if result.status in (CheckStatus.ERROR, CheckStatus.WARNING):
+            if result.status in (CheckStatus.ERROR, CheckStatus.WARNING) and not result.code:
                 # Code is recommended but not strictly required
                 # Log a note if missing for visibility
-                if not result.code:
-                    # This is a soft warning, not a failure
-                    pass  # pytest.warns or logging could be added here
+                pass  # pytest.warns or logging could be added here
 
 
 class TestValidatorNamingContracts:

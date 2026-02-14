@@ -103,7 +103,7 @@ class ErrorDeduplicator:
                 # Show summary of each unique error
                 for key, pages in self.seen_errors.items():
                     if len(pages) > self.max_display_per_error:
-                        template, line, error_type, msg = key
+                        template, line, error_type, _msg = key
                         extra = len(pages) - self.max_display_per_error
                         console.print(
                             f"   • [dim]{template}:{line}[/dim] ({error_type}): "
@@ -121,7 +121,7 @@ class ErrorDeduplicator:
         click.secho(f"⚠️  {suppressed} similar error(s) suppressed", fg="yellow", bold=True)
         for key, pages in self.seen_errors.items():
             if len(pages) > self.max_display_per_error:
-                template, line, error_type, msg = key
+                template, line, error_type, _msg = key
                 extra = len(pages) - self.max_display_per_error
                 click.echo(f"   • {template}:{line} ({error_type}): +{extra} more page(s)")
         click.echo()

@@ -29,10 +29,7 @@ class TestBlogPagination:
         posts = [p for p in site.pages if "/posts/post-" in str(p.source_path)]
 
         # Verify posts have dates for sorting
-        dates = []
-        for post in posts:
-            if hasattr(post, "date") and post.date:
-                dates.append(post.date)
+        dates = [post.date for post in posts if hasattr(post, "date") and post.date]
 
         # All generated posts should have dates
         assert len(dates) == len(posts), "All posts should have dates for sorting"

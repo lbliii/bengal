@@ -23,12 +23,12 @@ def mock_site(tmp_path):
 
     # Create mock pages (5 non-draft, 2 draft)
     pages = []
-    for i in range(5):
+    for _i in range(5):
         page = Mock()
         page.metadata = {"draft": False}
         pages.append(page)
 
-    for i in range(2):
+    for _i in range(2):
         page = Mock()
         page.metadata = {"draft": True}
         pages.append(page)

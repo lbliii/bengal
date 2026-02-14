@@ -73,6 +73,7 @@ if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.cascade_snapshot import CascadeSnapshot
     from bengal.core.page_cache import PageCacheManager
+    from bengal.orchestration.build.inputs import BuildInput
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
     from bengal.orchestration.stats.models import BuildStats
@@ -464,9 +465,7 @@ class Site(
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            self._query_registry = QueryIndexRegistry(
-                cast(SiteLike, self), self.paths.indexes_dir
-            )
+            self._query_registry = QueryIndexRegistry(cast(SiteLike, self), self.paths.indexes_dir)
         return self._query_registry
 
     @property
@@ -707,9 +706,7 @@ class Site(
                 if url in urls_seen:
                     # Get ownership context from registry
                     claim = self.url_registry.get_claim(url)
-                    owner_info = (
-                        f" ({claim.owner}, priority {claim.priority})" if claim else ""
-                    )
+                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
 
                     msg = (
                         f"URL collision detected: {url}\n"
@@ -1092,7 +1089,7 @@ class Site(
 
     def build(
         self,
-        options: BuildOptions,
+        options: BuildOptions | BuildInput,
     ) -> BuildStats:
         """
         Build the entire site.
@@ -1100,7 +1097,7 @@ class Site(
         Delegates to BuildOrchestrator for actual build process.
 
         Args:
-            options: BuildOptions dataclass with all build configuration.
+            options: BuildOptions or BuildInput with all build configuration.
 
         Returns:
             BuildStats object with build statistics

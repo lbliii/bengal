@@ -97,7 +97,9 @@ class TestPageAncestors:
         site = Site(root_path=Path("/site"), config={})
         section = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(source_path=Path("/content/docs/intro.md"), _raw_metadata={"title": "Introduction"})
+        page = Page(
+            source_path=Path("/content/docs/intro.md"), _raw_metadata={"title": "Introduction"}
+        )
 
         section.add_page(page)
         section._site = site
@@ -181,7 +183,9 @@ class TestPageAncestors:
         level2 = Section(name="v2", path=Path("/content/api/v2"))
         level3 = Section(name="auth", path=Path("/content/api/v2/auth"))
 
-        page = Page(source_path=Path("/content/api/v2/auth/oauth.md"), _raw_metadata={"title": "OAuth"})
+        page = Page(
+            source_path=Path("/content/api/v2/auth/oauth.md"), _raw_metadata={"title": "OAuth"}
+        )
 
         level1.add_subsection(level2)
         level2.add_subsection(level3)
@@ -216,7 +220,8 @@ class TestBreadcrumbLogic:
         docs = Section(name="docs", path=Path("/content/docs"))
 
         page = Page(
-            source_path=Path("/content/docs/advanced.md"), _raw_metadata={"title": "Advanced Topics"}
+            source_path=Path("/content/docs/advanced.md"),
+            _raw_metadata={"title": "Advanced Topics"},
         )
 
         docs.add_page(page)
@@ -230,10 +235,9 @@ class TestBreadcrumbLogic:
 
         # Get ancestors (no root)
         ancestors = page.ancestors
-        breadcrumb_items = []
-
-        for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
+        breadcrumb_items = [
+            {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
+        ]
 
         # Should only have docs (no root)
         assert len(breadcrumb_items) == 1
@@ -266,10 +270,9 @@ class TestBreadcrumbLogic:
 
         # Get ancestors (no root)
         ancestors = page.ancestors
-        breadcrumb_items = []
-
-        for ancestor in reversed(ancestors):
-            breadcrumb_items.append({"title": ancestor.title, "url": ancestor._path})
+        breadcrumb_items = [
+            {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
+        ]
 
         # Should have: Api → V2 (no root)
         assert len(breadcrumb_items) == 2

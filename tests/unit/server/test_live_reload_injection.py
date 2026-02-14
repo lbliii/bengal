@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.server.live_reload import notify_clients_reload, set_reload_action
 
 

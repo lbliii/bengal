@@ -64,58 +64,52 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
         # Use engine's template analysis if available
         partials: set[str] = set()
 
-        if hasattr(engine, "_track_referenced_templates"):
-            # Jinja2/Kida engines have this method
-            # Try to extract referenced templates
-            if hasattr(engine, "_env"):
-                env = engine._env
+        if hasattr(engine, "_track_referenced_templates") and hasattr(engine, "_env"):
+            # Jinja2/Kida engines have this method - extract referenced templates
+            env = engine._env
 
-                # Jinja2 approach
-                if hasattr(env, "parse"):
-                    try:
-                        from jinja2 import meta
+            # Jinja2 approach
+            if hasattr(env, "parse"):
+                try:
+                    from jinja2 import meta
 
-                        # Type narrowing: loader may not be on Protocol
-                        loader = getattr(env, "loader", None)
-                        if loader and hasattr(loader, "get_source"):
-                            get_source = cast(
-                                Callable[
-                                    [Any, str], tuple[str, str | None, Callable[[], bool] | None]
-                                ],
-                                loader.get_source,
-                            )
-                            source, _filename, _uptodate = get_source(env, template_name)
-                        else:
-                            raise AttributeError("Loader does not have get_source method")
-                        # Type narrowing: parse method
-                        parse_method = cast(Callable[[str], Any], env.parse)
-                        ast = parse_method(source)
-                        for ref in meta.find_referenced_templates(ast) or []:
-                            if isinstance(ref, str):
-                                partials.add(ref)
-                    except Exception:
-                        pass
+                    # Type narrowing: loader may not be on Protocol
+                    loader = getattr(env, "loader", None)
+                    if loader and hasattr(loader, "get_source"):
+                        get_source = cast(
+                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
+                            loader.get_source,
+                        )
+                        source, _filename, _uptodate = get_source(env, template_name)
+                    else:
+                        raise AttributeError("Loader does not have get_source method")
+                    # Type narrowing: parse method
+                    parse_method = cast(Callable[[str], Any], env.parse)
+                    ast = parse_method(source)
+                    for ref in meta.find_referenced_templates(ast) or []:
+                        if isinstance(ref, str):
+                            partials.add(ref)
+                except Exception:
+                    pass
 
-                # Kida approach (if available)
-                if hasattr(env, "get_template"):
-                    try:
-                        # Type narrowing: get_template may not be callable
-                        get_template_method = getattr(env, "get_template", None)
-                        if not callable(get_template_method):
-                            raise AttributeError("get_template is not callable")
-                        template = get_template_method(template_name)
-                        if hasattr(template, "_optimized_ast"):
-                            ast = template._optimized_ast
-                            if hasattr(engine, "_extract_referenced_templates"):
-                                # Type narrowing: check if method is callable
-                                extract_method = getattr(
-                                    engine, "_extract_referenced_templates", None
-                                )
-                                if callable(extract_method):
-                                    referenced = extract_method(ast)
-                                    partials.update(referenced)
-                    except Exception:
-                        pass
+            # Kida approach (if available)
+            if hasattr(env, "get_template"):
+                try:
+                    # Type narrowing: get_template may not be callable
+                    get_template_method = getattr(env, "get_template", None)
+                    if not callable(get_template_method):
+                        raise AttributeError("get_template is not callable")
+                    template = get_template_method(template_name)
+                    if hasattr(template, "_optimized_ast"):
+                        ast = template._optimized_ast
+                        if hasattr(engine, "_extract_referenced_templates"):
+                            # Type narrowing: check if method is callable
+                            extract_method = getattr(engine, "_extract_referenced_templates", None)
+                            if callable(extract_method):
+                                referenced = extract_method(ast)
+                                partials.update(referenced)
+                except Exception:
+                    pass
 
         # Convert template names to Paths
         partial_paths: list[Path] = []
@@ -312,9 +306,8 @@ def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | 
 
                         # Look for macro calls in the AST
                         def find_macro_calls(node: Any) -> None:
-                            if hasattr(node, "node"):
-                                if isinstance(node.node, jinja_nodes.Name):
-                                    pass  # Simple variable, not a macro call
+                            if hasattr(node, "node") and isinstance(node.node, jinja_nodes.Name):
+                                pass  # Simple variable, not a macro call
                             if hasattr(node, "iter_child_nodes"):
                                 for child in node.iter_child_nodes():
                                     find_macro_calls(child)
@@ -483,4 +476,4 @@ def pages_affected_by_template_change(
 
 
 # Avoid circular import — SiteSnapshot used in type annotation
-from bengal.snapshots.types import SiteSnapshot
+from bengal.snapshots.types import SiteSnapshot  # noqa: E402

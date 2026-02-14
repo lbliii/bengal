@@ -11,7 +11,7 @@ class TestSlugify:
     """Test slugify() function."""
 
     @pytest.mark.parametrize(
-        "input_text,expected_slug",
+        ("input_text", "expected_slug"),
         [
             # Basic conversions
             ("My Page", "my-page"),
@@ -102,7 +102,7 @@ class TestSlugify:
         assert slugify("Page 2.0") == "page-20"
 
     @pytest.mark.parametrize(
-        "page_name,expected_slug",
+        ("page_name", "expected_slug"),
         [
             ("Getting Started", "getting-started"),
             ("API Reference", "api-reference"),

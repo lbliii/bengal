@@ -384,9 +384,7 @@ class ContentOrchestrator:
                                 cached_payload
                             )
                             # Register autodoc dependencies with build_cache so autodoc_tracker is populated
-                            if build_cache is not None and hasattr(
-                                build_cache, "autodoc_tracker"
-                            ):
+                            if build_cache is not None and hasattr(build_cache, "autodoc_tracker"):
                                 from bengal.utils.primitives.hashing import hash_file
 
                                 for (

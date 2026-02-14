@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-# Skip if hypothesis not available
-hypothesis = pytest.importorskip("hypothesis")
+from bengal.rendering.asset_tracking import AssetTracker, get_current_tracker
 
+# Skip if hypothesis not available - importorskip must run before import
+pytest.importorskip("hypothesis")
 from hypothesis import given, settings
 from hypothesis import strategies as st
-
-from bengal.rendering.asset_tracking import AssetTracker, get_current_tracker
 
 
 class TestAssetTrackerProperties:

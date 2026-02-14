@@ -114,8 +114,7 @@ class ContentCache:
         """Hash metadata for cache invalidation."""
         # Only hash keys that affect rendering (not content)
         relevant_keys = sorted(
-            k for k in metadata.keys()
-            if k not in ("_source", "_generated", "_cascade_invalidated")
+            k for k in metadata if k not in ("_source", "_generated", "_cascade_invalidated")
         )
         content = "|".join(f"{k}={metadata.get(k)}" for k in relevant_keys)
         return hashlib.sha256(content.encode()).hexdigest()[:12]
@@ -213,7 +212,7 @@ class ContentCache:
     def invalidate(self, source_path: Path) -> None:
         """Invalidate all cached shells for a source path."""
         # Remove all keys matching this source path
-        keys_to_remove = [k for k in self._cache.keys() if k.startswith(str(source_path))]
+        keys_to_remove = [k for k in self._cache if k.startswith(str(source_path))]
         for key in keys_to_remove:
             self._cache.delete(key)
 

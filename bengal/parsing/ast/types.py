@@ -170,9 +170,7 @@ def is_text(node: ASTNode) -> bool:
     if node.get("type") == "text":
         return True
     # Patitas text nodes may lack 'type' but have 'content' as only semantic key
-    if "content" in node and "url" not in node and "children" not in node:
-        return True
-    return False
+    return bool("content" in node and "url" not in node and "children" not in node)
 
 
 def is_code_block(node: ASTNode) -> bool:
@@ -185,9 +183,7 @@ def is_link(node: ASTNode) -> bool:
     if node.get("type") == "link":
         return True
     # Patitas link nodes may lack 'type' but have 'url' key
-    if "url" in node:
-        return True
-    return False
+    return "url" in node
 
 
 def is_image(node: ASTNode) -> bool:

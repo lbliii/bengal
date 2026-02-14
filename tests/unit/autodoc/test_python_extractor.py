@@ -286,8 +286,8 @@ def test_extract_function_alias(tmp_path):
     assert len(module.children) == 2
 
     # Find original and alias
-    original = [c for c in module.children if c.name == "original_function"][0]
-    alias = [c for c in module.children if c.name == "alias_function"][0]
+    original = next(c for c in module.children if c.name == "original_function")
+    alias = next(c for c in module.children if c.name == "alias_function")
 
     assert original.element_type == "function"
     assert alias.element_type == "alias"
@@ -322,8 +322,8 @@ def test_extract_class_alias(tmp_path):
     assert len(module.children) == 2
 
     # Find original and alias
-    original = [c for c in module.children if c.name == "OriginalClass"][0]
-    alias = [c for c in module.children if c.name == "AliasClass"][0]
+    original = next(c for c in module.children if c.name == "OriginalClass")
+    alias = next(c for c in module.children if c.name == "AliasClass")
 
     assert original.element_type == "class"
     assert alias.element_type == "alias"
@@ -382,7 +382,7 @@ def test_extract_inherited_members_disabled_by_default(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+    derived_cls = next(c for c in module.children if c.name == "Derived")
 
     # Should only have its own method
     method_names = [m.name for m in derived_cls.children]
@@ -414,7 +414,7 @@ def test_extract_inherited_members_when_enabled(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+    derived_cls = next(c for c in module.children if c.name == "Derived")
 
     # Should have both own method and inherited method
     method_names = [m.name for m in derived_cls.children]
@@ -422,7 +422,7 @@ def test_extract_inherited_members_when_enabled(tmp_path):
     assert "base_method" in method_names
 
     # Check inherited method has proper metadata
-    base_method = [m for m in derived_cls.children if m.name == "base_method"][0]
+    base_method = next(m for m in derived_cls.children if m.name == "base_method")
     assert "inherited_from" in base_method.metadata
     assert base_method.metadata["synthetic"] is True
 
@@ -451,7 +451,7 @@ def test_extract_inherited_members_no_override(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+    derived_cls = next(c for c in module.children if c.name == "Derived")
 
     # Should only have one "method" (the override)
     methods = [m for m in derived_cls.children if m.name == "method"]
@@ -487,7 +487,7 @@ def test_extract_inherited_members_respects_private_setting(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+    derived_cls = next(c for c in module.children if c.name == "Derived")
 
     # Should have public but not private inherited method
     method_names = [m.name for m in derived_cls.children]
@@ -518,7 +518,7 @@ def test_extract_inherited_members_by_type(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+    derived_cls = next(c for c in module.children if c.name == "Derived")
 
     # Should have inherited method via per-type setting
     method_names = [m.name for m in derived_cls.children]
@@ -853,7 +853,7 @@ def test_diamond_inheritance(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    diamond_cls = [c for c in module.children if c.name == "Diamond"][0]
+    diamond_cls = next(c for c in module.children if c.name == "Diamond")
 
     # Diamond should have its own method plus inherited methods
     method_names = [m.name for m in diamond_cls.children]
@@ -884,7 +884,7 @@ def test_inheritance_external_base_class(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    my_dict_cls = [c for c in module.children if c.name == "MyDict"][0]
+    my_dict_cls = next(c for c in module.children if c.name == "MyDict")
 
     # Should have own method, but no inherited from UserDict (not in index)
     method_names = [m.name for m in my_dict_cls.children]
@@ -923,7 +923,7 @@ def test_inheritance_multi_level(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    child_cls = [c for c in module.children if c.name == "Child"][0]
+    child_cls = next(c for c in module.children if c.name == "Child")
 
     # Child should have parent_method inherited
     method_names = [m.name for m in child_cls.children]
@@ -982,8 +982,8 @@ def test_inherited_member_copies_docstring(tmp_path):
     elements = extractor.extract(source)
 
     module = elements[0]
-    derived = [c for c in module.children if c.name == "Derived"][0]
-    inherited = [m for m in derived.children if m.name == "documented_method"][0]
+    derived = next(c for c in module.children if c.name == "Derived")
+    inherited = next(m for m in derived.children if m.name == "documented_method")
 
     assert "Process x and return result" in inherited.description
     assert inherited.typed_metadata is not None

@@ -113,5 +113,3 @@ class TestGetThemeTemplatesChain:
         expected = get_bundled_themes_dir() / "default" / "templates"
         if expected.exists():
             assert expected in result
-
-

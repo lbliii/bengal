@@ -56,9 +56,7 @@ def count_lines_excluding_docstrings(file_path: Path) -> tuple[int, int]:
             if isinstance(child, ast.Expr) and isinstance(child.value, ast.Constant):
                 if isinstance(child.value.value, str):
                     value = child.value.value
-                    if (value.startswith('"""') or value.startswith("'''")) and hasattr(
-                        child, "lineno"
-                    ):
+                    if (value.startswith(('"""', "'''"))) and hasattr(child, "lineno"):
                         start_line = child.lineno
                         end_line = start_line + value.count("\n")
                         for line_num in range(start_line, end_line + 1):
@@ -68,7 +66,7 @@ def count_lines_excluding_docstrings(file_path: Path) -> tuple[int, int]:
                 value = child.value.s
                 if (
                     isinstance(value, str)
-                    and (value.startswith('"""') or value.startswith("'''"))
+                    and (value.startswith(('"""', "'''")))
                     and hasattr(child, "lineno")
                 ):
                     start_line = child.lineno
@@ -156,4 +154,4 @@ if __name__ == "__main__":
 
         for file_path, total_lines, code_lines in results:
             rel_path = file_path.relative_to(root)
-            print(f"{str(rel_path):<60} {total_lines:<15} {code_lines:<15}")
+            print(f"{rel_path!s:<60} {total_lines:<15} {code_lines:<15}")

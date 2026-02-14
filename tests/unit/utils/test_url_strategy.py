@@ -341,7 +341,7 @@ class TestURLStrategy:
         assert output_path == mock_site.output_dir / "tags" / "python" / "index.html"
 
     @pytest.mark.parametrize(
-        "page_num,expected_url",
+        ("page_num", "expected_url"),
         [
             (1, "/blog/"),
             (2, "/blog/page/2/"),

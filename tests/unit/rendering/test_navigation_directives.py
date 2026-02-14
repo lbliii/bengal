@@ -132,7 +132,9 @@ class TestSiblingsDirective:
             or "Installation" not in result.split("Configuration")[0]
         )
 
-    @pytest.mark.skip(reason="Feature implemented but test mocks need updating to match current API")
+    @pytest.mark.skip(
+        reason="Feature implemented but test mocks need updating to match current API"
+    )
     def test_siblings_with_descriptions(self, parser):
         """Test siblings shows descriptions when enabled."""
 
@@ -294,7 +296,9 @@ class TestRelatedDirective:
         assert "Advanced Config" in result
         assert "Theming" in result
 
-    @pytest.mark.skip(reason="Feature implemented but test mocks need updating to match current API")
+    @pytest.mark.skip(
+        reason="Feature implemented but test mocks need updating to match current API"
+    )
     def test_related_with_tags(self, parser):
         """Test related shows tags when enabled."""
 

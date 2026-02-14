@@ -160,8 +160,13 @@ class TestRenderEffectRecorder:
             title="Test",
         )
 
-        with pytest.raises(ValueError, match="Render failed"), RenderEffectRecorder(
-            tracer, page, "page.html"  # type: ignore[arg-type]
+        with (
+            pytest.raises(ValueError, match="Render failed"),
+            RenderEffectRecorder(
+                tracer,
+                page,
+                "page.html",  # type: ignore[arg-type]
+            ),
         ):
             raise ValueError("Render failed")
 

@@ -162,7 +162,7 @@ class BengalLogger:
 
             with suppress(Exception):
                 log_file.parent.mkdir(parents=True, exist_ok=True)
-            self._file_handle = open(log_file, "a", encoding="utf-8")
+            self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
     def phase(self, name: str, **context: Any) -> Any:
@@ -702,7 +702,7 @@ def configure_logging(
 
                     with suppress(Exception):
                         log_file.parent.mkdir(parents=True, exist_ok=True)
-                    logger._file_handle = open(log_file, "a", encoding="utf-8")
+                    logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
 def get_logger(name: str) -> BengalLogger:

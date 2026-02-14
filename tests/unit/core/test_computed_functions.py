@@ -92,8 +92,8 @@ class TestComputeReadingTime:
         assert compute_reading_time(10) == 1
 
     def test_rounds(self):
-        assert compute_reading_time(250) == 1   # 1.25 -> 1
-        assert compute_reading_time(350) == 2   # 1.75 -> 2
+        assert compute_reading_time(250) == 1  # 1.25 -> 1
+        assert compute_reading_time(350) == 2  # 1.75 -> 2
 
 
 # -----------------------------------------------------------------------
@@ -249,43 +249,51 @@ class TestGetPrimaryAuthor:
         assert author.name == "Jane Smith"
 
     def test_dict_author(self):
-        author = get_primary_author({
-            "author": {
-                "name": "Jane Smith",
-                "email": "jane@example.com",
-            },
-        })
+        author = get_primary_author(
+            {
+                "author": {
+                    "name": "Jane Smith",
+                    "email": "jane@example.com",
+                },
+            }
+        )
         assert author is not None
         assert author.name == "Jane Smith"
         assert author.email == "jane@example.com"
 
     def test_dict_author_with_social(self):
-        author = get_primary_author({
-            "author": {
-                "name": "Jane Smith",
-                "social": {"twitter": "janesmith", "github": "janedev"},
-            },
-        })
+        author = get_primary_author(
+            {
+                "author": {
+                    "name": "Jane Smith",
+                    "social": {"twitter": "janesmith", "github": "janedev"},
+                },
+            }
+        )
         assert author is not None
         assert author.social == {"github": "janedev", "twitter": "janesmith"}
 
     def test_fallback_to_authors_list(self):
         """When 'author' key missing, falls back to first in 'authors' list."""
-        author = get_primary_author({
-            "authors": [
-                {"name": "First Author"},
-                {"name": "Second Author"},
-            ],
-        })
+        author = get_primary_author(
+            {
+                "authors": [
+                    {"name": "First Author"},
+                    {"name": "Second Author"},
+                ],
+            }
+        )
         assert author is not None
         assert author.name == "First Author"
 
     def test_author_preferred_over_authors(self):
         """'author' key takes priority over 'authors' list."""
-        author = get_primary_author({
-            "author": "Primary Author",
-            "authors": [{"name": "List Author"}],
-        })
+        author = get_primary_author(
+            {
+                "author": "Primary Author",
+                "authors": [{"name": "List Author"}],
+            }
+        )
         assert author is not None
         assert author.name == "Primary Author"
 
@@ -314,42 +322,50 @@ class TestGetAllAuthors:
         assert authors[0].name == "Jane Smith"
 
     def test_single_author_dict(self):
-        authors = get_all_authors({
-            "author": {"name": "Jane Smith", "email": "jane@example.com"},
-        })
+        authors = get_all_authors(
+            {
+                "author": {"name": "Jane Smith", "email": "jane@example.com"},
+            }
+        )
         assert len(authors) == 1
         assert authors[0].name == "Jane Smith"
 
     def test_authors_list_only(self):
-        authors = get_all_authors({
-            "authors": [
-                {"name": "Alice"},
-                {"name": "Bob"},
-            ],
-        })
+        authors = get_all_authors(
+            {
+                "authors": [
+                    {"name": "Alice"},
+                    {"name": "Bob"},
+                ],
+            }
+        )
         assert len(authors) == 2
         assert authors[0].name == "Alice"
         assert authors[1].name == "Bob"
 
     def test_combined_author_and_authors(self):
         """Both 'author' and 'authors' are combined."""
-        authors = get_all_authors({
-            "author": "Primary",
-            "authors": [{"name": "Secondary"}],
-        })
+        authors = get_all_authors(
+            {
+                "author": "Primary",
+                "authors": [{"name": "Secondary"}],
+            }
+        )
         assert len(authors) == 2
         assert authors[0].name == "Primary"
         assert authors[1].name == "Secondary"
 
     def test_deduplication_by_name(self):
         """Duplicate names are removed."""
-        authors = get_all_authors({
-            "author": "Jane Smith",
-            "authors": [
-                {"name": "Jane Smith", "email": "jane@example.com"},
-                {"name": "Bob Jones"},
-            ],
-        })
+        authors = get_all_authors(
+            {
+                "author": "Jane Smith",
+                "authors": [
+                    {"name": "Jane Smith", "email": "jane@example.com"},
+                    {"name": "Bob Jones"},
+                ],
+            }
+        )
         assert len(authors) == 2
         names = [a.name for a in authors]
         assert names == ["Jane Smith", "Bob Jones"]
@@ -359,10 +375,12 @@ class TestGetAllAuthors:
 
     def test_authors_not_a_list_ignored(self):
         """Non-list 'authors' is ignored, only 'author' is processed."""
-        authors = get_all_authors({
-            "author": "Jane",
-            "authors": "not a list",
-        })
+        authors = get_all_authors(
+            {
+                "author": "Jane",
+                "authors": "not a list",
+            }
+        )
         assert len(authors) == 1
         assert authors[0].name == "Jane"
 
@@ -385,23 +403,27 @@ class TestGetSeriesInfo:
         assert series.part == 1
 
     def test_dict_series(self):
-        series = get_series_info({
-            "series": {"name": "My Tutorial", "part": 3, "total": 5},
-        })
+        series = get_series_info(
+            {
+                "series": {"name": "My Tutorial", "part": 3, "total": 5},
+            }
+        )
         assert series is not None
         assert series.name == "My Tutorial"
         assert series.part == 3
         assert series.total == 5
 
     def test_dict_series_with_description(self):
-        series = get_series_info({
-            "series": {
-                "name": "Advanced Bengal",
-                "part": 1,
-                "total": 3,
-                "description": "Deep dive into Bengal internals",
-            },
-        })
+        series = get_series_info(
+            {
+                "series": {
+                    "name": "Advanced Bengal",
+                    "part": 1,
+                    "total": 3,
+                    "description": "Deep dive into Bengal internals",
+                },
+            }
+        )
         assert series is not None
         assert series.description == "Deep dive into Bengal internals"
 
@@ -411,9 +433,11 @@ class TestGetSeriesInfo:
 
     def test_series_properties(self):
         """Verify Series object properties work correctly."""
-        series = get_series_info({
-            "series": {"name": "Tutorial", "part": 1, "total": 3},
-        })
+        series = get_series_info(
+            {
+                "series": {"name": "Tutorial", "part": 1, "total": 3},
+            }
+        )
         assert series is not None
         assert series.is_first is True
         assert series.is_last is False
@@ -422,9 +446,11 @@ class TestGetSeriesInfo:
         assert series.progress_percent == 33
 
     def test_last_in_series(self):
-        series = get_series_info({
-            "series": {"name": "Tutorial", "part": 3, "total": 3},
-        })
+        series = get_series_info(
+            {
+                "series": {"name": "Tutorial", "part": 3, "total": 3},
+            }
+        )
         assert series is not None
         assert series.is_last is True
         assert series.has_next is False
@@ -476,9 +502,11 @@ class TestGetSeriesNeighbor:
 
     def test_get_next(self):
         """Part 1 -> next -> Part 2."""
-        page2 = _make_mock_page({
-            "series": {"name": "Tutorial", "part": 2, "total": 3},
-        })
+        page2 = _make_mock_page(
+            {
+                "series": {"name": "Tutorial", "part": 2, "total": 3},
+            }
+        )
         site = _make_mock_site(
             series_pages={"Tutorial": ["p1.md", "p2.md", "p3.md"]},
             page_map={
@@ -498,9 +526,11 @@ class TestGetSeriesNeighbor:
 
     def test_get_prev(self):
         """Part 2 -> prev -> Part 1."""
-        page1 = _make_mock_page({
-            "series": {"name": "Tutorial", "part": 1, "total": 3},
-        })
+        page1 = _make_mock_page(
+            {
+                "series": {"name": "Tutorial", "part": 1, "total": 3},
+            }
+        )
         site = _make_mock_site(
             series_pages={"Tutorial": ["p1.md", "p2.md"]},
             page_map={

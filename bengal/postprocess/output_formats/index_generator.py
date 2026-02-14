@@ -376,8 +376,7 @@ class SiteIndexGenerator:
                 summary["content"] = data.content_preview
 
         # Enhanced metadata (type, author, draft, etc.)
-        for key, value in data.enhanced_metadata.items():
-            summary[key] = value
+        summary.update(data.enhanced_metadata)
 
         # Content type alias
         if result_type := summary.get("type"):

@@ -98,7 +98,7 @@ class ConfigWithOrigin:
             path: Current key path as a list of keys.
         """
         for key, value in override.items():
-            key_path = ".".join(path + [key])
+            key_path = ".".join([*path, key])
 
             if isinstance(value, dict):
                 if key not in base or not isinstance(base[key], dict):
@@ -106,7 +106,7 @@ class ConfigWithOrigin:
                     base[key] = {}
                     self.origins[key_path] = origin
                 # Recurse into dict (whether new or existing)
-                self._merge_recursive(base[key], value, origin, path + [key])
+                self._merge_recursive(base[key], value, origin, [*path, key])
             else:
                 # Primitive or list: override and track
                 base[key] = value
@@ -156,14 +156,14 @@ class ConfigWithOrigin:
             indent: Current indentation level (each level = 2 spaces).
         """
         for key, value in config.items():
-            key_path = ".".join(path + [key])
+            key_path = ".".join([*path, key])
             origin = self.origins.get(key_path, "unknown")
             indent_str = "  " * indent
 
             if isinstance(value, dict):
                 # Nested dict
                 lines.append(f"{indent_str}{key}:")
-                self._format_recursive(value, lines, path + [key], indent + 1)
+                self._format_recursive(value, lines, [*path, key], indent + 1)
             elif isinstance(value, list):
                 # List
                 lines.append(f"{indent_str}{key}:  # {origin}")

@@ -136,9 +136,7 @@ def _snapshot_section_recursive(
         )
     )
 
-    regular_pages = tuple(
-        p for p in sorted_pages if p.source_path.stem not in ("index", "_index")
-    )
+    regular_pages = tuple(p for p in sorted_pages if p.source_path.stem not in ("index", "_index"))
 
     # Get href (_path property)
     href = getattr(section, "_path", None) or getattr(section, "href", "") or ""

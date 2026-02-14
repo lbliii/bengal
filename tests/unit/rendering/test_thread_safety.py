@@ -81,7 +81,7 @@ class TestBlockCacheThreadSafety:
                 futures.append(executor.submit(reader))
                 futures.append(executor.submit(writer, i))
 
-            for f in as_completed(futures):
+            for _f in as_completed(futures):
                 pass
 
         assert not errors, f"Thread safety errors: {errors}"
@@ -325,7 +325,7 @@ class TestRendererCacheThreadSafety:
         # Spawn many threads that all try to initialize the cache simultaneously
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(get_tag_pages) for _ in range(50)]
-            for future in as_completed(futures):
+            for _future in as_completed(futures):
                 pass
 
         assert not errors, f"Thread safety errors: {errors}"

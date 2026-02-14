@@ -257,10 +257,9 @@ def assert_build_idempotent(site: Site) -> None:
         k for k in first_hashes.keys() & second_hashes.keys() if first_hashes[k] != second_hashes[k]
     }
 
-    assert not added and not removed and not changed, (
-        f"Build is not idempotent - second build changed output. "
-        f"Added: {added}, Removed: {removed}, Changed: {changed}"
-    )
+    assert not added, f"Build is not idempotent - Added: {added}"
+    assert not removed, f"Build is not idempotent - Removed: {removed}"
+    assert not changed, f"Build is not idempotent - Changed: {changed}"
 
 
 def assert_incremental_equivalent(

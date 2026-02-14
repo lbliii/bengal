@@ -10,7 +10,6 @@ external patitas parser. This is critical because:
 RFC: rfc-patitas-external-migration.md
 """
 
-
 from bengal.parsing.backends.patitas import (
     Markdown,
     parse_to_ast,

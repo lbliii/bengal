@@ -56,6 +56,7 @@ from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -200,16 +201,23 @@ class SocialCardGenerator:
 
     """
 
-    def __init__(self, site: SiteLike, config: SocialCardConfig) -> None:
+    def __init__(
+        self,
+        site: SiteLike,
+        config: SocialCardConfig,
+        collector: OutputCollector | None = None,
+    ) -> None:
         """
         Initialize social card generator.
 
         Args:
             site: Site instance with pages and configuration
             config: SocialCardConfig with styling options
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
         self.config = config
+        self._collector = collector
         self._cache: dict[str, str] = {}
         self._cache_lock = Lock()
         self._title_font: ImageFont.FreeTypeFont | None = None
@@ -345,7 +353,7 @@ class SocialCardGenerator:
         from bengal.fonts.downloader import GoogleFontsDownloader
 
         # Find first configured font family
-        for _key, value in font_config.items():
+        for value in font_config.values():
             if isinstance(value, str):
                 # Simple format: "Outfit:400,600,700"
                 parts = value.split(":")
@@ -491,7 +499,7 @@ class SocialCardGenerator:
         current_line: list[str] = []
 
         for word in words:
-            test_line = " ".join(current_line + [word])
+            test_line = " ".join([*current_line, word])
             bbox = font.getbbox(test_line)
             width = bbox[2] - bbox[0]
 
@@ -756,6 +764,11 @@ class SocialCardGenerator:
         else:
             img.save(output_path, "PNG", optimize=True)
 
+        if self._collector:
+            from bengal.core.output import OutputType
+
+            self._collector.record(output_path, OutputType.IMAGE, phase="postprocess")
+
         # Update cache
         page_key = str(page.source_path)
         current_hash = self._compute_card_hash(page)
@@ -862,7 +875,9 @@ class SocialCardGenerator:
         return (generated_count, cached_count)
 
 
-def get_social_card_path(page: PageLike, config: SocialCardConfig, base_path: str = "") -> str | None:
+def get_social_card_path(
+    page: PageLike, config: SocialCardConfig, base_path: str = ""
+) -> str | None:
     """
     Get the path to a page's generated social card.
 

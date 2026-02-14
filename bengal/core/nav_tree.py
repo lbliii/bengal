@@ -335,7 +335,9 @@ class NavTree:
         return is_autodoc_page(page)
 
     @classmethod
-    def _build_node_recursive(cls, section: SectionLike, version_id: str | None, depth: int) -> NavNode:
+    def _build_node_recursive(
+        cls, section: SectionLike, version_id: str | None, depth: int
+    ) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
         node_url = getattr(section, "_path", None) or f"/{section.name}/"

@@ -65,26 +65,26 @@ from tests._testing.progress import (
 __version__ = "1.2.0"
 
 __all__ = [
-    # Behavioral assertions (Phase 1 of test hardening)
-    "assert_page_rendered",
-    "assert_page_contains",
-    "assert_output_files_exist",
-    "assert_build_idempotent",
-    "assert_incremental_equivalent",
-    "assert_all_pages_have_urls",
-    "assert_taxonomy_pages_complete",
-    "assert_menu_structure",
-    "assert_unchanged_files_not_rebuilt",
-    "assert_changed_file_rebuilt",
-    "assert_no_broken_internal_links",
-    "assert_pages_have_required_metadata",
     # Mock objects
     "MockPage",
     "MockSection",
     "MockSite",
-    "create_mock_xref_index",
     # Progress reporting
     "TestProgressReporter",
+    "assert_all_pages_have_urls",
+    "assert_build_idempotent",
+    "assert_changed_file_rebuilt",
+    "assert_incremental_equivalent",
+    "assert_menu_structure",
+    "assert_no_broken_internal_links",
+    "assert_output_files_exist",
+    "assert_page_contains",
+    # Behavioral assertions (Phase 1 of test hardening)
+    "assert_page_rendered",
+    "assert_pages_have_required_metadata",
+    "assert_taxonomy_pages_complete",
+    "assert_unchanged_files_not_rebuilt",
+    "create_mock_xref_index",
     "create_test_progress",
     "progress_status",
     "test_status",  # Deprecated

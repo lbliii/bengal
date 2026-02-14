@@ -141,9 +141,9 @@ class TestAssetManifestContextManager:
         reset_asset_manifest()
         ctx = AssetManifestContext(entries={"test": "test"})
 
-        with pytest.raises(ValueError):
-            with asset_manifest_context(ctx):
-                assert get_asset_manifest() is ctx
+        with asset_manifest_context(ctx):
+            assert get_asset_manifest() is ctx
+            with pytest.raises(ValueError, match="Test exception"):
                 raise ValueError("Test exception")
 
         assert get_asset_manifest() is None

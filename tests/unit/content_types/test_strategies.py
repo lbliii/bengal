@@ -259,7 +259,7 @@ class TestContentTypeRegistry:
         assert "list" in CONTENT_TYPE_REGISTRY
 
     @pytest.mark.parametrize(
-        "content_type,expected_strategy_class",
+        ("content_type", "expected_strategy_class"),
         [
             ("blog", BlogStrategy),
             ("doc", DocsStrategy),

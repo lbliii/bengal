@@ -352,10 +352,7 @@ class ConfigSnapshot:
         theme_data = merged.get("theme", {})
         if isinstance(theme_data, dict):
             features = theme_data.get("features", [])
-            if isinstance(features, list):
-                features_tuple = tuple(str(f) for f in features)
-            else:
-                features_tuple = ()
+            features_tuple = tuple(str(f) for f in features) if isinstance(features, list) else ()
 
             appearance = theme_data.get("default_appearance", "system")
             if appearance not in ("light", "dark", "system"):

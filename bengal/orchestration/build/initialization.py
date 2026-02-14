@@ -6,16 +6,20 @@ Phases 1-5: Font processing, template validation, content discovery, cache metad
 
 from __future__ import annotations
 
+import logging
 import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.build.results import (
     ConfigCheckResult,
+    DiscoveryPhaseInput,
+    DiscoveryPhaseOutput,
 )
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
+    from bengal.core.output import OutputCollector
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
     from bengal.output import CLIOutput
@@ -136,7 +140,11 @@ def _check_special_pages_missing(orchestrator: BuildOrchestrator) -> bool:
     return False
 
 
-def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
+def phase_fonts(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    collector: OutputCollector | None = None,
+) -> None:
     """
     Phase 1: Font Processing.
 
@@ -146,6 +154,7 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
+        collector: Optional output collector for hot reload tracking
 
     Side effects:
         - Creates assets/ directory if needed
@@ -197,6 +206,14 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
                 # (prevents triggering file watcher when nothing changed)
                 if not output_css.exists() or css_path.stat().st_mtime > output_css.stat().st_mtime:
                     shutil.copy2(css_path, output_css)
+                    if collector is not None:
+                        from bengal.core.output.types import OutputType
+
+                        collector.record(
+                            output_css.relative_to(orchestrator.site.output_dir),
+                            OutputType.CSS,
+                            phase="asset",
+                        )
 
             orchestrator.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
             orchestrator.logger.info("fonts_complete")
@@ -309,6 +326,79 @@ def phase_template_validation(
             return []
 
 
+def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
+    """
+    Run content and asset discovery without BuildOrchestrator coupling.
+
+    Discovers pages, sections, and assets. Mutates input.site and optionally
+    input.build_context (content caching). Returns structured output for
+    coordinator to apply or inspect.
+
+    Args:
+        input: DiscoveryPhaseInput with site, cache, incremental, build_context
+
+    Returns:
+        DiscoveryPhaseOutput with pages, sections, assets
+    """
+    from bengal.orchestration.content import ContentOrchestrator
+
+    site = input.site
+    build_cache = input.cache
+
+    _log = logging.getLogger(__name__)
+
+    # Load cache for incremental builds (lazy loading)
+    page_discovery_cache = None
+    if input.incremental:
+        try:
+            from bengal.cache.page_discovery_cache import PageDiscoveryCache
+
+            page_discovery_cache = PageDiscoveryCache(site.paths.page_cache)
+        except Exception as e:
+            _log.debug(
+                "page_discovery_cache_load_failed: %s (%s)",
+                e,
+                type(e).__name__,
+            )
+
+    # Load cached URL claims for incremental build safety
+    if input.incremental and build_cache and hasattr(build_cache, "url_claims"):
+        try:
+            if site.url_registry and build_cache.url_claims:
+                site.url_registry.load_from_dict(build_cache.url_claims)
+        except Exception as e:
+            _log.debug(
+                "url_claims_cache_load_failed: %s (%s)",
+                e,
+                type(e).__name__,
+            )
+
+    content = (
+        input.content_orchestrator
+        if input.content_orchestrator is not None
+        else ContentOrchestrator(site)
+    )
+    content_start = time.time()
+    content.discover_content(
+        incremental=input.incremental,
+        cache=page_discovery_cache,
+        build_context=input.build_context,
+        build_cache=build_cache,
+    )
+    content_ms = (time.time() - content_start) * 1000
+    assets_start = time.time()
+    content.discover_assets()
+    assets_ms = (time.time() - assets_start) * 1000
+
+    return DiscoveryPhaseOutput(
+        pages=site.pages,
+        sections=site.sections,
+        assets=site.assets,
+        content_ms=content_ms,
+        assets_ms=assets_ms,
+    )
+
+
 def phase_discovery(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
@@ -319,84 +409,31 @@ def phase_discovery(
     """
     Phase 2: Content Discovery.
 
-    Discovers all content files in the content/ directory and creates Page objects.
-    For incremental builds, uses cached page metadata for lazy loading.
-
-    When build_context is provided, raw file content is cached during discovery
-    for later use by validators (build-integrated validation), eliminating
-    ~4 seconds of redundant disk I/O during health checks.
+    Thin wrapper that constructs DiscoveryPhaseInput, calls run_discovery_phase,
+    and updates orchestrator stats. Discovery mutates orchestrator.site.
 
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
         incremental: Whether this is an incremental build
         build_context: Optional BuildContext for caching content during discovery.
-                      When provided, enables build-integrated validation optimization.
         build_cache: Optional BuildCache for registering autodoc dependencies.
-                    When provided, enables selective autodoc rebuilds.
-
-    Side effects:
-        - Populates orchestrator.site.pages with discovered pages
-        - Populates orchestrator.site.sections with discovered sections
-        - Updates orchestrator.stats.discovery_time_ms
-        - Caches file content in build_context (if provided)
-        - Registers autodoc dependencies in build_cache (if provided)
-
     """
     content_dir = orchestrator.site.root_path / "content"
     with orchestrator.logger.phase("discovery", content_dir=str(content_dir)):
         discovery_start = time.time()
-        content_ms: float | None = None
-        assets_ms: float | None = None
-
-        # Load cache for incremental builds (lazy loading)
-        page_discovery_cache = None
-        if incremental:
-            try:
-                from bengal.cache.page_discovery_cache import PageDiscoveryCache
-
-                page_discovery_cache = PageDiscoveryCache(orchestrator.site.paths.page_cache)
-            except Exception as e:
-                orchestrator.logger.debug(
-                    "page_discovery_cache_load_failed_for_lazy_loading",
-                    error=str(e),
-                )
-                # Continue without cache - will do full discovery
-
-        # Load cached URL claims for incremental build safety
-        # Pre-populate registry with claims from pages not being rebuilt
-        if incremental and build_cache and hasattr(build_cache, "url_claims"):
-            try:
-                if orchestrator.site.url_registry and build_cache.url_claims:
-                    orchestrator.site.url_registry.load_from_dict(build_cache.url_claims)
-                    orchestrator.logger.debug(
-                        "url_claims_loaded_from_cache",
-                        claim_count=len(build_cache.url_claims),
-                    )
-            except Exception as e:
-                orchestrator.logger.debug(
-                    "url_claims_cache_load_failed",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="continuing_without_cached_claims",
-                )
-
-        # Discover content and assets.
-        # We time these separately so the Discovery phase can report a useful breakdown.
-        content_start = time.time()
-        orchestrator.content.discover_content(
+        content_orchestrator = getattr(orchestrator, "content", None)
+        phase_input = DiscoveryPhaseInput(
+            site=orchestrator.site,
+            cache=build_cache,
             incremental=incremental,
-            cache=page_discovery_cache,
             build_context=build_context,
-            build_cache=build_cache,
+            content_orchestrator=content_orchestrator,
         )
-        content_ms = (time.time() - content_start) * 1000
+        output = run_discovery_phase(phase_input)
+        content_ms = output.content_ms
+        assets_ms = output.assets_ms
 
-        assets_start = time.time()
-        orchestrator.content.discover_assets()
-        assets_ms = (time.time() - assets_start) * 1000
-
-        # Log content cache stats if enabled
         if build_context and build_context.has_cached_content:
             orchestrator.logger.debug(
                 "content_cache_populated",
@@ -405,15 +442,13 @@ def phase_discovery(
 
         orchestrator.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
-        # Phase details (shown only when CLI profile enables details).
         details: str | None = None
-        if content_ms is not None and assets_ms is not None:
+        if content_ms is not None:
             details = f"content {int(content_ms)}ms, assets {int(assets_ms)}ms"
-            # If we have a richer breakdown from content discovery, include the top 2 items.
-            # Prefer BuildState (fresh each build), fall back to Site field
             _bs = getattr(orchestrator.site, "build_state", None)
             breakdown = (
-                getattr(_bs, "discovery_timing_ms", None) if _bs is not None
+                getattr(_bs, "discovery_timing_ms", None)
+                if _bs is not None
                 else getattr(orchestrator.site, "_discovery_breakdown_ms", None)
             )
             if isinstance(breakdown, dict) and content_ms >= 500:
@@ -427,13 +462,12 @@ def phase_discovery(
                 if top:
                     details += "; " + ", ".join(f"{k} {v}ms" for k, v in top)
 
-        # Show phase completion
         cli.phase("Discovery", duration_ms=orchestrator.stats.discovery_time_ms, details=details)
 
         orchestrator.logger.info(
             "discovery_complete",
-            pages=len(orchestrator.site.pages),
-            sections=len(orchestrator.site.sections),
+            pages=len(output.pages),
+            sections=len(output.sections),
         )
 
 

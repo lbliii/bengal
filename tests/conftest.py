@@ -31,15 +31,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # Enforce Python 3.14+ requirement (fail fast if wrong version)
     import sys
 
-    if sys.version_info < (3, 14):
-        pytest.exit(
-            f"ERROR: Python 3.14+ required, but found {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\n"
-            f"Current Python: {sys.executable}\n"
-            f"Solution: Use 'uv run pytest' instead of 'pytest' to use the project's Python version.\n"
-            f"Or run: make test",
-            returncode=1,
-        )
-
     # Check if free-threading build (warn if not, but don't fail)
     is_freethreading_build = "free-threading" in sys.version
     if not is_freethreading_build:

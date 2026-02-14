@@ -120,7 +120,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
     cli.info("Upgrading bengal...")
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             installer.command,
             check=True,
             capture_output=True,

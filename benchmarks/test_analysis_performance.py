@@ -72,7 +72,6 @@ class SyntheticPage:
 
     def extract_links(self):
         """Mock link extraction - links are pre-populated."""
-        pass
 
 
 class SyntheticSite:
@@ -474,8 +473,8 @@ def test_full_analysis_pipeline_100_pages(benchmark, synthetic_100_site):
 
     This represents a realistic workflow where all analysis is performed.
     """
-    from bengal.analysis.links.suggestions import LinkSuggestionEngine
     from bengal.analysis.graph.page_rank import PageRankCalculator
+    from bengal.analysis.links.suggestions import LinkSuggestionEngine
 
     def full_pipeline():
         graph = MockKnowledgeGraph(synthetic_100_site)

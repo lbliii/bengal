@@ -147,7 +147,9 @@ class Renderer:
         self._top_level_cache = (top_level_pages, top_level_subsections)
         return self._top_level_cache
 
-    def _to_section_snapshot(self, section: SectionLike | SectionSnapshot | None, snapshot: SiteSnapshot | None) -> SectionSnapshot | None:
+    def _to_section_snapshot(
+        self, section: SectionLike | SectionSnapshot | None, snapshot: SiteSnapshot | None
+    ) -> SectionSnapshot | None:
         """
         Convert a mutable Section to its SectionSnapshot equivalent.
 
@@ -185,7 +187,9 @@ class Renderer:
         # Fallback: return NO_SECTION sentinel
         return NO_SECTION
 
-    def _to_section_snapshots(self, sections: list[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None) -> list[SectionSnapshot]:
+    def _to_section_snapshots(
+        self, sections: list[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None
+    ) -> list[SectionSnapshot]:
         """
         Convert a list of mutable Sections to SectionSnapshots.
 
@@ -556,7 +560,9 @@ class Renderer:
             self._add_tag_index_generated_page_context(page, context)
             return
 
-    def _add_archive_like_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
+    def _add_archive_like_generated_page_context(
+        self, page: PageLike, context: dict[str, Any]
+    ) -> None:
         """
         Add context for archive/reference/blog-like generated pages.
 
@@ -726,7 +732,9 @@ class Renderer:
             }
         )
 
-    def _add_tag_index_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
+    def _add_tag_index_generated_page_context(
+        self, page: PageLike, context: dict[str, Any]
+    ) -> None:
         """Add context for the tag index page."""
         tags = page.metadata.get("_tags", {})
 

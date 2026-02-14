@@ -264,7 +264,7 @@ def benchmark_incremental_single_page(site_root: Path, site: Site) -> dict:
 
     # Modify a single page
     content_dir = site_root / "content"
-    test_page = list(content_dir.glob("section-001/page-*.md"))[0]
+    test_page = next(iter(content_dir.glob("section-001/page-*.md")))
 
     original = test_page.read_text()
     modified = original + "\n\n## Updated Section\n\nThis content was just added.\n"

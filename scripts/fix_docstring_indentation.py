@@ -10,7 +10,6 @@ indentation from text content while preserving code examples.
 import ast
 import re
 from pathlib import Path
-from typing import List, Tuple
 
 
 def fix_docstring_content(docstring: str) -> str:
@@ -73,20 +72,10 @@ def fix_docstring_content(docstring: str) -> str:
     return "\n".join(fixed_lines)
 
 
-def get_docstring_range(source_lines: List[str], node) -> Tuple[int, int] | None:
+def get_docstring_range(source_lines: list[str], node) -> tuple[int, int] | None:
     """Get the line range for a docstring node."""
     # Find the docstring node (first Expr with Constant string)
-    if isinstance(node, ast.Module):
-        if (
-            node.body
-            and isinstance(node.body[0], ast.Expr)
-            and isinstance(node.body[0].value, ast.Constant)
-        ):
-            doc_node = node.body[0]
-            start_line = doc_node.lineno - 1  # 0-indexed
-        else:
-            return None
-    elif isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+    if isinstance(node, (ast.Module, ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
         if (
             node.body
             and isinstance(node.body[0], ast.Expr)
@@ -127,10 +116,10 @@ def get_docstring_range(source_lines: List[str], node) -> Tuple[int, int] | None
     return start_line, len(source_lines) - 1
 
 
-def fix_file(file_path: Path) -> Tuple[int, List[str]]:
+def fix_file(file_path: Path) -> tuple[int, list[str]]:
     """Fix docstrings in a single file."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         source_lines = content.split("\n")
@@ -154,16 +143,17 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
                     for line in docstring.split("\n"):
                         if line.startswith("    ") and line.strip():
                             stripped = line[4:]
-                            if not stripped.strip().startswith(
-                                ">>>"
-                            ) and not stripped.strip().startswith("..."):
-                                if (
+                            if (
+                                not stripped.strip().startswith(">>>")
+                                and not stripped.strip().startswith("...")
+                                and (
                                     re.match(r"^[A-Z]", stripped)
                                     or re.match(r"^-", stripped)
                                     or re.match(r"^\*", stripped)
-                                ):
-                                    needs_fixing = True
-                                    break
+                                )
+                            ):
+                                needs_fixing = True
+                                break
 
                     if needs_fixing:
                         doc_range = get_docstring_range(source_lines, node)
@@ -181,7 +171,7 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
             if fixed_content != original_docstring:
                 # Extract the actual docstring from source lines
                 doc_lines = source_lines[start_line : end_line + 1]
-                doc_text = "\n".join(doc_lines)
+                "\n".join(doc_lines)
 
                 # Determine quote type and indentation
                 first_line = doc_lines[0]
@@ -192,7 +182,7 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
                 indent = match.group(1)
                 prefix = match.group(2)
                 quote = match.group(3)
-                first_content = match.group(4)
+                match.group(4)
 
                 # Check if single-line or multi-line
                 if start_line == end_line:
@@ -205,7 +195,7 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
                         after_first_quote = full_line[quote_pos + 3 :]
                         last_quote_pos = after_first_quote.rfind(quote)
                         if last_quote_pos != -1:
-                            original_content = after_first_quote[:last_quote_pos]
+                            after_first_quote[:last_quote_pos]
                             # Replace with fixed content
                             new_line = f"{indent}{prefix}{quote}{fixed_content}{quote}"
                             source_lines[start_line] = new_line
@@ -217,8 +207,7 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
 
                     # Rebuild docstring
                     new_lines = [f"{indent}{prefix}{quote}{fixed_lines[0]}"]
-                    for fline in fixed_lines[1:]:
-                        new_lines.append(f"{indent}{fline}")
+                    new_lines.extend(f"{indent}{fline}" for fline in fixed_lines[1:])
                     new_lines.append(f"{indent}{quote}")
 
                     # Replace the range
@@ -241,11 +230,7 @@ def fix_file(file_path: Path) -> Tuple[int, List[str]]:
 def main():
     """Main entry point."""
     # Find all Python files
-    python_files = []
-    for path in Path("bengal").rglob("*.py"):
-        python_files.append(path)
-    for path in Path("tests").rglob("*.py"):
-        python_files.append(path)
+    python_files = list(Path("bengal").rglob("*.py")) + list(Path("tests").rglob("*.py"))
 
     total_fixed = 0
     files_fixed = 0

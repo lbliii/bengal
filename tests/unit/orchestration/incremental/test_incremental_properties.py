@@ -30,8 +30,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-# hypothesis is an optional dev dependency
-hypothesis = pytest.importorskip("hypothesis")
+# hypothesis is an optional dev dependency - importorskip must run before import
+pytest.importorskip("hypothesis")
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
@@ -393,5 +393,6 @@ class TestCacheProperties:
             fp2 = cache2.file_fingerprints.get(str(test_file))
 
             # PROPERTY: Different content should produce different fingerprint
-            assert fp1 is not None and fp2 is not None
+            assert fp1 is not None
+            assert fp2 is not None
             assert fp1["hash"] != fp2["hash"], "Different content produced same fingerprint"

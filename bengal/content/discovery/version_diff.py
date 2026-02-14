@@ -402,7 +402,7 @@ def diff_git_versions(
             # Deleted
             content = _git_show_file(repo_path, old_ref, path)
             result.removed_pages.append(PageDiff(path=path, status="removed", old_content=content))
-        elif status.startswith("M") or status.startswith("R"):
+        elif status.startswith(("M", "R")):
             # Modified or Renamed
             old_content = _git_show_file(repo_path, old_ref, path)
             new_content = _git_show_file(repo_path, new_ref, path)

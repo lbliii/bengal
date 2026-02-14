@@ -6,6 +6,8 @@ This test file is preserved for the comprehensive test coverage.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 from jinja2 import Undefined
 
@@ -343,7 +345,7 @@ class TestIntegrationScenarios:
         class Page:
             title = "Hello"
             description = ""
-            tags = []
+            tags: ClassVar[list] = []
             draft = False
             featured = None
 

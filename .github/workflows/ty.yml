@@ -1,4 +1,4 @@
-name: Type Check
+name: Lint & Type Check
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [main]
 
 concurrency:
-  group: ty-${{ github.workflow }}-${{ github.ref }}
+  group: lint-ty-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  type-check:
+  lint-and-type:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +31,12 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --group dev
+
+      - name: Run ruff (lint)
+        run: uv run ruff check .
+
+      - name: Run ruff (format check)
+        run: uv run ruff format . --check
 
       - name: Run ty type checker
         run: uv run ty check bengal/

@@ -24,12 +24,15 @@ def test_related_posts_with_shared_tags(mock_site):
     """Pages with shared tags should be related."""
     # Create pages with tags
     page1 = Page(
-        source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python", "django"]}
+        source_path=Path("page1.md"),
+        _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
     page2 = Page(
         source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["python", "flask"]}
     )
-    page3 = Page(source_path=Path("page3.md"), _raw_metadata={"title": "Post 3", "tags": ["javascript"]})
+    page3 = Page(
+        source_path=Path("page3.md"), _raw_metadata={"title": "Post 3", "tags": ["javascript"]}
+    )
 
     page1.__post_init__()
     page2.__post_init__()
@@ -110,7 +113,8 @@ def test_related_posts_respects_limit(mock_site):
     pages = []
     for i in range(10):
         page = Page(
-            source_path=Path(f"page{i}.md"), _raw_metadata={"title": f"Post {i}", "tags": ["python"]}
+            source_path=Path(f"page{i}.md"),
+            _raw_metadata={"title": f"Post {i}", "tags": ["python"]},
         )
         page.__post_init__()
         pages.append(page)
@@ -133,7 +137,9 @@ def test_related_posts_respects_limit(mock_site):
 
 def test_related_posts_skips_generated_pages(mock_site):
     """Should skip generated pages (tag indexes, archives, etc.)."""
-    page1 = Page(source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]})
+    page1 = Page(
+        source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]}
+    )
     page2 = Page(
         source_path=Path("page2.md"),
         _raw_metadata={"title": "Post 2", "tags": ["python"], "_generated": True},
@@ -160,7 +166,9 @@ def test_related_posts_skips_generated_pages(mock_site):
 def test_related_posts_no_tags(mock_site):
     """Pages without tags should have no related posts."""
     page1 = Page(source_path=Path("page1.md"), _raw_metadata={"title": "Post 1"})  # No tags
-    page2 = Page(source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["python"]})
+    page2 = Page(
+        source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["python"]}
+    )
 
     page1.__post_init__()
     page2.__post_init__()
@@ -179,7 +187,9 @@ def test_related_posts_no_tags(mock_site):
 
 def test_related_posts_no_taxonomies(mock_site):
     """Should handle sites without taxonomies gracefully."""
-    page1 = Page(source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]})
+    page1 = Page(
+        source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]}
+    )
     page1.__post_init__()
 
     mock_site.pages = [page1]
