@@ -116,6 +116,9 @@ class RenderOrchestrator:
         self.site = site
         self._free_threaded = is_free_threaded()
         self._block_cache = None  # Lazy initialized for Kida only
+        from bengal.rendering.highlighting.cache import HighlightCache
+
+        self._highlight_cache = HighlightCache(enabled=True)
 
         # Log free-threaded detection once
         if self._free_threaded:
@@ -387,6 +390,7 @@ class RenderOrchestrator:
                 build_context=build_context,
                 changed_sources=changed_sources,
                 block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
             )
             last_update_time = time.time()
             update_interval = 0.1  # Update every 100ms (throttled for performance)
@@ -435,6 +439,7 @@ class RenderOrchestrator:
                 build_context=build_context,
                 changed_sources=changed_sources,
                 block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
             )
             for page in pages:
                 pipeline.process_page(page)
@@ -699,6 +704,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
+                    highlight_cache=self._highlight_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -784,6 +790,7 @@ class RenderOrchestrator:
             build_context=build_context,
             changed_sources=changed_sources,
             block_cache=self._block_cache,
+            highlight_cache=self._highlight_cache,
         )
 
         with Progress(
@@ -874,6 +881,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
+                    highlight_cache=self._highlight_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -1016,6 +1024,7 @@ class RenderOrchestrator:
                     build_context=build_context,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
+                    highlight_cache=self._highlight_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
