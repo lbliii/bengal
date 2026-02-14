@@ -39,9 +39,8 @@ Create a custom filter that formats currency values and use it in templates.
 - Kida enabled in `bengal.toml`
 - Python knowledge
 
-## Steps
-
-### Step 1: Create Filter Function
+:::{steps}
+:::{step} Create Filter Function
 
 Create a Python file for your filters:
 
@@ -69,7 +68,8 @@ def currency(value: float, symbol: str = "$") -> str:
     return f"{symbol}{value:,.2f}"
 ```
 
-### Step 2: Register Filter
+:::{/step}
+:::{step} Register Filter
 
 Create a registration function to add your filter to the template environment:
 
@@ -98,7 +98,8 @@ def register_filters(site: Site) -> None:
         env.add_filter("currency", currency)
 ```
 
-### Step 3: Call Registration Function
+:::{/step}
+:::{step} Call Registration Function
 
 You need to call this function during the build process. Currently, this requires accessing internal APIs. Two approaches:
 
@@ -132,7 +133,8 @@ This approach uses internal APIs (`site._template_engine`) that may change. Use 
 
 If you need to register filters during the build process, you can access the template engine after it's created. The template engine is typically available during the rendering phase of the build.
 
-### Step 4: Use Filter in Template
+:::{/step}
+:::{step} Use Filter in Template
 
 Use your custom filter in templates:
 
@@ -146,6 +148,9 @@ Use your custom filter in templates:
 {{ product.price | currency }}
 {# Output: $29.99 #}
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Advanced Examples
 

@@ -48,7 +48,8 @@ Kida is Bengal's **default template engine**, designed for:
 **Coming from Jinja2?** Kida can parse Jinja2 syntax, so your existing templates work. This tutorial focuses on Kida-native features.
 :::
 
-## Step 1: Set Up Your Project
+:::{steps}
+:::{step} Set Up Your Project
 
 ### Initialize Bengal Site
 
@@ -80,7 +81,8 @@ mkdir -p templates
 touch templates/test.html
 ```
 
-## Step 2: Basic Syntax
+:::{/step}
+:::{step} Basic Syntax
 
 ### Variables
 
@@ -148,7 +150,8 @@ Use `{% let %}` for template-wide variables (available throughout the entire tem
 - `{% set %}` — Block-scoped (only within the current block)
 - `{% export %}` — Export from inner scope to outer scope
 
-## Step 3: Pattern Matching
+:::{/step}
+:::{step} Pattern Matching
 
 Replace long `if/elif` chains with pattern matching:
 
@@ -174,7 +177,8 @@ Replace long `if/elif` chains with pattern matching:
 
 **Practice**: Create a template that shows different icons based on page type. Use pattern matching to handle `blog`, `doc`, and `gallery` page types, with a default case for other types.
 
-## Step 4: Pipeline Operator
+:::{/step}
+:::{step} Pipeline Operator
 
 Use `|>` for readable filter chains:
 
@@ -188,7 +192,8 @@ Use `|>` for readable filter chains:
 
 **Practice**: Filter posts by tag, sort by date, and limit to 5. Use the pipeline operator to chain these operations together.
 
-## Step 5: Template Inheritance
+:::{/step}
+:::{step} Template Inheritance
 
 ### Base Layout
 
@@ -245,7 +250,8 @@ Create `templates/blog/single.html`:
 {% end %}
 ```
 
-## Step 6: Build a Complete Blog Template
+:::{/step}
+:::{step} Build a Complete Blog Template
 
 Create a full-featured blog template:
 
@@ -310,7 +316,8 @@ Create a full-featured blog template:
 {% end %}
 ```
 
-## Step 7: Fragment Caching
+:::{/step}
+:::{step} Fragment Caching
 
 Cache expensive operations:
 
@@ -341,7 +348,8 @@ Cache expensive operations:
 **Cache TTL**: Fragment cache uses a global TTL configured in `bengal.toml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
 :::
 
-## Step 8: Create Content
+:::{/step}
+:::{step} Create Content
 
 Create a blog post:
 
@@ -363,7 +371,8 @@ tags:
 This is my first blog post using Kida templates!
 ```
 
-## Step 9: Build and Test
+:::{/step}
+:::{step} Build and Test
 
 ```bash
 # Build the site
@@ -375,7 +384,8 @@ bengal serve
 
 Visit `http://localhost:5173/blog/my-first-post/` to see your template.
 
-## Step 10: Advanced Features
+:::{/step}
+:::{step} Advanced Features
 
 ### Functions
 
@@ -416,6 +426,9 @@ Fallback for None:
 {{ page.subtitle ?? page.title }}
 {{ user.name ?? 'Guest' }}
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Common Patterns
 

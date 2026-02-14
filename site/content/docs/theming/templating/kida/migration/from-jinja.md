@@ -202,7 +202,8 @@ Migrate templates incrementally, starting with:
 
 ## Step-by-Step Migration
 
-### Step 1: Identify Template
+:::{steps}
+:::{step} Identify Template
 
 Choose a template to migrate:
 
@@ -211,14 +212,16 @@ Choose a template to migrate:
 find templates/ -name "*.html"
 ```
 
-### Step 2: Create Backup
+:::{/step}
+:::{step} Create Backup
 
 ```bash
 # Backup original
 cp templates/blog/single.html templates/blog/single.html.jinja2
 ```
 
-### Step 3: Replace Block Endings
+:::{/step}
+:::{step} Replace Block Endings
 
 ```bash
 # Replace all block endings with {% end %}
@@ -227,7 +230,8 @@ sed -i 's/{% endfor %}/{% end %}/g' templates/blog/single.html
 sed -i 's/{% endblock %}/{% end %}/g' templates/blog/single.html
 ```
 
-### Step 4: Replace Template Variables
+:::{/step}
+:::{step} Replace Template Variables
 
 Find `{% set %}` used for template-wide variables:
 
@@ -239,7 +243,8 @@ Find `{% set %}` used for template-wide variables:
 {% let site_title = site.config.title %}
 ```
 
-### Step 5: Convert Pattern Matching
+:::{/step}
+:::{step} Convert Pattern Matching
 
 Find long `if/elif` chains:
 
@@ -264,7 +269,8 @@ Find long `if/elif` chains:
 {% end %}
 ```
 
-### Step 6: Update Filter Chains
+:::{/step}
+:::{step} Update Filter Chains
 
 Replace filter syntax (two options):
 
@@ -286,7 +292,8 @@ Replace filter syntax (two options):
 {{ items |> where('published', true) |> sort_by('date') }}
 ```
 
-### Step 7: Add Fragment Caching
+:::{/step}
+:::{step} Add Fragment Caching
 
 Add caching to expensive operations:
 
@@ -304,13 +311,17 @@ Add caching to expensive operations:
 {% end %}
 ```
 
-### Step 8: Test
+:::{/step}
+:::{step} Test
 
 ```bash
 # Build and test
 bengal build
 bengal serve
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Functions vs Filters
 

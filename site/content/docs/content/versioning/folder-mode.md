@@ -31,7 +31,8 @@ your-site/
 │               └── ...
 ```
 
-## Step 1: Enable Versioning
+:::{steps}
+:::{step} Enable Versioning
 
 Add to your `bengal.yaml`:
 
@@ -53,7 +54,8 @@ versioning:
 
 If you omit `sections`, it defaults to `["docs"]`.
 
-## Step 2: Create Version Directories
+:::{/step}
+:::{step} Create Version Directories
 
 ### Option A: Use the CLI (Recommended)
 
@@ -71,7 +73,8 @@ mkdir -p content/_versions/v2/docs
 cp -r content/docs/* content/_versions/v2/docs/
 ```
 
-## Step 3: Build and Verify
+:::{/step}
+:::{step} Build and Verify
 
 ```bash
 bengal build
@@ -92,6 +95,9 @@ public/
 └── docs/v1/
     └── ...
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Configuration Options
 

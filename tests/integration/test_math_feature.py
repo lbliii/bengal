@@ -52,7 +52,8 @@ The equation $E = mc^2$ is famous.
 
         assert "katex.min.css" in index_html
         assert "katex.min.js" in index_html
-        assert "math.js" in index_html
+        # math.js may be fingerprinted (e.g. math.a5c38245.js) in production builds
+        assert "enhancements/math" in index_html
         assert 'class="math"' in index_html
         assert "E = mc^2" in index_html
 

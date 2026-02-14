@@ -56,7 +56,8 @@ structure:
 
 ## Build a Skeleton Step by Step
 
-### Step 1: Define Metadata
+:::{steps}
+:::{step} Define Metadata
 
 ```yaml
 name: API Documentation
@@ -64,7 +65,8 @@ description: OpenAPI-style docs with endpoints and schemas
 version: "1.0"
 ```
 
-### Step 2: Add Global Cascade
+:::{/step}
+:::{step} Add Global Cascade
 
 Cascade settings apply to all pages unless overridden:
 
@@ -74,7 +76,8 @@ cascade:
   draft: false
 ```
 
-### Step 3: Define Root Pages
+:::{/step}
+:::{step} Define Root Pages
 
 ```yaml
 structure:
@@ -95,7 +98,8 @@ structure:
       - [Schemas](/schemas)
 ```
 
-### Step 4: Add Sections with Nested Pages
+:::{/step}
+:::{step} Add Sections with Nested Pages
 
 Use `pages` to nest content under a section:
 
@@ -135,7 +139,8 @@ Use `pages` to nest content under a section:
           Returns a list of posts.
 ```
 
-### Step 5: Apply and Test
+:::{/step}
+:::{step} Apply and Test
 
 ```bash
 # Preview first
@@ -147,6 +152,9 @@ bengal project skeleton apply api-docs.yaml
 # Serve
 bengal serve
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Complete Example: API Documentation Skeleton
 

@@ -75,7 +75,8 @@ For a dynamic filter page (e.g., `/search/`), we typically rely on client-side J
 
 However, for specific, high-value combinations, you can create dedicated pages.
 
-### Step 1: Create the Page
+:::{steps}
+:::{step} Create the Page
 
 `site/content/guides/python-tutorials.md`:
 ```markdown
@@ -87,7 +88,8 @@ filter_tags: ["python", "tutorial"]
 Here are all our Python tutorials.
 ```
 
-### Step 2: Create the Layout
+:::{/step}
+:::{step} Create the Layout
 
 `templates/filter_page.html`:
 
@@ -116,6 +118,9 @@ Here are all our Python tutorials.
 
 {% end %}
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Summary
 

@@ -38,7 +38,7 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site. Autom
 - A hosting provider account (GitHub Pages, Netlify, Vercel, etc.)
 - Basic knowledge of YAML
 
-:::tip Performance Tip
+:::{tip} Performance Tip
 For faster CI builds, use Python 3.14t (free-threading build) instead of 3.14. This enables true parallel processing and can reduce build times by 1.5-2x on multi-core runners. Update `python-version: '3.14t'` in your workflows.
 :::
 

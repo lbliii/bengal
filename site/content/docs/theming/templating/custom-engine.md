@@ -97,7 +97,8 @@ class MyEngine:
 
 ## Step-by-Step Implementation
 
-### Step 1: Create Your Environment Class
+:::{steps}
+:::{step} Create Your Environment Class
 
 ```python
 # my_engine/environment.py
@@ -129,7 +130,8 @@ class MyEnvironment:
         self.tests[name] = func
 ```
 
-### Step 2: Create Your Engine Class
+:::{/step}
+:::{step} Create Your Engine Class
 
 ```python
 # my_engine/engine.py
@@ -240,7 +242,8 @@ class MyEngine:
         return cap in self.capabilities
 ```
 
-### Step 3: Register Your Engine
+:::{/step}
+:::{step} Register Your Engine
 
 ```python
 # my_engine/__init__.py
@@ -251,13 +254,17 @@ from .engine import MyEngine
 register_engine("myengine", MyEngine)
 ```
 
-### Step 4: Configure Bengal
+:::{/step}
+:::{step} Configure Bengal
 
 ```yaml
 # config/_default/site.yaml (or [site] in bengal.toml)
 site:
   template_engine: myengine
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Verification
 

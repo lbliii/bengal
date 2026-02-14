@@ -39,9 +39,8 @@ Create a custom blog post template that:
     template_engine: kida
   ```
 
-## Steps
-
-### Step 1: Create Template Directory
+:::{steps}
+:::{step} Create Template Directory
 
 Create the template file in your project:
 
@@ -59,7 +58,8 @@ Bengal searches templates in this order:
    - Bundled themes (`bengal/themes/{theme}/templates`)
 3. Default theme templates (ultimate fallback)
 
-### Step 2: Extend Base Layout
+:::{/step}
+:::{step} Extend Base Layout
 
 Start by extending the base layout:
 
@@ -68,7 +68,8 @@ Start by extending the base layout:
 {% extends "baseof.html" %}
 ```
 
-### Step 3: Define Template Variables
+:::{/step}
+:::{step} Define Template Variables
 
 Use `{% let %}` for template-wide variables:
 
@@ -80,7 +81,8 @@ Use `{% let %}` for template-wide variables:
 {% let author = site.authors[post.author] ?? {} %}
 ```
 
-### Step 4: Override Content Block
+:::{/step}
+:::{step} Override Content Block
 
 Override the `content` block to display your post:
 
@@ -126,7 +128,8 @@ Override the `content` block to display your post:
 {% end %}
 ```
 
-### Step 5: Add Pattern Matching for Post Types
+:::{/step}
+:::{step} Add Pattern Matching for Post Types
 
 Use pattern matching to handle different post types:
 
@@ -155,7 +158,8 @@ Use pattern matching to handle different post types:
 {% end %}
 ```
 
-### Step 6: Use Pipeline Operator for Data Processing
+:::{/step}
+:::{step} Use Pipeline Operator for Data Processing
 
 Process collections with the pipeline operator:
 
@@ -184,7 +188,8 @@ Process collections with the pipeline operator:
 {% end %}
 ```
 
-### Step 7: Add Fragment Caching
+:::{/step}
+:::{step} Add Fragment Caching
 
 Cache expensive operations:
 
@@ -214,6 +219,9 @@ Cache expensive operations:
   {% end %}
 {% end %}
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Complete Example
 
