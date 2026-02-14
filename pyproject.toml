@@ -96,10 +96,6 @@ bengal = [
     "py.typed",
 ]
 
-[tool.uv.sources]
-# Use local patitas until 0.2.0 is published to PyPI
-patitas = { path = "../patitas" }
-
 [tool.ruff]
 line-length = 100
 target-version = "py314"
