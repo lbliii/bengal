@@ -37,9 +37,8 @@ import argparse
 import ast
 import sys
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
-
 
 # Define layer hierarchy (lower number = lower layer)
 LAYER_ORDER = {
@@ -241,11 +240,11 @@ def main() -> int:
             print(f"  • {importer}:{line} → {imported}")
             print(f"    ({desc})")
 
-    print(f"\n  📊 Summary:")
+    print("\n  📊 Summary:")
     print(f"    - Total violations: {len(violations)}")
     print(f"    - Modules affected: {len(by_module)}")
-    print(f"\n  💡 Fix: Move imports to TYPE_CHECKING blocks, use protocols,")
-    print(f"          or refactor to respect layer boundaries.")
+    print("\n  💡 Fix: Move imports to TYPE_CHECKING blocks, use protocols,")
+    print("          or refactor to respect layer boundaries.")
 
     return 1
 

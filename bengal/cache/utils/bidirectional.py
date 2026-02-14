@@ -75,7 +75,9 @@ def check_bidirectional_invariants(
     for page, keys in reverse.items():
         for key in keys:
             if key not in forward:
-                violations.append(f"Reverse has key '{key}' for page '{page}' but key not in forward")
+                violations.append(
+                    f"Reverse has key '{key}' for page '{page}' but key not in forward"
+                )
             else:
                 forward_pages = forward_getter(forward[key])
                 if page not in forward_pages:
@@ -88,7 +90,9 @@ def check_bidirectional_invariants(
         forward_pages = forward_getter(entry)
         for page in forward_pages:
             if page not in reverse:
-                violations.append(f"Page '{page}' in forward for key '{key}' but page not in reverse")
+                violations.append(
+                    f"Page '{page}' in forward for key '{key}' but page not in reverse"
+                )
             elif key not in reverse[page]:
                 violations.append(
                     f"Key '{key}' for page '{page}' in forward but not in reverse['{page}']"

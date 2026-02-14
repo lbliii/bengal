@@ -53,7 +53,7 @@ for ex in spec:
                 "example": number,
                 "markdown": ex["markdown"],
                 "expected": ex["html"],
-                "actual": f"ERROR: {str(e)}\n{traceback.format_exc()}",
+                "actual": f"ERROR: {e!s}\n{traceback.format_exc()}",
             }
         )
 
@@ -61,9 +61,9 @@ for section, failures in failing_by_section.items():
     print(f"### {section} ({len(failures)} failures)")
     for f in failures[:3]:  # Show first 3 failures per section
         print(f"Example {f['example']}:")
-        print(f"  Markdown: {repr(f['markdown'])}")
-        print(f"  Expected: {repr(f['expected'])}")
-        print(f"  Actual:   {repr(f['actual'])}")
+        print(f"  Markdown: {f['markdown']!r}")
+        print(f"  Expected: {f['expected']!r}")
+        print(f"  Actual:   {f['actual']!r}")
     if len(failures) > 3:
         print(f"  ... and {len(failures) - 3} more")
     print()

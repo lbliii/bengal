@@ -225,7 +225,9 @@ class XRefIndexGenerator:
         else:
             self._add_content_page_entry(entries, page, page_url)
 
-    def _add_content_page_entry(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
+    def _add_content_page_entry(
+        self, entries: dict[str, Any], page: PageLike, page_url: str
+    ) -> None:
         """
         Add a content page entry to the index.
 
@@ -344,7 +346,9 @@ class XRefIndexGenerator:
                     "summary": page.metadata.get("description", "")[:200] or None,
                 }
 
-    def _add_cli_autodoc_entries(self, entries: dict[str, Any], page: PageLike, page_url: str) -> None:
+    def _add_cli_autodoc_entries(
+        self, entries: dict[str, Any], page: PageLike, page_url: str
+    ) -> None:
         """
         Add CLI autodoc entries (commands, subcommands).
 

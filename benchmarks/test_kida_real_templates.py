@@ -129,7 +129,7 @@ def create_mock_context() -> dict[str, Any]:
             {"title": "Blog", "href": "/blog/"},
             {"title": "About", "href": "/about/"},
         ],
-        "get_auto_nav": lambda: [],
+        "get_auto_nav": list,
         "canonical_url": lambda url: f"https://lbliii.github.io/bengal{url}",
         "og_image": lambda path, page=None: f"https://lbliii.github.io/bengal{path}"
         if path
@@ -195,7 +195,6 @@ def benchmark_single_template(
     """
     from jinja2 import BaseLoader
     from jinja2 import Environment as JinjaEnv
-
     from kida import DictLoader
     from kida import Environment as KidaEnv
 

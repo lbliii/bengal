@@ -68,7 +68,7 @@ class TestCodeBlockCollectorFlush:
             pytest.skip("rosettes.content_hash required (rosettes>=0.2.0)")
         cache = HighlightCache()
         key = rosettes.content_hash("x = 1", "python")
-        cache.set(key, "<pre class=\"cached\">cached html</pre>")
+        cache.set(key, '<pre class="cached">cached html</pre>')
 
         try:
             enable_deferred_highlighting(cache=cache)

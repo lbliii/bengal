@@ -101,10 +101,12 @@ class TestTaxonomyDependencyParity:
                 output_path=Path("public/tags/python/index.html"),
                 taxonomy_name="tags",
                 term="python",
-                member_pages=frozenset({
-                    Path("content/blog/post1.md"),
-                    Path("content/blog/post2.md"),
-                }),
+                member_pages=frozenset(
+                    {
+                        Path("content/blog/post1.md"),
+                        Path("content/blog/post2.md"),
+                    }
+                ),
             )
         )
 
@@ -114,9 +116,11 @@ class TestTaxonomyDependencyParity:
                 output_path=Path("public/tags/tutorial/index.html"),
                 taxonomy_name="tags",
                 term="tutorial",
-                member_pages=frozenset({
-                    Path("content/blog/post1.md"),
-                }),
+                member_pages=frozenset(
+                    {
+                        Path("content/blog/post1.md"),
+                    }
+                ),
             )
         )
 
@@ -155,11 +159,13 @@ class TestCrossVersionLinkParity:
         tracer.record(
             Effect(
                 outputs=frozenset({Path("public/v3/docs/index.html")}),
-                depends_on=frozenset({
-                    Path("content/v3/docs/index.md"),
-                    "single.html",
-                    Path("content/v2/docs/guide.md"),  # Cross-version target
-                }),
+                depends_on=frozenset(
+                    {
+                        Path("content/v3/docs/index.md"),
+                        "single.html",
+                        Path("content/v2/docs/guide.md"),  # Cross-version target
+                    }
+                ),
                 invalidates=frozenset({"page:/v3/docs/"}),
                 operation="render_page",
             )
@@ -187,12 +193,14 @@ class TestTemplateDependencyParity:
         tracer.record(
             Effect(
                 outputs=frozenset({Path("public/about/index.html")}),
-                depends_on=frozenset({
-                    Path("content/about.md"),
-                    "single.html",
-                    Path("themes/default/templates/partials/nav.html"),
-                    Path("themes/default/templates/partials/footer.html"),
-                }),
+                depends_on=frozenset(
+                    {
+                        Path("content/about.md"),
+                        "single.html",
+                        Path("themes/default/templates/partials/nav.html"),
+                        Path("themes/default/templates/partials/footer.html"),
+                    }
+                ),
                 invalidates=frozenset({"page:/about/"}),
                 operation="render_page",
             )
@@ -201,11 +209,13 @@ class TestTemplateDependencyParity:
         tracer.record(
             Effect(
                 outputs=frozenset({Path("public/blog/index.html")}),
-                depends_on=frozenset({
-                    Path("content/blog.md"),
-                    "list.html",
-                    Path("themes/default/templates/partials/nav.html"),
-                }),
+                depends_on=frozenset(
+                    {
+                        Path("content/blog.md"),
+                        "list.html",
+                        Path("themes/default/templates/partials/nav.html"),
+                    }
+                ),
                 invalidates=frozenset({"page:/blog/"}),
                 operation="render_page",
             )

@@ -77,9 +77,7 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
                     loader = getattr(env, "loader", None)
                     if loader and hasattr(loader, "get_source"):
                         get_source = cast(
-                            Callable[
-                                [Any, str], tuple[str, str | None, Callable[[], bool] | None]
-                            ],
+                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
                             loader.get_source,
                         )
                         source, _filename, _uptodate = get_source(env, template_name)
@@ -106,9 +104,7 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
                         ast = template._optimized_ast
                         if hasattr(engine, "_extract_referenced_templates"):
                             # Type narrowing: check if method is callable
-                            extract_method = getattr(
-                                engine, "_extract_referenced_templates", None
-                            )
+                            extract_method = getattr(engine, "_extract_referenced_templates", None)
                             if callable(extract_method):
                                 referenced = extract_method(ast)
                                 partials.update(referenced)
@@ -310,9 +306,7 @@ def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | 
 
                         # Look for macro calls in the AST
                         def find_macro_calls(node: Any) -> None:
-                            if hasattr(node, "node") and isinstance(
-                                node.node, jinja_nodes.Name
-                            ):
+                            if hasattr(node, "node") and isinstance(node.node, jinja_nodes.Name):
                                 pass  # Simple variable, not a macro call
                             if hasattr(node, "iter_child_nodes"):
                                 for child in node.iter_child_nodes():

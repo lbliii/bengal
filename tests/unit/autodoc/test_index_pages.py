@@ -20,7 +20,7 @@ import pytest
 
 from bengal.autodoc.orchestration.index_pages import create_index_pages
 from bengal.core.section import Section
-from bengal.core.url_ownership import URLClaim, URLRegistry
+from bengal.core.url_ownership import URLRegistry
 
 
 @pytest.fixture
@@ -94,9 +94,7 @@ class TestCreateIndexPages:
 
         assert len(pages) == 0
 
-    def test_creates_index_when_url_claimed_by_own_previous_run(
-        self, mock_site: MagicMock
-    ) -> None:
+    def test_creates_index_when_url_claimed_by_own_previous_run(self, mock_site: MagicMock) -> None:
         """Section-index SHOULD be created even when URL was claimed by a previous
         section-index page (stale cache claim from incremental build).
 

@@ -42,6 +42,7 @@ class TestDotDictBasics:
         assert "age" in data
         assert "missing" not in data
 
+
 class TestDotDictNested:
     """Test nested dictionary handling."""
 

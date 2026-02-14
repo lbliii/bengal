@@ -188,7 +188,10 @@ class TestNestedCascade:
             {
                 "products": {"product_line": "current"},
                 "products/widgets": {"category": "widget", "warranty": "1-year"},
-                "products/widgets/v3": {"version": "3.0", "warranty": "2-year"},  # Override warranty
+                "products/widgets/v3": {
+                    "version": "3.0",
+                    "warranty": "2-year",
+                },  # Override warranty
             },
             content_dir="/site/content",
         )

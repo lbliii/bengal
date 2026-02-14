@@ -170,7 +170,8 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
             )
             _bs = getattr(site, "build_state", None)
             cached = (
-                getattr(_bs, "template_metadata_cache", None) if _bs is not None
+                getattr(_bs, "template_metadata_cache", None)
+                if _bs is not None
                 else getattr(site, "_bengal_template_metadata_cache", None)
             )
             if (

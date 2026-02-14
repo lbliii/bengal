@@ -177,9 +177,7 @@ class TestCacheCoordinator:
         mock_effect_tracer = MagicMock()
         mock_effect_tracer.tracer = mock_tracer
 
-        with patch(
-            "bengal.effects.render_integration.BuildEffectTracer"
-        ) as MockBET:
+        with patch("bengal.effects.render_integration.BuildEffectTracer") as MockBET:
             MockBET.get_instance.return_value = mock_effect_tracer
             events = coordinator.invalidate_for_data_file(data_file)
 

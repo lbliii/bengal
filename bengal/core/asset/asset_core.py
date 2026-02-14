@@ -662,7 +662,8 @@ class Asset:
                     # Prefer BuildState (fresh each build), fall back to Site
                     _bs = getattr(site, "build_state", None)
                     prev: AssetManifest | None = (
-                        getattr(_bs, "asset_manifest_previous", None) if _bs is not None
+                        getattr(_bs, "asset_manifest_previous", None)
+                        if _bs is not None
                         else getattr(site, "_asset_manifest_previous", None)
                     )
                     if prev is not None and self.logical_path is not None:

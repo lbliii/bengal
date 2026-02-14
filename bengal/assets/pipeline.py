@@ -379,7 +379,8 @@ class NodePipeline:
         for base in bases:
             if base.exists():
                 entries.extend(
-                    p for p in base.glob("*.*")
+                    p
+                    for p in base.glob("*.*")
                     if p.is_file() and p.suffix.lower() in (".js", ".ts")
                 )
         logger.debug("pipeline_js_entries", count=len(entries))

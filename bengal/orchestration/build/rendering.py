@@ -695,11 +695,7 @@ def phase_update_site_pages(
 
         rendered_map = {}
         for page in pages_to_build:
-            if (
-                isinstance(page, PageProxy)
-                and page._lazy_loaded
-                and page._full_page is not None
-            ):
+            if isinstance(page, PageProxy) and page._lazy_loaded and page._full_page is not None:
                 rendered_map[page.source_path] = page._full_page
             else:
                 rendered_map[page.source_path] = page

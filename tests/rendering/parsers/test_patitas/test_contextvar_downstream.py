@@ -482,26 +482,25 @@ print("test")
 """
 
         # Layer 1: Configuration
-        with parse_config_context(ParseConfig()):
-            with render_config_context(RenderConfig()):
-                # Layer 2: Request context
-                with request_context(
-                    source_file=Path("/test.md"),
-                    source_content=source,
-                ):
-                    # Layer 3: Metadata accumulation
-                    with metadata_context() as meta:
-                        # Layer 4: Pooled instances
-                        with ParserPool.acquire(source) as parser:
-                            ast = parser.parse()
+        with parse_config_context(ParseConfig()), render_config_context(RenderConfig()):
+            # Layer 2: Request context
+            with request_context(
+                source_file=Path("/test.md"),
+                source_content=source,
+            ):
+                # Layer 3: Metadata accumulation
+                with metadata_context() as meta:
+                    # Layer 4: Pooled instances
+                    with ParserPool.acquire(source) as parser:
+                        ast = parser.parse()
 
-                        with RendererPool.acquire(source) as renderer:
-                            html = renderer.render(ast)
+                    with RendererPool.acquire(source) as renderer:
+                        html = renderer.render(ast)
 
-                        # Verify all contexts worked
-                        assert "<h1" in html
-                        assert meta.has_code_blocks is True
-                        assert "https://example.com" in meta.external_links
+                    # Verify all contexts worked
+                    assert "<h1" in html
+                    assert meta.has_code_blocks is True
+                    assert "https://example.com" in meta.external_links
 
 
 class TestPoolPerformance:

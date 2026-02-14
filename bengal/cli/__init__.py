@@ -146,15 +146,11 @@ project_cli = _create_lazy_group(
 assets_cli = _create_lazy_group(
     "bengal.cli.commands.assets:assets", "assets", "Asset pipeline management"
 )
-theme_cli = _create_lazy_group(
-    "bengal.cli.commands.theme:theme", "theme", "Theme utilities"
-)
+theme_cli = _create_lazy_group("bengal.cli.commands.theme:theme", "theme", "Theme utilities")
 sources_group = _create_lazy_group(
     "bengal.cli.commands.sources:sources_group", "sources", "Content source management"
 )
-utils_cli = _create_lazy_group(
-    "bengal.cli.commands.utils:utils_cli", "utils", "Utility commands"
-)
+utils_cli = _create_lazy_group("bengal.cli.commands.utils:utils_cli", "utils", "Utility commands")
 graph_cli = _create_lazy_group(
     "bengal.cli.commands.graph:graph_cli", "graph", "Site structure analysis"
 )

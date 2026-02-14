@@ -57,9 +57,7 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
     except yaml.YAMLError as e:
         # Extract line number from YAML error if available
         line_number = getattr(e, "problem_mark", None)
-        line_num = (
-            (line_number.line + 1) if line_number and hasattr(line_number, "line") else None
-        )
+        line_num = (line_number.line + 1) if line_number and hasattr(line_number, "line") else None
 
         error = BengalConfigError(
             f"Invalid YAML in {path}: {e}",
@@ -170,8 +168,7 @@ def warn_search_ui_without_index(config: dict[str, Any]) -> None:
 
     # Check if "search" is in theme.features
     has_search_ui = any(
-        f == "search" or (isinstance(f, str) and f.startswith("search."))
-        for f in theme_features
+        f == "search" or (isinstance(f, str) and f.startswith("search.")) for f in theme_features
     )
 
     if not has_search_ui:

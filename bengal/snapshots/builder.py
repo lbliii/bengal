@@ -142,14 +142,10 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
             continue
 
         section = getattr(mutable_page, "_section", None)
-        section_snapshot = (
-            section_cache.get(id(section)) if section else NO_SECTION
-        ) or NO_SECTION
+        section_snapshot = (section_cache.get(id(section)) if section else NO_SECTION) or NO_SECTION
 
         if page_snapshot.section != section_snapshot:
-            page_cache[id(mutable_page)] = update_frozen(
-                page_snapshot, section=section_snapshot
-            )
+            page_cache[id(mutable_page)] = update_frozen(page_snapshot, section=section_snapshot)
 
     # Phase 4: Resolve prev/next navigation
     _resolve_navigation(page_cache, site)
@@ -182,9 +178,7 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     nav_trees = _build_nav_trees(site)
 
     # Pre-compute top-level content and tag pages
-    top_level_pages, top_level_sections = _compute_top_level_content(
-        regular_pages, all_sections
-    )
+    top_level_pages, top_level_sections = _compute_top_level_content(regular_pages, all_sections)
     tag_pages = _compute_tag_pages(taxonomies)
 
     return SiteSnapshot(
@@ -491,12 +485,8 @@ def _compute_top_level_content(
         for sub in parent.subsections:
             nested_section_paths.add(sub.path)
 
-    top_pages = tuple(
-        p for p in regular_pages if p.source_path not in pages_in_sections
-    )
-    top_sections = tuple(
-        s for s in sections if s.path not in nested_section_paths
-    )
+    top_pages = tuple(p for p in regular_pages if p.source_path not in pages_in_sections)
+    top_sections = tuple(s for s in sections if s.path not in nested_section_paths)
 
     return top_pages, top_sections
 

@@ -1,9 +1,11 @@
 # RFC: Incremental Build Contracts
 
-## Status: Evaluated
+## Status: Evaluated — Paths Need Update
 ## Created: 2026-01-14
-## Updated: 2026-01-14
+## Updated: 2026-02-14
 ## Confidence: 88% 🟢
+
+> **Path note (2026-02-14)**: `dependency_tracker.py` was removed (replaced by EffectTracer). `file_tracking` lives at `bengal/cache/build_cache/file_tracking.py`. Detectors live in `bengal/orchestration/incremental/` (EffectBasedDetector). Update references before implementing.
 
 ---
 
@@ -63,10 +65,10 @@
 │  └──────────────────────────────────────────────────────────────┘           │
 │                                                                              │
 │  Path Formats Used:                                                          │
-│  • str(path)              - file_tracking.py:131                            │
-│  • str(file_path)         - file_tracking.py:207                            │
-│  • str(data_file)         - dependency_tracker.py:316                       │
-│  • f"data:{data_file}"    - dependency_tracker.py:316 (prefixed!)           │
+│  • str(path)              - cache/build_cache/file_tracking.py            │
+│  • str(file_path)         - cache/build_cache/file_tracking.py            │
+│  • str(data_file)         - (dependency_tracker removed; see EffectTracer)  │
+│  • f"data:{data_file}"    - (legacy; dependency_tracker removed)          │
 │  • page.source_path       - sometimes absolute, sometimes relative          │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -77,15 +79,12 @@
 #### 1. Path Format Chaos
 
 ```python
-# file_tracking.py - stores fingerprints with str(file_path)
+# cache/build_cache/file_tracking.py - stores fingerprints with str(file_path)
 file_key = str(file_path)  # Could be absolute or relative
 self.file_fingerprints[file_key] = {...}
 
-# dependency_tracker.py - stores with "data:" prefix
-dep_key = f"data:{data_file}"  # Different format!
-self.cache.add_dependency(page_path, Path(dep_key))
-
-# data_detector.py - looks up without prefix
+# (Legacy: dependency_tracker removed; EffectTracer/provenance used now)
+# data_detector / effect_detector - looks up; verify path format consistency
 if self.cache.is_changed(data_file):  # str(data_file) - no prefix
     ...
 ```

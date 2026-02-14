@@ -5,8 +5,8 @@ This script fixes files that were corrupted by null byte insertion,
 which causes 'source code string cannot contain null bytes' errors.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 
 def fix_null_bytes(directory: Path, dry_run: bool = False) -> tuple[int, int]:
@@ -75,16 +75,16 @@ def main() -> int:
 
     checked, fixed = fix_null_bytes(args.directory, dry_run=args.dry_run)
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"   Files checked: {checked}")
     print(f"   Files {'affected' if args.dry_run else 'fixed'}: {fixed}")
 
     if args.dry_run and fixed > 0:
-        print(f"\n💡 Run without --dry-run to fix these files")
+        print("\n💡 Run without --dry-run to fix these files")
     elif fixed > 0:
-        print(f"\n✅ All null bytes removed!")
+        print("\n✅ All null bytes removed!")
     else:
-        print(f"\n✅ No null bytes found!")
+        print("\n✅ No null bytes found!")
 
     return 0
 

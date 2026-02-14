@@ -674,8 +674,7 @@ def check_lock_order(tier: int, name: str) -> None:
     for held_tier, held_name in stack:
         if held_tier > tier:
             logger.warning(
-                "LOCK ORDER VIOLATION: acquiring %s (tier %d: %s) "
-                "while holding %s (tier %d: %s)",
+                "LOCK ORDER VIOLATION: acquiring %s (tier %d: %s) while holding %s (tier %d: %s)",
                 name,
                 tier,
                 _TIER_NAMES.get(tier, "?"),

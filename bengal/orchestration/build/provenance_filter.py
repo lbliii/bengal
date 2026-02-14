@@ -547,10 +547,10 @@ def phase_incremental_filter_provenance(
                     and page.source_path not in pages_to_build_sources
                 ):
                     # This taxonomy page lists a tag that was affected
-                        taxonomy_pages_to_add.append(page)
-                        dependency_reasons.setdefault(str(page.source_path), []).append(
-                            f"taxonomy_cascade:tag={term}"
-                        )
+                    taxonomy_pages_to_add.append(page)
+                    dependency_reasons.setdefault(str(page.source_path), []).append(
+                        f"taxonomy_cascade:tag={term}"
+                    )
 
             if taxonomy_pages_to_add:
                 # Create new result with taxonomy pages added

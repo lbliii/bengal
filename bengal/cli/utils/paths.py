@@ -100,9 +100,7 @@ def format_display_path(
         return path
 
     # Get profile name for comparison
-    profile_name = (
-        profile.__class__.__name__ if hasattr(profile, "__class__") else str(profile)
-    )
+    profile_name = profile.__class__.__name__ if hasattr(profile, "__class__") else str(profile)
 
     # Writer profile: show only filename
     if "WRITER" in profile_name:

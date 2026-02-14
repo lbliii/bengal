@@ -1213,7 +1213,7 @@ def generate_glossary_page(codes: list[tuple[str, str, str]]) -> str:
 
     # Build category table (sorted alphabetically by prefix)
     category_info = []
-    for cat in categories.keys():
+    for cat in categories:
         prefix = get_category_prefix(cat)
         name = get_category_display_name(cat)
         desc = get_category_description(cat)

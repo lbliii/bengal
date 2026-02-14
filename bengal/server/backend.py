@@ -57,8 +57,7 @@ def create_pounce_backend(
     output_dir: Path,
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | None = None,
-    request_callback: Callable[[], Callable[[str, str, int, float], None] | None]
-    | None = None,
+    request_callback: Callable[[], Callable[[str, str, int, float], None] | None] | None = None,
 ) -> PounceBackend:
     """
     Create a PounceBackend serving the Bengal dev ASGI app.

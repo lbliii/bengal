@@ -252,9 +252,7 @@ class TestSlugifyProperties:
         Spaces, tabs, newlines, etc. should all be removed.
         """
         result = slugify(text)
-        assert result == "", (
-            f"Whitespace-only input {text!r} produced non-empty slug '{result}'"
-        )
+        assert result == "", f"Whitespace-only input {text!r} produced non-empty slug '{result}'"
 
     @pytest.mark.hypothesis
     @given(char=st.characters(blacklist_categories=("Cc", "Cs")))

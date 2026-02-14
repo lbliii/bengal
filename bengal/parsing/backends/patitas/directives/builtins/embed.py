@@ -54,6 +54,7 @@ def clean_soundcloud_path(url_path: str) -> str:
         cleaned = cleaned.split("?")[0]
     return cleaned
 
+
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
     from patitas.nodes import Block

@@ -420,6 +420,7 @@ class DependencyGraph:
         add_deps(root, 0, "")
         return "\n".join(lines)
 
+
 @DebugRegistry.register
 class DependencyVisualizer(DebugTool):
     """

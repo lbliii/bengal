@@ -90,11 +90,11 @@ import {module_path}
 elapsed = (time.perf_counter() - start) * 1000
 
 # Check which heavy modules were loaded
-heavy = {repr(list(HEAVY_MODULES))}
+heavy = {list(HEAVY_MODULES)!r}
 heavy_loaded = [m for m in heavy if m in sys.modules]
 
 # Check which optional deps were loaded
-optional = {repr(list(OPTIONAL_DEPS))}
+optional = {list(OPTIONAL_DEPS)!r}
 optional_loaded = [m for m in optional if m in sys.modules]
 
 # Output as simple parseable format
@@ -350,7 +350,7 @@ class TestRegressionDetection:
         "bengal.rendering.highlighting": 25.0,
     }
 
-    @pytest.mark.parametrize("module,baseline", list(BASELINES.items()))
+    @pytest.mark.parametrize(("module", "baseline"), list(BASELINES.items()))
     def test_no_regression_from_baseline(self, module: str, baseline: float):
         """Ensure import times don't regress from known baselines."""
         result = measure_import(module)

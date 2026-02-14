@@ -1,8 +1,23 @@
 # RFC: Pipeline Input/Output Contracts
 
-## Status: Draft
+## Status: Partially Implemented
 ## Created: 2026-02-14
+## Updated: 2026-02-14
 ## Related: rfc-incremental-build-contracts, rfc-bengal-v2-architecture
+
+---
+
+## Implementation Status (2026-02-14)
+
+| Component | Status |
+|-----------|--------|
+| BuildInput | ✅ Implemented (`bengal/orchestration/build/inputs.py`) |
+| BuildRequest extension | ✅ Implemented |
+| DiscoveryPhaseInput/Output | ✅ Implemented (`bengal/orchestration/build/results.py`) |
+| run_discovery_phase | ✅ Implemented |
+| Output tracking audit | ✅ Implemented (fonts.css, postprocess writers) |
+| Reload hint | ✅ Implemented (BuildStats, ReloadController) |
+| Render/Assets/Postprocess PhaseInput | Pending |
 
 ---
 

@@ -55,9 +55,7 @@ class AutodocTracker:
         autodoc_dependencies: dict[str, set[str]] | None = None,
         autodoc_source_metadata: dict[str, tuple[str, float, dict[str, str]]] | None = None,
     ) -> None:
-        self.autodoc_dependencies = (
-            autodoc_dependencies if autodoc_dependencies is not None else {}
-        )
+        self.autodoc_dependencies = autodoc_dependencies if autodoc_dependencies is not None else {}
         self.autodoc_source_metadata = (
             autodoc_source_metadata if autodoc_source_metadata is not None else {}
         )
@@ -349,9 +347,7 @@ class AutodocTracker:
         if not metadata:
             return True  # No metadata, assume changed
         if len(metadata) != 3:
-            raise ValueError(
-                "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
-            )
+            raise ValueError("Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes).")
 
         # metadata is (file_hash, mtime, {page_path: doc_hash})
         doc_hashes = metadata[2]

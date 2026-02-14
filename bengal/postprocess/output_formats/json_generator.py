@@ -134,7 +134,9 @@ class PageJSONGenerator:
         self._edge_index: dict[str, list[dict[str, Any]]] | None = None
 
     def generate(
-        self, pages: list[PageLike], accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None
+        self,
+        pages: list[PageLike],
+        accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None,
     ) -> int:
         """
         Generate JSON files for all pages.

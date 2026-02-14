@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
 

@@ -100,8 +100,7 @@ class Effect:
         return cls(
             outputs=frozenset(Path(p) for p in data.get("outputs", [])),
             depends_on=frozenset(
-                Path(d) if "/" in d or "\\" in d else d
-                for d in data.get("depends_on", [])
+                Path(d) if "/" in d or "\\" in d else d for d in data.get("depends_on", [])
             ),
             invalidates=frozenset(data.get("invalidates", [])),
             operation=data.get("operation", ""),

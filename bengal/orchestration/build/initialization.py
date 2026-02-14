@@ -447,7 +447,8 @@ def phase_discovery(
             details = f"content {int(content_ms)}ms, assets {int(assets_ms)}ms"
             _bs = getattr(orchestrator.site, "build_state", None)
             breakdown = (
-                getattr(_bs, "discovery_timing_ms", None) if _bs is not None
+                getattr(_bs, "discovery_timing_ms", None)
+                if _bs is not None
                 else getattr(orchestrator.site, "_discovery_breakdown_ms", None)
             )
             if isinstance(breakdown, dict) and content_ms >= 500:

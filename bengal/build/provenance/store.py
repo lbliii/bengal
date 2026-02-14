@@ -84,9 +84,7 @@ class ProvenanceCache:
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
-            self._index = {
-                CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()
-            }
+            self._index = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
         except (FileNotFoundError, JSONDecodeError, KeyError):
             self._index = {}
 

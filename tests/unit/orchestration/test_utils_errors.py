@@ -84,9 +84,7 @@ class TestCreateErrorContextForItem:
         item = MagicMock()
         item.__str__ = lambda s: "test"
 
-        context = create_error_context_for_item(
-            item, "parsing", suggestion="Check YAML syntax"
-        )
+        context = create_error_context_for_item(item, "parsing", suggestion="Check YAML syntax")
 
         assert context["suggestion"] == "Check YAML syntax"
 

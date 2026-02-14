@@ -324,9 +324,7 @@ class RedirectGenerator:
             if self._collector:
                 from bengal.core.output import OutputType
 
-                self._collector.record(
-                    redirects_path, OutputType.ASSET, phase="postprocess"
-                )
+                self._collector.record(redirects_path, OutputType.ASSET, phase="postprocess")
 
             logger.info(
                 "redirects_file_generated",

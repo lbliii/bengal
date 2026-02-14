@@ -790,8 +790,12 @@ class BuildOrchestrator:
             self.logger.debug(
                 "output_collector_results",
                 total_outputs=len(self.stats.changed_outputs),
-                html_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "html"),
-                css_count=sum(1 for o in self.stats.changed_outputs if o.output_type.value == "css"),
+                html_count=sum(
+                    1 for o in self.stats.changed_outputs if o.output_type.value == "html"
+                ),
+                css_count=sum(
+                    1 for o in self.stats.changed_outputs if o.output_type.value == "css"
+                ),
             )
         else:
             self.logger.warning(
@@ -837,9 +841,7 @@ class BuildOrchestrator:
 
         return self.stats
 
-    def _filter_sections_by_variant(
-        self, sections: list[Any], variant: str
-    ) -> None:
+    def _filter_sections_by_variant(self, sections: list[Any], variant: str) -> None:
         """Filter section pages by variant; invalidate cached properties."""
         for section in sections:
             section.pages = [p for p in section.pages if p.in_variant(variant)]

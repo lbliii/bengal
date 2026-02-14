@@ -1,11 +1,13 @@
 # RFC: Build System Package Extraction
 
-**Status**: Draft  
+**Status**: Draft — Not Implemented  
 **Author**: AI Assistant  
 **Created**: 2026-01-15  
-**Updated**: 2026-01-15  
+**Updated**: 2026-02-14  
 **Python Version**: 3.14  
 **Related**: rfc-incremental-build-contracts.md, rfc-effect-traced-incremental-builds.md, rfc-cache-invalidation-architecture.md
+
+> **Architecture note (2026-02-14)**: The `bengal/build/` package described here was never created. The codebase uses `bengal/orchestration/build/` (BuildOrchestrator, coordinator, phases) and `bengal/orchestration/incremental/` (EffectBasedDetector, CacheManager). Pipeline inputs were consolidated via BuildInput in orchestration/build/inputs.py. Re-evaluate this RFC against current structure before implementing.
 
 ---
 

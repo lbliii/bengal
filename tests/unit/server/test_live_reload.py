@@ -253,6 +253,7 @@ class TestAssetCaching:
     @pytest.fixture
     def mixin_instance(self):
         """Create a minimal LiveReloadMixin instance for testing."""
+
         # Create a concrete class that inherits from the mixin
         class TestHandler(LiveReloadMixin):
             pass
@@ -433,9 +434,7 @@ class TestAssetCacheBuildAwareServing:
         # Clean up
         LiveReloadMixin._asset_cache.clear()
 
-    def test_serve_asset_returns_false_when_no_cache_and_file_missing(
-        self, tmp_path, mock_handler
-    ):
+    def test_serve_asset_returns_false_when_no_cache_and_file_missing(self, tmp_path, mock_handler):
         """Test that False is returned when file missing and no cache."""
         # Clear cache
         LiveReloadMixin._asset_cache.clear()
@@ -543,7 +542,10 @@ class TestAssetCacheConcurrency:
                         with LiveReloadMixin._asset_cache_lock:
                             LiveReloadMixin._asset_cache[key] = (content, "application/javascript")
                             # LRU eviction
-                            if len(LiveReloadMixin._asset_cache) > LiveReloadMixin._asset_cache_max_size:
+                            if (
+                                len(LiveReloadMixin._asset_cache)
+                                > LiveReloadMixin._asset_cache_max_size
+                            ):
                                 first_key = next(iter(LiveReloadMixin._asset_cache))
                                 del LiveReloadMixin._asset_cache[first_key]
                 except Exception as e:

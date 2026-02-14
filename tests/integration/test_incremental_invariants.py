@@ -20,9 +20,10 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -130,7 +131,7 @@ output_dir = "public"
     # Warm the cache with initial build
     site.build(incremental=False)
 
-    yield site
+    return site
 
 
 @pytest.fixture
@@ -184,7 +185,7 @@ output_dir = "public"
     # Warm the cache
     site.build(incremental=False)
 
-    yield site
+    return site
 
 
 class TestIncrementalInvariants:
@@ -392,7 +393,7 @@ class TestIncrementalEdgeCases:
         decision = getattr(stats, "incremental_decision", None)
         if decision is not None:
             # page1 must have been rebuilt with content_changed reason
-            page1_rebuilt = any("page1" in p for p in decision.rebuild_reasons.keys())
+            page1_rebuilt = any("page1" in p for p in decision.rebuild_reasons)
             assert page1_rebuilt, "Modified file page1.md should be in rebuild_reasons"
 
             # If page2 was rebuilt, log the reason (acceptable if section-related)

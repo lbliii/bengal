@@ -202,8 +202,7 @@ class LinkValidator:
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
                 sample_links=[
-                    (relative_path(p, site.root_path), link)
-                    for p, link in self.broken_links[:10]
+                    (relative_path(p, site.root_path), link) for p, link in self.broken_links[:10]
                 ],
             )
         else:

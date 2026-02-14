@@ -15,14 +15,16 @@ def _clear_env(keys: list[str]) -> None:
 
 
 def test_default_style_is_compact(monkeypatch):
-    _clear_env([
-        "BENGAL_TRACEBACK",
-        "CI",
-        "TERM",
-        "BENGAL_TRACEBACK_SHOW_LOCALS",
-        "BENGAL_TRACEBACK_MAX_FRAMES",
-        "BENGAL_TRACEBACK_SUPPRESS",
-    ])
+    _clear_env(
+        [
+            "BENGAL_TRACEBACK",
+            "CI",
+            "TERM",
+            "BENGAL_TRACEBACK_SHOW_LOCALS",
+            "BENGAL_TRACEBACK_MAX_FRAMES",
+            "BENGAL_TRACEBACK_SUPPRESS",
+        ]
+    )
     cfg = TracebackConfig.from_environment()
     assert cfg.style == TracebackStyle.COMPACT
     assert cfg.show_locals is False
@@ -30,12 +32,14 @@ def test_default_style_is_compact(monkeypatch):
 
 
 def test_env_sets_full_style(monkeypatch):
-    _clear_env([
-        "BENGAL_TRACEBACK",
-        "BENGAL_TRACEBACK_SHOW_LOCALS",
-        "BENGAL_TRACEBACK_MAX_FRAMES",
-        "BENGAL_TRACEBACK_SUPPRESS",
-    ])
+    _clear_env(
+        [
+            "BENGAL_TRACEBACK",
+            "BENGAL_TRACEBACK_SHOW_LOCALS",
+            "BENGAL_TRACEBACK_MAX_FRAMES",
+            "BENGAL_TRACEBACK_SUPPRESS",
+        ]
+    )
     monkeypatch.setenv("BENGAL_TRACEBACK", "full")
     cfg = TracebackConfig.from_environment()
     assert cfg.style == TracebackStyle.FULL

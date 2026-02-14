@@ -318,10 +318,9 @@ class RenderingPipeline:
             if is_autodoc:
                 # Optimized autodoc path: try rendered cache first
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
-                if (
-                    not self._cache_checker.should_bypass_cache(page, self.changed_sources)
-                    and self._cache_checker.try_rendered_cache(page, template)
-                ):
+                if not self._cache_checker.should_bypass_cache(
+                    page, self.changed_sources
+                ) and self._cache_checker.try_rendered_cache(page, template):
                     # Cache hit - skip extraction and rendering
                     self._json_accumulator.accumulate_unified_page_data(page)
                     self._accumulate_asset_deps(page)
@@ -502,11 +501,7 @@ class RenderingPipeline:
                     toc = ""
 
             # Extract AST for caching
-            if (
-                hasattr(self.parser, "supports_ast")
-                and self.parser.supports_ast
-                and persist_tokens
-            ):
+            if hasattr(self.parser, "supports_ast") and self.parser.supports_ast and persist_tokens:
                 try:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
@@ -612,7 +607,9 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
-    def _accumulate_asset_deps(self, page: PageLike, tracked_assets: set[str] | None = None) -> None:
+    def _accumulate_asset_deps(
+        self, page: PageLike, tracked_assets: set[str] | None = None
+    ) -> None:
         """
         Accumulate asset dependencies during rendering.
 

@@ -875,7 +875,9 @@ class SocialCardGenerator:
         return (generated_count, cached_count)
 
 
-def get_social_card_path(page: PageLike, config: SocialCardConfig, base_path: str = "") -> str | None:
+def get_social_card_path(
+    page: PageLike, config: SocialCardConfig, base_path: str = ""
+) -> str | None:
     """
     Get the path to a page's generated social card.
 

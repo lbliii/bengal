@@ -224,9 +224,7 @@ class CacheChecker:
 
         html_content = self.renderer.render_content(parsed_content)
         page.rendered_html = self.renderer.render_page(page, html_content)
-        page.rendered_html = format_html(
-            page.rendered_html, page, cast(SiteLike, self.site)
-        )
+        page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
 
         # Validate rendered HTML is not empty
         if not page.rendered_html:

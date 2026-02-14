@@ -155,12 +155,13 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     by manually caching at the render level.
     """
     from bengal.directives.cache import DirectiveCache
+    from patitas.nodes import Directive
+    from patitas.stringbuilder import StringBuilder
+
     from bengal.parsing.backends.patitas import create_markdown
     from bengal.parsing.backends.patitas.directives.registry import create_default_registry
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
     from bengal.utils.primitives.hashing import hash_str
-    from patitas.nodes import Directive
-    from patitas.stringbuilder import StringBuilder
 
     cache = DirectiveCache(max_size=500)
     registry = create_default_registry()

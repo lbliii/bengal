@@ -511,12 +511,8 @@ def _add_lazy_section_content(
         else:
             sec = resolved_section
             meta = metadata
-            context["posts"] = make_lazy(
-                lambda: meta.get("_posts", getattr(sec, "pages", []))
-            )
-            context["pages"] = make_lazy(
-                lambda: meta.get("_posts", getattr(sec, "pages", []))
-            )
+            context["posts"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
+            context["pages"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
 
         if subsections is not None:
             context["subsections"] = subsections

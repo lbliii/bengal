@@ -114,8 +114,7 @@ class ContentCache:
         """Hash metadata for cache invalidation."""
         # Only hash keys that affect rendering (not content)
         relevant_keys = sorted(
-            k for k in metadata
-            if k not in ("_source", "_generated", "_cascade_invalidated")
+            k for k in metadata if k not in ("_source", "_generated", "_cascade_invalidated")
         )
         content = "|".join(f"{k}={metadata.get(k)}" for k in relevant_keys)
         return hashlib.sha256(content.encode()).hexdigest()[:12]

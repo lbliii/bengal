@@ -273,9 +273,7 @@ class ParallelProcessor[T, R]:
                         for item in items
                     }
                 else:
-                    future_to_item = {
-                        executor.submit(process_fn, item): item for item in items
-                    }
+                    future_to_item = {executor.submit(process_fn, item): item for item in items}
 
                 # Process results as they complete
                 for future in concurrent.futures.as_completed(future_to_item):
@@ -310,7 +308,10 @@ class ParallelProcessor[T, R]:
 
                         # Log individual errors until threshold
                         if aggregator.should_log_individual(
-                            e, context, threshold=self._error_threshold, max_samples=self._max_error_samples
+                            e,
+                            context,
+                            threshold=self._error_threshold,
+                            max_samples=self._max_error_samples,
                         ):
                             logger.error(f"{self._error_type}_processing_failed", **context)
 
@@ -376,9 +377,8 @@ class ParallelProcessor[T, R]:
         def process_with_local(item: T) -> R:
             """Process item with thread-local instance."""
             # Check if instance exists and is current generation
-            needs_new = (
-                not hasattr(thread_local, thread_local_attr)
-                or (generation is not None and getattr(thread_local, generation_attr, -1) != generation)
+            needs_new = not hasattr(thread_local, thread_local_attr) or (
+                generation is not None and getattr(thread_local, generation_attr, -1) != generation
             )
             if needs_new:
                 setattr(thread_local, thread_local_attr, thread_local_factory())
@@ -428,7 +428,10 @@ class ParallelProcessor[T, R]:
                             context = extract_error_context(e, item)
 
                         if aggregator.should_log_individual(
-                            e, context, threshold=self._error_threshold, max_samples=self._max_error_samples
+                            e,
+                            context,
+                            threshold=self._error_threshold,
+                            max_samples=self._max_error_samples,
                         ):
                             logger.error(f"{self._error_type}_processing_failed", **context)
 

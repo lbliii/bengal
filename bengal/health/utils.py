@@ -196,9 +196,7 @@ def sample_pages(
 
     """
     if require_output:
-        return list(
-            iter_pages_with_output(site, limit=count, exclude_generated=exclude_generated)
-        )
+        return list(iter_pages_with_output(site, limit=count, exclude_generated=exclude_generated))
 
     result = []
     for page in site.pages:

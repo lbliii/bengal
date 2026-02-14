@@ -648,9 +648,7 @@ class PythonExtractor(Extractor):
         elif member_order == "type":
             # Group: classes, then functions, then aliases; sort within each
             type_order = {"class": 0, "function": 1, "alias": 2}
-            children.sort(
-                key=lambda c: (type_order.get(c.element_type, 3), c.name.lower())
-            )
+            children.sort(key=lambda c: (type_order.get(c.element_type, 3), c.name.lower()))
 
         # Extract __all__ exports
         all_exports = extract_all_exports(tree)

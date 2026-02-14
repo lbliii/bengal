@@ -48,9 +48,9 @@ class TestWeightBasedNavigation:
         # Find pages (filesystem order would be: alpha, beta, zebra)
         # Weight order should be: alpha(10), beta(20), zebra(30)
 
-        alpha = [p for p in weighted_section_site.pages if "alpha" in str(p.source_path)][0]
-        beta = [p for p in weighted_section_site.pages if "beta" in str(p.source_path)][0]
-        zebra = [p for p in weighted_section_site.pages if "zebra" in str(p.source_path)][0]
+        alpha = next(p for p in weighted_section_site.pages if "alpha" in str(p.source_path))
+        beta = next(p for p in weighted_section_site.pages if "beta" in str(p.source_path))
+        zebra = next(p for p in weighted_section_site.pages if "zebra" in str(p.source_path))
 
         # Verify weight-based order
         assert alpha.next_in_section == beta, "Alpha (weight 10) should go to Beta (weight 20)"
@@ -59,9 +59,9 @@ class TestWeightBasedNavigation:
 
     def test_prev_in_section_follows_weight_order(self, weighted_section_site):
         """Previous navigation should follow weight order."""
-        alpha = [p for p in weighted_section_site.pages if "alpha" in str(p.source_path)][0]
-        beta = [p for p in weighted_section_site.pages if "beta" in str(p.source_path)][0]
-        zebra = [p for p in weighted_section_site.pages if "zebra" in str(p.source_path)][0]
+        alpha = next(p for p in weighted_section_site.pages if "alpha" in str(p.source_path))
+        beta = next(p for p in weighted_section_site.pages if "beta" in str(p.source_path))
+        zebra = next(p for p in weighted_section_site.pages if "zebra" in str(p.source_path))
 
         # Verify reverse weight-based order
         assert zebra.prev_in_section == beta, "Zebra (30) prev should be Beta (20)"
@@ -94,15 +94,15 @@ class TestIndexPageSkipping:
 
     def test_first_page_skips_index_in_prev(self, section_with_index):
         """First regular page should have no previous (index is skipped)."""
-        page_1 = [p for p in section_with_index.pages if "page-1" in str(p.source_path)][0]
+        page_1 = next(p for p in section_with_index.pages if "page-1" in str(p.source_path))
 
         # Page 1 is first regular page, prev should be None (skips _index.md)
         assert page_1.prev_in_section is None, "First page should skip index in prev"
 
     def test_navigation_skips_over_index(self, section_with_index):
         """Navigation should skip index pages entirely."""
-        page_1 = [p for p in section_with_index.pages if "page-1" in str(p.source_path)][0]
-        page_2 = [p for p in section_with_index.pages if "page-2" in str(p.source_path)][0]
+        page_1 = next(p for p in section_with_index.pages if "page-1" in str(p.source_path))
+        page_2 = next(p for p in section_with_index.pages if "page-2" in str(p.source_path))
 
         # Direct navigation between regular pages
         assert page_1.next_in_section == page_2
@@ -137,8 +137,8 @@ class TestMixedWeightScenarios:
 
     def test_unweighted_pages_appear_after_weighted(self, mixed_weight_site):
         """Pages without weight should appear after all weighted pages."""
-        intro = [p for p in mixed_weight_site.pages if "intro" in str(p.source_path)][0]
-        basics = [p for p in mixed_weight_site.pages if "basics" in str(p.source_path)][0]
+        intro = next(p for p in mixed_weight_site.pages if "intro" in str(p.source_path))
+        basics = next(p for p in mixed_weight_site.pages if "basics" in str(p.source_path))
 
         # Weighted pages navigate to each other
         assert intro.next_in_section == basics
@@ -151,8 +151,8 @@ class TestMixedWeightScenarios:
 
     def test_unweighted_pages_sorted_alphabetically(self, mixed_weight_site):
         """Unweighted pages should be sorted alphabetically by title."""
-        alpha = [p for p in mixed_weight_site.pages if p.source_path.stem == "alpha"][0]
-        zebra = [p for p in mixed_weight_site.pages if p.source_path.stem == "zebra"][0]
+        alpha = next(p for p in mixed_weight_site.pages if p.source_path.stem == "alpha")
+        zebra = next(p for p in mixed_weight_site.pages if p.source_path.stem == "zebra")
 
         # Alpha comes before Zebra alphabetically
         assert alpha.next_in_section == zebra
@@ -183,9 +183,9 @@ class TestEqualWeights:
 
     def test_equal_weights_sorted_alphabetically(self, equal_weight_site):
         """Pages with equal weight should be sorted alphabetically by title."""
-        alpha = [p for p in equal_weight_site.pages if "alpha" in str(p.source_path)][0]
-        charlie = [p for p in equal_weight_site.pages if "charlie" in str(p.source_path)][0]
-        zebra = [p for p in equal_weight_site.pages if "zebra" in str(p.source_path)][0]
+        alpha = next(p for p in equal_weight_site.pages if "alpha" in str(p.source_path))
+        charlie = next(p for p in equal_weight_site.pages if "charlie" in str(p.source_path))
+        zebra = next(p for p in equal_weight_site.pages if "zebra" in str(p.source_path))
 
         # Alphabetical order: Alpha → Charlie → Zebra
         assert alpha.next_in_section == charlie, "Alpha should go to Charlie"
@@ -225,29 +225,29 @@ class TestSectionBoundaries:
 
     def test_last_page_in_section_has_no_next(self, multi_section_site):
         """Last page in a section should not navigate to next section."""
-        doc_2 = [p for p in multi_section_site.pages if "doc-2" in str(p.source_path)][0]
+        doc_2 = next(p for p in multi_section_site.pages if "doc-2" in str(p.source_path))
 
         # Last doc should not go to first guide
         assert doc_2.next_in_section is None, "Should not cross section boundary"
 
     def test_first_page_in_section_has_no_prev(self, multi_section_site):
         """First page in a section should not navigate to previous section."""
-        guide_1 = [p for p in multi_section_site.pages if "guide-1" in str(p.source_path)][0]
+        guide_1 = next(p for p in multi_section_site.pages if "guide-1" in str(p.source_path))
 
         # First guide should not go to last doc
         assert guide_1.prev_in_section is None, "Should not cross section boundary"
 
     def test_navigation_within_section_only(self, multi_section_site):
         """Navigation should only move between pages in the same section."""
-        doc_1 = [p for p in multi_section_site.pages if "doc-1" in str(p.source_path)][0]
-        doc_2 = [p for p in multi_section_site.pages if "doc-2" in str(p.source_path)][0]
+        doc_1 = next(p for p in multi_section_site.pages if "doc-1" in str(p.source_path))
+        doc_2 = next(p for p in multi_section_site.pages if "doc-2" in str(p.source_path))
 
         # Docs navigate to each other
         assert doc_1.next_in_section == doc_2
         assert doc_2.prev_in_section == doc_1
 
-        guide_1 = [p for p in multi_section_site.pages if "guide-1" in str(p.source_path)][0]
-        guide_2 = [p for p in multi_section_site.pages if "guide-2" in str(p.source_path)][0]
+        guide_1 = next(p for p in multi_section_site.pages if "guide-1" in str(p.source_path))
+        guide_2 = next(p for p in multi_section_site.pages if "guide-2" in str(p.source_path))
 
         # Guides navigate to each other
         assert guide_1.next_in_section == guide_2
@@ -271,7 +271,7 @@ class TestEdgeCases:
             orchestrator = ContentOrchestrator(site)
             orchestrator.discover()
 
-            only_page = [p for p in site.pages if "only-page" in str(p.source_path)][0]
+            only_page = next(p for p in site.pages if "only-page" in str(p.source_path))
 
             assert only_page.next_in_section is None
             assert only_page.prev_in_section is None
@@ -294,7 +294,9 @@ class TestEdgeCases:
 
     def test_page_without_section(self):
         """Page not in a section should have no section navigation."""
-        page = Page(source_path=Path("/content/standalone.md"), _raw_metadata={"title": "Standalone"})
+        page = Page(
+            source_path=Path("/content/standalone.md"), _raw_metadata={"title": "Standalone"}
+        )
         # No _section set
 
         assert page.next_in_section is None
@@ -346,9 +348,9 @@ class TestRegressionScenarios:
         Regression test for the exact bug:
         Reference Page 2 should navigate to Page 1 and Page 3, not homepage or quickstart.
         """
-        page_1 = [p for p in reference_section.pages if "reference-page-1" in str(p.source_path)][0]
-        page_2 = [p for p in reference_section.pages if "reference-page-2" in str(p.source_path)][0]
-        page_3 = [p for p in reference_section.pages if "reference-page-3" in str(p.source_path)][0]
+        page_1 = next(p for p in reference_section.pages if "reference-page-1" in str(p.source_path))
+        page_2 = next(p for p in reference_section.pages if "reference-page-2" in str(p.source_path))
+        page_3 = next(p for p in reference_section.pages if "reference-page-3" in str(p.source_path))
 
         # THE FIX: Should navigate within section by weight
         assert page_2.prev_in_section == page_1, "Page 2 prev should be Page 1"
@@ -360,9 +362,9 @@ class TestRegressionScenarios:
 
     def test_weight_order_ignores_date(self, reference_section):
         """Weight order should be used, not date order."""
-        page_1 = [p for p in reference_section.pages if "reference-page-1" in str(p.source_path)][0]
-        page_2 = [p for p in reference_section.pages if "reference-page-2" in str(p.source_path)][0]
-        page_3 = [p for p in reference_section.pages if "reference-page-3" in str(p.source_path)][0]
+        page_1 = next(p for p in reference_section.pages if "reference-page-1" in str(p.source_path))
+        page_2 = next(p for p in reference_section.pages if "reference-page-2" in str(p.source_path))
+        page_3 = next(p for p in reference_section.pages if "reference-page-3" in str(p.source_path))
 
         # Dates are: Page 1 (Oct 13), Page 2 (Oct 12), Page 3 (Oct 11)
         # But weights are: 10, 20, 30

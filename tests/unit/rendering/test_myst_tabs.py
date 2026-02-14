@@ -70,7 +70,8 @@ console.log("hello");
         # Check for code block rendering (Rosettes uses different span classes than Pygments)
         # Rosettes: k=keyword, kd=keyword declaration, n=name, nf=function name, etc.
         # Content should be present in some form
-        assert "def" in result and "hello" in result
+        assert "def" in result
+        assert "hello" in result
         assert "console" in result or "log" in result
 
     def test_tab_with_selected_option(self, parser):
@@ -103,7 +104,9 @@ Content 2
         # We check that "active" appears closer to Content 2 than Content 1
         assert 'class="tab-pane active"' in result
         # First tab pane should not be active when second has :selected:
-        assert content2_section.count("tab-pane active") >= content1_section.count("tab-pane active")
+        assert content2_section.count("tab-pane active") >= content1_section.count(
+            "tab-pane active"
+        )
 
     def test_tab_with_sync(self, parser):
         """Test tab-set with :sync: option."""

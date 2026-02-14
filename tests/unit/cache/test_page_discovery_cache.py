@@ -420,7 +420,7 @@ class TestPageDiscoveryCache:
                     "cached_at": "2025-10-16T12:00:00",
                     "is_valid": True,
                 }
-            }
+            },
         }
         with open(json_path, "w") as f:
             json.dump(old_data, f, indent=2)

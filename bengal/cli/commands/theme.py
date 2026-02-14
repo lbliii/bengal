@@ -473,8 +473,7 @@ def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str
 
     chain = resolve_theme_chain(site_root, active_theme)
     issues.extend(
-        f"Theme '{theme_name}' not found in any location"
-        " (site, installed, or bundled)"
+        f"Theme '{theme_name}' not found in any location (site, installed, or bundled)"
         for theme_name in chain
         if not _theme_exists(site_root, theme_name)
     )

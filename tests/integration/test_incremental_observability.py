@@ -296,7 +296,9 @@ class TestExplainJson:
         data = json.loads(output.getvalue())
         assert "reason_summary" in data
         # First build with no cache produces content_changed reasons
-        assert "full_rebuild" in data["reason_summary"] or "content_changed" in data["reason_summary"]
+        assert (
+            "full_rebuild" in data["reason_summary"] or "content_changed" in data["reason_summary"]
+        )
 
 
 class TestReasonSummary:

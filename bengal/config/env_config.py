@@ -76,9 +76,7 @@ def apply_bengal_overrides(config: dict[str, Any]) -> dict[str, Any]:
         The same config dict (mutated).
     """
     for key, value in os.environ.items():
-        if not (
-            key.startswith((_BENGAL_PREFIX_UNDERSCORE, _BENGAL_PREFIX_X))
-        ) or not value:
+        if not (key.startswith((_BENGAL_PREFIX_UNDERSCORE, _BENGAL_PREFIX_X))) or not value:
             continue
         path = _parse_bengal_key(key)
         if not path:

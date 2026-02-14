@@ -133,7 +133,7 @@ class TestGoldenOutput:
         options = BuildOptions(incremental=False, quiet=True)
         site.build(options=options)
 
-        yield site_dir, site.output_dir, expected_dir
+        return site_dir, site.output_dir, expected_dir
 
     @pytest.mark.parametrize(
         "golden_site",

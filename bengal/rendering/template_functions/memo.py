@@ -47,9 +47,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 # ContextVar for build context (set by rendering phase)
-_build_context_var: ContextVar[BuildContext | None] = ContextVar(
-    "build_context", default=None
-)
+_build_context_var: ContextVar[BuildContext | None] = ContextVar("build_context", default=None)
 
 # Thread-local fallback cache (when BuildContext not available)
 _fallback_cache = threading.local()

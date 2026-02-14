@@ -271,9 +271,7 @@ class TestHasPageTypeMetadata:
         section = Mock(pages=[page])
 
         # "python-" is a substring of "python-module-class"
-        assert has_page_type_metadata(
-            section, ("python-",), substring_match=True
-        ) is True
+        assert has_page_type_metadata(section, ("python-",), substring_match=True) is True
 
     def test_no_substring_match_when_disabled(self):
         """Should not match substrings when substring_match=False."""
@@ -281,9 +279,7 @@ class TestHasPageTypeMetadata:
         section = Mock(pages=[page])
 
         # Exact match required
-        assert has_page_type_metadata(
-            section, ("python-",), substring_match=False
-        ) is False
+        assert has_page_type_metadata(section, ("python-",), substring_match=False) is False
 
     def test_samples_specified_number_of_pages(self):
         """Should only check the specified sample size."""
@@ -315,12 +311,13 @@ class TestHasPageTypeMetadata:
         page = Mock(metadata={"type": "autodoc-python"})
         section = Mock(pages=[page])
 
-        assert has_page_type_metadata(
-            section, ("python-module", "autodoc-python", "autodoc-rest")
-        ) is True
+        assert (
+            has_page_type_metadata(section, ("python-module", "autodoc-python", "autodoc-rest"))
+            is True
+        )
 
     @pytest.mark.parametrize(
-        "page_type,patterns,substring,expected",
+        ("page_type", "patterns", "substring", "expected"),
         [
             ("cli-command", ("cli-",), True, True),
             ("cli-command", ("command",), True, True),

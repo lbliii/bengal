@@ -79,7 +79,9 @@ class URLStrategy:
     """
 
     @staticmethod
-    def compute_regular_page_output_path(page: Page, site: SiteLike, pre_cascade: bool = False) -> Path:
+    def compute_regular_page_output_path(
+        page: Page, site: SiteLike, pre_cascade: bool = False
+    ) -> Path:
         """
         Compute output path for a regular content page.
 

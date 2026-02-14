@@ -117,9 +117,7 @@ class SiteDiscoveryMixin:
             # Priority 100 = user content (highest priority)
             if hasattr(self, "url_registry") and self.url_registry:
                 try:
-                    url = URLStrategy.url_from_output_path(
-                        page.output_path, cast(SiteLike, self)
-                    )
+                    url = URLStrategy.url_from_output_path(page.output_path, cast(SiteLike, self))
                     source = str(getattr(page, "source_path", page.title))
                     version = getattr(page, "version", None)
                     lang = getattr(page, "lang", None)

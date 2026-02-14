@@ -315,8 +315,7 @@ class BuildCache(
                             )
                     else:
                         raise ValueError(
-                            "Autodoc source metadata must be a 3-tuple "
-                            "(hash, mtime, doc_hashes)."
+                            "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
                         )
 
             data["autodoc_tracker"] = AutodocTracker(
@@ -532,9 +531,7 @@ class BuildCache(
                 k: list(v) for k, v in at.autodoc_dependencies.items()
             },  # Autodoc source → pages
             # Autodoc source metadata for self-validation (hash, mtime tuples → lists for JSON)
-            "autodoc_source_metadata": {
-                k: list(v) for k, v in at.autodoc_source_metadata.items()
-            },
+            "autodoc_source_metadata": {k: list(v) for k, v in at.autodoc_source_metadata.items()},
             # Autodoc content cache (CachedModuleInfo serialized to dict)
             "autodoc_content_cache": autodoc_content_serialized,
             # Cached synthetic payloads (e.g., autodoc elements)

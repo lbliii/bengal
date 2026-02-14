@@ -178,9 +178,7 @@ def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None
         return False
 
 
-def clear_output_directory(
-    output_dir_path: str | Path, logger: BengalLogger | None = None
-) -> bool:
+def clear_output_directory(output_dir_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
     Clear the output directory (public/) to force complete regeneration.
 

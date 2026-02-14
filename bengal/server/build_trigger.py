@@ -302,7 +302,7 @@ class BuildTrigger:
             build_start = time.time()
             try:
                 stats = self.site.build(options=build_opts)
-                build_duration = (time.time() - build_start)
+                build_duration = time.time() - build_start
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
@@ -311,10 +311,14 @@ class BuildTrigger:
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
-                        self.changed_outputs = tuple(
-                            (str(r.path), r.output_type.value, r.phase)
-                            for r in stats.changed_outputs
-                        ) if hasattr(stats, "changed_outputs") else ()
+                        self.changed_outputs = (
+                            tuple(
+                                (str(r.path), r.output_type.value, r.phase)
+                                for r in stats.changed_outputs
+                            )
+                            if hasattr(stats, "changed_outputs")
+                            else ()
+                        )
                         self.reload_hint = getattr(stats, "reload_hint", None)
                         self._stats = stats
 
@@ -322,7 +326,7 @@ class BuildTrigger:
 
             except Exception as e:
                 # Build crashed - log error and reinitialize site for next build
-                build_duration = (time.time() - build_start)
+                build_duration = time.time() - build_start
                 error_msg = str(e)
 
                 show_error(f"Build failed: {error_msg}", show_art=False)
@@ -351,6 +355,7 @@ class BuildTrigger:
                 # This ensures the next build starts clean
                 try:
                     from bengal.core.site import Site
+
                     logger.info("warm_build_recovery", action="reinitializing_site")
                     self.site = Site.from_config(self.site.root_path)
                     self.site.dev_mode = True
@@ -982,9 +987,7 @@ class BuildTrigger:
                     logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
-                decision = controller.decide_from_outputs(
-                    records, reload_hint=reload_hint
-                )
+                decision = controller.decide_from_outputs(records, reload_hint=reload_hint)
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",

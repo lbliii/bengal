@@ -145,8 +145,7 @@ class CompactTracebackRenderer(TracebackRenderer):
         frames = _traceback.extract_tb(tb)
         # Keep last up to 3 frames
         summary_lines = [
-            f"{frame.filename}:{frame.lineno} in {frame.name}"
-            for frame in frames[-3:]
+            f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in frames[-3:]
         ]
 
         cli.blank()

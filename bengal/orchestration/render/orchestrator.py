@@ -73,39 +73,40 @@ if TYPE_CHECKING:
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
+
 class RenderOrchestrator:
     """
-    Orchestrates page rendering in sequential or parallel modes.
+       Orchestrates page rendering in sequential or parallel modes.
 
-    Handles page rendering with support for free-threaded Python for true
-    parallelism. Manages thread-local rendering pipelines and integrates
-    with dependency tracking for incremental builds.
+       Handles page rendering with support for free-threaded Python for true
+       parallelism. Manages thread-local rendering pipelines and integrates
+       with dependency tracking for incremental builds.
 
-    Creation:
-        Direct instantiation: RenderOrchestrator(site)
-            - Created by BuildOrchestrator during build
-            - Requires Site instance with pages populated
+       Creation:
+           Direct instantiation: RenderOrchestrator(site)
+               - Created by BuildOrchestrator during build
+               - Requires Site instance with pages populated
 
-    Attributes:
-        site: Site instance containing pages and configuration
-        _free_threaded: Whether running on free-threaded Python (GIL disabled)
-        _block_cache: Cache for site-wide template blocks (Kida only)
+       Attributes:
+           site: Site instance containing pages and configuration
+           _free_threaded: Whether running on free-threaded Python (GIL disabled)
+           _block_cache: Cache for site-wide template blocks (Kida only)
 
-    Relationships:
-        - Uses: RenderingPipeline for individual page rendering
-        - Uses: EffectTracer for dependency tracking
-        - Uses: BuildStats for build statistics collection
-        - Uses: BlockCache for site-wide block caching
-        - Used by: BuildOrchestrator for rendering phase
+       Relationships:
+           - Uses: RenderingPipeline for individual page rendering
+           - Uses: EffectTracer for dependency tracking
+           - Uses: BuildStats for build statistics collection
+           - Uses: BlockCache for site-wide block caching
+           - Used by: BuildOrchestrator for rendering phase
 
-    Thread Safety:
-        Thread-safe for parallel rendering. Uses thread-local pipelines
-        to avoid contention. Detects free-threaded Python automatically.
+       Thread Safety:
+           Thread-safe for parallel rendering. Uses thread-local pipelines
+           to avoid contention. Detects free-threaded Python automatically.
 
-    Examples:
-        orchestrator = RenderOrchestrator(site)
-        orchestrator.process(pages, parallel=True,
- stats=stats)
+       Examples:
+           orchestrator = RenderOrchestrator(site)
+           orchestrator.process(pages, parallel=True,
+    stats=stats)
 
     """
 
@@ -548,13 +549,9 @@ class RenderOrchestrator:
             use_rich = False
 
         if use_rich:
-            self._render_parallel_with_progress(
-                pages, quiet, stats, build_context, changed_sources
-            )
+            self._render_parallel_with_progress(pages, quiet, stats, build_context, changed_sources)
         else:
-            self._render_parallel_simple(
-                pages, quiet, stats, build_context, changed_sources
-            )
+            self._render_parallel_simple(pages, quiet, stats, build_context, changed_sources)
 
     def _render_with_snapshot(
         self,

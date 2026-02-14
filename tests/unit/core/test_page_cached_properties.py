@@ -159,7 +159,7 @@ class TestPageMetaDescription:
         desc = page.meta_description
         assert len(desc) <= 160
         # Should end with sentence boundary (.) or word boundary (…)
-        assert desc.endswith(".") or desc.endswith("…")
+        assert desc.endswith((".", "…"))
 
     def test_meta_description_sentence_boundary(self, tmp_path):
         """Tries to end at sentence boundary."""
@@ -168,11 +168,13 @@ class TestPageMetaDescription:
 
         desc = page.meta_description
         # Should end at a sentence boundary (period)
-        assert desc.endswith(".") or desc.endswith("…")
+        assert desc.endswith((".", "…"))
 
     def test_meta_description_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="Original content", _raw_metadata={})
+        page = Page(
+            source_path=tmp_path / "test.md", _raw_content="Original content", _raw_metadata={}
+        )
 
         # First access computes
         desc1 = page.meta_description
@@ -225,7 +227,9 @@ class TestPageReadingTime:
 
     def test_reading_time_minimum_one(self, tmp_path):
         """Minimum reading time is 1 minute."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="Just a few words", _raw_metadata={})
+        page = Page(
+            source_path=tmp_path / "test.md", _raw_content="Just a few words", _raw_metadata={}
+        )
 
         assert page.reading_time >= 1
 
@@ -269,7 +273,9 @@ class TestPageReadingTime:
     def test_reading_time_caching(self, tmp_path):
         """Result is cached after first access."""
         page = Page(
-            source_path=tmp_path / "test.md", _raw_content=" ".join(["word"] * 400), _raw_metadata={}
+            source_path=tmp_path / "test.md",
+            _raw_content=" ".join(["word"] * 400),
+            _raw_metadata={},
         )
 
         # First access computes

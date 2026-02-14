@@ -15,9 +15,10 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 # =============================================================================
 # CURRENT IMPLEMENTATION (18 slots)
@@ -28,24 +29,24 @@ class ParserCurrent:
     """Current Parser with 18 slots (config duplicated per instance)."""
 
     __slots__ = (
-        "_source",
-        "_tokens",
-        "_pos",
-        "_current",
-        "_source_file",
-        "_text_transformer",
-        "_tables_enabled",
-        "_strikethrough_enabled",
-        "_task_lists_enabled",
-        "_footnotes_enabled",
-        "_math_enabled",
+        "_allow_setext_headings",
         "_autolinks_enabled",
+        "_containers",
+        "_current",
         "_directive_registry",
         "_directive_stack",
-        "_strict_contracts",
+        "_footnotes_enabled",
         "_link_refs",
-        "_containers",
-        "_allow_setext_headings",
+        "_math_enabled",
+        "_pos",
+        "_source",
+        "_source_file",
+        "_strict_contracts",
+        "_strikethrough_enabled",
+        "_tables_enabled",
+        "_task_lists_enabled",
+        "_text_transformer",
+        "_tokens",
     )
 
     def __init__(
@@ -111,15 +112,15 @@ class ParserContextVar:
     """Proposed Parser with 9 slots (config via ContextVar)."""
 
     __slots__ = (
-        "_source",
-        "_tokens",
-        "_pos",
+        "_allow_setext_headings",
+        "_containers",
         "_current",
-        "_source_file",
         "_directive_stack",
         "_link_refs",
-        "_containers",
-        "_allow_setext_headings",
+        "_pos",
+        "_source",
+        "_source_file",
+        "_tokens",
     )
 
     def __init__(
@@ -157,20 +158,20 @@ class RendererCurrent:
     """Current HTMLRenderer with 14 slots."""
 
     __slots__ = (
-        "_source",
+        "_current_page",
+        "_delegate",
+        "_directive_cache",
+        "_directive_registry",
+        "_headings",
         "_highlight",
         "_highlight_style",
-        "_rosettes_available",
-        "_directive_registry",
-        "_directive_cache",
-        "_role_registry",
-        "_text_transformer",
-        "_delegate",
-        "_headings",
-        "_slugify",
-        "_seen_slugs",
         "_page_context",
-        "_current_page",
+        "_role_registry",
+        "_rosettes_available",
+        "_seen_slugs",
+        "_slugify",
+        "_source",
+        "_text_transformer",
     )
 
     def __init__(
@@ -225,14 +226,14 @@ class RendererContextVar:
     """Proposed HTMLRenderer with 8 slots (config via ContextVar)."""
 
     __slots__ = (
-        "_source",
-        "_delegate",
-        "_headings",
-        "_seen_slugs",
-        "_page_context",
         "_current_page",
+        "_delegate",
         "_directive_cache",
+        "_headings",
+        "_page_context",
         "_rosettes_available",
+        "_seen_slugs",
+        "_source",
     )
 
     def __init__(

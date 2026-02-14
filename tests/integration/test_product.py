@@ -164,9 +164,7 @@ class TestProductData:
         """Product data YAML file should exist in template."""
         from pathlib import Path
 
-        template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
-        )
+        template_dir = Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         data_file = template_dir / "data" / "products.yaml"
 
         assert data_file.exists(), f"Products data file should exist at {data_file}"
@@ -177,9 +175,7 @@ class TestProductData:
 
         import yaml
 
-        template_dir = (
-            Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
-        )
+        template_dir = Path(__file__).parent.parent.parent / "bengal" / "scaffolds" / "product"
         data_file = template_dir / "data" / "products.yaml"
 
         with open(data_file) as f:

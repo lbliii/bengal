@@ -14,7 +14,6 @@ Related:
     - site/content/docs/about/benchmarks.md (What Slows Builds Down)
 """
 
-import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -113,7 +112,7 @@ def directive_heavy_100(tmp_path):
     """100-page directive-heavy site (built once, reused)."""
     site = create_directive_heavy_site(100, tmp_path)
     _bengal_build(site)
-    yield site
+    return site
 
 
 @pytest.mark.benchmark
@@ -187,8 +186,8 @@ parallel = true
     pps_minimal = 100 / minimal_time
     pps_directive = 100 / directive_time
 
-    print(f"\nDirective-heavy vs minimal (100 pages):")
+    print("\nDirective-heavy vs minimal (100 pages):")
     print(f"  Minimal:      {minimal_time:.3f}s ({pps_minimal:.0f} pps)")
     print(f"  Directive:    {directive_time:.3f}s ({pps_directive:.0f} pps)")
     print(f"  Ratio:        {ratio:.2f}x (directive-heavy / minimal)")
-    print(f"  Speed factor: {1/ratio:.2f} (docs claim ~0.4-0.6)")
+    print(f"  Speed factor: {1 / ratio:.2f} (docs claim ~0.4-0.6)")

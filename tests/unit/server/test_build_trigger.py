@@ -1124,9 +1124,7 @@ class TestReloadDecisionFlow:
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         # Invalid output type that can't be reconstructed
-        changed_outputs = (
-            ("index.html", "invalid_type", "render"),
-        )
+        changed_outputs = (("index.html", "invalid_type", "render"),)
         trigger._handle_reload(["content/index.md"], changed_outputs)
 
         # Should fall back to decide_from_changed_paths

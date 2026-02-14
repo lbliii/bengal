@@ -630,9 +630,7 @@ class AssetOrchestrator:
                     target_file = module_map[name]
                     # Canonicalize for exclusion check
                     rel_path_str = (
-                        to_posix(target_file.relative_to(js_dir))
-                        if js_dir
-                        else target_file.name
+                        to_posix(target_file.relative_to(js_dir)) if js_dir else target_file.name
                     )
                     if rel_path_str not in excluded:
                         ordered_files.append(target_file)

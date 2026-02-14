@@ -452,9 +452,7 @@ class PostprocessOrchestrator:
             return
 
         collector = getattr(self, "_collector", None)
-        generator = SocialCardGenerator(
-            self.site, social_config, collector=collector
-        )
+        generator = SocialCardGenerator(self.site, social_config, collector=collector)
         output_dir = self.site.output_dir / social_config.output_dir
 
         generated, cached = generator.generate_all(self.site.pages, output_dir)

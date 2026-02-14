@@ -270,9 +270,9 @@ class IncrementalOrchestrator:
                 and hasattr(self.cache, "get_affected_pages")
             ):
                 # Get pages affected by this template
-                    affected_paths = self.cache.get_affected_pages(str(template_file))
-                    for path_str in affected_paths:
-                        affected_pages.add(Path(path_str))
+                affected_paths = self.cache.get_affected_pages(str(template_file))
+                for path_str in affected_paths:
+                    affected_pages.add(Path(path_str))
 
         return affected_pages
 

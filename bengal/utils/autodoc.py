@@ -62,7 +62,11 @@ def is_autodoc_page(page: PageLike | Any) -> bool:
 
         # Check type-based indicators
         if (
-            page_type.startswith(("python-", "cli-", "openapi-")) or page_type in ("autodoc-python", "autodoc-cli", "autodoc-rest", "autodoc-hub") or "source_file" in metadata or metadata.get("generator") == "bengal-autodoc" or metadata.get("_api_doc") is not None  # Internal API doc marker
+            page_type.startswith(("python-", "cli-", "openapi-"))
+            or page_type in ("autodoc-python", "autodoc-cli", "autodoc-rest", "autodoc-hub")
+            or "source_file" in metadata
+            or metadata.get("generator") == "bengal-autodoc"
+            or metadata.get("_api_doc") is not None  # Internal API doc marker
         ):
             return True
 

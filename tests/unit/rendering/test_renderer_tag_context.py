@@ -104,7 +104,9 @@ class TestTagContextResolution:
 
     def test_resolution_returns_fresh_pages(self, renderer, site):
         """When resolution succeeds, should return fresh page objects."""
-        fresh_page = Page(Path("content/p1.md"), "", _raw_metadata={"title": "P1 Fresh", "tags": ["t1"]})
+        fresh_page = Page(
+            Path("content/p1.md"), "", _raw_metadata={"title": "P1 Fresh", "tags": ["t1"]}
+        )
         site.pages = [fresh_page]
 
         # Stale page in taxonomy

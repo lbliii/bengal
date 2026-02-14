@@ -205,7 +205,9 @@ def create_error_context_for_item(
     source_path = getattr(item, "source_path", None) or getattr(item, "path", None)
     if source_path:
         context["file_path"] = str(source_path)
-        context["file_name"] = source_path.name if hasattr(source_path, "name") else str(source_path)
+        context["file_name"] = (
+            source_path.name if hasattr(source_path, "name") else str(source_path)
+        )
 
     # Add suggestion if provided
     if suggestion:

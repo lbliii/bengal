@@ -55,7 +55,11 @@ class TestParallelRendering:
     def test_parallel_when_parallel_true(self, orchestrator, mock_site):
         """Test that parallel=True uses parallel rendering."""
         pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", _raw_metadata={})
+            Page(
+                source_path=Path(f"/fake/site/content/page{i}.md"),
+                _raw_content="",
+                _raw_metadata={},
+            )
             for i in range(5)
         ]
 
@@ -99,8 +103,12 @@ class TestOutputPathOptimization:
     def test_set_output_paths_for_pages(self, orchestrator, mock_site):
         """Test that output paths are set only for specified pages."""
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}),
-            Page(source_path=Path("/fake/site/content/page2.md"), _raw_content="", _raw_metadata={}),
+            Page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            ),
+            Page(
+                source_path=Path("/fake/site/content/page2.md"), _raw_content="", _raw_metadata={}
+            ),
         ]
 
         # Pages start with no output_path
@@ -135,7 +143,11 @@ class TestOutputPathOptimization:
         """Test that only specified pages get paths, not all site pages."""
         # Add some pages to the site
         mock_site.pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", _raw_metadata={})
+            Page(
+                source_path=Path(f"/fake/site/content/page{i}.md"),
+                _raw_content="",
+                _raw_metadata={},
+            )
             for i in range(10)
         ]
 
@@ -195,7 +207,11 @@ class TestProcessMethod:
     def test_process_passes_stats_to_parallel(self, orchestrator, mock_site):
         """Test that process passes stats to parallel rendering."""
         pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", _raw_metadata={})
+            Page(
+                source_path=Path(f"/fake/site/content/page{i}.md"),
+                _raw_content="",
+                _raw_metadata={},
+            )
             for i in range(5)
         ]
         mock_stats = Mock()
@@ -216,7 +232,11 @@ class TestPerformanceOptimization:
         """Test that path setting only processes needed pages."""
         # Add 100 pages to site
         mock_site.pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", _raw_metadata={})
+            Page(
+                source_path=Path(f"/fake/site/content/page{i}.md"),
+                _raw_content="",
+                _raw_metadata={},
+            )
             for i in range(100)
         ]
 

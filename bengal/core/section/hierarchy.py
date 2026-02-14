@@ -210,7 +210,8 @@ class SectionHierarchyMixin:
         from bengal.core.utils.sorting import DEFAULT_WEIGHT
 
         return sorted(
-            self.subsections, key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower())
+            self.subsections,
+            key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower()),
         )
 
     # =========================================================================

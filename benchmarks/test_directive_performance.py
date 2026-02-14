@@ -25,11 +25,11 @@ from collections import defaultdict
 from pathlib import Path
 
 import pytest
+from patitas.nodes import Directive
+from patitas.parser import Parser
 
 from bengal.parsing.backends.patitas import create_markdown
 from bengal.parsing.backends.patitas.directives import create_default_registry
-from patitas.nodes import Directive
-from patitas.parser import Parser
 
 
 def bengal_site_root() -> Path:

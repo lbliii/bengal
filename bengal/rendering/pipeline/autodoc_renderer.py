@@ -164,23 +164,17 @@ class AutodocRenderer:
         # Complete pages should not be wrapped with another template
         prerendered = page._prerendered_html or ""
         prerendered_stripped = prerendered.strip()
-        is_complete_page = (
-            prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
-        )
+        is_complete_page = prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
 
         if is_complete_page:
             # Use pre-rendered HTML directly (it's already a complete page)
             page.rendered_html = prerendered
-            page.rendered_html = format_html(
-                page.rendered_html, page, cast(SiteLike, self.site)
-            )
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
         else:
             # Wrap content fragment with template
             html_content = self.renderer.render_content(page.html_content or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(
-                page.rendered_html, page, cast(SiteLike, self.site)
-            )
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
 
         write_output(
             page,
@@ -242,9 +236,7 @@ class AutodocRenderer:
             page.html_content = page._prerendered_html
             page.toc = ""
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(
-                page.rendered_html, page, cast(SiteLike, self.site)
-            )
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
             return
 
         # Render with full site context (same as regular pages)
@@ -311,9 +303,7 @@ class AutodocRenderer:
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(
-                page.rendered_html, page, cast(SiteLike, self.site)
-            )
+            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
             return
 
         page._prerendered_html = html_content
@@ -321,9 +311,7 @@ class AutodocRenderer:
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
-        page.rendered_html = format_html(
-            page.rendered_html, page, cast(SiteLike, self.site)
-        )
+        page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.

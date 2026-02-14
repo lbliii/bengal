@@ -446,5 +446,5 @@ uv run pytest tests/ -x -q
 Once protocol adoption reaches >=80% for all three types:
 
 1. **Phase 2: Canonical Config** (`rfc-config-architecture-v2.md`) — Unify config to nested-only structure with typed accessor class. 20-30 hours.
-2. **Phase 3: Service Extraction** (`rfc-aggressive-cleanup.md`) — Replace the 10 Site mixins with composed services. 40-60 hours. Depends on Phase 2.
+2. **Phase 3: Service Extraction** (`evaluated/rfc-aggressive-cleanup.md`) — Replace the 10 Site mixins with composed services. 40-60 hours. Depends on Phase 2.
 3. **Phase 4: Effect-Traced Builds** (`rfc-effect-traced-incremental-builds.md`) — Replace 13 detectors with declarative effects. 50-70 hours. Depends on Phase 3.

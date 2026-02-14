@@ -119,10 +119,7 @@ class TestHealthCheckCodeUniqueness:
 
         # Just verify all codes are in valid ranges (0-9)
         for code in codes_map:
-            if code.startswith("H"):
-                num = int(code[1:])
-                assert 0 <= num < 1000, f"Code {code} out of range"
-            elif code.startswith("V"):
+            if code.startswith(("H", "V")):
                 num = int(code[1:])
                 assert 0 <= num < 1000, f"Code {code} out of range"
 

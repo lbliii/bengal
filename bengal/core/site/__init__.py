@@ -465,9 +465,7 @@ class Site(
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            self._query_registry = QueryIndexRegistry(
-                cast(SiteLike, self), self.paths.indexes_dir
-            )
+            self._query_registry = QueryIndexRegistry(cast(SiteLike, self), self.paths.indexes_dir)
         return self._query_registry
 
     @property
@@ -708,9 +706,7 @@ class Site(
                 if url in urls_seen:
                     # Get ownership context from registry
                     claim = self.url_registry.get_claim(url)
-                    owner_info = (
-                        f" ({claim.owner}, priority {claim.priority})" if claim else ""
-                    )
+                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
 
                     msg = (
                         f"URL collision detected: {url}\n"

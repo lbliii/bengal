@@ -138,7 +138,7 @@ def test_snapshot_vs_sequential_rendering(site, build_site):
     # Compare outputs (should be identical)
     assert set(parallel_html.keys()) == set(sequential_html.keys()), "Different pages rendered"
 
-    for path in parallel_html.keys():
+    for path in parallel_html:
         # Normalize: strip whitespace and build-specific content hashes
         parallel_content = _CONTENT_HASH_RE.sub("", parallel_html[path].strip())
         sequential_content = _CONTENT_HASH_RE.sub("", sequential_html[path].strip())

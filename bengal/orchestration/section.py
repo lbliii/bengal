@@ -142,7 +142,9 @@ class SectionOrchestrator:
 
         logger.info("section_finalization_complete", archives_created=archive_count)
 
-    def _finalize_recursive_filtered(self, section: SectionLike, affected_sections: set[str]) -> int:
+    def _finalize_recursive_filtered(
+        self, section: SectionLike, affected_sections: set[str]
+    ) -> int:
         """
         Recursively finalize only affected sections (incremental optimization).
 

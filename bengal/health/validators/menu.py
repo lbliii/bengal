@@ -105,8 +105,7 @@ class MenuValidator(BaseValidator):
             if url and not url.startswith(("http://", "https://", "//")):
                 # Check if any page has this URL (use _path for internal comparison)
                 found = any(
-                    (getattr(page, "_path", None) == url)
-                    or (getattr(page, "href", None) == url)
+                    (getattr(page, "_path", None) == url) or (getattr(page, "href", None) == url)
                     for page in site.pages
                 )
 

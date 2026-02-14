@@ -100,9 +100,7 @@ class ThreadLocalCache[T]:
         cache_key = f"_cache_{self._name}_{key or 'default'}"
 
         if not hasattr(self._local, cache_key):
-            instance = (
-                self._factory(key) if self._factory_accepts_key and key else self._factory()
-            )  # type: ignore[call-arg]
+            instance = self._factory(key) if self._factory_accepts_key and key else self._factory()  # type: ignore[call-arg]
             setattr(self._local, cache_key, instance)
 
         return cast(T, getattr(self._local, cache_key))

@@ -11,8 +11,6 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
-import pytest
-
 from bengal.server.build_state import build_state
 
 

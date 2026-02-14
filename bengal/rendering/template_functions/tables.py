@@ -90,9 +90,7 @@ def _load_yaml_data(file_path: Path) -> dict[str, Any]:
             if not isinstance(first_row, dict):
                 return {"error": "data rows must be dictionaries"}
 
-            columns = [
-                {"title": key.replace("_", " ").title(), "field": key} for key in first_row
-            ]
+            columns = [{"title": key.replace("_", " ").title(), "field": key} for key in first_row]
 
         if "data" not in data:
             return {"error": "YAML must contain 'data'"}
