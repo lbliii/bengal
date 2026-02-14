@@ -328,7 +328,7 @@ class LouvainCommunityDetector:
         neighboring_communities.add(page_to_community[page])
 
         # Find all pages connected to this page
-        for edge, _weight in edge_weights.items():
+        for edge in edge_weights:
             if page in edge:
                 for neighbor in edge:
                     if neighbor != page:

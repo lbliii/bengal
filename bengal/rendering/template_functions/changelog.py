@@ -31,6 +31,7 @@ Example:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -41,9 +42,6 @@ if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
-
-
-import re
 
 # Pattern for semantic version: 0.1.8, v1.2.3, 1.0.0-beta, etc.
 _SEMVER_PATTERN = re.compile(r"^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:[.-](.+))?$", re.IGNORECASE)

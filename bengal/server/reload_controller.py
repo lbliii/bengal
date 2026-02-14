@@ -555,9 +555,8 @@ class ReloadController:
                     css_changed.append(path)
 
         # Deleted
-        for path in prev_files.keys() - curr_files.keys():
-            changed.append(path)
-            # deleted CSS still requires full reload; do not count as css_changed
+        changed.extend(prev_files.keys() - curr_files.keys())
+        # deleted CSS still requires full reload; do not count as css_changed
 
         return changed, css_changed
 

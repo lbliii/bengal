@@ -34,12 +34,12 @@ from __future__ import annotations
 import inspect
 import threading
 from collections.abc import Callable
-from typing import Generic, TypeVar, cast
+from typing import TypeVar, cast
 
 T = TypeVar("T")
 
 
-class ThreadLocalCache(Generic[T]):
+class ThreadLocalCache[T]:
     """
     Generic thread-local cache with factory pattern.
 
@@ -100,10 +100,9 @@ class ThreadLocalCache(Generic[T]):
         cache_key = f"_cache_{self._name}_{key or 'default'}"
 
         if not hasattr(self._local, cache_key):
-            if self._factory_accepts_key and key:
-                instance = self._factory(key)  # type: ignore[call-arg]
-            else:
-                instance = self._factory()  # type: ignore[call-arg]
+            instance = (
+                self._factory(key) if self._factory_accepts_key and key else self._factory()
+            )  # type: ignore[call-arg]
             setattr(self._local, cache_key, instance)
 
         return cast(T, getattr(self._local, cache_key))

@@ -18,6 +18,7 @@ Related Modules:
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -114,10 +115,8 @@ class RenderedOutputCacheMixin:
         asset_manifest_mtime: float | None = None
         if output_dir:
             manifest_path = output_dir / "asset-manifest.json"
-            try:
+            with contextlib.suppress(FileNotFoundError, OSError):
                 asset_manifest_mtime = manifest_path.stat().st_mtime
-            except (FileNotFoundError, OSError):
-                pass
 
         # Store as dict (will be serialized to JSON)
         self.rendered_output[str(file_path)] = {

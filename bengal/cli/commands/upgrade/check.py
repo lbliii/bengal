@@ -68,10 +68,7 @@ def get_cache_path() -> Path:
         base = Path(os.environ.get("APPDATA", Path.home()))
     else:
         xdg_config = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config:
-            base = Path(xdg_config)
-        else:
-            base = Path.home() / ".config"
+        base = Path(xdg_config) if xdg_config else Path.home() / ".config"
 
     return base / "bengal" / "upgrade_check.json"
 
@@ -98,10 +95,7 @@ def should_check() -> bool:
         return False
 
     # Skip if not interactive terminal
-    if not sys.stderr.isatty():
-        return False
-
-    return True
+    return sys.stderr.isatty()
 
 
 def load_cache() -> dict | None:

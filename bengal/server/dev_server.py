@@ -75,8 +75,8 @@ from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.ignore_filter import IgnoreFilter
-from bengal.server.pid_manager import PIDManager
 from bengal.server.live_reload import LiveReloadMixin
+from bengal.server.pid_manager import PIDManager
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
@@ -878,11 +878,11 @@ class DevServer:
                         search_range=(self.port + 1, self.port + 10),
                         user_action="check_running_processes",
                     )
-                raise BengalServerError(
-                    f"Port {self.port} is already in use",
-                    code=ErrorCode.S001,
-                    suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
-                ) from e
+                    raise BengalServerError(
+                        f"Port {self.port} is already in use",
+                        code=ErrorCode.S001,
+                        suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
+                    ) from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
                 print("\nTo fix this issue:")

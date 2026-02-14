@@ -566,7 +566,7 @@ class ConfigInspector(DebugTool):
         all_keys = set(config1.keys()) | set(config2.keys())
 
         for key in sorted(all_keys):
-            key_path = ".".join(path + [key])
+            key_path = ".".join([*path, key])
 
             in_config1 = key in config1
             in_config2 = key in config2
@@ -602,7 +602,7 @@ class ConfigInspector(DebugTool):
                         config2[key],
                         origins1,
                         origins2,
-                        path + [key],
+                        [*path, key],
                         diffs,
                     )
                 else:

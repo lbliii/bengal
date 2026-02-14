@@ -101,18 +101,17 @@ class MenuValidator(BaseValidator):
         for item in items:
             # Check if URL points to a page
             url = getattr(item, "_path", None) or getattr(item, "href", None)
-            if url:
-                # Skip external URLs (but still check children below)
-                if not url.startswith(("http://", "https://", "//")):
-                    # Check if any page has this URL (use _path for internal comparison)
-                    found = any(
-                        (getattr(page, "_path", None) == url)
-                        or (getattr(page, "href", None) == url)
-                        for page in site.pages
-                    )
+            # Skip external URLs (but still check children below)
+            if url and not url.startswith(("http://", "https://", "//")):
+                # Check if any page has this URL (use _path for internal comparison)
+                found = any(
+                    (getattr(page, "_path", None) == url)
+                    or (getattr(page, "href", None) == url)
+                    for page in site.pages
+                )
 
-                    if not found:
-                        broken.append(f"{item.name} → {url}")
+                if not found:
+                    broken.append(f"{item.name} → {url}")
 
             # Recurse into children (always, even if parent URL is external)
             if hasattr(item, "children") and item.children:

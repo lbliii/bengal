@@ -350,10 +350,9 @@ def clear(source: str, force: bool) -> None:
         cli.info("No provenance cache to clear.")
         return
 
-    if not force:
-        if not click.confirm(f"Delete {cache_dir}?"):
-            cli.info("Cancelled.")
-            return
+    if not force and not click.confirm(f"Delete {cache_dir}?"):
+        cli.info("Cancelled.")
+        return
 
     shutil.rmtree(cache_dir)
     cli.success("Provenance cache cleared.")

@@ -165,9 +165,7 @@ class AutodocRenderer:
         prerendered = page._prerendered_html or ""
         prerendered_stripped = prerendered.strip()
         is_complete_page = (
-            prerendered_stripped.startswith("<!DOCTYPE")
-            or prerendered_stripped.startswith("<html")
-            or prerendered_stripped.startswith("<!doctype")
+            prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
         )
 
         if is_complete_page:

@@ -75,10 +75,7 @@ def transform_css_nesting(css: str) -> str:
 
             # Build full selector
             if (
-                nested_selector_part.startswith(":")
-                or nested_selector_part.startswith(".")
-                or nested_selector_part.startswith("[")
-                or nested_selector_part.startswith(" ")
+                nested_selector_part.startswith((":", ".", "[", " "))
             ):
                 full_selector = selector_clean + nested_selector_part
             else:

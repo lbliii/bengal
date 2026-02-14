@@ -116,7 +116,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Pre-built Lunr search index (requires `pip install bengal[search]`)
     try:
-        from lunr import lunr  # type: ignore[import-not-found]
+        from lunr import lunr  # noqa: F401 - import to test availability
 
         capabilities["prebuilt_search"] = True
     except ImportError:
@@ -124,7 +124,7 @@ def _get_capabilities() -> dict[str, bool]:
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
     try:
-        import aiohttp
+        import aiohttp  # noqa: F401 - import to test availability
 
         capabilities["remote_content"] = True
     except ImportError:

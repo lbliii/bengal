@@ -308,7 +308,7 @@ def data_table(env: Any, path: str, **options: Any) -> Markup:
     table_id = _generate_table_id(path)
     search = _parse_bool(options.get("search", True))
     filter_enabled = _parse_bool(options.get("filter", True))
-    sort = _parse_bool(options.get("sort", True))
+    _parse_bool(options.get("sort", True))
     pagination = _parse_pagination(options.get("pagination", 50))
     height = options.get("height", "auto")
     visible_columns = _parse_columns(options.get("columns", ""))

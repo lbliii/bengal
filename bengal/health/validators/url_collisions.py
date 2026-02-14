@@ -132,7 +132,7 @@ class URLCollisionValidator(BaseValidator):
             source = str(getattr(page, "source_path", page.title))
 
             # Skip index pages - they're supposed to be at section URLs
-            if source.endswith("_index.md") or source.endswith("section-index.md"):
+            if source.endswith(("_index.md", "section-index.md")):
                 continue
 
             if url in section_urls:

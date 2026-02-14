@@ -57,7 +57,7 @@ class BengalScreen(Screen):
         Args:
             data: Tuple of (key, value) for the changed config
         """
-        key, value = data
+        _key, _value = data
         # Subclasses can override to handle specific config changes
 
     def action_goto_landing(self) -> None:

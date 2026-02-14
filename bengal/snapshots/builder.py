@@ -37,15 +37,8 @@ from bengal.snapshots.scheduling import (
     _snapshot_menus,
     _snapshot_taxonomies,
 )
-from bengal.snapshots.speculative import (
-    ShadowModeValidator,
-    SpeculativeRenderer,
-    predict_affected,
-)
 from bengal.snapshots.templates import (
-    _get_transitive_dependents,
     _snapshot_templates,
-    pages_affected_by_template_change,
 )
 from bengal.snapshots.types import (
     NO_SECTION,
@@ -182,10 +175,7 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
 
     # Create config snapshot
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
-    if isinstance(config_dict, dict):
-        config_dict = dict(config_dict)
-    else:
-        config_dict = {}
+    config_dict = dict(config_dict) if isinstance(config_dict, dict) else {}
     config_snapshot = ConfigSnapshot.from_dict(config_dict)
 
     # Build navigation trees
@@ -415,10 +405,7 @@ def update_snapshot(
     # Reuse config if unchanged
     config_dict = site.config.raw if hasattr(site.config, "raw") else site.config
     # Type narrowing: ensure config_dict is a dict
-    if isinstance(config_dict, dict):
-        config_dict = dict(config_dict)
-    else:
-        config_dict = {}
+    config_dict = dict(config_dict) if isinstance(config_dict, dict) else {}
     config_snapshot = old.config_snapshot or ConfigSnapshot.from_dict(config_dict)
 
     # Rebuild nav trees (structure may have changed)

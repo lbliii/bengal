@@ -248,7 +248,7 @@ class TemplateRenderError(BengalRenderingError):
                 # This happens when compiled templates don't preserve line info
                 if line_number == 1 and lines:
                     first_line = lines[0].strip()
-                    if first_line.startswith("{#") or first_line.startswith("#"):
+                    if first_line.startswith(("{#", "#")):
                         # Find the first non-comment, non-empty line with actual code
                         line_number = TemplateRenderError._find_first_code_line(lines, error)
 

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.content import ContentOrchestrator
     from bengal.utils.observability.logger import BengalLogger
 
 
@@ -44,12 +45,14 @@ class DiscoveryPhaseInput:
         cache: Optional BuildCache for incremental builds
         incremental: Whether this is an incremental build
         build_context: Optional BuildContext for content caching
+        content_orchestrator: Optional ContentOrchestrator to reuse (avoids creating duplicate)
     """
 
     site: Site
     cache: BuildCache | None
     incremental: bool
     build_context: BuildContext | None
+    content_orchestrator: ContentOrchestrator | None = None
 
 
 @dataclass

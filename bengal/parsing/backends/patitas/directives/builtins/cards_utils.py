@@ -135,7 +135,7 @@ def extract_page_fields(page: Any, fields: list[str]) -> dict[str, Any]:
 def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | None = None) -> Any:
     """Resolve a link to a page object."""
     # Relative path
-    if link.startswith("./") or link.startswith("../"):
+    if link.startswith(("./", "../")):
         if current_page_dir:
             clean_link = link.replace(".md", "").rstrip("/")
             if clean_link.startswith("./"):
@@ -175,7 +175,7 @@ def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | 
 def resolve_link_url(renderer: Any, link: str) -> str:
     """Resolve a link reference to a URL (includes baseurl for absolute paths)."""
     # External URLs - return as-is
-    if link.startswith("http://") or link.startswith("https://"):
+    if link.startswith(("http://", "https://")):
         return link
 
     # Site-relative paths need baseurl applied
@@ -261,7 +261,7 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
     if include in ("pages", "all"):
         for page in getattr(section, "pages", []):
             source_str = str(getattr(page, "source_path", ""))
-            if source_str.endswith("_index.md") or source_str.endswith("index.md"):
+            if source_str.endswith(("_index.md", "index.md")):
                 continue
             if (
                 hasattr(current_page, "source_path")

@@ -237,9 +237,9 @@ class PythonExtractor(Extractor):
         Overrides are matched by exact module path or prefix (module.startswith(pattern + ".")).
         """
         effective = dict(self.config)
-        for pattern, override in self.config.get("overrides", {}).items():
+        for pattern, override_config in self.config.get("overrides", {}).items():
             if module_name == pattern or module_name.startswith(f"{pattern}."):
-                effective.update(override)
+                effective.update(override_config)
         return effective
 
     def _apply_all_filter(self, module_element: DocElement) -> None:

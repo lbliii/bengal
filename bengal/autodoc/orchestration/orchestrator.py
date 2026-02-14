@@ -498,7 +498,7 @@ class VirtualAutodocOrchestrator:
                         python_elements, self.site, self._resolve_output_prefix
                     )
                     all_sections.update(python_sections)
-                    python_pages, page_result = create_pages(
+                    python_pages, _page_result = create_pages(
                         python_elements,
                         python_sections,
                         self.site,

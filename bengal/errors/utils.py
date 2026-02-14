@@ -46,6 +46,7 @@ See Also
 
 from __future__ import annotations
 
+import contextlib
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import fields, is_dataclass
@@ -218,10 +219,8 @@ def extract_error_attributes(error: Exception) -> dict[str, Any]:
     if hasattr(error, "filename") and result["file_path"] is None:
         filename = getattr(error, "filename", None)
         if filename:
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 result["file_path"] = Path(filename)
-            except (TypeError, ValueError):
-                pass
 
     if hasattr(error, "lineno") and result["line_number"] is None:
         result["line_number"] = getattr(error, "lineno", None)
@@ -235,7 +234,7 @@ def extract_error_attributes(error: Exception) -> dict[str, Any]:
         if kida_code is not None and hasattr(kida_code, "value"):
             result["kida_error_code"] = kida_code.value
     if hasattr(error, "format_compact"):
-        result["format_compact"] = getattr(error, "format_compact")
+        result["format_compact"] = error.format_compact
 
     return result
 
@@ -267,10 +266,7 @@ def get_error_message(error: Any) -> str:
     msg = ""
 
     # Prefer .message attribute if available (BengalError)
-    if hasattr(error, "message"):
-        msg = str(error.message)
-    else:
-        msg = str(error)
+    msg = str(error.message) if hasattr(error, "message") else str(error)
 
     # Prefer Kida's structured format_compact() when available
     if hasattr(error, "format_compact"):

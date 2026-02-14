@@ -247,9 +247,8 @@ class ConfigValidator:
             from bengal.config.defaults import BOOL_OR_DICT_KEYS
 
             for key, value in features.items():
-                if key in BOOL_OR_DICT_KEYS:
-                    if isinstance(value, dict):
-                        errors.extend(self._validate_section(value, prefix=f"features.{key}"))
+                if key in BOOL_OR_DICT_KEYS and isinstance(value, dict):
+                    errors.extend(self._validate_section(value, prefix=f"features.{key}"))
 
             errors.extend(self._validate_section(features, prefix="features"))
 

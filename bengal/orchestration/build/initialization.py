@@ -362,7 +362,11 @@ def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
         except Exception:
             pass
 
-    content = ContentOrchestrator(site)
+    content = (
+        input.content_orchestrator
+        if input.content_orchestrator is not None
+        else ContentOrchestrator(site)
+    )
     content.discover_content(
         incremental=input.incremental,
         cache=page_discovery_cache,
@@ -405,11 +409,13 @@ def phase_discovery(
         assets_ms: float | None = None
 
         content_start = time.time()
+        content_orchestrator = getattr(orchestrator, "content", None)
         phase_input = DiscoveryPhaseInput(
             site=orchestrator.site,
             cache=build_cache,
             incremental=incremental,
             build_context=build_context,
+            content_orchestrator=content_orchestrator,
         )
         output = run_discovery_phase(phase_input)
         content_ms = (time.time() - content_start) * 1000

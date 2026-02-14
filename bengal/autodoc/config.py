@@ -222,9 +222,9 @@ def _merge_autodoc_config(
 
     """
     # Merge top-level settings (like use_html_renderer)
-    for key, value in autodoc_config.items():
-        if key not in ["python", "openapi", "cli"]:
-            default_config[key] = value
+    default_config.update(
+        {k: v for k, v in autodoc_config.items() if k not in ("python", "openapi", "cli")}
+    )
 
     # Merge Python config
     if "python" in autodoc_config:

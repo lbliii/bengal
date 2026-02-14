@@ -517,8 +517,6 @@ class BuildOrchestrator:
         # === PARSING PHASE (after all pages known, before snapshot) ===
         # Parse markdown content for ALL pages (including generated taxonomy pages)
         # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
-        from bengal.orchestration.build import parsing
-
         parsing_start = time.time()
         with self.logger.phase("parsing"):
             parsing.phase_parse_content(

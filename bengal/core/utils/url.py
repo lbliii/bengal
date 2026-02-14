@@ -75,10 +75,7 @@ def get_baseurl(site_or_config: Any) -> str:
         '/docs'
     """
     # Handle Site object
-    if hasattr(site_or_config, "config"):
-        config = site_or_config.config
-    else:
-        config = site_or_config
+    config = site_or_config.config if hasattr(site_or_config, "config") else site_or_config
 
     # Try Config object attribute access
     if hasattr(config, "site"):

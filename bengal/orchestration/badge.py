@@ -56,11 +56,11 @@ def format_duration_ms_compact(ms: float) -> str:
         # One decimal place, trimmed (e.g. 1.0s -> 1s)
         s = round(total_seconds, 1)
         if math.isclose(s, round(s)):
-            return f"{int(round(s))}s"
+            return f"{round(s)}s"
         return f"{s:.1f}s"
 
     total_minutes = int(total_seconds // 60)
-    seconds = int(round(total_seconds - (total_minutes * 60)))
+    seconds = round(total_seconds - (total_minutes * 60))
     if seconds == 60:
         total_minutes += 1
         seconds = 0

@@ -34,12 +34,12 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
-class ContextVarManager(Generic[T]):
+class ContextVarManager[T]:
     """
     Generic manager for ContextVar-based thread-local storage.
 

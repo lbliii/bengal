@@ -125,9 +125,9 @@ class ContentParser:
 
     def _parse_notebook(self, file_path: Path) -> tuple[str, dict[str, Any]]:
         """Parse a Jupyter notebook (.ipynb) file."""
-        from bengal.utils.io.file_io import read_text_file
-
         import patitas
+
+        from bengal.utils.io.file_io import read_text_file
 
         file_content = read_text_file(
             file_path, fallback_encoding="utf-8", on_error="raise", caller="content_discovery"

@@ -453,11 +453,11 @@ class GraphBuilder:
 
         taxonomies_dict = cast(dict[str, Any], taxonomies)
 
-        for _taxonomy_name, taxonomy_dict in taxonomies_dict.items():
+        for taxonomy_dict in taxonomies_dict.values():
             if not isinstance(taxonomy_dict, dict):
                 continue
             taxonomy_dict_typed = cast(dict[str, Any], taxonomy_dict)
-            for _term_slug, term_data in taxonomy_dict_typed.items():
+            for term_data in taxonomy_dict_typed.values():
                 if not isinstance(term_data, dict):
                     continue
                 term_data_typed = cast(dict[str, Any], term_data)
@@ -516,7 +516,7 @@ class GraphBuilder:
 
         menu_dict = cast(dict[str, Any], menu)
 
-        for _menu_name, menu_items in menu_dict.items():
+        for menu_items in menu_dict.values():
             for item in menu_items:
                 if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
                     self.incoming_refs[item.page] += 10

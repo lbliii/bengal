@@ -344,7 +344,7 @@ def _convert_doctest_to_codeblocks(text: str) -> str:
             continue
 
         # Skip already-indented lines (4+ spaces) - they'll become code blocks naturally
-        if line.startswith("    ") or line.startswith("\t"):
+        if line.startswith(("    ", "\t")):
             flush_doctest()
             result.append(line)
             continue

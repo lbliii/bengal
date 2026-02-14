@@ -289,7 +289,7 @@ class SiblingsDirective:
         siblings: list[Any] = []
         for page in pages:
             source_str = str(getattr(page, "source_path", ""))
-            if source_str.endswith("_index.md") or source_str.endswith("index.md"):
+            if source_str.endswith(("_index.md", "index.md")):
                 continue
             if (
                 exclude_current

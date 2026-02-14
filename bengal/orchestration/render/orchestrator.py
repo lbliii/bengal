@@ -1110,9 +1110,13 @@ class RenderOrchestrator:
 
                 # Autodoc pages might have source_path pointing to the python file
                 # If the python file is in changed_sources, it's a priority
-                if not is_priority and page.metadata.get("is_autodoc") and page.source_path:
-                    if page.source_path.resolve() in resolved_changed:
-                        is_priority = True
+                if (
+                    not is_priority
+                    and page.metadata.get("is_autodoc")
+                    and page.source_path
+                    and page.source_path.resolve() in resolved_changed
+                ):
+                    is_priority = True
             except (OSError, ValueError):
                 if page.source_path in changed_sources:
                     is_priority = True

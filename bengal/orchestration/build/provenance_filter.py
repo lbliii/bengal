@@ -128,7 +128,7 @@ def _detect_changed_templates(
             theme_templates_dirs.append(theme_templates)
 
     # Scan all template directories
-    for tpl_dir in [templates_dir] + theme_templates_dirs:
+    for tpl_dir in [templates_dir, *theme_templates_dirs]:
         for tpl_file in tpl_dir.glob("**/*.html"):
             file_key = str(tpl_file)
             stored = cache.file_fingerprints.get(file_key)
@@ -318,9 +318,6 @@ def _expand_forced_changed(
                 )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
-    # Build a mapping of source paths to pages for efficient lookup
-    page_by_source: dict[Path, Page] = {p.source_path: p for p in pages}
-
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
     content_changes = [p for p in forced_changed if p.suffix == ".md"]
     for content_path in content_changes:
@@ -544,9 +541,12 @@ def phase_incremental_filter_provenance(
                     or page.metadata.get("title", "").lower()
                 )
 
-                if term and str(term).lower() in {t.lower() for t in result.affected_tags}:
+                if (
+                    term
+                    and str(term).lower() in {t.lower() for t in result.affected_tags}
+                    and page.source_path not in pages_to_build_sources
+                ):
                     # This taxonomy page lists a tag that was affected
-                    if page.source_path not in pages_to_build_sources:
                         taxonomy_pages_to_add.append(page)
                         dependency_reasons.setdefault(str(page.source_path), []).append(
                             f"taxonomy_cascade:tag={term}"

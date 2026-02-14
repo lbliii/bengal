@@ -171,7 +171,7 @@ def _show_diff(cli: CLIOutput, original: str, modified: str, file_path: Path) ->
 
     # Use console directly for diff output (supports rich formatting)
     for line in diff:
-        if line.startswith("---") or line.startswith("+++"):
+        if line.startswith(("---", "+++")):
             cli.console.print(line, style="dim")
         elif line.startswith("@@"):
             cli.console.print(line, style="cyan")

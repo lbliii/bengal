@@ -353,7 +353,7 @@ class SocialCardGenerator:
         from bengal.fonts.downloader import GoogleFontsDownloader
 
         # Find first configured font family
-        for _key, value in font_config.items():
+        for value in font_config.values():
             if isinstance(value, str):
                 # Simple format: "Outfit:400,600,700"
                 parts = value.split(":")
@@ -499,7 +499,7 @@ class SocialCardGenerator:
         current_line: list[str] = []
 
         for word in words:
-            test_line = " ".join(current_line + [word])
+            test_line = " ".join([*current_line, word])
             bbox = font.getbbox(test_line)
             width = bbox[2] - bbox[0]
 

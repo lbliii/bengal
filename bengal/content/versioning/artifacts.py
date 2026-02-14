@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.version import Version, VersionConfig
+    from bengal.core.version import VersionConfig
 
 
 def build_versions_json(version_config: VersionConfig) -> list[dict[str, Any]]:
@@ -79,10 +79,7 @@ def write_versions_json(site: Any, output_dir: Path) -> None:
 
     # Check deploy_prefix from versioning config
     deploy_prefix = versioning.get("deploy_prefix", "") or ""
-    if deploy_prefix:
-        target_dir = output_dir / deploy_prefix.strip("/")
-    else:
-        target_dir = output_dir
+    target_dir = output_dir / deploy_prefix.strip("/") if deploy_prefix else output_dir
 
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / "versions.json"
@@ -124,10 +121,7 @@ def write_root_redirect(site: Any, output_dir: Path) -> None:
     target = versioning.get("default_redirect_target")
     if not target:
         sections = version_config.sections
-        if sections:
-            target = f"/{sections[0]}/"
-        else:
-            target = "/"
+        target = f"/{sections[0]}/" if sections else "/"
 
     # Ensure target starts with /
     if not target.startswith("/"):

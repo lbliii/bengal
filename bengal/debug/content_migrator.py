@@ -774,7 +774,7 @@ class ContentMigrator(DebugTool):
             path = path[:-3]
 
         # Handle index files
-        if path.endswith("/index") or path.endswith("/_index"):
+        if path.endswith(("/index", "/_index")):
             path = path.rsplit("/", 1)[0]
 
         return "/" + path.strip("/")

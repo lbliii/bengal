@@ -12,6 +12,7 @@ Thread Safety:
 
 from __future__ import annotations
 
+import contextlib
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -379,10 +380,8 @@ class ProvenanceFilter:
             if core is not None:
                 section_path = getattr(core, "section", None)
                 if section_path and self.site:
-                    try:
+                    with contextlib.suppress(AttributeError, KeyError, TypeError):
                         section = self.site.get_section_by_path(section_path)
-                    except (AttributeError, KeyError, TypeError):
-                        pass
 
         # Safety guard: prevent infinite loops from circular references or mock objects
         # Real hierarchies are never deeper than ~50 levels

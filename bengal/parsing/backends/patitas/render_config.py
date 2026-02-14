@@ -49,7 +49,7 @@ __all__ = [
 def _check_rosettes_available() -> bool:
     """Check if rosettes syntax highlighter is available (computed once)."""
     try:
-        import rosettes
+        import rosettes  # noqa: F401 - import to test availability
 
         return True
     except ImportError:

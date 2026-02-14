@@ -316,12 +316,14 @@ class RenderingPipeline:
             if is_autodoc:
                 # Optimized autodoc path: try rendered cache first
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
-                if not self._cache_checker.should_bypass_cache(page, self.changed_sources):
-                    if self._cache_checker.try_rendered_cache(page, template):
-                        # Cache hit - skip extraction and rendering
-                        self._json_accumulator.accumulate_unified_page_data(page)
-                        self._accumulate_asset_deps(page)
-                        return
+                if (
+                    not self._cache_checker.should_bypass_cache(page, self.changed_sources)
+                    and self._cache_checker.try_rendered_cache(page, template)
+                ):
+                    # Cache hit - skip extraction and rendering
+                    self._json_accumulator.accumulate_unified_page_data(page)
+                    self._accumulate_asset_deps(page)
+                    return
 
             self._autodoc_renderer.process_virtual_page(page)
             # Accumulate unified page data for virtual pages (JSON + search index)

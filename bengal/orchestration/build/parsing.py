@@ -72,7 +72,7 @@ def phase_parse_content(
         cached_pages = snapshot_cache.load_page_cache()
 
         if cached_pages:
-            pages_to_parse, pages_from_cache, cache_hits = apply_cached_parsing(
+            pages_to_parse, _pages_from_cache, cache_hits = apply_cached_parsing(
                 pages_to_build, cached_pages
             )
 

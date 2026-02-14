@@ -264,9 +264,12 @@ class IncrementalOrchestrator:
             return affected_pages
 
         for template_file in templates_dir.rglob("*.html"):
-            if self.cache and self.cache.is_changed(template_file):
+            if (
+                self.cache
+                and self.cache.is_changed(template_file)
+                and hasattr(self.cache, "get_affected_pages")
+            ):
                 # Get pages affected by this template
-                if hasattr(self.cache, "get_affected_pages"):
                     affected_paths = self.cache.get_affected_pages(str(template_file))
                     for path_str in affected_paths:
                         affected_pages.add(Path(path_str))
@@ -349,7 +352,6 @@ class IncrementalOrchestrator:
         pages_to_rebuild = self._detector.detect_changes(all_changed, verbose=verbose)
 
         # Track taxonomy for changed pages (for dependency management)
-        page_by_path = self.site.page_by_source_path
         for path in all_changed:
             if path.suffix == ".md":
                 # Taxonomy tracking now handled by EffectTracer via

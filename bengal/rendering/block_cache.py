@@ -167,7 +167,7 @@ class BlockCache:
                 "block_cache_analysis",
                 template=template_name,
                 cacheable_blocks=list(cacheable.keys()),
-                scopes={k: v for k, v in cacheable.items()},
+                scopes=dict(cacheable.items()),
             )
 
         self._cacheable_blocks[template_name] = cacheable

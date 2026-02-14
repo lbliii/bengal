@@ -41,6 +41,7 @@ Related Modules:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -337,8 +338,6 @@ def format_html(html: str, page: PageLike, site: SiteLike) -> str:
 # =============================================================================
 
 # Pre-compiled regex patterns for hash extraction (O(1) lookup)
-import re
-
 _CONTENT_HASH_PATTERN_NAME_FIRST = re.compile(
     r'<meta\s+name="bengal:content-hash"\s+content="([a-f0-9]+)"',
     re.IGNORECASE,

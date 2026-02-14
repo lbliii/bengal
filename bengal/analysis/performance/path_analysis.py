@@ -330,7 +330,7 @@ class PathAnalyzer:
                 progress_callback(i + 1, total_sources, "betweenness")
 
             # Use centralized BFS traversal utility
-            predecessors, sigma, distance, stack = bfs_predecessors(
+            predecessors, sigma, _distance, stack = bfs_predecessors(
                 self.graph.outgoing_refs, source, pages_set
             )
 

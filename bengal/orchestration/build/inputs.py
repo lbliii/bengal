@@ -14,8 +14,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from bengal.server.build_executor import BuildRequest
 
 
 @dataclass(frozen=True)
@@ -117,9 +121,3 @@ class BuildInput:
             dry_run=self.options.dry_run,
             profile_templates=self.options.profile_templates,
         )
-
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from bengal.server.build_executor import BuildRequest

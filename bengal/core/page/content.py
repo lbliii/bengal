@@ -21,7 +21,7 @@ See: plan/active/rfc-content-ast-architecture.md
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.text import strip_html_and_normalize
