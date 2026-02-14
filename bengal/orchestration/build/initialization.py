@@ -530,8 +530,8 @@ def phase_config_check(
     # Do this BEFORE clearing cache so we have the output_sources map
     if cache and hasattr(orchestrator.incremental, "_cleanup_deleted_files"):
         orchestrator.incremental._cleanup_deleted_files()
-        # Save cache immediately so deletions are persisted
-        cache.save(orchestrator.site.paths.build_cache)
+        # Write-behind: Cleanup mutates cache in memory; persisted in Phase 18.
+        # If build crashes before Phase 18, next build re-runs cleanup (idempotent).
 
     # Now clear cache if config changed
     if not incremental and config_changed:
