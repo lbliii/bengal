@@ -113,6 +113,8 @@ Notebooks are included in search, sitemaps, and the site index—same as regular
 
 **Colab not showing?** Add `repo_url` to `[params]` in `bengal.toml` or `config/_default/params.yaml` for auto-generation, or set `colab_url` explicitly in frontmatter/cascade.
 
+**CI/CD:** In GitHub Actions, `repo_url` and `colab_branch` are inferred automatically. Override with `BENGALxPARAMSxREPO_URL` or `BENGALxPARAMSxCOLAB_BRANCH` env vars (Hugo-style).
+
 **Wrong nav order?** Use `weight` in frontmatter (lower = higher in nav). Same as Markdown pages.
 
 ---

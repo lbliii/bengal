@@ -41,9 +41,75 @@
   margin-top: 0; /* docs-content handles spacing */
 }
 
-.notebook-content .notebook-error {
-  color: var(--color-danger);
+/* =============================================================================
+   NOTEBOOK OUTPUT (stream, execute_result, display_data)
+   Compact, terminal-like styling — smaller than code blocks
+   ============================================================================= */
+
+.notebook-content .nb-output {
+  margin-block: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-snug, 1.35);
+  border-radius: var(--radius-md);
+  border-inline-start: 3px solid var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg-code));
+  overflow-x: auto;
+}
+
+/* Output hugs code block above */
+.notebook-content .highlight + .nb-output,
+.notebook-content pre + .nb-output {
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.notebook-content .nb-output pre {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: inherit;
+  animation: none;
+  box-shadow: none;
+}
+
+/* Error output */
+.notebook-content .nb-output--error,
+.notebook-content .nb-output .notebook-error {
+  border-inline-start-color: var(--color-danger);
   background: var(--color-danger-bg);
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+}
+
+.notebook-content .nb-output--error pre,
+.notebook-content .nb-output .notebook-error {
+  padding: var(--space-3) var(--space-4);
+}
+
+/* Image output */
+.notebook-content .nb-output--image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-low);
+  display: block;
+}
+
+/* HTML output (tables, rich content) */
+.notebook-content .nb-output--html {
+  border-inline-start: none;
+  background: transparent;
+  overflow-x: auto;
+}
+
+.notebook-content .nb-output--html table {
+  font-size: var(--text-xs);
+}
+
+/* Reduced motion: no animations on output */
+@media (prefers-reduced-motion: reduce) {
+  .notebook-content .nb-output pre {
+    animation: none;
+  }
 }

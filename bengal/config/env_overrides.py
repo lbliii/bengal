@@ -10,7 +10,8 @@ Supported Platforms:
 - **Netlify**: Reads ``URL`` or ``DEPLOY_PRIME_URL`` when ``NETLIFY=true``
 - **Vercel**: Reads ``VERCEL_URL`` when ``VERCEL=1`` or ``VERCEL=true``
 - **GitHub Pages**: Constructs baseurl from ``GITHUB_REPOSITORY`` when
-  ``GITHUB_ACTIONS=true``
+  ``GITHUB_ACTIONS=true``. Also infers ``params.repo_url`` and
+  ``params.colab_branch`` from ``GITHUB_REPOSITORY`` and ``GITHUB_REF_NAME``.
 
 Priority Order:
 1. Explicit non-empty config baseurl (always preserved)
@@ -49,6 +50,35 @@ from typing import Any
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _apply_github_params_inference(config: dict[str, Any]) -> None:
+    """
+    Infer params.repo_url and params.colab_branch from GITHUB_* env vars when missing.
+
+    Only applies when GITHUB_ACTIONS=true. Respects explicit empty (repo_url: "").
+    """
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repo or "/" not in repo:
+        return
+
+    if "params" not in config or not isinstance(config["params"], dict):
+        config["params"] = {}
+    params = config["params"]
+
+    # repo_url: https://{GITHUB_SERVER_URL}/{GITHUB_REPOSITORY}
+    # Only infer when missing; respect explicit empty (user set repo_url: "" to disable)
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
+    repo_url = f"{server}/{repo}"
+    if params.get("repo_url") != "" and not (params.get("repo_url") or "").strip():
+        params["repo_url"] = repo_url
+
+    # colab_branch: GITHUB_REF_NAME (strip refs/heads/ if present)
+    ref = os.environ.get("GITHUB_REF_NAME", "main")
+    if ref.startswith("refs/heads/"):
+        ref = ref[len("refs/heads/") :]
+    if params.get("colab_branch") != "" and not (params.get("colab_branch") or "").strip():
+        params["colab_branch"] = ref or "main"
 
 
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
@@ -184,7 +214,10 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                     # Project site: deployed at /{repo-name} (path-only for relative links)
                     site_section["baseurl"] = f"/{name}".rstrip("/")
                 config["baseurl"] = site_section["baseurl"]
-                return config
+
+            # 4b) Infer params.repo_url and params.colab_branch from GITHUB_* when missing
+            _apply_github_params_inference(config)
+            return config
 
     except Exception as e:
         # Never fail build due to env override logic

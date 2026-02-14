@@ -50,9 +50,9 @@ Markdown, code, math ($E=mc^2$), and outputs—the full pipeline.
 |-----------|--------|
 | Markdown | Rendered as Markdown (headings, lists, **bold**, math, etc.) |
 | Code | Fenced code block with syntax highlighting (Rosettes) |
-| Code output (stream) | `<pre>` block |
-| Code output (execute_result) | Text as `<pre>`, images as base64 `<img>` |
-| Code output (error) | `<pre class="notebook-error">` |
+| Code output (stream) | `<div class="nb-output"><pre>...</pre></div>` — compact styling |
+| Code output (execute_result) | Text as `nb-output`, images as `nb-output--image`, HTML as `nb-output--html` |
+| Code output (error) | `<div class="nb-output nb-output--error"><pre class="notebook-error">...</pre></div>` |
 
 ## Metadata
 
