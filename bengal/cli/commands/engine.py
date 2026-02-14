@@ -185,18 +185,10 @@ def info(source: str, config: str | None) -> None:
 
 def _check_engine_available(engine_name: str) -> str:
     """Check if an optional engine is available."""
+    import importlib.util
+
     if engine_name == "mako":
-        try:
-            import mako
-
-            return "✅ Available"
-        except ImportError:
-            return "⚪ Not installed"
-    elif engine_name == "patitas":
-        try:
-            import patitas
-
-            return "✅ Available"
-        except ImportError:
-            return "⚪ Not installed"
+        return "✅ Available" if importlib.util.find_spec("mako") else "⚪ Not installed"
+    if engine_name == "patitas":
+        return "✅ Available" if importlib.util.find_spec("patitas") else "⚪ Not installed"
     return "⚪ Unknown"

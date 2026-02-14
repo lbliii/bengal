@@ -114,21 +114,13 @@ def _get_capabilities() -> dict[str, bool]:
     """
     capabilities: dict[str, bool] = {}
 
-    # Pre-built Lunr search index (requires `pip install bengal[search]`)
-    try:
-        from lunr import lunr
+    import importlib.util
 
-        capabilities["prebuilt_search"] = True
-    except ImportError:
-        capabilities["prebuilt_search"] = False
+    # Pre-built Lunr search index (requires `pip install bengal[search]`)
+    capabilities["prebuilt_search"] = importlib.util.find_spec("lunr") is not None
 
     # Remote content sources (requires `pip install bengal[github]` etc.)
-    try:
-        import aiohttp
-
-        capabilities["remote_content"] = True
-    except ImportError:
-        capabilities["remote_content"] = False
+    capabilities["remote_content"] = importlib.util.find_spec("aiohttp") is not None
 
     return capabilities
 

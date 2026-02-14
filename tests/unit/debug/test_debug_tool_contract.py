@@ -17,12 +17,9 @@ from bengal.debug.base import DebugRegistry, DebugTool
 
 def _has_shortcode_sandbox() -> bool:
     """Check if the shortcode_sandbox module exists."""
-    try:
-        import bengal.debug.shortcode_sandbox
+    import importlib.util
 
-        return True
-    except ModuleNotFoundError:
-        return False
+    return importlib.util.find_spec("bengal.debug.shortcode_sandbox") is not None
 
 
 class TestDebugToolContract:

@@ -48,12 +48,9 @@ __all__ = [
 
 def _check_rosettes_available() -> bool:
     """Check if rosettes syntax highlighter is available (computed once)."""
-    try:
-        import rosettes
+    import importlib.util
 
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("rosettes") is not None
 
 
 # Module-level singleton for rosettes availability (computed once at import)
