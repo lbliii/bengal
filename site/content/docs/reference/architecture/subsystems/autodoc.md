@@ -109,6 +109,8 @@ source_dirs = ["src/mylib"]
 docstring_style = "auto"  # auto, google, numpy, sphinx
 ```
 
+See the [Autodoc Content Source](/docs/content/sources/autodoc) guide for the full Python configuration options (respect_all, member_order, show_member_summary, per-module overrides).
+
 ## CLI Support
 
 Bengal supports **Click** applications via configuration (Typer and argparse support is planned).

@@ -960,3 +960,169 @@ def test_should_use_parallel_config_override(tmp_path):
 
     # Even with many files, should not use parallel if config disables it
     assert extractor._should_use_parallel(100) is False
+
+
+def test_inherited_member_copies_docstring(tmp_path):
+    """Inherited members get base class docstring, not stub."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            def documented_method(self, x: int) -> str:
+                '''Process x and return result.'''
+                return str(x)
+
+        class Derived(Base):
+            pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived = [c for c in module.children if c.name == "Derived"][0]
+    inherited = [m for m in derived.children if m.name == "documented_method"][0]
+
+    assert "Process x and return result" in inherited.description
+    assert inherited.typed_metadata is not None
+    assert "x" in getattr(inherited.typed_metadata, "signature", "")
+
+
+def test_respect_all_filters_module_children(tmp_path):
+    """When __all__ is defined and respect_all=True, only exported names appear."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        __all__ = ["foo", "Bar"]
+
+        def foo():
+            '''Public foo.'''
+            pass
+
+        def _private():
+            '''Private.'''
+            pass
+
+        class Bar:
+            '''Public Bar.'''
+            pass
+
+        class _PrivateClass:
+            '''Private class.'''
+            pass
+    """)
+    )
+
+    extractor = PythonExtractor()
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    names = [c.name for c in module.children]
+    assert "foo" in names
+    assert "Bar" in names
+    assert "_private" not in names
+    assert "_PrivateClass" not in names
+
+
+def test_respect_all_false_shows_all_members(tmp_path):
+    """When respect_all=False, all members appear despite __all__."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        __all__ = ["foo"]
+
+        def foo():
+            pass
+
+        def bar():
+            pass
+    """)
+    )
+
+    extractor = PythonExtractor(config={"respect_all": False})
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    names = [c.name for c in module.children]
+    assert "foo" in names
+    assert "bar" in names
+
+
+def test_member_order_alphabetical(tmp_path):
+    """With member_order=alphabetical, children are sorted by name."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        def zebra():
+            pass
+
+        class Alpha:
+            pass
+
+        def middle():
+            pass
+    """)
+    )
+
+    extractor = PythonExtractor(config={"member_order": "alphabetical"})
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    names = [c.name for c in module.children]
+    assert names == ["Alpha", "middle", "zebra"]
+
+
+def test_per_module_override_include_inherited(tmp_path):
+    """Overrides apply include_inherited for specific module only."""
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+
+    (pkg / "base.py").write_text(
+        dedent("""
+        class Base:
+            def base_method(self):
+                pass
+    """)
+    )
+
+    (pkg / "with_inheritance.py").write_text(
+        dedent("""
+        from .base import Base
+
+        class Derived(Base):
+            def own_method(self):
+                pass
+    """)
+    )
+
+    (pkg / "without_inheritance.py").write_text(
+        dedent("""
+        from .base import Base
+
+        class Other(Base):
+            pass
+    """)
+    )
+
+    config = {
+        "overrides": {
+            "with_inheritance": {"include_inherited": True},
+        },
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(pkg)
+
+    with_mod = next(e for e in elements if e.qualified_name == "with_inheritance")
+    without_mod = next(e for e in elements if e.qualified_name == "without_inheritance")
+
+    derived = next(c for c in with_mod.children if c.name == "Derived")
+    other = next(c for c in without_mod.children if c.name == "Other")
+
+    derived_methods = [m.name for m in derived.children]
+    other_methods = [m.name for m in other.children]
+
+    assert "base_method" in derived_methods
+    assert "base_method" not in other_methods

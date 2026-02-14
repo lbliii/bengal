@@ -7,13 +7,17 @@ across various document sizes and feature sets.
 Run with:
     pytest benchmarks/test_patitas_performance.py -v --benchmark-only
 
-Expected results (RFC target: ≥30% faster than mistune):
-    - Patitas should be ~2x faster on typical documents
-    - Performance advantage should scale with document size
-    - Memory usage should be ≤60% of Mistune
+Expected results (per patitas/docs/performance-investigation.md):
+    - Patitas is ~2x slower than mistune on typical documents (architectural)
+    - Mistune uses C-accelerated regex; Patitas is pure Python with typed AST
+    - Patitas trades raw speed for: O(n) ReDoS-proof parsing, typed AST,
+      full thread-safety (free-threading), and incremental re-parse (~200x faster
+      for small edits)
+    - Regression threshold: Patitas should not exceed ~3x slower than mistune
 
 Related:
     - plan/drafted/rfc-patitas-markdown-parser.md
+    - patitas/docs/performance-investigation.md
     - bengal/parsing/backends/patitas/
 """
 
@@ -172,10 +176,13 @@ ___
 
 @pytest.fixture(scope="module")
 def mistune_parser():
-    """Create Mistune parser instance."""
-    from bengal.parsing.backends.mistune import MistuneParser
+    """Create Mistune parser instance (skipped if mistune backend not available)."""
+    try:
+        from bengal.parsing.backends.mistune import MistuneParser
 
-    return MistuneParser(enable_highlighting=False)
+        return MistuneParser(enable_highlighting=False)
+    except ImportError:
+        pytest.skip("Mistune backend not available (Bengal may use Patitas-only)")
 
 
 @pytest.fixture(scope="module")
@@ -306,10 +313,10 @@ class TestVeryLargeDocument:
 
 
 class TestPerformanceComparison:
-    """Direct comparison tests that assert performance targets."""
+    """Direct comparison tests that track Patitas vs Mistune ratio."""
 
-    def test_patitas_faster_than_mistune(self, mistune_parser, patitas_parser):
-        """Verify Patitas is at least 30% faster than Mistune (RFC target)."""
+    def test_patitas_vs_mistune_ratio(self, mistune_parser, patitas_parser):
+        """Track Patitas vs Mistune parse time ratio (informational + regression guard)."""
         import time
 
         # Warm up
@@ -332,30 +339,20 @@ class TestPerformanceComparison:
             patitas_parser(MEDIUM_DOC_WITH_TABLE)
         patitas_time = time.perf_counter() - start
 
-        # Calculate speedup
-        speedup = mistune_time / patitas_time
-        improvement_percent = (1 - patitas_time / mistune_time) * 100
+        # Patitas is typically ~2x slower (pure Python vs C-accelerated mistune)
+        ratio = patitas_time / mistune_time
+        slowdown_percent = (ratio - 1) * 100
 
         print(f"\nPerformance comparison ({iterations} iterations):")
         print(f"  Mistune total: {mistune_time * 1000:.2f}ms")
         print(f"  Patitas total: {patitas_time * 1000:.2f}ms")
-        print(f"  Speedup: {speedup:.2f}x")
-        print(f"  Improvement: {improvement_percent:.1f}%")
+        print(f"  Ratio (Patitas/Mistune): {ratio:.2f}x")
+        print(f"  Patitas slowdown: {slowdown_percent:.1f}%")
 
-        # RFC target is ≥30% faster than Mistune
-        # CI threshold is relaxed due to hardware variance
-        # NOTE: After external package split, performance baseline needs re-tuning
-        if improvement_percent < 0:
-            pytest.skip(
-                f"Patitas performance regression detected: {improvement_percent:.1f}% "
-                f"(currently {abs(improvement_percent):.1f}% slower than Mistune). "
-                f"RFC target: 30% faster. This needs investigation."
-            )
-        elif improvement_percent < 20:
-            import warnings
-
-            warnings.warn(
-                f"Patitas improvement ({improvement_percent:.1f}%) is below CI threshold (20%). "
-                f"RFC target is 30%.",
-                stacklevel=1,
+        # Regression guard: Patitas should not exceed ~3x slower than mistune
+        # (per performance-investigation.md, ~2x is expected; 3x suggests regression)
+        if ratio > 3.0:
+            pytest.fail(
+                f"Patitas performance regression: {ratio:.2f}x slower than Mistune "
+                f"(expected ~2x). See patitas/docs/performance-investigation.md."
             )

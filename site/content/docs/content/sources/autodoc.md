@@ -134,6 +134,18 @@ include_special = false
 # Include inherited members
 include_inherited = false
 
+# When module has __all__, only document those names
+respect_all = true
+
+# Member order: source (definition order), alphabetical, or type
+member_order = "source"
+
+# Show compact summary table at top of module pages
+show_member_summary = false
+
+# Per-module overrides (e.g. include_private for specific modules)
+# overrides = { "mypkg.internal" = { include_private = true } }
+
 # Prefix to strip from module paths
 strip_prefix = "mypackage"
 ```

@@ -52,6 +52,25 @@ KIDA FEATURES USED:
     {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">
 
+      {# Optional member summary table (autosummary-style) #}
+      {% set show_summary = config?.autodoc?.python?.show_member_summary ?? false %}
+      {% if show_summary and (classes | length + functions | length) > 0 %}
+      <section class="autodoc-section autodoc-summary" data-section="summary">
+        <h2 class="autodoc-section-title">Summary</h2>
+        <table class="autodoc-summary-table">
+          <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            {% for cls in classes %}
+            <tr><td><a href="#{{ cls.name }}">{{ cls.name }}</a></td><td>class</td><td>{{ (cls.description ?? '') | first_sentence }}</td></tr>
+            {% end %}
+            {% for func in functions %}
+            <tr><td><a href="#{{ func.name }}">{{ func.name }}</a></td><td>function</td><td>{{ (func.description ?? '') | first_sentence }}</td></tr>
+            {% end %}
+          </tbody>
+        </table>
+      </section>
+      {% end %}
+
       {# Classes Section #}
       {% if classes | length > 0 %}
       <section class="autodoc-section" data-section="classes">

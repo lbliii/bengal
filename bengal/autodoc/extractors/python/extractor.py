@@ -58,6 +58,7 @@ from bengal.autodoc.models.python import ParameterInfo, ParsedDocstring, RaisesI
 from bengal.autodoc.utils import (
     auto_detect_prefix_map,
     get_python_function_is_property,
+    get_python_module_all_exports,
     sanitize_text,
 )
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
@@ -229,6 +230,41 @@ class PythonExtractor(Extractor):
                 code=ErrorCode.D002,
             )
 
+    def _get_effective_config(self, module_name: str) -> dict[str, Any]:
+        """
+        Merge per-module overrides into config for the given module.
+
+        Overrides are matched by exact module path or prefix (module.startswith(pattern + ".")).
+        """
+        effective = dict(self.config)
+        for pattern, override in self.config.get("overrides", {}).items():
+            if module_name == pattern or module_name.startswith(f"{pattern}."):
+                effective.update(override)
+        return effective
+
+    def _apply_all_filter(self, module_element: DocElement) -> None:
+        """
+        Filter module children to only __all__ exports when respect_all is enabled.
+
+        Modifies module_element.children in place. When module has __all__ and
+        respect_all is True, only children whose names are in __all__ are kept.
+        """
+        effective_config = self._get_effective_config(module_element.qualified_name)
+        all_exports = get_python_module_all_exports(module_element)
+        if all_exports is None:
+            return
+        if not effective_config.get("respect_all", True):
+            return
+
+        all_exports_set = set(all_exports)
+        module_element.children = [c for c in module_element.children if c.name in all_exports_set]
+
+        for child in module_element.children:
+            if "aliases" in child.metadata:
+                child.metadata["aliases"] = [
+                    a for a in child.metadata["aliases"] if a in all_exports_set
+                ]
+
     def _post_process_elements(self, elements: list[DocElement]) -> None:
         """
         Build class index and synthesize inherited members for extracted elements.
@@ -236,6 +272,11 @@ class PythonExtractor(Extractor):
         This is a sequential post-processing step that must happen after all
         modules have been extracted.
         """
+        # Apply __all__ filtering before building index
+        for element in elements:
+            if element.element_type == "module":
+                self._apply_all_filter(element)
+
         # Build class index
         for element in elements:
             if element.element_type == "module":
@@ -250,15 +291,16 @@ class PythonExtractor(Extractor):
                         self.simple_name_index[simple_name].append(qualified)
 
         # Third pass: synthesize inherited members if enabled (sequential)
-        if should_include_inherited(self.config):
-            for element in elements:
-                if element.element_type == "module":
+        for element in elements:
+            if element.element_type == "module":
+                effective_config = self._get_effective_config(element.qualified_name)
+                if should_include_inherited(effective_config):
                     for child in element.children:
                         if child.element_type == "class":
                             synthesize_inherited_members(
                                 child,
                                 self.class_index,
-                                self.config,
+                                effective_config,
                                 self.simple_name_index,
                             )
 
@@ -513,6 +555,7 @@ class PythonExtractor(Extractor):
     def _extract_module(self, tree: ast.Module, file_path: Path, source: str) -> DocElement | None:
         """Extract module documentation."""
         module_name = infer_module_name(file_path, self._source_root)
+        effective_config = self._get_effective_config(module_name)
         docstring = ast.get_docstring(tree)
 
         # Extract top-level classes and functions
@@ -521,7 +564,9 @@ class PythonExtractor(Extractor):
 
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
-                class_elem = self._extract_class(node, file_path, module_name)
+                class_elem = self._extract_class(
+                    node, file_path, module_name, effective_config=effective_config
+                )
                 if class_elem:
                     children.append(class_elem)
                     defined_names.add(node.name)
@@ -590,6 +635,23 @@ class PythonExtractor(Extractor):
         # Check if this is a package (__init__.py)
         is_package = file_path.name == "__init__.py"
 
+        # Apply member order to module children
+        member_order = effective_config.get("member_order", "source")
+        if member_order not in ("source", "alphabetical", "type"):
+            logger.warning(
+                f"Invalid member_order '{member_order}', using 'source'",
+                extra={"member_order": member_order},
+            )
+            member_order = "source"
+        if member_order == "alphabetical":
+            children.sort(key=lambda c: c.name.lower())
+        elif member_order == "type":
+            # Group: classes, then functions, then aliases; sort within each
+            type_order = {"class": 0, "function": 1, "alias": 2}
+            children.sort(
+                key=lambda c: (type_order.get(c.element_type, 3), c.name.lower())
+            )
+
         # Extract __all__ exports
         all_exports = extract_all_exports(tree)
 
@@ -617,7 +679,12 @@ class PythonExtractor(Extractor):
         )
 
     def _extract_class(
-        self, node: ast.ClassDef, file_path: Path, parent_name: str = ""
+        self,
+        node: ast.ClassDef,
+        file_path: Path,
+        parent_name: str = "",
+        *,
+        effective_config: dict[str, Any] | None = None,
     ) -> DocElement | None:
         """Extract class documentation."""
         qualified_name = f"{parent_name}.{node.name}" if parent_name else node.name
@@ -751,6 +818,28 @@ class PythonExtractor(Extractor):
 
         # Combine children
         children = properties + methods + class_vars
+
+        # Apply member order
+        config_for_order = effective_config if effective_config is not None else self.config
+        member_order = config_for_order.get("member_order", "source")
+        if member_order not in ("source", "alphabetical", "type"):
+            logger.warning(
+                f"Invalid member_order '{member_order}', using 'source'",
+                extra={"member_order": member_order},
+            )
+            member_order = "source"
+        if member_order == "alphabetical":
+            children.sort(key=lambda c: c.name.lower())
+        elif member_order == "type":
+            # Sort within type groups: properties, methods, attributes
+            def _class_member_type_key(c: DocElement) -> tuple[int, str]:
+                if get_python_function_is_property(c):
+                    return (0, c.name.lower())
+                if c.element_type == "method":
+                    return (1, c.name.lower())
+                return (2, c.name.lower())
+
+            children.sort(key=_class_member_type_key)
 
         # Use parsed description if available
         raw_description = parsed_doc.description if parsed_doc else docstring

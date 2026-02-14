@@ -107,11 +107,11 @@ def synthesize_inherited_members(
             ) and not get_python_function_is_property(member):
                 continue
 
-            # Create inherited member entry
+            # Create inherited member entry - copy docstring and typed_metadata for full docs
             inherited_member = DocElement(
                 name=member.name,
                 qualified_name=f"{class_elem.qualified_name}.{member.name}",
-                description=f"Inherited from `{base_elem.qualified_name}`",
+                description=member.description or f"Inherited from `{base_elem.qualified_name}`",
                 element_type=member.element_type,
                 source_file=member.source_file,
                 line_number=member.line_number,
@@ -120,6 +120,9 @@ def synthesize_inherited_members(
                     "inherited_from": base_elem.qualified_name,
                     "synthetic": True,
                 },
+                typed_metadata=member.typed_metadata,
+                examples=getattr(member, "examples", []) or [],
+                see_also=getattr(member, "see_also", []) or [],
             )
             class_elem.children.append(inherited_member)
             existing_members.add(member.name)
