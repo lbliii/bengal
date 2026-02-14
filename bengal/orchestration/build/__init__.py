@@ -478,6 +478,19 @@ class BuildOrchestrator:
             generated_page_cache=generated_page_cache,
         )
 
+        # Phase 12.25: Variant filter (params.edition for multi-variant builds)
+        params_edition = None
+        params = self.site.config.get("params") or {}
+        if isinstance(params, dict):
+            params_edition = params.get("edition")
+        if params_edition is not None and str(params_edition).strip():
+            variant = str(params_edition).strip()
+            pages_to_build = [p for p in pages_to_build if p.in_variant(variant)]
+            self.site.pages = [p for p in self.site.pages if p.in_variant(variant)]
+            self._filter_sections_by_variant(self.site.sections, variant)
+            if hasattr(self.site, "invalidate_regular_pages_cache"):
+                self.site.invalidate_regular_pages_cache()
+
         # Phase 12.5: URL Collision Detection (proactive validation)
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
         if collisions:
@@ -805,6 +818,17 @@ class BuildOrchestrator:
         self.site.set_build_state(None)
 
         return self.stats
+
+    def _filter_sections_by_variant(
+        self, sections: list[Any], variant: str
+    ) -> None:
+        """Filter section pages by variant; invalidate cached properties."""
+        for section in sections:
+            section.pages = [p for p in section.pages if p.in_variant(variant)]
+            section.__dict__.pop("regular_pages", None)
+            section.__dict__.pop("sorted_pages", None)
+            section.__dict__.pop("regular_pages_recursive", None)
+            self._filter_sections_by_variant(section.subsections, variant)
 
     def _print_rendering_summary(self) -> None:
         """Print summary of rendered pages (quiet mode)."""

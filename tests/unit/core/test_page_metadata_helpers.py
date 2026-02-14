@@ -148,3 +148,90 @@ class TestMetadataProperties:
 
         page = TestPage()
         assert page.content_type_name is None
+
+
+class TestEditionVariantFiltering:
+    """Test edition and in_variant for multi-variant builds."""
+
+    def test_edition_empty_when_missing(self):
+        """Should return empty list when edition not set."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {}
+
+        page = TestPage()
+        assert page.edition == []
+
+    def test_edition_list_from_frontmatter(self):
+        """Should return list when edition is list."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": ["oss", "enterprise"]}
+
+        page = TestPage()
+        assert page.edition == ["oss", "enterprise"]
+
+    def test_edition_string_normalized_to_list(self):
+        """Should normalize single string to list."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": "enterprise"}
+
+        page = TestPage()
+        assert page.edition == ["enterprise"]
+
+    def test_in_variant_none_always_included(self):
+        """Should include page when variant is None (no filtering)."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": ["enterprise"]}
+
+        page = TestPage()
+        assert page.in_variant(None) is True
+
+    def test_in_variant_empty_string_included(self):
+        """Should include page when variant is empty string."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": ["enterprise"]}
+
+        page = TestPage()
+        assert page.in_variant("") is True
+
+    def test_in_variant_no_edition_included(self):
+        """Should include page with no edition in any variant."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {}
+
+        page = TestPage()
+        assert page.in_variant("oss") is True
+        assert page.in_variant("enterprise") is True
+
+    def test_in_variant_match_included(self):
+        """Should include page when variant matches edition."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": ["oss", "enterprise"]}
+
+        page = TestPage()
+        assert page.in_variant("oss") is True
+        assert page.in_variant("enterprise") is True
+
+    def test_in_variant_no_match_excluded(self):
+        """Should exclude page when variant does not match edition."""
+        from bengal.core.page.metadata import PageMetadataMixin
+
+        class TestPage(PageMetadataMixin):
+            metadata = {"edition": ["enterprise"]}
+
+        page = TestPage()
+        assert page.in_variant("enterprise") is True
+        assert page.in_variant("oss") is False

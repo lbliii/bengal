@@ -279,6 +279,81 @@ menu:
 
 ---
 
+## Multi-Variant Documentation
+
+Build separate doc sites (OSS vs Enterprise, brand1 vs brand2) from one content tree. Common when you acquire a product or maintain paid vs free tiers.
+
+**What you'll get**: One content repo, multiple deployed sites with edition-specific pages filtered per build.
+
+### 1. Add Edition to Pages
+
+Mark edition-specific pages in frontmatter:
+
+```markdown
+---
+# content/enterprise/sso.md
+title: "SSO Configuration"
+edition: [enterprise]
+---
+
+# SSO Configuration
+
+Configure single sign-on for your organization.
+```
+
+```markdown
+---
+# content/oss/contributing.md
+title: "Contributing"
+edition: [oss]
+---
+
+# Contributing
+
+How to contribute to the open-source project.
+```
+
+Pages without `edition` are included in all builds.
+
+### 2. Create Environment Configs
+
+`config/environments/oss.yaml`:
+
+```yaml
+params:
+  edition: oss
+
+site:
+  baseurl: "https://docs.example.com"
+```
+
+`config/environments/enterprise.yaml`:
+
+```yaml
+params:
+  edition: enterprise
+
+site:
+  baseurl: "https://enterprise.example.com"
+```
+
+### 3. Build Each Variant
+
+```bash
+bengal build --environment oss
+bengal build --environment enterprise
+```
+
+### 4. Deploy
+
+Deploy each build to its own URL (e.g., `docs.example.com` and `enterprise.example.com`). Use CI matrix jobs or separate workflows per variant.
+
+:::{seealso}
+[Multi-Variant Builds](/docs/building/configuration/variants) — Full guide with cascade, CI/CD, and env overrides
+:::
+
+---
+
 ## Multi-Language Site
 
 Create content in multiple languages using directory-based structure.

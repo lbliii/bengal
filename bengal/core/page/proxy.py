@@ -751,6 +751,13 @@ class PageProxy:
             return self._full_page.should_render_in_environment(is_production)
         return True
 
+    def in_variant(self, variant: str | None) -> bool:
+        """Check if page should be included when building for the given variant."""
+        self._ensure_loaded()
+        if self._full_page:
+            return self._full_page.in_variant(variant)
+        return True
+
     # ============================================================================
     # Navigation Properties - Most work with cached metadata only
     # ============================================================================
