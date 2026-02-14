@@ -55,6 +55,7 @@ flowchart LR
 | Build for production | [Commands](../reference/architecture/tooling/cli/#commands) |
 | Speed up builds | [Performance](./performance/) |
 | Generate JSON/LLM output | [Output Formats](./output-formats.md) |
+| Understand DX hints (Docker, WSL, K8s) | [DX Hints](./dx-hints.md) |
 | Deploy my site | [Deployment](./deployment/) |
 | Fix build errors | [Troubleshooting](./troubleshooting/) |
 

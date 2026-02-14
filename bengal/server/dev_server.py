@@ -976,13 +976,13 @@ class DevServer:
         else:
             lines.append("   [dim]○  File watching disabled[/dim]")
 
-        # Show GIL status hint if parallelism could be improved
-        from bengal.utils.concurrency.gil import format_gil_tip_for_cli
+        # Show DX hints (WSL, Docker, GIL, etc.)
+        from bengal.utils.dx import collect_hints
 
-        gil_tip = format_gil_tip_for_cli()
-        if gil_tip:
+        hints = collect_hints("serve", host=self.host, max_hints=1)
+        if hints:
             lines.append("")  # Blank line
-            lines.append(f"   [dim]💡 {gil_tip}[/dim]")
+            lines.append(f"   [dim]💡 {hints[0].message}[/dim]")
 
         lines.append("")  # Blank line
         lines.append("   [dim]Press Ctrl+C to stop (or twice to force quit)[/dim]")
