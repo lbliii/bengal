@@ -118,24 +118,44 @@ select = [
 ]
 ignore = [
     "E501",   # line too long - handled by formatter, manual review for long strings
+    "E402",   # module level import not at top - intentional in some scripts
+    "E722",   # bare except - fix incrementally
+    "E741",   # ambiguous variable name - fix incrementally
     "RUF001", # ambiguous unicode in string (intentional × symbols, em-dashes)
     "RUF002", # ambiguous unicode in docstring (intentional typography)
     "RUF003", # ambiguous unicode in comment (intentional typography)
+    "RUF012", # ClassVar for mutable class attrs - fix incrementally
+    "PERF401", # list comprehension - stylistic, fix incrementally
+    "PERF402", # list.copy - stylistic, fix incrementally
+    "SIM102",  # nested if - fix incrementally
+    "SIM103",  # return negated condition - fix incrementally
+    "SIM117",  # nested with - fix incrementally
+    "UP031",   # percent format - fix incrementally
+    "F811",    # redefinition - fix incrementally
 ]
 
 # Per-file ignore rules
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]   # Allow unused imports in __init__ files
-"tests/**/*.py" = ["S101"] # Allow assert in tests
+"tests/**/*.py" = ["S101", "PT011", "PT017", "PT012", "PT018", "PT019", "PT028"]
 # Jinja test functions use test_ prefix by convention (not pytest tests)
 "bengal/rendering/template_tests.py" = ["PT028"]
+# Scripts with test helpers
+"scripts/test_css_minification.py" = ["PT028"]
 # LRUCache.keys() returns list[K], not a dict - SIM118 false positive
 "bengal/rendering/template_functions/navigation/scaffold.py" = ["SIM118"]
-# PT017: These tests verify "either success or graceful failure" pattern
+# F401: Import to test availability (try/except pattern)
+"benchmarks/test_block_level_incremental.py" = ["F401"]
+"bengal/cli/commands/engine.py" = ["F401"]
+"bengal/parsing/backends/patitas/render_config.py" = ["F401"]
+"bengal/rendering/metadata.py" = ["F401"]
+"tests/core/test_resource_contracts.py" = ["F401"]
+"tests/core/test_type_safety.py" = ["F401"]
+"tests/unit/debug/test_debug_tool_contract.py" = ["F401"]
+"tests/unit/protocols/test_protocols.py" = ["F401"]
+"tests/unit/rendering/test_parser_configuration.py" = ["F401"]
+"tests/unit/rendering/test_syntax_highlighting.py" = ["F401"]
 # PT012/SIM117: Context manager exception tests use nested structure intentionally
-"tests/integration/test_error_recovery.py" = ["PT017"]
-"tests/integration/test_config_system_integration.py" = ["PT017"]
-"tests/integration/warm_build/test_data_files.py" = ["PT017"]
 "tests/unit/rendering/test_asset_manifest_contextvar.py" = ["PT012", "SIM117"]
 "tests/unit/rendering/parsers/test_patitas/test_contextvar_config.py" = [
     "PT012",

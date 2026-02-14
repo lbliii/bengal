@@ -348,9 +348,15 @@ class TestRegressionScenarios:
         Regression test for the exact bug:
         Reference Page 2 should navigate to Page 1 and Page 3, not homepage or quickstart.
         """
-        page_1 = next(p for p in reference_section.pages if "reference-page-1" in str(p.source_path))
-        page_2 = next(p for p in reference_section.pages if "reference-page-2" in str(p.source_path))
-        page_3 = next(p for p in reference_section.pages if "reference-page-3" in str(p.source_path))
+        page_1 = next(
+            p for p in reference_section.pages if "reference-page-1" in str(p.source_path)
+        )
+        page_2 = next(
+            p for p in reference_section.pages if "reference-page-2" in str(p.source_path)
+        )
+        page_3 = next(
+            p for p in reference_section.pages if "reference-page-3" in str(p.source_path)
+        )
 
         # THE FIX: Should navigate within section by weight
         assert page_2.prev_in_section == page_1, "Page 2 prev should be Page 1"
@@ -362,9 +368,15 @@ class TestRegressionScenarios:
 
     def test_weight_order_ignores_date(self, reference_section):
         """Weight order should be used, not date order."""
-        page_1 = next(p for p in reference_section.pages if "reference-page-1" in str(p.source_path))
-        page_2 = next(p for p in reference_section.pages if "reference-page-2" in str(p.source_path))
-        page_3 = next(p for p in reference_section.pages if "reference-page-3" in str(p.source_path))
+        page_1 = next(
+            p for p in reference_section.pages if "reference-page-1" in str(p.source_path)
+        )
+        page_2 = next(
+            p for p in reference_section.pages if "reference-page-2" in str(p.source_path)
+        )
+        page_3 = next(
+            p for p in reference_section.pages if "reference-page-3" in str(p.source_path)
+        )
 
         # Dates are: Page 1 (Oct 13), Page 2 (Oct 12), Page 3 (Oct 11)
         # But weights are: 10, 20, 30

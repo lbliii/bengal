@@ -143,12 +143,14 @@ def fix_file(file_path: Path) -> tuple[int, list[str]]:
                     for line in docstring.split("\n"):
                         if line.startswith("    ") and line.strip():
                             stripped = line[4:]
-                            if not stripped.strip().startswith(
-                                ">>>"
-                            ) and not stripped.strip().startswith("...") and (
-                                re.match(r"^[A-Z]", stripped)
-                                or re.match(r"^-", stripped)
-                                or re.match(r"^\*", stripped)
+                            if (
+                                not stripped.strip().startswith(">>>")
+                                and not stripped.strip().startswith("...")
+                                and (
+                                    re.match(r"^[A-Z]", stripped)
+                                    or re.match(r"^-", stripped)
+                                    or re.match(r"^\*", stripped)
+                                )
                             ):
                                 needs_fixing = True
                                 break

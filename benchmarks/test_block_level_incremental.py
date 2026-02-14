@@ -29,7 +29,7 @@ pytest.importorskip("bengal.rendering.block_cache")
 
 # Check if Kida environment is available (may need Python 3.14+ for tstring)
 try:
-    import kida  # noqa: F401
+    import kida
 
     HAS_KIDA = True
 except ImportError:

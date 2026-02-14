@@ -128,7 +128,9 @@ def test_internal_markdown_links_transformed(site, build_site):
         for link in internal_links:
             # Skip asset links, known template links, and root
             if (
-                link.startswith(("/bengal/assets/", "/bengal")) or link == "/" or link in template_links
+                link.startswith(("/bengal/assets/", "/bengal"))
+                or link == "/"
+                or link in template_links
             ):
                 continue
 

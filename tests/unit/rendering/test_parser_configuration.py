@@ -16,7 +16,7 @@ from bengal.rendering.pipeline import RenderingPipeline
 
 # python-markdown is optional (patitas is default)
 try:
-    import markdown as _markdown_mod  # noqa: F401
+    import markdown as _markdown_mod
 
     from bengal.parsing import PythonMarkdownParser
 

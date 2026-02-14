@@ -99,7 +99,7 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.core.section.protocols import SectionLike  # noqa: F401
+            from bengal.core.section.protocols import SectionLike
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -113,7 +113,7 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.rendering.highlighting.protocol import HighlightBackend  # noqa: F401
+            from bengal.rendering.highlighting.protocol import HighlightBackend
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -126,7 +126,7 @@ class TestDeprecationWarnings:
             warnings.simplefilter("always")
 
             # Import from old path
-            from bengal.rendering.engines.protocol import TemplateEngineProtocol  # noqa: F401
+            from bengal.rendering.engines.protocol import TemplateEngineProtocol
 
             # Should emit exactly one deprecation warning
             assert len(w) == 1
@@ -155,7 +155,7 @@ class TestBackwardsCompatibility:
             warnings.simplefilter("always")
 
             # Import from new canonical path
-            from bengal.protocols import HighlightService, SectionLike  # noqa: F401
+            from bengal.protocols import HighlightService, SectionLike
 
             # Should NOT emit any deprecation warnings
             deprecation_warnings = [

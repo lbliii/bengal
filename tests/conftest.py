@@ -31,7 +31,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # Enforce Python 3.14+ requirement (fail fast if wrong version)
     import sys
 
-
     # Check if free-threading build (warn if not, but don't fail)
     is_freethreading_build = "free-threading" in sys.version
     if not is_freethreading_build:

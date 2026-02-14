@@ -476,4 +476,4 @@ def pages_affected_by_template_change(
 
 
 # Avoid circular import — SiteSnapshot used in type annotation
-from bengal.snapshots.types import SiteSnapshot  # noqa: E402
+from bengal.snapshots.types import SiteSnapshot

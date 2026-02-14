@@ -238,7 +238,7 @@ class TestGetDeprecationSummary:
     def test_includes_new_locations(self):
         """Includes new locations for deprecated keys."""
         result = get_deprecation_summary()
-        for (section, new_key, _) in DEPRECATED_KEYS.values():
+        for section, new_key, _ in DEPRECATED_KEYS.values():
             assert f"`{section}.{new_key}`" in result
 
 

@@ -56,9 +56,7 @@ def count_lines_excluding_docstrings(file_path: Path) -> tuple[int, int]:
             if isinstance(child, ast.Expr) and isinstance(child.value, ast.Constant):
                 if isinstance(child.value.value, str):
                     value = child.value.value
-                    if (value.startswith(('"""', "'''"))) and hasattr(
-                        child, "lineno"
-                    ):
+                    if (value.startswith(('"""', "'''"))) and hasattr(child, "lineno"):
                         start_line = child.lineno
                         end_line = start_line + value.count("\n")
                         for line_num in range(start_line, end_line + 1):

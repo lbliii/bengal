@@ -561,7 +561,9 @@ class TestTyperExtractor:
         extractor = CLIExtractor(framework="typer")
         elements = extractor.extract(typer_app)
 
-        process_cmd = next(e for e in elements if e.name == "process" and e.element_type == "command")
+        process_cmd = next(
+            e for e in elements if e.name == "process" and e.element_type == "command"
+        )
 
         # Check for filename argument
         params = process_cmd.children
@@ -573,7 +575,9 @@ class TestTyperExtractor:
         extractor = CLIExtractor(framework="typer")
         elements = extractor.extract(typer_app)
 
-        process_cmd = next(e for e in elements if e.name == "process" and e.element_type == "command")
+        process_cmd = next(
+            e for e in elements if e.name == "process" and e.element_type == "command"
+        )
 
         # Check for options
         params = process_cmd.children

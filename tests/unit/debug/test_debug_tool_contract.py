@@ -18,7 +18,7 @@ from bengal.debug.base import DebugRegistry, DebugTool
 def _has_shortcode_sandbox() -> bool:
     """Check if the shortcode_sandbox module exists."""
     try:
-        import bengal.debug.shortcode_sandbox  # noqa: F401
+        import bengal.debug.shortcode_sandbox
 
         return True
     except ModuleNotFoundError:

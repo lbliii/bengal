@@ -420,8 +420,8 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 # Skip files with dynamic content:
                 # - site-wide LLM/JSON (build timestamps, page ordering)
                 # - per-page JSON/txt (can have timestamps, not critical for determinism)
-                if (
-                    file_path in ("llm-full.txt", "index.json") or file_path.endswith(("/index.json", "/index.txt"))
+                if file_path in ("llm-full.txt", "index.json") or file_path.endswith(
+                    ("/index.json", "/index.txt")
                 ):
                     continue
                 full_hash = self.full_build_hashes[file_path]

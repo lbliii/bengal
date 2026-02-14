@@ -314,9 +314,7 @@ class TestHumanizeBytesProperties:
         Property: Sizes < 1024 should use 'B' unit.
         """
         result = humanize_bytes(size)
-        assert result.endswith(("B", "bytes")), (
-            f"Size {size} should use bytes: '{result}'"
-        )
+        assert result.endswith(("B", "bytes")), f"Size {size} should use bytes: '{result}'"
 
     @pytest.mark.hypothesis
     @given(size=st.integers(min_value=1024, max_value=1024**2 - 1))
