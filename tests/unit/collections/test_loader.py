@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from bengal.collections import (
     CollectionPathTrie,
@@ -433,7 +434,3 @@ class TestCollectionPathEdgeCases:
             trie_result = get_collection_for_path(path, content_root, collections, trie=trie)
             linear_result = get_collection_for_path(path, content_root, collections, trie=None)
             assert trie_result[0] == linear_result[0], f"Mismatch for {path}"
-
-
-# Import Any for type hint
-from typing import Any

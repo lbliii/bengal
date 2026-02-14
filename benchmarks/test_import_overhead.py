@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from typing import NamedTuple
+from typing import ClassVar, NamedTuple
 
 import pytest
 
@@ -344,7 +344,7 @@ class TestRegressionDetection:
     """Detect regressions in import performance."""
 
     # Baseline times from after optimization (update when improving)
-    BASELINES = {
+    BASELINES: ClassVar[dict[str, float]] = {
         "rosettes": 15.0,  # External package
         "kida": 10.0,
         "bengal.rendering.highlighting": 25.0,

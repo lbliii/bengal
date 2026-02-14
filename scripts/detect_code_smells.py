@@ -292,18 +292,18 @@ def detect_smells(
             )
 
     # Check classes
-    for cls in analysis.classes:
-        if cls.methods > thresholds.class_methods:
-            issues.append(
-                CodeSmellIssue(
-                    category="GOD_CLASS",
-                    path=path_str,
-                    line=cls.line,
-                    name=cls.name,
-                    value=cls.methods,
-                    threshold=thresholds.class_methods,
-                )
-            )
+    issues.extend(
+        CodeSmellIssue(
+            category="GOD_CLASS",
+            path=path_str,
+            line=cls.line,
+            name=cls.name,
+            value=cls.methods,
+            threshold=thresholds.class_methods,
+        )
+        for cls in analysis.classes
+        if cls.methods > thresholds.class_methods
+    )
 
     return issues
 
@@ -387,8 +387,7 @@ def format_summary(
         lines.append("Issues (sorted by category):")
         lines.append("-" * 60)
 
-        for issue in sorted(issues, key=lambda x: (x.category, x.path, x.line)):
-            lines.append(str(issue))
+        lines.extend(str(issue) for issue in sorted(issues, key=lambda x: (x.category, x.path, x.line)))
 
     return "\n".join(lines)
 

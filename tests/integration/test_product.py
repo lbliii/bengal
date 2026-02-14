@@ -70,10 +70,9 @@ class TestProductJSONLD:
 
     def test_product_page_has_structured_data_frontmatter(self, site) -> None:
         """Product pages with structured_data: true should be identified."""
-        pages_with_structured_data = []
-        for page in site.pages:
-            if page.metadata.get("structured_data") is True:
-                pages_with_structured_data.append(page)
+        pages_with_structured_data = [
+            page for page in site.pages if page.metadata.get("structured_data") is True
+        ]
 
         assert len(pages_with_structured_data) >= 1, (
             "At least 1 page should have structured_data: true"

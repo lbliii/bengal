@@ -11,13 +11,13 @@ import shutil
 
 import pytest
 
-bs4 = pytest.importorskip("bs4", reason="beautifulsoup4 required for output quality tests")
-BeautifulSoup = bs4.BeautifulSoup
-
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.build.options import BuildOptions
 from bengal.parsing.factory import ParserFactory
+
+bs4 = pytest.importorskip("bs4", reason="beautifulsoup4 required for output quality tests")
+BeautifulSoup = bs4.BeautifulSoup
 
 
 class TestDocumentationBuild:

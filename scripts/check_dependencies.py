@@ -130,10 +130,9 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, int, bool]]:
                 if alias.name.startswith("bengal."):
                     is_tc = node.lineno in type_checking_lines
                     yield (module_name, alias.name, node.lineno, is_tc)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith("bengal."):
-                is_tc = node.lineno in type_checking_lines
-                yield (module_name, node.module, node.lineno, is_tc)
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("bengal."):
+            is_tc = node.lineno in type_checking_lines
+            yield (module_name, node.module, node.lineno, is_tc)
 
 
 def is_allowed_violation(importer: str, imported: str) -> bool:

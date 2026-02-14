@@ -73,10 +73,9 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, bool]]:
                 if alias.name.startswith("bengal."):
                     is_deferred = id(node) in type_checking_nodes or id(node) in function_nodes
                     yield (module_name, alias.name, is_deferred)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith("bengal."):
-                is_deferred = id(node) in type_checking_nodes or id(node) in function_nodes
-                yield (module_name, node.module, is_deferred)
+        elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("bengal."):
+            is_deferred = id(node) in type_checking_nodes or id(node) in function_nodes
+            yield (module_name, node.module, is_deferred)
 
 
 def find_cycles(

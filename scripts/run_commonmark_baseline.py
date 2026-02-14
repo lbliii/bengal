@@ -32,7 +32,7 @@ for ex in spec:
             by_section[section]["passed"] += 1
         else:
             by_section[section]["failed"] += 1
-    except:
+    except Exception:
         by_section[section]["failed"] += 1
 
 total_passed = sum(c["passed"] for c in by_section.values())

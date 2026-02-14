@@ -52,21 +52,19 @@ class TestLoggerAPIConsistency:
                 continue
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.Call):
-                    # Check for logger.warning/error/info/debug calls
-                    if (
-                        isinstance(node.func, ast.Attribute)
-                        and node.func.attr in ("warning", "error", "info", "debug", "critical")
-                        and isinstance(node.func.value, ast.Name)
-                        and node.func.value.id == "logger"
-                    ):
-                        # Check for message= keyword
-                        for kw in node.keywords:
-                            if kw.arg == "message":
-                                violations.append(
-                                    f"{py_file.relative_to(core_dir.parent.parent)}:{node.lineno} - "
-                                    f"logger.{node.func.attr}() uses message= keyword"
-                                )
+                if isinstance(node, ast.Call) and (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("warning", "error", "info", "debug", "critical")
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "logger"
+                ):
+                    # Check for message= keyword
+                    violations.extend(
+                        f"{py_file.relative_to(core_dir.parent.parent)}:{node.lineno} - "
+                        f"logger.{node.func.attr}() uses message= keyword"
+                        for kw in node.keywords
+                        if kw.arg == "message"
+                    )
 
         assert not violations, (
             "Found logger calls using message= keyword (should be positional):\n"
@@ -99,20 +97,17 @@ class TestDiagnosticsAPIConsistency:
                 continue
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.Call):
-                    # Check for *.diagnostics.emit() or *._diagnostics.emit() calls
-                    if (
-                        isinstance(node.func, ast.Attribute)
-                        and node.func.attr == "emit"
-                        and isinstance(node.func.value, ast.Attribute)
-                        and node.func.value.attr in ("diagnostics", "_diagnostics")
-                    ):
-                        # If it has more than 1 positional arg, it's wrong
-                        if len(node.args) > 1:
-                            violations.append(
-                                f"{py_file.relative_to(core_dir.parent.parent)}:{node.lineno} - "
-                                f"Direct .emit() call with multiple args (use emit_diagnostic helper)"
-                            )
+                if isinstance(node, ast.Call) and (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "emit"
+                    and isinstance(node.func.value, ast.Attribute)
+                    and node.func.value.attr in ("diagnostics", "_diagnostics")
+                    and len(node.args) > 1
+                ):
+                    violations.append(
+                        f"{py_file.relative_to(core_dir.parent.parent)}:{node.lineno} - "
+                        f"Direct .emit() call with multiple args (use emit_diagnostic helper)"
+                    )
 
         assert not violations, "Found diagnostics.emit() calls with multiple args:\n" + "\n".join(
             violations
@@ -219,7 +214,7 @@ class TestPILIntegration:
 
             # Should NOT have bare ", 3)" which was the old pattern
             # (Excluding comments)
-            lines = [l for l in source.split("\n") if not l.strip().startswith("#")]
+            lines = [line for line in source.split("\n") if not line.strip().startswith("#")]
             non_comment_source = "\n".join(lines)
             assert ", 3)" not in non_comment_source, (
                 f"ImageProcessor.{method_name} uses integer 3 instead of Resampling enum"

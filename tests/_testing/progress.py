@@ -228,7 +228,7 @@ def progress_status(message: str, done: bool = False) -> None:
 
 
 # Backward compatibility alias (deprecated, use progress_status instead)
-def test_status(message: str, done: bool = False) -> None:
+def test_status(message: str, done: bool) -> None:
     """Deprecated: Use progress_status instead."""
     import warnings
 

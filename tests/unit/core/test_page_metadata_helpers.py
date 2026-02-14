@@ -5,6 +5,7 @@ Tests the new metadata access helpers: get_user_metadata, get_internal_metadata,
 and related convenience properties.
 """
 
+from typing import ClassVar
 from unittest.mock import Mock
 
 import pytest
@@ -84,7 +85,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"_generated": True}
+            metadata: ClassVar[dict] = {"_generated": True}
 
         page = TestPage()
         assert page.is_generated is True
@@ -94,7 +95,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {}
+            metadata: ClassVar[dict] = {}
 
         page = TestPage()
         assert page.is_generated is False
@@ -104,7 +105,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"_generated": False}
+            metadata: ClassVar[dict] = {"_generated": False}
 
         page = TestPage()
         assert page.is_generated is False
@@ -114,7 +115,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"template": "custom/landing.html"}
+            metadata: ClassVar[dict] = {"template": "custom/landing.html"}
 
         page = TestPage()
         assert page.assigned_template == "custom/landing.html"
@@ -124,7 +125,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {}
+            metadata: ClassVar[dict] = {}
 
         page = TestPage()
         assert page.assigned_template is None
@@ -134,7 +135,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"content_type": "blog"}
+            metadata: ClassVar[dict] = {"content_type": "blog"}
 
         page = TestPage()
         assert page.content_type_name == "blog"
@@ -144,7 +145,7 @@ class TestMetadataProperties:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {}
+            metadata: ClassVar[dict] = {}
 
         page = TestPage()
         assert page.content_type_name is None
@@ -158,7 +159,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {}
+            metadata: ClassVar[dict] = {}
 
         page = TestPage()
         assert page.edition == []
@@ -168,7 +169,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": ["oss", "enterprise"]}
+            metadata: ClassVar[dict] = {"edition": ["oss", "enterprise"]}
 
         page = TestPage()
         assert page.edition == ["oss", "enterprise"]
@@ -178,7 +179,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": "enterprise"}
+            metadata: ClassVar[dict] = {"edition": "enterprise"}
 
         page = TestPage()
         assert page.edition == ["enterprise"]
@@ -188,7 +189,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": ["enterprise"]}
+            metadata: ClassVar[dict] = {"edition": ["enterprise"]}
 
         page = TestPage()
         assert page.in_variant(None) is True
@@ -198,7 +199,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": ["enterprise"]}
+            metadata: ClassVar[dict] = {"edition": ["enterprise"]}
 
         page = TestPage()
         assert page.in_variant("") is True
@@ -208,7 +209,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {}
+            metadata: ClassVar[dict] = {}
 
         page = TestPage()
         assert page.in_variant("oss") is True
@@ -219,7 +220,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": ["oss", "enterprise"]}
+            metadata: ClassVar[dict] = {"edition": ["oss", "enterprise"]}
 
         page = TestPage()
         assert page.in_variant("oss") is True
@@ -230,7 +231,7 @@ class TestEditionVariantFiltering:
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
-            metadata = {"edition": ["enterprise"]}
+            metadata: ClassVar[dict] = {"edition": ["enterprise"]}
 
         page = TestPage()
         assert page.in_variant("enterprise") is True

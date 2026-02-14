@@ -99,20 +99,14 @@ About content here.
         # Build 2: Load cache and verify no changes detected
         cache2 = BuildCache.load(paths.build_cache)
 
-        changed_files = []
-        for md_file in content_dir.glob("*.md"):
-            if cache2.is_changed(md_file):
-                changed_files.append(md_file)
+        changed_files = [md_file for md_file in content_dir.glob("*.md") if cache2.is_changed(md_file)]
 
         assert len(changed_files) == 0, f"Build 2 detected changes: {changed_files}"
 
         # Build 3: Same check (should also be stable)
         cache3 = BuildCache.load(paths.build_cache)
 
-        changed_files = []
-        for md_file in content_dir.glob("*.md"):
-            if cache3.is_changed(md_file):
-                changed_files.append(md_file)
+        changed_files = [md_file for md_file in content_dir.glob("*.md") if cache3.is_changed(md_file)]
 
         assert len(changed_files) == 0, f"Build 3 detected changes: {changed_files}"
 

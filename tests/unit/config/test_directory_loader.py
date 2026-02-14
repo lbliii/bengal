@@ -165,10 +165,9 @@ class TestConfigDirectoryLoader:
             loader.load(tmp_path / "nonexistent")
 
         # Verify it extends BengalConfigError
-        try:
+        with pytest.raises(ConfigLoadError) as exc_info:
             loader.load(tmp_path / "nonexistent")
-        except ConfigLoadError as e:
-            assert isinstance(e, BengalConfigError)
+        assert isinstance(exc_info.value, BengalConfigError)
 
     def test_load_file_not_directory(self, tmp_path):
         """Test loading from file (not directory) raises error."""

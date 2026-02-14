@@ -15,7 +15,7 @@ Note:
 from __future__ import annotations
 
 import inspect
-from typing import get_type_hints
+from typing import ClassVar, get_type_hints
 
 from bengal.protocols import (
     Cacheable,
@@ -38,7 +38,7 @@ from bengal.protocols import (
 class TestProgressReporterStability:
     """Guard against breaking changes to ProgressReporter."""
 
-    REQUIRED_METHODS = {"add_phase", "start_phase", "update_phase", "complete_phase", "log"}
+    REQUIRED_METHODS: ClassVar[set[str]] = {"add_phase", "start_phase", "update_phase", "complete_phase", "log"}
 
     def test_has_required_methods(self) -> None:
         """ProgressReporter must have these exact methods."""
@@ -91,7 +91,7 @@ class TestCacheableStability:
 class TestOutputCollectorStability:
     """Guard against breaking changes to OutputCollector."""
 
-    REQUIRED_METHODS = {"record", "get_outputs", "css_only", "clear"}
+    REQUIRED_METHODS: ClassVar[set[str]] = {"record", "get_outputs", "css_only", "clear"}
 
     def test_has_required_methods(self) -> None:
         """OutputCollector must have these methods."""
@@ -138,7 +138,7 @@ class TestHighlightServiceStability:
 class TestPageLikeStability:
     """Guard against breaking changes to PageLike."""
 
-    REQUIRED_PROPERTIES = {
+    REQUIRED_PROPERTIES: ClassVar[set[str]] = {
         "title",
         "href",
         "content",
@@ -158,7 +158,7 @@ class TestPageLikeStability:
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""
 
-    REQUIRED_PROPERTIES = {
+    REQUIRED_PROPERTIES: ClassVar[set[str]] = {
         "name",
         "title",
         "path",
@@ -178,7 +178,7 @@ class TestSectionLikeStability:
 class TestSiteLikeStability:
     """Guard against breaking changes to SiteLike."""
 
-    REQUIRED_PROPERTIES = {
+    REQUIRED_PROPERTIES: ClassVar[set[str]] = {
         "title",
         "baseurl",
         "config",
@@ -239,7 +239,7 @@ class TestTemplateProtocolsStability:
 class TestOutputTargetStability:
     """Guard against breaking changes to OutputTarget."""
 
-    REQUIRED_METHODS = {"name", "write", "write_bytes", "copy", "mkdir", "exists"}
+    REQUIRED_METHODS: ClassVar[set[str]] = {"name", "write", "write_bytes", "copy", "mkdir", "exists"}
 
     def test_has_required_methods(self) -> None:
         """OutputTarget must have these methods."""

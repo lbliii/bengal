@@ -287,12 +287,9 @@ title = "Broken TOML"
 """,
         )
 
-        # Should raise appropriate error
-        with pytest.raises(Exception) as exc_info:
+        # Should raise appropriate error (message mentions toml or config)
+        with pytest.raises(Exception, match=r"(?i)toml|config"):
             Site.from_config(tmp_path, config_path=config_file)
-
-        # Error should be about config parsing
-        assert "toml" in str(exc_info.value).lower() or "config" in str(exc_info.value).lower()
 
     def test_missing_required_config(self, tmp_path):
         """Test handling of missing required configuration."""

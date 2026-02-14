@@ -423,7 +423,7 @@ class TestAutolinks:
         assert "Check out" in html
         assert "for more info" in html
 
-    def test_autolink_in_paragraph(self):
+    def test_autolink_in_paragraph_context(self):
         """Autolinks are parsed when in paragraph context.
 
         Note: When a line starts with block-level HTML tags like <div>,

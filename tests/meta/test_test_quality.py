@@ -27,12 +27,11 @@ TESTS_DIR = Path(__file__).parent.parent
 
 def _get_test_files() -> list[Path]:
     """Get all test files (excluding meta tests)."""
-    test_files = []
-    for f in TESTS_DIR.rglob("test_*.py"):
-        # Exclude meta tests and __pycache__
-        if "meta" not in f.parts and "__pycache__" not in f.parts:
-            test_files.append(f)
-    return test_files
+    return [
+        f
+        for f in TESTS_DIR.rglob("test_*.py")
+        if "meta" not in f.parts and "__pycache__" not in f.parts
+    ]
 
 
 def _parse_python_file(file_path: Path) -> ast.Module | None:

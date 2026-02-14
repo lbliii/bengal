@@ -192,16 +192,15 @@ def test_menu_build_hierarchy_scaling(benchmark, item_count):
         builder = MenuBuilder()
 
         # Create flat menu items
-        config = []
-        for i in range(item_count):
-            config.append(
-                {
-                    "name": f"Item {i}",
-                    "url": f"/item{i}/",
-                    "weight": item_count - i,  # Reverse order to force sorting
-                    "identifier": f"item{i}",
-                }
-            )
+        config = [
+            {
+                "name": f"Item {i}",
+                "url": f"/item{i}/",
+                "weight": item_count - i,  # Reverse order to force sorting
+                "identifier": f"item{i}",
+            }
+            for i in range(item_count)
+        ]
 
         builder.add_from_config(config)
         return builder.build_hierarchy()
@@ -281,16 +280,16 @@ def test_menu_hierarchical_build(benchmark):
                 )
 
                 # Level 2: 3 children per L1
-                for k in range(3):
-                    config.append(
-                        {
-                            "name": f"L2-{i}-{j}-{k}",
-                            "url": f"/root{i}/l1-{j}/l2-{k}/",
-                            "weight": k,
-                            "parent": f"l1-{i}-{j}",
-                            "identifier": f"l2-{i}-{j}-{k}",
-                        }
-                    )
+                config.extend(
+                    {
+                        "name": f"L2-{i}-{j}-{k}",
+                        "url": f"/root{i}/l1-{j}/l2-{k}/",
+                        "weight": k,
+                        "parent": f"l1-{i}-{j}",
+                        "identifier": f"l2-{i}-{j}-{k}",
+                    }
+                    for k in range(3)
+                )
 
         builder.add_from_config(config)
         return builder.build_hierarchy()

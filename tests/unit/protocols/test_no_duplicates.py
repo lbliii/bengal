@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -28,7 +29,7 @@ class TestNoDuplicateProtocols:
     """Prevent protocol definitions outside canonical module."""
 
     # Protocols that should ONLY be defined in bengal/protocols/
-    CANONICAL_PROTOCOLS = {
+    CANONICAL_PROTOCOLS: ClassVar[set[str]] = {
         # Core protocols
         "PageLike",
         "SectionLike",
@@ -80,9 +81,11 @@ class TestNoDuplicateProtocols:
         return [
             f
             for f in bengal_dir.rglob("*.py")
-            if not str(f).startswith(str(protocols_dir))
-            and not str(f).startswith(str(parsing_backends_dir))
-            and "__pycache__" not in str(f)
+            if (
+                not str(f).startswith(str(protocols_dir))
+                and not str(f).startswith(str(parsing_backends_dir))
+                and "__pycache__" not in str(f)
+            )
         ]
 
     def _is_protocol_class(self, node: ast.ClassDef) -> bool:
@@ -117,13 +120,15 @@ class TestNoDuplicateProtocols:
                 continue
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    if node.name in self.CANONICAL_PROTOCOLS:
-                        if self._is_protocol_class(node):
-                            rel_path = filepath.relative_to(filepath.parents[3])
-                            redefinitions.append(
-                                f"  {rel_path}:{node.lineno} - class {node.name}(Protocol)"
-                            )
+                if (
+                    isinstance(node, ast.ClassDef)
+                    and node.name in self.CANONICAL_PROTOCOLS
+                    and self._is_protocol_class(node)
+                ):
+                    rel_path = filepath.relative_to(filepath.parents[3])
+                    redefinitions.append(
+                        f"  {rel_path}:{node.lineno} - class {node.name}(Protocol)"
+                    )
 
         assert not redefinitions, (
             "Found protocol redefinitions outside bengal/protocols/:\n"
@@ -161,10 +166,11 @@ class TestNoDuplicateProtocols:
             source = filepath.read_text(encoding="utf-8")
             tree = ast.parse(source)
 
-            protocol_defs = []
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef) and self._is_protocol_class(node):
-                    protocol_defs.append(node.name)
+            protocol_defs = [
+                node.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ClassDef) and self._is_protocol_class(node)
+            ]
 
             assert not protocol_defs, (
                 f"{filepath.relative_to(bengal_dir)} defines protocols instead of re-exporting:\n"

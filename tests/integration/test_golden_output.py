@@ -200,7 +200,8 @@ class TestGoldenOutput:
                 error_msg.append(f"    Expected: {m['expected_preview'][:100]}...")
                 error_msg.append(f"    Actual:   {m['actual_preview'][:100]}...")
 
-        assert not missing and not mismatches, "\n".join(error_msg)
+        assert not missing, "\n".join(error_msg)
+        assert not mismatches, "\n".join(error_msg)
 
     def _update_expected_files(
         self,

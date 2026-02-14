@@ -1319,9 +1319,9 @@ def main() -> None:
             print(f"Removed: {md_file}")
 
     # Collect all codes
-    codes: list[tuple[str, str, str]] = []
-    for code in ErrorCode:
-        codes.append((code.name, code.value, code.category))
+    codes: list[tuple[str, str, str]] = [
+        (code.name, code.value, code.category) for code in ErrorCode
+    ]
 
     # Generate glossary page
     glossary_content = generate_glossary_page(codes)

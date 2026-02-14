@@ -78,13 +78,8 @@ def generate_autodoc_style_content(num_items: int = 30) -> str:
     - Example blocks
     - Warning admonitions for deprecated items
     """
-    content_parts = ["# API Reference\n\n"]
-
-    for i in range(num_items):
-        # Note: Using consistent content to enable cache hits
-        content_parts.append(
-            """
-## `function_%d`
+    template = """
+## `function_{i}`
 
 :::{note}
 This function is part of the core API.
@@ -108,9 +103,8 @@ result = function("hello", 42)
 ---
 
 """
-            % i
-        )
-
+    content_parts = ["# API Reference\n\n"]
+    content_parts.extend(template.format(i=i) for i in range(num_items))
     return "".join(content_parts)
 
 

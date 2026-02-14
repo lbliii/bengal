@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 
 from bengal.content.sources.loaders import local_loader
@@ -40,35 +42,34 @@ class TestRemoteLoaderImports:
 
     def test_github_loader_import_error(self) -> None:
         """Test github_loader raises ImportError if aiohttp not installed."""
-        # This test will pass if aiohttp IS installed (loader works)
-        # or if aiohttp is NOT installed (ImportError is raised)
-        try:
+        if importlib.util.find_spec("aiohttp") is not None:
             from bengal.content.sources.loaders import github_loader
 
-            # If we get here, aiohttp is installed - test the loader works
             loader = github_loader(repo="owner/repo")
             assert loader.source_type == "github"
-        except ImportError as e:
-            assert "aiohttp" in str(e).lower() or "github" in str(e).lower()
+        else:
+            with pytest.raises(ImportError, match=r"(?i)aiohttp|github"):
+                from bengal.content.sources.loaders import github_loader  # noqa: F401
 
     def test_rest_loader_import_error(self) -> None:
         """Test rest_loader raises ImportError if aiohttp not installed."""
-        try:
+        if importlib.util.find_spec("aiohttp") is not None:
             from bengal.content.sources.loaders import rest_loader
 
             loader = rest_loader(url="https://api.example.com")
             assert loader.source_type == "rest"
-        except ImportError as e:
-            assert "aiohttp" in str(e).lower() or "rest" in str(e).lower()
+        else:
+            with pytest.raises(ImportError, match=r"(?i)aiohttp|rest"):
+                from bengal.content.sources.loaders import rest_loader  # noqa: F401
 
     def test_notion_loader_import_error(self) -> None:
         """Test notion_loader raises ImportError if aiohttp not installed."""
-        try:
+        if importlib.util.find_spec("aiohttp") is not None:
             from bengal.content.sources.loaders import notion_loader
             from bengal.errors import BengalConfigError
 
-            # Note: Will fail without token, but tests import works
             with pytest.raises(BengalConfigError, match="requires a token"):
                 notion_loader(database_id="abc123")
-        except ImportError as e:
-            assert "aiohttp" in str(e).lower() or "notion" in str(e).lower()
+        else:
+            with pytest.raises(ImportError, match=r"(?i)aiohttp|notion"):
+                from bengal.content.sources.loaders import notion_loader  # noqa: F401

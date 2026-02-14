@@ -7,7 +7,7 @@ Tests config access utilities for nested configuration structures.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from bengal.core.utils.config import get_config_section, get_site_value
 
@@ -115,7 +115,7 @@ class TestGetConfigSection:
         """Works with Config-like objects with section attributes."""
 
         class MockSection:
-            _data = {"parallel": True}
+            _data: ClassVar[dict] = {"parallel": True}
 
         class MockConfig:
             build = MockSection()
