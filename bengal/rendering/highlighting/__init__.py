@@ -52,29 +52,29 @@ if TYPE_CHECKING:
 
 __all__ = [
     "PALETTE_INHERITANCE",
-    # Protocol (backwards compatibility alias)
     "HighlightBackend",
-    # Protocol (new canonical name)
+    "HighlightCache",
     "HighlightService",
-    # Deferred highlighting for parallel batch processing
     "disable_deferred_highlighting",
     "enable_deferred_highlighting",
     "flush_deferred_highlighting",
     "get_default_backend",
     "get_highlighter",
-    # Public API
     "highlight",
     "highlight_many",
     "list_backends",
     "register_backend",
     "resolve_css_class_style",
-    # Theme resolution (RFC-0003)
     "resolve_syntax_theme",
 ]
 
 
 def __getattr__(name: str) -> object:
     """Lazy import for deferred highlighting functions."""
+    if name == "HighlightCache":
+        from bengal.rendering.highlighting.cache import HighlightCache
+
+        return HighlightCache
     if name in (
         "disable_deferred_highlighting",
         "enable_deferred_highlighting",

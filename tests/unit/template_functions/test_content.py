@@ -2,6 +2,7 @@
 
 from bengal.rendering.template_functions.content import (
     emojify,
+    filter_highlight,
     html_escape,
     html_unescape,
     nl2br,
@@ -9,6 +10,26 @@ from bengal.rendering.template_functions.content import (
     smartquotes,
     urlize,
 )
+
+
+class TestFilterHighlight:
+    """Tests for filter_highlight (syntax highlighting)."""
+
+    def test_highlights_python(self):
+        result = filter_highlight("def foo(): pass", "python")
+        assert "<pre>" in result
+        assert "<code" in result
+        assert "def" in result
+        assert "foo" in result
+
+    def test_empty_code_returns_empty(self):
+        assert filter_highlight("", "python") == ""
+
+    def test_fallback_for_unknown_language(self):
+        result = filter_highlight("x = 1", "unknown-lang-xyz")
+        assert "<pre>" in result
+        assert "<code" in result
+        assert "x = 1" in result
 
 
 class TestSafeHtml:

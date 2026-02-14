@@ -135,6 +135,7 @@ def phase_collect_stats(
     }
 
     _write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
+    _write_versioning_artifacts(orchestrator.site)
     duration_ms = (time.perf_counter() - start) * 1000
     if cli is not None:
         cli.phase("Stats", duration_ms=duration_ms)
@@ -230,6 +231,24 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
 
         _write_if_changed_atomic(target_dir / "build.svg", svg, AtomicFile)
         _write_if_changed_atomic(target_dir / "build.json", json_text, AtomicFile)
+
+
+def _write_versioning_artifacts(site: Any) -> None:
+    """
+    Write versioning artifacts when versioning is enabled.
+
+    Emits versions.json (Mike-compatible) and optional root redirect.
+    """
+    output_dir = getattr(site, "output_dir", None)
+    if not output_dir:
+        return
+
+    from pathlib import Path
+
+    from bengal.content.versioning.artifacts import write_root_redirect, write_versions_json
+
+    write_versions_json(site, Path(output_dir))
+    write_root_redirect(site, Path(output_dir))
 
 
 def _write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> None:

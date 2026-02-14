@@ -17,6 +17,7 @@ from bengal.content_types.strategies import (
     ChangelogStrategy,
     CliReferenceStrategy,
     DocsStrategy,
+    NotebookStrategy,
     PageStrategy,
     TrackStrategy,
     TutorialStrategy,
@@ -254,6 +255,7 @@ class TestContentTypeRegistry:
         assert "autodoc-python" in CONTENT_TYPE_REGISTRY
         assert "autodoc-cli" in CONTENT_TYPE_REGISTRY
         assert "tutorial" in CONTENT_TYPE_REGISTRY
+        assert "notebook" in CONTENT_TYPE_REGISTRY
         assert "list" in CONTENT_TYPE_REGISTRY
 
     @pytest.mark.parametrize(
@@ -264,9 +266,10 @@ class TestContentTypeRegistry:
             ("autodoc-python", ApiReferenceStrategy),
             ("autodoc-cli", CliReferenceStrategy),
             ("tutorial", TutorialStrategy),
+            ("notebook", NotebookStrategy),
             ("list", PageStrategy),
         ],
-        ids=["blog", "doc", "autodoc-python", "autodoc-cli", "tutorial", "list"],
+        ids=["blog", "doc", "autodoc-python", "autodoc-cli", "tutorial", "notebook", "list"],
     )
     def test_get_strategy_returns_correct_instance(self, content_type, expected_strategy_class):
         """
@@ -520,6 +523,54 @@ class TestTrackStrategy:
         assert result == "tracks/home.html"
 
 
+class TestNotebookStrategy:
+    """Test notebook content type strategy."""
+
+    def test_sort_pages_by_weight_then_title(self) -> None:
+        """Notebooks should be sorted by weight, then title."""
+        strategy = NotebookStrategy()
+
+        page1 = Mock(weight=20, title="Advanced Notebook", metadata={"weight": 20})
+        page2 = Mock(weight=10, title="Intro Notebook", metadata={"weight": 10})
+        page3 = Mock(weight=10, title="Another Intro", metadata={"weight": 10})
+
+        pages = [page1, page2, page3]
+        sorted_pages = strategy.sort_pages(pages)
+
+        assert sorted_pages[0].title == "Another Intro"
+        assert sorted_pages[1].title == "Intro Notebook"
+        assert sorted_pages[2].title == "Advanced Notebook"
+
+    def test_should_not_paginate(self) -> None:
+        """Notebooks should not paginate."""
+        strategy = NotebookStrategy()
+        assert strategy.allows_pagination is False
+
+    def test_get_template_backward_compat(self) -> None:
+        """Notebook should use notebook/single.html template when called without params."""
+        strategy = NotebookStrategy()
+        assert strategy.get_template() == "notebook/single.html"
+
+    @pytest.mark.parametrize(
+        "section_name",
+        ["notebooks", "notebook", "examples"],
+        ids=["notebooks", "notebook", "examples"],
+    )
+    def test_detect_from_section_name(self, section_name: str) -> None:
+        """Section names for notebooks should be detected as notebook type."""
+        section = Mock()
+        section.name = section_name
+        section.metadata = {}
+        section.parent = None
+        section.pages = []
+
+        detected = detect_content_type(section)
+        assert detected == "notebook", (
+            f"Section name '{section_name}' should be detected as 'notebook', "
+            f"but was detected as '{detected}'"
+        )
+
+
 class TestSingletonBehavior:
     """Test that the registry properly uses singleton pattern."""
 
@@ -542,6 +593,7 @@ class TestSingletonBehavior:
             "autodoc-cli",
             "tutorial",
             "changelog",
+            "notebook",
         ]:
             retrieved = get_strategy(content_type)
             registered = CONTENT_TYPE_REGISTRY[content_type]

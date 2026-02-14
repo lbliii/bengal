@@ -111,6 +111,7 @@ def _create_theme_config(theme: str) -> dict[str, Any]:
                 # Content
                 "content.code.copy",
                 "content.lightbox",
+                # "content.math",  # LaTeX math via KaTeX (opt-in, ~200KB)
                 "content.reading_time",
                 "content.author",
                 "content.excerpts",

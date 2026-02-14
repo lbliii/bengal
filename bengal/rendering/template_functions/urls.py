@@ -42,12 +42,44 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         }
     )
 
+    def notebook_download_url_with_site(page) -> str:
+        return notebook_download_url(page)
+
     env.globals.update(
         {
             "ensure_trailing_slash": ensure_trailing_slash,
             "build_artifact_url": build_artifact_url_with_site,
+            "notebook_download_url": notebook_download_url_with_site,
         }
     )
+
+
+def notebook_download_url(page) -> str:
+    """
+    Return the download URL path for a notebook page's .ipynb file.
+
+    Returns empty string if the page is not from a notebook source.
+    The .ipynb is copied to output alongside the HTML during build.
+    Use with | absolute_url in templates for full URL.
+
+    Args:
+        page: Page object with source_path and _path
+
+    Returns:
+        Relative URL path to the .ipynb file, or empty string
+
+    Example:
+        {{ notebook_download_url(page) | absolute_url }}
+    """
+    if not page or not getattr(page, "source_path", None):
+        return ""
+    if str(page.source_path).lower().endswith(".ipynb"):
+        path = getattr(page, "_path", None) or getattr(page, "href", "") or ""
+        slug = getattr(page, "slug", None) or (page.source_path.stem if hasattr(page.source_path, "stem") else "")
+        if path and slug:
+            base = (path or "/").rstrip("/")
+            return f"{base}/{slug}.ipynb"
+    return ""
 
 
 def absolute_url(url: str, base_url: str) -> str:

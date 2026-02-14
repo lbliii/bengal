@@ -435,6 +435,41 @@ class TrackStrategy(ContentTypeStrategy):
         return section_name_matches(section, ("tracks",))
 
 
+class NotebookStrategy(ContentTypeStrategy):
+    """
+    Strategy for Jupyter notebook content.
+
+    Notebooks are sorted by weight then title (like docs). Uses a dedicated
+    notebook template with download badge, kernel info, and cell styling.
+
+    Auto-Detection:
+        Detected when section name matches notebook patterns
+        (``notebooks``, ``notebook``, ``examples``).
+
+    Sorting:
+        Pages sorted by ``weight`` (ascending), then title alphabetically.
+
+    Templates:
+        - Single: ``notebook/single.html``
+
+    Class Attributes:
+        default_template: ``"notebook/single.html"``
+        allows_pagination: ``False``
+
+    """
+
+    default_template = "notebook/single.html"
+    allows_pagination = False
+
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
+        """Sort notebook pages by weight, then title."""
+        return sorted(pages, key=weight_title_key)
+
+    def detect_from_section(self, section: SectionLike) -> bool:
+        """Detect notebook sections by common naming patterns."""
+        return section_name_matches(section, ("notebooks", "notebook", "examples"))
+
+
 class PageStrategy(ContentTypeStrategy):
     """
     Default strategy for generic pages.

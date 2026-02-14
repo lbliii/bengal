@@ -12,6 +12,7 @@ RFC: rfc-versioned-docs-pipeline-integration
 
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 from pathlib import Path
@@ -452,3 +453,20 @@ class TestVersionedBuildIntegration:
 
         # Verify shared page is discovered
         assert any("_shared/changelog.md" in p for p in page_paths)
+
+    def test_versioned_build_emits_versions_json(self, site, build_site):
+        """Test that versioned build emits versions.json (Mike-compatible)."""
+        build_site()
+        output_dir = Path(site.output_dir)
+        versions_path = output_dir / "versions.json"
+        assert versions_path.exists(), "versions.json should be emitted when versioning enabled"
+        data = json.loads(versions_path.read_text())
+        assert len(data) >= 3  # v1, v2, v3
+        version_ids = [v["version"] for v in data]
+        assert "v3" in version_ids
+        assert "v2" in version_ids
+        assert "v1" in version_ids
+        # v3 (latest) should have empty url_prefix and latest alias
+        v3_entry = next(v for v in data if v["version"] == "v3")
+        assert v3_entry["url_prefix"] == ""
+        assert "latest" in v3_entry["aliases"]

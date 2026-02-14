@@ -31,6 +31,7 @@ import re
 import threading
 from dataclasses import dataclass, field
 
+from bengal.rendering.highlighting.cache import HighlightCache
 from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.code import parse_hl_lines
@@ -65,6 +66,18 @@ class PendingCodeBlock:
     show_linenos: bool
     title: str | None
     placeholder_id: str
+
+
+def _cache_key(block: PendingCodeBlock) -> str:
+    """Compute cache key for a block. Uses rosettes.content_hash."""
+    import rosettes
+
+    return rosettes.content_hash(
+        block.code,
+        block.language,
+        hl_lines=frozenset(block.hl_lines) if block.hl_lines else None,
+        show_linenos=block.show_linenos,
+    )
 
 
 @dataclass
@@ -131,59 +144,110 @@ class CodeBlockCollector:
     def flush(self) -> dict[str, str]:
         """Batch highlight all pending code blocks.
 
-        Uses parallel highlighting on 3.14t for speedup.
-
-        Returns:
-            Mapping of placeholder_id -> highlighted HTML
+        Uses parallel highlighting on 3.14t for speedup. When cache is provided,
+        checks cache first; cache misses are highlighted and stored.
         """
         if not self._pending:
             return {}
 
-        # Prepare batch for parallel processing
-        # Note: highlight_many doesn't support hl_lines yet, so we fall back
-        # to sequential for blocks with line highlighting
-        simple_blocks: list[tuple[str, str, PendingCodeBlock]] = []
-        complex_blocks: list[PendingCodeBlock] = []
-
-        for block in self._pending:
-            if block.hl_lines:
-                # Has line highlighting - needs individual processing
-                complex_blocks.append(block)
-            else:
-                simple_blocks.append((block.code, block.language, block))
-
+        cache: HighlightCache | None = getattr(_thread_local, "highlight_cache", None)
         results: dict[str, str] = {}
 
-        # Batch process simple blocks in parallel
-        if simple_blocks:
-            import rosettes
+        import rosettes
 
-            items = [(code, lang) for code, lang, _ in simple_blocks]
-            highlighted = rosettes.highlight_many(items)
+        # Use cache only when rosettes has content_hash (rosettes>=0.2.0)
+        if cache and not hasattr(rosettes, "content_hash"):
+            cache = None
 
-            for (_, _, block), html in zip(simple_blocks, highlighted, strict=True):
-                results[block.placeholder_id] = _wrap_with_title(html, block.title)
+        # Cache lookup: split into cached vs uncached
+        uncached: list[tuple[PendingCodeBlock, str]] = []
+        for block in self._pending:
+            if cache:
+                key = _cache_key(block)
+                cached = cache.get(key)
+                if cached is not None:
+                    results[block.placeholder_id] = _wrap_with_title(cached, block.title)
+                    continue
+                uncached.append((block, key))
+            else:
+                uncached.append((block, ""))
 
-        # Process complex blocks sequentially (they have line highlighting)
-        backend = RosettesBackend()
-        for block in complex_blocks:
+        if not uncached:
+            self._pending = []
+            return results
+
+        uncached_blocks = [b for b, _ in uncached]
+
+        HighlightItem = getattr(rosettes, "HighlightItem", None)
+        has_highlight_item = HighlightItem is not None
+
+        if has_highlight_item:
+            items: list[object] = []
+            for block in uncached_blocks:
+                if block.hl_lines or block.show_linenos:
+                    items.append(
+                        HighlightItem(
+                            code=block.code,
+                            language=block.language,
+                            hl_lines=frozenset(block.hl_lines) if block.hl_lines else None,
+                            show_linenos=block.show_linenos,
+                        )
+                    )
+                else:
+                    items.append((block.code, block.language))
+
             try:
-                html = backend.highlight(
-                    code=block.code,
-                    language=block.language,
-                    hl_lines=block.hl_lines,
-                    show_linenos=block.show_linenos,
-                )
-                results[block.placeholder_id] = _wrap_with_title(html, block.title)
+                highlighted = rosettes.highlight_many(items)
             except Exception as e:
-                logger.warning("highlight_failed", language=block.language, error=str(e))
-                results[block.placeholder_id] = _fallback_code_block(
-                    block.code, block.language, block.title
-                )
+                logger.warning("highlight_batch_failed", error=str(e))
+                for block in uncached_blocks:
+                    results[block.placeholder_id] = _fallback_code_block(
+                        block.code, block.language, block.title
+                    )
+                self._pending = []
+                return results
 
-        # Reset state
+            for (block, key), html in zip(uncached, highlighted, strict=True):
+                if cache and key:
+                    cache.set(key, html)
+                results[block.placeholder_id] = _wrap_with_title(html, block.title)
+        else:
+            # Fallback for rosettes < 0.2.0: simple blocks parallel, complex sequential
+            simple_blocks: list[tuple[str, str, PendingCodeBlock, str]] = []
+            complex_blocks: list[tuple[PendingCodeBlock, str]] = []
+            for block, key in uncached:
+                if block.hl_lines or block.show_linenos:
+                    complex_blocks.append((block, key))
+                else:
+                    simple_blocks.append((block.code, block.language, block, key))
+
+            if simple_blocks:
+                items = [(code, lang) for code, lang, _, _ in simple_blocks]
+                highlighted = rosettes.highlight_many(items)
+                for (_, _, block, key), html in zip(simple_blocks, highlighted, strict=True):
+                    if cache and key:
+                        cache.set(key, html)
+                    results[block.placeholder_id] = _wrap_with_title(html, block.title)
+
+            backend = RosettesBackend()
+            for block, key in complex_blocks:
+                try:
+                    html = backend.highlight(
+                        code=block.code,
+                        language=block.language,
+                        hl_lines=block.hl_lines,
+                        show_linenos=block.show_linenos,
+                    )
+                    if cache and key:
+                        cache.set(key, html)
+                    results[block.placeholder_id] = _wrap_with_title(html, block.title)
+                except Exception as e:
+                    logger.warning("highlight_failed", language=block.language, error=str(e))
+                    results[block.placeholder_id] = _fallback_code_block(
+                        block.code, block.language, block.title
+                    )
+
         self._pending = []
-
         return results
 
     def __len__(self) -> int:
@@ -223,14 +287,17 @@ def _fallback_code_block(code: str, language: str, title: str | None) -> str:
 _thread_local = threading.local()
 
 
-def enable_deferred_highlighting() -> None:
+def enable_deferred_highlighting(cache: HighlightCache | None = None) -> None:
     """Enable deferred highlighting for the current thread.
 
     When enabled, code blocks are collected instead of highlighted immediately.
     Call flush_deferred_highlighting() after parsing to batch process them.
 
+    Args:
+        cache: Optional HighlightCache for block-level caching across pages.
     """
     _thread_local.collector = CodeBlockCollector()
+    _thread_local.highlight_cache = cache
     _thread_local.deferred_enabled = True
 
 
@@ -238,6 +305,7 @@ def disable_deferred_highlighting() -> None:
     """Disable deferred highlighting for the current thread."""
     _thread_local.deferred_enabled = False
     _thread_local.collector = None
+    _thread_local.highlight_cache = None
 
 
 def is_deferred_highlighting_enabled() -> bool:
@@ -275,9 +343,8 @@ def flush_deferred_highlighting(content: str) -> str:
     return content
 
 
-# Re-export for backward compatibility (now imported from utils.primitives.code)
+# Re-export for backward compatibility
 __all__ = [
-    "CodeBlock",
     "disable_deferred_highlighting",
     "enable_deferred_highlighting",
     "flush_deferred_highlighting",

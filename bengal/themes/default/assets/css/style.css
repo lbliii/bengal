@@ -111,6 +111,7 @@
 
 @layer pages {
   @import url('layouts/changelog.css');
+  @import url('layouts/notebook.css');
 }
 
 /* ============================================

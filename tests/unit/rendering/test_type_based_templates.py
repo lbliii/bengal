@@ -133,6 +133,28 @@ class TestTypeMappings:
 
         assert template == "blog/single.html"
 
+    def test_notebook_type_maps_to_notebook_templates(self):
+        """Test that type: notebook uses notebook/single.html template."""
+        site = Mock()
+        renderer = Renderer(site)
+
+        page = Mock(spec=Page)
+        page.metadata = {"type": "notebook"}
+        page.type = "notebook"
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        page._section = None
+        page.is_home = False
+        page.href = "/notebooks/demo/"
+
+        def template_exists(name):
+            return name == "notebook/single.html"
+
+        renderer._template_exists = template_exists
+
+        template = renderer._get_template_name(page)
+
+        assert template == "notebook/single.html"
+
 
 class TestTypeForIndexPages:
     """Test that types work for index pages (list templates)."""

@@ -307,7 +307,7 @@ This is a major simplification. Add a page, and it appears in nav automatically.
 | `footnotes` | Built-in | Standard markdown |
 | `meta` | Built-in | YAML frontmatter |
 | `pymdownx.emoji` | Not built-in | Use unicode emoji |
-| `pymdownx.arithmatex` | Built-in | KaTeX math support |
+| `pymdownx.arithmatex` | Built-in | KaTeX math; enable `content.math` in theme features — [[docs/content/authoring/math|Math and LaTeX]] |
 
 ---
 
@@ -432,6 +432,7 @@ No external plugins needed for Python API docs.
 | Plugin ecosystem | Built-in features | Most common plugins built-in |
 | `mkdocstrings` | Built-in autodoc | Different configuration |
 | Search (Lunr.js) | Built-in search | Similar functionality |
+| Mike (versioning) | Built-in versioning | `versions.json`, version selector, root redirect |
 | Social cards | Not built-in | Use external tools |
 | Blog plugin | Built-in blog | Different configuration |
 
@@ -632,7 +633,7 @@ Bengal has built-in autodoc that generates Python API documentation. Configure i
 :::{dropdown} Can I use MkDocs plugins?
 :icon: question
 
-MkDocs plugins are not compatible. However, most popular plugin functionality is built into Bengal: search, tags, blog, API docs, diagrams (Mermaid), math (KaTeX). Check the directives reference for equivalents.
+MkDocs plugins are not compatible. However, most popular plugin functionality is built into Bengal: search, tags, blog, API docs, diagrams (Mermaid), math (KaTeX). Enable `content.math` in theme features for math rendering. See [[docs/content/authoring/math|Math and LaTeX]] and the directives reference for equivalents.
 :::
 
 :::{dropdown} What about the explicit nav in mkdocs.yml?

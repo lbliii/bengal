@@ -114,6 +114,7 @@ class RenderingPipeline:
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
+        highlight_cache: Any | None = None,
         write_behind: WriteBehindCollector | None = None,
         build_cache: BuildCache | None = None,
     ) -> None:
@@ -204,6 +205,7 @@ class RenderingPipeline:
         )
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
+        self._highlight_cache = highlight_cache
 
         # Extract output collector from build context for hot reload tracking
         self._output_collector = (
@@ -403,7 +405,7 @@ class RenderingPipeline:
         need_toc = self._should_generate_toc(page)
 
         # Enable deferred highlighting for parallel batch processing (3.14t)
-        enable_deferred_highlighting()
+        enable_deferred_highlighting(cache=self._highlight_cache)
         try:
             if hasattr(self.parser, "parse_with_toc_and_context"):
                 self._parse_with_context_aware_parser(page, need_toc)

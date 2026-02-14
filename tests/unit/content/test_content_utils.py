@@ -42,6 +42,10 @@ class TestContentExtensions:
         """Plain text extension is included."""
         assert ".txt" in CONTENT_EXTENSIONS
 
+    def test_includes_ipynb(self) -> None:
+        """Jupyter notebook extension is included."""
+        assert ".ipynb" in CONTENT_EXTENSIONS
+
     def test_is_frozenset(self) -> None:
         """CONTENT_EXTENSIONS is immutable."""
         assert isinstance(CONTENT_EXTENSIONS, frozenset)
@@ -172,6 +176,7 @@ class TestPathToSlug:
         assert path_to_slug(Path("doc.markdown")) == "doc"
         assert path_to_slug(Path("doc.rst")) == "doc"
         assert path_to_slug(Path("doc.txt")) == "doc"
+        assert path_to_slug(Path("analysis.ipynb")) == "analysis"
 
     def test_string_input(self) -> None:
         """String paths work too."""

@@ -210,6 +210,9 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+    {% if 'content.math' in (theme.features ?? []) %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
+    {% end %}
 
     {# Theme configuration JS #}
     <script>
@@ -542,6 +545,10 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
     {% if 'content.lightbox' in theme.features %}
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
+    {% if 'content.math' in (theme.features ?? []) %}
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin></script>
+    <script defer src="{{ asset_url('js/enhancements/math.js') }}"></script>
+    {% end %}
     {% include "partials/link-previews.html" %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
     <script>

@@ -335,7 +335,7 @@ bengal serve
 | Custom builders (PDF, ePub) | HTML only | External tools |
 | Domain-specific roles | Not built-in | Use directives |
 | Numbered figures | Manual numbering | CSS counters |
-| Math/LaTeX | Built-in support | KaTeX rendering |
+| Math/LaTeX | Built-in support | Enable `content.math` in theme features; [[docs/content/authoring/math|Math and LaTeX]] |
 
 ### autodoc Alternative
 
