@@ -1,8 +1,7 @@
 """
 Shared build state for Bengal dev server.
 
-Decouples build_in_progress and active_palette from BengalRequestHandler so
-both the HTTP handler and future ASGI app can read the same state.
+Decouples build_in_progress and active_palette for the ASGI app and build trigger.
 """
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ class BuildState:
     """
     Thread-safe shared state for build progress and palette.
 
-    Used by BengalRequestHandler (HTTP) and create_bengal_dev_app (ASGI).
+    Used by create_bengal_dev_app (ASGI) and BuildTrigger.
     Written by BuildTrigger and DevServer.
     """
 

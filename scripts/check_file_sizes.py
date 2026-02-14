@@ -50,7 +50,6 @@ BASELINE_FILES = {
     "bengal/orchestration/asset.py",  # 598
     "bengal/analysis/graph_visualizer.py",  # 596
     "bengal/orchestration/render.py",  # 585
-    "bengal/server/request_handler.py",  # 585
     "bengal/autodoc/extractors/python/extractor.py",  # 579
     # ==================== LOWER PRIORITY (400-600 lines) ====================
     "bengal/debug/content_migrator.py",  # 567

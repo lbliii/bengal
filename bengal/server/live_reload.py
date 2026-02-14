@@ -58,7 +58,7 @@ BENGAL_SSE_KEEPALIVE_SECS: Keepalive interval in seconds (default: 15)
 BENGAL_DISABLE_RELOAD_EVENTS: Suppress reload events (diagnostic)
 
 Related:
-- bengal/server/request_handler.py: Uses LiveReloadMixin
+- bengal/server/asgi_app.py: Uses LIVE_RELOAD_SCRIPT, run_sse_loop
 - bengal/server/build_trigger.py: Calls notify_clients_reload
 - bengal/server/reload_controller.py: Decides reload type
 
@@ -326,7 +326,7 @@ class LiveReloadMixin:
 
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
     # Key: (file_path_str, mtime), Value: modified_content bytes
-    # Defined here in the mixin to avoid circular import with request_handler.py
+    # Defined here in the mixin to avoid circular import with asgi_app
     _html_cache: ClassVar[dict[tuple[str, float], bytes]] = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()

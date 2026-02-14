@@ -26,7 +26,7 @@ The DevServer coordinates several subsystems:
 
 1. Serve-First Check: If cached output exists, serve immediately
 2. Background Validation: Run incremental build to detect stale content
-3. HTTP Server: ThreadingTCPServer with BengalRequestHandler
+3. HTTP Server: Pounce ASGI with Bengal dev app
 4. File Watcher: WatcherRunner with watchfiles backend
 5. Build Trigger: Handles file changes and triggers rebuilds
 6. Resource Manager: Ensures cleanup on all exit scenarios
@@ -52,7 +52,7 @@ Related:
 - bengal/server/watcher_runner.py: Async file watching bridge
 - bengal/server/build_trigger.py: Build orchestration
 - bengal/server/build_executor.py: Process-isolated builds
-- bengal/server/request_handler.py: HTTP request handling
+- bengal/server/asgi_app.py: ASGI app with static serving and live reload
 - bengal/server/live_reload.py: SSE-based hot reload
 - bengal/server/resource_manager.py: Cleanup coordination
 

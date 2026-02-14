@@ -7,7 +7,7 @@ for a smooth development experience.
 Components:
 Core Server:
 - DevServer: Main orchestrator with HTTP serving and file watching
-- BengalRequestHandler: HTTP handler with live reload and custom 404s
+- create_bengal_dev_app: ASGI app with static serving, live reload, and custom 404s
 - ResourceManager: Graceful cleanup of resources on shutdown
 - PIDManager: Process tracking and stale process recovery
 
@@ -27,7 +27,7 @@ Live Reload:
 - send_reload_payload: Send structured reload events
 
 Utilities:
-- RequestLogger: Beautiful, filtered HTTP request logging
+- PounceBackend: Pounce ASGI server backend
 
 Features:
 - Automatic incremental rebuilds on file changes

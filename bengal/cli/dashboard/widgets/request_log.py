@@ -4,15 +4,8 @@ Request Log Widget.
 HTTP request logging display for dev server dashboard.
 Shows method, path, status, and duration for each request.
 
-Usage:
-from bengal.cli.dashboard.widgets import RequestLog
-
-    log = RequestLog()
-
-# Connect to request handler callback
-BengalRequestHandler.set_on_request(
-    lambda method, path, status, duration: log.add_request(method, path, status, duration)
-)
+Note: Request callback integration with Pounce ASGI is not yet implemented.
+The log displays requests when wired via create_bengal_dev_app middleware (future).
 
 RFC: rfc-dashboard-api-integration
 
@@ -70,8 +63,7 @@ class RequestLog(Vertical):
     Example:
         log = RequestLog(id="request-log")
 
-        # Connect to request handler
-        BengalRequestHandler.set_on_request(log.add_request)
+        # Request callback wiring (future: ASGI middleware)
 
     """
 
