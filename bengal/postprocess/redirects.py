@@ -58,6 +58,7 @@ from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -100,14 +101,20 @@ class RedirectGenerator:
 
     """
 
-    def __init__(self, site: SiteLike) -> None:
+    def __init__(
+        self,
+        site: SiteLike,
+        collector: OutputCollector | None = None,
+    ) -> None:
         """
         Initialize redirect generator.
 
         Args:
             site: Site instance with pages containing aliases
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
+        self._collector = collector
 
     def generate(self) -> int:
         """
@@ -233,6 +240,11 @@ class RedirectGenerator:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_text(output_path, html)
 
+        if self._collector:
+            from bengal.core.output import OutputType
+
+            self._collector.record(output_path, OutputType.HTML, phase="postprocess")
+
         logger.debug(
             "redirect_page_created",
             from_path=from_path,
@@ -308,6 +320,14 @@ class RedirectGenerator:
         if lines:
             redirects_path = self.site.output_dir / "_redirects"
             atomic_write_text(redirects_path, "\n".join(lines) + "\n")
+
+            if self._collector:
+                from bengal.core.output import OutputType
+
+                self._collector.record(
+                    redirects_path, OutputType.ASSET, phase="postprocess"
+                )
+
             logger.info(
                 "redirects_file_generated",
                 path=str(redirects_path),

@@ -112,6 +112,12 @@ class BuildStats:
     # instead of snapshot diffing.
     changed_outputs: list[OutputRecord] = field(default_factory=list)
 
+    # Advisory reload hint from build for smarter dev server decisions.
+    # "css-only": Prefer CSS hot reload when all changed_outputs are CSS
+    # "full": Any HTML changed
+    # "none": dry_run or no outputs
+    reload_hint: str | None = None  # Literal["css-only", "full", "none"]
+
     # Health check report (set after health checks run)
     health_report: HealthReport | None = None
 

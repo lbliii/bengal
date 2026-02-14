@@ -383,7 +383,11 @@ class BuildTrigger:
             )
 
             # Handle reload decision
-            self._handle_reload(changed_files, result.changed_outputs)
+            self._handle_reload(
+                changed_files,
+                result.changed_outputs,
+                reload_hint=getattr(result, "reload_hint", None),
+            )
 
             # Clear HTML cache
             self._clear_html_cache()
@@ -939,10 +943,12 @@ class BuildTrigger:
         self,
         changed_files: list[str],
         changed_outputs: tuple[tuple[str, str, str], ...],
+        reload_hint: str | None = None,
     ) -> None:
         """Handle reload decision and notification.
 
-        Uses typed outputs from the build for accurate reload decisions:
+        Uses typed outputs from the build for accurate reload decisions.
+        reload_hint from BuildStats is advisory (css-only, full, none).
         1. Primary: Typed outputs from build (CSS-only vs full reload)
         2. Fallback: Path-based decision (when typed outputs unavailable)
 
@@ -971,7 +977,9 @@ class BuildTrigger:
                     logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
             if records:
-                decision = controller.decide_from_outputs(records)
+                decision = controller.decide_from_outputs(
+                    records, reload_hint=reload_hint
+                )
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",

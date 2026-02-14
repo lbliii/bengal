@@ -743,21 +743,30 @@ class ReloadController:
 
         return decision
 
-    def decide_from_outputs(self, outputs: list[OutputRecord]) -> ReloadDecision:
+    def decide_from_outputs(
+        self,
+        outputs: list[OutputRecord],
+        reload_hint: str | None = None,
+    ) -> ReloadDecision:
         """
         Decide reload action from typed output records.
 
         This is the preferred entry point when builder provides typed output information.
         No snapshot diffing required - uses OutputType classification directly.
+        reload_hint from BuildStats is advisory (css-only, full, none).
 
         Args:
             outputs: List of OutputRecord from the build
+            reload_hint: Advisory hint from build for smarter decisions
 
         Returns:
             ReloadDecision with action based on output types.
             CSS-only changes → 'reload-css', otherwise → 'reload'.
         """
         from bengal.core.output import OutputType
+
+        if reload_hint == "none":
+            return ReloadDecision(action="none", reason="reload-hint-none", changed_paths=[])
 
         if not outputs:
             return ReloadDecision(action="none", reason="no-outputs", changed_paths=[])

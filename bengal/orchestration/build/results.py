@@ -22,9 +22,53 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
+    from bengal.core.section import Section
+    from bengal.core.site import Site
+    from bengal.orchestration.build_context import BuildContext
     from bengal.utils.observability.logger import BengalLogger
+
+
+@dataclass
+class DiscoveryPhaseInput:
+    """
+    Input for the discovery phase.
+
+    Contains everything needed to run content and asset discovery
+    without coupling to BuildOrchestrator.
+
+    Attributes:
+        site: Site instance to populate
+        cache: Optional BuildCache for incremental builds
+        incremental: Whether this is an incremental build
+        build_context: Optional BuildContext for content caching
+    """
+
+    site: Site
+    cache: BuildCache | None
+    incremental: bool
+    build_context: BuildContext | None
+
+
+@dataclass
+class DiscoveryPhaseOutput:
+    """
+    Output from the discovery phase.
+
+    Contains the discovered pages, sections, and assets.
+    Cached content lives in build_context; discovery populates it.
+
+    Attributes:
+        pages: Discovered content pages
+        sections: Discovered sections
+        assets: Discovered assets
+    """
+
+    pages: list[Page]
+    sections: list[Section]
+    assets: list[Asset]
 
 
 class RebuildReasonCode(Enum):

@@ -394,7 +394,8 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If special page generation fails
         """
-        generator = SpecialPagesGenerator(self.site)
+        collector = getattr(self, "_collector", None)
+        generator = SpecialPagesGenerator(self.site, collector=collector)
         generator.generate(build_context=build_context)
 
     def _generate_sitemap(self) -> None:
@@ -429,7 +430,8 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If redirect generation fails
         """
-        generator = RedirectGenerator(self.site)
+        collector = getattr(self, "_collector", None)
+        generator = RedirectGenerator(self.site, collector=collector)
         generator.generate()
 
     def _generate_social_cards(self) -> None:
@@ -449,7 +451,10 @@ class PostprocessOrchestrator:
         if not social_config.enabled:
             return
 
-        generator = SocialCardGenerator(self.site, social_config)
+        collector = getattr(self, "_collector", None)
+        generator = SocialCardGenerator(
+            self.site, social_config, collector=collector
+        )
         output_dir = self.site.output_dir / social_config.output_dir
 
         generated, cached = generator.generate_all(self.site.pages, output_dir)
@@ -547,5 +552,6 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If xref index generation fails
         """
-        generator = XRefIndexGenerator(self.site)
+        collector = getattr(self, "_collector", None)
+        generator = XRefIndexGenerator(self.site, collector=collector)
         generator.generate()

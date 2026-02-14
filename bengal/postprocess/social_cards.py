@@ -56,6 +56,7 @@ from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -200,16 +201,23 @@ class SocialCardGenerator:
 
     """
 
-    def __init__(self, site: SiteLike, config: SocialCardConfig) -> None:
+    def __init__(
+        self,
+        site: SiteLike,
+        config: SocialCardConfig,
+        collector: OutputCollector | None = None,
+    ) -> None:
         """
         Initialize social card generator.
 
         Args:
             site: Site instance with pages and configuration
             config: SocialCardConfig with styling options
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
         self.config = config
+        self._collector = collector
         self._cache: dict[str, str] = {}
         self._cache_lock = Lock()
         self._title_font: ImageFont.FreeTypeFont | None = None
@@ -755,6 +763,11 @@ class SocialCardGenerator:
             img.save(output_path, "JPEG", quality=self.config.quality, optimize=True)
         else:
             img.save(output_path, "PNG", optimize=True)
+
+        if self._collector:
+            from bengal.core.output import OutputType
+
+            self._collector.record(output_path, OutputType.IMAGE, phase="postprocess")
 
         # Update cache
         page_key = str(page.source_path)

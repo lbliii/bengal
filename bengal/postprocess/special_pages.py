@@ -61,6 +61,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
 
@@ -102,14 +103,20 @@ class SpecialPagesGenerator:
 
     """
 
-    def __init__(self, site: SiteLike) -> None:
+    def __init__(
+        self,
+        site: SiteLike,
+        collector: OutputCollector | None = None,
+    ) -> None:
         """
         Initialize special pages generator.
 
         Args:
             site: Site instance with configuration and template engine
+            collector: Optional output collector for hot reload tracking
         """
         self.site = site
+        self._collector = collector
 
     def generate(self, build_context: BuildContext | Any | None = None) -> None:
         """
@@ -264,6 +271,11 @@ class SpecialPagesGenerator:
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(rendered_html)
 
+                if self._collector:
+                    from bengal.core.output import OutputType
+
+                    self._collector.record(output_path, OutputType.HTML, phase="postprocess")
+
             return True
 
         except Exception as e:
@@ -391,6 +403,11 @@ class SpecialPagesGenerator:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(rendered_html)
 
+            if self._collector:
+                from bengal.core.output import OutputType
+
+                self._collector.record(output_path, OutputType.HTML, phase="postprocess")
+
             return True
         except Exception as e:
             logger.error(
@@ -491,11 +508,19 @@ class SpecialPagesGenerator:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_text(output_path, html)
 
+            if self._collector:
+                from bengal.core.output import OutputType
+
+                self._collector.record(output_path, OutputType.HTML, phase="postprocess")
+
             # Also generate JSON data file for minimap/embedding in other pages
             graph_data = visualizer.generate_graph_data()
             json_path = self.site.output_dir / raw_path.strip("/") / "graph.json"
             # json_dump uses atomic writes for crash-safety
             json_dump(graph_data, json_path, indent=2)
+
+            if self._collector:
+                self._collector.record(json_path, OutputType.JSON, phase="postprocess")
 
             return True
         except Exception as e:

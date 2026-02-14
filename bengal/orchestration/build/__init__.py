@@ -67,6 +67,7 @@ from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
+from .inputs import BuildInput
 from .options import BuildOptions
 
 logger = get_logger(__name__)
@@ -141,13 +142,14 @@ class BuildOrchestrator:
 
     def build(
         self,
-        options: BuildOptions,
+        options: BuildOptions | BuildInput,
     ) -> BuildStats:
         """
         Execute full build pipeline.
 
         Args:
-            options: BuildOptions dataclass with all build configuration.
+            options: BuildOptions or BuildInput with all build configuration.
+                BuildInput provides a complete serializable record for debugging.
 
         Returns:
             BuildStats object with build statistics
@@ -157,9 +159,16 @@ class BuildOrchestrator:
             >>> options = BuildOptions(strict=True)
             >>> stats = orchestrator.build(options)
         """
+        # Normalize to BuildInput for consistent input handling
+        if isinstance(options, BuildInput):
+            build_input = options
+            options = build_input.options
+        else:
+            build_input = BuildInput.from_options(options, self.site.root_path)
 
-        # Store options for use in build phases (e.g., max_workers for WaveScheduler)
+        # Store for use in build phases (e.g., max_workers for WaveScheduler)
         self.options = options
+        self.current_input: BuildInput = build_input
 
         # Extract values from options for use in build phases
         # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
@@ -375,7 +384,7 @@ class BuildOrchestrator:
         output_collector = BuildOutputCollector(output_dir=self.site.output_dir)
 
         # Phase 1: Font Processing
-        initialization.phase_fonts(self, cli)
+        initialization.phase_fonts(self, cli, collector=output_collector)
 
         # Phase 1.5: Template Validation (optional, controlled by config)
         initialization.phase_template_validation(self, cli, strict=strict)
@@ -766,6 +775,17 @@ class BuildOrchestrator:
 
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
+
+        # Compute reload_hint for smarter dev server decisions
+        outputs = self.stats.changed_outputs
+        if self.stats.dry_run or not outputs:
+            self.stats.reload_hint = "none"
+        elif any(o.output_type.value == "html" for o in outputs):
+            self.stats.reload_hint = "full"
+        elif all(o.output_type.value == "css" for o in outputs):
+            self.stats.reload_hint = "css-only"
+        else:
+            self.stats.reload_hint = "full"
 
         # Debug: Log output collection for hot reload diagnostics
         if self.stats.changed_outputs:
