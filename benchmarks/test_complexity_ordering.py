@@ -231,9 +231,7 @@ class TestRealWorldScenarios:
     def test_variance_ratio_interpretation(self) -> None:
         """Validate variance ratio interpretation from RFC."""
         # High variance scenario
-        high_var_pages = [
-            _make_page("```\n```\n" * 30, f"heavy_{i}") for i in range(10)
-        ]
+        high_var_pages = [_make_page("```\n```\n" * 30, f"heavy_{i}") for i in range(10)]
         high_var_pages.extend(_make_page("short", f"light_{i}") for i in range(90))
 
         stats = get_complexity_stats(high_var_pages)

@@ -387,7 +387,9 @@ def format_summary(
         lines.append("Issues (sorted by category):")
         lines.append("-" * 60)
 
-        lines.extend(str(issue) for issue in sorted(issues, key=lambda x: (x.category, x.path, x.line)))
+        lines.extend(
+            str(issue) for issue in sorted(issues, key=lambda x: (x.category, x.path, x.line))
+        )
 
     return "\n".join(lines)
 

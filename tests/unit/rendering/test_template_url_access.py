@@ -139,9 +139,7 @@ class TestNavigationComponentURLs:
                 urls.append(section.index_page.href)
 
             # Section pages
-            for page in section.pages:
-                if page != section.index_page:
-                    urls.append(page.href)
+            urls.extend(page.href for page in section.pages if page != section.index_page)
 
             # Subsections
             urls.extend(

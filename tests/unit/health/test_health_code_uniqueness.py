@@ -91,9 +91,7 @@ class TestHealthCheckCodeUniqueness:
         """Health check codes should follow H### or V### convention."""
         codes_map = get_all_health_codes()
 
-        invalid_codes = [
-            code for code in codes_map if not re.match(r"^[HV]\d{3}$", code)
-        ]
+        invalid_codes = [code for code in codes_map if not re.match(r"^[HV]\d{3}$", code)]
 
         if invalid_codes:
             pytest.fail(f"Invalid health check codes (should be H### or V###): {invalid_codes}")

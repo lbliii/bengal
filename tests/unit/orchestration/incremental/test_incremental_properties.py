@@ -32,8 +32,8 @@ import pytest
 
 # hypothesis is an optional dev dependency - importorskip must run before import
 pytest.importorskip("hypothesis")
-from hypothesis import HealthCheck, assume, given, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
 
 if TYPE_CHECKING:
     pass

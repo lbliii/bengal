@@ -192,10 +192,7 @@ class TestContentOrchestratorOutputPathSetting:
         assert reference_section is not None, "Should find reference section"
 
         # Simulate template loop: {% for page in section.pages %}
-        nav_links = [
-            {"title": page.title, "url": page.href}
-            for page in reference_section.pages
-        ]
+        nav_links = [{"title": page.title, "url": page.href} for page in reference_section.pages]
 
         # Verify all nav links have correct section prefix
         for link in nav_links:

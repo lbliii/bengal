@@ -215,9 +215,7 @@ def main():
     )
 
     # Test 15: Pseudo-elements
-    results.append(
-        test_case("Pseudo-elements", "p::before { content: ''; }", ["p::before"], None)
-    )
+    results.append(test_case("Pseudo-elements", "p::before { content: ''; }", ["p::before"], None))
 
     # Test 16: Multiple spaces
     results.append(

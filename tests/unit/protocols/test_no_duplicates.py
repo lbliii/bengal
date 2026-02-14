@@ -95,9 +95,11 @@ class TestNoDuplicateProtocols:
             if isinstance(base, ast.Name) and base.id == "Protocol":
                 return True
             # Subscripted Protocol (e.g., Protocol[T])
-            if isinstance(base, ast.Subscript) and isinstance(
-                base.value, ast.Name
-            ) and base.value.id == "Protocol":
+            if (
+                isinstance(base, ast.Subscript)
+                and isinstance(base.value, ast.Name)
+                and base.value.id == "Protocol"
+            ):
                 return True
         return False
 

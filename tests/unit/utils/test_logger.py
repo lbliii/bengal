@@ -140,7 +140,7 @@ def test_phase_timing(logger):
 
 def test_phase_error_handling(logger):
     """Test that phase errors are logged."""
-    with pytest.raises(ValueError), logger.phase("error_phase"):
+    with pytest.raises(ValueError, match="test error"), logger.phase("error_phase"):
         raise ValueError("test error")
 
     events = logger.get_events()

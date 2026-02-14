@@ -396,8 +396,7 @@ class TestGetCurrentYearProperties:
 
     @pytest.mark.hypothesis
     @given(st.just(None))  # Run once
-    @pytest.mark.usefixtures("_")
-    def test_returns_integer(self):
+    def test_returns_integer(self, _: None):
         """
         Property: get_current_year returns an integer.
         """
@@ -407,8 +406,7 @@ class TestGetCurrentYearProperties:
 
     @pytest.mark.hypothesis
     @given(st.just(None))  # Run once
-    @pytest.mark.usefixtures("_")
-    def test_reasonable_year(self):
+    def test_reasonable_year(self, _: None):
         """
         Property: Current year is within reasonable bounds.
         """

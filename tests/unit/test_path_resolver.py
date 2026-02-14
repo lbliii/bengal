@@ -107,7 +107,7 @@ class TestPathResolver:
         """relative_to_base raises for paths outside base."""
         resolver = PathResolver(tmp_path / "site")
         outside_path = tmp_path / "other" / "file.md"
-        with pytest.raises(ValueError, match="outside|relative"):
+        with pytest.raises(ValueError, match=r"does not start with"):
             resolver.relative_to_base(outside_path)
 
     def test_from_site(self, tmp_path: Path) -> None:

@@ -13,8 +13,8 @@ from bengal.rendering.asset_tracking import AssetTracker, get_current_tracker
 
 # Skip if hypothesis not available - importorskip must run before import
 pytest.importorskip("hypothesis")
-from hypothesis import given, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 
 class TestAssetTrackerProperties:

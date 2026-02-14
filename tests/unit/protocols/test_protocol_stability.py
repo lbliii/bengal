@@ -38,7 +38,13 @@ from bengal.protocols import (
 class TestProgressReporterStability:
     """Guard against breaking changes to ProgressReporter."""
 
-    REQUIRED_METHODS: ClassVar[set[str]] = {"add_phase", "start_phase", "update_phase", "complete_phase", "log"}
+    REQUIRED_METHODS: ClassVar[set[str]] = {
+        "add_phase",
+        "start_phase",
+        "update_phase",
+        "complete_phase",
+        "log",
+    }
 
     def test_has_required_methods(self) -> None:
         """ProgressReporter must have these exact methods."""
@@ -239,7 +245,14 @@ class TestTemplateProtocolsStability:
 class TestOutputTargetStability:
     """Guard against breaking changes to OutputTarget."""
 
-    REQUIRED_METHODS: ClassVar[set[str]] = {"name", "write", "write_bytes", "copy", "mkdir", "exists"}
+    REQUIRED_METHODS: ClassVar[set[str]] = {
+        "name",
+        "write",
+        "write_bytes",
+        "copy",
+        "mkdir",
+        "exists",
+    }
 
     def test_has_required_methods(self) -> None:
         """OutputTarget must have these methods."""

@@ -236,8 +236,7 @@ class TestBreadcrumbLogic:
         # Get ancestors (no root)
         ancestors = page.ancestors
         breadcrumb_items = [
-            {"title": ancestor.title, "url": ancestor._path}
-            for ancestor in reversed(ancestors)
+            {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
         ]
 
         # Should only have docs (no root)
@@ -272,8 +271,7 @@ class TestBreadcrumbLogic:
         # Get ancestors (no root)
         ancestors = page.ancestors
         breadcrumb_items = [
-            {"title": ancestor.title, "url": ancestor._path}
-            for ancestor in reversed(ancestors)
+            {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
         ]
 
         # Should have: Api → V2 (no root)

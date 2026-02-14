@@ -40,8 +40,11 @@ class TestHighConcurrencyStress:
         extractor = PythonExtractor(config={"parallel_autodoc": True})
 
         # Mock core count to force high concurrency if machine has few cores
-        with patch("multiprocessing.cpu_count", return_value=16), patch(
-            "bengal.autodoc.extractors.python.extractor.get_optimal_workers", return_value=16
+        with (
+            patch("multiprocessing.cpu_count", return_value=16),
+            patch(
+                "bengal.autodoc.extractors.python.extractor.get_optimal_workers", return_value=16
+            ),
         ):
             elements = extractor.extract(pkg_dir)
 
