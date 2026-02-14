@@ -634,13 +634,15 @@ def build(
         if build_profile == BuildProfile.DEVELOPER and not quiet:
             print_all_summaries()
 
-        # Show GIL tip for performance (only if not quiet and GIL could be disabled)
+        # Show DX hints (Docker/K8s baseurl, GIL, etc.)
         if not quiet and not explain:
-            from bengal.utils.concurrency.gil import format_gil_tip_for_cli
+            from bengal.utils.dx import collect_hints
 
-            gil_tip = format_gil_tip_for_cli()
-            if gil_tip:
-                cli.tip(gil_tip)
+            site_cfg = site.config.get("site") or {}
+            baseurl = str(site_cfg.get("baseurl", "") or "") if isinstance(site_cfg, dict) else ""
+            hints = collect_hints("build", baseurl=baseurl, max_hints=1)
+            if hints:
+                cli.tip(hints[0].message)
     finally:
         # Always close log file handles
         close_all_loggers()

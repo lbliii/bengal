@@ -230,4 +230,15 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             hint="Deployment platform baseurl auto-detection failed; verify environment variables",
         )
 
+    # DX hint: container environments with empty baseurl
+    try:
+        from bengal.utils.dx import collect_hints
+
+        baseurl_val = config.get("baseurl") or (config.get("site") or {}).get("baseurl", "")
+        hints = collect_hints("config", baseurl=str(baseurl_val or ""), max_hints=1)
+        for h in hints:
+            logger.info("dx_hint", hint_id=h.id, message=h.message)
+    except Exception:
+        pass
+
     return config
