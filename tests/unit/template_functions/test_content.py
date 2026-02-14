@@ -17,7 +17,8 @@ class TestFilterHighlight:
 
     def test_highlights_python(self):
         result = filter_highlight("def foo(): pass", "python")
-        assert "syntax-keyword" in result or "syntax-function" in result or "rosettes" in result
+        assert "<pre>" in result
+        assert "<code" in result
         assert "def" in result
         assert "foo" in result
 

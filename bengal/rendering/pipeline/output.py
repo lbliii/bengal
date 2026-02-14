@@ -218,6 +218,7 @@ def _copy_notebook_source(page: PageLike) -> None:
     if not str(src).lower().endswith(".ipynb") or not src.exists():
         return
     dest = page.output_path.parent / f"{src.stem}.ipynb"
+    dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         import shutil
 

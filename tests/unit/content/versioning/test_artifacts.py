@@ -7,9 +7,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 from bengal.content.versioning.artifacts import (
+    _redirect_html,
     build_versions_json,
     write_root_redirect,
     write_versions_json,
@@ -135,3 +134,10 @@ class TestWriteRootRedirect:
             write_root_redirect(site, out)
             html = (out / "index.html").read_text()
             assert "/guide/" in html
+
+    def test_redirect_html_escapes_special_characters(self) -> None:
+        """href with quotes/special chars must be escaped to avoid malformed HTML/JS."""
+        html_out = _redirect_html('https://example.com/docs/" onload="alert(1)')
+        assert "&quot;" in html_out
+        assert 'onload="alert(1)' not in html_out
+        assert "href=" in html_out

@@ -18,10 +18,11 @@ class HighlightCache:
         self._lock = threading.Lock()
 
     def get(self, key: str) -> str | None:
-        """Return cached HTML if present."""
+        """Return cached HTML if present. Thread-safe for parallel rendering."""
         if not self._enabled:
             return None
-        return self._cache.get(key)
+        with self._lock:
+            return self._cache.get(key)
 
     def set(self, key: str, html: str) -> None:
         """Store highlighted HTML. Uses lock for thread-safe writes."""

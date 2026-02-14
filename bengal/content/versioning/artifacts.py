@@ -14,6 +14,7 @@ Related:
 
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -147,17 +148,22 @@ def write_root_redirect(site: Any, output_dir: Path) -> None:
 
 
 def _redirect_html(href: str) -> str:
-    """Generate HTML redirect page (meta refresh + JS fallback)."""
+    """Generate HTML redirect page (meta refresh + JS fallback).
+
+    Escapes href for safe use in HTML attributes and JS string literals.
+    """
+    href_attr = html.escape(href, quote=True)
+    href_js = json.dumps(href)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0;url={href}">
-<link rel="canonical" href="{href}">
+<meta http-equiv="refresh" content="0;url={href_attr}">
+<link rel="canonical" href="{href_attr}">
 <title>Redirecting...</title>
-<script>window.location.replace("{href}");</script>
+<script>window.location.replace({href_js});</script>
 </head>
-<body><p>Redirecting to <a href="{href}">documentation</a>...</p></body>
+<body><p>Redirecting to <a href="{href_attr}">documentation</a>...</p></body>
 </html>
 """
 
