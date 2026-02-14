@@ -5,8 +5,6 @@ Converts Jupyter notebook (.ipynb) JSON to (markdown_content, metadata)
 in the same shape as Markdown files with frontmatter. Extracts metadata
 from notebook.metadata (Jupyter Book / JupyterLab conventions) and
 converts cells to Markdown with fenced code blocks and output rendering.
-
-Requires: nbformat (install via bengal[notebooks])
 """
 
 from __future__ import annotations
@@ -14,26 +12,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import nbformat
+
 from bengal.utils.io.file_io import read_text_file
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.text import humanize_slug
 
 logger = get_logger(__name__)
-
-_NBFORMAT_HINT = (
-    "Install notebook support: pip install bengal[notebooks] or pip install nbformat>=5.0"
-)
-
-
-def _get_nbformat() -> Any:
-    """Import nbformat, raising a clear error if not installed."""
-    try:
-        import nbformat
-
-        return nbformat
-    except ImportError as e:
-        msg = f"nbformat is required to parse .ipynb files. {_NBFORMAT_HINT}"
-        raise ImportError(msg) from e
 
 
 class NotebookConverter:
@@ -57,11 +42,8 @@ class NotebookConverter:
             Tuple of (markdown_content, metadata_dict)
 
         Raises:
-            ImportError: If nbformat is not installed
             OSError: If file cannot be read
         """
-        nbformat = _get_nbformat()
-
         if file_content is None:
             file_content = read_text_file(
                 file_path, fallback_encoding="utf-8", on_error="raise", caller="notebook_converter"

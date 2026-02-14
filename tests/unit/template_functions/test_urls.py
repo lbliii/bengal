@@ -1,8 +1,12 @@
 """Tests for URL template functions."""
 
+from pathlib import Path
+from unittest.mock import Mock
+
 from bengal.rendering.template_functions.urls import (
     absolute_url,
     ensure_trailing_slash,
+    notebook_download_url,
     url_decode,
     url_encode,
     url_param,
@@ -225,4 +229,60 @@ class TestUrlQuery:
 
     def test_none_dict(self):
         result = url_query(None)
+        assert result == ""
+
+
+class TestNotebookDownloadUrl:
+    """Tests for notebook_download_url template function."""
+
+    def test_notebook_page_returns_download_path(self) -> None:
+        """Notebook page with _path and slug returns .ipynb URL path."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        page._path = "/notebooks/demo/"
+        page.slug = "demo"
+        page.href = "/notebooks/demo/"
+
+        result = notebook_download_url(page)
+        assert result == "/notebooks/demo/demo.ipynb"
+
+    def test_notebook_page_uses_href_when_path_missing(self) -> None:
+        """Falls back to href when _path is not set."""
+        page = Mock()
+        page.source_path = Path("content/examples/tutorial.ipynb")
+        page._path = None
+        page.slug = "tutorial"
+        page.href = "/examples/tutorial/"
+
+        result = notebook_download_url(page)
+        assert result == "/examples/tutorial/tutorial.ipynb"
+
+    def test_notebook_page_uses_stem_when_slug_missing(self) -> None:
+        """Falls back to source_path.stem when slug is not set."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/analysis.ipynb")
+        page._path = "/notebooks/analysis/"
+        page.slug = None
+        page.href = "/notebooks/analysis/"
+
+        result = notebook_download_url(page)
+        assert result == "/notebooks/analysis/analysis.ipynb"
+
+    def test_non_notebook_page_returns_empty(self) -> None:
+        """Markdown page returns empty string."""
+        page = Mock()
+        page.source_path = Path("content/docs/guide.md")
+
+        result = notebook_download_url(page)
+        assert result == ""
+
+    def test_none_page_returns_empty(self) -> None:
+        """None page returns empty string."""
+        result = notebook_download_url(None)
+        assert result == ""
+
+    def test_page_without_source_path_returns_empty(self) -> None:
+        """Page without source_path returns empty string."""
+        page = Mock(spec=[])
+        result = notebook_download_url(page)
         assert result == ""

@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Versioning (S-Tier Docs)
+- **versioning**: emit Mike-compatible `versions.json` when versioning enabled
+  - Lists versions with title, aliases, url_prefix for themes and external tools
+  - Config: `versioning.emit_versions_json` (default true)
+- **versioning**: add root redirect for docs-only sites
+  - Config: `versioning.default_redirect`, `versioning.default_redirect_target`
+  - Writes `index.html` with meta-refresh + JS redirect to default version
+- **docs**: document versions.json format and root redirect in versioning guide
+- **docs**: add Mike comparison to MkDocs migration guide
+
 ### Math / LaTeX Rendering
 - **themes**: add `content.math` feature for KaTeX client-side math rendering
   - Opt-in via `theme.features`; loads KaTeX CSS/JS when enabled

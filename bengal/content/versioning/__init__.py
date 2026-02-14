@@ -37,7 +37,20 @@ Example:
 
 from __future__ import annotations
 
+from bengal.content.versioning.artifacts import (
+    build_versions_json,
+    write_root_redirect,
+    write_versions_json,
+)
 from bengal.content.versioning.git_adapter import GitRef, GitVersionAdapter, GitWorktree
 from bengal.content.versioning.resolver import VersionResolver
 
-__all__ = ["GitRef", "GitVersionAdapter", "GitWorktree", "VersionResolver"]
+__all__ = [
+    "GitRef",
+    "GitVersionAdapter",
+    "GitWorktree",
+    "VersionResolver",
+    "build_versions_json",
+    "write_root_redirect",
+    "write_versions_json",
+]

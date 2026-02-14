@@ -158,6 +158,32 @@ Default timeout changed from 30s to 60s.
 
 → [Version Directives](./directives.md)
 
+### Build Artifacts (versions.json)
+
+When versioning is enabled, Bengal emits `versions.json` at the output root. This Mike-compatible manifest lists all versions with titles, aliases, and URL prefixes—useful for custom themes or external tools.
+
+```json
+[
+  {"version": "v3", "title": "3.0", "aliases": ["latest"], "url_prefix": ""},
+  {"version": "v2", "title": "2.0", "aliases": [], "url_prefix": "/v2"}
+]
+```
+
+Disable with `versioning.emit_versions_json: false`.
+
+### Root Redirect
+
+For docs-only sites where the root should redirect to the default version:
+
+```yaml
+versioning:
+  enabled: true
+  default_redirect: true
+  default_redirect_target: "/docs/"  # optional, defaults to first section
+```
+
+This writes `index.html` at the output root with a meta-refresh and JavaScript redirect. **Note**: This overwrites any existing home page—use only when the site root is meant to redirect to docs.
+
 ### SEO Optimization
 
 Bengal automatically handles SEO for versioned docs:

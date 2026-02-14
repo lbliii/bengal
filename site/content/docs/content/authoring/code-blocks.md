@@ -129,6 +129,10 @@ Bengal uses **[[ext:rosettes:docs/reference/languages|Rosettes]]** for syntax hi
 | Regex | `regex`, `regexp` |
 :::
 
+:::{seealso}
+For inline and block math ($...$, $$...$$), see [[docs/content/authoring/math|Math and LaTeX]]. The LaTeX identifier above is for syntax-highlighting LaTeX *code* in fenced blocks.
+:::
+
 :::{tab-item} Functional
 | Language | Identifier |
 |----------|------------|

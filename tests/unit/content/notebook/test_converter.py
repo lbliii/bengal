@@ -4,11 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-pytest.importorskip("nbformat", reason="nbformat required for notebook support")
-
-
 from bengal.content.notebook.converter import NotebookConverter
 
 
