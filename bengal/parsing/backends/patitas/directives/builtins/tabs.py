@@ -45,7 +45,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from html import escape as html_escape
+from html import escape as html_escape, unescape as html_unescape
 from typing import TYPE_CHECKING, ClassVar
 
 from patitas.nodes import Directive
@@ -402,10 +402,11 @@ def _extract_tab_items(text: str) -> list[TabItemData]:
         if not match:
             break
 
-        title = match.group(1)
+        # Unescape: values were html_escape'd when written to data-* attrs
+        title = html_unescape(match.group(1))
         selected = match.group(2)
-        icon = match.group(3)
-        badge = match.group(4)
+        icon = html_unescape(match.group(3))
+        badge = html_unescape(match.group(4))
         disabled = match.group(5)
         start = match.end()
 
