@@ -189,3 +189,11 @@ strict_mode = true
 :::{note}
 Template validation adds a small overhead to build time. For large sites, consider enabling it only in development and CI environments.
 :::
+
+## Multi-Variant Builds
+
+Build different site variants (OSS vs Enterprise, brand1 vs brand2) from one content tree. Set `params.edition` per environment and add `edition` to page frontmatter to filter content.
+
+:::{seealso}
+[Multi-Variant Builds](./variants) — Full guide for OSS/Enterprise and brand variants
+:::

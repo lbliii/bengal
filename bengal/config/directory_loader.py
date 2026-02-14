@@ -282,6 +282,11 @@ class ConfigDirectoryLoader:
             if explicit_baseurl == "":
                 config["_baseurl_explicit_empty"] = True
 
+        # BENGAL_ prefix overrides (Hugo-style) - before platform inference
+        from bengal.config.env_config import apply_bengal_overrides
+
+        config = apply_bengal_overrides(config)
+
         # Apply environment-based overrides (GitHub Actions, Netlify, Vercel)
         # Must happen after flattening so baseurl is at top level
         from bengal.config.env_overrides import apply_env_overrides

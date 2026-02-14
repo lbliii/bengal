@@ -225,6 +225,28 @@ PALETTE_COLORS: dict[str, tuple[str, str, str, str, str]] = {
 # Default palette colors (Snow Lynx - the default palette)
 DEFAULT_PALETTE = "snow-lynx"
 
+# Minimal "rebuilding" badge injected when serving cached content during build.
+# Small floating indicator in bottom-right corner; page stays browsable.
+REBUILDING_BADGE_SCRIPT = r"""
+<div id="bengal-rebuilding-badge" style="position:fixed;bottom:12px;right:12px;z-index:99999;
+padding:6px 12px;font-size:12px;font-family:system-ui,sans-serif;font-weight:500;
+background:rgba(0,0,0,0.75);color:#e8e4de;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+animation:bengal-badge-pulse 1.5s ease-in-out infinite;">
+<span style="opacity:0.9;">Rebuilding</span>
+</div>
+<style>@keyframes bengal-badge-pulse{50%{opacity:.7}}</style>
+"""
+
+
+def get_rebuilding_badge_script() -> str:
+    """
+    Return the minimal rebuilding badge HTML to inject when serving cached content.
+
+    Shown in a corner during builds so users can keep browsing the old version.
+    Disappears when the page reloads after build completes.
+    """
+    return REBUILDING_BADGE_SCRIPT.strip()
+
 
 def get_rebuilding_page_html(path: str, palette: str | None = None) -> bytes:
     """

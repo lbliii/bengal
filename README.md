@@ -15,10 +15,15 @@ bengal new site mysite && cd mysite && bengal serve
 
 ---
 
-## Why Bengal?
+## What is Bengal?
+
+Bengal is a high-performance static site generator for Python 3.14+. Parallel builds, incremental rebuilds, Zstandard-compressed caching. Drop `.ipynb` into content and build — no conversion step, no extra deps.
+
+**What's good about it:**
 
 - **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern** — Python 3.14+ with free-threading support, fully typed
+- **Notebooks** — Native Jupyter `.ipynb` rendering, Binder/Colab links
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
 - **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
 
@@ -207,6 +212,7 @@ structure:
 | Feature | Description | Docs |
 |---------|-------------|------|
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
+| **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
 | **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
 | **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
 | **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/theming/templating/image-processing/) |
@@ -308,7 +314,7 @@ Bengal follows a "bring your own" pattern — swap engines without changing your
 
 | Engine | Description | Install |
 |--------|-------------|---------|
-| **Kida** (default) | Bengal's native engine. 2-5x faster than Jinja2, free-threading safe, Jinja2-compatible syntax | Built-in |
+| **Kida** (default) | Bengal's native engine. AST-native, free-threading safe, Jinja2-compatible syntax | Built-in |
 | **Jinja2** | Industry-standard with extensive ecosystem | Built-in |
 
 ```yaml
@@ -321,11 +327,11 @@ template_engine: kida  # or jinja2
 <details>
 <summary><strong>Markdown Parsers</strong></summary>
 
-| Parser | Description | Best For |
-|--------|-------------|----------|
-| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Python 3.14+, large sites |
-| **Mistune** | Fast, modern parser | General use |
-| **Python-Markdown** | Full-featured, extensive extensions | Complex edge cases |
+| Parser | Description | Install |
+|--------|-------------|---------|
+| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Built-in |
+| **Mistune** | Fast, modern parser | Built-in |
+| **Python-Markdown** | Full-featured, extensive extensions | Built-in |
 
 ```yaml
 # config/_default/content.yaml
@@ -338,17 +344,15 @@ markdown:
 <details>
 <summary><strong>Syntax Highlighters</strong></summary>
 
-| Backend | Description | Performance |
-|---------|-------------|-------------|
-| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | 3.4x faster than Pygments |
+| Backend | Description | Install |
+|---------|-------------|---------|
+| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | `pip install rosettes` |
 
 ```yaml
 # config/_default/theme.yaml
 highlighting:
   backend: rosettes
 ```
-
-Rosettes is now a standalone package: [`pip install rosettes`](https://pypi.org/project/rosettes/)
 
 Custom backends can be registered via `register_backend()`.
 
@@ -391,6 +395,8 @@ cd bengal
 uv sync --group dev
 pytest
 ```
+
+**Multi-repo workspace:** With bengal, patitas, rosettes, etc. as siblings, copy `workspace-root.example/pyproject.toml` to the parent directory and run `uv sync` from there. The workspace root overrides sources so all packages use local versions. CI and end users (no workspace root) use PyPI.
 
 ---
 

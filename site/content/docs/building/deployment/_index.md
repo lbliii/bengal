@@ -155,5 +155,6 @@ site:
 
 :::{seealso}
 - [Configuration](../configuration/) — Environment-specific settings
+- [Multi-Variant Builds](../configuration/variants) — OSS vs Enterprise, brand variants
 - [Performance](../performance/) — Optimize build times
 :::

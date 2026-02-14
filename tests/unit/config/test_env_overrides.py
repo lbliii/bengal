@@ -227,6 +227,84 @@ class TestApplyEnvOverridesGitHub:
         assert result["site"]["baseurl"] == ""
 
 
+class TestApplyEnvOverridesGitHubParams:
+    """Tests for GitHub Actions params inference (repo_url, colab_branch)."""
+
+    def test_github_params_inferred_when_missing(self):
+        """params.repo_url and params.colab_branch inferred from GITHUB_* when missing."""
+        config = {"site": {}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "owner/myrepo",
+            "GITHUB_REF_NAME": "main",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result.get("params", {}).get("repo_url") == "https://github.com/owner/myrepo"
+        assert result.get("params", {}).get("colab_branch") == "main"
+
+    def test_github_params_inferred_with_refs_heads_prefix(self):
+        """GITHUB_REF_NAME refs/heads/ prefix is stripped."""
+        config = {"site": {}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "org/proj",
+            "GITHUB_REF_NAME": "refs/heads/develop",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result.get("params", {}).get("colab_branch") == "develop"
+
+    def test_github_params_respects_explicit_repo_url(self):
+        """Explicit repo_url in config is not overridden."""
+        config = {"site": {}, "params": {"repo_url": "https://github.com/custom/repo"}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "owner/myrepo",
+            "GITHUB_REF_NAME": "main",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result["params"]["repo_url"] == "https://github.com/custom/repo"
+
+    def test_github_params_respects_explicit_empty_repo_url(self):
+        """Explicit repo_url: '' (disable) is not overridden."""
+        config = {"site": {}, "params": {"repo_url": ""}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "owner/myrepo",
+            "GITHUB_REF_NAME": "main",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result["params"]["repo_url"] == ""
+
+    def test_github_params_uses_server_url(self):
+        """GITHUB_SERVER_URL is used when set (e.g. GitHub Enterprise)."""
+        config = {"site": {}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_SERVER_URL": "https://git.company.com",
+            "GITHUB_REPOSITORY": "team/repo",
+            "GITHUB_REF_NAME": "main",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result.get("params", {}).get("repo_url") == "https://git.company.com/team/repo"
+
+    def test_github_params_not_inferred_without_repository(self):
+        """params not inferred when GITHUB_REPOSITORY is missing or malformed."""
+        config = {"site": {}, "params": {}}
+        env = {
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_REPOSITORY": "noslash",
+            "GITHUB_REF_NAME": "main",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            result = apply_env_overrides(config)
+        assert result.get("params", {}).get("repo_url") is None
+
+
 class TestApplyEnvOverridesPriority:
     """Tests for environment override priority."""
 

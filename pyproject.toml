@@ -33,7 +33,7 @@ dependencies = [
     "jinja2>=3.1.0",
     "rosettes>=0.2.0",
     "kida-templates>=0.2.0",                   # Kida template engine (AST-native, free-threading ready)
-    "patitas>=0.2.0",                          # Modern Markdown parser (CommonMark, free-threading ready)
+    "patitas>=0.3.0",                          # Markdown + notebook parser (CommonMark, .ipynb)
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",
     "jsmin>=3.0.1",
@@ -47,7 +47,6 @@ dependencies = [
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
-    "nbformat>=5.0",                          # Jupyter notebook (.ipynb) as content
 ]
 
 [project.optional-dependencies]

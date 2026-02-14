@@ -137,8 +137,10 @@ async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_build_in_progress_serves_rebuilding_page(tmp_path: Path) -> None:
-    """When build in progress and path is HTML-like, serve rebuilding page."""
+async def test_build_in_progress_serves_rebuilding_page_when_file_missing(
+    tmp_path: Path,
+) -> None:
+    """When build in progress and requested file does not exist, serve full placeholder."""
     app = create_bengal_dev_app(
         output_dir=tmp_path,
         build_in_progress=lambda: True,
@@ -155,6 +157,29 @@ async def test_build_in_progress_serves_rebuilding_page(tmp_path: Path) -> None:
     assert sent[0]["status"] == 200
     assert b"Rebuilding" in sent[1]["body"]
     assert b"/blog/post" in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_build_in_progress_serves_cached_with_badge(tmp_path: Path) -> None:
+    """When build in progress and file exists, serve cached content with rebuilding badge."""
+    (tmp_path / "index.html").write_text("<html><body>Hello</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: True,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    body = sent[1]["body"]
+    assert b"Hello" in body
+    assert b"bengal-rebuilding-badge" in body
+    assert b"Rebuilding" in body
 
 
 @pytest.mark.asyncio

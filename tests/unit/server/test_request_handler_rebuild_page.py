@@ -88,6 +88,21 @@ class TestRebuildingPageContent:
         assert b"ellipse" in REBUILDING_PAGE_HTML
 
 
+class TestRebuildingBadge:
+    """Test the minimal rebuilding badge shown when serving cached content during build."""
+
+    def test_get_rebuilding_badge_script_returns_badge_html(self) -> None:
+        """Test that get_rebuilding_badge_script returns the badge div."""
+        from bengal.server.responses import get_rebuilding_badge_script
+
+        badge = get_rebuilding_badge_script()
+        assert "bengal-rebuilding-badge" in badge
+        assert "Rebuilding" in badge
+        assert "position:fixed" in badge
+        assert "bottom:" in badge
+        assert "right:" in badge
+
+
 class TestRebuildingPagePalette:
     """Test the palette-aware rebuilding page functionality."""
 

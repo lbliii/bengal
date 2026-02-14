@@ -106,6 +106,10 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 "exception": False,
             },
             "alias_strategy": "canonical",  # Options: canonical, duplicate, list-only
+            "respect_all": True,  # When module has __all__, only document those names
+            "member_order": "source",  # source | alphabetical | type
+            "overrides": {},  # module path or prefix -> { include_private, include_inherited, ... }
+            "show_member_summary": False,  # Show compact table of classes/functions at top of module page
             # URL grouping configuration
             "strip_prefix": None,  # Optional: prefix to strip from module names
             "grouping": {

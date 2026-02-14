@@ -26,6 +26,29 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
+def get_python_module_all_exports(element: DocElement) -> tuple[str, ...] | None:
+    """
+    Get module __all__ exports with type-safe access.
+
+    Args:
+        element: DocElement with element_type "module"
+
+    Returns:
+        Tuple of exported names if __all__ is defined, None otherwise
+
+    """
+    from bengal.autodoc.models import PythonModuleMetadata
+
+    if isinstance(element.typed_metadata, PythonModuleMetadata):
+        if not element.typed_metadata.has_all:
+            return None
+        return element.typed_metadata.all_exports
+    if element.metadata.get("has_all"):
+        exports = element.metadata.get("all_exports") or element.metadata.get("has_all")
+        return tuple(exports) if isinstance(exports, (list, tuple)) else None
+    return None
+
+
 def get_python_class_bases(element: DocElement) -> tuple[str, ...]:
     """
     Get class base classes with type-safe access.

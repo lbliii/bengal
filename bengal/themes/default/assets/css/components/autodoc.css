@@ -202,6 +202,37 @@ article[data-autodoc]>p:first-of-type,
   gap: var(--autodoc-item-gap);
 }
 
+/* Member summary table (autosummary-style) */
+.autodoc-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.autodoc-summary-table th,
+.autodoc-summary-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--autodoc-border);
+}
+
+.autodoc-summary-table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.autodoc-summary-table td:first-child {
+  font-family: var(--autodoc-font-mono);
+}
+
+.autodoc-summary-table a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.autodoc-summary-table a:hover {
+  text-decoration: underline;
+}
+
 .autodoc-section-title {
   margin: 0;
   font-size: var(--text-lg);

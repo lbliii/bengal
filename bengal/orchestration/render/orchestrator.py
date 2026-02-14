@@ -11,6 +11,8 @@ Key Concepts:
 - Free-threaded detection: Automatic detection of GIL-disabled Python
 - Dependency tracking: Template dependency tracking for incremental builds
 - Error handling: Graceful error handling with page-level isolation
+- Back pressure: Chunked submission (batch_size = max_workers * 2) bounds
+  queue depth; expensive ops (highlighting, parsing) run in workers.
 
 Related Modules:
 - bengal.rendering.template_engine: Template rendering implementation
@@ -22,6 +24,7 @@ Related Modules:
 See Also:
 - bengal/orchestration/render/orchestrator.py: RenderOrchestrator.process() entry point
 - plan/active/rfc-template-performance-optimization.md: Performance RFC
+- system-design-primer (back pressure, task queues): github.com/donnemartin/system-design-primer
 
 """
 
@@ -711,48 +714,35 @@ class RenderOrchestrator:
 
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Map futures to pages for error reporting
-                # Uses sorted_pages (heavy first) for optimal parallel scheduling
-                #
-                # CRITICAL: Copy parent context for each task to propagate ContextVars
-                # (e.g., asset_manifest_context) to worker threads. Without this,
-                # workers start with empty context in free-threaded Python (PEP 703).
-                # fmt: off
-                future_to_page = {
-                    executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
-                        page,
-                    ): page
-                    for page in sorted_pages
-                }
-                # fmt: on
-
-                # Track errors for aggregation
+                batch_size = max(max_workers * 2, 1)
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
-                # Wait for all to complete
-                for future in concurrent.futures.as_completed(future_to_page):
-                    page = future_to_page[future]
-                    try:
-                        future.result()
-                    except Exception as e:
-                        # Handle graceful shutdown
-                        if is_shutdown_error(e):
-                            logger.debug("render_shutdown", page=page.source_path.name)
-                            continue
-                        context = extract_error_context(e, page)
+                for i in range(0, len(sorted_pages), batch_size):
+                    batch = sorted_pages[i : i + batch_size]
+                    future_to_page = {
+                        executor.submit(
+                            contextvars.copy_context().run,  # type: ignore[arg-type]
+                            process_page_with_pipeline,  # type: ignore[arg-type]
+                            page,
+                        ): page
+                        for page in batch
+                    }
+                    for future in concurrent.futures.as_completed(future_to_page):
+                        page = future_to_page[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            if is_shutdown_error(e):
+                                logger.debug("render_shutdown", page=page.source_path.name)
+                                continue
+                            context = extract_error_context(e, page)
+                            if aggregator.should_log_individual(
+                                e, context, threshold=threshold, max_samples=3
+                            ):
+                                logger.error("page_rendering_error", **context)
+                            aggregator.add_error(e, context=context)
 
-                        # Only log individual error if below threshold or first samples
-                        if aggregator.should_log_individual(
-                            e, context, threshold=threshold, max_samples=3
-                        ):
-                            logger.error("page_rendering_error", **context)
-
-                        aggregator.add_error(e, context=context)
-
-                # Log aggregated summary if threshold exceeded
                 aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
         except RuntimeError as e:
             # Handle graceful shutdown at executor level
@@ -916,48 +906,35 @@ class RenderOrchestrator:
 
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Map futures to pages for error reporting
-                # Uses sorted_pages (heavy first) for optimal parallel scheduling
-                #
-                # CRITICAL: Copy parent context for each task to propagate ContextVars
-                # (e.g., asset_manifest_context) to worker threads. Without this,
-                # workers start with empty context in free-threaded Python (PEP 703).
-                # fmt: off
-                future_to_page = {
-                    executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
-                        page,
-                    ): page
-                    for page in sorted_pages
-                }
-                # fmt: on
-
-                # Track errors for aggregation
+                batch_size = max(max_workers * 2, 1)
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
-                # Wait for all to complete
-                for future in concurrent.futures.as_completed(future_to_page):
-                    page = future_to_page[future]
-                    try:
-                        future.result()
-                    except Exception as e:
-                        # Handle graceful shutdown
-                        if is_shutdown_error(e):
-                            logger.debug("render_shutdown", page=page.source_path.name)
-                            continue
-                        context = extract_error_context(e, page)
+                for i in range(0, len(sorted_pages), batch_size):
+                    batch = sorted_pages[i : i + batch_size]
+                    future_to_page = {
+                        executor.submit(
+                            contextvars.copy_context().run,  # type: ignore[arg-type]
+                            process_page_with_pipeline,  # type: ignore[arg-type]
+                            page,
+                        ): page
+                        for page in batch
+                    }
+                    for future in concurrent.futures.as_completed(future_to_page):
+                        page = future_to_page[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            if is_shutdown_error(e):
+                                logger.debug("render_shutdown", page=page.source_path.name)
+                                continue
+                            context = extract_error_context(e, page)
+                            if aggregator.should_log_individual(
+                                e, context, threshold=threshold, max_samples=3
+                            ):
+                                logger.error("page_rendering_error", **context)
+                            aggregator.add_error(e, context=context)
 
-                        # Only log individual error if below threshold or first samples
-                        if aggregator.should_log_individual(
-                            e, context, threshold=threshold, max_samples=3
-                        ):
-                            logger.error("page_rendering_error", **context)
-
-                        aggregator.add_error(e, context=context)
-
-                # Log aggregated summary if threshold exceeded
                 aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
 
                 # Final update to ensure progress shows 100%
@@ -1045,49 +1022,36 @@ class RenderOrchestrator:
 
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # Uses sorted_pages (heavy first) for optimal parallel scheduling
-                    #
-                    # CRITICAL: Copy parent context for each task to propagate ContextVars
-                    # (e.g., asset_manifest_context) to worker threads. Without this,
-                    # workers start with empty context in free-threaded Python (PEP 703).
-                    # fmt: off
-                    futures = [
-                        executor.submit(
-                            contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,  # type: ignore[arg-type]
-                            page,
-                        )
-                        for page in sorted_pages
-                    ]
-                    # fmt: on
-
-                    # Track errors for aggregation
+                    batch_size = max(max_workers * 2, 1)
                     aggregator = ErrorAggregator(total_items=len(sorted_pages))
-
-                    # Wait for all to complete and update progress
                     threshold = 5
-                    for future in concurrent.futures.as_completed(futures):
-                        try:
-                            future.result()
-                        except Exception as e:
-                            # Handle graceful shutdown
-                            if is_shutdown_error(e):
-                                logger.debug("render_shutdown")
-                                continue
-                            # Get page from future if possible (may not be available)
-                            page = None
-                            context = extract_error_context(e, page)
 
-                            # Only log individual error if below threshold or first samples
-                            if aggregator.should_log_individual(
-                                e, context, threshold=threshold, max_samples=3
-                            ):
-                                logger.error("page_rendering_error", **context)
+                    for i in range(0, len(sorted_pages), batch_size):
+                        batch = sorted_pages[i : i + batch_size]
+                        future_to_page = {
+                            executor.submit(
+                                contextvars.copy_context().run,  # type: ignore[arg-type]
+                                process_page_with_pipeline,  # type: ignore[arg-type]
+                                page,
+                            ): page
+                            for page in batch
+                        }
+                        for future in concurrent.futures.as_completed(future_to_page):
+                            page = future_to_page[future]
+                            try:
+                                future.result()
+                            except Exception as e:
+                                if is_shutdown_error(e):
+                                    logger.debug("render_shutdown")
+                                    continue
+                                context = extract_error_context(e, page)
+                                if aggregator.should_log_individual(
+                                    e, context, threshold=threshold, max_samples=3
+                                ):
+                                    logger.error("page_rendering_error", **context)
+                                aggregator.add_error(e, context=context)
+                            progress.update(task, advance=1)
 
-                            aggregator.add_error(e, context=context)
-                        progress.update(task, advance=1)
-
-                    # Log aggregated summary if threshold exceeded
                     aggregator.log_summary(logger, threshold=5, error_type="rendering")
             except RuntimeError as e:
                 # Handle graceful shutdown at executor level

@@ -4,17 +4,37 @@ This directory contains the benchmark suite for the Bengal static site generator
 
 ## Setup
 
-To run the benchmarks, you first need to install the required dependencies:
+### 1. Install benchmark dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-You also need to install the `bengal` package in editable mode from the root of the project:
+### 2. Install Bengal and its dependencies
+
+**Multi-repo workspace** (bengal, patitas, kida, etc. as siblings in `b-stack/`):
 
 ```bash
+cd /path/to/b-stack   # workspace root with pyproject.toml
+uv sync
+```
+
+This installs bengal and all workspace packages (kida, patitas, etc.) from local paths.
+
+**Standalone** (bengal only):
+
+```bash
+cd /path/to/bengal
 pip install -e .
 ```
+
+### 3. Verify
+
+```bash
+bengal --version
+```
+
+If this fails with `ModuleNotFoundError` (e.g. `No module named 'bengal'` or `No module named 'kida'`), the install is broken. Reinstall: `pip uninstall bengal` then run `uv sync` from the workspace root (or `pip install -e .` from bengal).
 
 ## Running the Benchmarks
 
@@ -25,6 +45,24 @@ pytest
 ```
 
 This will run the benchmarks for all the scenarios defined in the `scenarios` directory. The results will be displayed in the console.
+
+## Benchmark Suite Overview
+
+| Suite | Purpose |
+|-------|---------|
+| `test_build.py` | Core build, incremental, fast mode, memory |
+| `test_cold_build_permutations.py` | Build modes × site sizes (100–1000 pages) |
+| `test_10k_site.py` | Large site (10k pages), discovery, memory |
+| `test_github_pages_optimization.py` | GitHub Pages constraints (2-core, 7GB) |
+| `test_directive_heavy_build.py` | Real-world docs (admonitions, code blocks) |
+| `test_notebook_build.py` | Native .ipynb cold + incremental builds |
+| `test_patitas_performance.py` | Patitas vs Mistune parse comparison |
+| `test_directive_performance.py` | Directive parsing performance |
+| `test_highlighting_performance.py` | Rosettes vs Pygments |
+| `test_kida_vs_jinja.py` | Template engine concurrent performance |
+| `test_import_overhead.py` | CLI startup, import pollution |
+| `tests/performance/benchmark_realistic_scale.py` | Realistic content at scale |
+| `tests/performance/benchmark_template_complexity.py` | Template complexity impact |
 
 ## Benchmark Categories
 
@@ -359,3 +397,45 @@ IMPORT OVERHEAD REPORT
 ```
 
 Failing tests indicate a performance regression that should block the PR.
+
+---
+
+## Directive-Heavy Build Benchmarks
+
+The `test_directive_heavy_build.py` suite tracks build performance for real-world
+documentation sites that use directives (admonitions, tabs, cards), syntax highlighting,
+and TOC. Docs claim "directive-heavy sites typically see 40–60% of benchmark speeds."
+
+### Running Directive-Heavy Benchmarks
+
+```bash
+pytest test_directive_heavy_build.py -v --benchmark-only
+
+# Compare directive-heavy vs minimal ratio
+pytest test_directive_heavy_build.py -k "vs_minimal" -v -s
+```
+
+### Tests
+
+- **`test_directive_heavy_cold_build_100`**: Cold build of 100 pages with directives
+- **`test_directive_heavy_incremental_single_page`**: Incremental rebuild after edit
+- **`test_directive_heavy_vs_minimal_ratio`**: Reports directive-heavy / minimal ratio
+
+---
+
+## Notebook Build Benchmarks
+
+The `test_notebook_build.py` suite benchmarks native `.ipynb` support. Bengal parses
+notebooks via Patitas (stdlib JSON, no nbformat).
+
+### Running Notebook Benchmarks
+
+```bash
+pytest test_notebook_build.py -v --benchmark-only
+```
+
+### Tests
+
+- **`test_notebook_cold_build_50`**: Cold build of 50 notebooks
+- **`test_notebook_incremental_single_change`**: Incremental rebuild after edit
+- **`test_notebook_mixed_site`**: Mixed content (25 markdown + 25 notebooks)

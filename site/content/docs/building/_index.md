@@ -51,6 +51,7 @@ flowchart LR
 | I want to... | Go to... |
 |--------------|----------|
 | Configure my site | [Configuration](./configuration/) |
+| Build OSS vs Enterprise variants | [Multi-Variant Builds](./configuration/variants) |
 | Build for production | [Commands](../reference/architecture/tooling/cli/#commands) |
 | Speed up builds | [Performance](./performance/) |
 | Generate JSON/LLM output | [Output Formats](./output-formats.md) |

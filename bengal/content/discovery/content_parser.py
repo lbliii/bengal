@@ -125,8 +125,9 @@ class ContentParser:
 
     def _parse_notebook(self, file_path: Path) -> tuple[str, dict[str, Any]]:
         """Parse a Jupyter notebook (.ipynb) file."""
-        from bengal.content.notebook.converter import NotebookConverter
         from bengal.utils.io.file_io import read_text_file
+
+        import patitas
 
         file_content = read_text_file(
             file_path, fallback_encoding="utf-8", on_error="raise", caller="content_discovery"
@@ -135,7 +136,7 @@ class ContentParser:
         if self._build_context is not None and file_content is not None:
             self._build_context.cache_content(file_path, file_content)
 
-        content, metadata = NotebookConverter.convert(file_path, file_content)
+        content, metadata = patitas.parse_notebook(file_content, file_path)
 
         if "type" not in metadata:
             metadata["type"] = "notebook"

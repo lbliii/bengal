@@ -6,6 +6,7 @@ from unittest.mock import Mock
 from bengal.rendering.template_functions.urls import (
     absolute_url,
     ensure_trailing_slash,
+    notebook_colab_url,
     notebook_download_url,
     url_decode,
     url_encode,
@@ -285,4 +286,69 @@ class TestNotebookDownloadUrl:
         """Page without source_path returns empty string."""
         page = Mock(spec=[])
         result = notebook_download_url(page)
+        assert result == ""
+
+
+class TestNotebookColabUrl:
+    """Tests for notebook_colab_url template function."""
+
+    def test_notebook_with_repo_url_returns_colab_url(self) -> None:
+        """Notebook page with repo_url in site params returns Colab URL."""
+        page = Mock()
+        page.source_path = Path("content/docs/notebooks/analysis.ipynb")
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/owner/repo"}
+
+        result = notebook_colab_url(page, site)
+        assert result == (
+            "https://colab.research.google.com/github/owner/repo/blob/main/"
+            "content/docs/notebooks/analysis.ipynb"
+        )
+
+    def test_notebook_with_colab_branch_uses_custom_branch(self) -> None:
+        """colab_branch in params overrides default main."""
+        page = Mock()
+        page.source_path = Path("content/tutorials/demo.ipynb")
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/org/proj", "colab_branch": "develop"}
+
+        result = notebook_colab_url(page, site)
+        assert "blob/develop/" in result
+        assert "content/tutorials/demo.ipynb" in result
+
+    def test_no_repo_url_returns_empty(self) -> None:
+        """Missing repo_url returns empty string."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        site = Mock()
+        site.params = {}
+
+        result = notebook_colab_url(page, site)
+        assert result == ""
+
+    def test_non_github_repo_url_returns_empty(self) -> None:
+        """Non-GitHub repo_url returns empty string."""
+        page = Mock()
+        page.source_path = Path("content/notebooks/demo.ipynb")
+        site = Mock()
+        site.params = {"repo_url": "https://gitlab.com/org/repo"}
+
+        result = notebook_colab_url(page, site)
+        assert result == ""
+
+    def test_non_notebook_page_returns_empty(self) -> None:
+        """Markdown page returns empty string."""
+        page = Mock()
+        page.source_path = Path("content/docs/guide.md")
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/owner/repo"}
+
+        result = notebook_colab_url(page, site)
+        assert result == ""
+
+    def test_none_page_returns_empty(self) -> None:
+        """None page returns empty string."""
+        site = Mock()
+        site.params = {"repo_url": "https://github.com/owner/repo"}
+        result = notebook_colab_url(None, site)
         assert result == ""
