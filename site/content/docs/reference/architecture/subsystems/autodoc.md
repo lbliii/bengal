@@ -26,7 +26,7 @@ keywords:
 Bengal includes an **automatic documentation generation system** that extracts API documentation from Python source code using AST-based static analysis.
 
 :::{note}
-**Zero-Import Extraction**: Unlike Sphinx, Bengal's autodoc **does not import your code**. This means it never crashes due to missing dependencies or side effects.
+**Zero-Import Extraction**: Bengal's autodoc **does not import your code**. It extracts docstrings and signatures via static analysis, so it never crashes due to missing dependencies or side effects.
 :::
 
 ## Architecture

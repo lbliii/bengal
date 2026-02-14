@@ -515,7 +515,7 @@ Short class names compatible with existing Pygments themes:
 ::::
 
 :::{note}
-[[ext:rosettes:|Rosettes]] is designed for Python 3.14t free-threading with zero global mutable state. It provides thread-safe syntax highlighting that's up to 3.75× faster than Pygments. See [[ext:rosettes:docs/about/performance|Rosettes Performance]] for benchmarks.
+[[ext:rosettes:|Rosettes]] is designed for Python 3.14t free-threading with zero global mutable state. It provides thread-safe syntax highlighting with O(n) guaranteed parsing. See [[ext:rosettes:docs/about/performance|Rosettes Performance]] for benchmarks.
 :::
 
 ::::{seealso}

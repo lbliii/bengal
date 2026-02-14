@@ -354,8 +354,6 @@ highlighting:
   backend: rosettes
 ```
 
-Rosettes is now a standalone package: [`pip install rosettes`](https://pypi.org/project/rosettes/)
-
 Custom backends can be registered via `register_backend()`.
 
 </details>
