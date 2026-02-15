@@ -70,10 +70,6 @@
   font-size: var(--text-sm);
 }
 
-/* Tags with icons */
-.tag-link:has(.tag-icon) {
-  gap: var(--space-2);
-}
 .tag:hover {
     color: var(--color-text-inverse);
     background-color: var(--color-primary);
@@ -178,6 +174,72 @@
   padding-inline: var(--space-4);
 }
 
+.tag-page-header-actions {
+  margin-top: var(--space-4);
+}
+
+/* Tags page hero - actions below description */
+.page-hero--tags .page-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.page-hero--tags .page-hero__breadcrumb-sep {
+  opacity: 0.5;
+}
+
+.page-hero--tags .page-hero__breadcrumb-current {
+  color: var(--color-text-secondary);
+}
+
+.page-hero--tags .page-hero__actions--tags {
+  margin-top: var(--space-4);
+}
+
+/* Single tag page hero */
+.page-hero--tag .page-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.page-hero--tag .page-hero__breadcrumb-sep {
+  opacity: 0.5;
+}
+
+.page-hero--tag .page-hero__breadcrumb-current {
+  color: var(--color-text-secondary);
+}
+
+.page-hero--tag .page-hero__title--tag {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.page-hero--tag .page-hero__title--tag .tag-icon {
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+  width: auto;
+  height: auto;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.page-hero--tag .page-hero__actions--tag {
+  margin-top: var(--space-4);
+}
+
+/* Tag page archive list - match blog spacing */
+.archive-list--tag {
+  gap: var(--space-6);
+}
+
 .tag-page .tag-icon {
   color: var(--color-primary);
   font-weight: var(--weight-bold);
@@ -195,61 +257,132 @@
   padding-inline: var(--space-4);
 }
 
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+/* ============================================
+   TAG CARDS GRID (All Tags Page)
+   ============================================ */
+
+.tag-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-5);
   margin-top: var(--space-8);
 }
 
-.tag-item {
-  flex: 0 1 auto;
-}
-
-.tag-link {
+.tag-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
   text-decoration: none;
-  transition: all var(--transition-base) var(--ease-out);
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow var(--motion-medium), transform var(--motion-medium);
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  border-left: 3px solid var(--tag-accent, var(--color-primary));
 }
 
-.tag-link:hover {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  transform: translate3d(0, -2px, 0);
-  box-shadow: var(--elevation-medium);
+.tag-card.gradient-border {
+  border: none;
+  border-left: 3px solid var(--tag-accent, var(--color-primary));
 }
 
-.tag-name {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
+.tag-card.fluid-combined {
+  border: none;
+}
+
+/* Blob uses ::after so gradient-border can use ::before */
+.tag-card::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle at 40% 40%,
+      color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+      transparent 50%);
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tag-card:hover::after {
+  opacity: 1;
+}
+
+.tag-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .tag-card::after {
+    background: radial-gradient(circle at 40% 40%,
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(139, 92, 246, 0.04) 25%,
+        transparent 50%);
+  }
+}
+
+.tag-card:hover {
+  box-shadow: var(--elevation-high),
+    0 0 20px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+}
+
+.tag-card__icon {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--tag-accent, var(--color-primary));
+}
+
+.tag-card__title {
+  margin: 0;
+  font-size: var(--type-ui-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
   color: var(--color-text-primary);
 }
 
-.tag-link:hover .tag-name {
-  color: var(--color-text-inverse);
-}
-
-.tag-count {
+.tag-card__count {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   padding: var(--space-1) var(--space-2);
   background-color: var(--color-bg-tertiary);
   border-radius: var(--radius-full);
+  align-self: flex-start;
 }
 
-.tag-link:hover .tag-count {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: var(--color-text-inverse);
+/* Tag accent colors (0-7 map to theme palette tokens for theme compliance) */
+.tag-card[data-tag-accent="0"] { --tag-accent: var(--color-primary); }
+.tag-card[data-tag-accent="1"] { --tag-accent: var(--color-secondary); }
+.tag-card[data-tag-accent="2"] { --tag-accent: var(--color-accent); }
+.tag-card[data-tag-accent="3"] { --tag-accent: var(--color-primary-hover); }
+.tag-card[data-tag-accent="4"] { --tag-accent: var(--color-secondary-hover); }
+.tag-card[data-tag-accent="5"] { --tag-accent: var(--color-accent-hover); }
+.tag-card[data-tag-accent="6"] { --tag-accent: var(--color-primary-dark); }
+.tag-card[data-tag-accent="7"] { --tag-accent: var(--color-secondary-dark); }
+
+/* Bento: top 3 tags span 2 columns on larger screens */
+@media (min-width: 640px) {
+  .tag-card--featured {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .tag-card:hover {
+    transform: none;
+  }
 }
 
 /* ============================================
@@ -283,8 +416,9 @@
 @media (prefers-reduced-motion: reduce) {
   .tag,
   .tag:active,
-  .tag-link,
-  .tag-link:hover {
+  .tag-card,
+  .tag-card:hover,
+  .tag-card::after {
     animation: none !important;
     transition: color 0s, background-color 0s, border-color 0s !important;
     transform: none !important;

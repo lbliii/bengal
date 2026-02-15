@@ -67,7 +67,7 @@ Renders a single pagination item (ellipsis, current page, or link).
 {% elif item?.is_current %}
 <span class="active" aria-current="page">{{ item.num }}</span>
 {% else %}
-<a href="{{ item.href }}">{{ item.num }}</a>
+<a href="{{ item.href }}" class="squeeze">{{ item.num }}</a>
 {% end %}
 {% end %}
 
@@ -85,7 +85,7 @@ Displays page number controls for paginated content with prev/next buttons.
     {# Previous Button #}
     <li>
       {% if p?.prev %}
-      <a href="{{ p.prev.href }}" aria-label="Previous page">
+      <a href="{{ p.prev.href }}" class="squeeze" aria-label="Previous page">
         {{ icon('caret-left', size=20) }}
         Previous
       </a>
@@ -107,7 +107,7 @@ Displays page number controls for paginated content with prev/next buttons.
     {# Next Button #}
     <li>
       {% if p?.next %}
-      <a href="{{ p.next.href }}" aria-label="Next page">
+      <a href="{{ p.next.href }}" class="squeeze" aria-label="Next page">
         Next
         {{ icon('caret-right', size=20) }}
       </a>

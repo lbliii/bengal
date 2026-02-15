@@ -25,11 +25,12 @@
     flex-shrink: 0;
 }
 
-/* Loading state - container is still collapsed, inner element shows loading state */
+/* Loading state - reserve space so layout doesn't collapse before JS loads */
 .graph-contextual-container.graph-loading {
-    /* No forced visibility - let parent container control visibility */
     display: flex;
     opacity: 0.5;
+    /* Explicit min-height - height:100% can fail when parent is in flex/scroll context */
+    min-height: 200px;
 }
 
 .graph-contextual-container {
@@ -233,6 +234,10 @@
 @media (max-width: 768px) {
     .graph-contextual {
         height: 180px; /* Fixed height for mobile */
+    }
+
+    .graph-contextual-container.graph-loading {
+        min-height: 180px;
     }
 
     .graph-contextual-expand {

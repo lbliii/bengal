@@ -38,7 +38,6 @@ See Also:
 
 """
 
-import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -418,7 +417,7 @@ class GraphVisualizer:
             "default_appearance": default_appearance,
             "default_palette": default_palette,
             "stats": graph_data["stats"],
-            "graph_data_json": json.dumps(graph_data, indent=2, sort_keys=True),
+            "graph_json_url": "graph.json",
         }
 
     def _resolve_css_path(self, baseurl: str) -> str:

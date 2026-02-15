@@ -343,3 +343,85 @@ output_dir = "public"
         assert page2 is not None
         cache = _get_render_cache()
         assert len(cache) >= 1
+
+    def test_track_embedded_cards_have_correct_hrefs(self, tmp_path: Path):
+        """Track embeds pages with cards; card links resolve to source page URLs.
+
+        When a track embeds docs/guides/parent.md which has :::{card} :link: ./child,
+        the rendered HTML should have href="/docs/guides/child/" (source page URL),
+        not /tracks/xxx/child/. Cards are resolved when the source page is built.
+        """
+        from bengal.orchestration.build.options import BuildOptions
+
+        site_dir = tmp_path / "site"
+        site_dir.mkdir()
+
+        (site_dir / "bengal.toml").write_text("""
+[site]
+title = "Track Cards Test"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+
+[theme]
+name = "default"
+""")
+
+        data_dir = site_dir / "data"
+        data_dir.mkdir()
+        (data_dir / "tracks.yaml").write_text("""cards-track:
+  title: "Cards Track"
+  items:
+    - docs/guides/parent.md
+""")
+
+        content_dir = site_dir / "content"
+        content_dir.mkdir()
+        guides_dir = content_dir / "docs" / "guides"
+        guides_dir.mkdir(parents=True)
+
+        (guides_dir / "parent.md").write_text("""---
+title: Parent
+---
+# Parent
+
+:::{cards}
+:::{card} Go to Child
+:link: ./child
+
+See the child page.
+:::
+::::
+""")
+
+        (guides_dir / "child.md").write_text("""---
+title: Child
+---
+# Child
+
+Child content.
+""")
+
+        tracks_dir = content_dir / "tracks"
+        tracks_dir.mkdir()
+        (tracks_dir / "cards-track.md").write_text("""---
+title: Cards Track
+template: tracks/single.html
+track_id: cards-track
+---
+# Cards Track
+""")
+
+        site = Site.from_config(site_dir)
+        site.build(BuildOptions(incremental=False))
+
+        html_path = site_dir / "public" / "tracks" / "cards-track" / "index.html"
+        assert html_path.exists(), f"Expected {html_path}"
+        html = html_path.read_text()
+
+        # Card link must point to docs URL, not tracks URL
+        assert 'href="/docs/guides/child/"' in html or 'href="/docs/guides/child"' in html, (
+            f"Expected card href to resolve to /docs/guides/child/, got: {html[:2000]}"
+        )
+        assert "/tracks/cards-track/child" not in html

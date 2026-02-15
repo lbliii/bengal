@@ -50,7 +50,7 @@ Usage:
           aria-label="{{ t('search.aria_label', default='Search') }}" aria-describedby="search-modal-status"
           aria-controls="search-modal-results" aria-autocomplete="list">
 
-        <div class="search-modal__loading" id="search-modal-loading" style="display: none;">
+        <div class="search-modal__loading hidden" id="search-modal-loading">
           <div class="search-modal__spinner"></div>
         </div>
       </div>
@@ -86,7 +86,7 @@ Usage:
       </div>
 
       {# No results message #}
-      <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
+      <div class="search-modal__no-results hidden" id="search-modal-no-results">
         {{ icon('magnifying-glass', size=48) }}
         <p class="search-modal__no-results-text">{{ t('search.no_results', default='No results for') }} "<span
             id="search-modal-no-results-query"></span>"</p>

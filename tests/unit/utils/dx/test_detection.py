@@ -6,8 +6,6 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from bengal.utils.dx.detection import (
     is_ci,
     is_docker,

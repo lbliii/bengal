@@ -85,11 +85,12 @@ Or set `type: track` to auto-select this template
   </div>
 
   {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
+  {# resolve_links_for_embedding: relative links -> absolute so they work when embedded #}
   <div class="track-section-content">
     {% if item_html %}
-    {{ item_html | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {{ item_html | resolve_links_for_embedding(item_page) | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% elif item_content %}
-    {{ item_content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {{ item_content | resolve_links_for_embedding(item_page) | demote_headings | prefix_heading_ids(section_prefix) | safe }}
     {% else %}
     <div class="alert alert-warning">
       <p><strong>Content Unavailable</strong></p>

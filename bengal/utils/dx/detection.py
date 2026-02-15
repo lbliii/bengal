@@ -97,7 +97,4 @@ def is_ci() -> bool:
     Returns:
         True if CI=true or GITHUB_ACTIONS=true, False otherwise.
     """
-    return (
-        os.environ.get("CI") == "true"
-        or os.environ.get("GITHUB_ACTIONS") == "true"
-    )
+    return os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"

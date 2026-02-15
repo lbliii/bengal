@@ -8,12 +8,17 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
+from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
@@ -91,7 +96,7 @@ class DirectiveRendererMixin:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
-        # Render with registered handler
+        # Render with registered handler or fall back to default
         result_sb = StringBuilder()
         if handler and sig:
             kwargs: dict[str, Any] = {}
@@ -115,15 +120,18 @@ class DirectiveRendererMixin:
             if "site" in sig.parameters:
                 kwargs["site"] = getattr(self, "_site", None)
 
-            handler.render(node, rendered_children, result_sb, **kwargs)
+            # Pass current_page_dir for relative link resolution (./ and ../)
+            if "current_page_dir" in sig.parameters:
+                kwargs["current_page_dir"] = self._compute_current_page_dir()
 
+            handler.render(node, rendered_children, result_sb, **kwargs)
             result = result_sb.build()
             if cache_key and self._directive_cache:
                 self._directive_cache.put("directive_html", cache_key, result)
             sb.append(result)
             return
 
-        # Default rendering
+        # Default rendering when no handler registered
         result_sb.append(f'<div class="directive directive-{escape_attr(node.name)}">')
         if node.title:
             result_sb.append(f'<p class="directive-title">{escape_html(node.title)}</p>')
@@ -134,6 +142,27 @@ class DirectiveRendererMixin:
         if cache_key and self._directive_cache:
             self._directive_cache.put("directive_html", cache_key, result)
         sb.append(result)
+
+    def _compute_current_page_dir(self: HtmlRendererProtocol) -> str | None:
+        """Derive current_page_dir from page context for relative link resolution."""
+        page = self._page_context
+        site = getattr(self, "_site", None)
+        if not page or not site or not hasattr(page, "source_path"):
+            return None
+        root_path = getattr(site, "root_path", None)
+        if root_path is None:
+            return None
+        try:
+            content_dir = Path(root_path) / "content"
+            rel_path = Path(page.source_path).relative_to(content_dir)
+            return to_posix(rel_path.parent)
+        except (ValueError, TypeError) as e:
+            logger.debug(
+                "current_page_dir_failed",
+                source_path=getattr(page, "source_path", None),
+                error=str(e),
+            )
+            return None
 
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.

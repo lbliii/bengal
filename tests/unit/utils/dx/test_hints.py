@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
-
 from bengal.utils.dx.hints import Hint, collect_hints
 
 
@@ -42,17 +40,21 @@ class TestCollectHints:
 
     def test_docker_baseurl_hint_when_docker_and_empty_baseurl(self) -> None:
         """Docker + empty baseurl yields docker_baseurl hint."""
-        with patch("bengal.utils.dx.hints.is_docker", return_value=True):
-            with patch("bengal.utils.dx.hints.is_kubernetes", return_value=False):
-                result = collect_hints("config", baseurl="", max_hints=3)
+        with (
+            patch("bengal.utils.dx.hints.is_docker", return_value=True),
+            patch("bengal.utils.dx.hints.is_kubernetes", return_value=False),
+        ):
+            result = collect_hints("config", baseurl="", max_hints=3)
         hint_ids = [h.id for h in result]
         assert "docker_baseurl" in hint_ids
 
     def test_kubernetes_baseurl_hint_when_k8s_and_empty_baseurl(self) -> None:
         """Kubernetes + empty baseurl yields kubernetes_baseurl hint."""
-        with patch("bengal.utils.dx.hints.is_docker", return_value=False):
-            with patch("bengal.utils.dx.hints.is_kubernetes", return_value=True):
-                result = collect_hints("config", baseurl="", max_hints=3)
+        with (
+            patch("bengal.utils.dx.hints.is_docker", return_value=False),
+            patch("bengal.utils.dx.hints.is_kubernetes", return_value=True),
+        ):
+            result = collect_hints("config", baseurl="", max_hints=3)
         hint_ids = [h.id for h in result]
         assert "kubernetes_baseurl" in hint_ids
 
@@ -66,26 +68,32 @@ class TestCollectHints:
 
     def test_wsl_hint_in_serve_context(self) -> None:
         """WSL + serve context yields wsl_watchfiles hint."""
-        with patch("bengal.utils.dx.hints.is_wsl", return_value=True):
-            with patch("bengal.utils.dx.hints.is_docker", return_value=False):
-                result = collect_hints("serve", host="localhost", max_hints=3)
+        with (
+            patch("bengal.utils.dx.hints.is_wsl", return_value=True),
+            patch("bengal.utils.dx.hints.is_docker", return_value=False),
+        ):
+            result = collect_hints("serve", host="localhost", max_hints=3)
         hint_ids = [h.id for h in result]
         assert "wsl_watchfiles" in hint_ids
 
     def test_dev_server_container_hint_when_docker_and_localhost(self) -> None:
         """Docker + host=localhost + serve yields dev_server_container hint."""
-        with patch("bengal.utils.dx.hints.is_docker", return_value=True):
-            with patch("bengal.utils.dx.hints.is_kubernetes", return_value=False):
-                result = collect_hints("serve", host="localhost", max_hints=3)
+        with (
+            patch("bengal.utils.dx.hints.is_docker", return_value=True),
+            patch("bengal.utils.dx.hints.is_kubernetes", return_value=False),
+        ):
+            result = collect_hints("serve", host="localhost", max_hints=3)
         hint_ids = [h.id for h in result]
         assert "dev_server_container" in hint_ids
 
     def test_per_hint_opt_out(self) -> None:
         """BENGAL_HINT_DOCKER_BASEURL=0 disables that hint."""
-        with patch("bengal.utils.dx.hints.is_docker", return_value=True):
-            with patch("bengal.utils.dx.hints.is_kubernetes", return_value=False):
-                with patch.dict(os.environ, {"BENGAL_HINT_DOCKER_BASEURL": "0"}, clear=False):
-                    result = collect_hints("config", baseurl="", max_hints=3)
+        with (
+            patch("bengal.utils.dx.hints.is_docker", return_value=True),
+            patch("bengal.utils.dx.hints.is_kubernetes", return_value=False),
+            patch.dict(os.environ, {"BENGAL_HINT_DOCKER_BASEURL": "0"}, clear=False),
+        ):
+            result = collect_hints("config", baseurl="", max_hints=3)
         hint_ids = [h.id for h in result]
         assert "docker_baseurl" not in hint_ids
 

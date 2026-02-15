@@ -44,7 +44,7 @@ Variables:
     {% let tag_name_normalized = tag_name | lower %}
     {% let is_active = current_tag_normalized == tag_name_normalized %}
 
-    <a href="{{ tag_url(tag_name) }}" class="{{ ['docs-nav-link', 'active' if is_active] | classes }}" {{ 'aria-current="page"'
+    <a href="{{ (tag_item?.href ?? tag_url(tag_name)) | absolute_url }}" class="{{ ['docs-nav-link', 'active' if is_active] | classes }}" {{ 'aria-current="page"'
       | safe if is_active else '' }}>
       <span class="tag-nav-name">{{ tag_name }}</span>
       <span class="tag-nav-count">({{ tag_count }})</span>

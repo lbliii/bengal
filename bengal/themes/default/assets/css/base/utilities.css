@@ -96,8 +96,18 @@
   display: grid;
 }
 
+/* JS-controlled visibility: add/remove this class to show/hide.
+   !important overrides any inline style="display: ..." from legacy code. */
 .hidden {
-  display: none;
+  display: none !important;
+}
+
+/* Deprecation warning (e.g. docs-nav-node.html) */
+.deprecation-warning {
+  background: #ff0;
+  color: #000;
+  padding: var(--space-4);
+  border: 2px solid red;
 }
 
 /* Flex Direction */

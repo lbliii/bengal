@@ -63,6 +63,7 @@
   @import url('utilities/gradient-borders.css');
   @import url('utilities/fluid-blobs.css');
   @import url('utilities/micro-interactions.css');
+  @import url('utilities/skeleton.css');
 }
 
 @layer base {

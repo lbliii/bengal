@@ -220,7 +220,7 @@ body.page-kind-home .hero {
 }
 
 body.page-kind-section .section-navigation {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-8);
 }
 
 body.draft-page::before {

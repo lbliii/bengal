@@ -23,6 +23,8 @@ def mock_site():
     site.output_dir = Path("/fake/site/public")
     site.config = {}
     site.pages = []
+    site.data = Mock()
+    site.data.tracks = {}
     return site
 
 
@@ -223,6 +225,221 @@ class TestProcessMethod:
             # Should pass stats (pages=0, quiet=1, stats=2)
             call_args = mock_par.call_args[0]
             assert call_args[2] == mock_stats
+
+
+class TestTrackDependencyOrdering:
+    """Test track dependency ordering for render performance."""
+
+    def test_track_items_ordered_before_track_pages(self, orchestrator, mock_site):
+        """Track items are rendered before track pages that embed them."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {
+                "title": "Getting Started",
+                "items": ["docs/getting-started/page1.md", "docs/getting-started/page2.md"],
+            },
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        track_item = Page(
+            source_path=Path("/fake/site/content/docs/getting-started/page1.md"),
+            _raw_content="",
+            _raw_metadata={},
+        )
+        track_page = Page(
+            source_path=Path("/fake/site/content/tracks/getting-started.md"),
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
+        )
+        other_page = Page(
+            source_path=Path("/fake/site/content/blog/post.md"),
+            _raw_content="",
+            _raw_metadata={},
+        )
+
+        pages = [track_page, other_page, track_item]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result[0] == track_item
+        assert result[1] == track_page
+        assert result[2] == other_page
+
+    def test_site_without_tracks_pages_unchanged(self, orchestrator, mock_site):
+        """Site without tracks or with empty tracks returns pages unchanged."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {}
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        pages = [
+            Page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            ),
+        ]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result == pages
+
+    def test_site_without_tracks_data_pages_unchanged(self, orchestrator, mock_site):
+        """Site without site.data.tracks returns pages unchanged."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = None
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        pages = [
+            Page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            ),
+        ]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result == pages
+
+    def test_track_item_in_multiple_tracks_ordered_first(self, orchestrator, mock_site):
+        """Page that appears in multiple tracks is still ordered as track item."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "track-a": {"items": ["docs/shared.md"]},
+            "track-b": {"items": ["docs/shared.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        shared_page = Page(
+            source_path=Path("/fake/site/content/docs/shared.md"),
+            _raw_content="",
+            _raw_metadata={},
+        )
+        track_page = Page(
+            source_path=Path("/fake/site/content/tracks/track-a.md"),
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "track-a"},
+        )
+
+        pages = [track_page, shared_page]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result[0] == shared_page
+        assert result[1] == track_page
+
+    def test_page_both_track_item_and_track_page_ordered_as_item(self, orchestrator, mock_site):
+        """Page that is both track item and track page is ordered as track item."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "main": {"items": ["docs/landing.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        landing = Page(
+            source_path=Path("/fake/site/content/docs/landing.md"),
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "main"},
+        )
+        other = Page(
+            source_path=Path("/fake/site/content/blog/post.md"),
+            _raw_content="",
+            _raw_metadata={},
+        )
+
+        pages = [other, landing]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result[0] == landing
+        assert result[1] == other
+
+    def test_track_dependency_ordering_disabled_config(self, orchestrator, mock_site):
+        """When track_dependency_ordering is False, pages are unchanged."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {"items": ["docs/page1.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": False}}
+
+        track_item = Page(
+            source_path=Path("/fake/site/content/docs/page1.md"),
+            _raw_content="",
+            _raw_metadata={},
+        )
+        track_page = Page(
+            source_path=Path("/fake/site/content/tracks/getting-started.md"),
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html"},
+        )
+
+        pages = [track_page, track_item]
+        result = orchestrator._track_dependency_sort(pages)
+
+        assert result == pages
+
+    def test_priority_sort_pulls_track_items_when_track_page_changed(self, orchestrator, mock_site):
+        """When track page is in changed_sources, its track items move to priority."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {"items": ["docs/step1.md", "docs/step2.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        track_page_path = Path("/fake/site/content/tracks/getting-started.md")
+        item1_path = Path("/fake/site/content/docs/step1.md")
+        item2_path = Path("/fake/site/content/docs/step2.md")
+        other_path = Path("/fake/site/content/blog/post.md")
+
+        track_page = Page(
+            source_path=track_page_path,
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
+        )
+        item1 = Page(source_path=item1_path, _raw_content="", _raw_metadata={})
+        item2 = Page(source_path=item2_path, _raw_content="", _raw_metadata={})
+        other = Page(source_path=other_path, _raw_content="", _raw_metadata={})
+
+        pages = [track_page, item1, item2, other]
+        changed_sources = {track_page_path.resolve()}
+
+        result = orchestrator._priority_sort(pages, changed_sources)
+
+        # Track items and track page should be in priority (first 3), track items first
+        priority_group = result[:3]
+        assert item1 in priority_group
+        assert item2 in priority_group
+        assert track_page in priority_group
+        track_item_indices = [priority_group.index(item1), priority_group.index(item2)]
+        track_page_idx = priority_group.index(track_page)
+        assert max(track_item_indices) < track_page_idx
+        assert result[3] == other
+
+    def test_maybe_sort_preserves_track_order_within_complexity(self, orchestrator, mock_site):
+        """_maybe_sort_by_complexity preserves track_items before track_pages when both enabled."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {"items": ["docs/page1.md", "docs/page2.md"]},
+        }
+        mock_site.config = {
+            "build": {"track_dependency_ordering": True, "complexity_ordering": True}
+        }
+
+        # Track page (light), track item (heavy), other - complexity sort would put heavy first
+        track_page = Page(
+            source_path=Path("/fake/site/content/tracks/getting-started.md"),
+            _raw_content="short",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
+        )
+        track_item = Page(
+            source_path=Path("/fake/site/content/docs/page1.md"),
+            _raw_content="x" * 10000,  # Heavier content
+            _raw_metadata={},
+        )
+        other = Page(
+            source_path=Path("/fake/site/content/blog/post.md"),
+            _raw_content="medium",
+            _raw_metadata={},
+        )
+
+        pages = [track_page, track_item, other]
+        result = orchestrator._maybe_sort_by_complexity(pages, max_workers=2)
+
+        # Track item must come before track page (dependency order preserved)
+        track_item_idx = result.index(track_item)
+        track_page_idx = result.index(track_page)
+        assert track_item_idx < track_page_idx
 
 
 class TestPerformanceOptimization:

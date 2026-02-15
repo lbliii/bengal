@@ -742,6 +742,7 @@ class Renderer:
             {
                 "name": data["name"],
                 "slug": data["slug"],
+                "href": f"/tags/{data['slug']}/",
                 "count": len(data["pages"]),
                 "pages": data["pages"],
             }

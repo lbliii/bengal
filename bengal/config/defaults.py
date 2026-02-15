@@ -146,6 +146,7 @@ DEFAULTS: dict[str, Any] = {
         "fast_mode": False,
         "stable_section_references": True,
         "min_page_size": 1000,
+        "track_dependency_ordering": True,  # Render track items before track pages
     },
     # -------------------------------------------------------------------------
     # Development (canonical location: dev.*)
@@ -442,7 +443,7 @@ DEFAULTS: dict[str, Any] = {
         "enabled": True,
         # Navigation experience
         "navigation": {
-            "view_transitions": True,  # Enable View Transitions API
+            "view_transitions": False,  # Disabled by default - can hang on 404/dev rebuild
             "transition_style": "crossfade",  # crossfade | fade-slide | slide | none
             "scroll_restoration": True,
         },

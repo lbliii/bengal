@@ -33,35 +33,37 @@ Auto-generated at /tags/
 
   {# Main Content #}
   <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
-
     <article class="prose">
-      <header class="page-header">
-        <h1>{{ page_title }}</h1>
-        <p class="page-description">
+      {# Page Hero - Magazine style #}
+      <header class="page-hero page-hero--magazine page-hero--tags">
+        <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+          <a href="{{ '/' | absolute_url }}" class="page-hero__breadcrumb-link">Home</a>
+          <span class="page-hero__breadcrumb-sep">/</span>
+          <span class="page-hero__breadcrumb-current">Browse by topic</span>
+        </nav>
+        <h1 class="page-hero__title">{{ page_title }}</h1>
+        <p class="page-hero__description">
           Browse all {{ total_tags }} tags
         </p>
-        <div style="margin-top: 1rem;">
-          <a href="{{ '/graph/' | absolute_url }}" class="button button-outline"
-            style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>🗺️</span>
-            <span>Explore Knowledge Graph</span>
+        <div class="page-hero__actions page-hero__actions--tags">
+          <a href="{{ '/graph/' | absolute_url }}" class="button button-outline inline-flex items-center gap-2">
+            Explore Knowledge Graph
           </a>
         </div>
       </header>
 
       {% if all_tags | length > 0 %}
-      <div class="tag-cloud">
+      <div class="tag-cards-grid">
         {% for tag in all_tags %}
         {% let tag_name = tag?.name ?? '' %}
         {% let tag_count = tag?.count ?? 0 %}
-        <div class="tag-item">
-          <a href="{{ tag_url(tag_name) }}" class="tag-link">
-            <span class="tag-name">{{ tag_name }}</span>
-            <span class="tag-count">{{ tag_count }} post{% if tag_count != 1 %}s{% end %}</span>
-          </a>
-        </div>
+        {% let accent_index = tag_name | tag_accent_index %}
+        <a href="{{ (tag?.href ?? tag_url(tag_name)) | absolute_url }}" class="tag-card gradient-border fluid-combined{{ ' tag-card--featured' if loop.index0 < 3 else '' }}"
+           data-tag-accent="{{ accent_index }}">
+          <span class="tag-card__icon">#</span>
+          <h3 class="tag-card__title">{{ tag_name }}</h3>
+          <span class="tag-card__count">{{ tag_count }} post{% if tag_count != 1 %}s{% end %}</span>
+        </a>
         {% end %}
       </div>
       {% else %}

@@ -118,11 +118,18 @@ def register(env: TemplateEnvironment, site: SiteContent) -> None:
         tags_with_pages = {tag_slug: tag_data["pages"] for tag_slug, tag_data in raw_tags.items()}
         return popular_tags(tags_with_pages, limit)
 
+    def tag_accent_index_filter(tag_name: str, num_colors: int = 8) -> int:
+        """Return 0..num_colors-1 for consistent tag accent color."""
+        if not tag_name:
+            return 0
+        return hash(str(tag_name)) % num_colors
+
     env.filters.update(
         {
             "has_tag": has_tag,
             "tag_views": tag_views_filter,
             "tag_view": tag_view_filter,
+            "tag_accent_index": tag_accent_index_filter,
         }
     )
 

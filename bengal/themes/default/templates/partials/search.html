@@ -87,16 +87,15 @@ Usage:
     {% end %}
 
     {# Loading indicator #}
-    <div class="search-inline__loading" id="search-loading-inline" style="display: none;">
+    <div class="search-inline__loading hidden" id="search-loading-inline">
       <div class="search-inline__spinner"></div>
     </div>
 
     {# Clear button #}
     <button type="button"
-            class="search-inline__clear"
+            class="search-inline__clear hidden"
             id="search-clear"
-            aria-label="{{ t('search.clear', default='Clear search') }}"
-            style="display: none;">
+            aria-label="{{ t('search.clear', default='Clear search') }}">
       {{ icon('x-mark', size=14) }}
     </button>
   </div>
@@ -115,7 +114,7 @@ Usage:
      Filters Section (optional)
      -------------------------------------------------------------------- #}
   {% if show_filters %}
-  <div class="search-inline__filters" id="search-filters" style="display: none;">
+  <div class="search-inline__filters hidden" id="search-filters">
     <button type="button"
             class="search-inline__filters-toggle"
             aria-expanded="false"
@@ -124,7 +123,7 @@ Usage:
       <span>{{ t('search.filters', default='Filters') }}</span>
     </button>
 
-    <div class="search-inline__filters-content" id="search-filters-content" style="display: none;">
+    <div class="search-inline__filters-content hidden" id="search-filters-content">
       <div class="search-inline__filter-group">
         <label for="filter-section">{{ t('search.filter_section', default='Section:') }}</label>
         <select id="filter-section" class="search-inline__filter-select">
@@ -152,10 +151,9 @@ Usage:
      Search Results Container
      -------------------------------------------------------------------- #}
   <div id="search-results"
-       class="search-inline__results"
        role="region"
        aria-label="{{ t('search.results_aria_label', default='Search results') }}"
-       style="display: none;">
+       class="search-inline__results hidden">
 
     {% if active_config.show_header %}
     <div class="search-inline__results-header">
@@ -168,7 +166,7 @@ Usage:
     </div>
 
     {# No results state #}
-    <div id="search-no-results" class="search-inline__no-results" style="display: none;">
+    <div id="search-no-results" class="search-inline__no-results hidden">
       {{ icon('magnifying-glass', size=40) }}
       <p class="search-inline__no-results-text">
         {{ t('search.no_results', default='No results for') }} "<span id="search-no-results-query"></span>"
@@ -182,7 +180,7 @@ Usage:
   {# --------------------------------------------------------------------
      Loading State
      -------------------------------------------------------------------- #}
-  <div id="search-loading" class="search-inline__loading-state" style="display: none;">
+  <div id="search-loading" class="search-inline__loading-state hidden">
     <div class="search-inline__spinner search-inline__spinner--large"></div>
     <p>{{ t('search.loading_index', default='Loading search index...') }}</p>
   </div>
@@ -190,7 +188,7 @@ Usage:
   {# --------------------------------------------------------------------
      Error State
      -------------------------------------------------------------------- #}
-  <div id="search-error" class="search-inline__error" style="display: none;">
+  <div id="search-error" class="search-inline__error hidden">
     <p>{{ t('search.error', default='Failed to load search index. Please try refreshing.') }}</p>
   </div>
 </div>

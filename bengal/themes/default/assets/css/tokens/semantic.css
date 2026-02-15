@@ -200,6 +200,10 @@
   /* Gap within components */
   --space-section-gap: var(--size-12);
   /* Gap between sections */
+  --space-lg: var(--space-8);
+  /* 32px - common section spacing */
+  --space-xl: var(--space-12);
+  /* 48px - large section gaps */
   --space-content-padding: var(--size-6);
   /* Content padding */
   --space-container-padding: var(--size-6);

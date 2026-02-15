@@ -185,6 +185,10 @@ class CLIExtractor(Extractor):
         """
         Extract Click command group documentation.
 
+        Contract: Must use list_commands(ctx) and get_command(ctx, name),
+        not group.commands.items(). Lazy-loaded groups (e.g. Bengal CLI)
+        have empty group.commands and only expose subcommands via those APIs.
+
         Args:
             group: Click Group instance
             parent_name: Parent command name for nested groups
@@ -206,10 +210,17 @@ class CLIExtractor(Extractor):
                 pass
 
         # Build children (subcommands)
+        # Use list_commands + get_command to support lazy-loaded groups (e.g. Bengal CLI).
+        # group.commands is empty for lazy groups that defer loading until invocation.
         children = []
         seen_command_ids: set[int] = set()
         if isinstance(group, click.Group):
-            for _cmd_name, cmd in sorted(group.commands.items()):
+            # Context required: list_commands/get_command need it for lazy-loaded groups.
+            ctx = click.Context(group)
+            for cmd_name in sorted(group.list_commands(ctx)):
+                cmd = group.get_command(ctx, cmd_name)
+                if cmd is None:
+                    continue
                 # Skip hidden commands unless requested
                 if hasattr(cmd, "hidden") and cmd.hidden and not self.include_hidden:
                     continue

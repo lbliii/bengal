@@ -941,3 +941,87 @@ class TestChildCardsDirective:
         assert "<strong>bold</strong>" in result
         # Only first sentence should appear (list is beyond truncation)
         assert "item 1" not in result
+
+
+class TestResolveLinkRelativePath:
+    """Unit tests for cards._resolve_link relative path resolution."""
+
+    def test_resolve_link_dot_slash_with_current_page_dir(self):
+        """Card _resolve_link resolves ./linking/ when current_page_dir provided."""
+        from bengal.parsing.backends.patitas.directives.builtins.cards import (
+            _resolve_link,
+        )
+
+        linking_page = MockPage(title="Linking", href="/docs/content/authoring/linking/")
+        xref = {
+            "by_path": {"docs/content/authoring/linking": linking_page},
+            "by_slug": {},
+            "by_id": {},
+        }
+        url, page = _resolve_link("./linking/", xref, current_page_dir="docs/content/authoring")
+        assert url == "/docs/content/authoring/linking/"
+        assert page is linking_page
+
+    def test_resolve_link_dot_slash_without_current_page_dir(self):
+        """Card _resolve_link returns original when current_page_dir is None."""
+        from bengal.parsing.backends.patitas.directives.builtins.cards import (
+            _resolve_link,
+        )
+
+        xref = {"by_path": {}, "by_slug": {}, "by_id": {}}
+        url, page = _resolve_link("./linking/", xref, current_page_dir=None)
+        assert url == "./linking/"
+        assert page is None
+
+
+class TestCardsUtilsResolvePage:
+    """Unit tests for bengal.utils.xref.resolve_page (single source of truth)."""
+
+    def test_resolve_page_dot_slash_child_with_current_page_dir(self):
+        """./child resolves to current_page_dir/child when page exists."""
+        from bengal.utils.xref import resolve_page
+
+        child_page = MockPage(title="Child", href="/docs/guides/child/")
+        xref = {"by_path": {"docs/guides/child": child_page}, "by_slug": {}, "by_id": {}}
+
+        result = resolve_page(xref, "./child", current_page_dir="docs/guides")
+        assert result is child_page
+
+    def test_resolve_page_dot_slash_child_without_current_page_dir(self):
+        """./child returns None when current_page_dir is None."""
+        from bengal.utils.xref import resolve_page
+
+        xref = {"by_path": {"docs/guides/child": MockPage()}, "by_slug": {}, "by_id": {}}
+
+        result = resolve_page(xref, "./child", current_page_dir=None)
+        assert result is None
+
+    def test_resolve_page_dot_dot_slash_sibling(self):
+        """../sibling resolves to parent/sibling when page exists."""
+        from bengal.utils.xref import resolve_page
+
+        sibling_page = MockPage(title="Sibling", href="/docs/sibling/")
+        xref = {"by_path": {"docs/sibling": sibling_page}, "by_slug": {}, "by_id": {}}
+
+        result = resolve_page(xref, "../sibling", current_page_dir="docs/guides")
+        assert result is sibling_page
+
+    def test_resolve_page_absolute_path_lookup(self):
+        """docs/guides/child resolves via by_path without current_page_dir."""
+        from bengal.utils.xref import resolve_page
+
+        child_page = MockPage(title="Child", href="/docs/guides/child/")
+        xref = {"by_path": {"docs/guides/child": child_page}, "by_slug": {}, "by_id": {}}
+
+        result = resolve_page(xref, "docs/guides/child")
+        assert result is child_page
+
+    def test_resolve_page_slug_lookup(self):
+        """Slug-only link resolves via by_slug."""
+        from bengal.utils.xref import resolve_page
+
+        page = MockPage(title="Child", href="/child/", slug="child")
+        xref = {"by_path": {}, "by_slug": {"child": [page]}, "by_id": {}}
+
+        result = resolve_page(xref, "child")
+        assert result is page

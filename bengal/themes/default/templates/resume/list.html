@@ -176,7 +176,7 @@ MAIN TEMPLATE
             } %}
             {{ timeline_item(edu_item) }}
             {% if edu?.coursework %}
-            <div class="timeline-technologies" style="margin-top: -1rem; padding-left: 1rem;">
+            <div class="timeline-technologies timeline-technologies--coursework">
                 <strong>Relevant Coursework:</strong> {{ edu.coursework | join(', ') }}
             </div>
             {% end %}

@@ -149,84 +149,18 @@ def _render_icon(icon_name: str, card_title: str = "") -> str:
         return ""
 
 
-def _resolve_link(link: str, xref_index: dict[str, Any]) -> tuple[str, Any]:
+def _resolve_link(
+    link: str,
+    xref_index: dict[str, Any],
+    current_page_dir: str | None = None,
+) -> tuple[str, Any]:
     """Resolve a link reference to a URL and page object.
 
-    Handles explicit prefixes:
-    - id:page-id -> Look up by page ID in xref_index["by_id"]
-    - path:/docs/page/ -> Look up by path in xref_index["by_path"]
-    - slug:page-slug -> Look up by slug in xref_index["by_slug"]
-
-    And implicit resolution (no prefix):
-    - Links containing "/" but not starting with "http" -> try by_path
-    - Other links -> try by_slug
-
-    Args:
-        link: Link string (may include id:, path:, or slug: prefix)
-        xref_index: Cross-reference index with by_id, by_path, by_slug dicts
-
-    Returns:
-        Tuple of (resolved_url, page_object or None)
+    Delegates to bengal.utils.xref.resolve_link_to_url_and_page.
     """
-    if not link:
-        return "", None
+    from bengal.utils.xref import resolve_link_to_url_and_page
 
-    # Check for explicit prefixes
-    if link.startswith("id:"):
-        page_id = link[3:]
-        by_id = xref_index.get("by_id", {})
-        page = by_id.get(page_id)
-        if page:
-            # Get URL from page object - try href first (canonical), then url
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None  # Return original if not found
-
-    if link.startswith("path:"):
-        page_path = link[5:]
-        by_path = xref_index.get("by_path", {})
-        page = by_path.get(page_path)
-        if page:
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None
-
-    if link.startswith("slug:"):
-        page_slug = link[5:]
-        by_slug = xref_index.get("by_slug", {})
-        pages = by_slug.get(page_slug, [])
-        if pages:
-            page = pages[0] if isinstance(pages, list) else pages
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None
-
-    # Skip external URLs (http://, https://, //, etc.)
-    if link.startswith(("http://", "https://", "//", "mailto:", "tel:")):
-        return link, None
-
-    # Skip absolute URLs that start with /
-    if link.startswith("/"):
-        return link, None
-
-    # Implicit resolution: try path first for links containing "/"
-    if "/" in link:
-        by_path = xref_index.get("by_path", {})
-        page = by_path.get(link)
-        if page:
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-
-    # Implicit resolution: try slug for simple strings
-    by_slug = xref_index.get("by_slug", {})
-    pages = by_slug.get(link, [])
-    if pages:
-        page = pages[0] if isinstance(pages, list) else pages
-        url = getattr(page, "href", None) or getattr(page, "url", "")
-        return url, page
-
-    # Return original link if no resolution found
-    return link, None
+    return resolve_link_to_url_and_page(xref_index, link, current_page_dir)
 
 
 def _pull_from_page(
@@ -487,6 +421,7 @@ class CardDirective:
         sb: StringBuilder,
         *,
         xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
     ) -> None:
         """Render individual card to HTML.
 
@@ -495,6 +430,7 @@ class CardDirective:
             rendered_children: Pre-rendered child content
             sb: StringBuilder to append output
             xref_index: Optional cross-reference index for link resolution
+            current_page_dir: Content-relative directory for resolving ./ and ../
         """
         opts = node.options  # Direct typed access!
 
@@ -514,7 +450,7 @@ class CardDirective:
         resolved_link = link
         linked_page = None
         if link and xref_index:
-            resolved_link, linked_page = _resolve_link(link, xref_index)
+            resolved_link, linked_page = _resolve_link(link, xref_index, current_page_dir)
 
         # Pull data from linked page
         if linked_page and pull_fields:
@@ -643,6 +579,8 @@ class ChildCardsDirective:
         sb: StringBuilder,
         *,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
     ) -> None:
         """Render child cards by walking the page object tree.
 
@@ -651,6 +589,8 @@ class ChildCardsDirective:
             rendered_children: Pre-rendered children HTML (unused)
             sb: StringBuilder for output
             page_context: Page object from renderer (for section/children access)
+            xref_index: Cross-reference index for resolving relative URLs when embedded
+            current_page_dir: Content-relative dir for resolving ./ and ../ in child URLs
         """
         from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
             collect_children,
@@ -691,7 +631,9 @@ class ChildCardsDirective:
             return
 
         # Collect children from section
-        children_items = collect_children(section, page_context, include)
+        children_items = collect_children(
+            section, page_context, include, xref_index, current_page_dir
+        )
 
         if not children_items:
             no_content("No child content found")

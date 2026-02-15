@@ -63,7 +63,7 @@ per-call overhead of {% include %} (context copy, template lookup).
     {% end %}
 
     {% if item_href %}
-    <a href="{{ item_href }}" class="docs-nav-group-title{{ ' active' if is_current else '' }}" {{ 'aria-current="page"'
+    <a href="{{ item_href | absolute_url }}" class="docs-nav-group-title{{ ' active' if is_current else '' }}" {{ 'aria-current="page"'
       | safe if is_current else '' }}>
       {{ item_title }}
     </a>
@@ -102,7 +102,7 @@ per-call overhead of {% include %} (context copy, template lookup).
       {% end %}
 
       {% if item_href %}
-      <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
+      <a href="{{ item_href | absolute_url }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
         {{ 'aria-current="page"' | safe if is_current else '' }}>
         {{ item_title }}
       </a>
@@ -121,7 +121,7 @@ per-call overhead of {% include %} (context copy, template lookup).
     {% case false, _ %}
     <div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
       {% if item_href %}
-      <a href="{{ item_href }}"
+      <a href="{{ item_href | absolute_url }}"
         class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}{{ ' active' if is_current else '' }}"
         {{ 'aria-current="page"' | safe if is_current else '' }}>
         {% if show_nav_icons and is_section %}

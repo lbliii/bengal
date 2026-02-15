@@ -1346,7 +1346,7 @@
 }
 
 .track-section {
-    scroll-margin-top: 2rem;
+    scroll-margin-top: var(--space-8);
     padding-top: var(--space-6);
     padding-bottom: var(--space-8);
     margin-bottom: var(--space-8);
@@ -1491,7 +1491,7 @@
 }
 
 .track-lesson {
-    scroll-margin-top: 2rem;
+    scroll-margin-top: var(--space-8);
     /* For smooth scroll to anchor */
     padding-top: var(--space-6);
     border-top: 2px solid var(--color-border);

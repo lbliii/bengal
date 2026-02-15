@@ -17,7 +17,7 @@ TAG LINK HELPER
 Creates a tag link with consistent styling.
 ============================================================================= #}
 {% def tag_link(tag, css_class='tag') %}
-  <a href="{{ tag_url(tag) }}" class="{{ css_class }}">{{ tag }}</a>
+  <a href="{{ tag_url(tag) }}" class="{{ css_class }} squeeze">{{ tag }}</a>
 {% end %}
 
 {# =============================================================================
@@ -58,7 +58,7 @@ Displays a tag cloud widget with most frequently used tags.
   <h3>{{ t('tags.popular', default='Popular Topics') }}</h3>
   <div class="tag-cloud">
     {% for tag, count in top_tags %}
-    <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
+    <a href="{{ tag_url(tag) }}" class="tag-bubble squeeze" data-count="{{ count }}">
       {{ tag }}
       <span class="tag-count">{{ count }}</span>
     </a>

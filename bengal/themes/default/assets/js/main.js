@@ -137,7 +137,7 @@
 
       // Create copy button
       const button = document.createElement('button');
-      button.className = 'code-copy-button';
+      button.className = 'code-copy-button copy-success-burst';
       button.setAttribute('aria-label', 'Copy');
 
       // Add copy icon (SVG) - icon only, no text

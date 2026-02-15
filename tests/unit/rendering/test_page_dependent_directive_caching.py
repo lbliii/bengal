@@ -171,12 +171,16 @@ class TestChildCardsNotCachedAcrossPages:
 :::
 """
 
-        # Render page A
-        context_a = {"page": page_a, "site": Mock()}
+        # Render page A (site needs root_path for child-cards current_page_dir resolution)
+        site_a = Mock()
+        site_a.root_path = "/tmp/site"
+        context_a = {"page": page_a, "site": site_a}
         result_a = patitas.parse_with_context(content, {}, context_a)
 
         # Render page B (if caching is broken, this would show page A's content)
-        context_b = {"page": page_b, "site": Mock()}
+        site_b = Mock()
+        site_b.root_path = "/tmp/site"
+        context_b = {"page": page_b, "site": site_b}
         result_b = patitas.parse_with_context(content, {}, context_b)
 
         # Page A should show its own children
@@ -202,7 +206,9 @@ class TestChildCardsNotCachedAcrossPages:
         page = create_mock_page(title="Index", source_path="test/_index.md")
         page._section = section
 
-        context = {"page": page, "site": Mock()}
+        site = Mock()
+        site.root_path = "/tmp/site"
+        context = {"page": page, "site": site}
         content = ":::{child-cards}\n:::"
 
         # Clear cache before test
