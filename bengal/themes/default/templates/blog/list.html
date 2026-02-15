@@ -78,7 +78,7 @@ MAIN TEMPLATE
         {% let section_desc = section?.metadata?.description ?? description ?? '' %}
 
         <header class="page-header page-header--centered">
-            <h1>✍️ {{ section_title }}</h1>
+            <h1>{{ section_title }}</h1>
 
             {% if section_desc %}
             <p class="blog-description">{{ section_desc }}</p>

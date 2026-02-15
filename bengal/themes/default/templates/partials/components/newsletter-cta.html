@@ -1,0 +1,23 @@
+{#
+================================================================================
+Newsletter CTA Component
+================================================================================
+
+Email signup form for newsletter subscription.
+Used in blog TOC sidebar and elsewhere.
+
+Usage:
+  {{ newsletter_cta() }}
+================================================================================
+#}
+
+{% def newsletter_cta() %}
+<div class="newsletter-cta">
+    <h3>Stay Updated</h3>
+    <p>Get notified when we publish new content.</p>
+    <form class="newsletter-form" data-newsletter-target>
+        <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
+        <button type="submit">Subscribe</button>
+    </form>
+</div>
+{% end %}

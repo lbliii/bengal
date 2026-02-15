@@ -47,7 +47,7 @@ def create_config_directory(
     site_config = _create_site_config(site_title, baseurl)
     theme_config = _create_theme_config(theme)
     content_config = _create_content_config(template)
-    params_config: dict[str, Any] = {"params": {}}
+    params_config = _create_params_config(template)
     build_config = _create_build_config()
     features_config = _create_features_config()
     menu_config = _create_menu_config(template)
@@ -137,6 +137,21 @@ def _create_theme_config(theme: str) -> dict[str, Any]:
             "popular_tags_count": 20,
         }
     }
+
+
+def _create_params_config(template: str) -> dict[str, Any]:
+    """Create params configuration. Blog template gets contact placeholders."""
+    params: dict[str, Any] = {}
+    if template == "blog":
+        params = {
+            "email": "hello@example.com",
+            "social": [
+                {"name": "GitHub", "url": "https://github.com/yourusername"},
+                {"name": "Twitter", "url": "https://twitter.com/yourusername"},
+                {"name": "LinkedIn", "url": "https://linkedin.com/in/yourprofile"},
+            ],
+        }
+    return {"params": params}
 
 
 def _create_content_config(template: str) -> dict[str, Any]:

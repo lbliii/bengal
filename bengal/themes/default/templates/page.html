@@ -21,26 +21,7 @@ Auto-selected for pages without a specific type
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/widgets.html' import random_posts %}
-
-{# =============================================================================
-   RELATED POST CARD COMPONENT
-   ============================================================================= #}
-{% def related_card(post) %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_excerpt = post?.excerpt ?? '' %}
-
-<article class="related-post-card gradient-border fluid-combined">
-  <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
-  {% if post_date %}
-  <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
-  {% end %}
-  {% if post_excerpt %}
-  <p>{{ post_excerpt }}</p>
-  {% end %}
-</article>
-{% end %}
+{% from 'partials/components/related-posts-simple.html' import related_posts_simple %}
 
 {# =============================================================================
    MAIN TEMPLATE
@@ -100,20 +81,6 @@ Auto-selected for pages without a specific type
   {# Page Navigation (prev/next) #}
   {{ page_navigation(page) }}
 
-  {# Related Posts Section #}
-  {% let related = page?.related_posts ?? [] %}
-  {% let related_posts = related[:3] %}
-  {% if related_posts | length > 0 %}
-  <aside class="related-posts">
-    <div class="container">
-      <h2>Related Posts</h2>
-      <div class="related-posts-grid">
-        {% for post in related_posts %}
-        {{ related_card(post) }}
-        {% end %}
-      </div>
-    </div>
-  </aside>
-  {% end %}
+  {{ related_posts_simple(page?.related_posts ?? [], 'Related Posts') }}
 </div>
 {% end %}

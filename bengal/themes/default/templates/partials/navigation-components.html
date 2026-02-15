@@ -129,8 +129,8 @@ PAGE NAVIGATION COMPONENT
 Displays previous/next page links for sequential navigation.
 
 Intelligently chooses navigation scope based on content type:
-- doc, tutorial, autodoc-*: Section-scoped (respects weight order)
-- blog, page, others: Global (chronological order)
+- doc, tutorial, autodoc-*, blog: Section-scoped (prev/next within section)
+- page, others: Global (chronological order)
 ============================================================================= #}
 {% def page_navigation(page) %}
 {# Early return if page is null #}
@@ -140,7 +140,7 @@ Intelligently chooses navigation scope based on content type:
 {% if 'navigation.prev_next' in theme_features %}
 {# Determine navigation scope based on content type #}
 {% let content_type = page?.metadata?.type ?? 'page' %}
-{% let section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
+{% let section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog', 'blog'] %}
 {% let use_section_nav = content_type in section_types %}
 
 {# Get navigation links with null-safe access #}

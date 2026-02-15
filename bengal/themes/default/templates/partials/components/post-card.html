@@ -45,7 +45,7 @@ Variants:
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
-        <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
+        <img src="{{ p.author_avatar | avatar_url }}" alt="{{ p.author }}" class="author-avatar">
         {% end %}
         {{ p.author }}
       </span>
@@ -87,7 +87,7 @@ Variants:
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
-        <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
+        <img src="{{ p.author_avatar | avatar_url }}" alt="{{ p.author }}" class="author-avatar">
         {% end %}
         {{ p.author }}
       </span>
@@ -119,7 +119,7 @@ Variants:
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
-        <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
+        <img src="{{ p.author_avatar | avatar_url }}" alt="{{ p.author }}" class="author-avatar">
         {% end %}
         {{ p.author }}
       </span>
@@ -136,7 +136,8 @@ Variants:
       {{ tag_list(p.tags[:4]) }}
     </div>
     {% end %}
-    <a href="{{ p.path }}" class="blog-read-more">Read more →</a>
+    {% let has_excerpt = show_excerpt and p.description and 'content.excerpts' in theme_features %}
+    <a href="{{ p.path }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
   </div>
 </article>
 {% end %}

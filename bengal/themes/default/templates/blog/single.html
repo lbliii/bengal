@@ -32,9 +32,15 @@ Set `type: blog` in frontmatter or use cascade from section
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import page_navigation %}
+{% from 'partials/navigation-components.html' import page_navigation, toc %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/post-card.html' import post_card %}
+{% from 'partials/components/author-bio.html' import author_bio %}
+{% from 'partials/components/blog-share-dropdown.html' import blog_share_dropdown %}
+{% from 'partials/components/related-posts.html' import related_posts %}
+{% from 'partials/components/comments-section.html' import comments_section %}
+{% from 'partials/components/blog-post-meta.html' import blog_post_meta %}
+{% from 'partials/components/newsletter-cta.html' import newsletter_cta %}
 
 {# =============================================================================
 MAIN TEMPLATE
@@ -68,10 +74,14 @@ MAIN TEMPLATE
 {% let css_class = params?.css_class ?? '' %}
 {% let show_newsletter = params?.show_newsletter ?? false %}
 {% let show_comments = params?.comments ?? true %}
+{% let comments_provider = params?.comments_provider ?? '' %}
 
 {# Two-column layout like docs/single: content | TOC. Content gets 1fr, TOC fixed. #}
-<div class="blog-post-layout{{ ' blog-with-toc' if toc else '' }}">
-    <main class="blog-post-main">
+{# Use div not main - base.html already provides main#main-content (nested main is invalid) #}
+{% let toc_items_list = toc_items ?? [] %}
+{% let show_toc = toc and (toc_items_list | length >= 3) %}
+<div class="blog-post-layout{{ ' blog-with-toc' if show_toc else '' }}">
+    <div class="blog-post-main">
         <article class="blog-post prose {{ css_class }}">
             <header class="blog-post-header">
                 {# Featured Image #}
@@ -87,50 +97,10 @@ MAIN TEMPLATE
                 <p class="lead">{{ post_desc }}</p>
                 {% end %}
 
-                {# Post Metadata #}
-                <div class="blog-post-meta">
-                    {# Author Info #}
-                    {% with post_author as author %}
-                    {% if 'content.author' in theme_features %}
-                    <div class="blog-post-author">
-                        {% if post_author_avatar %}
-                        <img src="{{ post_author_avatar }}" alt="{{ author }}" class="author-avatar">
-                        {% end %}
-                        <div class="author-info">
-                            <strong>{{ author }}</strong>
-                            {% if post_author_title %}
-                            <span class="author-title">{{ post_author_title }}</span>
-                            {% end %}
-                        </div>
-                    </div>
-                    {% end %}
-                    {% end %}
-
-                    <div class="blog-post-details">
-                        {# Publication Date #}
-                        {% if page_date %}
-                        <time datetime="{{ page_date | date_iso }}"
-                            title="{{ page_date | dateformat('%B %d, %Y at %I:%M %p') }}">
-                            {{ page_date | dateformat('%B %d, %Y') }}
-                        </time>
-                        {% end %}
-
-                        {# Reading Time #}
-                        {% if page_word_count and 'content.reading_time' in theme_features %}
-                        <span class="reading-time">
-                            {{ icon('clock', size=14) }}
-                            {{ page_read_time }} min read
-                        </span>
-                        {% end %}
-
-                        {# View Count #}
-                        {% if post_views %}
-                        <span class="view-count">
-                            {{ icon('eye', size=14) }}
-                            {{ post_views }} views
-                        </span>
-                        {% end %}
-                    </div>
+                {# Post Metadata + Share #}
+                <div class="blog-post-header-row">
+                    {{ blog_post_meta(post_author, post_author_avatar, post_author_title, page_date, page_read_time, post_views, 'content.author' in theme_features, page_word_count and 'content.reading_time' in theme_features) }}
+                    {{ blog_share_dropdown(page, page_href) }}
                 </div>
 
                 {# Tags #}
@@ -156,82 +126,25 @@ MAIN TEMPLATE
                 {% end %}
 
                 {# Author Bio #}
-                {% with post_author, post_author_bio as author, bio %}
                 {% if 'content.author' in theme_features %}
-                <div class="author-bio">
-                    <div class="author-bio-header">
-                        {% if post_author_avatar %}
-                        <img src="{{ post_author_avatar }}" alt="{{ author }}" class="author-avatar-large">
-                        {% end %}
-                        <div>
-                            <h3>About {{ author }}</h3>
-                            {% if post_author_title %}
-                            <p class="author-title">{{ post_author_title }}</p>
-                            {% end %}
-                        </div>
-                    </div>
-                    <p class="author-bio-text">{{ bio }}</p>
-                    {% if post_author_links | length > 0 %}
-                    <div class="author-links">
-                        {% for link in post_author_links %}
-                        {% let link_url = link?.href ?? link?.url ?? '#' %}
-                        {% let link_text = link?.text ?? link?.name ?? 'Link' %}
-                        <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
-                        {% end %}
-                    </div>
-                    {% end %}
-                </div>
-                {% end %}
+                {{ author_bio(post_author, post_author_avatar, post_author_title, post_author_bio, post_author_links) }}
                 {% end %}
 
-                {# Social Sharing #}
-                <div class="blog-social-share">
-                    <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
-                    <div class="share-buttons">
-                        {% let platforms = [
-                        {'id': 'twitter', 'label': 'Twitter', 'icon': 'twitter-logo'},
-                        {'id': 'linkedin', 'label': 'LinkedIn', 'icon': 'linkedin-logo'},
-                        {'id': 'facebook', 'label': 'Facebook', 'icon': 'facebook-logo'},
-                        {'id': 'reddit', 'label': 'Reddit', 'icon': 'reddit-logo'},
-                        {'id': 'email', 'label': 'Email', 'icon': 'envelope-simple'}
-                        ] %}
-                        {% for platform in platforms %}
-                        <a href="{{ share_url(platform.id, page) }}" target="_blank" rel="noopener noreferrer"
-                            class="share-button share-{{ platform.id }}" aria-label="Share on {{ platform.label }}">
-                            {{ icon(platform.icon, size=20) }} {{ platform.label }}
-                        </a>
-                        {% end %}
-                        <button class="share-button share-copy"
-                            onclick="navigator.clipboard.writeText('{{ page_href }}'); this.innerHTML = '✓ Copied!'"
-                            aria-label="Copy link">
-                            {{ icon('link', size=20) }} Copy Link
-                        </button>
-                    </div>
-                </div>
+                {# Prev/Next - inside content column so it aligns with prose when TOC is present #}
+                {{ page_navigation(page) }}
             </footer>
         </article>
-    </main>
+    </div>
 
-    {# Right Sidebar: TOC (sibling of main, not nested) #}
-    {% if toc %}
+    {# Right Sidebar: TOC - only show when 3+ headings (avoids clutter on short posts) #}
+    {# Uses same enhanced TOC as docs: scroll highlighting, progress bar, count badges, collapsible groups #}
+    {% if show_toc %}
     <aside class="blog-toc" role="complementary" aria-label="Table of contents">
-            <nav class="toc" aria-label="Table of contents">
-                <h2 class="toc-title">In This Post</h2>
-                <div class="toc-content">
-                    {{ toc | safe }}
-                </div>
-            </nav>
+            {{ toc(toc_items=toc_items, toc=toc, page=page) }}
 
             {# Newsletter CTA (Optional) #}
             {% if show_newsletter %}
-            <div class="newsletter-cta">
-                <h3>Stay Updated</h3>
-                <p>Get notified when we publish new content.</p>
-                <form class="newsletter-form" data-newsletter-target>
-                    <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
-                    <button type="submit">Subscribe</button>
-                </form>
-            </div>
+            {{ newsletter_cta() }}
             {% end %}
     </aside>
     {% end %}
@@ -239,44 +152,8 @@ MAIN TEMPLATE
 {% end %}
 
 {% block blog_after_content %}
-{# Page Navigation (Prev/Next Posts) - constrained to match content width #}
-<div class="container blog-after-content">
-{{ page_navigation(page) }}
+<div class="blog-after-content">
+    {{ related_posts(page?.related_posts ?? []) }}
+    {{ comments_section(comments_provider if show_comments else '') }}
 </div>
-
-{# Related Posts #}
-{% let related_posts = (page?.related_posts ?? []) |> take(3) %}
-{% if related_posts | length > 0 %}
-<aside class="related-posts">
-    <div class="container">
-        <h2>{{ t('blog.related_posts', default='Related Posts') }}</h2>
-        <div class="blog-featured-grid">
-            {% for post in related_posts %}
-            {{ post_card(post, variant='compact') }}
-            {% end %}
-        </div>
-    </div>
-</aside>
-{% end %}
-
-{#
-Comments Section (Integration Point)
-
-Configuration:
-- Disable: Set params.comments: false in post frontmatter, or cascade in content.yaml
-- Enable (default): params.comments: true or omit
-- Add a provider (Giscus, Disqus, Utterances, etc.): Override this template or add a
-  script in your layout that injects into #comments (data-comments-target). See docs.
-#}
-{% if show_comments %}
-<div class="comments-section">
-    <div class="container">
-        <h2>{{ t('blog.comments', default='Comments') }}</h2>
-        <div id="comments" data-comments-target></div>
-        <p class="comments-placeholder">
-            <em>{{ t('blog.comments_placeholder', default='To add comments: set params.comments: false to hide, or see the Blog Comments recipe to integrate Giscus, Disqus, or Utterances.') }}</em>
-        </p>
-    </div>
-</div>
-{% end %}
 {% end %}

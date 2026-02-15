@@ -18,13 +18,16 @@ category: cookbook
 
 # Blog Comments
 
-The default theme's blog template includes a comments section placeholder. This recipe shows how to configure it and integrate a third-party comments provider.
+The default theme's blog template includes a comments section that only appears when a provider is configured. This recipe shows how to integrate Giscus, Disqus, or Utterances.
 
 ## Configuration
 
-### Show or Hide Comments
+### Show Comments (Requires Provider)
 
-Control visibility via `params.comments` in frontmatter:
+The comments section is **hidden by default**. To show it, set both:
+
+- `params.comments: true` (or omit; default is true)
+- `params.comments_provider: giscus` (or `disqus`, `utterances`, etc.)
 
 **Per post:**
 
@@ -32,7 +35,8 @@ Control visibility via `params.comments` in frontmatter:
 ---
 title: My Post
 params:
-  comments: false   # Hide comments on this post
+  comments: true
+  comments_provider: giscus
 ---
 ```
 
@@ -43,10 +47,13 @@ Add to `content/_default/content.yaml` or section `_index.md`:
 ```yaml
 cascade:
   params:
-    comments: false   # Disable comments for all posts in this section
+    comments: true
+    comments_provider: giscus
 ```
 
-**Default:** Comments section is shown when `params.comments` is `true` or omitted.
+### Hide Comments
+
+Set `params.comments: false` in frontmatter or cascade to hide the section even when a provider is configured.
 
 ### Integration Point
 
@@ -96,4 +103,4 @@ Add the Disqus embed script and set `disqus_config.page.url` to the current page
 
 ## Override the Template
 
-To replace the placeholder entirely, copy `bengal/themes/default/templates/blog/single.html` to your project's `templates/blog/single.html` and modify the comments block. Replace the placeholder `<p>` with your provider's embed code or a conditional that injects the right script based on `params.comments_provider`.
+To customize the comments block, copy `bengal/themes/default/templates/blog/single.html` to your project's `templates/blog/single.html` and modify the comments section. The template only renders the section when `params.comments_provider` is set.

@@ -101,6 +101,7 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
     # Blog content type
     "blog": [
         "components/blog.css",
+        "components/page-hero.css",
         "components/archive.css",
         "components/author.css",
         "components/author-page.css",

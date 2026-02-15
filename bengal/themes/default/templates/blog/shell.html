@@ -20,7 +20,9 @@ USAGE:
 {% block content %}
 <div class="blog-shell blog-container">
   {% block blog_hero %}{% end %}
-  {% block blog_content %}{% end %}
-  {% block blog_after_content %}{% end %}
+  <div class="blog-single-wrapper">
+    {% block blog_content %}{% end %}
+    {% block blog_after_content %}{% end %}
+  </div>
 </div>
 {% end %}

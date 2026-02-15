@@ -1,4 +1,5 @@
 {% extends "blog/shell.html" %}
+{% from 'partials/components/author-bio.html' import author_bio %}
 
 {#
 ================================================================================
@@ -38,31 +39,7 @@ USAGE:
 
   {% if about_author and 'content.author' in theme_features %}
   <footer class="blog-about-footer">
-    <div class="author-bio">
-      <div class="author-bio-header">
-        {% if about_author_avatar %}
-        <img src="{{ about_author_avatar }}" alt="{{ about_author }}" class="author-avatar-large">
-        {% end %}
-        <div>
-          <h3>About {{ about_author }}</h3>
-          {% if about_author_title %}
-          <p class="author-title">{{ about_author_title }}</p>
-          {% end %}
-        </div>
-      </div>
-      {% if about_author_bio %}
-      <p class="author-bio-text">{{ about_author_bio }}</p>
-      {% end %}
-      {% if about_author_links | length > 0 %}
-      <div class="author-links">
-        {% for link in about_author_links %}
-        {% let link_url = link?.href ?? link?.url ?? '#' %}
-        {% let link_text = link?.text ?? link?.name ?? 'Link' %}
-        <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
-        {% end %}
-      </div>
-      {% end %}
-    </div>
+    {{ author_bio(about_author, about_author_avatar, about_author_title, about_author_bio, about_author_links) }}
   </footer>
   {% end %}
 </article>

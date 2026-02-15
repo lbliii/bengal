@@ -11,9 +11,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    aspect-ratio: 1 / 1; /* Added */
+    gap: var(--space-2);
     color: var(--color-text-inverse);
     background-color: var(--color-text-muted);
     border-radius: var(--radius-md);
@@ -24,8 +22,6 @@
     -webkit-tap-highlight-color: transparent;
     will-change: transform, box-shadow;
     position: relative;
-    overflow: hidden;
-
 }
 
 /* Subtle shine effect on hover */
@@ -58,42 +54,42 @@
 }
 
 /* Platform brand colors (scoped vars for optional overrides) */
-.share-button.twitter {
+.share-button.share-twitter {
     background-color: var(--share-twitter, #1da1f2);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
-    .share-button.twitter:hover {
+    .share-button.share-twitter:hover {
         background-color: color-mix(in srgb, #1da1f2 90%, black);
     }
 }
 
-.share-button.facebook {
+.share-button.share-facebook {
     background-color: var(--share-facebook, #1877f2);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
-    .share-button.facebook:hover {
+    .share-button.share-facebook:hover {
         background-color: color-mix(in srgb, #1877f2 90%, black);
     }
 }
 
-.share-button.linkedin {
+.share-button.share-linkedin {
     background-color: var(--share-linkedin, #0077b5);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
-    .share-button.linkedin:hover {
+    .share-button.share-linkedin:hover {
         background-color: color-mix(in srgb, #0077b5 90%, black);
     }
 }
 
-.share-button.reddit {
+.share-button.share-reddit {
     background-color: var(--share-reddit, #ff4500);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
-    .share-button.reddit:hover {
+    .share-button.share-reddit:hover {
         background-color: color-mix(in srgb, #ff4500 90%, black);
     }
 }
@@ -104,9 +100,9 @@
         transition: none !important;
         transform: none !important;
         will-change: auto !important;
+    }
 
-        .share-button::before {
-            display: none;
-        }
+    .share-button::before {
+        display: none;
     }
 }

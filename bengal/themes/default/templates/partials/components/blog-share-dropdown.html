@@ -1,0 +1,52 @@
+{#
+================================================================================
+Blog Share Dropdown Component
+================================================================================
+
+Share dropdown for blog posts - Copy URL + social links.
+Uses page-hero__share styling (same as docs). No LLM actions.
+
+Usage:
+  {{ blog_share_dropdown(page, page_href) }}
+================================================================================
+#}
+
+{% def blog_share_dropdown(page, page_href) %}
+{% let platforms = [
+    {'id': 'twitter', 'label': 'Twitter', 'icon': 'twitter-logo'},
+    {'id': 'linkedin', 'label': 'LinkedIn', 'icon': 'linkedin-logo'},
+    {'id': 'facebook', 'label': 'Facebook', 'icon': 'facebook-logo'},
+    {'id': 'reddit', 'label': 'Reddit', 'icon': 'reddit-logo'},
+    {'id': 'email', 'label': 'Email', 'icon': 'envelope-simple'}
+] %}
+<div class="blog-post-header__actions">
+    <div class="page-hero__share">
+        <button class="page-hero__share-trigger" popovertarget="blog-post-share-menu"
+            aria-label="{{ t('blog.share_post', default='Share this post') }}"
+            title="{{ t('blog.share_post', default='Share this post') }}">
+            {{ icon('share-network', size=14) }}
+            {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+        </button>
+
+        <div id="blog-post-share-menu" popover class="page-hero__share-dropdown--popover">
+            <div class="page-hero__share-content">
+                <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_href }}" type="button">
+                    {{ icon('link', size=16) }}
+                    <span>{{ t('share.copy_url', default='Copy URL') }}</span>
+                </button>
+
+                <hr class="page-hero__share-separator">
+
+                <div class="page-hero__share-section-header">{{ t('blog.share_post', default='Share this post') }}</div>
+                {% for platform in platforms %}
+                <a href="{{ share_url(platform.id, page) }}" target="_blank" rel="noopener noreferrer"
+                    class="page-hero__share-item">
+                    {{ icon(platform.icon, size=16) }}
+                    <span>{{ platform.label }}</span>
+                </a>
+                {% end %}
+            </div>
+        </div>
+    </div>
+</div>
+{% end %}

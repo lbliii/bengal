@@ -1,0 +1,53 @@
+{#
+================================================================================
+Blog Post Meta Component
+================================================================================
+
+Author byline + post details (date, reading time, view count).
+Used in blog post header.
+
+Usage:
+  {{ blog_post_meta(author, avatar, title, date, reading_time, views, show_author, show_reading_time) }}
+================================================================================
+#}
+
+{% def blog_post_meta(author, avatar='', title='', date=none, reading_time=0, views=none, show_author=true, show_reading_time=true) %}
+<div class="blog-post-meta">
+    {% if show_author and author %}
+    <div class="blog-post-author">
+        {% if avatar %}
+        <img src="{{ avatar | avatar_url }}" alt="{{ author }}" class="author-avatar">
+        {% end %}
+        <div class="author-info">
+            <strong>{{ author }}</strong>
+            {% if title %}
+            <span class="author-title">{{ title }}</span>
+            {% end %}
+        </div>
+    </div>
+    {% end %}
+
+    <div class="blog-post-details">
+        {% if date %}
+        <time datetime="{{ date | date_iso }}"
+            title="{{ date | dateformat('%B %d, %Y at %I:%M %p') }}">
+            {{ date | dateformat('%B %d, %Y') }}
+        </time>
+        {% end %}
+
+        {% if show_reading_time and reading_time and reading_time > 0 %}
+        <span class="reading-time">
+            {{ icon('clock', size=14) }}
+            {{ reading_time }} min read
+        </span>
+        {% end %}
+
+        {% if views %}
+        <span class="view-count">
+            {{ icon('eye', size=14) }}
+            {{ views }} views
+        </span>
+        {% end %}
+    </div>
+</div>
+{% end %}

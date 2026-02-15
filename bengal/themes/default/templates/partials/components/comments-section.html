@@ -1,0 +1,25 @@
+{#
+================================================================================
+Comments Section Component
+================================================================================
+
+Integration point for comments (giscus, disqus, utterances, etc.).
+Only renders when provider is set.
+
+Usage:
+  {{ comments_section(provider) }}
+
+Configuration:
+  - Disable: Set params.comments: false in post frontmatter
+  - Enable: Set params.comments_provider: giscus|disqus|utterances (or custom)
+================================================================================
+#}
+
+{% def comments_section(provider) %}
+{% if provider %}
+<div class="comments-section">
+    <h2>{{ t('blog.comments', default='Comments') }}</h2>
+    <div id="comments" data-comments-target></div>
+</div>
+{% end %}
+{% end %}

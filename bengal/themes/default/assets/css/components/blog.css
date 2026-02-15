@@ -425,23 +425,33 @@ html:not([data-devtools-open]) .blog-post-list > * {
    ============================================ */
 
 /* Container becomes full-width when it holds blog-post-layout (like docs-layout) */
-.blog-container:has(> .blog-post-layout) {
+.blog-container:has(.blog-post-layout) {
     max-width: 100%;
     padding-inline: 0;
 }
 
-/* After-content: page nav aligned with prose width; related/comments use content width */
-.blog-container:has(> .blog-post-layout) .blog-after-content {
-    max-width: var(--prose-width, 75ch);
-    margin-inline: auto;
-    padding-inline: var(--space-6);
+/* When layout has TOC, after-content uses same grid so it scales to match content column */
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-areas: "content toc";
 }
 
-.blog-container:has(> .blog-post-layout) .related-posts .container,
-.blog-container:has(> .blog-post-layout) .comments-section .container {
-    max-width: var(--content-max-width, 1200px);
-    margin-inline: auto;
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-post-layout {
+    grid-column: 1 / -1;
+}
+
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-after-content {
+    grid-area: content;
+}
+
+/* blog-after-content speaks the same language as blog-post-layout: same padding, tokens, max-width */
+.blog-after-content {
+    padding-block: var(--space-5) var(--space-8);
     padding-inline: var(--space-6);
+    max-width: var(--container-xl, 1280px);
+    margin-inline: auto;
+    width: 100%;
 }
 
 /* Blog post layout: docs-like two-column (content | TOC). Content gets 1fr, TOC fixed. */
@@ -488,6 +498,11 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 @media (max-width: 1024px) {
+    .blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
+        grid-template-columns: 1fr;
+        grid-template-areas: "content";
+    }
+
     .blog-post-layout.blog-with-toc {
         grid-template-areas: "content";
         grid-template-columns: 1fr;
@@ -543,6 +558,20 @@ html:not([data-devtools-open]) .blog-post-list > * {
     border-block-end: 1px solid var(--color-border);
 }
 
+/* Blog Post Header Row: meta + share dropdown */
+.blog-post-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.blog-post-header-row .blog-post-meta {
+    flex: 1;
+    min-width: 0;
+}
+
 /* Blog Post Metadata */
 .blog-post-meta {
     display: flex;
@@ -563,11 +592,14 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 .blog-post-author .author-avatar {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
-.author-info {
+.blog-post-author .author-info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -627,15 +659,16 @@ html:not([data-devtools-open]) .blog-post-list > * {
     font-style: italic;
 }
 
-/* Author Bio */
+/* Author Bio: (avatar | about | title) | bio - left column stacked, bio flows right */
 .author-bio {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-6);
     padding: var(--space-6);
     background: var(--color-bg-secondary);
-    /* Match resume summary pattern */
     border-radius: var(--radius-xl);
-    /* Match resume pattern */
     border-inline-start: 4px solid var(--color-primary);
-    /* Match resume accent border */
     margin: var(--space-8) 0;
     transition: transform var(--transition-smooth) var(--ease-smooth),
         box-shadow var(--transition-smooth) var(--ease-smooth);
@@ -655,28 +688,47 @@ html:not([data-devtools-open]) .blog-post-list > * {
         -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
-.author-bio-header {
+.author-bio-side {
     display: flex;
-    align-items: flex-start;
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
+    flex-direction: column;
+    gap: var(--space-3);
+    flex-shrink: 0;
 }
 
 .author-avatar-large {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.author-bio h3 {
+.author-bio-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.author-bio-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.author-bio-info h3 {
     margin: 0;
     font-size: var(--text-lg);
 }
 
+.author-bio-info .author-title {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary-muted);
+}
+
 .author-bio-text {
     line-height: var(--leading-relaxed);
-    /* Match docs/resume pattern */
     margin: 0;
     color: var(--color-text-secondary);
 }
@@ -684,7 +736,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .author-links {
     display: flex;
     gap: var(--space-4);
-    margin-top: var(--space-4);
 }
 
 .author-links a {
@@ -1077,12 +1128,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
 
 /* Ultra-wide screens - constrain layout like docs */
 @media (min-width: 1920px) {
-    .blog-container:not(:has(> .blog-post-layout)) {
+    .blog-container:not(:has(.blog-post-layout)) {
         max-width: var(--container-3xl, 1920px);
         padding: var(--space-10) var(--space-8);
     }
 
-    .blog-container:has(> .blog-post-layout) {
+    .blog-container:has(.blog-post-layout) {
         max-width: var(--container-3xl, 1920px);
         margin-inline: auto;
     }
