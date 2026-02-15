@@ -10,7 +10,7 @@ The xref.json contains:
     ```json
     {
       "version": "1",
-      "generator": "bengal/0.2.0",
+      "generator": "bengal/0.2.1",
       "project": {
         "name": "My Project",
         "url": "https://docs.example.com/"
