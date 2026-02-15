@@ -156,107 +156,11 @@ def _resolve_link(
 ) -> tuple[str, Any]:
     """Resolve a link reference to a URL and page object.
 
-    Handles explicit prefixes:
-    - id:page-id -> Look up by page ID in xref_index["by_id"]
-    - path:/docs/page/ -> Look up by path in xref_index["by_path"]
-    - slug:page-slug -> Look up by slug in xref_index["by_slug"]
-
-    And implicit resolution (no prefix):
-    - ./ and ../ -> resolve via resolve_page with current_page_dir
-    - Links containing "/" but not starting with "http" -> try by_path
-    - Other links -> try by_slug
-
-    Args:
-        link: Link string (may include id:, path:, or slug: prefix)
-        xref_index: Cross-reference index with by_id, by_path, by_slug dicts
-        current_page_dir: Content-relative directory for resolving ./ and ../
-
-    Returns:
-        Tuple of (resolved_url, page_object or None)
+    Delegates to bengal.utils.xref.resolve_link_to_url_and_page.
     """
-    if not link:
-        return "", None
+    from bengal.utils.xref import resolve_link_to_url_and_page
 
-    # Relative paths (./ and ../) require current_page_dir
-    if link.startswith(("./", "../")) and current_page_dir:
-        clean_link = link.replace(".md", "").rstrip("/")
-        if clean_link.startswith("./"):
-            resolved_path = f"{current_page_dir}/{clean_link[2:]}"
-        else:
-            parts = current_page_dir.split("/")
-            up_count = 0
-            remaining = clean_link
-            while remaining.startswith("../"):
-                up_count += 1
-                remaining = remaining[3:]
-            if up_count < len(parts):
-                parent = (
-                    "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
-                )
-                resolved_path = f"{parent}/{remaining}" if remaining else parent
-            else:
-                resolved_path = remaining
-        page = xref_index.get("by_path", {}).get(resolved_path)
-        if page:
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-
-    # Check for explicit prefixes
-    if link.startswith("id:"):
-        page_id = link[3:]
-        by_id = xref_index.get("by_id", {})
-        page = by_id.get(page_id)
-        if page:
-            # Get URL from page object - try href first (canonical), then url
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None  # Return original if not found
-
-    if link.startswith("path:"):
-        page_path = link[5:]
-        by_path = xref_index.get("by_path", {})
-        page = by_path.get(page_path)
-        if page:
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None
-
-    if link.startswith("slug:"):
-        page_slug = link[5:]
-        by_slug = xref_index.get("by_slug", {})
-        pages = by_slug.get(page_slug, [])
-        if pages:
-            page = pages[0] if isinstance(pages, list) else pages
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-        return link, None
-
-    # Skip external URLs (http://, https://, //, etc.)
-    if link.startswith(("http://", "https://", "//", "mailto:", "tel:")):
-        return link, None
-
-    # Skip absolute URLs that start with /
-    if link.startswith("/"):
-        return link, None
-
-    # Implicit resolution: try path first for links containing "/"
-    if "/" in link:
-        by_path = xref_index.get("by_path", {})
-        page = by_path.get(link)
-        if page:
-            url = getattr(page, "href", None) or getattr(page, "url", "")
-            return url, page
-
-    # Implicit resolution: try slug for simple strings
-    by_slug = xref_index.get("by_slug", {})
-    pages = by_slug.get(link, [])
-    if pages:
-        page = pages[0] if isinstance(pages, list) else pages
-        url = getattr(page, "href", None) or getattr(page, "url", "")
-        return url, page
-
-    # Return original link if no resolution found
-    return link, None
+    return resolve_link_to_url_and_page(xref_index, link, current_page_dir)
 
 
 def _pull_from_page(

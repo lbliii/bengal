@@ -977,13 +977,11 @@ class TestResolveLinkRelativePath:
 
 
 class TestCardsUtilsResolvePage:
-    """Unit tests for cards_utils.resolve_page relative path resolution."""
+    """Unit tests for bengal.utils.xref.resolve_page (single source of truth)."""
 
     def test_resolve_page_dot_slash_child_with_current_page_dir(self):
         """./child resolves to current_page_dir/child when page exists."""
-        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
-            resolve_page,
-        )
+        from bengal.utils.xref import resolve_page
 
         child_page = MockPage(title="Child", href="/docs/guides/child/")
         xref = {"by_path": {"docs/guides/child": child_page}, "by_slug": {}, "by_id": {}}
@@ -993,9 +991,7 @@ class TestCardsUtilsResolvePage:
 
     def test_resolve_page_dot_slash_child_without_current_page_dir(self):
         """./child returns None when current_page_dir is None."""
-        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
-            resolve_page,
-        )
+        from bengal.utils.xref import resolve_page
 
         xref = {"by_path": {"docs/guides/child": MockPage()}, "by_slug": {}, "by_id": {}}
 
@@ -1004,9 +1000,7 @@ class TestCardsUtilsResolvePage:
 
     def test_resolve_page_dot_dot_slash_sibling(self):
         """../sibling resolves to parent/sibling when page exists."""
-        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
-            resolve_page,
-        )
+        from bengal.utils.xref import resolve_page
 
         sibling_page = MockPage(title="Sibling", href="/docs/sibling/")
         xref = {"by_path": {"docs/sibling": sibling_page}, "by_slug": {}, "by_id": {}}
@@ -1016,9 +1010,7 @@ class TestCardsUtilsResolvePage:
 
     def test_resolve_page_absolute_path_lookup(self):
         """docs/guides/child resolves via by_path without current_page_dir."""
-        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
-            resolve_page,
-        )
+        from bengal.utils.xref import resolve_page
 
         child_page = MockPage(title="Child", href="/docs/guides/child/")
         xref = {"by_path": {"docs/guides/child": child_page}, "by_slug": {}, "by_id": {}}
@@ -1028,9 +1020,7 @@ class TestCardsUtilsResolvePage:
 
     def test_resolve_page_slug_lookup(self):
         """Slug-only link resolves via by_slug."""
-        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
-            resolve_page,
-        )
+        from bengal.utils.xref import resolve_page
 
         page = MockPage(title="Child", href="/child/", slug="child")
         xref = {"by_path": {}, "by_slug": {"child": [page]}, "by_id": {}}

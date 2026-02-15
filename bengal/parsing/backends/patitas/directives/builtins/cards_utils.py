@@ -14,7 +14,6 @@ from typing import Any
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import clean_md_path
 from bengal.utils.primitives.text import escape_html
 
 logger = get_logger(__name__)
@@ -133,43 +132,13 @@ def extract_page_fields(page: Any, fields: list[str]) -> dict[str, Any]:
 
 
 def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | None = None) -> Any:
-    """Resolve a link to a page object."""
-    # Relative path
-    if link.startswith(("./", "../")):
-        if current_page_dir:
-            clean_link = link.replace(".md", "").rstrip("/")
-            if clean_link.startswith("./"):
-                resolved_path = f"{current_page_dir}/{clean_link[2:]}"
-            else:
-                parts = current_page_dir.split("/")
-                up_count = 0
-                remaining = clean_link
-                while remaining.startswith("../"):
-                    up_count += 1
-                    remaining = remaining[3:]
-                if up_count < len(parts):
-                    parent = "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
-                    resolved_path = f"{parent}/{remaining}" if remaining else parent
-                else:
-                    resolved_path = remaining
+    """Resolve a link to a page object.
 
-            page = xref_index.get("by_path", {}).get(resolved_path)
-            if page:
-                return page
-        return None
+    Delegates to bengal.utils.xref.resolve_page (single source of truth).
+    """
+    from bengal.utils.xref import resolve_page as _resolve_page
 
-    # Custom ID
-    if link.startswith("id:"):
-        return xref_index.get("by_id", {}).get(link[3:])
-
-    # Path lookup
-    if "/" in link or link.endswith(".md"):
-        clean_path = clean_md_path(link)
-        return xref_index.get("by_path", {}).get(clean_path)
-
-    # Slug lookup
-    pages = xref_index.get("by_slug", {}).get(link, [])
-    return pages[0] if pages else None
+    return _resolve_page(xref_index, link, current_page_dir)
 
 
 def resolve_link_url(renderer: Any, link: str) -> str:
