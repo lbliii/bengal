@@ -40,3 +40,15 @@ def test_excerpt_for_card_filter_in_template(tmp_path: Path) -> None:
         },
     )
     assert html.strip() == "Real content here."
+
+
+def test_excerpt_for_card_empty_result_changelog(tmp_path: Path) -> None:
+    """Changelog: when summary is only version/name, result is empty."""
+    site = Site(root_path=tmp_path, config={"title": "Test"})
+    engine = TemplateEngine(site)
+
+    html = engine.render_string(
+        "{{ summary | excerpt_for_card(version, name) | excerpt(160) }}",
+        {"summary": "0.1.8", "version": "0.1.8", "name": ""},
+    )
+    assert html.strip() == ""

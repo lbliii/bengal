@@ -81,6 +81,8 @@ Strip leading content that duplicates the title or description. Use for card/til
 
 Works with HTML (strips to plain text) or plain text. Case-insensitive.
 
+**Use cases:** post cards, related cards, tiles, tutorial cards, autodoc element cards, changelog summaries.
+
 ## card_excerpt
 
 Excerpt for card previews: strip title/description duplicates, then truncate by word count. Combines `excerpt_for_card` and `truncatewords`.
@@ -91,6 +93,22 @@ Excerpt for card previews: strip title/description duplicates, then truncate by 
 ```
 
 Use for post cards, related cards, tiles, and any preview that should not duplicate the title. Default: 30 words.
+
+**Site strategy examples:**
+
+```kida
+{# Blog post cards #}
+{{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}
+
+{# Tutorial cards #}
+{{ tut_desc | excerpt_for_card(tut_title) | excerpt(150) }}
+
+{# Autodoc API cards #}
+{{ child_desc | excerpt_for_card(child_name) | excerpt(100) }}
+
+{# Changelog release summary #}
+{{ rel.summary | excerpt_for_card(rel.version, rel.name) | excerpt(160) }}
+```
 
 ## first_sentence
 

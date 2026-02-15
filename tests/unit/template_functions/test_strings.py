@@ -331,6 +331,24 @@ class TestExcerptForCard:
         assert excerpt_for_card(content) == "Some content here."
         assert excerpt_for_card(content, title="", description="") == "Some content here."
 
+    def test_autodoc_docstring_strips_element_name(self):
+        """Autodoc: description often starts with element name."""
+        content = "process_data converts input to output."
+        result = excerpt_for_card(content, title="process_data")
+        assert result == "converts input to output."
+
+    def test_changelog_summary_strips_version(self):
+        """Changelog: summary may start with version."""
+        content = "0.1.8 - Bug fixes. Fixed crash on startup."
+        result = excerpt_for_card(content, title="0.1.8")
+        assert result == "Bug fixes. Fixed crash on startup."
+
+    def test_tutorial_description_strips_title(self):
+        """Tutorial: description from content may start with title."""
+        content = "Getting Started. Learn the basics in 10 minutes."
+        result = excerpt_for_card(content, title="Getting Started")
+        assert result == "Learn the basics in 10 minutes."
+
 
 class TestCardExcerpt:
     """Tests for card_excerpt filter."""
@@ -359,6 +377,13 @@ class TestCardExcerpt:
         content = "Title. One two three four five six."
         result = card_excerpt(content, words=3, title="Title", suffix=" [more]")
         assert result == "One two three [more]"
+
+    def test_changelog_summary_truncates(self):
+        """Changelog: long summary truncated at 160 chars equivalent (words)."""
+        content = "0.1.8. " + " ".join(["word"] * 50)
+        result = card_excerpt(content, words=25, title="0.1.8")
+        assert result.endswith("...")
+        assert "0.1.8" not in result
 
 
 class TestStripWhitespace:

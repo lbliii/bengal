@@ -222,6 +222,9 @@ no_format: true                        # Skip HTML formatting
 ```kida
 {# Use card_excerpt so preview text does not repeat the title or description #}
 <p>{{ page.excerpt | card_excerpt(30, page.title, page.description) | safe }}</p>
+
+{# Tiles/docs: excerpt_for_card + excerpt for char truncation #}
+<p>{{ item.description | excerpt_for_card(item.title) | excerpt(120) }}</p>
 ```
 
 ### Render Tags

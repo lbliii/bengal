@@ -296,7 +296,7 @@ Once your environment satisfies `TemplateEnvironment`, `register_all()` provides
 | **Collections** | 15+ | `sort_by`, `group_by`, `where`, `first`, `last` |
 | **Dates** | 10+ | `strftime`, `days_ago`, `relative_date` |
 | **URLs** | 5+ | `absurl`, `relurl`, `url_encode` |
-| **Content** | 10+ | `markdown`, `highlight`, `excerpt`, `card_excerpt` |
+| **Content** | 10+ | `markdown`, `highlight`, `excerpt`, `excerpt_for_card`, `card_excerpt` |
 | **Navigation** | 10+ | `breadcrumbs`, `toc`, `auto_nav`, `pagination` |
 | **SEO** | 5+ | `meta_tags`, `og_tags`, `schema_org` |
 | **i18n** | 5+ | `t`, `current_lang`, `available_langs` |
