@@ -42,6 +42,7 @@ from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.protocols import ProgressReporter
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.paths.url_strategy import URLStrategy
 
 from .parallel import (
@@ -64,6 +65,17 @@ from .tracking import (
 )
 
 logger = get_logger(__name__)
+
+
+def _normalize_content_path(path: str) -> str:
+    """Normalize path for track item matching (same logic as get_page cache key)."""
+    normalized = to_posix(path)
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    if normalized.startswith("content/"):
+        normalized = normalized[8:]
+    return normalized
+
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -339,6 +351,9 @@ class RenderOrchestrator:
         # Prioritize pages that were explicitly changed (forced_changed_sources)
         # to ensure the most important content renders first.
         pages = self._priority_sort(pages, changed_sources)
+        # Track dependency ordering: render track items before track pages so
+        # get_page() finds already-parsed pages, avoiding on-demand parsing.
+        pages = self._track_dependency_sort(pages)
 
         try:
             # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
@@ -620,6 +635,10 @@ class RenderOrchestrator:
     def _should_use_complexity_ordering(self) -> bool:
         """Check if complexity-based ordering is enabled."""
         return self.site.config.get("build", {}).get("complexity_ordering", True)
+
+    def _should_use_track_dependency_ordering(self) -> bool:
+        """Check if track dependency ordering is enabled."""
+        return self.site.config.get("build", {}).get("track_dependency_ordering", True)
 
     def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
         """Sort pages by complexity if enabled and beneficial.
@@ -1072,6 +1091,88 @@ class RenderOrchestrator:
 
             # Determine output path using centralized strategy (kept in sync with pipeline)
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
+
+    def _track_dependency_sort(self, pages: list[Page]) -> list[Page]:
+        """
+        Sort pages so track items are rendered before track pages that embed them.
+
+        When track pages render, they call get_page() for each track item. If the
+        item was already rendered, it is parsed and get_page() is a cheap lookup.
+        If not, get_page() triggers on-demand parsing. This sort ensures track
+        items are rendered first, eliminating redundant parsing.
+
+        Returns:
+            Pages reordered: track_items first, then track_pages, then other.
+        """
+        if not self._should_use_track_dependency_ordering():
+            return pages
+
+        tracks_data = getattr(self.site.data, "tracks", None)
+        if not tracks_data or not isinstance(tracks_data, dict):
+            return pages
+
+        # Build set of normalized track item paths (same normalization as get_page)
+        track_item_paths: set[str] = set()
+        for track_def in tracks_data.values():
+            if not isinstance(track_def, dict):
+                continue
+            items = track_def.get("items")
+            if not isinstance(items, (list, tuple)):
+                continue
+            for item in items:
+                if isinstance(item, str):
+                    track_item_paths.add(_normalize_content_path(item))
+
+        if not track_item_paths:
+            return pages
+
+        content_root = self.site.root_path / "content"
+        track_items: list[Page] = []
+        track_pages: list[Page] = []
+        other: list[Page] = []
+
+        for page in pages:
+            if not page.source_path:
+                other.append(page)
+                continue
+
+            # Compute content-relative path for this page
+            try:
+                rel = page.source_path.relative_to(content_root)
+            except ValueError:
+                other.append(page)
+                continue
+
+            rel_str = to_posix(rel)
+            rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
+
+            # Check if page is a track item (appears in any track's items)
+            is_track_item = rel_str in track_item_paths or rel_no_ext in track_item_paths
+
+            # Check if page is a track page (uses tracks/single.html or has track_id)
+            is_track_page = (
+                page.metadata.get("template") == "tracks/single.html"
+                or page.metadata.get("track_id") is not None
+            )
+
+            if is_track_item:
+                # Track item takes precedence (render early even if also a track page)
+                track_items.append(page)
+            elif is_track_page:
+                track_pages.append(page)
+            else:
+                other.append(page)
+
+        if track_items or track_pages:
+            logger.debug(
+                "track_dependency_ordering",
+                track_items_count=len(track_items),
+                track_pages_count=len(track_pages),
+                other_count=len(other),
+            )
+            return track_items + track_pages + other
+
+        return pages
 
     def _priority_sort(self, pages: list[Page], changed_sources: set[Path] | None) -> list[Page]:
         """

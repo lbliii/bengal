@@ -146,6 +146,7 @@ DEFAULTS: dict[str, Any] = {
         "fast_mode": False,
         "stable_section_references": True,
         "min_page_size": 1000,
+        "track_dependency_ordering": True,  # Render track items before track pages
     },
     # -------------------------------------------------------------------------
     # Development (canonical location: dev.*)
