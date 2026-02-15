@@ -309,45 +309,42 @@ class TestPageReadingTime:
 
 
 class TestPageExcerpt:
-    """Test Page.excerpt cached property."""
+    """Test Page.excerpt cached property.
+
+    Excerpt now returns rendered HTML (markdown parsed), strips leading h1.
+    """
 
     def test_excerpt_short_content(self, tmp_path):
-        """Short content is returned as-is."""
+        """Short content is rendered to HTML."""
         page = Page(
             source_path=tmp_path / "test.md", _raw_content="Short content here.", _raw_metadata={}
         )
 
-        assert page.excerpt == "Short content here."
+        assert "Short content here" in page.excerpt
 
-    def test_excerpt_long_content_truncated(self, tmp_path):
-        """Long content is truncated to 200 chars."""
-        long_content = "This is a long piece of content. " * 20
-        page = Page(source_path=tmp_path / "test.md", _raw_content=long_content, _raw_metadata={})
-
-        excerpt = page.excerpt
-        assert len(excerpt) <= 203  # 200 + "..."
-        assert excerpt.endswith("...")
-
-    def test_excerpt_strips_html(self, tmp_path):
-        """HTML tags are stripped."""
+    def test_excerpt_strips_leading_h1(self, tmp_path):
+        """Leading h1 is stripped, excerpt starts with content after."""
         page = Page(
             source_path=tmp_path / "test.md",
-            _raw_content="<p>This is <strong>bold</strong> text.</p>",
+            _raw_content="# The Title\n\nFirst paragraph of the post.",
             _raw_metadata={},
         )
 
-        assert page.excerpt == "This is bold text."
+        excerpt = page.excerpt
+        assert "First paragraph" in excerpt
+        assert "The Title" not in excerpt
 
-    def test_excerpt_word_boundaries(self, tmp_path):
-        """Respects word boundaries (doesn't cut words)."""
-        # Create content that would normally be cut mid-word
-        content = "A" * 195 + " word that would be cut"
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+    def test_excerpt_renders_markdown(self, tmp_path):
+        """Markdown (bold, links) is rendered to HTML."""
+        page = Page(
+            source_path=tmp_path / "test.md",
+            _raw_content="This has **bold** text.",
+            _raw_metadata={},
+        )
 
         excerpt = page.excerpt
-        # Should not cut the word "that"
-        assert not excerpt.endswith("tha...")
-        assert excerpt.endswith("...")
+        assert "bold" in excerpt
+        assert "<strong>" in excerpt
 
     def test_excerpt_caching(self, tmp_path):
         """Result is cached after first access."""
@@ -355,17 +352,12 @@ class TestPageExcerpt:
             source_path=tmp_path / "test.md", _raw_content="Original content here", _raw_metadata={}
         )
 
-        # First access computes
         excerpt1 = page.excerpt
-
-        # Modify content (shouldn't affect cached result)
         page._raw_content = "Modified content"
-
-        # Second access returns cached value
         excerpt2 = page.excerpt
 
-        assert excerpt1 == excerpt2 == "Original content here"
-        assert excerpt1 is excerpt2  # Same object in memory
+        assert excerpt1 == excerpt2
+        assert excerpt1 is excerpt2
 
     def test_excerpt_empty_content(self, tmp_path):
         """Empty content returns empty string."""
@@ -404,7 +396,8 @@ class TestCachedPropertiesIntegration:
         # Should still have consistent values
         assert page.meta_description == "Test content"
         assert page.reading_time == 1
-        assert page.excerpt == "Test content"
+        # compute_excerpt returns HTML (fallback path when _excerpt not set by pipeline)
+        assert page.excerpt == "<p>Test content</p>"
 
     def test_all_cached_properties_together(self, tmp_path):
         """All three cached properties work together."""
@@ -418,7 +411,8 @@ class TestCachedPropertiesIntegration:
 
         assert len(desc) <= 160
         assert time >= 1
-        assert len(excerpt) <= 203  # 200 + "..."
+        # compute_excerpt returns HTML (250 chars content + tags)
+        assert len(excerpt) <= 260
 
         # All should be cached
         assert page.meta_description is desc

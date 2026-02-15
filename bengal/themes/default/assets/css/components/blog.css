@@ -497,6 +497,33 @@ html:not([data-devtools-open]) .blog-post-list > * {
     border-left: 1px solid var(--color-border-light, var(--color-border));
 }
 
+/* Blog TOC: no inner progress bar (page has global reading-progress at top) */
+.blog-toc .toc-progress {
+    display: none;
+}
+
+/* Blog TOC: no inner scroll - let outer .blog-toc handle overflow (avoids scrollbar with 1-2 headers) */
+.blog-toc .toc-sidebar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.blog-toc .toc-nav {
+    flex: 1;
+    min-width: 0;
+}
+
+.blog-toc .toc-scroll-container {
+    overflow-y: visible;
+    flex: none;
+}
+
+/* Hide TOC metadata in blog - hero already has date, reading time, updated */
+.blog-toc .toc-metadata {
+    display: none;
+}
+
 @media (max-width: 1024px) {
     .blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
         grid-template-columns: 1fr;
@@ -513,63 +540,34 @@ html:not([data-devtools-open]) .blog-post-list > * {
     }
 }
 
-/* Blog Post Header */
-.blog-post-header {
+/* Blog Post Hero: uses page-hero (like docs) without breadcrumbs */
+.page-hero--blog {
     margin-bottom: var(--space-10);
-    /* Increased from space-8 for better separation */
 }
 
-.blog-post-image {
-    margin: 0 0 var(--space-8) 0;
+/* Featured image (blog-specific) */
+.page-hero__image--blog {
+    margin: 0 0 var(--space-6) 0;
     border-radius: var(--radius-xl);
-    /* Match card border radius pattern */
     overflow: hidden;
     aspect-ratio: 16 / 9;
     box-shadow: var(--elevation-card);
-    /* Add subtle shadow for depth */
 }
 
-.blog-post-image img {
+.page-hero__image--blog img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.blog-post-header h1 {
-    margin-bottom: var(--space-6);
-    /* Increased spacing for better hierarchy */
-    font-size: var(--text-4xl);
-    /* Ensure consistent heading size */
-    font-weight: var(--weight-bold);
-    line-height: var(--leading-tight);
-    color: var(--color-text-primary);
-}
-
-.blog-post-header .lead {
-    font-size: var(--text-xl);
-    /* Increased from lg for better prominence */
-    color: var(--color-text-secondary);
-    font-weight: var(--weight-normal);
-    line-height: var(--leading-relaxed);
-    /* Match docs/resume pattern */
-    letter-spacing: 0.01em;
-    padding-bottom: var(--space-6);
-    margin-bottom: 0;
-    border-block-end: 1px solid var(--color-border);
-}
-
-/* Blog Post Header Row: meta + share dropdown */
-.blog-post-header-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
+/* Blog meta inside page-hero__meta: metadata row + mini author card */
+.page-hero__meta .blog-post-meta {
+    border: none;
+    padding: 0;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--space-4);
-}
-
-.blog-post-header-row .blog-post-meta {
-    flex: 1;
-    min-width: 0;
 }
 
 /* Blog Post Metadata */
@@ -585,19 +583,20 @@ html:not([data-devtools-open]) .blog-post-list > * {
     margin: var(--space-6) 0;
 }
 
-.blog-post-author {
+/* Mini author card in hero - compact avatar + name + title */
+.author-mini-card {
     display: flex;
     align-items: center;
     gap: var(--space-3);
 }
 
-.blog-post-author .author-avatar {
+.author-mini-card .author-avatar {
     width: 36px;
     height: 36px;
     flex-shrink: 0;
 }
 
-.blog-post-author .author-info {
+.author-mini-card .author-info {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -625,11 +624,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
     gap: var(--space-2);
 }
 
-/* Blog Post Tags */
+/* Blog Post Tags - in footer after content */
 .blog-post-tags {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+    margin-bottom: var(--space-8);
 }
 
 /* Blog Post Content */
@@ -649,14 +649,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
     /* Increased from space-6 */
     border-block-start: 2px solid var(--color-border-light);
     /* Match resume pattern */
-}
-
-.blog-updated {
-    margin-bottom: var(--space-6);
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-    /* Match docs/resume text color pattern */
-    font-style: italic;
 }
 
 /* Author Bio: (avatar | about | title) | bio - left column stacked, bio flows right */
@@ -1162,12 +1154,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
         /* Reduce padding on mobile */
     }
 
-    .blog-post-header,
+    .page-hero--blog,
     .blog-post-footer {
         padding: var(--space-4) 0;
     }
 
-    .blog-post-header .lead {
+    .page-hero--blog .page-hero__description {
         font-size: var(--text-lg);
         /* Slightly smaller but still readable */
         padding-bottom: var(--space-4);

@@ -613,6 +613,15 @@ def _strip_leading_duplicate(text: str, prefix: str) -> str:
     return rest.strip()
 
 
+def _prepare_html_for_excerpt(html: str) -> str:
+    """Add separators between block elements so headers don't run together."""
+    if not html or "<" not in html:
+        return html
+    # Insert space before block-level elements so "Key Features</h2><h3>Fast Builds"
+    # becomes "Key Features Fast Builds" after strip_html
+    return re.sub(r"</(h[1-6]|p|li|div|ul|ol)>", " ", html, flags=re.I)
+
+
 def excerpt_for_card(
     content: str, title: str = "", description: str = ""
 ) -> str:
@@ -621,6 +630,8 @@ def excerpt_for_card(
 
     Use for card/tile previews so the excerpt does not repeat the title
     or description. Works with HTML (strips to plain text) or plain text.
+    Handles block elements (headers, lists) so they read well when
+    collapsed to a single line.
 
     Args:
         content: Excerpt or description text (HTML or plain)
@@ -637,7 +648,9 @@ def excerpt_for_card(
     """
     if not content:
         return ""
-    text = strip_html(content)
+    # Preprocess HTML to add space between block elements (headers, lists)
+    prepped = _prepare_html_for_excerpt(content)
+    text = strip_html(prepped)
     text = text_utils.normalize_whitespace(text, collapse=True).strip()
     if title:
         text = _strip_leading_duplicate(text, title)

@@ -131,6 +131,36 @@ def truncate_at_sentence(text: str, length: int = 160, min_ratio: float = 0.6) -
     return truncate_at_word(text, length)
 
 
+# Trailing markdown syntax that would look broken in excerpt (**, *, _, `, [, etc.)
+_ORPHAN_ENDINGS = ("**", "*", "__", "_", "``", "`", "[", "![")
+
+
+def _strip_trailing_orphan_markdown(text: str) -> str:
+    """Remove trailing orphaned markdown syntax so excerpt doesn't end mid-token."""
+    if not text:
+        return text
+    stripped = text.rstrip()
+    while stripped:
+        orphan_len = 0
+        for s in _ORPHAN_ENDINGS:
+            if stripped.endswith(s):
+                orphan_len = len(s)
+                break
+        if orphan_len and orphan_len < len(stripped):
+            char_before = stripped[-(orphan_len + 1)]
+            if char_before.isspace():
+                last_space = stripped.rfind(" ")
+                if last_space > 0:
+                    stripped = stripped[:last_space].rstrip()
+                else:
+                    break
+            else:
+                break
+        else:
+            break
+    return stripped
+
+
 def truncate_at_word(text: str, length: int = 200, suffix: str = "...") -> str:
     """
     Truncate text at a word boundary.
@@ -169,7 +199,10 @@ def truncate_at_word(text: str, length: int = 200, suffix: str = "...") -> str:
     # Find last space
     last_space = truncated.rfind(" ")
     if last_space > 0:
-        return truncated[:last_space].strip() + suffix
+        result = truncated[:last_space].strip()
+    else:
+        result = truncated.strip()
 
-    # No space found, just truncate
-    return truncated.strip() + suffix
+    # Avoid ending with orphaned markdown (**, *, _, etc.)
+    result = _strip_trailing_orphan_markdown(result)
+    return result + suffix

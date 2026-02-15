@@ -145,24 +145,39 @@ class PatitasParser(BaseMarkdownParser):
             )
             return f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>'
 
-    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
-        """Parse Markdown content and extract table of contents.
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str, str, str]:
+        """Parse Markdown content and extract table of contents, excerpt, and meta description.
 
         Uses single-pass heading decoration (RFC: rfc-path-to-200-pgs).
         Heading IDs and TOC are generated during the AST walk - no regex post-pass.
+        Excerpt and meta description are extracted from AST for structurally correct plain text.
 
         Args:
             content: Markdown content to parse
             metadata: Page metadata (includes source path for cross-reference context)
 
         Returns:
-            Tuple of (HTML with heading IDs, TOC HTML)
+            Tuple of (HTML with heading IDs, TOC HTML, excerpt, meta_description)
         """
         if not content:
-            return "", ""
+            return "", "", "", ""
 
         # Parse to AST using configured markdown instance
         ast = self._md.parse_to_ast(content)
+
+        # Extract excerpt and meta description from AST (parse once, use many)
+        try:
+            from patitas import extract_excerpt, extract_meta_description
+
+            excerpt = extract_excerpt(ast, content)
+            meta_desc = (
+                extract_meta_description(ast, content)
+                if not metadata.get("description")
+                else str(metadata.get("description", ""))
+            )
+        except Exception:
+            excerpt = ""
+            meta_desc = ""
 
         # Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
         # Heading IDs are injected during render, TOC collected in same pass
@@ -171,7 +186,7 @@ class PatitasParser(BaseMarkdownParser):
         # Post-process cross-references if enabled
         html = self._apply_post_processing(html, metadata)
 
-        return html, toc
+        return html, toc, excerpt, meta_desc
 
     def parse_with_context(
         self, content: str, metadata: dict[str, Any], context: dict[str, Any]
@@ -242,11 +257,12 @@ class PatitasParser(BaseMarkdownParser):
 
     def parse_with_toc_and_context(
         self, content: str, metadata: dict[str, Any], context: dict[str, Any]
-    ) -> tuple[str, str]:
-        """Parse Markdown with variable substitution and extract TOC.
+    ) -> tuple[str, str, str, str]:
+        """Parse Markdown with variable substitution and extract TOC, excerpt, and meta description.
 
         Uses single-pass heading decoration (RFC: rfc-path-to-200-pgs).
         Heading IDs and TOC are generated during the AST walk - no regex post-pass.
+        Excerpt and meta description are extracted from AST for structurally correct plain text.
 
         Args:
             content: Markdown content to parse
@@ -254,10 +270,10 @@ class PatitasParser(BaseMarkdownParser):
             context: Variable context (page, site, config)
 
         Returns:
-            Tuple of (HTML with heading IDs, TOC HTML)
+            Tuple of (HTML with heading IDs, TOC HTML, excerpt, meta_description)
         """
         if not content:
-            return "", ""
+            return "", "", "", ""
 
         from bengal.rendering.plugins import VariableSubstitutionPlugin
 
@@ -278,7 +294,21 @@ class PatitasParser(BaseMarkdownParser):
             # 2. Parse & Substitute in ONE pass (the "window thing")
             ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
 
-            # 3. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
+            # 3. Extract excerpt and meta description from AST (parse once, use many)
+            try:
+                from patitas import extract_excerpt, extract_meta_description
+
+                excerpt = extract_excerpt(ast, content)
+                meta_desc = (
+                    extract_meta_description(ast, content)
+                    if not metadata.get("description")
+                    else str(metadata.get("description", ""))
+                )
+            except Exception:
+                excerpt = ""
+                meta_desc = ""
+
+            # 4. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
             # Heading IDs are injected during render, TOC collected in same pass
             html, toc, _toc_items = self._md.render_ast_with_toc(
                 ast,
@@ -289,13 +319,13 @@ class PatitasParser(BaseMarkdownParser):
                 site=site,
             )
 
-            # 4. Restore placeholders
+            # 5. Restore placeholders
             html = var_plugin.restore_placeholders(html)
 
-            # 5. Apply other post-processing
+            # 6. Apply other post-processing
             html = self._apply_post_processing(html, metadata)
 
-            return html, toc
+            return html, toc, excerpt, meta_desc
 
         except Exception as e:
             source_path = metadata.get("_source_path", "unknown")
@@ -310,6 +340,8 @@ class PatitasParser(BaseMarkdownParser):
             )
             return (
                 f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>',
+                "",
+                "",
                 "",
             )
 

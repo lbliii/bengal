@@ -198,7 +198,12 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             if page.metadata.get("preprocess") is False:
                 # Parse without variable substitution
                 if need_toc:
-                    parsed_content, toc = parser.parse_with_toc(page._source, page.metadata)
+                    result = parser.parse_with_toc(page._source, page.metadata)
+                    parsed_content, toc = result[0], result[1]
+                    if len(result) > 2:
+                        page._excerpt = result[2]
+                    if len(result) > 3:
+                        page._meta_description = result[3]
                 else:
                     parsed_content = parser.parse(page._source, page.metadata)
                     toc = ""
@@ -211,7 +216,12 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 if need_toc:
                     parse_method = getattr(parser, "parse_with_toc_and_context", None)
                     if callable(parse_method):
-                        parsed_content, toc = parse_method(page._source, page.metadata, context)
+                        result = parse_method(page._source, page.metadata, context)
+                        parsed_content, toc = result[0], result[1]
+                        if len(result) > 2:
+                            page._excerpt = result[2]
+                        if len(result) > 3:
+                            page._meta_description = result[3]
                     else:
                         parsed_content = page._source
                         toc = ""
@@ -225,7 +235,12 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
         elif hasattr(parser, "parse_with_toc"):
             # Fallback parser
             if need_toc:
-                parsed_content, toc = parser.parse_with_toc(page._source, page.metadata)
+                result = parser.parse_with_toc(page._source, page.metadata)
+                parsed_content, toc = result[0], result[1]
+                if len(result) > 2:
+                    page._excerpt = result[2]
+                if len(result) > 3:
+                    page._meta_description = result[3]
             else:
                 parsed_content = parser.parse(page._source, page.metadata)
                 toc = ""

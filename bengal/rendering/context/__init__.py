@@ -504,9 +504,10 @@ def _add_lazy_section_content(
             context["pages"] = posts
         else:
             # Capture section for closure
+            # Use regular_pages to exclude the index page (list page must not include itself)
             sec = section_snapshot
-            context["posts"] = make_lazy(lambda: list(sec.sorted_pages))
-            context["pages"] = make_lazy(lambda: list(sec.sorted_pages))
+            context["posts"] = make_lazy(lambda: list(sec.regular_pages))
+            context["pages"] = make_lazy(lambda: list(sec.regular_pages))
 
         if subsections is not None:
             context["subsections"] = subsections
@@ -522,8 +523,10 @@ def _add_lazy_section_content(
         else:
             sec = resolved_section
             meta = metadata
-            context["posts"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
-            context["pages"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
+            # regular_pages excludes index by default (Section and SectionSnapshot)
+            default_pages = getattr(sec, "regular_pages", getattr(sec, "pages", []))
+            context["posts"] = make_lazy(lambda: meta.get("_posts", default_pages))
+            context["pages"] = make_lazy(lambda: meta.get("_posts", default_pages))
 
         if subsections is not None:
             context["subsections"] = subsections
@@ -549,16 +552,19 @@ def _add_eager_section_content(
 ) -> None:
     """Add section content lists with eager evaluation (legacy behavior)."""
     if section_snapshot and section_snapshot != NO_SECTION:
-        context["posts"] = posts if posts is not None else list(section_snapshot.sorted_pages)
+        # Use regular_pages to exclude the index page (list page must not include itself)
+        context["posts"] = posts if posts is not None else list(section_snapshot.regular_pages)
         context["pages"] = context["posts"]
         context["subsections"] = (
             subsections if subsections is not None else list(section_snapshot.sorted_subsections)
         )
     elif resolved_section:
+        # regular_pages excludes index by default (Section and SectionSnapshot)
+        default_pages = getattr(resolved_section, "regular_pages", getattr(resolved_section, "pages", []))
         context["posts"] = (
             posts
             if posts is not None
-            else metadata.get("_posts", getattr(resolved_section, "pages", []))
+            else metadata.get("_posts", default_pages)
         )
         context["pages"] = context["posts"]
         raw_subsections = (

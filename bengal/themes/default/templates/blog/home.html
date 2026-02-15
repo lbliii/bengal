@@ -67,9 +67,10 @@ Or set `type: blog` on home page to auto-select
   {% let blog_section = blog_section_candidates[0] if blog_section_candidates | length > 0 else none %}
 
   {# Get recent posts from blog section or fallback to site-wide search #}
+  {# regular_pages excludes index by default (standard expected behavior) #}
   {% let recent = [] %}
   {% if blog_section and blog_section?.pages %}
-  {% let section_pages = blog_section.pages ?? [] %}
+  {% let section_pages = blog_section.regular_pages ?? blog_section.pages ?? [] %}
   {% let recent = section_pages
       |> selectattr('date')
       |> sort(attribute='date', reverse=true)

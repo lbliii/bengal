@@ -110,9 +110,15 @@ class PostView:
             or ""
         )
 
-        # Description: try metadata.description, then page excerpt
+        # Description: try metadata.description, then page excerpt (strip HTML when using excerpt)
         excerpt = getattr(page, "excerpt", None) or ""
-        description = meta.get("description") or params.get("description") or excerpt or ""
+        raw_desc = meta.get("description") or params.get("description") or excerpt or ""
+        if raw_desc and raw_desc == excerpt:
+            from bengal.core.utils.text import strip_html
+
+            description = strip_html(raw_desc)
+        else:
+            description = raw_desc
 
         # Author info: resolve slug from site.data.authors when params.author is set
         author_slug = params.get("author") or meta.get("params", {}).get("author") or ""

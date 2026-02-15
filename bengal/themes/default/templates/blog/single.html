@@ -83,32 +83,30 @@ MAIN TEMPLATE
 <div class="blog-post-layout{{ ' blog-with-toc' if show_toc else '' }}">
     <div class="blog-post-main">
         <article class="blog-post prose {{ css_class }}">
-            <header class="blog-post-header">
-                {# Featured Image #}
+            <header class="page-hero page-hero--editorial page-hero--blog">
+                {# Top row: Share in top right (like docs, no breadcrumbs) #}
+                <div class="page-hero__top">
+                    <div></div>
+                    {{ blog_share_dropdown(page, page_href) }}
+                </div>
+
+                {# Featured Image (blog-specific) #}
                 {% if post_image %}
-                <div class="blog-post-image">
+                <div class="page-hero__image page-hero__image--blog">
                     <img src="{{ post_image }}" alt="{{ page_title }}">
                 </div>
                 {% end %}
 
-                <h1>{{ page_title }}</h1>
+                <h1 class="page-hero__title">{{ page_title }}</h1>
 
                 {% if post_desc %}
-                <p class="lead">{{ post_desc }}</p>
+                <p class="page-hero__description">{{ post_desc }}</p>
                 {% end %}
 
-                {# Post Metadata + Share #}
-                <div class="blog-post-header-row">
-                    {{ blog_post_meta(post_author, post_author_avatar, post_author_title, page_date, page_read_time, post_views, 'content.author' in theme_features, page_word_count and 'content.reading_time' in theme_features) }}
-                    {{ blog_share_dropdown(page, page_href) }}
+                {# Post Metadata: date, reading time, updated, views + mini author card #}
+                <div class="page-hero__meta">
+                    {{ blog_post_meta(post_author, post_author_avatar, post_author_title, page_date, page_read_time, post_views, 'content.author' in theme_features, page_word_count and 'content.reading_time' in theme_features, post_updated) }}
                 </div>
-
-                {# Tags #}
-                {% if page_tags | length > 0 %}
-                <div class="blog-post-tags">
-                    {{ tag_list(page_tags) }}
-                </div>
-                {% end %}
             </header>
 
             {# Main Post Content #}
@@ -116,15 +114,14 @@ MAIN TEMPLATE
                 {{ content | safe }}
             </div>
 
-            {# Post Footer #}
+            {# Post Footer: tags, author bio, prev/next #}
             <footer class="blog-post-footer">
-                {# Updated Date #}
-                {% if post_updated and post_updated != page_date %}
-                <p class="blog-updated">
-                    <em>Last updated: {{ post_updated | dateformat('%B %d, %Y') }}</em>
-                </p>
+                {# Tags - moved after content #}
+                {% if page_tags | length > 0 %}
+                <div class="blog-post-tags">
+                    {{ tag_list(page_tags) }}
+                </div>
                 {% end %}
-
                 {# Author Bio #}
                 {% if 'content.author' in theme_features %}
                 {{ author_bio(post_author, post_author_avatar, post_author_title, post_author_bio, post_author_links) }}
@@ -137,7 +134,7 @@ MAIN TEMPLATE
     </div>
 
     {# Right Sidebar: TOC - only show when 3+ headings (avoids clutter on short posts) #}
-    {# Uses same enhanced TOC as docs: scroll highlighting, progress bar, count badges, collapsible groups #}
+    {# Uses same enhanced TOC as docs: scroll highlighting, count badges, collapsible groups (no TOC progress bar - page has global reading-progress) #}
     {% if show_toc %}
     <aside class="blog-toc" role="complementary" aria-label="Table of contents">
             {{ toc(toc_items=toc_items, toc=toc, page=page) }}

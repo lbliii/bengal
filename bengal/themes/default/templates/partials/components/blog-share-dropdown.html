@@ -19,12 +19,12 @@ Usage:
     {'id': 'reddit', 'label': 'Reddit', 'icon': 'reddit-logo'},
     {'id': 'email', 'label': 'Email', 'icon': 'envelope-simple'}
 ] %}
-<div class="blog-post-header__actions">
+<div class="page-hero__actions">
     <div class="page-hero__share">
         <button class="page-hero__share-trigger" popovertarget="blog-post-share-menu"
             aria-label="{{ t('blog.share_post', default='Share this post') }}"
             title="{{ t('blog.share_post', default='Share this post') }}">
-            {{ icon('share-network', size=14) }}
+            <span>ᗢ</span>
             {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
         </button>
 

@@ -80,27 +80,29 @@ class SectionQueryMixin:
     @cached_property
     def regular_pages(self) -> list[Page]:
         """
-        Get only regular pages (non-sections) in this section (CACHED).
+        Get content pages in this section, excluding index (CACHED).
+
+        Excludes index pages (_index.md, index.md). This is the standard
+        "list content" view—the index is the section's landing page, not a
+        content page. Matches SectionSnapshot.regular_pages semantics.
+        Returns same pages as sorted_pages (which already excludes index).
 
         This property is cached after first access for O(1) subsequent lookups.
         Cache is invalidated when pages are added via add_page().
 
         Performance:
-            - First access: O(n) where n = number of pages
+            - First access: O(n log n) via sorted_pages
             - Subsequent accesses: O(1) cached lookup
 
         Returns:
-            List of regular Page objects (excludes subsections)
+            List of content Page objects sorted by weight (excludes index)
 
         Example:
             {% for page in section.regular_pages %}
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        # Import here to avoid circular dependency
-        from bengal.core.section import Section
-
-        return [p for p in self.pages if not isinstance(p, Section)]
+        return list(self.sorted_pages)
 
     @property
     def sections(self) -> list[Section]:

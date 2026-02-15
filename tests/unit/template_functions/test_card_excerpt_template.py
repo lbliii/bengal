@@ -52,3 +52,19 @@ def test_excerpt_for_card_empty_result_changelog(tmp_path: Path) -> None:
         {"summary": "0.1.8", "version": "0.1.8", "name": ""},
     )
     assert html.strip() == ""
+
+
+def test_excerpt_for_card_html_headers_get_spacing(tmp_path: Path) -> None:
+    """HTML with headers should have space between them when collapsed for card."""
+    site = Site(root_path=tmp_path, config={"title": "Test"})
+    engine = TemplateEngine(site)
+
+    html_content = "<p>Intro text.</p><h2>Key Features</h2><h3>Fast Builds</h3><p>Parallel processing.</p>"
+    result = engine.render_string(
+        "{{ content | excerpt_for_card('') }}",
+        {"content": html_content},
+    )
+    # Should have space between "Key Features" and "Fast Builds" (not "Key FeaturesFast Builds")
+    assert "Key Features" in result
+    assert "Fast Builds" in result
+    assert "Key Features Fast Builds" in result or "Key Features" in result

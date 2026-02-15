@@ -15,8 +15,6 @@ structure:
 
       This is your new Bengal blog! I write about technology, life, and everything in between.
 
-      ## Recent Posts
-
       Check out my latest posts below or browse by [tags](/tags).
 
   - path: posts/_index.md

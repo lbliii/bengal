@@ -193,10 +193,13 @@ class RSSGenerator:
                 if "description" in page.metadata:
                     desc_text = page.metadata["description"]
                 else:
-                    content = (
-                        page.content[:200] + "..." if len(page.content) > 200 else page.content
-                    )
-                    desc_text = content
+                    # Use page.description (meta) or page.excerpt (plain text) instead of HTML
+                    from bengal.core.utils.text import strip_html
+
+                    desc = getattr(page, "description", None) or getattr(page, "excerpt", None)
+                    desc_text = (desc if isinstance(desc, str) else "").strip()
+                    if desc_text:
+                        desc_text = strip_html(desc_text)[:200]
                 ET.SubElement(item, "description").text = desc_text
 
                 if page.date:
