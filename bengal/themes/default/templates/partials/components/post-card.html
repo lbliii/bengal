@@ -83,9 +83,19 @@ Variants:
     {% if show_excerpt and p.description and 'content.excerpts' in theme_features %}
     <p class="blog-card-excerpt">{{ p.description | truncate(120) }}</p>
     {% end %}
-    {% if p.date %}
-    <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
-    {% end %}
+    <div class="blog-card-meta">
+      {% if p.author and 'content.author' in theme_features %}
+      <span class="blog-author">
+        {% if p.author_avatar %}
+        <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
+        {% end %}
+        {{ p.author }}
+      </span>
+      {% end %}
+      {% if p.date %}
+      <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
+      {% end %}
+    </div>
   </div>
 </article>
 

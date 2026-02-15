@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "blog/shell.html" %}
 
 {#
 ================================================================================
 Blog Post Single Page Template (Kida-Native)
 ================================================================================
 
-Individual blog post page optimized for reading.
+Individual blog post page optimized for reading. Extends blog/shell.html.
 
 FEATURES:
 - Featured image support
@@ -32,7 +32,7 @@ Set `type: blog` in frontmatter or use cascade from section
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+{% from 'partials/navigation-components.html' import page_navigation %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/post-card.html' import post_card %}
 
@@ -40,7 +40,7 @@ Set `type: blog` in frontmatter or use cascade from section
 MAIN TEMPLATE
 ============================================================================= #}
 
-{% block content %}
+{% block blog_content %}
 {# Template-scoped variables with null-safe access #}
 {% let page_title = page?.title ?? 'Blog Post' %}
 {% let page_date = page?.date %}
@@ -53,22 +53,25 @@ MAIN TEMPLATE
 {# Params with null-safe access #}
 {% let post_image = params?.image ?? params?.cover ?? '' %}
 {% let post_desc = params?.description ?? '' %}
-{% let post_author = params?.author ?? '' %}
-{% let post_author_avatar = params?.author_avatar ?? '' %}
-{% let post_author_title = params?.author_title ?? '' %}
-{% let post_author_bio = params?.author_bio ?? '' %}
-{% let post_author_links = params?.author_links ?? [] %}
 {% let post_updated = params?.updated %}
+
+{# Author: resolve from data/authors.yml by slug, fall back to inline params #}
+{% let author_slug = params?.author ?? '' %}
+{% let authors_registry = site?.data?.authors ?? {} %}
+{% let author_data = authors_registry.get(author_slug, {}) if author_slug else {} %}
+{% let post_author = author_data?.name ?? params?.author ?? '' %}
+{% let post_author_avatar = author_data?.avatar ?? params?.author_avatar ?? '' %}
+{% let post_author_title = author_data?.title ?? author_data?.company ?? params?.author_title ?? '' %}
+{% let post_author_bio = author_data?.bio ?? params?.author_bio ?? '' %}
+{% let post_author_links = author_data?.links ?? params?.author_links ?? [] %}
 {% let post_views = params?.views %}
 {% let css_class = params?.css_class ?? '' %}
 {% let show_newsletter = params?.show_newsletter ?? false %}
 {% let show_comments = params?.comments ?? true %}
 
-<div class="container">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
-
-    <div class="blog-post-layout{{ ' blog-with-toc' if toc else '' }}">
+{# Two-column layout like docs/single: content | TOC. Content gets 1fr, TOC fixed. #}
+<div class="blog-post-layout{{ ' blog-with-toc' if toc else '' }}">
+    <main class="blog-post-main">
         <article class="blog-post prose {{ css_class }}">
             <header class="blog-post-header">
                 {# Featured Image #}
@@ -172,7 +175,7 @@ MAIN TEMPLATE
                     <div class="author-links">
                         {% for link in post_author_links %}
                         {% let link_url = link?.href ?? link?.url ?? '#' %}
-                        {% let link_text = link?.text ?? 'Link' %}
+                        {% let link_text = link?.text ?? link?.name ?? 'Link' %}
                         <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
                         {% end %}
                     </div>
@@ -207,10 +210,11 @@ MAIN TEMPLATE
                 </div>
             </footer>
         </article>
+    </main>
 
-        {# Right Sidebar: TOC #}
-        {% if toc %}
-        <aside class="blog-sidebar">
+    {# Right Sidebar: TOC (sibling of main, not nested) #}
+    {% if toc %}
+    <aside class="blog-toc" role="complementary" aria-label="Table of contents">
             <nav class="toc" aria-label="Table of contents">
                 <h2 class="toc-title">In This Post</h2>
                 <div class="toc-content">
@@ -229,13 +233,16 @@ MAIN TEMPLATE
                 </form>
             </div>
             {% end %}
-        </aside>
-        {% end %}
-    </div>
+    </aside>
+    {% end %}
 </div>
+{% end %}
 
-{# Page Navigation (Prev/Next Posts) #}
+{% block blog_after_content %}
+{# Page Navigation (Prev/Next Posts) - constrained to match content width #}
+<div class="container blog-after-content">
 {{ page_navigation(page) }}
+</div>
 
 {# Related Posts #}
 {% let related_posts = (page?.related_posts ?? []) |> take(3) %}
@@ -252,15 +259,22 @@ MAIN TEMPLATE
 </aside>
 {% end %}
 
-{# Comments Section (Integration Point) #}
+{#
+Comments Section (Integration Point)
+
+Configuration:
+- Disable: Set params.comments: false in post frontmatter, or cascade in content.yaml
+- Enable (default): params.comments: true or omit
+- Add a provider (Giscus, Disqus, Utterances, etc.): Override this template or add a
+  script in your layout that injects into #comments (data-comments-target). See docs.
+#}
 {% if show_comments %}
 <div class="comments-section">
     <div class="container">
         <h2>{{ t('blog.comments', default='Comments') }}</h2>
         <div id="comments" data-comments-target></div>
         <p class="comments-placeholder">
-            <em>{{ t('blog.comments_placeholder', default='Comments are loaded dynamically. Configure your comments
-                system in the theme.') }}</em>
+            <em>{{ t('blog.comments_placeholder', default='To add comments: set params.comments: false to hide, or see the Blog Comments recipe to integrate Giscus, Disqus, or Utterances.') }}</em>
         </p>
     </div>
 </div>

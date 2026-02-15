@@ -53,9 +53,6 @@ Auto-selected for posts without a specific type
 {% let css_class = params?.css_class ?? '' %}
 
 <div class="container">
-  {# Action Bar: Breadcrumbs + Share #}
-  {% include 'partials/action-bar.html' %}
-
   <div class="{{ ['page-layout', 'page-with-toc' if toc] | classes }}">
     <article class="post">
       <header class="post-header">

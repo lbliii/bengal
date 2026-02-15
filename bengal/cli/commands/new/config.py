@@ -50,6 +50,9 @@ def create_config_directory(
     params_config: dict[str, Any] = {"params": {}}
     build_config = _create_build_config()
     features_config = _create_features_config()
+    menu_config = _create_menu_config(template)
+    search_config = _create_search_config(template)
+    fonts_config = _create_fonts_config()
 
     # Write default configs
     _write_yaml(defaults / "site.yaml", site_config)
@@ -58,6 +61,9 @@ def create_config_directory(
     _write_yaml(defaults / "params.yaml", params_config)
     _write_yaml(defaults / "build.yaml", build_config)
     _write_yaml(defaults / "features.yaml", features_config)
+    _write_yaml(defaults / "menu.yaml", menu_config)
+    _write_yaml(defaults / "search.yaml", search_config)
+    _write_yaml(defaults / "fonts.yaml", fonts_config)
 
     # Create environment configs
     local_config = _create_local_env_config()
@@ -73,6 +79,9 @@ def create_config_directory(
     cli.info("   │  ├─ _default/params.yaml")
     cli.info("   │  ├─ _default/build.yaml")
     cli.info("   │  ├─ _default/features.yaml")
+    cli.info("   │  ├─ _default/menu.yaml")
+    cli.info("   │  ├─ _default/search.yaml")
+    cli.info("   │  ├─ _default/fonts.yaml")
     cli.info("   │  ├─ environments/local.yaml")
     cli.info("   │  └─ environments/production.yaml")
 
@@ -142,6 +151,8 @@ def _create_content_config(template: str) -> dict[str, Any]:
             "related_count": 5,
             "sort_pages_by": "date",
             "sort_order": "desc",  # Newest first for blogs
+            "toc_depth": 3,
+            "toc_min_headings": 2,
         }
     elif template in ["docs", "documentation"]:
         content_config["content"] = {
@@ -208,7 +219,53 @@ def _create_features_config() -> dict[str, Any]:
             "search": True,
             "json": True,
             "llm_txt": True,
-        }
+        },
+        "social_cards": {
+            "enabled": False,
+            "template": "default",
+            "background_color": "#0f172a",
+            "text_color": "#f8fafc",
+            "accent_color": "#06b6d4",
+        },
+    }
+
+
+def _create_menu_config(template: str) -> dict[str, Any]:
+    """Create menu configuration. Extra items appended to auto-generated nav."""
+    return {
+        "menu": {
+            "extra": [],
+        },
+    }
+
+
+def _create_search_config(template: str) -> dict[str, Any]:
+    """Create search configuration."""
+    placeholder = "Search documentation..." if template in ["docs", "documentation"] else "Search..."
+    return {
+        "search": {
+            "enabled": True,
+            "lunr": {
+                "prebuilt": True,
+                "min_query_length": 2,
+                "max_results": 50,
+                "preload": "smart",
+            },
+            "ui": {
+                "modal": True,
+                "recent_searches": 5,
+                "placeholder": placeholder,
+            },
+        },
+    }
+
+
+def _create_fonts_config() -> dict[str, Any]:
+    """Create font configuration."""
+    return {
+        "fonts": {
+            "display": "Outfit:400,600,700",
+        },
     }
 
 

@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "blog/shell.html" %}
 
 {#
 ================================================================================
 Blog List Template (Kida-Native)
 ================================================================================
 
-Blog section index with featured posts, excerpts, and pagination.
+Blog section index with featured posts, excerpts, and pagination. Extends blog/shell.html.
 
 KIDA FEATURES USED:
 - {% let %} for template-scoped variables
@@ -31,7 +31,7 @@ Set `type: blog` in section _index.md
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, pagination %}
+{% from 'partials/navigation-components.html' import pagination %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/post-card.html' import post_card %}
 
@@ -72,12 +72,7 @@ MAIN TEMPLATE
 {% let total_posts = total_posts ?? (posts | length if posts else 0) %}
 {% let base_url = base_url ?? section?._path ?? section?.href ?? '/blog/' %}
 
-{% block content %}
-<div class="container">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
-
-    <div class="blog-container">
+{% block blog_content %}
         {# Header #}
         {% let section_title = section?.title ?? title ?? 'Blog' %}
         {% let section_desc = section?.metadata?.description ?? description ?? '' %}
@@ -157,6 +152,4 @@ MAIN TEMPLATE
             <p>No blog posts yet. Check back soon!</p>
         </div>
         {% end %}
-    </div>
-</div>
 {% end %}

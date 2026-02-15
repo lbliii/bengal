@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "blog/shell.html" %}
 
 {#
 ================================================================================
 Blog Home Template (Kida-Native)
 ================================================================================
 
-Optimized home page template for blog sites.
+Optimized home page template for blog sites. Extends blog/shell.html.
 
 FEATURES:
 - Simplified hero section
@@ -33,7 +33,7 @@ Or set `type: blog` on home page to auto-select
    MAIN TEMPLATE
    ============================================================================= #}
 
-{% block content %}
+{% block blog_content %}
 {# Template-scoped configuration #}
 {% let page_title = page?.title ?? config?.title ?? 'Blog' %}
 {% let page_desc = params?.description ?? '' %}

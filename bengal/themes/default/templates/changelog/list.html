@@ -72,13 +72,13 @@ RELEASE ITEM COMPONENT - Unified with ReleaseView
   <p class="timeline-description">{{ rel.summary }}</p>
   {% end %}
 
-  {{ change_category('Added', '✨', rel.added) }}
-  {{ change_category('Changed', '🔄', rel.changed) }}
-  {{ change_category('Fixed', '🐛', rel.fixed) }}
-  {{ change_category('Deprecated', '⚠️', rel.deprecated) }}
-  {{ change_category('Removed', '🗑️', rel.removed) }}
-  {{ change_category('Security', '🔒', rel.security) }}
-  {{ change_category('Breaking Changes', '⚡', rel.breaking, is_breaking=true) }}
+  {{ change_category('Added', '', rel.added) }}
+  {{ change_category('Changed', '', rel.changed) }}
+  {{ change_category('Fixed', '', rel.fixed) }}
+  {{ change_category('Deprecated', '', rel.deprecated) }}
+  {{ change_category('Removed', '', rel.removed) }}
+  {{ change_category('Security', '', rel.security) }}
+  {{ change_category('Breaking Changes', '', rel.breaking, is_breaking=true) }}
 
   {% if rel.href %}
   <a href="{{ rel.href }}" class="changelog-read-more">View full release notes →</a>
@@ -174,11 +174,11 @@ MAIN TEMPLATE
   {% if has_structured_data %}
   <div class="changelog-filters">
     <button class="changelog-filter-btn active" data-filter="all" aria-pressed="true">All Changes</button>
-    <button class="changelog-filter-btn" data-filter="added" aria-pressed="false">✨ Added</button>
-    <button class="changelog-filter-btn" data-filter="changed" aria-pressed="false">🔄 Changed</button>
-    <button class="changelog-filter-btn" data-filter="fixed" aria-pressed="false">🐛 Fixed</button>
-    <button class="changelog-filter-btn" data-filter="breaking" aria-pressed="false">⚡ Breaking</button>
-    <button class="changelog-filter-btn" data-filter="security" aria-pressed="false">🔒 Security</button>
+    <button class="changelog-filter-btn" data-filter="added" aria-pressed="false">Added</button>
+    <button class="changelog-filter-btn" data-filter="changed" aria-pressed="false">Changed</button>
+    <button class="changelog-filter-btn" data-filter="fixed" aria-pressed="false">Fixed</button>
+    <button class="changelog-filter-btn" data-filter="breaking" aria-pressed="false">Breaking</button>
+    <button class="changelog-filter-btn" data-filter="security" aria-pressed="false">Security</button>
   </div>
   {% end %}
 

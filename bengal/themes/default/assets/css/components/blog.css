@@ -424,30 +424,71 @@ html:not([data-devtools-open]) .blog-post-list > * {
    BLOG SINGLE POST PAGE
    ============================================ */
 
+/* Container becomes full-width when it holds blog-post-layout (like docs-layout) */
+.blog-container:has(> .blog-post-layout) {
+    max-width: 100%;
+    padding-inline: 0;
+}
+
+/* After-content sections (page nav, related posts, comments) constrained to content width */
+.blog-container:has(> .blog-post-layout) .blog-after-content,
+.blog-container:has(> .blog-post-layout) .related-posts .container,
+.blog-container:has(> .blog-post-layout) .comments-section .container {
+    max-width: var(--content-max-width, 1200px);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+}
+
+/* Blog post layout: docs-like two-column (content | TOC). Content gets 1fr, TOC fixed. */
 .blog-post-layout {
     display: grid;
+    grid-template-areas: "content";
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-6);
-    max-width: 1000px;
-    /* Increased from 800px for better reading experience */
-    margin: 0 auto;
-    padding: var(--space-8) var(--space-6);
-    /* Match docs/resume padding pattern */
+    gap: 0;
+    width: 100%;
+    max-width: none;
+    padding-block: var(--space-5) var(--space-8);
+    padding-inline: var(--space-6);
 }
 
 .blog-post-layout.blog-with-toc {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    max-width: 1200px;
-    gap: var(--space-8);
-    /* Increased gap for better separation */
+    grid-template-areas: "content toc";
+    grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+/* Main content area - takes remaining space */
+.blog-post-main {
+    grid-area: content;
+    min-width: 0; /* Prevent grid blowout from long content */
+}
+
+/* Constrain prose for readability (like docs-main .prose) */
+.blog-post-main .prose {
+    max-width: var(--prose-width, 75ch);
+    margin-inline: auto;
+}
+
+/* Right sidebar (TOC) - fixed width, sticky */
+.blog-toc {
+    grid-area: toc;
+    position: sticky;
+    top: 60px;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: var(--space-5) var(--space-8);
+    padding-inline-start: var(--space-4);
+    padding-inline-end: var(--space-5);
+    border-left: 1px solid var(--color-border-light, var(--color-border));
 }
 
 @media (max-width: 1024px) {
     .blog-post-layout.blog-with-toc {
+        grid-template-areas: "content";
         grid-template-columns: 1fr;
     }
 
-    .blog-sidebar {
+    .blog-toc {
         display: none;
     }
 }
@@ -705,22 +746,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 
 .share-button svg {
     flex-shrink: 0;
-}
-
-/* Blog Sidebar */
-.blog-sidebar {
-    position: sticky;
-    top: 80px;
-    /* Account for fixed header */
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    /* Match docs sidebar pattern */
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    padding-inline-start: var(--space-6);
-    /* Match docs TOC padding */
 }
 
 /* Newsletter CTA */
@@ -1045,15 +1070,21 @@ html:not([data-devtools-open]) .blog-post-list > * {
    RESPONSIVE: ULTRA-WIDE (Better Proportions)
    ============================================ */
 
-/* Ultra-wide screens - wider container with more breathing room */
+/* Ultra-wide screens - constrain layout like docs */
 @media (min-width: 1920px) {
-    .blog-container {
+    .blog-container:not(:has(> .blog-post-layout)) {
         max-width: var(--container-3xl, 1920px);
         padding: var(--space-10) var(--space-8);
     }
 
+    .blog-container:has(> .blog-post-layout) {
+        max-width: var(--container-3xl, 1920px);
+        margin-inline: auto;
+    }
+
     .blog-post-layout {
         max-width: var(--container-xl, 1280px);
+        margin-inline: auto;
         padding: var(--space-10) var(--space-8);
     }
 

@@ -28,7 +28,7 @@ Set `type: tutorial` in section _index.md
 {% let tut_meta = tutorial?.metadata ?? {} %}
 {% let tut_title = tutorial?.title ?? 'Tutorial' %}
 {% let tut_href = tutorial?._path ?? tutorial?.href ?? '#' %}
-{% let tut_icon = tut_meta?.icon ?? '📖' %}
+{% let tut_icon = tut_meta?.icon ?? 'book' %}
 {% let tut_desc = tut_meta?.description ?? tutorial?.excerpt ?? '' %}
 {% let tut_difficulty = tut_meta?.difficulty ?? '' %}
 {% let tut_time = tut_meta?.time ?? tut_meta?.duration ?? '' %}
@@ -130,7 +130,7 @@ Set `type: tutorial` in section _index.md
 
   <div class="tutorial-container">
     <header class="page-header page-header--centered">
-      <h1>📚 {{ section_title }}</h1>
+      <h1>{{ section_title }}</h1>
 
       {% if section_desc %}
       <p class="tutorial-description">{{ section_desc }}</p>

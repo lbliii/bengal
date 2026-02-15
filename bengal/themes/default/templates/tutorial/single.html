@@ -27,7 +27,7 @@ Set `type: tutorial` in frontmatter or use cascade from section
 {% let tut_meta = tutorial?.metadata ?? {} %}
 {% let tut_title = tutorial?.title ?? 'Tutorial' %}
 {% let tut_href = tutorial?.href ?? '#' %}
-{% let tut_icon = tut_meta?.icon ?? '📖' %}
+{% let tut_icon = tut_meta?.icon ?? 'book' %}
 {% let tut_desc = tut_meta?.description ?? '' %}
 {% let tut_difficulty = tut_meta?.difficulty ?? '' %}
 

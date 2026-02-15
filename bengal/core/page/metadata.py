@@ -42,7 +42,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.utils.url import apply_baseurl, get_baseurl
+from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -326,10 +326,10 @@ class PageMetadataMixin:
         Otherwise, this falls back to `href` (root-relative) because no fully-qualified
         site origin is configured.
         """
-        if not self._site or not self._site.config.get("url"):
+        origin = get_site_origin(self._site) if self._site else ""
+        if not origin:
             return self.href
-        site_url = self._site.config["url"].rstrip("/")
-        return f"{site_url}{self._path}"
+        return f"{origin}{self._path}"
 
     def _fallback_url(self) -> str:
         """

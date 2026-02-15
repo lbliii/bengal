@@ -14,22 +14,22 @@ The all-in-one solution that helps you work smarter, not harder.
 
 ## Features
 
-### ⚡ Lightning Fast
+### Lightning Fast
 Built for speed and performance. Get things done in seconds, not minutes.
 
-### 🔒 Secure & Private
+### Secure & Private
 Your data is encrypted and protected with industry-standard security.
 
-### 🎨 Beautiful Design
+### Beautiful Design
 Clean, modern interface that's a joy to use every day.
 
-### 🚀 Easy to Use
+### Easy to Use
 Get started in minutes with our intuitive interface and helpful guides.
 
-### 📊 Powerful Analytics
+### Powerful Analytics
 Track your progress with detailed insights and reports.
 
-### 🤝 Team Collaboration
+### Team Collaboration
 Work together seamlessly with built-in collaboration tools.
 
 ---

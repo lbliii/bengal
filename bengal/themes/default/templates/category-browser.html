@@ -96,7 +96,7 @@ Context variables:
     {# Category stats #}
     <div class="category-meta">
         <span class="meta-item">
-            📖 {{ total_words |> format_number }} words
+            {{ total_words |> format_number }} words
         </span>
 
         {% if authors | length > 0 %}
@@ -212,7 +212,7 @@ Context variables:
         {% for layout_option in ['grid', 'list'] %}
         {% let is_active = layout == layout_option %}
         {% let label = 'Grid view' if layout_option == 'grid' else 'List view' %}
-        {% let emoji = '📊' if layout_option == 'grid' else '📝' %}
+        {% let emoji = '' %}
         <button class="layout-btn{{ ' active' if is_active else '' }}"
                 data-layout="{{ layout_option }}"
                 aria-label="{{ label }}"

@@ -1,0 +1,69 @@
+{% extends "blog/shell.html" %}
+
+{#
+================================================================================
+Blog About Page Template
+================================================================================
+
+Simple, reading-focused layout for about pages. No related posts, no TOC
+unless content is long. Optional author bio block if params.author is set.
+
+USAGE:
+  Add `template: blog/about.html` to about.md frontmatter
+================================================================================
+#}
+
+{% block blog_content %}
+{% let page_title = page?.title ?? 'About' %}
+{% let page_desc = params?.description ?? '' %}
+{% let css_class = params?.css_class ?? '' %}
+{% let theme_features = theme?.features ?? [] %}
+{% let about_author = params?.author ?? '' %}
+{% let about_author_avatar = params?.author_avatar ?? '' %}
+{% let about_author_title = params?.author_title ?? '' %}
+{% let about_author_bio = params?.author_bio ?? '' %}
+{% let about_author_links = params?.author_links ?? [] %}
+
+<article class="blog-about prose {{ css_class }}">
+  <header class="blog-about-header">
+    <h1>{{ page_title }}</h1>
+    {% if page_desc %}
+    <p class="lead">{{ page_desc }}</p>
+    {% end %}
+  </header>
+
+  <div class="blog-about-content">
+    {{ content | safe }}
+  </div>
+
+  {% if about_author and 'content.author' in theme_features %}
+  <footer class="blog-about-footer">
+    <div class="author-bio">
+      <div class="author-bio-header">
+        {% if about_author_avatar %}
+        <img src="{{ about_author_avatar }}" alt="{{ about_author }}" class="author-avatar-large">
+        {% end %}
+        <div>
+          <h3>About {{ about_author }}</h3>
+          {% if about_author_title %}
+          <p class="author-title">{{ about_author_title }}</p>
+          {% end %}
+        </div>
+      </div>
+      {% if about_author_bio %}
+      <p class="author-bio-text">{{ about_author_bio }}</p>
+      {% end %}
+      {% if about_author_links | length > 0 %}
+      <div class="author-links">
+        {% for link in about_author_links %}
+        {% let link_url = link?.href ?? link?.url ?? '#' %}
+        {% let link_text = link?.text ?? link?.name ?? 'Link' %}
+        <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
+        {% end %}
+      </div>
+      {% end %}
+    </div>
+  </footer>
+  {% end %}
+</article>
+{% end %}
