@@ -114,10 +114,35 @@ class PostView:
         excerpt = getattr(page, "excerpt", None) or ""
         description = meta.get("description") or params.get("description") or excerpt or ""
 
-        # Author info
-        author = meta.get("author") or params.get("author") or ""
-        author_avatar = meta.get("author_avatar") or params.get("author_avatar") or ""
-        author_title = meta.get("author_title") or params.get("author_title") or ""
+        # Author info: resolve slug from site.data.authors when params.author is set
+        author_slug = params.get("author") or meta.get("params", {}).get("author") or ""
+        author_data: dict[str, Any] = {}
+        if author_slug and _site_ref:
+            try:
+                data = getattr(_site_ref, "data", None) or {}
+                authors_registry = data.get("authors") if hasattr(data, "get") else {}
+                author_data = authors_registry.get(author_slug, {}) if author_slug else {}
+            except (AttributeError, TypeError, KeyError):
+                pass
+        author = (
+            author_data.get("name")
+            or meta.get("author")
+            or params.get("author")
+            or ""
+        )
+        author_avatar = (
+            author_data.get("avatar")
+            or meta.get("author_avatar")
+            or params.get("author_avatar")
+            or ""
+        )
+        author_title = (
+            author_data.get("title")
+            or author_data.get("company")
+            or meta.get("author_title")
+            or params.get("author_title")
+            or ""
+        )
 
         # Reading metrics (from page computed properties; coerce to int for template comparisons)
         rt = getattr(page, "reading_time", None) or 0
@@ -238,8 +263,13 @@ def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
     return featured[:limit]
 
 
+_site_ref: SiteLike | None = None
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register blog view filters with template environment."""
+    global _site_ref
+    _site_ref = site
     env.filters.update(
         {
             "posts": posts_filter,

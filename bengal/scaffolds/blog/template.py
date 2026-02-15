@@ -40,6 +40,11 @@ def _create_blog_template() -> SiteTemplate:
             content=load_template_file(__file__, "posts/second-post.md", replace_date=True),
             target_dir="content",
         ),
+        TemplateFile(
+            relative_path="authors.yml",
+            content=load_template_file(__file__, "authors.yml", subdir="data"),
+            target_dir="data",
+        ),
     ]
 
     return SiteTemplate(
@@ -47,8 +52,8 @@ def _create_blog_template() -> SiteTemplate:
         name="Blog",
         description="A blog with posts, tags, and categories",
         files=files,
-        additional_dirs=["content/posts", "content/drafts"],
-        menu_sections=["posts", "about"],  # Sections to auto-generate menu for
+        additional_dirs=["content/posts", "content/drafts", "data"],
+        menu_sections=["posts", "about"],
     )
 
 

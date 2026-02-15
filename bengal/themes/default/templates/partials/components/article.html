@@ -19,12 +19,16 @@ Displays a rich card preview of an article with metadata, tags, and image.
 ============================================================================= #}
 {% def article_card(article, show_excerpt=true, show_image=false) %}
 {% let article_meta = article?.metadata ?? {} %}
+{% let article_params = article_meta?.params ?? article?.params ?? {} %}
 {% let article_tags = article?.tags ?? [] %}
 {% let article_content = article?.content ?? '' %}
 {% let article_date = article?.date %}
 {% let article_image = article_meta?.image ?? '' %}
 {% let article_desc = article_meta?.description ?? '' %}
-{% let article_author = article_meta?.author ?? '' %}
+{% let author_slug = article_params?.author ?? article_meta?.author ?? '' %}
+{% let authors_registry = site?.data?.authors ?? {} %}
+{% let author_data = authors_registry.get(author_slug, {}) if author_slug else {} %}
+{% let article_author = author_data?.name ?? article_meta?.author ?? article_params?.author ?? '' %}
 {% let is_featured = article is featured %}
 {% let theme_features = theme?.features ?? [] %}
 

@@ -430,8 +430,13 @@ html:not([data-devtools-open]) .blog-post-list > * {
     padding-inline: 0;
 }
 
-/* After-content sections (page nav, related posts, comments) constrained to content width */
-.blog-container:has(> .blog-post-layout) .blog-after-content,
+/* After-content: page nav aligned with prose width; related/comments use content width */
+.blog-container:has(> .blog-post-layout) .blog-after-content {
+    max-width: var(--prose-width, 75ch);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+}
+
 .blog-container:has(> .blog-post-layout) .related-posts .container,
 .blog-container:has(> .blog-post-layout) .comments-section .container {
     max-width: var(--content-max-width, 1200px);

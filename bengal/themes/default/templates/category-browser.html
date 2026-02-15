@@ -102,7 +102,7 @@ Context variables:
         {% if authors | length > 0 %}
         {% spaceless %}
         <span class="meta-item">
-            ✍️ {% match authors | length %}
+            {% match authors | length %}
             {% case 1 %}1 author
             {% case n %}{{ n }} authors
             {% end %}

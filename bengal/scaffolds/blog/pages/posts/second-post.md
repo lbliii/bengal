@@ -1,12 +1,14 @@
 ---
-title: Getting Started with Bengal SSG
+title: Getting Started with Bengal
 date: {{date}}
 tags: [bengal, tutorial, ssg]
 category: technology
-description: Learn how to build fast static sites with Bengal
+description: Learn how to add posts and customize your blog
+params:
+  author: kida
 ---
 
-# Getting Started with Bengal SSG
+# Getting Started with Bengal
 
 Bengal is a powerful static site generator that makes building websites easy and fun.
 
@@ -17,16 +19,18 @@ Bengal is a powerful static site generator that makes building websites easy and
 3. **SEO Friendly** - Built-in sitemap and RSS generation
 4. **Developer Experience** - Live reload and hot module replacement
 
-## Next Steps
+## Add a New Post
 
-Try editing this post or creating a new one with:
+Try creating a new post:
 
 ```bash
 bengal new page my-new-post --section posts
 ```
 
-Then build and serve your site:
+Then run your site:
 
 ```bash
-bengal site serve
+bengal s
 ```
+
+Edit your new post in `content/posts/my-new-post.md` and see it update live.

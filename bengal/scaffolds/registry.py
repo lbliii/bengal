@@ -122,7 +122,34 @@ class TemplateRegistry:
         skeleton = Skeleton.from_yaml(skeleton_yaml)
 
         # Convert Skeleton to SiteTemplate
-        return self._skeleton_to_site_template(skeleton, template_id)
+        template = self._skeleton_to_site_template(skeleton, template_id)
+
+        # Blog skeleton does not include data files; merge authors.yml from scaffold
+        if template_id == "blog":
+            template = self._merge_blog_data_files(template, skeleton_path.parent)
+
+        return template
+
+    def _merge_blog_data_files(self, template: SiteTemplate, scaffold_dir: Path) -> SiteTemplate:
+        """Merge data/authors.yml into blog template (skeleton does not include it)."""
+        authors_path = scaffold_dir / "data" / "authors.yml"
+        if not authors_path.exists():
+            return template
+
+        authors_content = authors_path.read_text(encoding="utf-8")
+        extra_file = TemplateFile(
+            relative_path="authors.yml",
+            content=authors_content,
+            target_dir="data",
+        )
+        return SiteTemplate(
+            id=template.id,
+            name=template.name,
+            description=template.description,
+            files=[*template.files, extra_file],
+            additional_dirs=list({*template.additional_dirs, "data"}),
+            menu_sections=template.menu_sections,
+        )
 
     def _skeleton_to_site_template(self, skeleton: Skeleton, template_id: str) -> SiteTemplate:
         """Convert a Skeleton manifest to a SiteTemplate.

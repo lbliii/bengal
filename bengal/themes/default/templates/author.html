@@ -40,7 +40,13 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/components/tags.html' import tag_list %}
 
-{% set author_name = params.author_name | default(page.title) %}
+{% set author_key = params.author_name | default(page.title) %}
+{% set authors_registry = site?.data?.authors ?? {} %}
+{% set author_from_registry = authors_registry.get(author_key, {}) if author_key else {} %}
+{% set author_name = author_from_registry.name | default(author_key) %}
+{% set author_avatar = author_from_registry.avatar | default(params.avatar) %}
+{% set author_bio = author_from_registry.bio | default(params.bio) %}
+{% set author_social = author_from_registry.social | default(params.social) %}
 {% set section_filter = params.section_filter %}
 
 {% block content %}
@@ -48,8 +54,8 @@ Context variables:
 
 <div class="author-page">
   <header class="author-header">
-    {% if params.avatar %}
-    <img src="{{ params.avatar }}"
+    {% if author_avatar %}
+    <img src="{{ author_avatar }}"
          alt="{{ author_name }}"
          class="author-avatar-large">
     {% else %}
@@ -61,20 +67,20 @@ Context variables:
     <div class="author-header-content">
       <h1 class="author-name">{{ author_name }}</h1>
 
-      {% if params.bio %}
-      <p class="author-bio">{{ params.bio }}</p>
+      {% if author_bio %}
+      <p class="author-bio">{{ author_bio }}</p>
       {% end %}
 
       {# Social links #}
-      {% if params.social %}
+      {% if author_social %}
       <div class="author-social">
-        {% set social = params.social %}
+        {% set social = author_social %}
 
         {% if social.twitter %}
         <a href="https://twitter.com/{{ social.twitter.lstrip('@') }}"
            class="social-link"
            aria-label="Twitter">
-          🐦 Twitter
+          Twitter
         </a>
         {% end %}
 
@@ -90,7 +96,7 @@ Context variables:
         <a href="https://linkedin.com/in/{{ social.linkedin }}"
            class="social-link"
            aria-label="LinkedIn">
-          💼 LinkedIn
+          LinkedIn
         </a>
         {% end %}
 
@@ -98,7 +104,7 @@ Context variables:
         <a href="{{ social.website }}"
            class="social-link"
            aria-label="Website">
-          🌐 Website
+          Website
         </a>
         {% end %}
 
@@ -106,7 +112,7 @@ Context variables:
         <a href="mailto:{{ social.email }}"
            class="social-link"
            aria-label="Email">
-          ✉️ Email
+          Email
         </a>
         {% end %}
       </div>
@@ -114,8 +120,8 @@ Context variables:
     </div>
   </header>
 
-  {# O(1) lookup of all posts by this author #}
-  {% set author_posts = site.indexes.author.get(author_name) | resolve_pages %}
+  {# O(1) lookup of all posts by this author (index keyed by slug) #}
+  {% set author_posts = site.indexes.author.get(author_key) | resolve_pages %}
 
   {# Filter by section if specified #}
   {% if section_filter %}

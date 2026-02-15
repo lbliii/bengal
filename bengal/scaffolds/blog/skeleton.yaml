@@ -44,9 +44,26 @@ structure:
       - Personal development
       - Life lessons and reflections
 
+      ## What I'm Listening To
+
+      :::{spotify} 37i9dQZF1DXcBWIGoYBM5M
+      :title: My Favorites
+      :type: playlist
+      :::
+
       ## Get in Touch
 
       Feel free to reach out via email or social media.
+
+  - path: contact.md
+    props:
+      title: Contact
+      description: Get in touch
+      template: blog/contact.html
+    content: |
+      # Contact
+
+      Have a question or want to connect? Reach out via email or social media.
 
   - path: posts/first-post.md
     type: blog
@@ -57,7 +74,9 @@ structure:
         - welcome
         - introduction
       category: meta
-      description: Welcome to my new blog built with Bengal SSG
+      description: Welcome to your new blog built with Bengal
+      params:
+        author: kida
     content: |
       # My First Blog Post
 
@@ -78,14 +97,16 @@ structure:
   - path: posts/second-post.md
     type: blog
     props:
-      title: Getting Started with Bengal SSG
+      title: Getting Started with Bengal
       date: "{{date}}"
       tags:
         - bengal
         - tutorial
         - ssg
       category: technology
-      description: Learn how to build fast static sites with Bengal
+      description: Learn how to add posts and customize your blog
+      params:
+        author: kida
     content: |
       # Getting Started with Bengal SSG
 
