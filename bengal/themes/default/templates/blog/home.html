@@ -27,49 +27,7 @@ Or set `type: blog` on home page to auto-select
 ================================================================================
 #}
 
-{% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
-   POST CARD COMPONENT
-   ============================================================================= #}
-{% def post_card(post) %}
-{% let post_meta = post?.metadata ?? {} %}
-{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
-{% let post_tags = post?.tags ?? [] %}
-
-<article class="blog-home-post-card gradient-border fluid-combined">
-  {% if post_image %}
-  <div class="blog-home-post-image">
-    <a href="{{ post_href }}">
-      <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
-    </a>
-  </div>
-  {% end %}
-  <div class="blog-home-post-content">
-    <h3 class="blog-home-post-title">
-      <a href="{{ post_href }}">{{ post_title }}</a>
-    </h3>
-    {% if post_date %}
-    <time datetime="{{ post_date | date_iso }}" class="blog-home-post-date">
-      {{ post_date | dateformat('%B %d, %Y') }}
-    </time>
-    {% end %}
-    {% if post_desc %}
-    <p class="blog-home-post-excerpt">{{ post_desc | truncate(150) }}</p>
-    {% end %}
-    {% if post_tags | length > 0 %}
-    <div class="blog-home-post-tags">
-      {{ tag_list(post_tags[:3]) }}
-    </div>
-    {% end %}
-    <a href="{{ post_href }}" class="blog-home-post-link">Read more →</a>
-  </div>
-</article>
-{% end %}
+{% from 'partials/components/post-card.html' import post_card %}
 
 {# =============================================================================
    MAIN TEMPLATE
@@ -137,12 +95,12 @@ Or set `type: blog` on home page to auto-select
     <div class="blog-home-recent-header">
       <h2 class="blog-home-recent-title">Recent Posts</h2>
       {% if blog_section %}
-      <a href="{{ blog_section.href }}" class="blog-home-view-all">View all posts →</a>
+      <a href="{{ blog_section?._path ?? blog_section?.href }}" class="blog-home-view-all">View all posts →</a>
       {% end %}
     </div>
     <div class="blog-home-posts-grid">
       {% for post in recent %}
-      {{ post_card(post) }}
+      {{ post_card(post, variant='default') }}
       {% end %}
     </div>
   </section>

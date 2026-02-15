@@ -76,8 +76,8 @@
           // Update URL without jumping
           history.pushState(null, null, href);
 
-          // Focus target for accessibility
-          target.focus({ preventScroll: true });
+          // Skip focus() - headings are not natively focusable and focusing them
+          // can trigger scroll anchoring that locks page scroll in some browsers
         }
       });
     });

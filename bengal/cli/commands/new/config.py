@@ -213,10 +213,15 @@ def _create_features_config() -> dict[str, Any]:
 
 
 def _create_local_env_config() -> dict[str, Any]:
-    """Create local development environment config."""
+    """Create local development environment config.
+
+    Empty baseurl keeps links relative (/posts/foo/) so they work on any port
+    (dev server default 5173, or user-configured). Avoids broken links when
+    baseurl pointed at wrong port.
+    """
     return {
         "site": {
-            "baseurl": "http://localhost:8000",
+            "baseurl": "",
         },
         "build": {
             "parallel": False,  # Easier debugging

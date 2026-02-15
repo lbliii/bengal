@@ -38,7 +38,7 @@ HELPER FUNCTIONS
 {% let section_desc = section?.metadata?.description ?? '' %}
 {% let section_pages = section?.pages ?? [] %}
 {% let page_count = section_pages | length %}
-<a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
+<a href="{{ section._path ?? section.href }}" class="docs-home-section-card gradient-border fluid-combined">
     <h3 class="docs-home-section-title">{{ section_title }}</h3>
     {% if section_desc %}
     <p class="docs-home-section-description">{{ section_desc }}</p>

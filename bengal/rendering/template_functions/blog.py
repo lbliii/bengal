@@ -34,7 +34,8 @@ class PostView:
 
     Attributes:
         title: Post title (defaults to 'Untitled')
-        href: URL to the post
+        href: URL to the post (includes baseurl when configured)
+        path: Site-relative path without baseurl (use for internal links)
         date: Publication date (None if not set)
         image: Featured image URL (from metadata.image or metadata.cover)
         description: Post description (from metadata.description or excerpt)
@@ -53,6 +54,7 @@ class PostView:
 
     title: str
     href: str
+    path: str
     date: datetime | None
     image: str
     description: str
@@ -96,6 +98,7 @@ class PostView:
         # Extract with fallbacks
         title = getattr(page, "title", None) or "Untitled"
         href = getattr(page, "href", None) or "#"
+        path = getattr(page, "_path", None) or href or "#"
         date = getattr(page, "date", None)
 
         # Image: try metadata.image, then metadata.cover, then params
@@ -116,9 +119,17 @@ class PostView:
         author_avatar = meta.get("author_avatar") or params.get("author_avatar") or ""
         author_title = meta.get("author_title") or params.get("author_title") or ""
 
-        # Reading metrics (from page computed properties)
-        reading_time = getattr(page, "reading_time", None) or 0
-        word_count = getattr(page, "word_count", None) or 0
+        # Reading metrics (from page computed properties; coerce to int for template comparisons)
+        rt = getattr(page, "reading_time", None) or 0
+        wc = getattr(page, "word_count", None) or 0
+        try:
+            reading_time = int(rt)
+        except (TypeError, ValueError):
+            reading_time = 0
+        try:
+            word_count = int(wc)
+        except (TypeError, ValueError):
+            word_count = 0
 
         # Tags
         tags_raw = getattr(page, "tags", None) or []
@@ -134,6 +145,7 @@ class PostView:
         return cls(
             title=title,
             href=href,
+            path=path,
             date=date,
             image=image,
             description=description,

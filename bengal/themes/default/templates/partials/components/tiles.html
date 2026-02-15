@@ -44,7 +44,7 @@ page=none
 'group': 'children',
 'obj': subsection,
 'title': subsection?.title ?? 'Untitled',
-'href': subsection?.href ?? '',
+'href': subsection?._path ?? subsection?.href ?? '',
 'description': subsection?.metadata?.description ?? '',
 'weight': subsection?.weight ?? 999,
 'page_count': sub_pages | length,
@@ -66,7 +66,7 @@ page=none
 'group': 'children',
 'obj': post,
 'title': post?.title ?? 'Untitled',
-'href': post?.href ?? '',
+'href': post?._path ?? post?.href ?? '',
 'description': desc,
 'weight': post?.weight ?? 999,
 'date': post?.date,
@@ -93,7 +93,7 @@ page=none
 
 {% for rel_page in related_pages %}
 {% let rel_path = rel_page?._path ?? '' %}
-{% let rel_href = rel_page?.href ?? '' %}
+{% let rel_href = rel_page?._path ?? rel_page?.href ?? '' %}
 {% let is_current = rel_path == page_path %}
 {% let is_duplicate = rel_href in children_urls %}
 {% if not is_current and not is_duplicate %}

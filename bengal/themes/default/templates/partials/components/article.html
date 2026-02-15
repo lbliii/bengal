@@ -50,7 +50,7 @@ Displays a rich card preview of an article with metadata, tags, and image.
     </div>
 
     <h2 class="article-card-title">
-      <a href="{{ article.href }}">{{ article.title }}</a>
+      <a href="{{ article.path ?? article._path ?? article.href ?? '#' }}">{{ article.title }}</a>
     </h2>
 
     <div class="article-card-meta">

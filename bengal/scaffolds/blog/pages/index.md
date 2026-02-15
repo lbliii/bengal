@@ -10,6 +10,4 @@ blog_section: posts
 
 This is your new Bengal blog! I write about technology, life, and everything in between.
 
-## Recent Posts
-
-Check out my latest posts below or browse by [tags](/tags) and [categories](/categories).
+Browse by [tags](/tags) or [view all posts](/posts/).

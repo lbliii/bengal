@@ -111,6 +111,26 @@
   }
 
   /**
+   * Normalize origin for localhost comparison.
+   * localhost and 127.0.0.1 are treated as same origin (browsers treat them differently).
+   * @param {string} origin - e.g. "http://localhost:8000"
+   * @returns {string} Normalized origin for comparison
+   */
+  function normalizeOrigin(origin) {
+    if (!origin) return origin;
+    try {
+      const u = new URL(origin);
+      const host = u.hostname.toLowerCase();
+      if (host === 'localhost' || host === '127.0.0.1') {
+        return u.protocol + '//127.0.0.1:' + (u.port || (u.protocol === 'https:' ? '443' : '80'));
+      }
+      return origin;
+    } catch (e) {
+      return origin;
+    }
+  }
+
+  /**
    * Check if URL is external
    * @param {string} href - URL to check
    * @returns {boolean} True if external
@@ -131,8 +151,10 @@
       const url = new URL(href, window.location.href);
       const currentOrigin = window.location.origin;
 
-      // Compare origins - must match exactly (including protocol)
-      return url.origin !== currentOrigin;
+      // Compare origins - normalize localhost/127.0.0.1 so they match
+      const urlOriginNorm = normalizeOrigin(url.origin);
+      const currentOriginNorm = normalizeOrigin(currentOrigin);
+      return urlOriginNorm !== currentOriginNorm;
     } catch (e) {
       // Invalid URL or parsing error - assume internal to be safe
       return false;

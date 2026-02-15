@@ -27,7 +27,7 @@ Set `type: tutorial` in section _index.md
 {% def tutorial_card(tutorial) %}
 {% let tut_meta = tutorial?.metadata ?? {} %}
 {% let tut_title = tutorial?.title ?? 'Tutorial' %}
-{% let tut_href = tutorial?.href ?? '#' %}
+{% let tut_href = tutorial?._path ?? tutorial?.href ?? '#' %}
 {% let tut_icon = tut_meta?.icon ?? '📖' %}
 {% let tut_desc = tut_meta?.description ?? tutorial?.excerpt ?? '' %}
 {% let tut_difficulty = tut_meta?.difficulty ?? '' %}
@@ -81,7 +81,7 @@ Set `type: tutorial` in section _index.md
    ============================================================================= #}
 {% def subsection_card(subsection) %}
 {% let sub_title = subsection?.title ?? 'Category' %}
-{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_href = subsection?._path ?? subsection?.href ?? '#' %}
 {% let sub_desc = subsection?.metadata?.description ?? '' %}
 {% let sub_pages = subsection?.regular_pages ?? [] %}
 {% let index_page = subsection?.index_page %}

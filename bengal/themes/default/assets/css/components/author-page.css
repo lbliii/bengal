@@ -356,7 +356,9 @@
     gap: var(--space-6);
 }
 
-.author-post-card {
+/* Shared post card styling - article-card (post_card component) and legacy author-post-card */
+.author-post-card,
+.author-posts .post-list .article-card {
     padding: var(--space-6);
     background: var(--color-bg-secondary);
     border-radius: var(--radius-md);
@@ -365,25 +367,28 @@
         background var(--transition-smooth) var(--ease-smooth);
     touch-action: manipulation;
     will-change: transform, box-shadow;
-
 }
 
-.author-post-card:hover {
+.author-post-card:hover,
+.author-posts .post-list .article-card:hover {
     transform: translate3d(0, -2px, 0);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
-    .author-post-card:hover {
+    .author-post-card:hover,
+    .author-posts .post-list .article-card:hover {
         background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
     }
 }
 
-[data-theme="dark"] .author-post-card:hover {
+[data-theme="dark"] .author-post-card:hover,
+[data-theme="dark"] .author-posts .post-list .article-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.post-card-content {
+.post-card-content,
+.author-posts .article-card .blog-card-content {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
@@ -480,6 +485,7 @@
     .author-avatar-placeholder,
     .social-link,
     .author-post-card,
+    .author-posts .post-list .article-card,
     .view-btn {
         transition: none !important;
         animation: none !important;

@@ -33,119 +33,12 @@ Set `type: blog` in section _index.md
 
 {% from 'partials/navigation-components.html' import breadcrumbs, pagination %}
 {% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
-POST CARD COMPONENTS
-============================================================================= #}
-
-{# Featured post card (larger, more prominent) - uses PostView for normalized access #}
-{% def featured_card(post) %}
-{% let p = post | post_view %}
-
-<article class="blog-featured-card gradient-border-strong fluid-bg">
-    {% if p.image %}
-    <div class="blog-card-image">
-        <a href="{{ p.href }}">
-            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
-        </a>
-    </div>
-    {% end %}
-
-    <div class="blog-card-content">
-        <h3 class="blog-card-title">
-            <a href="{{ p.href }}">{{ p.title }}</a>
-        </h3>
-
-        {% if p.description %}
-        <p class="blog-card-excerpt">{{ p.description | truncate(180) }}</p>
-        {% end %}
-
-        <div class="blog-card-meta">
-            {% if p.author %}
-            <span class="blog-author">
-                {% if p.author_avatar %}
-                <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
-                {% end %}
-                {{ p.author }}
-            </span>
-            {% end %}
-
-            {% if p.date %}
-            <time datetime="{{ p.date | date_iso }}">
-                {{ p.date | dateformat('%B %d, %Y') }}
-            </time>
-            {% end %}
-
-            {% if p.reading_time > 0 %}
-            <span class="reading-time">{{ p.reading_time }} min read</span>
-            {% end %}
-        </div>
-
-        {% if p.tags | length > 0 %}
-        <div class="blog-card-tags">
-            {{ tag_list(p.tags[:3]) }}
-        </div>
-        {% end %}
-    </div>
-</article>
-{% end %}
-
-{# Regular post card - uses PostView for normalized access #}
-{% def post_card(post) %}
-{% let p = post | post_view %}
-
-<article class="blog-post-card gradient-border fluid-combined">
-    {% if p.image %}
-    <div class="blog-card-image">
-        <a href="{{ p.href }}">
-            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
-        </a>
-    </div>
-    {% end %}
-
-    <div class="blog-card-content">
-        <h3 class="blog-card-title">
-            <a href="{{ p.href }}">{{ p.title }}</a>
-        </h3>
-
-        {% if p.description %}
-        <p class="blog-card-excerpt">{{ p.description | truncate(200) }}</p>
-        {% end %}
-
-        <div class="blog-card-meta">
-            {% if p.author %}
-            <span class="blog-author">
-                {% if p.author_avatar %}
-                <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
-                {% end %}
-                {{ p.author }}
-            </span>
-            {% end %}
-
-            {% if p.date %}
-            <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
-            {% end %}
-
-            {% if p.reading_time > 0 %}
-            <span class="reading-time">{{ p.reading_time }} min read</span>
-            {% end %}
-        </div>
-
-        {% if p.tags | length > 0 %}
-        <div class="blog-card-tags">
-            {{ tag_list(p.tags[:4]) }}
-        </div>
-        {% end %}
-
-        <a href="{{ p.href }}" class="blog-read-more">Read more →</a>
-    </div>
-</article>
-{% end %}
+{% from 'partials/components/post-card.html' import post_card %}
 
 {# Category/subsection card #}
 {% def category_card(subsection) %}
 {% let sub_title = subsection?.title ?? 'Category' %}
-{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_href = subsection?._path ?? subsection?.href ?? '#' %}
 {% let sub_desc = subsection?.metadata?.description ?? '' %}
 {% let sub_pages = subsection?.regular_pages ?? [] %}
 {% let index_page = subsection?.index_page %}
@@ -177,7 +70,7 @@ MAIN TEMPLATE
 {% let total_pages = total_pages ?? 1 %}
 {% let current_page = current_page ?? 1 %}
 {% let total_posts = total_posts ?? (posts | length if posts else 0) %}
-{% let base_url = base_url ?? section?.href ?? '/blog/' %}
+{% let base_url = base_url ?? section?._path ?? section?.href ?? '/blog/' %}
 
 {% block content %}
 <div class="container">
@@ -216,8 +109,7 @@ MAIN TEMPLATE
             <h2 class="blog-section-title">Featured Posts</h2>
             <div class="blog-featured-grid stagger-fade-in">
                 {% for post in featured_posts %}
-                {{ featured_card(post) }}
-                {% export last_featured_post = post %}
+                {{ post_card(post, variant='featured') }}
                 {% end %}
             </div>
         </section>
@@ -237,8 +129,7 @@ MAIN TEMPLATE
 
             <div class="blog-post-list">
                 {% for post in regular_posts %}
-                {{ post_card(post) }}
-                {% export last_regular_post = post %}
+                {{ post_card(post, variant='default') }}
                 {% end %}
             </div>
         </section>

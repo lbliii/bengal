@@ -152,7 +152,7 @@ Intelligently chooses navigation scope based on content type:
   <div class="nav-links">
     {% with prev_link as prev %}
     <div class="nav-previous">
-      <a href="{{ prev.href }}" rel="prev">
+      <a href="{{ prev._path ?? prev.href }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ prev.title }}</span>
       </a>
@@ -161,7 +161,7 @@ Intelligently chooses navigation scope based on content type:
 
     {% with next_link as next %}
     <div class="nav-next">
-      <a href="{{ next.href }}" rel="next">
+      <a href="{{ next._path ?? next.href }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ next.title }}</span>
       </a>

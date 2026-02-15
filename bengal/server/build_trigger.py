@@ -999,7 +999,7 @@ class BuildTrigger:
                 paths = [path for path, _type, _phase in changed_outputs]
                 decision = controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
-                logger.warning(
+                logger.debug(
                     "reload_decision_fallback",
                     reason="typed_output_reconstruction_failed",
                     output_count=len(changed_outputs),
@@ -1015,7 +1015,7 @@ class BuildTrigger:
                     action="reload", reason="source-change-no-outputs", changed_paths=[]
                 )
                 decision_source = "fallback-source-change"
-                logger.warning(
+                logger.debug(
                     "reload_fallback_no_outputs",
                     changed_files_count=len(changed_files),
                     changed_files=changed_files[:5],

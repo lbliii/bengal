@@ -34,34 +34,7 @@ Set `type: blog` in frontmatter or use cascade from section
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 {% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
-RELATED POST CARD COMPONENT - uses PostView for normalized access
-============================================================================= #}
-{% def related_card(post) %}
-{% let p = post | post_view %}
-
-<article class="blog-post-card gradient-border fluid-combined">
-    {% if p.image %}
-    <div class="blog-card-image">
-        <a href="{{ p.href }}">
-            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
-        </a>
-    </div>
-    {% end %}
-    <div class="blog-card-content">
-        <h3 class="blog-card-title">
-            <a href="{{ p.href }}">{{ p.title }}</a>
-        </h3>
-        {% if p.description %}
-        <p class="blog-card-excerpt">{{ p.description | truncate(120) }}</p>
-        {% end %}
-        {% if p.date %}
-        <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
-        {% end %}
-    </div>
-</article>
-{% end %}
+{% from 'partials/components/post-card.html' import post_card %}
 
 {# =============================================================================
 MAIN TEMPLATE
@@ -74,7 +47,7 @@ MAIN TEMPLATE
 {% let page_word_count = page?.word_count ?? 0 %}
 {% let page_read_time = page?.reading_time ?? 0 %}
 {% let page_tags = page?.tags ?? [] %}
-{% let page_href = page?.href ?? '' %}
+{% let page_href = (page?._path ?? page?.href ?? '') | absolute_url %}
 {% let theme_features = theme?.features ?? [] %}
 
 {# Params with null-safe access #}
@@ -265,14 +238,14 @@ MAIN TEMPLATE
 {{ page_navigation(page) }}
 
 {# Related Posts #}
-{% let related_posts = page?.related_posts |> take(3) ?? [] %}
+{% let related_posts = (page?.related_posts ?? []) |> take(3) %}
 {% if related_posts | length > 0 %}
 <aside class="related-posts">
     <div class="container">
         <h2>{{ t('blog.related_posts', default='Related Posts') }}</h2>
         <div class="blog-featured-grid">
             {% for post in related_posts %}
-            {{ related_card(post) }}
+            {{ post_card(post, variant='compact') }}
             {% end %}
         </div>
     </div>

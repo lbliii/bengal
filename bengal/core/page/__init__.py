@@ -315,6 +315,7 @@ class Page(
         """
         # Separate standard fields from custom props (Component Model)
         from bengal.core.page.utils import separate_standard_and_custom_fields
+        from bengal.utils.primitives.dates import parse_date
 
         standard_fields, custom_props = separate_standard_and_custom_fields(self._raw_metadata)
 
@@ -327,7 +328,7 @@ class Page(
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially
             title=standard_fields.get("title", ""),
-            date=standard_fields.get("date"),
+            date=parse_date(standard_fields.get("date")),
             tags=self.tags or [],
             slug=self.slug,  # Use computed slug (includes filename fallback)
             weight=standard_fields.get("weight"),
