@@ -464,7 +464,10 @@ class RenderingPipeline:
             # (non-context parse methods don't have access to page object)
             from bengal.config.utils import resolve_excerpt_length
 
-            metadata_with_source = dict(page.metadata)
+            meta = page.metadata
+            metadata_with_source = (
+                meta.resolve_all() if hasattr(meta, "resolve_all") else dict(meta or {})
+            )
             metadata_with_source["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(
@@ -492,7 +495,10 @@ class RenderingPipeline:
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
 
             # Build mutable metadata for parser (CascadeView is immutable)
-            metadata_for_parser = dict(page.metadata)
+            meta = page.metadata
+            metadata_for_parser = (
+                meta.resolve_all() if hasattr(meta, "resolve_all") else dict(meta or {})
+            )
             metadata_for_parser["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(

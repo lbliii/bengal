@@ -187,6 +187,11 @@ class MockSection:
         return self.pages
 
     @property
+    def regular_pages(self) -> list[MockPage]:
+        """Return pages excluding _index (matches Section API)."""
+        return [p for p in self.pages if p.source_path.name != "_index.md"]
+
+    @property
     def sorted_subsections(self) -> list[MockSection]:
         """Return subsections (matches Section API)."""
         return self.subsections

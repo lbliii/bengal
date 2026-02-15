@@ -77,7 +77,7 @@ class TestGetDefault:
         """Get nested value with separate nested_key arg."""
         assert get_default("site", "title") == "Bengal Site"
         assert get_default("site", "language") == "en"
-        assert get_default("content", "excerpt_length") == 200
+        assert get_default("content", "excerpt_length") == 750
         assert get_default("theme", "name") == "default"
 
     def test_dot_notation_in_nested_key(self):
