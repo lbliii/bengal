@@ -40,6 +40,8 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "word_count": word_count,
             "wordcount": word_count,  # Alias matching Jinja naming convention
             "excerpt": excerpt,
+            "excerpt_for_card": excerpt_for_card,
+            "card_excerpt": card_excerpt,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
             "first_sentence": first_sentence,
@@ -594,6 +596,90 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
         return excerpt_text + "..."
     else:
         return clean_text[:length] + "..."
+
+
+def _strip_leading_duplicate(text: str, prefix: str) -> str:
+    """Remove leading prefix from text (case-insensitive) plus trailing punctuation."""
+    if not prefix or not text:
+        return text
+    prefix_clean = prefix.strip()
+    if not prefix_clean:
+        return text
+    text_norm = text.strip()
+    if not text_norm.lower().startswith(prefix_clean.lower()):
+        return text
+    # Remove prefix and any trailing punctuation/whitespace
+    rest = text_norm[len(prefix_clean) :].lstrip(".,;:!?-\u2014\u2013 \t\n")
+    return rest.strip()
+
+
+def excerpt_for_card(
+    content: str, title: str = "", description: str = ""
+) -> str:
+    """
+    Strip leading content that duplicates title or description.
+
+    Use for card/tile previews so the excerpt does not repeat the title
+    or description. Works with HTML (strips to plain text) or plain text.
+
+    Args:
+        content: Excerpt or description text (HTML or plain)
+        title: Page/card title to strip from start
+        description: Explicit description to strip if present at start
+
+    Returns:
+        Plain text with leading duplicates removed
+
+    Example:
+        {{ p.excerpt | excerpt_for_card(p.title, p.description) }}
+        {{ item.description | excerpt_for_card(item.title) }}
+
+    """
+    if not content:
+        return ""
+    text = strip_html(content)
+    text = text_utils.normalize_whitespace(text, collapse=True).strip()
+    if title:
+        text = _strip_leading_duplicate(text, title)
+    if description and text:
+        text = _strip_leading_duplicate(text, description)
+    return text.strip()
+
+
+def card_excerpt(
+    content: str,
+    words: int = 30,
+    title: str = "",
+    description: str = "",
+    suffix: str = "...",
+) -> str:
+    """
+    Excerpt for card previews: strip title/description duplicates, then truncate.
+
+    Combines excerpt_for_card and truncatewords. Use for post cards, related
+    cards, tiles, and any preview that should not duplicate the title.
+
+    Args:
+        content: Excerpt or content (HTML or plain)
+        words: Max words to keep (default: 30)
+        title: Title to strip from start
+        description: Description to strip from start
+        suffix: Truncation suffix (default: "...")
+
+    Returns:
+        Plain text, truncated at word boundary
+
+    Example:
+        {{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}
+        {{ item.description | card_excerpt(25, item.title) | safe }}
+
+    """
+    if not content:
+        return ""
+    cleaned = excerpt_for_card(content, title, description)
+    if not cleaned:
+        return ""
+    return truncatewords(cleaned, words, suffix)
 
 
 def strip_whitespace(text: str) -> str:

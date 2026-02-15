@@ -147,7 +147,7 @@ sort(attribute='weight,title') %}
         <a href="{{ item.href }}">{{ item.title }}</a>
       </h3>
       {% if show_descriptions and item.description %}
-      <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
+      <p class="content-tile-card-description">{{ item.description | excerpt_for_card(item.title) | excerpt(120) }}</p>
       {% end %}
       <div class="content-tile-card-meta">
         {% match item.type %}
@@ -207,7 +207,7 @@ sort(attribute='weight,title') %}
         <span class="content-tile-title">
           <a href="{{ item.href }}">{{ item.title }}</a>
           {% if show_descriptions and item.description %}
-          <span class="content-tile-description">{{ item.description }}</span>
+          <span class="content-tile-description">{{ item.description | excerpt_for_card(item.title) }}</span>
           {% end %}
           <span class="content-tile-meta">
             {% if item.type == 'section' and item.page_count > 0 %}

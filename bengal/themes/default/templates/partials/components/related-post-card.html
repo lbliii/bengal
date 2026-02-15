@@ -17,14 +17,16 @@ Usage:
 {% let post_date = post?.date %}
 {% let post_excerpt = post?.excerpt ?? post?.description ?? '' %}
 {% let post_content = post?.content ?? '' %}
+{% let post_desc = post?.description ?? '' %}
+{% let preview = post_excerpt or post_content %}
 
 <article class="related-post-card gradient-border fluid-combined">
     <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
     {% if post_date %}
     <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
     {% end %}
-    {% if post_excerpt or post_content %}
-    <p>{{ post_excerpt or post_content }}</p>
+    {% if preview %}
+    <p>{{ preview | card_excerpt(35, post_title, post_desc) | safe }}</p>
     {% end %}
 </article>
 {% end %}

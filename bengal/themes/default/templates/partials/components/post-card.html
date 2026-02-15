@@ -38,8 +38,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.description and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.description | truncate(180) }}</p>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}</p>
     {% end %}
     <div class="blog-card-meta">
       {% if p.author and 'content.author' in theme_features %}
@@ -80,8 +80,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.description and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.description | truncate(120) }}</p>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(20, p.title, p.description) | safe }}</p>
     {% end %}
     <div class="blog-card-meta">
       {% if p.author and 'content.author' in theme_features %}
@@ -112,8 +112,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.description and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.description | truncate(200) }}</p>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(35, p.title, p.description) | safe }}</p>
     {% end %}
     <div class="blog-card-meta">
       {% if p.author and 'content.author' in theme_features %}
@@ -136,7 +136,7 @@ Variants:
       {{ tag_list(p.tags[:4]) }}
     </div>
     {% end %}
-    {% let has_excerpt = show_excerpt and p.description and 'content.excerpts' in theme_features %}
+    {% let has_excerpt = show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
     <a href="{{ p.path }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
   </div>
 </article>

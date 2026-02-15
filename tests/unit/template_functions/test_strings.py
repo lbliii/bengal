@@ -3,7 +3,9 @@
 from bengal.rendering.template_functions.strings import (
     base64_decode,
     base64_encode,
+    card_excerpt,
     excerpt,
+    excerpt_for_card,
     filesize,
     pluralize,
     reading_time,
@@ -289,6 +291,74 @@ class TestExcerpt:
         result = excerpt(html, 20)
         # Should strip HTML
         assert "<p>" not in result
+
+
+class TestExcerptForCard:
+    """Tests for excerpt_for_card filter."""
+
+    def test_strips_leading_title(self):
+        content = "My Post Title. This is the actual excerpt content."
+        result = excerpt_for_card(content, title="My Post Title")
+        assert result == "This is the actual excerpt content."
+
+    def test_strips_leading_title_case_insensitive(self):
+        content = "my post title. This is the actual content."
+        result = excerpt_for_card(content, title="My Post Title")
+        assert result == "This is the actual content."
+
+    def test_strips_title_then_description(self):
+        content = "Title. Description text. Real content here."
+        result = excerpt_for_card(content, title="Title", description="Description text")
+        assert result == "Real content here."
+
+    def test_no_strip_when_title_not_at_start(self):
+        content = "This mentions Title in the middle."
+        result = excerpt_for_card(content, title="Title")
+        assert result == "This mentions Title in the middle."
+
+    def test_strips_html_first(self):
+        html = "<p>Title.</p><p>Real content here.</p>"
+        result = excerpt_for_card(html, title="Title")
+        assert "Title" not in result
+        assert "Real content" in result
+
+    def test_empty_content(self):
+        assert excerpt_for_card("", title="Title") == ""
+        assert excerpt_for_card("", title="", description="") == ""
+
+    def test_empty_title_and_description(self):
+        content = "Some content here."
+        assert excerpt_for_card(content) == "Some content here."
+        assert excerpt_for_card(content, title="", description="") == "Some content here."
+
+
+class TestCardExcerpt:
+    """Tests for card_excerpt filter."""
+
+    def test_strips_title_and_truncates(self):
+        content = "My Post. This is a long excerpt that should be truncated."
+        result = card_excerpt(content, words=5, title="My Post")
+        assert result == "This is a long excerpt..."
+
+    def test_default_word_count(self):
+        content = "Title. " + " ".join(["word"] * 50)
+        result = card_excerpt(content, title="Title")
+        assert result.endswith("...")
+        assert len(result.split()) <= 31  # 30 words + suffix
+
+    def test_empty_content(self):
+        assert card_excerpt("") == ""
+        assert card_excerpt("", words=10, title="Title") == ""
+
+    def test_short_content_unchanged(self):
+        content = "Title. Short."
+        result = card_excerpt(content, words=10, title="Title")
+        assert result == "Short."
+
+    def test_custom_suffix(self):
+        content = "Title. One two three four five six."
+        result = card_excerpt(content, words=3, title="Title", suffix=" [more]")
+        assert result == "One two three [more]"
 
 
 class TestStripWhitespace:
