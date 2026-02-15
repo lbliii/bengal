@@ -11,7 +11,7 @@
 
 .steps {
   margin-block: var(--space-8);
-  --step-marker-size: 2rem;
+  --step-marker-size: var(--space-8);
   --step-line-width: 2px;
   --step-spacing: var(--space-10);
 }

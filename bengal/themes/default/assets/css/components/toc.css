@@ -21,7 +21,7 @@
 .page-layout.page-with-toc {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: var(--space-8);
     align-items: start;
 }
 
@@ -39,7 +39,7 @@
 @media (min-width: 1024px) {
     .page-sidebar {
         position: sticky;
-        top: 2rem;
+        top: var(--space-8);
         max-height: calc(100vh - 4rem);
         overflow-y: auto;
     }
@@ -679,7 +679,7 @@ details.toc-group:not([open]) .toc-subitems {
 /* Laptop and below: Adjust sidebar layout */
 @media (max-width: 1024px) {
     .page-sidebar {
-        margin-top: 2rem;
+        margin-top: var(--space-8);
     }
 
     .toc-sidebar {

@@ -50,11 +50,11 @@ CSS: /assets/css/components/search.css
                  aria-label="Search" aria-describedby="search-status"
                  aria-controls="search-results" aria-autocomplete="list" autofocus>
 
-          <div class="search-page__loading" id="search-loading-indicator" style="display: none;">
+          <div class="search-page__loading hidden" id="search-loading-indicator">
             <div class="search-page__spinner"></div>
           </div>
 
-          <button type="button" class="search-page__clear" id="search-clear" style="display: none;"
+          <button type="button" class="search-page__clear hidden" id="search-clear"
                   aria-label="Clear search">
             {{ icon('x-mark', size=16) }}
           </button>
@@ -83,7 +83,7 @@ CSS: /assets/css/components/search.css
       {# Search Results Area #}
       <div class="search-page__results-area">
         {# Results Container #}
-        <section class="search-page__results" id="search-results" aria-label="Search results" style="display: none;">
+        <section class="search-page__results hidden" id="search-results" aria-label="Search results">
           <div class="search-page__results-header">
             <span id="search-results-count" class="search-page__results-count"></span>
 
@@ -94,7 +94,7 @@ CSS: /assets/css/components/search.css
           </div>
 
           {# Filters Panel #}
-          <div class="search-page__filters" id="search-filters" style="display: none;">
+          <div class="search-page__filters hidden" id="search-filters">
             <div class="search-page__filters-grid">
               <div class="search-page__filter-group">
                 <label for="filter-section">Section</label>
@@ -121,7 +121,7 @@ CSS: /assets/css/components/search.css
           <div id="search-results-list" class="search-page__results-list" role="listbox"></div>
 
           {# No results message #}
-          <div class="search-page__no-results" id="search-no-results" style="display: none;">
+          <div class="search-page__no-results hidden" id="search-no-results">
             {{ icon('magnifying-glass', size=48) }}
             <p class="search-page__no-results-text">No results for "<span id="search-no-results-query"></span>"</p>
             <p class="search-page__no-results-hint">Try different keywords or check your spelling</p>
@@ -161,13 +161,13 @@ CSS: /assets/css/components/search.css
         </div>
 
         {# Loading State #}
-        <div class="search-page__loading-state" id="search-loading" style="display: none;">
+        <div class="search-page__loading-state hidden" id="search-loading">
           <div class="search-page__spinner search-page__spinner--large"></div>
           <p>Loading search index...</p>
         </div>
 
         {# Error State #}
-        <div class="search-page__error" id="search-error" style="display: none;">
+        <div class="search-page__error hidden" id="search-error">
           <p>Failed to load search index. Please try refreshing the page.</p>
         </div>
       </div>

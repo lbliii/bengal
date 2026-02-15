@@ -178,6 +178,10 @@
   padding-inline: var(--space-4);
 }
 
+.tag-page-header-actions {
+  margin-top: var(--space-4);
+}
+
 .tag-page .tag-icon {
   color: var(--color-primary);
   font-weight: var(--weight-bold);

@@ -74,11 +74,31 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-6);
+  margin-top: var(--space-8);
 }
 
 .authors-page {
   max-width: var(--container-lg);
   margin: 0 auto;
+  padding: var(--space-8);
+}
+
+.authors-page__content {
+  margin-bottom: var(--space-8);
+}
+
+/* List view overrides (authors/list.html) - compact cards */
+.authors-page .author-card-link {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.authors-page .author-card-avatar,
+.authors-page .author-card-avatar-placeholder {
+  width: 64px;
+  height: 64px;
 }
 
 .author-meta {

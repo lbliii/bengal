@@ -1,0 +1,73 @@
+{#
+================================================================================
+Empty State Partial (DRY)
+================================================================================
+
+Reusable empty-state component for 404, search no-results, blog no-posts,
+docs nav empty, autodoc empty. Parameters adapt behavior.
+
+Usage:
+  {% from "partials/empty-state.html" import empty_state %}
+  {{ empty_state(
+      title="Page Not Found",
+      message="The page you're looking for doesn't exist.",
+      icon="compass",
+      code="404",
+      actions=[{'href': '/', 'label': 'Go Home', 'icon': 'house'}],
+      suggestions=[{'href': '/docs/', 'name': 'Docs'}],
+      show_search_hint=true
+  ) }}
+
+Params:
+  - title, message: Required
+  - icon_name: Icon name (default: inbox) - avoid 'icon' to not shadow global
+  - code: Optional large code (e.g. "404")
+  - actions: List of {href, label, icon?}
+  - suggestions: List of {href, name} for nav links
+  - show_search_hint: bool
+================================================================================
+#}
+{% def empty_state(title, message, icon_name='inbox', code=none, actions=none, suggestions=none, show_search_hint=false) %}
+<div class="empty-state">
+  {% if code %}
+  <div class="empty-state__code">{{ code }}</div>
+  {% end %}
+
+  <div class="empty-state__icon" aria-hidden="true">
+    {{ icon(icon_name, size=120) }}
+  </div>
+
+  <h1 class="empty-state__title">{{ title }}</h1>
+  <p class="empty-state__message">{{ message }}</p>
+
+  {% if actions and actions | length > 0 %}
+  <div class="empty-state__actions">
+    {% for a in actions %}
+    <a href="{{ a.href | absolute_url }}" class="button button-light">
+      {% if a.icon %}{{ icon(a.icon, size=16) }}{% end %}
+      <span>{{ a.label }}</span>
+    </a>
+    {% end %}
+  </div>
+  {% end %}
+
+  {% if suggestions and suggestions | length > 0 %}
+  <div class="empty-state__suggestions">
+    <h2>Quick Navigation</h2>
+    <ul>
+      {% for s in suggestions %}
+      <li>
+        <a href="{{ (s.href ?? s.url) | absolute_url }}">{{ s.name ?? s.label ?? 'Link' }}</a>
+      </li>
+      {% end %}
+    </ul>
+  </div>
+  {% end %}
+
+  {% if show_search_hint %}
+  <p class="empty-state__search-hint">
+    Press <kbd>⌘</kbd><kbd>K</kbd> to search
+  </p>
+  {% end %}
+</div>
+{% end %}

@@ -218,7 +218,7 @@ MAIN TEMPLATE
     </div>
 
     {# By Year View #}
-    <div class="posts-view" data-view-content="by-year" style="display: none;">
+    <div class="posts-view hidden" data-view-content="by-year">
       {% let posts_by_year = author_posts | group_by('date.year') %}
       {% for year, year_posts in posts_by_year | items | sort(reverse=true) %}
       <div class="year-group">
@@ -239,7 +239,7 @@ MAIN TEMPLATE
 
     {# By Topic View #}
     {% if all_tags | length > 0 %}
-    <div class="posts-view" data-view-content="by-tag" style="display: none;">
+    <div class="posts-view hidden" data-view-content="by-tag">
       {% for tag in all_tags | sort %}
       {% let tag_posts = [] %}
       {% for post in author_posts %}
@@ -282,7 +282,7 @@ MAIN TEMPLATE
       document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       document.querySelectorAll('[data-view-content]').forEach(v => {
-        v.style.display = v.dataset.viewContent === view ? 'block' : 'none';
+        v.classList.toggle('hidden', v.dataset.viewContent !== view);
       });
     });
   });

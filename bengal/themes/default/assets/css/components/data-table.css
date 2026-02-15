@@ -10,7 +10,7 @@
    ========================================================================== */
 
 .bengal-data-table-wrapper {
-  margin: var(--space-lg, 2rem) 0;
+  margin: var(--space-lg) 0;
   border-radius: var(--radius-md, 8px);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -34,7 +34,7 @@
   border: 1px solid var(--color-error-border);
   border-radius: var(--radius-md, 8px);
   color: var(--color-error-text);
-  margin: var(--space-lg, 2rem) 0;
+  margin: var(--space-lg) 0;
 }
 
 .bengal-data-table-error strong {

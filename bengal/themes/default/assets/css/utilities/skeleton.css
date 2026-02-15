@@ -1,0 +1,49 @@
+/**
+ * Bengal SSG - Skeleton / Loading Placeholders
+ *
+ * Reusable utilities for loading states. Use only where async flow exists
+ * (search results, lazy images, tutorial steps). Respects prefers-reduced-motion.
+ */
+
+.skeleton,
+.skeleton-text,
+.skeleton-block {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-secondary) 50%,
+    var(--color-bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-md);
+  min-height: 1em;
+}
+
+.skeleton-text {
+  height: 1em;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-block {
+  display: block;
+  width: 100%;
+  min-height: 4rem;
+}
+
+/* Shimmer animation - disabled when reduced motion preferred */
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton,
+  .skeleton-text,
+  .skeleton-block {
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

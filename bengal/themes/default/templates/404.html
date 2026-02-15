@@ -26,48 +26,19 @@ KIDA FEATURES USED:
 {% let main_menu = get_menu_lang('main', current_language) %}
 {% let auto_nav = get_auto_nav() if main_menu | length == 0 else [] %}
 {% let nav_items = main_menu if main_menu | length > 0 else auto_nav %}
+{% let home_url = '/' | absolute_url %}
+
+{% from "partials/empty-state.html" import empty_state %}
 
 <div class="container">
-  <div class="empty-state">
-    <div class="empty-state__code">404</div>
-
-    {# Decorative icon #}
-    <div class="empty-state__icon" aria-hidden="true">
-      {{ icon('compass', size=120) }}
-    </div>
-
-    <h1 class="empty-state__title">Page Not Found</h1>
-    <p class="empty-state__message">
-      The page you're looking for doesn't exist or may have been moved.
-    </p>
-
-    <div class="empty-state__actions">
-      <a href="{{ '/' | absolute_url }}" class="button button-light">
-        {{ icon('house', size=16) }}
-        <span>Go Home</span>
-      </a>
-    </div>
-
-    {# Navigation suggestions #}
-    {% if nav_items | length > 0 %}
-    <div class="empty-state__suggestions">
-      <h2>Quick Navigation</h2>
-      <ul>
-        {% for item in nav_items[:5] %}
-        {% let item_href = item?.href ?? '#' %}
-        {% let item_name = item?.name ?? 'Link' %}
-        <li>
-          <a href="{{ item_href | absolute_url }}">{{ item_name }}</a>
-        </li>
-        {% end %}
-      </ul>
-    </div>
-    {% end %}
-
-    {# Search hint #}
-    <p class="empty-state__search-hint">
-      Press <kbd>⌘</kbd><kbd>K</kbd> to search
-    </p>
-  </div>
+  {{ empty_state(
+      title="Page Not Found",
+      message="The page you're looking for doesn't exist or may have been moved.",
+      icon_name="compass",
+      code="404",
+      actions=[{'href': home_url, 'label': 'Go Home', 'icon': 'house'}],
+      suggestions=nav_items[:5] if nav_items | length > 0 else none,
+      show_search_hint=true
+  ) }}
 </div>
 {% end %}

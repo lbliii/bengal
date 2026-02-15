@@ -423,8 +423,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--space-8);
+  height: var(--space-8);
   padding: 0;
   color: var(--color-text-secondary);
   background: rgba(255, 255, 255, 0.1);

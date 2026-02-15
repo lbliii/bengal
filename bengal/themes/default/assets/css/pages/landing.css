@@ -607,9 +607,9 @@
   }
 
   .feature-icon {
-    font-size: 2rem;
-    width: 3rem;
-    height: 3rem;
+    font-size: var(--text-2xl);
+    width: var(--space-12);
+    height: var(--space-12);
   }
 
   .feature-title {

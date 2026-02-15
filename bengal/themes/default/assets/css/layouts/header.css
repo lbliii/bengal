@@ -1389,7 +1389,7 @@ header[role="banner"][data-sticky="false"] {
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  height: 2rem;
+  height: var(--space-8);
   padding: 0 0.75rem;
   background: linear-gradient(180deg,
       var(--color-surface, var(--color-bg-elevated)),

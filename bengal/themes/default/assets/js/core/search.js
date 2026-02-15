@@ -872,7 +872,7 @@
 
         // Handle search index ready
         window.addEventListener('searchIndexLoaded', () => {
-            if (loading) loading.style.display = 'none';
+            if (loading) loading.classList.add('hidden');
         });
     }
 
@@ -970,11 +970,11 @@
     function performModalSearch(query) {
         if (!isIndexLoaded) {
             log('Search index not loaded yet');
-            if (loading) loading.style.display = 'flex';
+            if (loading) loading.classList.remove('hidden');
             return;
         }
 
-        if (loading) loading.style.display = 'none';
+        if (loading) loading.classList.add('hidden');
 
         // Perform search
         const results = search(query);
@@ -1020,7 +1020,7 @@
             resultsList.appendChild(apiSection);
         }
 
-        resultsList.parentElement.style.display = 'block';
+        resultsList.parentElement.classList.remove('hidden');
     }
 
     function groupByAutodoc(results) {
@@ -1057,7 +1057,7 @@
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'search-modal__section-items';
         if (collapsed) {
-            itemsContainer.style.display = 'none';
+            itemsContainer.classList.add('hidden');
             itemsContainer.setAttribute('aria-hidden', 'true');
         }
 
@@ -1088,8 +1088,8 @@
             header.setAttribute('tabindex', '0');
 
             const toggleSection = () => {
-                const isHidden = itemsContainer.style.display === 'none';
-                itemsContainer.style.display = isHidden ? 'block' : 'none';
+                const isHidden = itemsContainer.classList.contains('hidden');
+                itemsContainer.classList.toggle('hidden', !isHidden);
                 itemsContainer.setAttribute('aria-hidden', !isHidden);
                 header.querySelector('.search-modal__section-toggle').textContent = isHidden ? '▼' : '▶';
                 header.setAttribute('aria-expanded', isHidden);
@@ -1220,7 +1220,7 @@
         if (resultItems.length > 0) {
             return Array.from(resultItems);
         }
-        if (recentSection.style.display !== 'none') {
+        if (!recentSection.classList.contains('hidden')) {
             return Array.from(recentItems);
         }
         return [];
@@ -1246,7 +1246,7 @@
 
         // Trigger search index load if not already loaded
         if (!isIndexLoaded) {
-            if (loading) loading.style.display = 'flex';
+            if (loading) loading.classList.remove('hidden');
             loadSearchIndex();
         }
 
@@ -1360,11 +1360,11 @@
             recentList.appendChild(item);
         });
 
-        recentSection.style.display = 'block';
+        recentSection.classList.remove('hidden');
     }
 
     function hideRecentSearches() {
-        recentSection.style.display = 'none';
+        recentSection.classList.add('hidden');
     }
 
     function removeRecentSearch(query) {
@@ -1383,24 +1383,24 @@
         hideResults();
         const queryEl = document.getElementById('search-modal-no-results-query');
         if (queryEl) queryEl.textContent = query;
-        noResults.style.display = 'flex';
+        noResults.classList.remove('hidden');
     }
 
     function hideNoResults() {
-        noResults.style.display = 'none';
+        noResults.classList.add('hidden');
     }
 
     function showEmptyState() {
-        emptyState.style.display = 'block';
+        emptyState.classList.remove('hidden');
     }
 
     function hideEmptyState() {
-        emptyState.style.display = 'none';
+        emptyState.classList.add('hidden');
     }
 
     function hideResults() {
         resultsList.innerHTML = '';
-        resultsList.parentElement.style.display = 'none';
+        resultsList.parentElement.classList.add('hidden');
         selectedIndex = -1;
         currentResults = [];
     }
@@ -1496,8 +1496,8 @@
 
         // Set up index loading state and listeners
         if (!isIndexLoaded) {
-            if (pageLoadingState) pageLoadingState.style.display = 'flex';
-            if (pageEmptyState) pageEmptyState.style.display = 'none';
+            if (pageLoadingState) pageLoadingState.classList.remove('hidden');
+            if (pageEmptyState) pageEmptyState.classList.add('hidden');
             window.addEventListener('searchIndexLoaded', onPageIndexLoaded);
             window.addEventListener('searchIndexError', onPageIndexError);
         } else {
@@ -1543,8 +1543,8 @@
     }
 
     function onPageIndexLoaded() {
-        if (pageLoadingState) pageLoadingState.style.display = 'none';
-        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
+        if (pageLoadingState) pageLoadingState.classList.add('hidden');
+        if (pageLoadingIndicator) pageLoadingIndicator.classList.add('hidden');
         populatePageFilters();
 
         // Re-trigger search if user was typing while index was loading
@@ -1552,13 +1552,13 @@
             log('Index loaded, re-triggering search for: ' + pageCurrentQuery);
             performPageSearch(pageCurrentQuery);
         } else if (pageEmptyState) {
-            pageEmptyState.style.display = 'flex';
+            pageEmptyState.classList.remove('hidden');
         }
     }
 
     function onPageIndexError(e) {
-        if (pageLoadingState) pageLoadingState.style.display = 'none';
-        if (pageErrorState) pageErrorState.style.display = 'block';
+        if (pageLoadingState) pageLoadingState.classList.add('hidden');
+        if (pageErrorState) pageErrorState.classList.remove('hidden');
     }
 
     function populatePageFilters() {
@@ -1585,7 +1585,7 @@
 
     function onPageInput(e) {
         const query = e.target.value.trim();
-        if (pageClearBtn) pageClearBtn.style.display = query ? 'flex' : 'none';
+        if (pageClearBtn) pageClearBtn.classList.toggle('hidden', !query);
 
         clearTimeout(pageDebounceTimer);
         pageDebounceTimer = setTimeout(() => performPageSearch(query), CONFIG.modalDebounceDelay);
@@ -1621,7 +1621,7 @@
 
         if (!query || query.length < CONFIG.minQueryLength) {
             hidePageResults();
-            if (pageEmptyState) pageEmptyState.style.display = 'flex';
+            if (pageEmptyState) pageEmptyState.classList.remove('hidden');
             updatePageURL('');
             return;
         }
@@ -1629,16 +1629,16 @@
         // Wait for index to load before searching (prevents false "No results")
         if (!isIndexLoaded) {
             log('Search index not loaded yet, showing loading state');
-            if (pageEmptyState) pageEmptyState.style.display = 'none';
+            if (pageEmptyState) pageEmptyState.classList.add('hidden');
             // Show inline spinner in input (better UX than full-page loading)
-            if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'flex';
+            if (pageLoadingIndicator) pageLoadingIndicator.classList.remove('hidden');
             hidePageResults();
             // Search will be re-triggered when index loads via onPageIndexLoaded
             return;
         }
 
         // Hide loading indicator now that we're searching
-        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
+        if (pageLoadingIndicator) pageLoadingIndicator.classList.add('hidden');
 
         // Get filters
         pageCurrentFilters = {
@@ -1654,19 +1654,19 @@
     }
 
     function displayPageResults(results, query) {
-        if (pageEmptyState) pageEmptyState.style.display = 'none';
+        if (pageEmptyState) pageEmptyState.classList.add('hidden');
         if (pageResultsList) pageResultsList.innerHTML = '';
 
         if (results.length === 0) {
-            if (pageResults) pageResults.style.display = 'block';
-            if (pageNoResults) pageNoResults.style.display = 'flex';
+            if (pageResults) pageResults.classList.remove('hidden');
+            if (pageNoResults) pageNoResults.classList.remove('hidden');
             if (pageNoResultsQuery) pageNoResultsQuery.textContent = query;
             return;
         }
 
         // Show results
-        if (pageResults) pageResults.style.display = 'block';
-        if (pageNoResults) pageNoResults.style.display = 'none';
+        if (pageResults) pageResults.classList.remove('hidden');
+        if (pageNoResults) pageNoResults.classList.add('hidden');
         if (pageResultsCount) {
             pageResultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
         }
@@ -1708,7 +1708,7 @@
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'search-page__section-items';
         if (collapsed) {
-            itemsContainer.style.display = 'none';
+            itemsContainer.classList.add('hidden');
             itemsContainer.setAttribute('aria-hidden', 'true');
         }
 
@@ -1726,8 +1726,8 @@
             header.setAttribute('tabindex', '0');
 
             const toggle = () => {
-                const isHidden = itemsContainer.style.display === 'none';
-                itemsContainer.style.display = isHidden ? 'block' : 'none';
+                const isHidden = itemsContainer.classList.contains('hidden');
+                itemsContainer.classList.toggle('hidden', !isHidden);
                 itemsContainer.setAttribute('aria-hidden', !isHidden);
                 header.querySelector('.search-page__section-toggle').textContent = isHidden ? '▼' : '▶';
                 header.setAttribute('aria-expanded', isHidden);
@@ -1810,8 +1810,8 @@
     }
 
     function hidePageResults() {
-        if (pageResults) pageResults.style.display = 'none';
-        if (pageNoResults) pageNoResults.style.display = 'none';
+        if (pageResults) pageResults.classList.add('hidden');
+        if (pageNoResults) pageNoResults.classList.add('hidden');
         if (pageResultsList) pageResultsList.innerHTML = '';
         pageSelectedIndex = -1;
         pageResultItems = [];
@@ -1820,10 +1820,10 @@
     function clearPageSearch() {
         if (pageInput) pageInput.value = '';
         pageCurrentQuery = '';
-        if (pageClearBtn) pageClearBtn.style.display = 'none';
-        if (pageLoadingIndicator) pageLoadingIndicator.style.display = 'none';
+        if (pageClearBtn) pageClearBtn.classList.add('hidden');
+        if (pageLoadingIndicator) pageLoadingIndicator.classList.add('hidden');
         hidePageResults();
-        if (pageEmptyState) pageEmptyState.style.display = 'flex';
+        if (pageEmptyState) pageEmptyState.classList.remove('hidden');
         updatePageURL('');
         if (pageInput) pageInput.focus();
     }
@@ -1832,7 +1832,7 @@
         if (!pageFiltersToggle || !pageFiltersPanel) return;
         const isExpanded = pageFiltersToggle.getAttribute('aria-expanded') === 'true';
         pageFiltersToggle.setAttribute('aria-expanded', !isExpanded);
-        pageFiltersPanel.style.display = isExpanded ? 'none' : 'block';
+        pageFiltersPanel.classList.toggle('hidden', isExpanded);
     }
 
     function onPageFilterChange() {
