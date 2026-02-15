@@ -68,8 +68,9 @@ RELEASE ITEM COMPONENT - Unified with ReleaseView
     </div>
   </div>
 
-  {% if rel.summary %}
-  <p class="timeline-description">{{ rel.summary }}</p>
+  {% let rel_summary = rel.summary | excerpt_for_card(rel.version, rel.name) | excerpt(160) %}
+  {% if rel_summary %}
+  <p class="timeline-description">{{ rel_summary }}</p>
   {% end %}
 
   {{ change_category('Added', '', rel.added) }}

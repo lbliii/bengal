@@ -44,7 +44,7 @@ Set `type: tutorial` in section _index.md
 
   <div class="tutorial-card-content">
     {% if tut_desc %}
-    <p class="tutorial-description">{{ tut_desc | truncate(150) }}</p>
+    <p class="tutorial-description">{{ tut_desc | excerpt_for_card(tut_title) | excerpt(150) }}</p>
     {% end %}
 
     <div class="tutorial-meta">
@@ -99,7 +99,7 @@ Set `type: tutorial` in section _index.md
 
   <div class="tutorial-card-content">
     {% if sub_desc %}
-    <p class="tutorial-description">{{ sub_desc | truncate(150) }}</p>
+    <p class="tutorial-description">{{ sub_desc | excerpt_for_card(sub_title) | excerpt(150) }}</p>
     {% end %}
 
     <div class="tutorial-meta">

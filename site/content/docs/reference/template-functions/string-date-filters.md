@@ -70,6 +70,28 @@ Extract an excerpt from content (first paragraph or sentence).
 {{ page.content | excerpt(200) }}  {# Limit to 200 characters #}
 ```
 
+## excerpt_for_card
+
+Strip leading content that duplicates the title or description. Use for card/tile previews so the excerpt does not repeat information already shown in the title.
+
+```kida
+{{ p.excerpt | excerpt_for_card(p.title, p.description) }}
+{{ item.description | excerpt_for_card(item.title) }}  {# Tiles, docs list #}
+```
+
+Works with HTML (strips to plain text) or plain text. Case-insensitive.
+
+## card_excerpt
+
+Excerpt for card previews: strip title/description duplicates, then truncate by word count. Combines `excerpt_for_card` and `truncatewords`.
+
+```kida
+{{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}
+{{ item.description | card_excerpt(25, item.title) | safe }}
+```
+
+Use for post cards, related cards, tiles, and any preview that should not duplicate the title. Default: 30 words.
+
 ## first_sentence
 
 Extract the first sentence from text.

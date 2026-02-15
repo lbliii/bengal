@@ -42,7 +42,7 @@ KIDA FEATURES USED:
 
     <code class="autodoc-card-name">{{ child_name }}</code>
     {% if child_desc %}
-    <span class="autodoc-card-desc">{{ child_desc | truncate(100) }}</span>
+    <span class="autodoc-card-desc">{{ child_desc | excerpt_for_card(child_name) | excerpt(100) }}</span>
     {% end %}
 </a>
 {% end %}
