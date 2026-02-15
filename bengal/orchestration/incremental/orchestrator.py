@@ -36,6 +36,7 @@ from bengal.orchestration.incremental.effect_detector import (
 )
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -371,6 +372,11 @@ class IncrementalOrchestrator:
         template_affected = self._detect_template_affected_pages()
         pages_to_rebuild.update(template_affected)
 
+        # Add track item dependencies - when a track page is dirty, its items
+        # must be in pages_to_build so they get pre-parsed (avoids get_page
+        # on-demand parsing during track page render)
+        self._add_track_item_dependencies(pages_to_rebuild, self.site)
+
         # Content changed = intersection of changed and markdown files
         content_changed = {p for p in all_changed if p.suffix == ".md"}
 
@@ -503,6 +509,76 @@ class IncrementalOrchestrator:
                         break
 
         return nav_rebuild
+
+    def _add_track_item_dependencies(
+        self, pages_to_rebuild: set[Path], site: Site
+    ) -> None:
+        """
+        Add track item pages to rebuild set when their track page is dirty.
+
+        When a track page is in pages_to_rebuild, its track items must be
+        pre-parsed (in pages_to_build) so get_page() finds them during
+        track page rendering. This avoids on-demand parsing.
+        """
+        tracks_data = getattr(site.data, "tracks", None)
+        if not tracks_data or not isinstance(tracks_data, dict):
+            return
+
+        page_by_path = site.page_by_source_path
+        content_root = site.root_path / "content"
+        track_item_paths_to_add: set[str] = set()
+
+        for path in list(pages_to_rebuild):
+            if path.suffix != ".md":
+                continue
+            page = page_by_path.get(path)
+            if not page:
+                continue
+            is_track_page = (
+                page.metadata.get("template") == "tracks/single.html"
+                or page.metadata.get("track_id") is not None
+            )
+            if not is_track_page:
+                continue
+
+            track_id = page.metadata.get("track_id") or (
+                page.slug if hasattr(page, "slug") else None
+            )
+            if not track_id:
+                continue
+
+            track_def = tracks_data.get(track_id)
+            if not isinstance(track_def, dict):
+                continue
+            items = track_def.get("items")
+            if not isinstance(items, (list, tuple)):
+                continue
+
+            for item in items:
+                if not isinstance(item, str):
+                    continue
+                normalized = to_posix(item)
+                if normalized.startswith("./"):
+                    normalized = normalized[2:]
+                if normalized.startswith("content/"):
+                    normalized = normalized[8:]
+                if not normalized.endswith(".md"):
+                    normalized = f"{normalized}.md"
+                track_item_paths_to_add.add(normalized)
+                track_item_paths_to_add.add(normalized[:-3])  # without .md
+
+        if not track_item_paths_to_add:
+            return
+
+        for page_path, _page in page_by_path.items():
+            try:
+                rel = page_path.relative_to(content_root)
+            except ValueError:
+                continue
+            rel_str = to_posix(rel)
+            rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
+            if rel_str in track_item_paths_to_add or rel_no_ext in track_item_paths_to_add:
+                pages_to_rebuild.add(page_path)
 
     def _convert_paths_to_objects(
         self,
