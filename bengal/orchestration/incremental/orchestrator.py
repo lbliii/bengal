@@ -562,6 +562,7 @@ class IncrementalOrchestrator:
                     normalized = normalized[8:]
                 if not normalized.endswith(".md"):
                     normalized = f"{normalized}.md"
+                # Add both .md and non-.md: page_by_path keys may use either format.
                 track_item_paths_to_add.add(normalized)
                 track_item_paths_to_add.add(normalized[:-3])  # without .md
 

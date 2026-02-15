@@ -96,7 +96,8 @@
   display: grid;
 }
 
-/* JS-controlled visibility: add/remove this class to show/hide */
+/* JS-controlled visibility: add/remove this class to show/hide.
+   !important overrides any inline style="display: ..." from legacy code. */
 .hidden {
   display: none !important;
 }

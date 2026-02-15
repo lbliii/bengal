@@ -15,7 +15,10 @@ from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
+from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
@@ -153,7 +156,12 @@ class DirectiveRendererMixin:
             content_dir = Path(root_path) / "content"
             rel_path = Path(page.source_path).relative_to(content_dir)
             return to_posix(rel_path.parent)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.debug(
+                "current_page_dir_failed",
+                source_path=getattr(page, "source_path", None),
+                error=str(e),
+            )
             return None
 
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:

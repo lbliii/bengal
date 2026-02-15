@@ -209,7 +209,9 @@ async def _serve_static(
 
     When a build is in progress, serves cached content (if available) with a
     small rebuilding badge injected. Missing files return 404 (with badge on
-    404.html). Never replaces the page with a full rebuilding placeholder.
+    404.html). Never replaces the page with a full rebuilding placeholder,
+    to avoid confusing full-page placeholders that could be mistaken for
+    actual content.
     """
     resolved = _resolve_file_path(output_dir, path)
     if resolved is None:

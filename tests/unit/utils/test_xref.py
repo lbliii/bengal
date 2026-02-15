@@ -1,6 +1,6 @@
 """Unit tests for bengal.utils.xref link resolution.
 
-Lightweight tests - no kida, rendering pipeline, or template engine deps.
+Lightweight tests - no Kida, rendering pipeline, or template engine deps.
 """
 
 from tests._testing.mocks import MockPage

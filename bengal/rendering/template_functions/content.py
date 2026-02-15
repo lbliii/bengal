@@ -417,7 +417,9 @@ def resolve_links_for_embedding(html: str, page: object | None) -> str:
         return ""
     if page is None:
         return html
-    # Fast-path: skip regex when no link attributes present
+    # Fast-path: skip regex when no link attributes present.
+    # Assumes typical HTML; may run regex if "href=" or "src=" appear in
+    # text/comments (rare; regex handles non-attribute matches safely).
     if "href=" not in html and "src=" not in html:
         return html
 
@@ -526,12 +528,15 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Update anchor links in single pass (one regex for all IDs)
-    ids_alternation = "|".join(re.escape(i) for i in heading_ids)
-    anchor_pattern = re.compile(rf'href=(["\'])#({ids_alternation})\1')
+    # Update anchor links: generic pattern + filter in Python to avoid
+    # large alternation regex when many headings exist.
+    anchor_pattern = re.compile(r'href=(["\'])#([^"\']+)\1')
 
     def _prefix_anchor(m: re.Match[str]) -> str:
-        return f"href={m.group(1)}#{prefix}{m.group(2)}{m.group(1)}"
+        anchor_id = m.group(2)
+        if anchor_id in heading_ids:
+            return f"href={m.group(1)}#{prefix}{anchor_id}{m.group(1)}"
+        return m.group(0)
 
     return anchor_pattern.sub(_prefix_anchor, html)
 

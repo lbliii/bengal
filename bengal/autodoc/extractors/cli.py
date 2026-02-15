@@ -215,6 +215,7 @@ class CLIExtractor(Extractor):
         children = []
         seen_command_ids: set[int] = set()
         if isinstance(group, click.Group):
+            # Context required: list_commands/get_command need it for lazy-loaded groups.
             ctx = click.Context(group)
             for cmd_name in sorted(group.list_commands(ctx)):
                 cmd = group.get_command(ctx, cmd_name)
