@@ -450,9 +450,7 @@ class CardDirective:
         resolved_link = link
         linked_page = None
         if link and xref_index:
-            resolved_link, linked_page = _resolve_link(
-                link, xref_index, current_page_dir
-            )
+            resolved_link, linked_page = _resolve_link(link, xref_index, current_page_dir)
 
         # Pull data from linked page
         if linked_page and pull_fields:

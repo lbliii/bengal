@@ -735,9 +735,7 @@ class RenderOrchestrator:
             )
             if not is_track_page:
                 continue
-            track_id = page.metadata.get("track_id") or (
-                getattr(page, "slug", None) or ""
-            )
+            track_id = page.metadata.get("track_id") or (getattr(page, "slug", None) or "")
             if track_id:
                 priority_track_ids.add(track_id)
         if not priority_track_ids:
@@ -1281,9 +1279,7 @@ class RenderOrchestrator:
         if self._should_use_track_dependency_ordering():
             track_item_paths = self._get_track_item_paths()
             if track_item_paths:
-                priority_track_item_paths = self._get_track_item_paths_for_pages(
-                    priority_pages
-                )
+                priority_track_item_paths = self._get_track_item_paths_for_pages(priority_pages)
                 if priority_track_item_paths:
                     content_root = self.site.root_path / "content"
                     for page in list(normal_pages):

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import html as html_module
 import re
-from urllib.parse import urljoin
 from typing import TYPE_CHECKING
+from urllib.parse import urljoin
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
@@ -430,16 +430,14 @@ def resolve_links_for_embedding(html: str, page: object | None) -> str:
             return False
         if url.startswith(("http://", "https://", "//", "mailto:", "tel:")):
             return False
-        if url.startswith("/") and not url.startswith("//"):
-            return False
-        return True
+        return not (url.startswith("/") and not url.startswith("//"))
 
     def _replacer(match: re.Match[str]) -> str:
         attr, quote, url = match.group(1), match.group(2), match.group(3)
         if not _is_relative(url):
             return match.group(0)
         resolved = urljoin(base, url)
-        return f'{attr}={quote}{resolved}{quote}'
+        return f"{attr}={quote}{resolved}{quote}"
 
     return _LINK_ATTR_PATTERN.sub(_replacer, html)
 
@@ -533,7 +531,7 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
     anchor_pattern = re.compile(rf'href=(["\'])#({ids_alternation})\1')
 
     def _prefix_anchor(m: re.Match[str]) -> str:
-        return f'href={m.group(1)}#{prefix}{m.group(2)}{m.group(1)}'
+        return f"href={m.group(1)}#{prefix}{m.group(2)}{m.group(1)}"
 
     return anchor_pattern.sub(_prefix_anchor, html)
 

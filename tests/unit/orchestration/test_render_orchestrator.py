@@ -271,7 +271,9 @@ class TestTrackDependencyOrdering:
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}),
+            Page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            ),
         ]
         result = orchestrator._track_dependency_sort(pages)
 
@@ -284,7 +286,9 @@ class TestTrackDependencyOrdering:
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}),
+            Page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            ),
         ]
         result = orchestrator._track_dependency_sort(pages)
 
@@ -365,9 +369,7 @@ class TestTrackDependencyOrdering:
 
         assert result == pages
 
-    def test_priority_sort_pulls_track_items_when_track_page_changed(
-        self, orchestrator, mock_site
-    ):
+    def test_priority_sort_pulls_track_items_when_track_page_changed(self, orchestrator, mock_site):
         """When track page is in changed_sources, its track items move to priority."""
         mock_site.data = Mock()
         mock_site.data.tracks = {
@@ -410,7 +412,9 @@ class TestTrackDependencyOrdering:
         mock_site.data.tracks = {
             "getting-started": {"items": ["docs/page1.md", "docs/page2.md"]},
         }
-        mock_site.config = {"build": {"track_dependency_ordering": True, "complexity_ordering": True}}
+        mock_site.config = {
+            "build": {"track_dependency_ordering": True, "complexity_ordering": True}
+        }
 
         # Track page (light), track item (heavy), other - complexity sort would put heavy first
         track_page = Page(

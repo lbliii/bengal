@@ -38,7 +38,6 @@ See Also:
 
 """
 
-import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path

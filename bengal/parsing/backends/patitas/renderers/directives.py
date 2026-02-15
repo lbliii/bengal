@@ -9,7 +9,7 @@ Thread-safe: all state is local to each render() call.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
@@ -93,7 +93,7 @@ class DirectiveRendererMixin:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
-        # Render with registered handler
+        # Render with registered handler or fall back to default
         result_sb = StringBuilder()
         if handler and sig:
             kwargs: dict[str, Any] = {}
@@ -122,14 +122,13 @@ class DirectiveRendererMixin:
                 kwargs["current_page_dir"] = self._compute_current_page_dir()
 
             handler.render(node, rendered_children, result_sb, **kwargs)
+            result = result_sb.build()
+            if cache_key and self._directive_cache:
+                self._directive_cache.put("directive_html", cache_key, result)
+            sb.append(result)
+            return
 
-        result = result_sb.build()
-        if cache_key and self._directive_cache:
-            self._directive_cache.put("directive_html", cache_key, result)
-        sb.append(result)
-        return
-
-        # Default rendering
+        # Default rendering when no handler registered
         result_sb.append(f'<div class="directive directive-{escape_attr(node.name)}">')
         if node.title:
             result_sb.append(f'<p class="directive-title">{escape_html(node.title)}</p>')
@@ -147,8 +146,11 @@ class DirectiveRendererMixin:
         site = getattr(self, "_site", None)
         if not page or not site or not hasattr(page, "source_path"):
             return None
-        content_dir = Path(site.root_path) / "content"
+        root_path = getattr(site, "root_path", None)
+        if root_path is None:
+            return None
         try:
+            content_dir = Path(root_path) / "content"
             rel_path = Path(page.source_path).relative_to(content_dir)
             return to_posix(rel_path.parent)
         except (ValueError, TypeError):

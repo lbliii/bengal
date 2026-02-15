@@ -57,9 +57,7 @@ def resolve_page(
                 up_count += 1
                 remaining = remaining[3:]
             if up_count < len(parts):
-                parent = (
-                    "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
-                )
+                parent = "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
                 resolved_path = f"{parent}/{remaining}" if remaining else parent
             else:
                 resolved_path = remaining

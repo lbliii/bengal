@@ -958,9 +958,7 @@ class TestResolveLinkRelativePath:
             "by_slug": {},
             "by_id": {},
         }
-        url, page = _resolve_link(
-            "./linking/", xref, current_page_dir="docs/content/authoring"
-        )
+        url, page = _resolve_link("./linking/", xref, current_page_dir="docs/content/authoring")
         assert url == "/docs/content/authoring/linking/"
         assert page is linking_page
 

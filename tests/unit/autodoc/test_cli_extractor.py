@@ -330,6 +330,7 @@ class TestLazyLoadedGroups:
 
     def test_extract_lazy_group_with_empty_commands_dict(self):
         """Lazy groups with empty commands dict still yield subcommands."""
+
         # Inner group with real commands (eager-loaded)
         @click.group()
         def inner():
@@ -349,8 +350,6 @@ class TestLazyLoadedGroups:
             pass
 
         lazy_wrapper.commands = {}  # Simulate lazy group
-        original_list = lazy_wrapper.list_commands
-        original_get = lazy_wrapper.get_command
 
         def list_commands(ctx):
             return inner.list_commands(ctx)

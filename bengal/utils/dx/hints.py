@@ -8,9 +8,9 @@ Hints are collected by context (build, serve, config) and filtered by opt-out.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from bengal.utils.dx.detection import is_docker, is_kubernetes, is_wsl
 
@@ -130,9 +130,7 @@ def _hints_enabled() -> bool:
     """Check if hints are globally enabled."""
     if os.environ.get("BENGAL_HINTS") == "0":
         return False
-    if os.environ.get("BENGAL_NO_HINTS") in ("1", "true"):
-        return False
-    return True
+    return os.environ.get("BENGAL_NO_HINTS") not in ("1", "true")
 
 
 def _hint_opted_out(hint_id: str) -> bool:

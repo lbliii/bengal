@@ -81,9 +81,7 @@ class TestResolveLinkToUrlAndPage:
 
         page = MockPage(title="Page", href="/docs/page/")
         xref = {"by_path": {"docs/page": page}, "by_slug": {}, "by_id": {}}
-        url, p = resolve_link_to_url_and_page(
-            xref, "docs/page", current_page_dir="docs"
-        )
+        url, p = resolve_link_to_url_and_page(xref, "docs/page", current_page_dir="docs")
         assert url == "/docs/page/"
         assert p is page
 
@@ -110,8 +108,6 @@ class TestResolveLinkToUrlAndPage:
         from bengal.utils.xref import resolve_link_to_url_and_page
 
         xref = {"by_path": {}, "by_slug": {}, "by_id": {}}
-        url, p = resolve_link_to_url_and_page(
-            xref, "./missing/", current_page_dir="docs"
-        )
+        url, p = resolve_link_to_url_and_page(xref, "./missing/", current_page_dir="docs")
         assert url == "./missing/"
         assert p is None

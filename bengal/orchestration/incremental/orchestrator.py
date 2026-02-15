@@ -510,9 +510,7 @@ class IncrementalOrchestrator:
 
         return nav_rebuild
 
-    def _add_track_item_dependencies(
-        self, pages_to_rebuild: set[Path], site: Site
-    ) -> None:
+    def _add_track_item_dependencies(self, pages_to_rebuild: set[Path], site: Site) -> None:
         """
         Add track item pages to rebuild set when their track page is dirty.
 
@@ -570,7 +568,7 @@ class IncrementalOrchestrator:
         if not track_item_paths_to_add:
             return
 
-        for page_path, _page in page_by_path.items():
+        for page_path in page_by_path:
             try:
                 rel = page_path.relative_to(content_root)
             except ValueError:
