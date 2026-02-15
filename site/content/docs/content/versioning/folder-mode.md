@@ -158,14 +158,16 @@ content/
 
 When you're about to release a breaking change:
 
-### 1. Snapshot Current Docs
+:::{steps}
+:::{step} Snapshot current docs
 
 ```bash
 # Create v2 from current docs
 bengal version create v2 --label "2.0"
 ```
 
-### 2. Update Configuration
+:::{/step}
+:::{step} Update configuration
 
 ```yaml
 versions:
@@ -175,15 +177,20 @@ versions:
   - id: v1
 ```
 
-### 3. Make Breaking Changes
+:::{/step}
+:::{step} Make breaking changes
 
 Edit `content/docs/` freely—v2 is preserved in `_versions/v2/docs/`.
 
-### 4. Build and Deploy
+:::{/step}
+:::{step} Build and deploy
 
 ```bash
 bengal build
 ```
+
+:::{/step}
+:::{/steps}
 
 ## Tips
 
@@ -222,9 +229,23 @@ versions:
 
 ### Version Not Appearing
 
-1. Check that the version is listed in `bengal.yaml`
-2. Verify the directory exists: `_versions/{id}/docs/`
-3. Ensure content exists in the version directory
+:::{dropdown} Check version is listed
+:icon: check
+
+Verify the version is listed in `bengal.yaml` under `versions`.
+:::
+
+:::{dropdown} Verify directory exists
+:icon: folder
+
+Ensure `_versions/{id}/docs/` exists for your version id.
+:::
+
+:::{dropdown} Ensure content exists
+:icon: file
+
+Confirm the version directory contains content files.
+:::
 
 ### Wrong Version Showing as Latest
 
