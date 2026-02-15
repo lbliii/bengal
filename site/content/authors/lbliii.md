@@ -15,4 +15,3 @@ Lawrence is the creator and lead maintainer of Bengal, a modern static site gene
 - Documentation tooling
 - Developer experience
 - Python ecosystem
-

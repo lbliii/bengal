@@ -22,8 +22,8 @@ Bengal provides image processing functions for resizing, cropping, format conver
 
 {# Resize and crop to exact dimensions #}
 {% let processed = hero.fill("800x600 webp q80") %}
-<img src="{{ processed.rel_permalink }}" 
-     width="{{ processed.width }}" 
+<img src="{{ processed.rel_permalink }}"
+     width="{{ processed.width }}"
      height="{{ processed.height }}">
 ```
 
@@ -112,7 +112,7 @@ Use `image_srcset_gen` for common breakpoints:
 
 ```kida
 {# Uses default sizes: 400, 800, 1200, 1600 #}
-<img srcset="{{ image_srcset_gen('hero.jpg') }}" 
+<img srcset="{{ image_srcset_gen('hero.jpg') }}"
      sizes="100vw">
 ```
 
@@ -177,7 +177,7 @@ Subsequent builds skip processing for unchanged images.
 {% if hero %}
   {% let processed = hero.fill("1200x630 webp q85") %}
   <article class="card">
-    <img 
+    <img
       src="{{ processed.rel_permalink }}"
       srcset="{{ hero.source_path | image_srcset([400, 800, 1200]) }}"
       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 1200px"

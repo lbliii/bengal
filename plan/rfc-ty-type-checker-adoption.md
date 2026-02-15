@@ -88,7 +88,7 @@ strict = true
 # Type stubs for dependencies
 extra-stubs = [
     "types-pyyaml",
-    "types-psutil", 
+    "types-psutil",
     "types-pygments",
     "types-python-dateutil",
     "types-markdown",
@@ -264,7 +264,7 @@ select = [
 ```
 Before:
   uv (Astral) → Ruff (Astral) → mypy (third-party)
-  
+
 After:
   uv (Astral) → Ruff (Astral) → ty (Astral)
   ↑_________________________________________↑
@@ -397,6 +397,6 @@ print(f"Only in ty: {ty_errors - mypy_errors}")
 - [ ] Run `uv run ty check bengal/` — fix any errors
 - [ ] Create `.github/workflows/ty.yml`
 - [ ] Update `Makefile` with ty targets
-- [ ] Update `CONTRIBUTING.md` 
+- [ ] Update `CONTRIBUTING.md`
 - [ ] Push and verify CI passes
 - [ ] Monitor for 2-4 weeks before removing mypy

@@ -197,7 +197,7 @@ from typing import Any
 class PageSnapshot:
     """
     Immutable page snapshot for rendering.
-    
+
     All properties pre-computed at snapshot time.
     Thread-safe by design (frozen = no mutation possible).
     """
@@ -207,32 +207,32 @@ class PageSnapshot:
     source_path: Path
     output_path: Path
     template_name: str
-    
+
     # Content (pre-rendered markdown)
     content: str  # Parsed HTML from markdown
     toc: str
     toc_items: tuple[dict[str, Any], ...]
     excerpt: str
-    
+
     # Metadata (immutable view)
     metadata: MappingProxyType[str, Any]
     tags: tuple[str, ...]
     categories: tuple[str, ...]
-    
+
     # Pre-computed values (no @cached_property needed)
     reading_time: int
     word_count: int
     content_hash: str  # For incremental builds
-    
+
     # Navigation (pre-resolved, circular refs handled)
     section: SectionSnapshot | None = None
     next_page: PageSnapshot | None = None
     prev_page: PageSnapshot | None = None
-    
+
     # Scheduling hints
     attention_score: float = 0.0
     estimated_render_ms: float = 0.0
-    
+
     # Compatibility with existing templates
     @property
     def params(self) -> MappingProxyType[str, Any]:
@@ -247,7 +247,7 @@ class PageSnapshot:
 class SectionSnapshot:
     """
     Immutable section snapshot for rendering.
-    
+
     Replaces: Section + SectionContext + TemplateSectionWrapper
     All three functionalities unified in one frozen type.
     """
@@ -257,19 +257,19 @@ class SectionSnapshot:
     nav_title: str
     href: str
     path: Path | None
-    
+
     # Collections (tuple = immutable, pre-sorted)
     pages: tuple[PageSnapshot, ...]
     sorted_pages: tuple[PageSnapshot, ...]
     regular_pages: tuple[PageSnapshot, ...]
     subsections: tuple[SectionSnapshot, ...]
     sorted_subsections: tuple[SectionSnapshot, ...]
-    
+
     # Navigation (pre-resolved)
     parent: SectionSnapshot | None = None
     root: SectionSnapshot | None = None  # Set after construction
     index_page: PageSnapshot | None = None
-    
+
     # Metadata (immutable view)
     metadata: MappingProxyType[str, Any] = MappingProxyType({})
     icon: str | None = None
@@ -277,17 +277,17 @@ class SectionSnapshot:
     depth: int = 1
     hierarchy: tuple[str, ...] = ()
     is_virtual: bool = False
-    
+
     # Scheduling hints
     template_name: str = ""  # Most common template
     total_pages: int = 0  # Including subsections
-    
+
     # Template compatibility
     @property
     def params(self) -> MappingProxyType[str, Any]:
         """Alias for metadata (template compatibility)."""
         return self.metadata
-    
+
     def __bool__(self) -> bool:
         """Always truthy (replaces SectionContext None-safety)."""
         return True
@@ -315,7 +315,7 @@ NO_SECTION = SectionSnapshot(
 class SiteSnapshot:
     """
     Immutable site snapshot - the complete render context.
-    
+
     Created once after content discovery, used by all render phases.
     """
     # Content
@@ -323,24 +323,24 @@ class SiteSnapshot:
     regular_pages: tuple[PageSnapshot, ...]
     sections: tuple[SectionSnapshot, ...]
     root_section: SectionSnapshot
-    
+
     # Configuration (immutable views)
     config: MappingProxyType[str, Any]
     params: MappingProxyType[str, Any]  # Site params shortcut
-    
+
     # Data (from data/ directory)
     data: MappingProxyType[str, Any]
-    
+
     # Navigation
     menus: MappingProxyType[str, tuple[MenuItemSnapshot, ...]]
     taxonomies: MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]]
-    
+
     # Pre-computed scheduling structures
     topological_order: tuple[tuple[PageSnapshot, ...], ...]
     template_groups: MappingProxyType[str, tuple[PageSnapshot, ...]]
     attention_order: tuple[PageSnapshot, ...]
     scout_hints: tuple[ScoutHint, ...]
-    
+
     # Metadata
     snapshot_time: float  # time.time() when snapshot created
     page_count: int
@@ -387,34 +387,34 @@ if TYPE_CHECKING:
 def create_site_snapshot(site: Site) -> SiteSnapshot:
     """
     Create immutable snapshot from mutable site.
-    
+
     Called ONCE at end of Phase 5 (after content discovery).
     O(n) where n = total pages + sections.
-    
+
     Args:
         site: Mutable Site after content discovery
-        
+
     Returns:
         Frozen SiteSnapshot for all render operations
     """
     start = time.perf_counter()
-    
+
     # Caches for circular reference resolution
     page_cache: dict[int, PageSnapshot] = {}
     section_cache: dict[int, SectionSnapshot] = {}
-    
+
     # Phase 1: Snapshot all pages (without section refs)
     for page in site.pages:
         page_cache[id(page)] = _snapshot_page_initial(page)
-    
+
     # Phase 2: Snapshot sections (with page refs)
     root = _snapshot_section_recursive(
-        site.root_section, 
-        page_cache, 
+        site.root_section,
+        page_cache,
         section_cache,
         depth=1,
     )
-    
+
     # Phase 3: Resolve section references on pages
     for page in site.pages:
         page_snapshot = page_cache[id(page)]
@@ -422,22 +422,22 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
         if section and id(section) in section_cache:
             # Create new snapshot with section ref (frozen, so must recreate)
             object.__setattr__(page_snapshot, 'section', section_cache[id(section)])
-    
+
     # Phase 4: Resolve navigation (next/prev)
     _resolve_navigation(page_cache, site)
-    
+
     # Phase 5: Compute scheduling structures
     topological_order = _compute_topological_waves(root)
     template_groups = _compute_template_groups(tuple(page_cache.values()))
     attention_order = _compute_attention_order(tuple(page_cache.values()), site)
     scout_hints = _compute_scout_hints(topological_order, template_groups)
-    
+
     # Phase 6: Snapshot menus and taxonomies
     menus = _snapshot_menus(site, page_cache, section_cache)
     taxonomies = _snapshot_taxonomies(site, page_cache)
-    
+
     elapsed_ms = (time.perf_counter() - start) * 1000
-    
+
     return SiteSnapshot(
         pages=tuple(page_cache.values()),
         regular_pages=tuple(p for p in page_cache.values() if not p.metadata.get('_generated')),
@@ -461,7 +461,7 @@ def create_site_snapshot(site: Site) -> SiteSnapshot:
 def _snapshot_page_initial(page: Page) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
-    
+
     return PageSnapshot(
         title=page.title or '',
         href=getattr(page, '_path', '') or page.href or '',
@@ -494,27 +494,27 @@ def _snapshot_section_recursive(
     # Check cache first (handles re-visits)
     if id(section) in section_cache:
         return section_cache[id(section)]
-    
+
     metadata = dict(section.metadata) if section.metadata else {}
-    
+
     # Snapshot pages in this section
     pages = tuple(
-        page_cache[id(p)] 
-        for p in section.pages 
+        page_cache[id(p)]
+        for p in section.pages
         if id(p) in page_cache
     )
-    
+
     # Compute sorted variants
     sorted_pages = tuple(sorted(
         pages,
         key=lambda p: (p.metadata.get('weight', float('inf')), p.title.lower())
     ))
-    
+
     regular_pages = tuple(
-        p for p in sorted_pages 
+        p for p in sorted_pages
         if p.source_path.stem not in ('index', '_index')
     )
-    
+
     # Create snapshot (subsections filled in below)
     snapshot = SectionSnapshot(
         name=section.name,
@@ -537,24 +537,24 @@ def _snapshot_section_recursive(
         template_name=_most_common_template(pages),
         total_pages=len(pages),
     )
-    
+
     # Cache before recursing (handles cycles)
     section_cache[id(section)] = snapshot
-    
+
     # Recurse into subsections
     subsections = tuple(
         _snapshot_section_recursive(sub, page_cache, section_cache, depth + 1, snapshot)
         for sub in section.subsections
     )
-    
+
     sorted_subsections = tuple(sorted(
         subsections,
         key=lambda s: (s.weight, s.title.lower())
     ))
-    
+
     # Update total_pages to include subsections
     total = len(pages) + sum(s.total_pages for s in subsections)
-    
+
     # Recreate with subsections (frozen, can't mutate)
     snapshot = SectionSnapshot(
         name=snapshot.name,
@@ -579,7 +579,7 @@ def _snapshot_section_recursive(
         template_name=snapshot.template_name,
         total_pages=total,
     )
-    
+
     section_cache[id(section)] = snapshot
     return snapshot
 
@@ -587,23 +587,23 @@ def _snapshot_section_recursive(
 def _compute_topological_waves(root: SectionSnapshot) -> tuple[tuple[PageSnapshot, ...], ...]:
     """
     Compute rendering waves following section topology.
-    
+
     Each wave contains pages from the same section that share a template.
     Processing waves in order maximizes cache locality.
     """
     waves: list[tuple[PageSnapshot, ...]] = []
     queue = [root]
-    
+
     while queue:
         section = queue.pop(0)
-        
+
         # All sorted_pages in section become one wave
         if section.sorted_pages:
             waves.append(section.sorted_pages)
-        
+
         # Queue subsections (BFS order)
         queue.extend(section.sorted_subsections)
-    
+
     return tuple(waves)
 
 
@@ -612,13 +612,13 @@ def _compute_template_groups(
 ) -> MappingProxyType[str, tuple[PageSnapshot, ...]]:
     """Group pages by template for cache optimization."""
     groups: dict[str, list[PageSnapshot]] = {}
-    
+
     for page in pages:
         template = page.template_name
         if template not in groups:
             groups[template] = []
         groups[template].append(page)
-    
+
     return MappingProxyType({
         k: tuple(v) for k, v in groups.items()
     })
@@ -630,7 +630,7 @@ def _compute_attention_order(
 ) -> tuple[PageSnapshot, ...]:
     """
     Sort pages by attention score (importance).
-    
+
     High attention pages rendered first for faster time-to-preview.
     """
     return tuple(sorted(pages, key=lambda p: -p.attention_score))
@@ -643,25 +643,25 @@ def _compute_scout_hints(
     """Pre-compute cache warming hints for scout thread."""
     hints: list[ScoutHint] = []
     seen_templates: set[str] = set()
-    
+
     for wave in waves:
         if not wave:
             continue
-        
+
         template = wave[0].template_name
         if template not in seen_templates:
             seen_templates.add(template)
-            
+
             # Get partials for this template (would need template analysis)
             partials = _get_template_partials(template)
-            
+
             hints.append(ScoutHint(
                 template_path=Path(template),
                 partial_paths=tuple(partials),
                 pages_using=len(template_groups.get(template, ())),
                 priority=len(template_groups.get(template, ())),  # More pages = higher priority
             ))
-    
+
     # Sort by priority (warm most-used templates first)
     return tuple(sorted(hints, key=lambda h: -h.priority))
 ```
@@ -684,11 +684,11 @@ if TYPE_CHECKING:
 class ScoutThread(threading.Thread):
     """
     Lookahead thread that warms caches ahead of workers.
-    
+
     Reads from frozen snapshot (lock-free).
     Communicates via lock-free deque operations.
     """
-    
+
     def __init__(
         self,
         snapshot: SiteSnapshot,
@@ -700,28 +700,28 @@ class ScoutThread(threading.Thread):
         self.template_cache = template_cache
         self.lookahead_waves = lookahead_waves
         self._stop_event = threading.Event()
-        
+
         # Progress tracking (for workers to know what's warm)
         self.warmed_templates: set[str] = set()
         self._current_wave = 0
-        
+
     def run(self) -> None:
         """Warm caches following pre-computed hints."""
         for hint in self.snapshot.scout_hints:
             if self._stop_event.is_set():
                 break
-            
+
             # 1. Warm primary template
             if hint.template_path.name not in self.warmed_templates:
                 self._warm_template(hint.template_path)
                 self.warmed_templates.add(hint.template_path.name)
-            
+
             # 2. Warm partials (recursive discovery via TemplateAnalyzer)
             for partial in hint.partial_paths:
                 self._warm_template(partial)
-            
+
             self._current_wave += 1
-            
+
             # Pace ourselves - don't get too far ahead
             while (
                 self._current_wave > self.lookahead_waves + self._workers_wave()
@@ -737,11 +737,11 @@ class ScoutThread(threading.Thread):
         except Exception:
             # Scout failures are non-fatal; workers will compile on demand
             pass
-    
+
     def _workers_wave(self) -> int:
         """Get current wave workers are processing."""
         return getattr(self, '_worker_wave', 0)
-    
+
     def stop(self) -> None:
         """Signal scout to stop."""
         self._stop_event.set()
@@ -761,10 +761,10 @@ if TYPE_CHECKING:
 class WaveScheduler:
     """
     Renders pages in topological waves for cache locality.
-    
+
     All data access is from frozen snapshot (lock-free).
     """
-    
+
     def __init__(
         self,
         snapshot: SiteSnapshot,
@@ -775,32 +775,32 @@ class WaveScheduler:
         self.engine = template_engine
         self.max_workers = max_workers
         self.write_behind = WriteBehindCollector()
-        
+
     def render_all(self) -> RenderStats:
         """Render entire site using topological waves."""
         stats = RenderStats()
-        
+
         # Start scout thread
         scout = ScoutThread(self.snapshot, self.engine.template_cache)
         scout.start()
-        
+
         try:
             with ThreadPoolExecutor(
                 max_workers=self.max_workers,
                 thread_name_prefix="Bengal-Render",
             ) as executor:
                 wave_num = 0
-                
+
                 for wave in self.snapshot.topological_order:
                     wave_num += 1
                     scout._worker_wave = wave_num  # Tell scout our progress
-                    
+
                     # Submit all pages in wave
                     futures = {
                         executor.submit(self._render_page, page): page
                         for page in wave
                     }
-                    
+
                     # Collect results, send to write-behind
                     for future in as_completed(futures):
                         page = futures[future]
@@ -810,19 +810,19 @@ class WaveScheduler:
                             stats.pages_rendered += 1
                         except Exception as e:
                             stats.errors.append((page.source_path, e))
-                            
+
         finally:
             scout.stop()
             scout.join(timeout=1.0)
-            
+
         # Wait for I/O
         stats.files_written = self.write_behind.flush_and_close()
         return stats
-    
+
     def _render_page(self, page: PageSnapshot) -> tuple[Path, str]:
         """
         Render a single page.
-        
+
         Completely thread-safe: only reads frozen snapshot data.
         """
         # Build context from snapshot (all pre-computed)
@@ -837,10 +837,10 @@ class WaveScheduler:
             'toc_items': page.toc_items,
             'menus': self.snapshot.menus,
         }
-        
+
         # Render template
         html = self.engine.render(page.template_name, context)
-        
+
         return page.output_path, html
 ```
 
@@ -852,19 +852,19 @@ class WaveScheduler:
 class BuildOrchestrator:
     def build(self, options: BuildOptions) -> BuildStats:
         # ... existing phases 1-5 ...
-        
+
         # === NEW: SNAPSHOT CREATION (after Phase 5) ===
         from bengal.snapshots import create_site_snapshot, WaveScheduler
-        
+
         with self.logger.phase("snapshot"):
             site_snapshot = create_site_snapshot(self.site)
             self.stats.snapshot_time_ms = ...
-            
+
         # Store on build context for other phases
         build_context.snapshot = site_snapshot
-        
+
         # ... phases 6-12 can now use snapshot for read operations ...
-        
+
         # === Phase 14: RENDERING (uses new scheduler) ===
         if options.parallel:
             scheduler = WaveScheduler(
@@ -876,7 +876,7 @@ class BuildOrchestrator:
         else:
             # Sequential fallback
             ...
-            
+
         # ... remaining phases ...
 ```
 
@@ -1026,7 +1026,7 @@ This test specifically targets properties like `Section.sorted_pages` where mult
 
 **Concern**: Storing both mutable `Site` and frozen `SiteSnapshot`.
 
-**Mitigation**: 
+**Mitigation**:
 - **Garbage Collection**: Mutable objects are dereferenced immediately after snapshot completion, allowing Python's GC (improved in 3.14t) to reclaim memory before rendering peaks.
 - **Structural Sharing**: `SiteSnapshot` uses tuples and `MappingProxyType`, which provide efficient structural sharing. Future incremental updates will reuse unchanged branch snapshots.
 - **Lazy Content**: For extremely large sites, `PageSnapshot.content` can be made a lazy-loaded descriptor that reads from a memory-mapped cache, though this is not required for the initial 1,000-page target.
@@ -1095,7 +1095,7 @@ This test specifically targets properties like `Section.sorted_pages` where mult
 # Would require modifying bengal/core/section/*.py
 class Section:
     _locks: dict[str, threading.Lock]
-    
+
     @property
     def sorted_pages(self) -> list[Page]:
         with self._locks['sorted_pages']:

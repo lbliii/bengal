@@ -111,7 +111,7 @@ from collections import OrderedDict
 class LRUCache[K, V]:
     def __init__(self, maxsize: int = 128, ttl: float | None = None):
         self._cache: OrderedDict[K, V] = OrderedDict()
-    
+
     def get(self, key: K) -> V | None:
         # C-accelerated move_to_end() - O(1)
         self._cache.move_to_end(key)
@@ -162,13 +162,13 @@ def _is_free_threaded() -> bool:
             return not sys._is_gil_enabled()
         except (AttributeError, TypeError):
             pass
-    
+
     try:
         import sysconfig
         return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
     except (ImportError, AttributeError):
         pass
-    
+
     return False
 ```
 
@@ -216,7 +216,7 @@ path_str = url.removeprefix("file://")
    # Before
    if path_str.startswith(content_prefix):
        path_str = path_str[len(content_prefix):]
-   
+
    # After
    path_str = path_str.removeprefix(content_prefix)
    ```
@@ -239,19 +239,19 @@ path_str = url.removeprefix("file://")
 class ErrorAggregator:
     """
     Aggregates similar errors during batch processing to reduce noise.
-    
+
     Groups errors by signature (error message + context) and provides
     summary logging when threshold is exceeded.
     """
-    
+
     def add_error(self, error: Exception, *, context: dict[str, Any] | None = None) -> None:
         # Groups by signature, keeps sample contexts
         ...
-    
+
     def should_log_individual(self, error, context, threshold=5, max_samples=3) -> bool:
         # Smart deduplication - log first N samples, then aggregate
         ...
-    
+
     def log_summary(self, logger, *, threshold=5, error_type="processing") -> None:
         # Single consolidated log with top errors, percentages, suggestions
         ...

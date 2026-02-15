@@ -141,12 +141,12 @@ def compute_doc_content_hash(
 ) -> str:
     """
     Compute hash of documentation-relevant content only.
-    
+
     Normalization:
     - Docstrings: strip(), collapse redundant newlines.
     - Signatures: strip(), remove param spacing.
     - Decorators: sorted() alphabetically.
-    
+
     Does NOT hash (Non-Goals):
     - Implementation code (function/method bodies)
     - Import statements not part of signatures
@@ -154,29 +154,29 @@ def compute_doc_content_hash(
     - Internal type hints in function bodies
     """
     parts: list[str] = []
-    
+
     # Docstring (the primary documentation content)
     if element.docstring:
         normalized_doc = "\n".join(l.strip() for l in element.docstring.strip().splitlines() if l.strip())
         parts.append(normalized_doc)
-    
+
     # Signature (affects documentation display)
     if include_signature and element.signature:
         parts.append(element.signature.replace(" ", ""))
-    
+
     # For classes: bases affect inheritance documentation
     if element.element_type == "class" and element.bases:
         parts.append("|".join(sorted(element.bases)))
-    
+
     # Decorators (may affect documentation)
     if element.decorators:
         parts.append("|".join(sorted(element.decorators)))
 
-    # Cross-file inheritance handling: 
+    # Cross-file inheritance handling:
     # If this is a child class, the MRO is included to detect parent changes
     if hasattr(element, "mro") and element.mro:
         parts.append("|".join(element.mro))
-    
+
     content = "\n".join(parts)
     return hash_str(content, truncate=16)
 ```
@@ -228,10 +228,10 @@ def is_doc_content_changed(
     entry = self.autodoc_source_metadata.get(source_key)
     if not entry or len(entry) < 3:
         return True  # No doc hashes stored, assume changed
-    
+
     _file_hash, _mtime, doc_hashes = entry
     stored_hash = doc_hashes.get(page_path)
-    
+
     return stored_hash != current_doc_hash
 ```
 
@@ -270,7 +270,7 @@ def is_doc_content_changed(
 
 **Tasks**:
 1. Implement `is_doc_content_changed()` method
-2. Integrate with `check_autodoc_changes()` 
+2. Integrate with `check_autodoc_changes()`
 3. Add fallback to file-level hash when doc hash unavailable
 
 ### Sprint 4: Testing (2 hours)
@@ -306,15 +306,15 @@ def compute_doc_content_hash(
 ) -> str:
     """
     Compute hash of documentation-relevant content.
-    
+
     Args:
         element: DocElement with docstring, signature, etc.
         include_signature: Include function/method signature in hash
         include_decorators: Include decorators in hash
-        
+
     Returns:
         16-character truncated SHA-256 hash of doc content
-        
+
     Example:
         >>> element = DocElement(
         ...     name="my_func",
@@ -338,7 +338,7 @@ def add_dependency(
 ) -> None:
     """
     Register a dependency between a source file and an autodoc page.
-    
+
     Args:
         source_file: Path to the Python/OpenAPI source file
         page_path: Path to the generated autodoc page

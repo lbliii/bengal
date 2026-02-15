@@ -74,7 +74,7 @@ self.site._cache = self.incremental.cache  # ty: invalid-assignment
 
 **Evidence**:
 ```
-error[invalid-assignment]: Object of type `BuildOptions` is not assignable 
+error[invalid-assignment]: Object of type `BuildOptions` is not assignable
 to attribute `_last_build_options` on type `Unknown | Site`
 ```
 
@@ -97,7 +97,7 @@ self._block_cache.warm_site_blocks(engine, template_name, site_context)
 
 **Evidence**:
 ```
-error[invalid-argument-type]: Argument to bound method `warm_site_blocks` 
+error[invalid-argument-type]: Argument to bound method `warm_site_blocks`
 is incorrect: Expected `KidaTemplateEngine`, found `TemplateEngine`
 ```
 
@@ -138,7 +138,7 @@ orchestrator._provenance_filter = provenance_filter  # ty: unresolved attribute
 
 **Evidence**:
 ```
-error[unresolved-attribute]: Unresolved attribute `_provenance_filter` 
+error[unresolved-attribute]: Unresolved attribute `_provenance_filter`
 on type `BuildOrchestrator`
 ```
 
@@ -166,7 +166,7 @@ These errors are categorized into three main groups requiring different fixes:
 @dataclass
 class Site:
     # ... existing fields (around line 196) ...
-    
+
     # Build-time ephemeral state (not persisted)
     # These are set by BuildOrchestrator during builds
     _cache: BuildCache | None = field(default=None, repr=False, init=False)
@@ -180,7 +180,7 @@ class Site:
 _last_build_stats: dict[str, Any] | None = field(default=None, repr=False, init=False)
 ```
 
-**Impact**: 
+**Impact**:
 - Fixes 2 errors
 - Makes build-time state explicit
 - Improves IDE autocomplete
@@ -314,7 +314,7 @@ if hasattr(config, "build"):
 ```python
 class BuildOrchestrator:
     # ... existing code ...
-    
+
     # Provenance tracking (set during incremental builds)
     _provenance_filter: ProvenanceFilter | None = None
 ```
@@ -403,7 +403,7 @@ phase_render(..., profile=profile)
 
 ### Phase 4: Cleanup (1 hour)
 
-1. **Fix Path/str mismatches** 
+1. **Fix Path/str mismatches**
 2. **Add remaining type guards**
 3. **Document remaining intentional gaps**
 

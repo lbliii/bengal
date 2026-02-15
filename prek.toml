@@ -1,0 +1,112 @@
+default_stages = ["pre-commit"]
+minimum_prek_version = "0.3.2"
+default_install_hook_types = ["pre-commit"]
+
+# prek builtin hooks — no network/env needed, instant execution
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace", args = ["--markdown-linebreak-ext=md"], priority = 0 },
+  { id = "end-of-file-fixer", priority = 0 },
+  { id = "check-yaml", args = ["--allow-multiple-documents"], priority = 0 },
+  { id = "check-toml", priority = 0 },
+  { id = "check-json", priority = 0 },
+  { id = "check-added-large-files", args = ["--maxkb=1000"], priority = 0 },
+  { id = "check-merge-conflict", priority = 0 },
+  { id = "check-case-conflict", priority = 0 },
+  { id = "check-symlinks", priority = 0 },
+  { id = "check-executables-have-shebangs", priority = 0 },
+  { id = "mixed-line-ending", args = ["--fix=lf"], priority = 0 },
+  { id = "detect-private-key", priority = 0 },
+]
+
+# Local hooks — use project's locked tool versions via uv run
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "ruff"
+name = "ruff"
+entry = "uv run ruff check --fix"
+language = "system"
+types = ["python"]
+priority = 1
+
+[[repos.hooks]]
+id = "ruff-format"
+name = "ruff format"
+entry = "uv run ruff format"
+language = "system"
+types = ["python"]
+priority = 1
+
+[[repos.hooks]]
+id = "ty"
+name = "ty type checker"
+entry = "uv run ty check bengal/"
+language = "system"
+types = ["python"]
+pass_filenames = false
+priority = 2
+
+[[repos.hooks]]
+id = "block-string-based-click-cls"
+name = "Block string-based Click cls usage"
+entry = "bash -c \"! rg -n 'cls=\\\"bengal\\\\.cli\\\\.(Bengal(Group|Command))\\\"' bengal/cli || (echo 'Use direct class references from bengal.cli.base for Click cls' && exit 1)\""
+language = "system"
+files = "^bengal/cli/.*\\.py$"
+priority = 2
+
+[[repos.hooks]]
+id = "block-legacy-cli-imports"
+name = "Block legacy bengal.cli.bengal_* imports"
+entry = "bash -c \"! rg -n 'from\\\\s+bengal\\\\.cli\\\\.(bengal_command|bengal_group)\\\\s+import' || (echo 'Import BengalCommand/BengalGroup from bengal.cli.base' && exit 1)\""
+language = "system"
+files = "^bengal/.*\\.py$"
+priority = 2
+
+[[repos.hooks]]
+id = "check-cycles"
+name = "Check circular imports (warning)"
+entry = "bash -c 'uv run python scripts/check_cycles.py --format=simple || true'"
+language = "system"
+pass_filenames = false
+verbose = true
+priority = 3
+
+[[repos.hooks]]
+id = "check-deps"
+name = "Check dependency layers (warning)"
+entry = "bash -c 'uv run python scripts/check_dependencies.py --format=simple || true'"
+language = "system"
+pass_filenames = false
+verbose = true
+priority = 3
+
+[[repos.hooks]]
+id = "check-template-css"
+name = "Check template CSS classes have definitions"
+entry = "uv run python scripts/check_template_css.py"
+language = "system"
+files = "^bengal/themes/.*\\.(html|css)$"
+pass_filenames = false
+priority = 2
+
+[[repos.hooks]]
+id = "check-threadpool-without-marker"
+name = "Check ThreadPoolExecutor tests have parallel_unsafe marker"
+entry = "uv run python scripts/check_threadpool_marker.py"
+language = "system"
+files = "^tests/.*\\.py$"
+exclude = "^tests/performance/.*\\.py$"
+pass_filenames = true
+priority = 2
+
+[[repos.hooks]]
+id = "check-outdated-build-options"
+name = "Check for outdated BuildOptions API usage"
+entry = "uv run python scripts/check_build_options.py"
+language = "system"
+files = "^tests/.*\\.py$"
+pass_filenames = true
+priority = 2

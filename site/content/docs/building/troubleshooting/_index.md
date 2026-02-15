@@ -115,7 +115,7 @@ The `--explain` output also includes a **Decision Trace** showing layer-by-layer
 
 ```text
 ═══════════════════════════════════════════════════════════════
-                    DECISION TRACE                              
+                    DECISION TRACE  
 ═══════════════════════════════════════════════════════════════
 
 Decision: INCREMENTAL

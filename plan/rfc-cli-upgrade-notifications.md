@@ -221,7 +221,7 @@ class UpgradeInfo(NamedTuple):
     """Information about available upgrade."""
     current: str
     latest: str
-    
+
     @property
     def is_outdated(self) -> bool:
         """True if current version is older than latest."""
@@ -243,15 +243,15 @@ def should_check() -> bool:
     ci_vars = ["CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "TRAVIS"]
     if any(os.environ.get(var) for var in ci_vars):
         return False
-    
+
     # Skip if explicitly disabled
     if os.environ.get("BENGAL_NO_UPDATE_CHECK", "").lower() in ("1", "true", "yes"):
         return False
-    
+
     # Skip if not interactive terminal
     if not sys.stderr.isatty():
         return False
-    
+
     return True
 
 
@@ -260,7 +260,7 @@ def load_cache() -> dict | None:
     cache_path = get_cache_path()
     if not cache_path.exists():
         return None
-    
+
     try:
         data = json.loads(cache_path.read_text())
         checked_at = datetime.fromisoformat(data["checked_at"])
@@ -268,7 +268,7 @@ def load_cache() -> dict | None:
             return data
     except (json.JSONDecodeError, KeyError, ValueError):
         pass
-    
+
     return None
 
 
@@ -276,7 +276,7 @@ def save_cache(latest_version: str) -> None:
     """Save upgrade check result to cache."""
     cache_path = get_cache_path()
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     data = {
         "latest_version": latest_version,
         "current_version": __version__,
@@ -300,13 +300,13 @@ def fetch_latest_version() -> str | None:
 def check_for_upgrade() -> UpgradeInfo | None:
     """
     Check if a newer version of Bengal is available.
-    
+
     Returns:
         UpgradeInfo if upgrade available, None otherwise
     """
     if not should_check():
         return None
-    
+
     # Try cache first
     cached = load_cache()
     if cached:
@@ -316,10 +316,10 @@ def check_for_upgrade() -> UpgradeInfo | None:
         latest = fetch_latest_version()
         if latest:
             save_cache(latest)
-    
+
     if not latest:
         return None
-    
+
     info = UpgradeInfo(current=__version__, latest=latest)
     return info if info.is_outdated else None
 ```
@@ -351,7 +351,7 @@ class InstallerInfo:
     name: str
     command: list[str]
     display_command: str
-    
+
     @property
     def is_available(self) -> bool:
         """Check if the installer is available."""
@@ -361,7 +361,7 @@ class InstallerInfo:
 def detect_installer() -> InstallerInfo:
     """
     Detect how Bengal was installed.
-    
+
     Returns:
         InstallerInfo with appropriate upgrade command
     """
@@ -372,7 +372,7 @@ def detect_installer() -> InstallerInfo:
             command=["uv", "pip", "install", "--upgrade", "bengal"],
             display_command="uv pip install --upgrade bengal",
         )
-    
+
     # Check for pipx
     if _is_pipx_install():
         return InstallerInfo(
@@ -380,7 +380,7 @@ def detect_installer() -> InstallerInfo:
             command=["pipx", "upgrade", "bengal"],
             display_command="pipx upgrade bengal",
         )
-    
+
     # Check for conda
     if os.environ.get("CONDA_PREFIX"):
         return InstallerInfo(
@@ -388,7 +388,7 @@ def detect_installer() -> InstallerInfo:
             command=["conda", "update", "-y", "bengal"],
             display_command="conda update bengal",
         )
-    
+
     # Check for virtual environment
     if sys.prefix != sys.base_prefix:
         return InstallerInfo(
@@ -396,7 +396,7 @@ def detect_installer() -> InstallerInfo:
             command=[sys.executable, "-m", "pip", "install", "--upgrade", "bengal"],
             display_command="pip install --upgrade bengal",
         )
-    
+
     # Fallback to pip with --user
     return InstallerInfo(
         name="pip",
@@ -414,7 +414,7 @@ def _is_uv_project() -> bool:
             return True
         if parent == parent.parent:  # Root reached
             break
-    
+
     # Check for UV environment variables
     return bool(os.environ.get("UV_CACHE_DIR") or os.environ.get("UV_PYTHON"))
 
@@ -423,7 +423,7 @@ def _is_pipx_install() -> bool:
     """Check if Bengal was installed via pipx."""
     if not shutil.which("pipx"):
         return False
-    
+
     try:
         result = subprocess.run(
             ["pipx", "list", "--short"],
@@ -479,32 +479,32 @@ from bengal.cli.commands.upgrade.installers import detect_installer
 def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
     """
     Upgrade Bengal to the latest version.
-    
+
     Automatically detects how Bengal was installed (uv, pip, pipx, conda)
     and runs the appropriate upgrade command.
-    
+
     Examples:
         bengal upgrade           # Interactive upgrade
         bengal upgrade -y        # Skip confirmation
         bengal upgrade --dry-run # Show command without running
     """
     cli = CLIOutput()
-    
+
     # Check for latest version
     cli.info("Checking for updates...")
     latest = fetch_latest_version()
-    
+
     if not latest:
         cli.error("Failed to check PyPI for latest version")
         cli.tip("Check your internet connection or try again later")
         raise SystemExit(1)
-    
+
     # Detect installer
     installer = detect_installer()
-    
+
     # Display upgrade info
     is_outdated = latest != __version__
-    
+
     click.echo()
     click.secho("╭─ Bengal Upgrade " + "─" * 42 + "╮", fg="cyan")
     click.secho(f"│ Current version: {__version__:<40} │", fg="cyan")
@@ -514,24 +514,24 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
     click.secho(f"│ Command:  {installer.display_command:<47} │", fg="cyan")
     click.secho("╰" + "─" * 58 + "╯", fg="cyan")
     click.echo()
-    
+
     if not is_outdated and not force:
         cli.success(f"Already on latest version (v{__version__})")
         return
-    
+
     if dry_run:
         cli.info(f"Would run: {installer.display_command}")
         return
-    
+
     # Confirm with user
     if not yes:
         if not questionary.confirm("Proceed with upgrade?", default=True).ask():
             cli.info("Upgrade cancelled")
             return
-    
+
     # Execute upgrade
     cli.info("Upgrading bengal...")
-    
+
     try:
         result = subprocess.run(
             installer.command,
@@ -570,7 +570,7 @@ def _show_upgrade_notification() -> None:
     """Show upgrade notification if available (non-blocking)."""
     try:
         from bengal.cli.commands.upgrade.check import check_for_upgrade
-        
+
         info = check_for_upgrade()
         if info and info.is_outdated:
             click.echo()
@@ -619,9 +619,9 @@ def test_cache_ttl_respected(tmp_path, monkeypatch):
         "current_version": "0.1.8",
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }))
-    
+
     monkeypatch.setattr("bengal.cli.commands.upgrade.check.get_cache_path", lambda: cache)
-    
+
     # Should use cache, not fetch
     with patch("bengal.cli.commands.upgrade.check.fetch_latest_version") as mock:
         check_for_upgrade()
@@ -631,7 +631,7 @@ def test_installer_detection_uv(tmp_path, monkeypatch):
     """Detect uv when uv.lock exists."""
     (tmp_path / "uv.lock").touch()
     monkeypatch.chdir(tmp_path)
-    
+
     installer = detect_installer()
     assert installer.name == "uv"
     assert "uv pip install" in installer.display_command

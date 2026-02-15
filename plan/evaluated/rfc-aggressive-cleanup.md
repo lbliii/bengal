@@ -139,7 +139,7 @@ tests/unit/build/detectors/test_base.py
 
 ### Option A: Inline + Service Extraction (Recommended)
 
-**Approach**: 
+**Approach**:
 - Inline simple mixins (properties, caches) directly into Site
 - Extract complex mixins to standalone services
 - Wire existing EffectBasedDetector, delete old detectors
@@ -155,7 +155,7 @@ tests/unit/build/detectors/test_base.py
 
 ### Option B: Full Service Extraction
 
-**Approach**: 
+**Approach**:
 - Extract ALL mixin functionality to services (including properties)
 - Site becomes minimal container with only fields
 - All accessors via `SiteService.get_title(site)`
@@ -237,7 +237,7 @@ Page caching is tightly coupled to Site's `pages` list. Inline it:
 class Site:
     # Cache fields (already in Site)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
-    
+
     @property
     def regular_pages(self) -> list[Page]:
         if self._regular_pages_cache is not None:
@@ -318,14 +318,14 @@ def discover_content(
 ) -> DiscoveryResult:
     """
     Discover pages and sections from content directory.
-    
+
     Pure function: reads filesystem, returns immutable result.
-    
+
     Args:
         root_path: Site root path
         content_dir: Content directory (usually root_path / "content")
         config: Site configuration dict
-        
+
     Returns:
         DiscoveryResult with discovered pages, sections, and assets
     """
@@ -339,12 +339,12 @@ def discover_assets(
 ) -> tuple[Asset, ...]:
     """
     Discover assets from asset directories.
-    
+
     Args:
         root_path: Site root path
         assets_dirs: List of asset directories to scan
         config: Site configuration dict
-        
+
     Returns:
         Tuple of discovered Asset objects
     """
@@ -366,7 +366,7 @@ Already extracted in Phase 3! Just remove the mixin:
 class DataService:
     root_path: Path
     snapshot: DataSnapshot
-    
+
     @classmethod
     def from_root(cls, root_path: Path) -> DataService:
         """Create service by loading data from root_path/data/."""
@@ -389,7 +389,7 @@ class QueryService:
     snapshot: SiteSnapshot
     _sections_by_url: dict[str, SectionSnapshot]
     _sections_by_path: dict[Path, SectionSnapshot]
-    
+
     def get_section(self, url: str) -> SectionSnapshot | None:
         """Get section by URL (O(1))."""
         return self._sections_by_url.get(url)
@@ -432,13 +432,13 @@ class IncrementalOrchestrator:
     def __init__(self, site: Site) -> None:
         self.site = site
         self._detector: EffectBasedDetector | None = None
-    
+
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         self.cache, self.tracker = self._cache_manager.initialize(enabled)
         # Create unified detector from tracer
         self._detector = create_detector_from_build(self.site)
         return self.cache, self.tracker
-    
+
     def find_work_early(
         self,
         forced_changed_sources: set[Path] | None = None,
@@ -446,17 +446,17 @@ class IncrementalOrchestrator:
     ) -> tuple[list[Page], list[Asset], ChangeSummary]:
         if self._detector is None:
             raise BengalError("Detector not initialized")
-        
+
         changed_pages = self._detector.detect_changes(
             forced_changed_sources or set(),
         )
-        
+
         pages_to_build = [
             self.site.page_by_source_path.get(p)
             for p in changed_pages
             if p in self.site.page_by_source_path
         ]
-        
+
         return pages_to_build, [], ChangeSummary(...)
 ```
 
@@ -618,32 +618,32 @@ from bengal.orchestration.incremental.effect_detector import (
 
 class TestEffectDetectorParity:
     """Verify EffectBasedDetector matches old detector behavior."""
-    
+
     @pytest.fixture
     def site_with_changes(self, tmp_path):
         """Create site with known changes for testing."""
         ...
-    
+
     def test_content_change_detection_parity(self, site_with_changes):
         """Content changes detected same as old ContentChangeDetector."""
         # Old pipeline
         old_pipeline = create_early_pipeline(site_with_changes)
         old_result = old_pipeline.detect(changed_paths)
-        
+
         # New detector
         new_detector = create_detector_from_build(site_with_changes)
         new_result = new_detector.detect_changes(changed_paths)
-        
+
         assert new_result == old_result.pages_to_rebuild
-    
+
     def test_template_change_detection_parity(self, site_with_changes):
         """Template changes cascade correctly."""
         ...
-    
+
     def test_taxonomy_cascade_parity(self, site_with_changes):
         """Taxonomy changes invalidate tag pages."""
         ...
-    
+
     def test_data_file_detection_parity(self, site_with_changes):
         """Data file changes detected."""
         ...
@@ -705,7 +705,7 @@ rg "from bengal\.build\.detectors" --type py
 **Likelihood**: Medium  
 **Impact**: High (incorrect incremental builds)
 
-**Mitigation**: 
+**Mitigation**:
 1. Parity tests before migration (see Testing Strategy)
 2. Run full test suite with both old and new detectors
 3. Shadow mode: run both in parallel, compare results
