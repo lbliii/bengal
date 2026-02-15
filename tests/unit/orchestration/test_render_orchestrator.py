@@ -365,6 +365,39 @@ class TestTrackDependencyOrdering:
 
         assert result == pages
 
+    def test_maybe_sort_preserves_track_order_within_complexity(self, orchestrator, mock_site):
+        """_maybe_sort_by_complexity preserves track_items before track_pages when both enabled."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {"items": ["docs/page1.md", "docs/page2.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True, "complexity_ordering": True}}
+
+        # Track page (light), track item (heavy), other - complexity sort would put heavy first
+        track_page = Page(
+            source_path=Path("/fake/site/content/tracks/getting-started.md"),
+            _raw_content="short",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
+        )
+        track_item = Page(
+            source_path=Path("/fake/site/content/docs/page1.md"),
+            _raw_content="x" * 10000,  # Heavier content
+            _raw_metadata={},
+        )
+        other = Page(
+            source_path=Path("/fake/site/content/blog/post.md"),
+            _raw_content="medium",
+            _raw_metadata={},
+        )
+
+        pages = [track_page, track_item, other]
+        result = orchestrator._maybe_sort_by_complexity(pages, max_workers=2)
+
+        # Track item must come before track page (dependency order preserved)
+        track_item_idx = result.index(track_item)
+        track_page_idx = result.index(track_page)
+        assert track_item_idx < track_page_idx
+
 
 class TestPerformanceOptimization:
     """Test that optimizations improve performance."""

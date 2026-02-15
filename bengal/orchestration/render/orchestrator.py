@@ -351,9 +351,6 @@ class RenderOrchestrator:
         # Prioritize pages that were explicitly changed (forced_changed_sources)
         # to ensure the most important content renders first.
         pages = self._priority_sort(pages, changed_sources)
-        # Track dependency ordering: render track items before track pages so
-        # get_page() finds already-parsed pages, avoiding on-demand parsing.
-        pages = self._track_dependency_sort(pages)
 
         try:
             # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
@@ -643,22 +640,48 @@ class RenderOrchestrator:
     def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
         """Sort pages by complexity if enabled and beneficial.
 
+        When track_dependency_ordering is also enabled, preserves partition order
+        (track_items before track_pages before other) and sorts by complexity
+        within each partition. This avoids the complexity sort undoing track order.
+
         Only sorts if:
         1. Complexity ordering is enabled in config (default: True)
         2. We have more pages than workers (otherwise no benefit)
 
-        Heavy pages are sorted first to minimize straggler workers.
+        Heavy pages are sorted first within each partition to minimize stragglers.
         """
         if not self._should_use_complexity_ordering():
             return pages
 
         if len(pages) <= max_workers:
-            # No benefit from sorting if we have fewer pages than workers
             return pages
 
         from bengal.orchestration.complexity import get_complexity_stats, sort_by_complexity
 
-        sorted_pages = sort_by_complexity(pages, descending=True)
+        # When track dependency ordering is on, partition first then sort each
+        # partition by complexity. Single combined pass avoids redundant work.
+        track_item_paths = None
+        if self._should_use_track_dependency_ordering():
+            track_item_paths = self._get_track_item_paths()
+
+        if track_item_paths:
+            track_items, track_pages, other = self._partition_by_track(pages, track_item_paths)
+            if track_items or track_pages:
+                sorted_pages = (
+                    sort_by_complexity(track_items, descending=True)
+                    + sort_by_complexity(track_pages, descending=True)
+                    + sort_by_complexity(other, descending=True)
+                )
+                logger.debug(
+                    "track_dependency_ordering",
+                    track_items_count=len(track_items),
+                    track_pages_count=len(track_pages),
+                    other_count=len(other),
+                )
+            else:
+                sorted_pages = sort_by_complexity(pages, descending=True)
+        else:
+            sorted_pages = sort_by_complexity(pages, descending=True)
 
         # Log complexity distribution at debug level
         complexity_stats = get_complexity_stats(sorted_pages)
@@ -672,7 +695,6 @@ class RenderOrchestrator:
             mean_score=round(mean_score, 1),
             variance_ratio=round(variance_ratio, 1),
         )
-        # Log ordering effectiveness (high variance = big benefit)
         if variance_ratio > 10:
             logger.debug(
                 "complexity_ordering_beneficial",
@@ -682,6 +704,57 @@ class RenderOrchestrator:
             )
 
         return sorted_pages
+
+    def _get_track_item_paths(self) -> set[str] | None:
+        """Get normalized track item paths from site.data.tracks, or None if no tracks."""
+        tracks_data = getattr(self.site.data, "tracks", None)
+        if not tracks_data or not isinstance(tracks_data, dict):
+            return None
+        paths: set[str] = set()
+        for track_def in tracks_data.values():
+            if not isinstance(track_def, dict):
+                continue
+            items = track_def.get("items")
+            if not isinstance(items, (list, tuple)):
+                continue
+            for item in items:
+                if isinstance(item, str):
+                    paths.add(_normalize_content_path(item))
+        return paths if paths else None
+
+    def _partition_by_track(
+        self, pages: list[Page], track_item_paths: set[str]
+    ) -> tuple[list[Page], list[Page], list[Page]]:
+        """Partition pages into track_items, track_pages, other."""
+        content_root = self.site.root_path / "content"
+        track_items: list[Page] = []
+        track_pages: list[Page] = []
+        other: list[Page] = []
+
+        for page in pages:
+            if not page.source_path:
+                other.append(page)
+                continue
+            try:
+                rel = page.source_path.relative_to(content_root)
+            except ValueError:
+                other.append(page)
+                continue
+            rel_str = to_posix(rel)
+            rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
+            is_track_item = rel_str in track_item_paths or rel_no_ext in track_item_paths
+            is_track_page = (
+                page.metadata.get("template") == "tracks/single.html"
+                or page.metadata.get("track_id") is not None
+            )
+            if is_track_item:
+                track_items.append(page)
+            elif is_track_page:
+                track_pages.append(page)
+            else:
+                other.append(page)
+
+        return track_items, track_pages, other
 
     def _render_parallel_simple(
         self,
@@ -1096,82 +1169,20 @@ class RenderOrchestrator:
         """
         Sort pages so track items are rendered before track pages that embed them.
 
-        When track pages render, they call get_page() for each track item. If the
-        item was already rendered, it is parsed and get_page() is a cheap lookup.
-        If not, get_page() triggers on-demand parsing. This sort ensures track
-        items are rendered first, eliminating redundant parsing.
+        Used by tests. The main render flow uses _maybe_sort_by_complexity which
+        integrates partition + complexity in a single pass.
 
         Returns:
             Pages reordered: track_items first, then track_pages, then other.
         """
         if not self._should_use_track_dependency_ordering():
             return pages
-
-        tracks_data = getattr(self.site.data, "tracks", None)
-        if not tracks_data or not isinstance(tracks_data, dict):
-            return pages
-
-        # Build set of normalized track item paths (same normalization as get_page)
-        track_item_paths: set[str] = set()
-        for track_def in tracks_data.values():
-            if not isinstance(track_def, dict):
-                continue
-            items = track_def.get("items")
-            if not isinstance(items, (list, tuple)):
-                continue
-            for item in items:
-                if isinstance(item, str):
-                    track_item_paths.add(_normalize_content_path(item))
-
+        track_item_paths = self._get_track_item_paths()
         if not track_item_paths:
             return pages
-
-        content_root = self.site.root_path / "content"
-        track_items: list[Page] = []
-        track_pages: list[Page] = []
-        other: list[Page] = []
-
-        for page in pages:
-            if not page.source_path:
-                other.append(page)
-                continue
-
-            # Compute content-relative path for this page
-            try:
-                rel = page.source_path.relative_to(content_root)
-            except ValueError:
-                other.append(page)
-                continue
-
-            rel_str = to_posix(rel)
-            rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
-
-            # Check if page is a track item (appears in any track's items)
-            is_track_item = rel_str in track_item_paths or rel_no_ext in track_item_paths
-
-            # Check if page is a track page (uses tracks/single.html or has track_id)
-            is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
-                or page.metadata.get("track_id") is not None
-            )
-
-            if is_track_item:
-                # Track item takes precedence (render early even if also a track page)
-                track_items.append(page)
-            elif is_track_page:
-                track_pages.append(page)
-            else:
-                other.append(page)
-
+        track_items, track_pages, other = self._partition_by_track(pages, track_item_paths)
         if track_items or track_pages:
-            logger.debug(
-                "track_dependency_ordering",
-                track_items_count=len(track_items),
-                track_pages_count=len(track_pages),
-                other_count=len(other),
-            )
             return track_items + track_pages + other
-
         return pages
 
     def _priority_sort(self, pages: list[Page], changed_sources: set[Path] | None) -> list[Page]:
