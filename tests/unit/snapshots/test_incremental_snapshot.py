@@ -53,6 +53,7 @@ class TestPredictAffected:
                 toc="",
                 toc_items=(),  # Empty tuple is hashable
                 excerpt="",
+                meta_description="",
                 metadata=MappingProxyType({}),
                 tags=(),
                 categories=(),
@@ -232,6 +233,7 @@ class TestSpeculativeRenderer:
             toc="",
             toc_items=(),
             excerpt="",
+            meta_description="",
             metadata=MappingProxyType({}),
             tags=(),
             categories=(),
@@ -272,6 +274,7 @@ class TestShadowModeValidator:
             toc="",
             toc_items=(),
             excerpt="",
+            meta_description="",
             metadata=MappingProxyType({}),
             tags=(),
             categories=(),

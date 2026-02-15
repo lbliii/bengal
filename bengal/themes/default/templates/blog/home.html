@@ -60,11 +60,10 @@ Or set `type: blog` on home page to auto-select
 
   {# Recent Posts Section - cached for performance #}
   {% if show_recent %}
-  {% cache 'blog-home-recent-' ~ (site.nav_version ?? '') %}
-  {# Find blog section #}
+  {# Find blog section and recent posts (before cache for key computation) #}
   {% let site_sections = site?.sections ?? [] %}
   {% let blog_section_candidates = site_sections |> selectattr('name', 'eq', blog_section_name) |> list %}
-  {% let blog_section = blog_section_candidates[0] if blog_section_candidates | length > 0 else none %}
+  {% let blog_section = blog_section_candidates[0] if blog_section_candidates else none %}
 
   {# Get recent posts from blog section or fallback to site-wide search #}
   {# regular_pages excludes index by default (standard expected behavior) #}
@@ -91,7 +90,11 @@ Or set `type: blog` on home page to auto-select
       |> take(6) %}
   {% end %}
 
-  {% if recent | length > 0 %}
+  {# Cache key includes content hashes so hot reload invalidates when posts change #}
+  {% let recent_hashes = recent | map(attribute='content_hash') | join('-') if recent else '' %}
+  {% cache 'blog-home-recent-' ~ (site.nav_version ?? '') ~ '-' ~ recent_hashes %}
+
+  {% if recent %}
   <section class="blog-home-recent">
     <div class="blog-home-recent-header">
       <h2 class="blog-home-recent-title">Recent Posts</h2>

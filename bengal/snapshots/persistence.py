@@ -116,6 +116,7 @@ class SnapshotCache:
                     reading_time=data.get("reading_time", 0),
                     word_count=data.get("word_count", 0),
                     excerpt=data.get("excerpt", ""),
+                    meta_description=data.get("meta_description", ""),
                 )
 
             logger.debug(
@@ -164,6 +165,7 @@ class SnapshotCache:
                     "reading_time": page.reading_time,
                     "word_count": page.word_count,
                     "excerpt": page.excerpt,
+                    "meta_description": page.meta_description,
                 }
 
             # Atomic write: write to temp file, then rename
@@ -216,6 +218,7 @@ class CachedPageData:
     __slots__ = (
         "content_hash",
         "excerpt",
+        "meta_description",
         "parsed_html",
         "reading_time",
         "toc",
@@ -232,6 +235,7 @@ class CachedPageData:
         reading_time: int = 0,
         word_count: int = 0,
         excerpt: str = "",
+        meta_description: str = "",
     ) -> None:
         self.content_hash = content_hash
         self.parsed_html = parsed_html
@@ -240,6 +244,7 @@ class CachedPageData:
         self.reading_time = reading_time
         self.word_count = word_count
         self.excerpt = excerpt
+        self.meta_description = meta_description
 
 
 def apply_cached_parsing(
@@ -287,6 +292,8 @@ def apply_cached_parsing(
                 page._word_count = cached.word_count
             if hasattr(page, "_excerpt"):
                 page._excerpt = cached.excerpt
+            if hasattr(page, "_meta_description"):
+                page._meta_description = cached.meta_description
 
             pages_from_cache.append(page)
             cache_hits += 1

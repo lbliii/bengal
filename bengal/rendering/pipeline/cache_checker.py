@@ -182,6 +182,11 @@ class CacheChecker:
         page.toc = toc
         page._toc_items_cache = cached.get("toc_items", [])
 
+        if hasattr(page, "_excerpt"):
+            page._excerpt = cached.get("excerpt", "")
+        if hasattr(page, "_meta_description"):
+            page._meta_description = cached.get("meta_description", "")
+
         if cached.get("ast"):
             page._ast_cache = cached["ast"]
 
@@ -273,6 +278,8 @@ class CacheChecker:
         cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
         cached_links = getattr(page, "links", None)
 
+        excerpt = getattr(page, "_excerpt", None) or ""
+        meta_description = getattr(page, "_meta_description", None) or ""
         cache.store_parsed_content(
             page.source_path,
             page.html_content,
@@ -283,6 +290,8 @@ class CacheChecker:
             template,
             parser_version,
             ast=cached_ast,
+            excerpt=excerpt,
+            meta_description=meta_description,
         )
 
     def cache_rendered_output(self, page: PageLike, template: str) -> None:

@@ -22,7 +22,10 @@
     text-align: center;
 }
 
-/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
+/* Blog list header - matches about/contact (no extra padding, inherits base h1 typography) */
+.blog-list-header {
+    margin-bottom: var(--space-6);
+}
 
 .blog-description {
     font-size: var(--text-lg);

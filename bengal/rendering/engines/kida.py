@@ -372,6 +372,9 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
             ) from e
         except TypeError as e:
+            # DEBUG: Print full traceback for comparison TypeErrors
+            import traceback as _tb_mod
+            _tb_mod.print_exc()
             # Enhanced error message for "NoneType is not callable"
             error_str = str(e).lower()
             if (

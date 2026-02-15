@@ -64,6 +64,8 @@ class ParsedContentCacheMixin:
         template: str,
         parser_version: str,
         ast: list[dict[str, Any]] | None = None,
+        excerpt: str = "",
+        meta_description: str = "",
     ) -> None:
         """
         Store parsed content in cache (Optimization #2 + AST caching).
@@ -115,6 +117,8 @@ class ParsedContentCacheMixin:
             "toc": toc,
             "toc_items": toc_items,
             "links": links or [],
+            "excerpt": excerpt,
+            "meta_description": meta_description,
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "nav_metadata_hash": nav_metadata_hash,

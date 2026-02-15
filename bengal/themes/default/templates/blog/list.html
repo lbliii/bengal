@@ -66,22 +66,22 @@ Set `type: blog` in section _index.md
 MAIN TEMPLATE
 ============================================================================= #}
 
-{# Defensive defaults for pagination #}
-{% let total_pages = total_pages ?? 1 %}
-{% let current_page = current_page ?? 1 %}
-{% let total_posts = total_posts ?? (posts | length if posts else 0) %}
+{# Defensive defaults for pagination (coerce to int for comparisons) #}
+{% let total_pages = (total_pages ?? 1) | int %}
+{% let current_page = (current_page ?? 1) | int %}
+{% let total_posts = (total_posts ?? (posts | length if posts else 0)) | int %}
 {% let base_url = base_url ?? section?._path ?? section?.href ?? '/blog/' %}
 
 {% block blog_content %}
-        {# Header #}
+        {# Header - matches blog/about.html and blog/contact.html for consistent layout #}
         {% let section_title = section?.title ?? title ?? 'Blog' %}
         {% let section_desc = section?.metadata?.description ?? description ?? '' %}
 
-        <header class="page-header page-header--centered">
+        <header class="blog-list-header">
             <h1>{{ section_title }}</h1>
 
             {% if section_desc %}
-            <p class="blog-description">{{ section_desc }}</p>
+            <p class="lead">{{ section_desc }}</p>
             {% end %}
 
             {% if total_pages > 0 %}
@@ -116,9 +116,9 @@ MAIN TEMPLATE
         {% else %}
         {% let regular_posts = posts %}
         {% end %}
-        {% if regular_posts | length > 0 %}
+        {% if regular_posts %}
         <section class="blog-posts">
-            {% if featured_posts | length > 0 and current_page == 1 %}
+            {% if featured_posts and current_page == 1 %}
             <h2 class="blog-section-title">Recent Posts</h2>
             {% end %}
 
@@ -135,7 +135,7 @@ MAIN TEMPLATE
         {{ pagination(current_page, total_pages, base_url) }}
         {% end %}
 
-        {% elif subsections | length > 0 %}
+        {% elif subsections %}
         {# Show blog categories/archives if no posts #}
         <section class="blog-categories">
             <h2 class="blog-section-title">Categories</h2>

@@ -29,10 +29,9 @@ Example:
 from __future__ import annotations
 
 from functools import cached_property
-from operator import attrgetter
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.utils.sorting import DEFAULT_WEIGHT
+from bengal.core.utils.sorting import sorted_by_weight, weight_sort_key
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,8 +39,6 @@ if TYPE_CHECKING:
     from bengal.core.diagnostics import DiagnosticEvent
     from bengal.core.page import Page, PageProxy
     from bengal.core.section import Section
-
-from .weighted import WeightedPage
 
 
 class SectionQueryMixin:
@@ -149,12 +146,8 @@ class SectionQueryMixin:
         def is_index_page(p: Page) -> bool:
             return p.source_path.stem in ("_index", "index")
 
-        weighted = [
-            WeightedPage(p, p.metadata.get("weight", DEFAULT_WEIGHT), p.title.lower())
-            for p in self.pages
-            if not is_index_page(p)
-        ]
-        return [wp.page for wp in sorted(weighted, key=attrgetter("weight", "title_lower"))]
+        non_index = [p for p in self.pages if not is_index_page(p)]
+        return sorted_by_weight(non_index)
 
     @cached_property
     def regular_pages_recursive(self) -> list[Page]:
@@ -250,14 +243,11 @@ class SectionQueryMixin:
         This is typically called after content discovery is complete.
         """
         # Sort pages by weight (ascending), then title (alphabetically)
-        # Unweighted pages use DEFAULT_WEIGHT (infinity) to sort last
-        self.pages.sort(key=lambda p: (p.metadata.get("weight", DEFAULT_WEIGHT), p.title.lower()))
+        # weight_sort_key normalises weight to float, preventing mixed-type TypeError
+        self.pages.sort(key=weight_sort_key)
 
         # Sort subsections by weight (ascending), then title (alphabetically)
-        # Unweighted subsections use DEFAULT_WEIGHT (infinity) to sort last
-        self.subsections.sort(
-            key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower())
-        )
+        self.subsections.sort(key=weight_sort_key)
 
     # =========================================================================
     # INDEX PAGE DETECTION

@@ -13,6 +13,33 @@ from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Metadata fields that must be numeric (float).
+# yaml.safe_load() preserves YAML types, so `weight: "10"` stays str while
+# `weight: 10` becomes int.  Normalising here prevents mixed-type comparison
+# errors downstream (e.g. during sort-by-weight).
+_NUMERIC_FIELDS: frozenset[str] = frozenset({"weight", "order", "priority"})
+
+
+def _normalize_metadata(raw: dict[str, Any]) -> dict[str, Any]:
+    """Coerce known numeric frontmatter fields to float.
+
+    Called immediately after yaml.safe_load() so every downstream consumer
+    (cascade, snapshots, sorts, templates) sees consistent types.
+
+    Args:
+        raw: Parsed frontmatter dict (mutated in-place and returned).
+
+    Returns:
+        The same dict with numeric fields coerced to float.
+    """
+    for key in _NUMERIC_FIELDS:
+        if key in raw and raw[key] is not None:
+            try:
+                raw[key] = float(raw[key])
+            except (ValueError, TypeError):
+                pass  # Leave as-is; sort utilities have their own fallback
+    return raw
+
 
 def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     """
@@ -58,7 +85,7 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
         import yaml
 
         frontmatter = yaml.safe_load(frontmatter_str) or {}
-        return frontmatter, body
+        return _normalize_metadata(frontmatter), body
 
     except Exception as e:
         from bengal.errors import BengalContentError, ErrorCode, record_error
