@@ -84,8 +84,7 @@ header[role="banner"] {
 }
 
 header nav {
-  padding-block: var(--space-2);
-  /* Balanced tight padding */
+  padding-block: var(--space-1);
 }
 
 /* Header nav content - internal padding, constrained width */
@@ -272,8 +271,7 @@ header[role="banner"][data-sticky="false"] {
 /* Dropdown menu - positioned relative to nav item */
 .nav-main .submenu {
   position: absolute;
-  /* Position below header bar to match theme dropdown */
-  top: calc(100% + 1rem);
+  top: calc(100% + var(--space-2));
   /* Align with nav link's left edge */
   left: 0;
   min-width: 200px;

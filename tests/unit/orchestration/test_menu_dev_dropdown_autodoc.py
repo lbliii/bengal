@@ -215,3 +215,38 @@ def test_menu_extra_requires_name_and_url() -> None:
     # Only the valid item should be added
     assert len(items) == 1
     assert items[0]["name"] == "Valid"
+
+
+def test_add_data_children_produces_absolute_urls() -> None:
+    """
+    _add_data_children builds item URLs with leading slash.
+
+    When section has _path="/tracks/", track items get url="/tracks/content-mastery/"
+    (absolute). Ensures sidebar/nav links work regardless of current page.
+    """
+    site = MagicMock()
+    site.data = MagicMock()
+    site.data.tracks = {
+        "content-mastery": {"title": "Content Mastery", "items": []},
+        "getting-started": {"title": "Getting Started", "items": []},
+    }
+
+    section = MagicMock()
+    section.name = "tracks"
+    section._path = "/tracks/"
+
+    menu_items: list[dict] = []
+    seen_identifiers: set[str] = set()
+    seen_urls: set[str] = set()
+    seen_names: set[str] = set()
+
+    orch = MenuOrchestrator(site)
+    orch._add_data_children(
+        section, "tracks-parent", "tracks", menu_items, seen_identifiers, seen_urls, seen_names
+    )
+
+    assert len(menu_items) == 2
+    urls = [i["url"] for i in menu_items]
+    assert "/tracks/content-mastery/" in urls
+    assert "/tracks/getting-started/" in urls
+    assert all(u.startswith("/") for u in urls)

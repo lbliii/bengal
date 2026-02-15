@@ -42,6 +42,10 @@
     <div id="container" class="graph-container">
         <div class="graph-controls">
             <h2>Knowledge Graph</h2>
+            <div class="graph-tag-filter-badge hidden" id="tag-filter-badge">
+                <span>Filtering by tag: <strong id="tag-filter-value"></strong></span>
+                <a href="?" id="tag-filter-clear" class="graph-tag-filter-clear">Show all</a>
+            </div>
             <input
                 type="text"
                 id="search"
@@ -85,13 +89,28 @@
             </div>
         </div>
 
-        <div id="graph" class="graph-svg"></div>
+        <div id="graph" class="graph-svg">
+            <div class="graph-loading" id="graph-loading">
+                <p>Loading graph...</p>
+            </div>
+        </div>
         <div class="graph-tooltip" id="tooltip"></div>
     </div>
 
     <script>
-        // Graph data (sort_keys=True for deterministic output)
-        const graphData = {{ graph_data_json }};
+        const graphJsonUrl = "{{ graph_json_url }}";
+
+        async function loadAndRenderGraph() {
+            const loadingEl = document.getElementById('graph-loading');
+            let graphData;
+            try {
+                const res = await fetch(graphJsonUrl);
+                if (!res.ok) throw new Error(res.statusText);
+                graphData = await res.json();
+            } catch (err) {
+                loadingEl.innerHTML = '<p>Failed to load graph. ' + (err.message || 'Unknown error') + '</p>';
+                return;
+            }
 
         // Dimensions
         const width = window.innerWidth;
@@ -103,15 +122,14 @@
             .attr("width", width)
             .attr("height", height);
 
-        // Add zoom behavior
+        // Add zoom behavior (stored for programmatic fit-to-view)
         const g = svg.append("g");
-
-        svg.call(d3.zoom()
+        const zoomBehavior = d3.zoom()
             .scaleExtent([0.1, 4])
             .on("zoom", (event) => {
                 g.attr("transform", event.transform);
-            })
-        );
+            });
+        svg.call(zoomBehavior);
 
         // Helper function to resolve CSS variables to actual colors
         function resolveCSSVariable(varName) {
@@ -168,12 +186,24 @@
                 .radius(d => d.size + 12)
                 .strength(0.8))
 
-        // Pre-compute 85% of layout (run simulation synchronously)
+        // Pre-compute 85% of layout in chunks (keeps UI responsive)
         const totalIterations = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
         const precomputeIterations = Math.floor(totalIterations * 0.85);
-        for (let i = 0; i < precomputeIterations; i++) {
-            simulation.tick();
-        }
+        const ticksPerFrame = 30;
+
+        await new Promise((resolve) => {
+            let done = 0;
+            function tickChunk() {
+                const batch = Math.min(ticksPerFrame, precomputeIterations - done);
+                for (let i = 0; i < batch; i++) simulation.tick();
+                done += batch;
+                if (done < precomputeIterations) requestAnimationFrame(tickChunk);
+                else resolve();
+            }
+            requestAnimationFrame(tickChunk);
+        });
+
+        loadingEl.classList.add('hidden');
 
         // Render with mostly-computed positions - links first (behind nodes)
         const link = g.append("g")
@@ -185,23 +215,31 @@
             .attr("stroke", linkColor)
             .attr("stroke-width", 1)
             .attr("stroke-linecap", "round")
-            .style("opacity", 0.6)
+            .style("opacity", 0)
             .attr("x1", d => d.source.x)
             .attr("y1", d => d.source.y)
             .attr("x2", d => d.target.x)
             .attr("y2", d => d.target.y);
 
-        // Render nodes (on top of links)
+        // Phase-in links with stagger (quicker - many links)
+        link.transition()
+            .delay((d, i) => Math.min(i * 8, 400))
+            .duration(350)
+            .ease(d3.easeCubicOut)
+            .style("opacity", 0.6);
+
+        // Render nodes (on top of links) - start small and invisible for phase-in
         const node = g.append("g")
             .attr("class", "graph-nodes")
             .selectAll("circle")
             .data(graphData.nodes)
             .enter().append("circle")
             .attr("class", d => `graph-node graph-node-${d.type}`)
-            .attr("r", d => d.size)
+            .attr("r", 0)
             .attr("fill", d => d.color)
             .attr("cx", d => d.x)
             .attr("cy", d => d.y)
+            .style("opacity", 0)
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -218,6 +256,44 @@
                 clearHighlights();
             });
 
+        // Phase-in nodes with stagger (bubbles grow in)
+        const staggerMs = 18;
+        const phaseDuration = 450;
+        const maxStagger = 600;
+        node.transition()
+            .delay((d, i) => Math.min(i * staggerMs, maxStagger))
+            .duration(phaseDuration)
+            .ease(d3.easeElasticOut.amplitude(0.8).period(0.4))
+            .attr("r", d => d.size)
+            .style("opacity", 1);
+
+        // After phase-in completes, zoom out to fit the graph
+        const phaseInEndMs = maxStagger + phaseDuration + 50;
+        setTimeout(() => {
+            const nodes = graphData.nodes;
+            if (nodes.length === 0) return;
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            nodes.forEach(n => {
+                const r = n.size + 12;
+                minX = Math.min(minX, n.x - r);
+                maxX = Math.max(maxX, n.x + r);
+                minY = Math.min(minY, n.y - r);
+                maxY = Math.max(maxY, n.y + r);
+            });
+            const dx = maxX - minX, dy = maxY - minY;
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            const padding = 100;
+            const scale = Math.min(0.95, 0.9 * Math.min(
+                (width - 2 * padding) / Math.max(dx, 1),
+                (height - 2 * padding) / Math.max(dy, 1)
+            ));
+            const tx = width / 2 - scale * cx;
+            const ty = height / 2 - scale * cy;
+            const transform = d3.zoomIdentity.translate(tx, ty).scale(scale);
+            svg.transition().duration(700).ease(d3.easeCubicOut)
+                .call(zoomBehavior.transform, transform);
+        }, phaseInEndMs);
+
         // Setup tick handler for animations and dragging
         simulation.on("tick", () => {
             link
@@ -233,14 +309,19 @@
         // Very quick settling - barely noticeable snap
         simulation.alphaDecay(0.2).alpha(0.05).restart();
 
-        // Drag functions
+        // Stop simulation after settle to save CPU (restarts on drag)
+        setTimeout(() => {
+            if (simulation.alpha() < 0.01) simulation.stop();
+        }, 2500);
+
+        // Drag functions - only restart simulation when actually dragging (not on click)
         function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
             d.fx = d.x;
             d.fy = d.y;
         }
 
         function dragged(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
             d.fx = event.x;
             d.fy = event.y;
         }
@@ -298,15 +379,26 @@
                 if (targetId === d.id) connectedIds.add(sourceId);
             });
 
-            // Animate the fade (smooth transition now that we have debouncing)
-            node.transition().duration(150)
-                .style("opacity", n => connectedIds.has(n.id) ? 1 : 0.12);
+            const query = searchInput.value.toLowerCase();
+            const filter = filterType.value;
+            const visibleIds = new Set(
+                graphData.nodes.filter(n => isNodeVisible(n, query, filter)).map(n => n.id)
+            );
 
-            // Highlight connected links with animation
+            // Respect filter: connected=1, visible-but-not-connected=0.12, filtered-out=0 or 0.2
+            node.transition().duration(150)
+                .style("opacity", n => {
+                    if (connectedIds.has(n.id)) return 1;
+                    if (isNodeVisible(n, query, filter)) return 0.12;
+                    return tagFilterMode ? 0 : 0.2;
+                });
+
+            // Highlight connected links; hide links between filtered-out nodes
             link.transition().duration(150)
                 .style("opacity", e => {
                     const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
                     const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                    if (!visibleIds.has(sourceId) || !visibleIds.has(targetId)) return 0;
                     return (sourceId === d.id || targetId === d.id) ? 1 : 0.06;
                 })
                 .style("stroke-width", e => {
@@ -324,13 +416,12 @@
 
         function scheduleClearHighlights() {
             // Delay clearing - gives time to move to another node
+            // Restore filter state (not full graph) so search/type filter persists
             if (clearTimer) clearTimeout(clearTimer);
             clearTimer = setTimeout(() => {
                 currentHighlight = null;
-                node.transition().duration(300).style("opacity", 1);
-                link.transition().duration(300)
-                    .style("opacity", 0.6)
-                    .style("stroke-width", 1);
+                updateVisibility();
+                link.transition().duration(300).style("stroke-width", 1);
                 link.classed("highlighted", false);
             }, 800);
         }
@@ -343,35 +434,69 @@
         const searchInput = document.getElementById('search');
         const filterType = document.getElementById('filter-type');
 
+        // Tag-only mode: when ?tag=X in URL, show only nodes with that tag (hide others)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tagParam = urlParams.get('tag');
+        const tagFilterMode = !!tagParam;
+        if (tagParam) {
+            searchInput.value = tagParam;
+            const badge = document.getElementById('tag-filter-badge');
+            const valueEl = document.getElementById('tag-filter-value');
+            if (badge && valueEl) {
+                valueEl.textContent = tagParam;
+                badge.classList.remove('hidden');
+            }
+        }
+
+        function nodeMatchesTag(d) {
+            if (!tagParam) return true;
+            return d.tags.some(t => t.toLowerCase() === tagParam.toLowerCase());
+        }
+
+        function isNodeVisible(d, query, filter) {
+            if (tagFilterMode && !nodeMatchesTag(d)) return false;
+            const matchesSearch = !query ||
+                d.label.toLowerCase().includes(query) ||
+                d.tags.some(t => t.toLowerCase().includes(query));
+            const matchesType = filter === 'all' || d.type === filter;
+            return matchesSearch && matchesType;
+        }
+
         function updateVisibility() {
             const query = searchInput.value.toLowerCase();
             const filter = filterType.value;
+            const visibleIds = new Set(
+                graphData.nodes.filter(n => isNodeVisible(n, query, filter)).map(n => n.id)
+            );
 
-            node.style("opacity", d => {
-                // Apply search filter
-                const matchesSearch = !query ||
-                    d.label.toLowerCase().includes(query) ||
-                    d.tags.some(t => t.toLowerCase().includes(query));
+            const nodeOpacity = (d) => {
+                const visible = isNodeVisible(d, query, filter);
+                return visible ? 1 : (tagFilterMode ? 0 : 0.2);
+            };
+            node.style("opacity", nodeOpacity);
 
-                // Apply type filter (use node.type property)
-                let matchesType = true;
-                if (filter !== 'all') {
-                    matchesType = d.type === filter;
-                }
-
-                return matchesSearch && matchesType ? 1 : 0.2;
-            });
-
-            // Hide links to filtered nodes
             link.style("opacity", d => {
-                const sourceVisible = node.filter(n => n.id === (typeof d.source === 'object' ? d.source.id : d.source)).style("opacity") === "1";
-                const targetVisible = node.filter(n => n.id === (typeof d.target === 'object' ? d.target.id : d.target)).style("opacity") === "1";
-                return sourceVisible && targetVisible ? 1 : 0.1;
+                const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+                const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+                return visibleIds.has(sourceId) && visibleIds.has(targetId) ? 0.6 : 0;
             });
         }
 
-        searchInput.addEventListener('input', updateVisibility);
+        function debounce(fn, ms) {
+            let t = null;
+            return function (...args) {
+                if (t) clearTimeout(t);
+                t = setTimeout(() => { t = null; fn.apply(this, args); }, ms);
+            };
+        }
+
+        searchInput.addEventListener('input', debounce(updateVisibility, 150));
         filterType.addEventListener('change', updateVisibility);
+
+        // Initial filter when arriving with ?tag=
+        if (tagParam) {
+            updateVisibility();
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -386,6 +511,9 @@
                 updateVisibility();
             }
         });
+        }
+
+        loadAndRenderGraph();
     </script>
 </body>
 </html>

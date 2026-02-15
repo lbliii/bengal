@@ -38,23 +38,33 @@ Auto-generated for each tag in the site
 
   {# Main Content #}
   <div class="docs-main">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
-
     <article class="prose">
-      <header class="page-header">
-        <h1>
+      {# Page Hero - Magazine style #}
+      <header class="page-hero page-hero--magazine page-hero--tag">
+        <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+          <a href="{{ '/' | absolute_url }}" class="page-hero__breadcrumb-link">Home</a>
+          <span class="page-hero__breadcrumb-sep">/</span>
+          <a href="{{ '/tags/' | absolute_url }}" class="page-hero__breadcrumb-link">Tags</a>
+          <span class="page-hero__breadcrumb-sep">/</span>
+          <span class="page-hero__breadcrumb-current">{{ current_tag }}</span>
+        </nav>
+        <h1 class="page-hero__title page-hero__title--tag">
           <span class="tag-icon">#</span>
-          {{ current_tag }}
+          <span>{{ current_tag }}</span>
         </h1>
-
-        <p class="page-description">
+        <p class="page-hero__description">
           {{ total_posts | pluralize('post', 'posts') }} tagged with "{{ current_tag }}"
         </p>
+        <div class="page-hero__actions page-hero__actions--tag">
+          <a href="{{ '/graph/' | absolute_url }}?tag={{ current_tag | url_encode }}" class="button button-outline inline-flex items-center gap-2">
+            Explore Knowledge Graph
+          </a>
+          <a href="{{ '/tags/' | absolute_url }}" class="button button-outline">View all tags</a>
+        </div>
       </header>
 
       {% if tag_posts | length > 0 %}
-      <div class="archive-list">
+      <div class="archive-list archive-list--tag">
         {% for post in tag_posts %}
         {# Skip autodoc pages using efficient function check instead of string manipulation #}
         {% let is_autodoc = is_autodoc_page(post) if is_autodoc_page is defined else false %}

@@ -9,6 +9,7 @@ Thread-safe: all state is local to each render() call.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder

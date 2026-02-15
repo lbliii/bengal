@@ -442,7 +442,7 @@ DEFAULTS: dict[str, Any] = {
         "enabled": True,
         # Navigation experience
         "navigation": {
-            "view_transitions": True,  # Enable View Transitions API
+            "view_transitions": False,  # Disabled by default - can hang on 404/dev rebuild
             "transition_style": "crossfade",  # crossfade | fade-slide | slide | none
             "scroll_restoration": True,
         },

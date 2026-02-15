@@ -207,8 +207,8 @@ class TestSpeculationRules:
 class TestDocumentApplicationDefaults:
     """Tests for document application default configuration."""
 
-    def test_default_config_enables_view_transitions(self, site_builder):
-        """Default config should enable view transitions."""
+    def test_default_config_disables_view_transitions(self, site_builder):
+        """Default config disables view transitions to avoid navigation hanging."""
         site = site_builder(
             config={"title": "Test Site"},
             content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
@@ -216,8 +216,8 @@ class TestDocumentApplicationDefaults:
         site.build()
 
         html = site.read_output("index.html")
-        # By default, view transitions should be enabled
-        assert '<meta name="view-transition" content="same-origin">' in html
+        # By default, view transitions are disabled (can hang on 404/dev rebuild)
+        assert '<meta name="view-transition"' not in html
 
     def test_default_config_enables_speculation(self, site_builder):
         """Default config should enable speculation rules."""

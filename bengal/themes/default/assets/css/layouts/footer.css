@@ -9,7 +9,7 @@
 
 footer[role="contentinfo"] {
   margin-top: var(--space-16);
-  padding: var(--space-4) 0;
+  padding: var(--space-3) 0;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
   margin-top: auto;

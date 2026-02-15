@@ -131,14 +131,11 @@ async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_build_in_progress_serves_rebuilding_page_when_file_missing(
-    tmp_path: Path,
-) -> None:
-    """When build in progress and requested file does not exist, serve full placeholder."""
+async def test_build_in_progress_missing_file_returns_404(tmp_path: Path) -> None:
+    """When build in progress and requested file does not exist, return 404 (no full placeholder)."""
     app = create_bengal_dev_app(
         output_dir=tmp_path,
         build_in_progress=lambda: True,
-        active_palette="snow-lynx",
     )
     sent, send = _make_send_capture()
 
@@ -148,9 +145,30 @@ async def test_build_in_progress_serves_rebuilding_page_when_file_missing(
         send=send,
     )
 
-    assert sent[0]["status"] == 200
-    assert b"Rebuilding" in sent[1]["body"]
-    assert b"/blog/post" in sent[1]["body"]
+    assert sent[0]["status"] == 404
+    assert sent[1]["body"] == b"Not Found"
+
+
+@pytest.mark.asyncio
+async def test_build_in_progress_404_html_gets_badge(tmp_path: Path) -> None:
+    """When build in progress and 404.html exists, serve it with rebuilding badge."""
+    (tmp_path / "404.html").write_text("<html><body>Custom 404</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: True,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/blog/post"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
+    body = sent[1]["body"]
+    assert b"Custom 404" in body
+    assert b"bengal-rebuilding-badge" in body
 
 
 @pytest.mark.asyncio

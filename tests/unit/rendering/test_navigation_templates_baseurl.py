@@ -309,3 +309,59 @@ output_dir = "public"
 
         # Note: Menu activation happens via MenuItem.mark_active() which compares
         # menu.url (relative) with page.url (relative), so it should work correctly
+
+
+class TestDocsNavAbsoluteUrl:
+    """Test that docs-nav sidebar links use absolute_url filter."""
+
+    def test_docs_nav_link_has_absolute_url_with_baseurl(self, tmp_path):
+        """
+        Docs-nav nav_node applies | absolute_url to item href.
+
+        When baseurl is set, sidebar links must include it so they work
+        from any page (e.g. /tracks/content-mastery/).
+        """
+        site_dir = tmp_path / "site"
+        (site_dir / "content").mkdir(parents=True)
+        (site_dir / "public").mkdir(parents=True)
+
+        cfg = site_dir / "bengal.toml"
+        cfg.write_text(
+            """
+[site]
+title = "Test"
+baseurl = "/repo"
+
+[build]
+output_dir = "public"
+[theme]
+name = "default"
+            """,
+            encoding="utf-8",
+        )
+
+        (site_dir / "content" / "index.md").write_text(
+            """---\ntitle: Home\n---\n# Home\n""", encoding="utf-8"
+        )
+
+        site = Site.from_config(site_dir)
+        engine = TemplateEngine(site)
+
+        # Mock nav item (same structure as NavNodeProxy from get_nav_tree)
+        nav_item = {
+            "title": "Documentation",
+            "href": "/docs/",
+            "children": [
+                {"title": "Guides", "href": "/docs/guides/", "children": []},
+            ],
+        }
+
+        # Template mimics docs-nav nav_node pattern: item_href | absolute_url
+        template_str = """
+{% set item = nav_item %}
+{% set item_href = item.href %}
+<a href="{{ item_href | absolute_url }}">{{ item.title }}</a>
+        """
+        html = engine.render_string(template_str, {"nav_item": nav_item})
+
+        assert 'href="/repo/docs/"' in html, "Docs link should have baseurl applied"

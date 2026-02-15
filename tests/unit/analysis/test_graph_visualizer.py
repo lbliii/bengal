@@ -40,7 +40,7 @@ class TestTemplateExists:
             "{{ stats.total_links }}",
             "{{ stats.hubs }}",
             "{{ stats.orphans }}",
-            "{{ graph_data_json }}",
+            "{{ graph_json_url }}",
         ]
         for var in required_vars:
             assert var in content, f"Template missing variable: {var}"
@@ -49,6 +49,14 @@ class TestTemplateExists:
         """Template should include D3.js library."""
         content = _TEMPLATE_PATH.read_text(encoding="utf-8")
         assert "d3.v7" in content or "d3js.org" in content
+
+    def test_template_has_tag_filter_support(self):
+        """Template should support ?tag= URL param for filtering by tag."""
+        content = _TEMPLATE_PATH.read_text(encoding="utf-8")
+        assert "tag-filter-badge" in content
+        assert "urlParams.get('tag')" in content
+        assert "tagFilterMode" in content
+        assert "nodeMatchesTag" in content
 
 
 class TestBuildTemplateContext:
@@ -113,8 +121,8 @@ class TestBuildTemplateContext:
             assert context["stats"]["hubs"] == 2
             assert context["stats"]["orphans"] == 3
 
-    def test_context_has_graph_data_json(self, visualizer):
-        """Context should include serialized graph data."""
+    def test_context_has_graph_json_url(self, visualizer):
+        """Context should include graph.json URL for fetch."""
         with patch.object(visualizer, "generate_graph_data") as mock_data:
             mock_data.return_value = {
                 "stats": {},
@@ -122,8 +130,8 @@ class TestBuildTemplateContext:
                 "edges": [],
             }
             context = visualizer._build_template_context()
-            assert "graph_data_json" in context
-            assert "Test" in context["graph_data_json"]
+            assert "graph_json_url" in context
+            assert context["graph_json_url"] == "graph.json"
 
 
 class TestRenderTemplate:
@@ -158,7 +166,7 @@ class TestRenderTemplate:
             "default_appearance": "dark",
             "default_palette": "ocean",
             "stats": {"total_pages": 5, "total_links": 10, "hubs": 1, "orphans": 2},
-            "graph_data_json": '{"nodes": []}',
+            "graph_json_url": "graph.json",
         }
         html = visualizer._render_template(context)
 
@@ -175,7 +183,7 @@ class TestRenderTemplate:
             "default_appearance": "light",
             "default_palette": "",
             "stats": {"total_pages": 42, "total_links": 100, "hubs": 5, "orphans": 10},
-            "graph_data_json": "{}",
+            "graph_json_url": "graph.json",
         }
         html = visualizer._render_template(context)
 
@@ -191,7 +199,7 @@ class TestRenderTemplate:
             "default_appearance": "system",
             "default_palette": "",
             "stats": {"total_pages": 1, "total_links": 0, "hubs": 0, "orphans": 0},
-            "graph_data_json": '{"nodes":[],"edges":[]}',
+            "graph_json_url": "graph.json",
         }
         html = visualizer._render_template(context)
 
@@ -235,8 +243,8 @@ class TestGenerateHtml:
             result = visualizer.generate_html()
             assert isinstance(result, str)
 
-    def test_generate_html_includes_graph_data(self, visualizer):
-        """generate_html should embed graph data in output."""
+    def test_generate_html_includes_graph_json_url(self, visualizer):
+        """generate_html should include graph.json URL for client-side fetch."""
         with patch.object(visualizer, "generate_graph_data") as mock_data:
             mock_data.return_value = {
                 "stats": {"total_pages": 5, "total_links": 8, "hubs": 1, "orphans": 2},
@@ -244,8 +252,8 @@ class TestGenerateHtml:
                 "edges": [],
             }
             html = visualizer.generate_html()
-            assert "test-page" in html
-            assert "Test Page" in html
+            assert "graph.json" in html
+            assert "loadAndRenderGraph" in html
 
     def test_generate_html_uses_custom_title(self, visualizer):
         """generate_html should use custom title when provided."""
