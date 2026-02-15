@@ -20,6 +20,7 @@ from typing import Any, ClassVar
 
 from patitas.nodes import Block, Document
 
+from bengal.config.defaults import get_default
 from bengal.parsing.backends.patitas import create_markdown, parse_to_ast, parse_to_document
 from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
@@ -169,7 +170,12 @@ class PatitasParser(BaseMarkdownParser):
         try:
             from patitas import extract_excerpt, extract_meta_description
 
-            excerpt = extract_excerpt(ast, content)
+            max_chars = metadata.get(
+                "_excerpt_length", get_default("content", "excerpt_length")
+            )
+            excerpt = extract_excerpt(
+                ast, content, excerpt_as_html=True, max_chars=max_chars
+            )
             meta_desc = (
                 extract_meta_description(ast, content)
                 if not metadata.get("description")
@@ -298,7 +304,13 @@ class PatitasParser(BaseMarkdownParser):
             try:
                 from patitas import extract_excerpt, extract_meta_description
 
-                excerpt = extract_excerpt(ast, content)
+                content_cfg = context.get("config", {}).get("content", {}) or {}
+                max_chars = content_cfg.get(
+                    "excerpt_length", get_default("content", "excerpt_length")
+                )
+                excerpt = extract_excerpt(
+                    ast, content, excerpt_as_html=True, max_chars=max_chars
+                )
                 meta_desc = (
                     extract_meta_description(ast, content)
                     if not metadata.get("description")

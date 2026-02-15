@@ -35,13 +35,8 @@ Variants:
   </div>
   {% end %}
   <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
-    </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}</p>
-    {% end %}
-    <div class="blog-card-meta">
+    {% if (p.author and 'content.author' in theme_features) or p.date or (p.reading_time > 0 and 'content.reading_time' in theme_features) %}
+    <div class="blog-card-meta blog-card-meta--top">
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
@@ -59,6 +54,13 @@ Variants:
       <span class="reading-time">{{ p.reading_time }} min read</span>
       {% end %}
     </div>
+    {% end %}
+    <h3 class="blog-card-title">
+      <a href="{{ p.path }}">{{ p.title }}</a>
+    </h3>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(60, p.title, p.description) | safe }}</div>
+    {% end %}
     {% if p.tags | length > 0 %}
     <div class="blog-card-tags">
       {{ tag_list(p.tags[:3]) }}
@@ -77,13 +79,8 @@ Variants:
   </div>
   {% end %}
   <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
-    </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(20, p.title, p.description) | safe }}</p>
-    {% end %}
-    <div class="blog-card-meta">
+    {% if (p.author and 'content.author' in theme_features) or p.date %}
+    <div class="blog-card-meta blog-card-meta--top">
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
@@ -96,6 +93,13 @@ Variants:
       <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
       {% end %}
     </div>
+    {% end %}
+    <h3 class="blog-card-title">
+      <a href="{{ p.path }}">{{ p.title }}</a>
+    </h3>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(40, p.title, p.description) | safe }}</div>
+    {% end %}
   </div>
 </article>
 
@@ -109,13 +113,8 @@ Variants:
   </div>
   {% end %}
   <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
-    </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <p class="blog-card-excerpt">{{ p.excerpt | card_excerpt(35, p.title, p.description) | safe }}</p>
-    {% end %}
-    <div class="blog-card-meta">
+    {% if (p.author and 'content.author' in theme_features) or p.date or (p.reading_time > 0 and 'content.reading_time' in theme_features) %}
+    <div class="blog-card-meta blog-card-meta--top">
       {% if p.author and 'content.author' in theme_features %}
       <span class="blog-author">
         {% if p.author_avatar %}
@@ -131,13 +130,22 @@ Variants:
       <span class="reading-time">{{ p.reading_time }} min read</span>
       {% end %}
     </div>
-    {% if p.tags | length > 0 %}
-    <div class="blog-card-tags">
-      {{ tag_list(p.tags[:4]) }}
-    </div>
     {% end %}
-    {% let has_excerpt = show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <a href="{{ p.path }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
+    <h3 class="blog-card-title">
+      <a href="{{ p.path }}">{{ p.title }}</a>
+    </h3>
+    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(70, p.title, p.description) | safe }}</div>
+    {% end %}
+    <div class="blog-card-footer">
+      {% if p.tags | length > 0 %}
+      <div class="blog-card-tags">
+        {{ tag_list(p.tags[:4]) }}
+      </div>
+      {% end %}
+      {% let has_excerpt = show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+      <a href="{{ p.path }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
+    </div>
   </div>
 </article>
 {% end %}

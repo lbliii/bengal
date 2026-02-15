@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.protocols import PageLike
+from bengal.config.defaults import get_default
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -459,10 +460,14 @@ class RenderingPipeline:
     def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
         if page.metadata.get("preprocess") is False:
-            # Inject source_path into metadata for cross-version dependency tracking
+            # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
             metadata_with_source = dict(page.metadata)
             metadata_with_source["_source_path"] = page.source_path
+            content_cfg = self.site.config.get("content", {}) or {}
+            metadata_with_source["_excerpt_length"] = content_cfg.get(
+                "excerpt_length", get_default("content", "excerpt_length")
+            )
 
             if need_toc:
                 result = self.parser.parse_with_toc(page._source, metadata_with_source)

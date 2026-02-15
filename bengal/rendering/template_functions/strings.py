@@ -42,6 +42,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "excerpt": excerpt,
             "excerpt_for_card": excerpt_for_card,
             "card_excerpt": card_excerpt,
+            "card_excerpt_html": card_excerpt_html,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
             "first_sentence": first_sentence,
@@ -693,6 +694,69 @@ def card_excerpt(
     if not cleaned:
         return ""
     return truncatewords(cleaned, words, suffix)
+
+
+def _find_html_offset_for_plain_chars(html: str, target_plain_chars: int) -> int:
+    """Find HTML position where we've output target_plain_chars of plain text (skip tags)."""
+    plain_count = 0
+    i = 0
+    in_tag = False
+    while i < len(html) and plain_count < target_plain_chars:
+        if html[i] == "<":
+            in_tag = True
+        elif html[i] == ">":
+            in_tag = False
+        elif not in_tag:
+            plain_count += 1
+        i += 1
+    return i
+
+
+def card_excerpt_html(
+    content: str,
+    words: int = 30,
+    title: str = "",
+    description: str = "",
+    suffix: str = "...",
+) -> str:
+    """
+    Excerpt for card previews with HTML: strip duplicates, truncate preserving tags.
+
+    Use when excerpt contains HTML (e.g. <strong>, <em>, <br>). Strips leading
+    title/description duplicates, then truncates with tag-aware truncatewords_html.
+
+    Args:
+        content: Excerpt or content (HTML)
+        words: Max words to keep (default: 30)
+        title: Title to strip from start
+        description: Description to strip from start
+        suffix: Truncation suffix (default: "...")
+
+    Returns:
+        HTML excerpt, truncated at word boundary with tags preserved
+
+    Example:
+        {{ p.excerpt | card_excerpt_html(35, p.title, p.description) | safe }}
+    """
+    if not content:
+        return ""
+    # Same duplicate stripping as excerpt_for_card
+    prepped = _prepare_html_for_excerpt(content) if "<" in content else content
+    original_plain = text_utils.normalize_whitespace(strip_html(prepped), collapse=True).strip()
+    plain = original_plain
+    if title:
+        plain = _strip_leading_duplicate(plain, title)
+    if description and plain:
+        plain = _strip_leading_duplicate(plain, description)
+    plain = plain.strip()
+    if not plain:
+        return ""
+    # Find where stripped content starts in HTML (skip leading duplicate)
+    removed_chars = len(original_plain) - len(plain)
+    if removed_chars > 0:
+        offset = _find_html_offset_for_plain_chars(prepped, removed_chars)
+        content = prepped[offset:].lstrip()
+    return truncatewords_html(content, words, suffix)
 
 
 def strip_whitespace(text: str) -> str:

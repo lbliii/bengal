@@ -27,6 +27,8 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+from bengal.config.defaults import get_default
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -171,7 +173,7 @@ class ContentSection:
     """
 
     default_type: str = "doc"
-    excerpt_length: int = 200
+    excerpt_length: int = 750
     summary_length: int = 160
     reading_speed: int = 200
     related_count: int = 5
@@ -391,7 +393,12 @@ class ConfigSnapshot:
 
             content = ContentSection(
                 default_type=str(content_data.get("default_type", "doc")),
-                excerpt_length=int(content_data.get("excerpt_length", 200)),
+                excerpt_length=int(
+                    content_data.get(
+                        "excerpt_length",
+                        get_default("content", "excerpt_length"),
+                    )
+                ),
                 summary_length=int(content_data.get("summary_length", 160)),
                 reading_speed=int(content_data.get("reading_speed", 200)),
                 related_count=int(content_data.get("related_count", 5)),

@@ -13,7 +13,7 @@ content:
   default_type: "doc"
 
   # Excerpt & Summaries
-  excerpt_length: 200        # Characters for page.excerpt
+  excerpt_length: 750        # Characters for AST excerpt (card previews)
   summary_length: 160        # Characters for page.meta_description (SEO)
 
   # Reading Time

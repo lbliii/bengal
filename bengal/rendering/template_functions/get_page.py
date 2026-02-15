@@ -25,6 +25,7 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.config.defaults import get_default
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -197,15 +198,24 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             # Mistune with variable substitution (preferred)
             if page.metadata.get("preprocess") is False:
                 # Parse without variable substitution
+                metadata_with_excerpt = dict(page.metadata)
+                content_cfg = site.config.get("content", {}) or {}
+                metadata_with_excerpt["_excerpt_length"] = content_cfg.get(
+                    "excerpt_length", get_default("content", "excerpt_length")
+                )
                 if need_toc:
-                    result = parser.parse_with_toc(page._source, page.metadata)
+                    result = parser.parse_with_toc(
+                        page._source, metadata_with_excerpt
+                    )
                     parsed_content, toc = result[0], result[1]
                     if len(result) > 2:
                         page._excerpt = result[2]
                     if len(result) > 3:
                         page._meta_description = result[3]
                 else:
-                    parsed_content = parser.parse(page._source, page.metadata)
+                    parsed_content = parser.parse(
+                        page._source, metadata_with_excerpt
+                    )
                     toc = ""
                 # Escape template syntax
                 escape_method = getattr(parser, "_escape_template_syntax_in_html", None)
@@ -234,15 +244,24 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                     toc = ""
         elif hasattr(parser, "parse_with_toc"):
             # Fallback parser
+            metadata_with_excerpt = dict(page.metadata)
+            content_cfg = site.config.get("content", {}) or {}
+            metadata_with_excerpt["_excerpt_length"] = content_cfg.get(
+                "excerpt_length", get_default("content", "excerpt_length")
+            )
             if need_toc:
-                result = parser.parse_with_toc(page._source, page.metadata)
+                result = parser.parse_with_toc(
+                    page._source, metadata_with_excerpt
+                )
                 parsed_content, toc = result[0], result[1]
                 if len(result) > 2:
                     page._excerpt = result[2]
                 if len(result) > 3:
                     page._meta_description = result[3]
             else:
-                parsed_content = parser.parse(page._source, page.metadata)
+                parsed_content = parser.parse(
+                    page._source, metadata_with_excerpt
+                )
                 toc = ""
         else:
             # Basic parser
