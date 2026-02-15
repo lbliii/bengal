@@ -12,8 +12,12 @@ content:
   # Default content type for documentation site
   default_type: "doc"
 
-  # Excerpt & Summaries
-  excerpt_length: 750        # Characters for AST excerpt (card previews)
+  # Excerpt & Summaries (two-stage pipeline)
+  # 1. excerpt_length: Patitas extracts up to N chars from AST (step 1)
+  # 2. excerpt_words: card_excerpt_html truncates display to N words (step 2)
+  # Override per-article in frontmatter: excerpt_length, excerpt_words
+  excerpt_length: 750        # Max chars for Patitas AST extraction (~150 words)
+  excerpt_words: 150         # Max words shown in card previews (template filter)
   summary_length: 160        # Characters for page.meta_description (SEO)
 
   # Reading Time

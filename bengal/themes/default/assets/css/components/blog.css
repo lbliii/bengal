@@ -496,6 +496,30 @@ html:not([data-devtools-open]) .blog-post-list > * {
     width: 100%;
 }
 
+/* Ombre fade: excerpt appears to fade away above the footer.
+   Uses mask (not overlay) so theme transitions look clean - no color overlay to flash. */
+.blog-card-content:has(.blog-card-footer) .blog-card-excerpt {
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black calc(100% - 4rem),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black calc(100% - 4rem),
+        transparent 100%
+    );
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    padding-bottom: 0.5rem;
+}
+
 .blog-card-footer .blog-read-more {
     margin-left: auto;
 }

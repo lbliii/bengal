@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.config.defaults import get_default
+from bengal.config.utils import resolve_excerpt_length
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -200,8 +201,8 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 # Parse without variable substitution
                 metadata_with_excerpt = dict(page.metadata)
                 content_cfg = site.config.get("content", {}) or {}
-                metadata_with_excerpt["_excerpt_length"] = content_cfg.get(
-                    "excerpt_length", get_default("content", "excerpt_length")
+                metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(
+                    page, content_cfg
                 )
                 if need_toc:
                     result = parser.parse_with_toc(
@@ -246,8 +247,8 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             # Fallback parser
             metadata_with_excerpt = dict(page.metadata)
             content_cfg = site.config.get("content", {}) or {}
-            metadata_with_excerpt["_excerpt_length"] = content_cfg.get(
-                "excerpt_length", get_default("content", "excerpt_length")
+            metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(
+                page, content_cfg
             )
             if need_toc:
                 result = parser.parse_with_toc(

@@ -462,11 +462,13 @@ class RenderingPipeline:
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
+            from bengal.config.utils import resolve_excerpt_length
+
             metadata_with_source = dict(page.metadata)
             metadata_with_source["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
-            metadata_with_source["_excerpt_length"] = content_cfg.get(
-                "excerpt_length", get_default("content", "excerpt_length")
+            metadata_with_source["_excerpt_length"] = resolve_excerpt_length(
+                page, content_cfg
             )
 
             if need_toc:
@@ -491,6 +493,12 @@ class RenderingPipeline:
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
+                from bengal.config.utils import resolve_excerpt_length
+
+                content_cfg = self.site.config.get("content", {}) or {}
+                page.metadata["_excerpt_length"] = resolve_excerpt_length(
+                    page, content_cfg
+                )
                 if need_toc:
                     result = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
                         page._source, page.metadata, context

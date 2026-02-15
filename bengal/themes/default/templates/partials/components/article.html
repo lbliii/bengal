@@ -45,9 +45,6 @@ Displays a rich card preview of an article with metadata, tags, and image.
       {% if is_featured %}
       <span class="badge badge-featured">⭐ Featured</span>
       {% end %}
-      {% if article | has_tag('tutorial') %}
-      <span class="badge badge-tutorial">Tutorial</span>
-      {% end %}
       {% if article | has_tag('new') %}
       <span class="badge badge-new">New</span>
       {% end %}

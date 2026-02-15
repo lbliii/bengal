@@ -174,6 +174,7 @@ class ContentSection:
 
     default_type: str = "doc"
     excerpt_length: int = 750
+    excerpt_words: int = 150
     summary_length: int = 160
     reading_speed: int = 200
     related_count: int = 5
@@ -397,6 +398,12 @@ class ConfigSnapshot:
                     content_data.get(
                         "excerpt_length",
                         get_default("content", "excerpt_length"),
+                    )
+                ),
+                excerpt_words=int(
+                    content_data.get(
+                        "excerpt_words",
+                        get_default("content", "excerpt_words"),
                     )
                 ),
                 summary_length=int(content_data.get("summary_length", 160)),

@@ -49,6 +49,7 @@ class PostView:
         featured: Whether post is featured
         draft: Whether post is a draft
         updated: Last updated date (None if not set)
+        excerpt_words: Max words for card excerpt (None = use config default)
 
     """
 
@@ -59,6 +60,7 @@ class PostView:
     image: str
     description: str
     excerpt: str
+    excerpt_words: int | None
     author: str
     author_avatar: str
     author_title: str
@@ -173,6 +175,16 @@ class PostView:
         # Updated date
         updated = meta.get("updated") or params.get("updated")
 
+        # Excerpt words: per-article override (None = use config in template)
+        ew = meta.get("excerpt_words") or params.get("excerpt_words")
+        if ew is not None:
+            try:
+                excerpt_words = int(ew)
+            except (TypeError, ValueError):
+                excerpt_words = None
+        else:
+            excerpt_words = None
+
         return cls(
             title=title,
             href=href,
@@ -190,6 +202,7 @@ class PostView:
             featured=featured,
             draft=draft,
             updated=updated,
+            excerpt_words=excerpt_words,
         )
 
 

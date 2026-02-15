@@ -304,9 +304,13 @@ class PatitasParser(BaseMarkdownParser):
             try:
                 from patitas import extract_excerpt, extract_meta_description
 
+                # Per-article override: pipeline sets metadata._excerpt_length
                 content_cfg = context.get("config", {}).get("content", {}) or {}
-                max_chars = content_cfg.get(
-                    "excerpt_length", get_default("content", "excerpt_length")
+                max_chars = metadata.get(
+                    "_excerpt_length",
+                    content_cfg.get(
+                        "excerpt_length", get_default("content", "excerpt_length")
+                    ),
                 )
                 excerpt = extract_excerpt(
                     ast, content, excerpt_as_html=True, max_chars=max_chars

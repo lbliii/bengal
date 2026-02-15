@@ -161,7 +161,8 @@ def _create_content_config(template: str) -> dict[str, Any]:
     if template == "blog":
         content_config["content"] = {
             "default_type": "blog",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
+            "excerpt_words": 150,
             "reading_speed": 200,
             "related_count": 5,
             "sort_pages_by": "date",
@@ -172,7 +173,7 @@ def _create_content_config(template: str) -> dict[str, Any]:
     elif template in ["docs", "documentation"]:
         content_config["content"] = {
             "default_type": "doc",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "reading_speed": 200,
             "toc_depth": 4,
             "toc_min_headings": 2,
@@ -189,14 +190,14 @@ def _create_content_config(template: str) -> dict[str, Any]:
     elif template == "portfolio":
         content_config["content"] = {
             "default_type": "page",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "sort_pages_by": "date",
             "sort_order": "desc",
         }
     else:  # default
         content_config["content"] = {
             "default_type": "page",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "reading_speed": 200,
             "sort_pages_by": "weight",
             "sort_order": "asc",

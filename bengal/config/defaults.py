@@ -211,6 +211,7 @@ DEFAULTS: dict[str, Any] = {
     "content": {
         "default_type": "doc",
         "excerpt_length": 750,
+        "excerpt_words": 150,
         "summary_length": 160,
         "reading_speed": 200,  # words per minute
         "related_count": 5,

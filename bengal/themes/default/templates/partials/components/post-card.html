@@ -59,7 +59,7 @@ Variants:
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(60, p.title, p.description) | safe }}</div>
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description) | safe }}</div>
     {% end %}
     {% if p.tags | length > 0 %}
     <div class="blog-card-tags">
@@ -98,7 +98,7 @@ Variants:
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(40, p.title, p.description) | safe }}</div>
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) // 2, p.title, p.description) | safe }}</div>
     {% end %}
   </div>
 </article>
@@ -135,7 +135,7 @@ Variants:
       <a href="{{ p.path }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(70, p.title, p.description) | safe }}</div>
+    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description) | safe }}</div>
     {% end %}
     <div class="blog-card-footer">
       {% if p.tags | length > 0 %}
