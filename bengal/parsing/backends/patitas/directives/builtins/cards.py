@@ -149,7 +149,11 @@ def _render_icon(icon_name: str, card_title: str = "") -> str:
         return ""
 
 
-def _resolve_link(link: str, xref_index: dict[str, Any]) -> tuple[str, Any]:
+def _resolve_link(
+    link: str,
+    xref_index: dict[str, Any],
+    current_page_dir: str | None = None,
+) -> tuple[str, Any]:
     """Resolve a link reference to a URL and page object.
 
     Handles explicit prefixes:
@@ -158,18 +162,44 @@ def _resolve_link(link: str, xref_index: dict[str, Any]) -> tuple[str, Any]:
     - slug:page-slug -> Look up by slug in xref_index["by_slug"]
 
     And implicit resolution (no prefix):
+    - ./ and ../ -> resolve via resolve_page with current_page_dir
     - Links containing "/" but not starting with "http" -> try by_path
     - Other links -> try by_slug
 
     Args:
         link: Link string (may include id:, path:, or slug: prefix)
         xref_index: Cross-reference index with by_id, by_path, by_slug dicts
+        current_page_dir: Content-relative directory for resolving ./ and ../
 
     Returns:
         Tuple of (resolved_url, page_object or None)
     """
     if not link:
         return "", None
+
+    # Relative paths (./ and ../) require current_page_dir
+    if link.startswith(("./", "../")) and current_page_dir:
+        clean_link = link.replace(".md", "").rstrip("/")
+        if clean_link.startswith("./"):
+            resolved_path = f"{current_page_dir}/{clean_link[2:]}"
+        else:
+            parts = current_page_dir.split("/")
+            up_count = 0
+            remaining = clean_link
+            while remaining.startswith("../"):
+                up_count += 1
+                remaining = remaining[3:]
+            if up_count < len(parts):
+                parent = (
+                    "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
+                )
+                resolved_path = f"{parent}/{remaining}" if remaining else parent
+            else:
+                resolved_path = remaining
+        page = xref_index.get("by_path", {}).get(resolved_path)
+        if page:
+            url = getattr(page, "href", None) or getattr(page, "url", "")
+            return url, page
 
     # Check for explicit prefixes
     if link.startswith("id:"):
@@ -487,6 +517,7 @@ class CardDirective:
         sb: StringBuilder,
         *,
         xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
     ) -> None:
         """Render individual card to HTML.
 
@@ -495,6 +526,7 @@ class CardDirective:
             rendered_children: Pre-rendered child content
             sb: StringBuilder to append output
             xref_index: Optional cross-reference index for link resolution
+            current_page_dir: Content-relative directory for resolving ./ and ../
         """
         opts = node.options  # Direct typed access!
 
@@ -514,7 +546,9 @@ class CardDirective:
         resolved_link = link
         linked_page = None
         if link and xref_index:
-            resolved_link, linked_page = _resolve_link(link, xref_index)
+            resolved_link, linked_page = _resolve_link(
+                link, xref_index, current_page_dir
+            )
 
         # Pull data from linked page
         if linked_page and pull_fields:

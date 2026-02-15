@@ -8,12 +8,13 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
 
 from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
@@ -115,13 +116,17 @@ class DirectiveRendererMixin:
             if "site" in sig.parameters:
                 kwargs["site"] = getattr(self, "_site", None)
 
+            # Pass current_page_dir for relative link resolution (./ and ../)
+            if "current_page_dir" in sig.parameters:
+                kwargs["current_page_dir"] = self._compute_current_page_dir()
+
             handler.render(node, rendered_children, result_sb, **kwargs)
 
-            result = result_sb.build()
-            if cache_key and self._directive_cache:
-                self._directive_cache.put("directive_html", cache_key, result)
-            sb.append(result)
-            return
+        result = result_sb.build()
+        if cache_key and self._directive_cache:
+            self._directive_cache.put("directive_html", cache_key, result)
+        sb.append(result)
+        return
 
         # Default rendering
         result_sb.append(f'<div class="directive directive-{escape_attr(node.name)}">')
@@ -134,6 +139,19 @@ class DirectiveRendererMixin:
         if cache_key and self._directive_cache:
             self._directive_cache.put("directive_html", cache_key, result)
         sb.append(result)
+
+    def _compute_current_page_dir(self: HtmlRendererProtocol) -> str | None:
+        """Derive current_page_dir from page context for relative link resolution."""
+        page = self._page_context
+        site = getattr(self, "_site", None)
+        if not page or not site or not hasattr(page, "source_path"):
+            return None
+        content_dir = Path(site.root_path) / "content"
+        try:
+            rel_path = Path(page.source_path).relative_to(content_dir)
+            return to_posix(rel_path.parent)
+        except (ValueError, TypeError):
+            return None
 
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.
