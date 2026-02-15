@@ -722,6 +722,44 @@ class RenderOrchestrator:
                     paths.add(_normalize_content_path(item))
         return paths if paths else None
 
+    def _get_track_item_paths_for_pages(self, pages: list[Page]) -> set[str]:
+        """Get track item paths for tracks that have a page in the given list."""
+        tracks_data = getattr(self.site.data, "tracks", None)
+        if not tracks_data or not isinstance(tracks_data, dict):
+            return set()
+        priority_track_ids: set[str] = set()
+        for page in pages:
+            is_track_page = (
+                page.metadata.get("template") == "tracks/single.html"
+                or page.metadata.get("track_id") is not None
+            )
+            if not is_track_page:
+                continue
+            track_id = page.metadata.get("track_id") or (
+                getattr(page, "slug", None) or ""
+            )
+            if track_id:
+                priority_track_ids.add(track_id)
+        if not priority_track_ids:
+            return set()
+        result: set[str] = set()
+        for track_id in priority_track_ids:
+            track_def = tracks_data.get(track_id)
+            if not isinstance(track_def, dict):
+                continue
+            items = track_def.get("items")
+            if not isinstance(items, (list, tuple)):
+                continue
+            for item in items:
+                if isinstance(item, str):
+                    norm = _normalize_content_path(item)
+                    result.add(norm)
+                    if norm.endswith(".md"):
+                        result.add(norm[:-3])
+                    else:
+                        result.add(f"{norm}.md")
+        return result
+
     def _partition_by_track(
         self, pages: list[Page], track_item_paths: set[str]
     ) -> tuple[list[Page], list[Page], list[Page]]:
@@ -1235,17 +1273,48 @@ class RenderOrchestrator:
             else:
                 normal_pages.append(page)
 
-        if priority_pages:
-            logger.debug(
-                "rendering_prioritization",
-                priority_count=len(priority_pages),
-                normal_count=len(normal_pages),
-            )
-            # Maintain complexity sorting within each group if enabled
-            max_workers = self._get_max_workers() or 4
-            priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
-            normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
+        if not priority_pages:
+            return pages
 
-            return priority_pages + normal_pages
+        # When track dependency ordering is on, pull track items for priority
+        # track pages from normal_pages so they render before their track pages
+        if self._should_use_track_dependency_ordering():
+            track_item_paths = self._get_track_item_paths()
+            if track_item_paths:
+                priority_track_item_paths = self._get_track_item_paths_for_pages(
+                    priority_pages
+                )
+                if priority_track_item_paths:
+                    content_root = self.site.root_path / "content"
+                    for page in list(normal_pages):
+                        if not page.source_path:
+                            continue
+                        try:
+                            rel = page.source_path.relative_to(content_root)
+                        except ValueError:
+                            continue
+                        rel_str = to_posix(rel)
+                        rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
+                        if (
+                            rel_str in priority_track_item_paths
+                            or rel_no_ext in priority_track_item_paths
+                        ):
+                            normal_pages.remove(page)
+                            priority_pages.append(page)
+                    # Reorder priority_pages so track items come before track pages
+                    # (_maybe_sort_by_complexity skips when len <= max_workers)
+                    track_items, track_pages, other = self._partition_by_track(
+                        priority_pages, track_item_paths
+                    )
+                    priority_pages = track_items + track_pages + other
 
-        return pages
+        logger.debug(
+            "rendering_prioritization",
+            priority_count=len(priority_pages),
+            normal_count=len(normal_pages),
+        )
+        max_workers = self._get_max_workers() or 4
+        priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
+        normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
+
+        return priority_pages + normal_pages

@@ -365,6 +365,45 @@ class TestTrackDependencyOrdering:
 
         assert result == pages
 
+    def test_priority_sort_pulls_track_items_when_track_page_changed(
+        self, orchestrator, mock_site
+    ):
+        """When track page is in changed_sources, its track items move to priority."""
+        mock_site.data = Mock()
+        mock_site.data.tracks = {
+            "getting-started": {"items": ["docs/step1.md", "docs/step2.md"]},
+        }
+        mock_site.config = {"build": {"track_dependency_ordering": True}}
+
+        track_page_path = Path("/fake/site/content/tracks/getting-started.md")
+        item1_path = Path("/fake/site/content/docs/step1.md")
+        item2_path = Path("/fake/site/content/docs/step2.md")
+        other_path = Path("/fake/site/content/blog/post.md")
+
+        track_page = Page(
+            source_path=track_page_path,
+            _raw_content="",
+            _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
+        )
+        item1 = Page(source_path=item1_path, _raw_content="", _raw_metadata={})
+        item2 = Page(source_path=item2_path, _raw_content="", _raw_metadata={})
+        other = Page(source_path=other_path, _raw_content="", _raw_metadata={})
+
+        pages = [track_page, item1, item2, other]
+        changed_sources = {track_page_path.resolve()}
+
+        result = orchestrator._priority_sort(pages, changed_sources)
+
+        # Track items and track page should be in priority (first 3), track items first
+        priority_group = result[:3]
+        assert item1 in priority_group
+        assert item2 in priority_group
+        assert track_page in priority_group
+        track_item_indices = [priority_group.index(item1), priority_group.index(item2)]
+        track_page_idx = priority_group.index(track_page)
+        assert max(track_item_indices) < track_page_idx
+        assert result[3] == other
+
     def test_maybe_sort_preserves_track_order_within_complexity(self, orchestrator, mock_site):
         """_maybe_sort_by_complexity preserves track_items before track_pages when both enabled."""
         mock_site.data = Mock()
