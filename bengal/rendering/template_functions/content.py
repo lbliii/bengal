@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+from urllib.parse import urljoin
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "prefix_heading_ids": prefix_heading_ids,
             "urlize": urlize,
             "highlight": filter_highlight,
+            "resolve_links_for_embedding": resolve_links_for_embedding,
         }
     )
 
@@ -384,6 +386,64 @@ def extract_content(html: str) -> str:
     return ""
 
 
+# Compiled once; used by resolve_links_for_embedding
+_LINK_ATTR_PATTERN = re.compile(r'(href|src)=(["\'])([^"\']*?)\2')
+
+
+def resolve_links_for_embedding(html: str, page: object | None) -> str:
+    """
+    Rewrite relative links in HTML to absolute URLs for embedding contexts.
+
+    When content is embedded in another view (e.g. track pages, includes),
+    relative links (./child, ../sibling) resolve against the embedding page's
+    URL, not the source page. This filter rewrites them to absolute URLs
+    using the source page as base, so links work correctly regardless of
+    embedding context.
+
+    Handles: href and src attributes from any directive, raw markdown, or
+    template output. Single point of fix for all embedding scenarios.
+
+    Args:
+        html: HTML content that may contain relative links
+        page: Page this content belongs to (for base URL). Uses page.href.
+
+    Returns:
+        HTML with relative links rewritten to absolute
+
+    Example:
+        {{ item_page.html_content | resolve_links_for_embedding(item_page) | safe }}
+    """
+    if not html:
+        return ""
+    if page is None:
+        return html
+    # Fast-path: skip regex when no link attributes present
+    if "href=" not in html and "src=" not in html:
+        return html
+
+    base = getattr(page, "href", None) or getattr(page, "_path", None) or "/"
+    base = str(base).rstrip("/") + "/"
+
+    # Skip: #anchor, /absolute, http(s)://, //, mailto:, tel:
+    def _is_relative(url: str) -> bool:
+        if not url or url.startswith("#"):
+            return False
+        if url.startswith(("http://", "https://", "//", "mailto:", "tel:")):
+            return False
+        if url.startswith("/") and not url.startswith("//"):
+            return False
+        return True
+
+    def _replacer(match: re.Match[str]) -> str:
+        attr, quote, url = match.group(1), match.group(2), match.group(3)
+        if not _is_relative(url):
+            return match.group(0)
+        resolved = urljoin(base, url)
+        return f'{attr}={quote}{resolved}{quote}'
+
+    return _LINK_ATTR_PATTERN.sub(_replacer, html)
+
+
 def demote_headings(html: str, levels: int = 1) -> str:
     """
     Demote HTML headings by the specified number of levels.
@@ -460,15 +520,7 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
     if not heading_ids:
         return html
 
-    # Replace heading IDs
-    def replace_heading_id(match: re.Match[str]) -> str:
-        tag_start = match.group(1)
-        old_id = match.group(2)
-        quote = match.group(3)
-        tag_rest = match.group(4)
-        return f"{tag_start}id={quote}{prefix}{old_id}{quote}{tag_rest}"
-
-    # Pattern for heading tags with id attribute
+    # Replace heading IDs (single pass)
     html = re.sub(
         r'(<h[1-6][^>]*\s)id=(["\'])([^"\']+)\2([^>]*>)',
         lambda m: f"{m.group(1)}id={m.group(2)}{prefix}{m.group(3)}{m.group(2)}{m.group(4)}",
@@ -476,16 +528,14 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Update anchor links that reference these IDs
-    for old_id in heading_ids:
-        # Match href="#old_id" patterns
-        html = re.sub(
-            rf'href=(["\'])#{re.escape(old_id)}\1',
-            rf"href=\1#{prefix}{old_id}\1",
-            html,
-        )
+    # Update anchor links in single pass (one regex for all IDs)
+    ids_alternation = "|".join(re.escape(i) for i in heading_ids)
+    anchor_pattern = re.compile(rf'href=(["\'])#({ids_alternation})\1')
 
-    return html
+    def _prefix_anchor(m: re.Match[str]) -> str:
+        return f'href={m.group(1)}#{prefix}{m.group(2)}{m.group(1)}'
+
+    return anchor_pattern.sub(_prefix_anchor, html)
 
 
 def urlize(

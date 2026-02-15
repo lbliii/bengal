@@ -1,11 +1,14 @@
 """Tests for content transformation template functions."""
 
+from unittest.mock import Mock
+
 from bengal.rendering.template_functions.content import (
     emojify,
     filter_highlight,
     html_escape,
     html_unescape,
     nl2br,
+    resolve_links_for_embedding,
     safe_html,
     smartquotes,
     urlize,
@@ -224,3 +227,53 @@ class TestUrlize:
         # The <script> is outside the URL so it won't be part of the link
         # The text after the URL is left as-is (this filter only converts URLs)
         assert '<a href="https://example.com/' in result
+
+
+class TestResolveLinksForEmbedding:
+    """Tests for resolve_links_for_embedding filter."""
+
+    def test_empty_html_returns_empty(self):
+        page = Mock(href="/docs/guides/foo/")
+        assert resolve_links_for_embedding("", page) == ""
+
+    def test_none_page_returns_html_unchanged(self):
+        html = '<a href="./child">Child</a>'
+        assert resolve_links_for_embedding(html, None) == html
+
+    def test_relative_href_rewritten_to_absolute(self):
+        page = Mock(href="/docs/content/authoring/external-references/")
+        html = '<a href="./child">Child</a>'
+        result = resolve_links_for_embedding(html, page)
+        assert 'href="/docs/content/authoring/external-references/child"' in result
+
+    def test_relative_src_rewritten_to_absolute(self):
+        page = Mock(href="/docs/guides/images/")
+        html = '<img src="./diagram.png" alt="Diagram">'
+        result = resolve_links_for_embedding(html, page)
+        assert 'src="/docs/guides/images/diagram.png"' in result
+
+    def test_absolute_href_unchanged(self):
+        page = Mock(href="/docs/guides/")
+        html = '<a href="/docs/other">Other</a>'
+        assert resolve_links_for_embedding(html, page) == html
+
+    def test_http_url_unchanged(self):
+        page = Mock(href="/docs/guides/")
+        html = '<a href="https://example.com">External</a>'
+        assert resolve_links_for_embedding(html, page) == html
+
+    def test_anchor_unchanged(self):
+        page = Mock(href="/docs/guides/")
+        html = '<a href="#section">Section</a>'
+        assert resolve_links_for_embedding(html, page) == html
+
+    def test_plain_text_unchanged(self):
+        page = Mock(href="/docs/guides/")
+        html = "<p>No links here</p>"
+        assert resolve_links_for_embedding(html, page) == html
+
+    def test_uses_path_when_href_missing(self):
+        page = type("Page", (), {"_path": "/docs/fallback/"})()
+        html = '<a href="./child">Child</a>'
+        result = resolve_links_for_embedding(html, page)
+        assert 'href="/docs/fallback/child"' in result

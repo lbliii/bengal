@@ -434,7 +434,9 @@ KIDA FEATURES:
 - {% let %} for scoped URL computation
 ----------------------------------------------------------------------------- #}
 {% def hero_element(element, page, config) %}
-{% with element?.qualified_name ?? element?.name ?? 'Element' as display_name %}
+{% let raw_name = element?.qualified_name ?? element?.name ?? 'Element' %}
+{% let is_cli_elem = element?.element_type in ['command', 'command-group'] %}
+{% with (raw_name | replace('.', ' ') if is_cli_elem else raw_name) as display_name %}
 {% let source_file = element?.display_source_file ?? element?.source_file %}
 
 <div class="page-hero page-hero--api">

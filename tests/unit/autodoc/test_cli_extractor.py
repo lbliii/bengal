@@ -319,6 +319,72 @@ class TestCLIExtractorMetadata:
             assert "param_type" in param.metadata
 
 
+class TestLazyLoadedGroups:
+    """
+    Regression tests for lazy-loaded Click groups.
+
+    Lazy groups have empty group.commands and load subcommands via
+    list_commands()/get_command(). The extractor must use those APIs,
+    not group.commands.items(), or no subcommands will be extracted.
+    """
+
+    def test_extract_lazy_group_with_empty_commands_dict(self):
+        """Lazy groups with empty commands dict still yield subcommands."""
+        # Inner group with real commands (eager-loaded)
+        @click.group()
+        def inner():
+            """Inner group."""
+
+        @inner.command()
+        def foo():
+            """Foo command."""
+
+        @inner.command()
+        def bar():
+            """Bar command."""
+
+        # Lazy wrapper: empty commands dict, delegates to inner
+        @click.group(name="lazy-cli")
+        def lazy_wrapper():
+            pass
+
+        lazy_wrapper.commands = {}  # Simulate lazy group
+        original_list = lazy_wrapper.list_commands
+        original_get = lazy_wrapper.get_command
+
+        def list_commands(ctx):
+            return inner.list_commands(ctx)
+
+        def get_command(ctx, name):
+            return inner.get_command(ctx, name)
+
+        lazy_wrapper.list_commands = list_commands
+        lazy_wrapper.get_command = get_command
+
+        extractor = CLIExtractor()
+        elements = extractor.extract(lazy_wrapper)
+
+        root = elements[0]
+        assert root.element_type == "command-group"
+        assert len(root.children) >= 2, "Lazy group must yield subcommands"
+        names = {c.name for c in root.children}
+        assert "foo" in names
+        assert "bar" in names
+
+    def test_bengal_cli_extracts_subcommands(self):
+        """Bengal CLI (lazy-loaded) yields subcommands when extracted."""
+        from bengal.cli import main
+
+        extractor = CLIExtractor()
+        elements = extractor.extract(main)
+
+        root = elements[0]
+        assert root.element_type == "command-group"
+        assert len(root.children) >= 5, "Bengal CLI must have multiple top-level commands"
+        names = {c.name for c in root.children}
+        assert "build" in names or "serve" in names, "Core commands must be present"
+
+
 class TestNestedCommandGroups:
     """Test nested command group extraction."""
 

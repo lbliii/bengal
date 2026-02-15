@@ -186,7 +186,12 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
 
     # Parse content
     try:
-        context = {"page": page, "site": site, "config": site.config}
+        context: dict[str, Any] = {"page": page, "site": site, "config": site.config}
+        # Include xref_index so card directives resolve links to absolute URLs
+        # (e.g. ./child -> /docs/guides/child/) instead of leaving relative links
+        # that would resolve against the track page URL when embedded
+        if hasattr(site, "xref_index") and site.xref_index is not None:
+            context["xref_index"] = site.xref_index
 
         if hasattr(parser, "parse_with_toc_and_context"):
             # Mistune with variable substitution (preferred)

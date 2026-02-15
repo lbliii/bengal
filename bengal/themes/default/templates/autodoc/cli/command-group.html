@@ -47,11 +47,12 @@ providing a consistent API via CommandView:
     {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="cli" data-element="command-group" class="autodoc docs-content">
 
-      {# Usage #}
+      {# Usage - CLI uses spaces, not dots #}
       {% if qualified_name %}
+      {% let cli_usage = qualified_name | replace('.', ' ') %}
       <div class="autodoc-usage">
         <h2 class="autodoc-label">Usage</h2>
-        <pre><code class="language-bash">{{ qualified_name }} [COMMAND] [OPTIONS]</code></pre>
+        <pre><code class="language-bash">{{ cli_usage }} [COMMAND] [OPTIONS]</code></pre>
       </div>
       {% end %}
 

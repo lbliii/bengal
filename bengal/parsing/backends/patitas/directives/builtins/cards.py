@@ -581,6 +581,8 @@ class ChildCardsDirective:
         sb: StringBuilder,
         *,
         page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
     ) -> None:
         """Render child cards by walking the page object tree.
 
@@ -589,6 +591,8 @@ class ChildCardsDirective:
             rendered_children: Pre-rendered children HTML (unused)
             sb: StringBuilder for output
             page_context: Page object from renderer (for section/children access)
+            xref_index: Cross-reference index for resolving relative URLs when embedded
+            current_page_dir: Content-relative dir for resolving ./ and ../ in child URLs
         """
         from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
             collect_children,
@@ -629,7 +633,9 @@ class ChildCardsDirective:
             return
 
         # Collect children from section
-        children_items = collect_children(section, page_context, include)
+        children_items = collect_children(
+            section, page_context, include, xref_index, current_page_dir
+        )
 
         if not children_items:
             no_content("No child content found")

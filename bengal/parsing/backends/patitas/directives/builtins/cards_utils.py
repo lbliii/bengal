@@ -193,7 +193,31 @@ def render_icon(icon_name: str, card_title: str = "") -> str:
     return icon_html
 
 
-def collect_children(section: Any, current_page: Any, include: str) -> list[dict[str, Any]]:
+def _ensure_absolute_url(
+    url: str,
+    xref_index: dict[str, Any] | None,
+    current_page_dir: str | None,
+) -> str:
+    """Resolve relative URLs to absolute when content may be embedded (e.g. in tracks)."""
+    if not url:
+        return url
+    if url.startswith(("http://", "https://", "//", "/")):
+        return url
+    if not xref_index or not current_page_dir:
+        return url
+    from bengal.utils.xref import resolve_link_to_url_and_page
+
+    resolved, _ = resolve_link_to_url_and_page(xref_index, url, current_page_dir)
+    return resolved if resolved else url
+
+
+def collect_children(
+    section: Any,
+    current_page: Any,
+    include: str,
+    xref_index: dict[str, Any] | None = None,
+    current_page_dir: str | None = None,
+) -> list[dict[str, Any]]:
     """Collect child sections/pages from section."""
     children: list[dict[str, Any]] = []
 
@@ -203,6 +227,8 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
             if hasattr(subsection, "metadata") and subsection.metadata.get("hidden", False):
                 continue
             has_weight = hasattr(subsection, "metadata") and "weight" in subsection.metadata
+            url = get_section_url(subsection)
+            url = _ensure_absolute_url(url, xref_index, current_page_dir)
             children.append(
                 {
                     "type": "section",
@@ -217,7 +243,7 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
                         if hasattr(subsection, "metadata")
                         else ""
                     ),
-                    "url": get_section_url(subsection),
+                    "url": url,
                     "weight": (
                         subsection.metadata.get("weight", 0)
                         if hasattr(subsection, "metadata")
@@ -242,6 +268,8 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
             if hasattr(page, "metadata") and page.metadata.get("hidden", False):
                 continue
             has_weight = hasattr(page, "metadata") and "weight" in page.metadata
+            url = getattr(page, "href", "")
+            url = _ensure_absolute_url(url, xref_index, current_page_dir)
             children.append(
                 {
                     "type": "page",
@@ -250,7 +278,7 @@ def collect_children(section: Any, current_page: Any, include: str) -> list[dict
                         page.metadata.get("description", "") if hasattr(page, "metadata") else ""
                     ),
                     "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
-                    "url": getattr(page, "href", ""),
+                    "url": url,
                     "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
                     "_has_explicit_weight": has_weight,
                 }
