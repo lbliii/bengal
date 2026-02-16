@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SectionLike, SiteLike
 
+from bengal.config.utils import coerce_int
 from bengal.snapshots.scheduling import (
     _compute_attention_score,
     _estimate_render_time,
@@ -89,9 +90,9 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     excerpt = getattr(page, "excerpt", "") or ""
     meta_description = getattr(page, "meta_description", "") or ""
 
-    # Get reading_time and word_count
-    reading_time = getattr(page, "reading_time", 0) or 0
-    word_count = getattr(page, "word_count", 0) or 0
+    # Get reading_time and word_count (coerce in case from cache/YAML as str)
+    reading_time = coerce_int(getattr(page, "reading_time", 0), 0)
+    word_count = coerce_int(getattr(page, "word_count", 0), 0)
 
     # Compute content hash
     content_hash = compute_page_hash(page)

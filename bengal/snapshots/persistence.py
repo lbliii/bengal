@@ -27,6 +27,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.utils import coerce_int
 from bengal.snapshots.utils import compute_content_hash
 from bengal.utils.observability.logger import get_logger
 
@@ -113,10 +114,10 @@ class SnapshotCache:
                     parsed_html=data["parsed_html"],
                     toc=data.get("toc", ""),
                     toc_items=tuple(data.get("toc_items", [])),
-                    reading_time=data.get("reading_time", 0),
-                    word_count=data.get("word_count", 0),
-                    excerpt=data.get("excerpt", ""),
-                    meta_description=data.get("meta_description", ""),
+                    reading_time=coerce_int(data.get("reading_time"), 0),
+                    word_count=coerce_int(data.get("word_count"), 0),
+                    excerpt=str(data.get("excerpt", "") or ""),
+                    meta_description=str(data.get("meta_description", "") or ""),
                 )
 
             logger.debug(
