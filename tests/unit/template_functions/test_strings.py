@@ -3,7 +3,10 @@
 from bengal.rendering.template_functions.strings import (
     base64_decode,
     base64_encode,
+    card_excerpt,
+    card_excerpt_html,
     excerpt,
+    excerpt_for_card,
     filesize,
     pluralize,
     reading_time,
@@ -106,6 +109,48 @@ class TestTruncatewordsHtml:
         result = truncatewords_html(html, 2)
         # Self-closing br should not cause issues
         assert "</br>" not in result
+
+
+class TestFilterTypeCoercion:
+    """Filters must accept non-int numeric params (str, None, float) from YAML/config."""
+
+    def test_truncatewords_html_accepts_string_count(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, "3")
+        assert "..." in result
+        assert "One two three" in result
+
+    def test_truncatewords_html_accepts_none_count(self):
+        html = "<p>Short</p>"
+        result = truncatewords_html(html, None)
+        assert result == html
+
+    def test_truncatewords_html_accepts_float_count(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, 3.0)
+        assert "..." in result
+
+    def test_card_excerpt_html_accepts_string_words(self):
+        content = "<p>One two three four five six seven</p>"
+        result = card_excerpt_html(content, "3", "", "")
+        assert "..." in result
+        assert "One two three" in result
+
+    def test_card_excerpt_html_accepts_none_words(self):
+        content = "<p>Short</p>"
+        result = card_excerpt_html(content, None, "", "")
+        assert result == content
+
+    def test_truncatewords_accepts_string_count(self):
+        text = "This is a long piece of text"
+        result = truncatewords(text, "3")
+        assert result == "This is a..."
+
+    def test_truncate_chars_accepts_string_length(self):
+        text = "This is a long text"
+        result = truncate_chars(text, "10")
+        assert result == "This is..."
+        assert len(result) == 10
 
 
 class TestSlugify:
@@ -289,6 +334,99 @@ class TestExcerpt:
         result = excerpt(html, 20)
         # Should strip HTML
         assert "<p>" not in result
+
+
+class TestExcerptForCard:
+    """Tests for excerpt_for_card filter."""
+
+    def test_strips_leading_title(self):
+        content = "My Post Title. This is the actual excerpt content."
+        result = excerpt_for_card(content, title="My Post Title")
+        assert result == "This is the actual excerpt content."
+
+    def test_strips_leading_title_case_insensitive(self):
+        content = "my post title. This is the actual content."
+        result = excerpt_for_card(content, title="My Post Title")
+        assert result == "This is the actual content."
+
+    def test_strips_title_then_description(self):
+        content = "Title. Description text. Real content here."
+        result = excerpt_for_card(content, title="Title", description="Description text")
+        assert result == "Real content here."
+
+    def test_no_strip_when_title_not_at_start(self):
+        content = "This mentions Title in the middle."
+        result = excerpt_for_card(content, title="Title")
+        assert result == "This mentions Title in the middle."
+
+    def test_strips_html_first(self):
+        html = "<p>Title.</p><p>Real content here.</p>"
+        result = excerpt_for_card(html, title="Title")
+        assert "Title" not in result
+        assert "Real content" in result
+
+    def test_empty_content(self):
+        assert excerpt_for_card("", title="Title") == ""
+        assert excerpt_for_card("", title="", description="") == ""
+
+    def test_empty_title_and_description(self):
+        content = "Some content here."
+        assert excerpt_for_card(content) == "Some content here."
+        assert excerpt_for_card(content, title="", description="") == "Some content here."
+
+    def test_autodoc_docstring_strips_element_name(self):
+        """Autodoc: description often starts with element name."""
+        content = "process_data converts input to output."
+        result = excerpt_for_card(content, title="process_data")
+        assert result == "converts input to output."
+
+    def test_changelog_summary_strips_version(self):
+        """Changelog: summary may start with version."""
+        content = "0.1.8 - Bug fixes. Fixed crash on startup."
+        result = excerpt_for_card(content, title="0.1.8")
+        assert result == "Bug fixes. Fixed crash on startup."
+
+    def test_tutorial_description_strips_title(self):
+        """Tutorial: description from content may start with title."""
+        content = "Getting Started. Learn the basics in 10 minutes."
+        result = excerpt_for_card(content, title="Getting Started")
+        assert result == "Learn the basics in 10 minutes."
+
+
+class TestCardExcerpt:
+    """Tests for card_excerpt filter."""
+
+    def test_strips_title_and_truncates(self):
+        content = "My Post. This is a long excerpt that should be truncated."
+        result = card_excerpt(content, words=5, title="My Post")
+        assert result == "This is a long excerpt..."
+
+    def test_default_word_count(self):
+        content = "Title. " + " ".join(["word"] * 50)
+        result = card_excerpt(content, title="Title")
+        assert result.endswith("...")
+        assert len(result.split()) <= 31  # 30 words + suffix
+
+    def test_empty_content(self):
+        assert card_excerpt("") == ""
+        assert card_excerpt("", words=10, title="Title") == ""
+
+    def test_short_content_unchanged(self):
+        content = "Title. Short."
+        result = card_excerpt(content, words=10, title="Title")
+        assert result == "Short."
+
+    def test_custom_suffix(self):
+        content = "Title. One two three four five six."
+        result = card_excerpt(content, words=3, title="Title", suffix=" [more]")
+        assert result == "One two three [more]"
+
+    def test_changelog_summary_truncates(self):
+        """Changelog: long summary truncated at 160 chars equivalent (words)."""
+        content = "0.1.8. " + " ".join(["word"] * 50)
+        result = card_excerpt(content, words=25, title="0.1.8")
+        assert result.endswith("...")
+        assert "0.1.8" not in result
 
 
 class TestStripWhitespace:

@@ -1,0 +1,58 @@
+{% extends "blog/shell.html" %}
+
+{#
+================================================================================
+Blog Contact Page Template
+================================================================================
+
+Minimal layout for contact pages. Prose content + optional email/social links
+from site.params. data-type="contact" for future form integration hooks.
+
+USAGE:
+  Add `template: blog/contact.html` to contact.md frontmatter
+================================================================================
+#}
+
+{% block blog_content %}
+{% let page_title = page?.title ?? 'Contact' %}
+{% let page_desc = params?.description ?? '' %}
+{% let css_class = params?.css_class ?? '' %}
+{% let site_params = site?.params ?? {} %}
+{% let contact_email = site_params?.email ?? params?.email ?? '' %}
+{% let contact_social = site_params?.social ?? params?.social ?? [] %}
+
+<article class="blog-contact prose {{ css_class }}" data-type="contact">
+  <header class="blog-contact-header">
+    <h1>{{ page_title }}</h1>
+    {% if page_desc %}
+    <p class="lead">{{ page_desc }}</p>
+    {% end %}
+  </header>
+
+  <div class="blog-contact-content">
+    {{ content | safe }}
+  </div>
+
+  {% if contact_email or contact_social | length > 0 %}
+  <footer class="blog-contact-footer">
+    {% if contact_email %}
+    <p class="contact-email">
+      <strong>Email:</strong>
+      <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+    </p>
+    {% end %}
+    {% if contact_social | length > 0 %}
+    <div class="contact-social">
+      <strong>Find me:</strong>
+      {% for link in contact_social %}
+      {% let link_url = link?.url ?? link?.href ?? '#' %}
+      {% let link_name = link?.name ?? link?.platform ?? 'Link' %}
+      <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_name }}</a>
+      {% if not loop.last %} · {% end %}
+      {% end %}
+    </div>
+    {% end %}
+  </footer>
+  {% end %}
+</article>
+{% end %}

@@ -194,3 +194,16 @@ class TestTruncateAtWord:
         """Text at exact length is unchanged."""
         text = "Hello"
         assert truncate_at_word(text, length=5) == text
+
+    def test_does_not_end_with_orphan_markdown(self) -> None:
+        """Truncation backs up when it would end with orphaned ** or similar."""
+        text = "Bengal is great. Asset Optimization and fingerprinting **SEO** friendly."
+        result = truncate_at_word(text, length=60)
+        assert not result.endswith("**"), "Should not end with orphaned **"
+        assert result.endswith("...")
+
+    def test_preserves_complete_bold(self) -> None:
+        """Complete **word** is preserved when not at truncation boundary."""
+        text = "This has **bold** text in the middle."
+        result = truncate_at_word(text, length=100)
+        assert result == text  # Short enough, unchanged

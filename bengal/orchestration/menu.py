@@ -127,10 +127,17 @@ class MenuOrchestrator:
         if not self.site.menu:
             return False
 
-        # Check if any changed pages have menu frontmatter
+        # Check if any changed pages affect menu (menu frontmatter or root-level)
+        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+
+        root_path = getattr(self.site, "root_path", None)
+        content_dir = root_path / "content" if root_path else None
         for page in self.site.pages:
-            if page.source_path in changed_pages and "menu" in page.metadata:
-                # Menu-related page changed - need rebuild
+            if page.source_path not in changed_pages:
+                continue
+            if "menu" in page.metadata:
+                return False
+            if content_dir and _is_root_level_page(page, content_dir):
                 return False
 
         # Compute cache key based on menu config and pages with menu frontmatter
@@ -218,10 +225,29 @@ class MenuOrchestrator:
         bundles_config = self.site.config.get("menu", {}).get("bundles", {})
         auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
 
+        # Root-level pages (auto-discovered in get_auto_nav, affect cache when they change)
+        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+
+        root_level_pages = []
+        if root_path := getattr(self.site, "root_path", None):
+            content_dir = root_path / "content"
+            for page in self.site.pages:
+                if _is_root_level_page(page, content_dir):
+                    metadata = getattr(page, "metadata", {})
+                    root_level_pages.append(
+                        {
+                            "path": str(page.source_path),
+                            "menu": metadata.get("menu", True),
+                            "title": page.title,
+                            "weight": metadata.get("weight", 999),
+                        }
+                    )
+
         # Create cache key data
         cache_data = {
             "config": menu_config,
             "pages": menu_pages,
+            "root_level_pages": root_level_pages,
             "dev_params": dev_params,
             "dev_sections": dev_section_names,
             "dropdowns": dropdown_configs,

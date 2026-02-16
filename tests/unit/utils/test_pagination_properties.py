@@ -13,6 +13,24 @@ from bengal.errors import BengalError
 from bengal.utils.pagination import Paginator
 
 
+class TestPaginatorTypeCoercion:
+    """Paginator must accept per_page as str from config."""
+
+    def test_per_page_string_from_config(self):
+        """per_page as string (e.g. from YAML) works without TypeError."""
+        items = list(range(25))
+        paginator = Paginator(items, per_page="10")
+        assert paginator.per_page == 10
+        assert paginator.num_pages == 3
+        assert len(paginator.page(1)) == 10
+
+    def test_per_page_invalid_falls_back_to_default(self):
+        """Invalid per_page falls back to 10."""
+        items = list(range(5))
+        paginator = Paginator(items, per_page="bad")
+        assert paginator.per_page == 10
+
+
 class TestPaginatorProperties:
     """
     Property-based tests for Paginator class.

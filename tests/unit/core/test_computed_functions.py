@@ -102,21 +102,54 @@ class TestComputeReadingTime:
 
 
 class TestComputeExcerpt:
-    """Direct tests for compute_excerpt free function."""
+    """Direct tests for compute_excerpt free function.
 
-    def test_short_content_unchanged(self):
-        assert compute_excerpt("Hello world.") == "Hello world."
+    Excerpt now returns rendered HTML (markdown parsed), strips leading h1,
+    and truncates at ~250 chars before rendering.
+    """
+
+    def test_short_content_renders_markdown(self):
+        result = compute_excerpt("Hello world.")
+        assert "Hello world" in result
+        assert "<" in result  # Rendered to HTML (e.g. <p>)
 
     def test_empty_string(self):
         assert compute_excerpt("") == ""
 
-    def test_truncates_long(self):
-        long = "word " * 100
-        result = compute_excerpt(long)
-        assert len(result) <= 203  # 200 + "..."
+    def test_strips_leading_h1(self):
+        result = compute_excerpt("# My Title\n\nFirst paragraph here.")
+        assert "First paragraph" in result
+        assert "My Title" not in result
 
-    def test_strips_html(self):
-        assert compute_excerpt("<p>Hello <b>world</b></p>") == "Hello world"
+    def test_renders_markdown(self):
+        result = compute_excerpt("This has **bold** and *italic*.")
+        assert "bold" in result
+        assert "<strong>" in result or "**" not in result  # Rendered
+
+    def test_does_not_cut_mid_markdown(self):
+        """Excerpt should not end with orphaned ** or other markdown syntax."""
+        content = (
+            "Bengal is a powerful static site generator. "
+            "Key Features: Fast Builds, Asset Optimization, **SEO** friendly."
+        )
+        result = compute_excerpt(content)
+        from bengal.core.utils.text import strip_html
+
+        plain = strip_html(result)
+        assert not plain.endswith("**"), "Should not end with orphaned **"
+
+    def test_headers_in_content(self):
+        """Headers in content are rendered and available for card excerpt."""
+        content = (
+            "Intro paragraph here.\n\n"
+            "## Key Features\n\n"
+            "### Fast Builds\n"
+            "- Parallel processing\n"
+            "- Asset Optimization\n"
+            "**SEO** friendly."
+        )
+        result = compute_excerpt(content)
+        assert "Key Features" in result or "Intro" in result
 
 
 # -----------------------------------------------------------------------

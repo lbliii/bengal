@@ -41,7 +41,8 @@ var x = [[doc/link]];
 ```
 """
 
-        html, _ = parser.parse_with_toc(content, {})
+        result = parser.parse_with_toc(content, {})
+        html = result[0]
 
         # The text reference SHOULD be linked
         assert '<a href="/test-url/">Test Page</a>' in html

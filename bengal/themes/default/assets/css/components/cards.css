@@ -412,6 +412,19 @@ a.card:hover {
   background-color: var(--color-bg-secondary);
 }
 
+/* Article card modifiers for blog variants */
+.article-card--featured {
+  /* Uses gradient-border-strong fluid-bg for featured posts */
+}
+
+.article-card--compact {
+  /* Minimal card for related posts, author lists */
+}
+
+.article-card--featured.gradient-border-strong.fluid-bg {
+  border: none;
+}
+
 /* ============================================
    CARD VARIANTS
    ============================================ */

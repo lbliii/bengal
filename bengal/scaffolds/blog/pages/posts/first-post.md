@@ -3,12 +3,14 @@ title: My First Blog Post
 date: {{date}}
 tags: [welcome, introduction]
 category: meta
-description: Welcome to my new blog built with Bengal SSG
+description: Welcome to your new blog built with Bengal
+params:
+  author: kida
 ---
 
 # My First Blog Post
 
-Welcome to my blog! This is my first post, and I'm excited to start sharing my thoughts and ideas.
+Welcome to your new blog! This is your first post. Edit `content/posts/first-post.md` to make it yours.
 
 ## Why I Started This Blog
 

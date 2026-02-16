@@ -361,6 +361,14 @@ class RelatedPostsOrchestrator:
                 if other_page.metadata.get("_generated"):
                     continue
 
+                # Exclude structural/navigation pages (home, section indices)
+                path = getattr(other_page, "_path", "") or getattr(other_page, "href", "") or ""
+                path_str = str(path).rstrip("/") if path else ""
+                if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
+                    continue  # Home page
+                if getattr(other_page, "kind", None) == "index":
+                    continue  # Section indices (posts hub, etc.)
+
                 # Increment score (counts shared tags)
                 if other_page not in scored_pages:
                     scored_pages[other_page] = [other_page, 0]

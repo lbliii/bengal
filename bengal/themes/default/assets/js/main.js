@@ -76,7 +76,11 @@
           // Update URL without jumping
           history.pushState(null, null, href);
 
-          // Focus target for accessibility
+          // Focus target for accessibility (keyboard/screen-reader users)
+          // Make heading focusable, then focus without scroll (avoids scroll-lock)
+          if (!target.hasAttribute('tabindex')) {
+            target.setAttribute('tabindex', '-1');
+          }
           target.focus({ preventScroll: true });
         }
       });

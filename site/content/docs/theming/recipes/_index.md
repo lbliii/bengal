@@ -50,6 +50,7 @@ Add features to individual pages.
 | [Series Navigation](./series-navigation/) | `prev_in_series`, `next_in_series` |
 | [Social Sharing Buttons](./social-sharing-buttons/) | `share_url()`, platform share links |
 | [Section Statistics](./section-statistics/) | `post_count`, `word_count`, totals |
+| [Blog Comments](./blog-comments/) | `params.comments`, Giscus, Disqus, Utterances |
 
 ---
 

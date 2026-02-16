@@ -64,9 +64,9 @@ AUTHOR CARD COMPONENT
       {% end %}
 
       <div class="author-card-stats">
-        <span class="stat">📝 {{ post_count }} post{{ 's' if post_count != 1 else '' }}</span>
+        <span class="stat">{{ post_count }} post{{ 's' if post_count != 1 else '' }}</span>
         {% if author_github %}
-        <span class="stat">💻 {{ author_github }}</span>
+        <span class="stat">{{ author_github }}</span>
         {% end %}
       </div>
     </div>

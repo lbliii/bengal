@@ -334,6 +334,25 @@ class TestGetPaginationItems:
         assert result["last"]["url"] == "/blog/page/10/"
 
 
+class TestGetPaginationItemsTypeCoercion:
+    """get_pagination_items must accept str params from YAML/config."""
+
+    def test_accepts_string_current_page_and_total_pages(self):
+        """String current_page and total_pages work without TypeError."""
+        result = get_pagination_items("2", "5", "/blog/")
+        assert "pages" in result
+        assert result["prev"] is not None
+        assert result["next"] is not None
+        assert result["prev"]["num"] == 1
+        assert result["next"]["num"] == 3
+
+    def test_accepts_string_window(self):
+        """String window param works without TypeError."""
+        result = get_pagination_items(5, 10, "/blog/", window="3")
+        assert len(result["pages"]) >= 1
+        assert result["pages"][0]["num"] == 1
+
+
 class TestGetNavTree:
     """Test the get_nav_tree() function."""
 

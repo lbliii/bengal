@@ -487,9 +487,18 @@ class Renderer:
                     else config.get("debug", False)
                 )
 
+            # Show Python traceback in dev-server mode (BENGAL_DEV_SERVER=1)
+            # or when debug is explicitly enabled.  Dev-server users are
+            # actively developing and the traceback pinpoints the real
+            # comparison / sort that failed, which the template line alone
+            # cannot convey.
+            import os
+
+            show_traceback = debug_mode or os.environ.get("BENGAL_DEV_SERVER") == "1"
+
             if strict_mode:
                 display_template_error(rich_error)
-                if debug_mode:
+                if show_traceback:
                     # Use configured traceback renderer for consistency
                     try:
                         from bengal.errors.traceback import TracebackConfig
@@ -513,7 +522,7 @@ class Renderer:
                     self.build_stats.add_template_error(rich_error)
             # Note: If no build_stats, error is silently dropped (fallback HTML is still generated)
 
-            if debug_mode:
+            if show_traceback:
                 # Show exception using the configured renderer
                 try:
                     from bengal.errors.traceback import TracebackConfig
@@ -577,7 +586,7 @@ class Renderer:
         page_metadata = page.metadata if page.metadata is not None else {}
         subsections = page_metadata.get("_subsections", [])
         paginator = page_metadata.get("_paginator")
-        page_num = page_metadata.get("_page_num", 1)
+        page_num = int(page_metadata.get("_page_num") or 1)
 
         if paginator:
             posts = paginator.page(page_num)
@@ -601,6 +610,15 @@ class Renderer:
             snapshot = getattr(self.build_context, "snapshot", None)
         section_for_context = self._to_section_snapshot(section, snapshot)
 
+        # Coerce pagination values to int - YAML/config may pass strings
+        safe_pagination = dict(pagination)
+        for key in ("current_page", "total_pages"):
+            if key in safe_pagination and safe_pagination[key] is not None:
+                try:
+                    safe_pagination[key] = int(safe_pagination[key])
+                except (ValueError, TypeError):
+                    safe_pagination[key] = 1
+
         context.update(
             {
                 "section": section_for_context,
@@ -608,7 +626,7 @@ class Renderer:
                 "pages": posts,  # Alias
                 "subsections": subsections,
                 "total_posts": len(all_posts),
-                **pagination,
+                **safe_pagination,
             }
         )
 
@@ -616,7 +634,7 @@ class Renderer:
         """Add context for an individual tag page."""
         tag_name = page.metadata.get("_tag")
         tag_slug = page.metadata.get("_tag_slug")
-        page_num = page.metadata.get("_page_num", 1)
+        page_num = int(page.metadata.get("_page_num") or 1)
 
         # PERF: Use cached resolved tag pages instead of filtering on each render.
         # Cache is built once per Renderer instance and reused across all tag page renders.
@@ -722,13 +740,22 @@ class Renderer:
             page_num=page_num,
         )
 
+        # Coerce pagination values to int - YAML/config may pass strings
+        safe_pagination = dict(pagination)
+        for key in ("current_page", "total_pages"):
+            if key in safe_pagination and safe_pagination[key] is not None:
+                try:
+                    safe_pagination[key] = int(safe_pagination[key])
+                except (ValueError, TypeError):
+                    safe_pagination[key] = 1
+
         context.update(
             {
                 "tag": tag_name,
                 "tag_slug": tag_slug,
                 "posts": posts,
                 "total_posts": total_posts_count,
-                **pagination,
+                **safe_pagination,
             }
         )
 

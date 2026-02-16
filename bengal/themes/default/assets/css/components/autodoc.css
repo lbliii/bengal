@@ -202,6 +202,13 @@ article[data-autodoc]>p:first-of-type,
   gap: var(--autodoc-item-gap);
 }
 
+/* Summary section (contains autodoc-summary-table) */
+.autodoc-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--autodoc-item-gap);
+}
+
 /* Member summary table (autosummary-style) */
 .autodoc-summary-table {
   width: 100%;

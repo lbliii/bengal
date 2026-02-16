@@ -1,0 +1,43 @@
+{#
+================================================================================
+Author Bio Component
+================================================================================
+
+Full author bio block: avatar, name, title, bio text, links.
+Used in blog post footer and about page.
+
+Usage:
+  {{ author_bio(author, avatar, title, bio, links) }}
+================================================================================
+#}
+
+{% def author_bio(author, avatar='', title='', bio='', links=none) %}
+{% let link_list = links | default([]) %}
+<div class="author-bio">
+    <div class="author-bio-side">
+        {% if avatar %}
+        <img src="{{ avatar | avatar_url }}" alt="{{ author }}" class="author-avatar-large">
+        {% end %}
+        <div class="author-bio-info">
+            <h3>About {{ author }}</h3>
+            {% if title %}
+            <p class="author-title">{{ title }}</p>
+            {% end %}
+        </div>
+    </div>
+    <div class="author-bio-main">
+    {% if bio %}
+    <p class="author-bio-text">{{ bio }}</p>
+    {% end %}
+    {% if link_list | length > 0 %}
+    <div class="author-links">
+        {% for link in link_list %}
+        {% let link_url = link?.href ?? link?.url ?? '#' %}
+        {% let link_text = link?.text ?? link?.name ?? 'Link' %}
+        <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
+        {% end %}
+    </div>
+    {% end %}
+    </div>
+</div>
+{% end %}

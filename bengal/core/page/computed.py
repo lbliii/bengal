@@ -32,11 +32,15 @@ See Also:
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
+
+# Match leading h1 (# Title) so excerpt starts with content after it
+_LEADING_H1 = re.compile(r"^#\s*[^\n]*\n", re.MULTILINE)
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
@@ -112,26 +116,42 @@ def compute_reading_time(word_count: int) -> int:
 
 
 def compute_excerpt(raw_content: str) -> str:
-    """Extract content excerpt.
+    """Extract content excerpt as rendered HTML.
 
-    Creates a 200-character excerpt from content by:
-    - Stripping HTML tags
-    - Truncating to length
-    - Respecting word boundaries (doesn't cut words in half)
-    - Adding ellipsis if truncated
+    .. deprecated::
+        When Patitas is the parser, the pipeline extracts excerpt from AST
+        (plain text, structurally correct) and sets page._excerpt. This
+        function remains as fallback for PythonMarkdownParser and edge cases.
+
+    Creates an excerpt by:
+    - Stripping the leading h1 (# Title) so excerpt starts with content after it
+    - Truncating markdown at ~250 chars (word boundary)
+    - Rendering markdown to HTML (bold, links, etc.)
 
     Args:
         raw_content: Raw markdown source string
 
     Returns:
-        Excerpt text with ellipsis if truncated
+        Excerpt as HTML (safe to render in templates)
     """
     if not raw_content:
         return ""
 
-    # Strip HTML and truncate at word boundary
-    clean_text = strip_html(raw_content)
-    return truncate_at_word(clean_text, length=200)
+    # Strip leading h1 and start with content after the newline
+    content_after_h1 = _LEADING_H1.sub("", raw_content, count=1).lstrip("\n")
+
+    # Truncate markdown at word boundary before rendering
+    truncated_md = truncate_at_word(content_after_h1, length=250)
+
+    if not truncated_md:
+        return ""
+
+    # Render markdown to HTML
+    from bengal.parsing import create_markdown_parser
+
+    parser = create_markdown_parser()
+    html = parser.parse(truncated_md, {})
+    return html.strip()
 
 
 def compute_age_days(date: datetime | None) -> int:

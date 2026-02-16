@@ -13,6 +13,7 @@ import base64
 import re
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.utils import coerce_int
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives import text as text_utils
@@ -40,6 +41,9 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "word_count": word_count,
             "wordcount": word_count,  # Alias matching Jinja naming convention
             "excerpt": excerpt,
+            "excerpt_for_card": excerpt_for_card,
+            "card_excerpt": card_excerpt,
+            "card_excerpt_html": card_excerpt_html,
             "strip_whitespace": strip_whitespace,
             "get": dict_get,
             "first_sentence": first_sentence,
@@ -102,6 +106,7 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
         {{ post.content | truncatewords(30, " [Read more]") }}
 
     """
+    count = coerce_int(count, 30)
     return text_utils.truncate_words(text, count, suffix)
 
 
@@ -129,6 +134,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     if not html:
         return ""
+    count = coerce_int(count, 30)
 
     # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
@@ -445,6 +451,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
         {{ post.excerpt | truncate_chars(200) }}
 
     """
+    length = coerce_int(length, 120)
     return text_utils.truncate_chars(text, length, suffix)
 
 
@@ -594,6 +601,167 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
         return excerpt_text + "..."
     else:
         return clean_text[:length] + "..."
+
+
+def _strip_leading_duplicate(text: str, prefix: str) -> str:
+    """Remove leading prefix from text (case-insensitive) plus trailing punctuation."""
+    if not prefix or not text:
+        return text
+    prefix_clean = prefix.strip()
+    if not prefix_clean:
+        return text
+    text_norm = text.strip()
+    if not text_norm.lower().startswith(prefix_clean.lower()):
+        return text
+    # Remove prefix and any trailing punctuation/whitespace
+    rest = text_norm[len(prefix_clean) :].lstrip(".,;:!?-\u2014\u2013 \t\n")
+    return rest.strip()
+
+
+def _prepare_html_for_excerpt(html: str) -> str:
+    """Add separators between block elements so headers don't run together."""
+    if not html or "<" not in html:
+        return html
+    # Insert space before block-level elements so "Key Features</h2><h3>Fast Builds"
+    # becomes "Key Features Fast Builds" after strip_html
+    return re.sub(r"</(h[1-6]|p|li|div|ul|ol)>", " ", html, flags=re.I)
+
+
+def excerpt_for_card(
+    content: str, title: str = "", description: str = ""
+) -> str:
+    """
+    Strip leading content that duplicates title or description.
+
+    Use for card/tile previews so the excerpt does not repeat the title
+    or description. Works with HTML (strips to plain text) or plain text.
+    Handles block elements (headers, lists) so they read well when
+    collapsed to a single line.
+
+    Args:
+        content: Excerpt or description text (HTML or plain)
+        title: Page/card title to strip from start
+        description: Explicit description to strip if present at start
+
+    Returns:
+        Plain text with leading duplicates removed
+
+    Example:
+        {{ p.excerpt | excerpt_for_card(p.title, p.description) }}
+        {{ item.description | excerpt_for_card(item.title) }}
+
+    """
+    if not content:
+        return ""
+    # Preprocess HTML to add space between block elements (headers, lists)
+    prepped = _prepare_html_for_excerpt(content)
+    text = strip_html(prepped)
+    text = text_utils.normalize_whitespace(text, collapse=True).strip()
+    if title:
+        text = _strip_leading_duplicate(text, title)
+    if description and text:
+        text = _strip_leading_duplicate(text, description)
+    return text.strip()
+
+
+def card_excerpt(
+    content: str,
+    words: int = 30,
+    title: str = "",
+    description: str = "",
+    suffix: str = "...",
+) -> str:
+    """
+    Excerpt for card previews: strip title/description duplicates, then truncate.
+
+    Combines excerpt_for_card and truncatewords. Use for post cards, related
+    cards, tiles, and any preview that should not duplicate the title.
+
+    Args:
+        content: Excerpt or content (HTML or plain)
+        words: Max words to keep (default: 30)
+        title: Title to strip from start
+        description: Description to strip from start
+        suffix: Truncation suffix (default: "...")
+
+    Returns:
+        Plain text, truncated at word boundary
+
+    Example:
+        {{ p.excerpt | card_excerpt(30, p.title, p.description) | safe }}
+        {{ item.description | card_excerpt(25, item.title) | safe }}
+
+    """
+    if not content:
+        return ""
+    cleaned = excerpt_for_card(content, title, description)
+    if not cleaned:
+        return ""
+    return truncatewords(cleaned, words, suffix)
+
+
+def _find_html_offset_for_plain_chars(html: str, target_plain_chars: int) -> int:
+    """Find HTML position where we've output target_plain_chars of plain text (skip tags)."""
+    plain_count = 0
+    i = 0
+    in_tag = False
+    while i < len(html) and plain_count < target_plain_chars:
+        if html[i] == "<":
+            in_tag = True
+        elif html[i] == ">":
+            in_tag = False
+        elif not in_tag:
+            plain_count += 1
+        i += 1
+    return i
+
+
+def card_excerpt_html(
+    content: str,
+    words: int = 30,
+    title: str = "",
+    description: str = "",
+    suffix: str = "...",
+) -> str:
+    """
+    Excerpt for card previews with HTML: strip duplicates, truncate preserving tags.
+
+    Use when excerpt contains HTML (e.g. <strong>, <em>, <br>). Strips leading
+    title/description duplicates, then truncates with tag-aware truncatewords_html.
+
+    Args:
+        content: Excerpt or content (HTML)
+        words: Max words to keep (default: 30)
+        title: Title to strip from start
+        description: Description to strip from start
+        suffix: Truncation suffix (default: "...")
+
+    Returns:
+        HTML excerpt, truncated at word boundary with tags preserved
+
+    Example:
+        {{ p.excerpt | card_excerpt_html(35, p.title, p.description) | safe }}
+    """
+    if not content:
+        return ""
+    words = coerce_int(words, 30)
+    # Same duplicate stripping as excerpt_for_card
+    prepped = _prepare_html_for_excerpt(content) if "<" in content else content
+    original_plain = text_utils.normalize_whitespace(strip_html(prepped), collapse=True).strip()
+    plain = original_plain
+    if title:
+        plain = _strip_leading_duplicate(plain, title)
+    if description and plain:
+        plain = _strip_leading_duplicate(plain, description)
+    plain = plain.strip()
+    if not plain:
+        return ""
+    # Find where stripped content starts in HTML (skip leading duplicate)
+    removed_chars = len(original_plain) - len(plain)
+    if removed_chars > 0:
+        offset = _find_html_offset_for_plain_chars(prepped, removed_chars)
+        content = prepped[offset:].lstrip()
+    return truncatewords_html(content, words, suffix)
 
 
 def strip_whitespace(text: str) -> str:

@@ -378,14 +378,25 @@ def build_page_context(
 
     # Build cascading params context
     # Cascade: page → section → site (most to least specific)
-    section_params = {}
+    section_params: dict[str, Any] = {}
     if section_snapshot:
-        section_params = dict(section_snapshot.metadata) if section_snapshot.metadata else {}
+        raw = dict(section_snapshot.metadata) if section_snapshot.metadata else {}
+        section_params = {k: v for k, v in raw.items() if k != "params"}
+        if isinstance(raw.get("params"), dict):
+            section_params.update(raw["params"])
     elif resolved_section and hasattr(resolved_section, "metadata"):
-        # Legacy path: mutable Section (should rarely happen)
-        section_params = resolved_section.metadata or {}
+        raw = resolved_section.metadata or {}
+        section_params = {k: v for k, v in raw.items() if k != "params"}
+        if isinstance(raw.get("params"), dict):
+            section_params.update(raw["params"])
 
     site_params = site.config.get("params", {})
+
+    # Merge metadata.params into page_params so {{ params.author }} works when
+    # frontmatter uses params: { author: ... }. Params override top-level keys.
+    page_params = {k: v for k, v in metadata.items() if k != "params"}
+    if isinstance(metadata.get("params"), dict):
+        page_params.update(metadata["params"])
 
     # Get cached global contexts (site/config/theme/menus are stateless wrappers)
     global_contexts = _get_global_contexts(site)
@@ -404,7 +415,7 @@ def build_page_context(
     # Layer 2: Page context (wrapped where needed)
     context["page"] = page
     context["params"] = CascadingParamsContext(
-        page_params=metadata,
+        page_params=page_params,
         section_params=section_params,
         site_params=site_params,
     )
@@ -493,9 +504,10 @@ def _add_lazy_section_content(
             context["pages"] = posts
         else:
             # Capture section for closure
+            # Use regular_pages to exclude the index page (list page must not include itself)
             sec = section_snapshot
-            context["posts"] = make_lazy(lambda: list(sec.sorted_pages))
-            context["pages"] = make_lazy(lambda: list(sec.sorted_pages))
+            context["posts"] = make_lazy(lambda: list(sec.regular_pages))
+            context["pages"] = make_lazy(lambda: list(sec.regular_pages))
 
         if subsections is not None:
             context["subsections"] = subsections
@@ -511,8 +523,10 @@ def _add_lazy_section_content(
         else:
             sec = resolved_section
             meta = metadata
-            context["posts"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
-            context["pages"] = make_lazy(lambda: meta.get("_posts", getattr(sec, "pages", [])))
+            # regular_pages excludes index by default (Section and SectionSnapshot)
+            default_pages = getattr(sec, "regular_pages", getattr(sec, "pages", []))
+            context["posts"] = make_lazy(lambda: meta.get("_posts", default_pages))
+            context["pages"] = make_lazy(lambda: meta.get("_posts", default_pages))
 
         if subsections is not None:
             context["subsections"] = subsections
@@ -538,16 +552,19 @@ def _add_eager_section_content(
 ) -> None:
     """Add section content lists with eager evaluation (legacy behavior)."""
     if section_snapshot and section_snapshot != NO_SECTION:
-        context["posts"] = posts if posts is not None else list(section_snapshot.sorted_pages)
+        # Use regular_pages to exclude the index page (list page must not include itself)
+        context["posts"] = posts if posts is not None else list(section_snapshot.regular_pages)
         context["pages"] = context["posts"]
         context["subsections"] = (
             subsections if subsections is not None else list(section_snapshot.sorted_subsections)
         )
     elif resolved_section:
+        # regular_pages excludes index by default (Section and SectionSnapshot)
+        default_pages = getattr(resolved_section, "regular_pages", getattr(resolved_section, "pages", []))
         context["posts"] = (
             posts
             if posts is not None
-            else metadata.get("_posts", getattr(resolved_section, "pages", []))
+            else metadata.get("_posts", default_pages)
         )
         context["pages"] = context["posts"]
         raw_subsections = (

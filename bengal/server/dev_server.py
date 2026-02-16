@@ -658,8 +658,9 @@ class DevServer:
                         type="openapi",
                     )
 
-        # Filter to only existing directories
-        return [str(d) for d in watch_dirs if d.exists()]
+        # Resolve to absolute paths for reliable watching (symlinks, monorepos,
+        # editable installs). Filter to only existing directories.
+        return [str(d.resolve()) for d in watch_dirs if d.exists()]
 
     def _create_watcher(self, actual_port: int) -> tuple[WatcherRunner, BuildTrigger]:
         """
@@ -688,11 +689,16 @@ class DevServer:
         config_dict = config.raw if hasattr(config, "raw") else config
         ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)
 
-        # Get watch directories
+        # Get watch directories (already resolved to absolute in _get_watched_directories)
         watch_dirs = [Path(d) for d in self._get_watched_directories()]
 
         # Also watch root for bengal.toml
-        watch_dirs.append(self.site.root_path)
+        watch_dirs.append(self.site.root_path.resolve())
+
+        # Force polling for reliable hot reload (macOS, symlinks, editable installs)
+        from bengal.server.utils import get_dev_config
+
+        force_polling = get_dev_config(config_dict, "watch", "force_polling", default=None)
 
         # Create watcher runner
         watcher_runner = WatcherRunner(
@@ -700,11 +706,13 @@ class DevServer:
             ignore_filter=ignore_filter,
             on_changes=build_trigger.trigger_build,
             debounce_ms=300,
+            force_polling=force_polling,
         )
 
         logger.debug(
             "watcher_created",
             watch_dirs=[str(p) for p in watch_dirs],
+            force_polling=force_polling,
         )
 
         return watcher_runner, build_trigger

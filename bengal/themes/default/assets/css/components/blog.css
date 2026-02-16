@@ -22,7 +22,10 @@
     text-align: center;
 }
 
-/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
+/* Blog list header - matches about/contact (no extra padding, inherits base h1 typography) */
+.blog-list-header {
+    margin-bottom: var(--space-6);
+}
 
 .blog-description {
     font-size: var(--text-lg);
@@ -59,7 +62,86 @@
   margin-inline: auto;
 }
 
+/* ============================================
+   BLOG SHELL (about, contact, single layout wrapper)
+   Used with blog-container for layout.
+   ============================================ */
+
+.blog-shell {
+  /* Semantic wrapper - layout from blog-container when used together */
+}
+
+/* About page article structure */
+.blog-about {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
+.blog-about-header {
+  margin-bottom: var(--space-6);
+}
+
+.blog-about-content {
+  margin-bottom: var(--space-8);
+}
+
+.blog-about-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-block-start: 1px solid var(--color-border-light);
+}
+
+/* Contact page article structure */
+.blog-contact {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
+.blog-contact-header {
+  margin-bottom: var(--space-6);
+}
+
+.blog-contact-content {
+  margin-bottom: var(--space-8);
+}
+
+.blog-contact-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-block-start: 1px solid var(--color-border-light);
+}
+
+.contact-email {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.contact-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.contact-social a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.contact-social a:hover {
+  text-decoration: underline;
+}
+
 .view-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.blog-updated-inline {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -135,12 +217,13 @@ html:not([data-devtools-open]) .blog-post-list > * {
     /* Will be animated by scroll-animations.css */
 }
 
-/* Blog Post Cards */
-.blog-post-card,
-.blog-featured-card {
+/* Blog Post Cards - use article-card + modifiers (category_card uses blog-post-card) */
+.blog-featured-grid .article-card,
+.blog-post-list .article-card,
+.blog-post-list .blog-post-card,
+.blog-home-posts-grid .article-card {
     background: var(--color-surface);
     border-radius: var(--radius-xl);
-    /* Already 12px - good! */
     overflow: hidden;
     box-shadow: var(--elevation-card);
     transition: all 0.2s ease;
@@ -151,19 +234,27 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 /* Gradient border support */
-.blog-post-card.gradient-border,
-.blog-featured-card.gradient-border {
+.blog-featured-grid .article-card.gradient-border,
+.blog-post-list .article-card.gradient-border,
+.blog-post-list .blog-post-card.gradient-border,
+.blog-home-posts-grid .article-card.gradient-border,
+.blog-featured-grid .article-card.gradient-border-strong {
     border: none;
 }
 
-.blog-post-card.fluid-combined,
-.blog-featured-card.fluid-combined {
+.blog-featured-grid .article-card.fluid-combined,
+.blog-post-list .article-card.fluid-combined,
+.blog-post-list .blog-post-card.fluid-combined,
+.blog-home-posts-grid .article-card.fluid-combined,
+.blog-featured-grid .article-card.fluid-bg {
     border: none;
 }
 
 /* Motion gradient background on hover */
-.blog-post-card::before,
-.blog-featured-card::before {
+.blog-featured-grid .article-card::before,
+.blog-post-list .article-card::before,
+.blog-post-list .blog-post-card::before,
+.blog-home-posts-grid .article-card::before {
     content: '';
     position: absolute;
     top: -30%;
@@ -182,13 +273,17 @@ html:not([data-devtools-open]) .blog-post-list > * {
     transition: opacity 0.3s ease;
 }
 
-.blog-post-card:hover::before,
-.blog-featured-card:hover::before {
+.blog-featured-grid .article-card:hover::before,
+.blog-post-list .article-card:hover::before,
+.blog-post-list .blog-post-card:hover::before,
+.blog-home-posts-grid .article-card:hover::before {
     opacity: 1;
 }
 
-.blog-post-card>*,
-.blog-featured-card>* {
+.blog-featured-grid .article-card>*,
+.blog-post-list .article-card>*,
+.blog-post-list .blog-post-card>*,
+.blog-home-posts-grid .article-card>* {
     position: relative;
     z-index: 1;
 }
@@ -196,8 +291,10 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
 
-    .blog-post-card::before,
-    .blog-featured-card::before {
+    .blog-featured-grid .article-card::before,
+    .blog-post-list .article-card::before,
+    .blog-post-list .blog-post-card::before,
+    .blog-home-posts-grid .article-card::before {
         background: radial-gradient(circle at 40% 40%,
                 rgba(59, 130, 246, 0.06) 0%,
                 rgba(139, 92, 246, 0.04) 25%,
@@ -208,14 +305,18 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
 
-    .blog-post-card::before,
-    .blog-featured-card::before {
+    .blog-featured-grid .article-card::before,
+    .blog-post-list .article-card::before,
+    .blog-post-list .blog-post-card::before,
+    .blog-home-posts-grid .article-card::before {
         animation: none !important;
     }
 }
 
-.blog-post-card:hover,
-.blog-featured-card:hover {
+.blog-featured-grid .article-card:hover,
+.blog-post-list .article-card:hover,
+.blog-post-list .blog-post-card:hover,
+.blog-home-posts-grid .article-card:hover {
     box-shadow: var(--elevation-high);
     transform: translate3d(0, -2px, 0);
     transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -225,19 +326,21 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Disable transform animations on mobile for performance */
 @media (max-width: 768px) {
 
-    .blog-post-card:hover,
-    .blog-featured-card:hover {
+    .blog-featured-grid .article-card:hover,
+    .blog-post-list .article-card:hover,
+    .blog-post-list .blog-post-card:hover,
+    .blog-home-posts-grid .article-card:hover {
         transform: none;
     }
 }
 
 /* Horizontal layout for list items */
-.blog-post-card {
+.blog-post-list .article-card {
     flex-direction: row;
 }
 
 @media (max-width: 768px) {
-    .blog-post-card {
+    .blog-post-list .article-card {
         flex-direction: column;
     }
 }
@@ -249,17 +352,19 @@ html:not([data-devtools-open]) .blog-post-list > * {
     background: var(--color-bg-secondary);
 }
 
-.blog-featured-card .blog-card-image {
+.article-card--featured .blog-card-image {
     aspect-ratio: 16 / 9;
 }
 
-.blog-post-card .blog-card-image {
+.blog-post-list .article-card .blog-card-image,
+.blog-home-posts-grid .article-card .blog-card-image {
     flex: 0 0 280px;
     aspect-ratio: 16 / 9;
 }
 
 @media (max-width: 768px) {
-    .blog-post-card .blog-card-image {
+    .blog-post-list .article-card .blog-card-image,
+    .blog-home-posts-grid .article-card .blog-card-image {
         flex: none;
         aspect-ratio: 16 / 9;
     }
@@ -272,8 +377,9 @@ html:not([data-devtools-open]) .blog-post-list > * {
     transition: transform 0.3s ease;
 }
 
-.blog-post-card:hover .blog-card-image img,
-.blog-featured-card:hover .blog-card-image img {
+.blog-featured-grid .article-card:hover .blog-card-image img,
+.blog-post-list .article-card:hover .blog-card-image img,
+.blog-home-posts-grid .article-card:hover .blog-card-image img {
     transform: scale(1.05);
 }
 
@@ -308,13 +414,78 @@ html:not([data-devtools-open]) .blog-post-list > * {
     color: var(--color-primary);
 }
 
+/* Excerpt: compact typography scale (structure preserved, sizes minified) */
 .blog-card-excerpt {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    /* Match docs/resume text color pattern */
-    line-height: var(--leading-relaxed);
-    /* Match docs/resume for readability */
+    line-height: 1.45;
     margin: 0;
+}
+
+/* Vertical spacing between block elements (newline-like separation) */
+.blog-card-excerpt > * + * {
+    margin-top: var(--space-3, 0.75rem);
+}
+
+.blog-card-excerpt p {
+    margin: 0;
+    padding-block: var(--space-1);
+}
+
+.blog-card-excerpt p + p {
+    margin-top: var(--space-3, 0.75rem);
+}
+
+/* Headings look like headers (larger, bolder, primary color) */
+.blog-card-excerpt .excerpt-heading {
+    font-size: 1.125em;
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+    padding-block: var(--space-1);
+}
+
+.blog-card-excerpt strong {
+    font-weight: var(--weight-semibold);
+    font-size: 1em;
+}
+
+.blog-card-excerpt em {
+    font-style: italic;
+    font-size: 1em;
+}
+
+.blog-card-excerpt code {
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    background: var(--color-bg-secondary, rgba(0 0 0 / 0.06));
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+/* Lists: newline + indent */
+.blog-card-excerpt .excerpt-list {
+    margin: 0;
+    padding-left: var(--space-5, 1.25rem);
+}
+
+.blog-card-excerpt ul.excerpt-list {
+    list-style: disc;
+}
+
+.blog-card-excerpt ol.excerpt-list {
+    list-style: decimal;
+}
+
+.blog-card-excerpt .excerpt-list li {
+    margin-top: var(--space-1, 0.25rem);
+}
+
+.blog-card-excerpt .excerpt-list li:first-child {
+    margin-top: 0;
+}
+
+.blog-card-excerpt .excerpt-list .excerpt-list {
+    margin-top: var(--space-1, 0.25rem);
 }
 
 /* Blog Card Metadata */
@@ -326,6 +497,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
     font-size: var(--text-sm);
     color: var(--color-text-primary-muted);
     margin-top: auto;
+}
+
+/* Meta at top of card (above title) */
+.blog-card-meta--top {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .blog-author {
@@ -354,6 +531,11 @@ html:not([data-devtools-open]) .blog-post-list > * {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+}
+
+/* Featured card: push tags to bottom (no read more link) */
+.article-card--featured .blog-card-tags {
+    margin-top: auto;
 }
 
 .blog-tag {
@@ -386,6 +568,44 @@ html:not([data-devtools-open]) .blog-post-list > * {
     text-decoration: underline;
 }
 
+/* Card footer: tags left, read more right, pushed to bottom */
+.blog-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-4);
+    margin-top: auto;
+    width: 100%;
+}
+
+/* Ombre fade: excerpt appears to fade away above the footer.
+   Uses mask (not overlay) so theme transitions look clean - no color overlay to flash. */
+.blog-card-content:has(.blog-card-footer) .blog-card-excerpt {
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black calc(100% - 4rem),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        black 0%,
+        black calc(100% - 4rem),
+        transparent 100%
+    );
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    padding-bottom: 0.5rem;
+}
+
+.blog-card-footer .blog-read-more {
+    margin-left: auto;
+}
+
 /* Empty State */
 .blog-empty {
     text-align: center;
@@ -400,77 +620,155 @@ html:not([data-devtools-open]) .blog-post-list > * {
    BLOG SINGLE POST PAGE
    ============================================ */
 
+/* Container becomes full-width when it holds blog-post-layout (like docs-layout) */
+.blog-container:has(.blog-post-layout) {
+    max-width: 100%;
+    padding-inline: 0;
+}
+
+/* When layout has TOC, after-content uses same grid so it scales to match content column */
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-areas: "content toc";
+}
+
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-post-layout {
+    grid-column: 1 / -1;
+}
+
+.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-after-content {
+    grid-area: content;
+}
+
+/* blog-after-content speaks the same language as blog-post-layout: same padding, tokens, max-width */
+.blog-after-content {
+    padding-block: var(--space-5) var(--space-8);
+    padding-inline: var(--space-6);
+    max-width: var(--container-xl, 1280px);
+    margin-inline: auto;
+    width: 100%;
+}
+
+/* Blog post layout: docs-like two-column (content | TOC). Content gets 1fr, TOC fixed. */
 .blog-post-layout {
     display: grid;
+    grid-template-areas: "content";
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-6);
-    max-width: 1000px;
-    /* Increased from 800px for better reading experience */
-    margin: 0 auto;
-    padding: var(--space-8) var(--space-6);
-    /* Match docs/resume padding pattern */
+    gap: 0;
+    width: 100%;
+    max-width: none;
+    padding-block: var(--space-5) var(--space-8);
+    padding-inline: var(--space-6);
 }
 
 .blog-post-layout.blog-with-toc {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    max-width: 1200px;
-    gap: var(--space-8);
-    /* Increased gap for better separation */
+    grid-template-areas: "content toc";
+    grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+/* Main content area - takes remaining space */
+.blog-post-main {
+    grid-area: content;
+    min-width: 0; /* Prevent grid blowout from long content */
+}
+
+/* Constrain prose for readability (like docs-main .prose) */
+.blog-post-main .prose {
+    max-width: var(--prose-width, 75ch);
+    margin-inline: auto;
+}
+
+/* Right sidebar (TOC) - fixed width, sticky */
+.blog-toc {
+    grid-area: toc;
+    position: sticky;
+    top: 60px;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: var(--space-5) var(--space-8);
+    padding-inline-start: var(--space-4);
+    padding-inline-end: var(--space-5);
+    border-left: 1px solid var(--color-border-light, var(--color-border));
+}
+
+/* Blog TOC: no inner progress bar (page has global reading-progress at top) */
+.blog-toc .toc-progress {
+    display: none;
+}
+
+/* Blog TOC: no inner scroll - let outer .blog-toc handle overflow (avoids scrollbar with 1-2 headers) */
+.blog-toc .toc-sidebar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.blog-toc .toc-nav {
+    flex: 1;
+    min-width: 0;
+}
+
+.blog-toc .toc-scroll-container {
+    overflow-y: visible;
+    flex: none;
+}
+
+/* Hide TOC metadata in blog - hero already has date, reading time, updated */
+.blog-toc .toc-metadata {
+    display: none;
 }
 
 @media (max-width: 1024px) {
+    .blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
+        grid-template-columns: 1fr;
+        grid-template-areas: "content";
+    }
+
     .blog-post-layout.blog-with-toc {
+        grid-template-areas: "content";
         grid-template-columns: 1fr;
     }
 
-    .blog-sidebar {
+    .blog-toc {
         display: none;
     }
 }
 
-/* Blog Post Header */
-.blog-post-header {
+/* Blog Post Hero: uses page-hero (like docs) without breadcrumbs */
+.page-hero--blog {
     margin-bottom: var(--space-10);
-    /* Increased from space-8 for better separation */
 }
 
-.blog-post-image {
-    margin: 0 0 var(--space-8) 0;
+/* Base hero image wrapper (modifiers add layout) */
+.page-hero__image {
+    display: block;
+}
+
+/* Featured image (blog-specific) */
+.page-hero__image--blog {
+    margin: 0 0 var(--space-6) 0;
     border-radius: var(--radius-xl);
-    /* Match card border radius pattern */
     overflow: hidden;
     aspect-ratio: 16 / 9;
     box-shadow: var(--elevation-card);
-    /* Add subtle shadow for depth */
 }
 
-.blog-post-image img {
+.page-hero__image--blog img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.blog-post-header h1 {
-    margin-bottom: var(--space-6);
-    /* Increased spacing for better hierarchy */
-    font-size: var(--text-4xl);
-    /* Ensure consistent heading size */
-    font-weight: var(--weight-bold);
-    line-height: var(--leading-tight);
-    color: var(--color-text-primary);
-}
-
-.blog-post-header .lead {
-    font-size: var(--text-xl);
-    /* Increased from lg for better prominence */
-    color: var(--color-text-secondary);
-    font-weight: var(--weight-normal);
-    line-height: var(--leading-relaxed);
-    /* Match docs/resume pattern */
-    letter-spacing: 0.01em;
-    padding-bottom: var(--space-6);
-    margin-bottom: 0;
-    border-block-end: 1px solid var(--color-border);
+/* Blog meta inside page-hero__meta: metadata row + mini author card */
+.page-hero__meta .blog-post-meta {
+    border: none;
+    padding: 0;
+    margin: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
 }
 
 /* Blog Post Metadata */
@@ -486,18 +784,22 @@ html:not([data-devtools-open]) .blog-post-list > * {
     margin: var(--space-6) 0;
 }
 
-.blog-post-author {
+/* Mini author card in hero - compact avatar + name + title */
+.author-mini-card {
     display: flex;
     align-items: center;
     gap: var(--space-3);
 }
 
-.blog-post-author .author-avatar {
-    width: 48px;
-    height: 48px;
+.author-mini-card .author-avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
-.author-info {
+.author-mini-card .author-info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -523,11 +825,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
     gap: var(--space-2);
 }
 
-/* Blog Post Tags */
+/* Blog Post Tags - in footer after content */
 .blog-post-tags {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+    margin-bottom: var(--space-8);
 }
 
 /* Blog Post Content */
@@ -549,23 +852,16 @@ html:not([data-devtools-open]) .blog-post-list > * {
     /* Match resume pattern */
 }
 
-.blog-updated {
-    margin-bottom: var(--space-6);
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-    /* Match docs/resume text color pattern */
-    font-style: italic;
-}
-
-/* Author Bio */
+/* Author Bio: (avatar | about | title) | bio - left column stacked, bio flows right */
 .author-bio {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-6);
     padding: var(--space-6);
     background: var(--color-bg-secondary);
-    /* Match resume summary pattern */
     border-radius: var(--radius-xl);
-    /* Match resume pattern */
     border-inline-start: 4px solid var(--color-primary);
-    /* Match resume accent border */
     margin: var(--space-8) 0;
     transition: transform var(--transition-smooth) var(--ease-smooth),
         box-shadow var(--transition-smooth) var(--ease-smooth);
@@ -585,28 +881,47 @@ html:not([data-devtools-open]) .blog-post-list > * {
         -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
-.author-bio-header {
+.author-bio-side {
     display: flex;
-    align-items: flex-start;
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
+    flex-direction: column;
+    gap: var(--space-3);
+    flex-shrink: 0;
 }
 
 .author-avatar-large {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.author-bio h3 {
+.author-bio-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.author-bio-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.author-bio-info h3 {
     margin: 0;
     font-size: var(--text-lg);
 }
 
+.author-bio-info .author-title {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary-muted);
+}
+
 .author-bio-text {
     line-height: var(--leading-relaxed);
-    /* Match docs/resume pattern */
     margin: 0;
     color: var(--color-text-secondary);
 }
@@ -614,7 +929,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .author-links {
     display: flex;
     gap: var(--space-4);
-    margin-top: var(--space-4);
 }
 
 .author-links a {
@@ -681,22 +995,6 @@ html:not([data-devtools-open]) .blog-post-list > * {
 
 .share-button svg {
     flex-shrink: 0;
-}
-
-/* Blog Sidebar */
-.blog-sidebar {
-    position: sticky;
-    top: 80px;
-    /* Account for fixed header */
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    /* Match docs sidebar pattern */
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    padding-inline-start: var(--space-6);
-    /* Match docs TOC padding */
 }
 
 /* Newsletter CTA */
@@ -849,143 +1147,7 @@ html:not([data-devtools-open]) .blog-post-list > * {
     }
 }
 
-/* Blog Home Post Cards */
-.blog-home-post-card {
-    background: var(--color-surface);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--elevation-card);
-    transition: all var(--transition-fast) var(--ease-out);
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--color-border);
-    position: relative;
-}
-
-/* Motion gradient background on hover */
-.blog-home-post-card::before {
-    content: '';
-    position: absolute;
-    top: -30%;
-    right: -10%;
-    width: 150%;
-    height: 150%;
-    background: radial-gradient(circle at 40% 40%,
-            color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
-            color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
-            transparent 50%);
-    border-radius: 50%;
-    animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.blog-home-post-card:hover::before {
-    opacity: 1;
-}
-
-.blog-home-post-card>* {
-    position: relative;
-    z-index: 1;
-}
-
-/* Fallback for browsers without color-mix */
-@supports not (color: color-mix(in srgb, black, white)) {
-    .blog-home-post-card::before {
-        background: radial-gradient(circle at 40% 40%,
-                rgba(59, 130, 246, 0.06) 0%,
-                rgba(139, 92, 246, 0.04) 25%,
-                transparent 50%);
-    }
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce) {
-    .blog-home-post-card::before {
-        animation: none !important;
-    }
-}
-
-.blog-home-post-card:hover {
-    box-shadow: var(--elevation-high);
-    transform: translate3d(0, -2px, 0);
-}
-
-.blog-home-post-image {
-    position: relative;
-    overflow: hidden;
-    background: var(--color-bg-secondary);
-    aspect-ratio: 16 / 9;
-}
-
-.blog-home-post-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.blog-home-post-card:hover .blog-home-post-image img {
-    transform: scale(1.05);
-}
-
-.blog-home-post-content {
-    padding: var(--space-6);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    flex: 1;
-}
-
-.blog-home-post-title {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-semibold);
-    line-height: var(--leading-tight);
-    margin: 0;
-}
-
-.blog-home-post-title a {
-    color: var(--color-text-primary);
-    text-decoration: none;
-}
-
-.blog-home-post-title a:hover {
-    color: var(--color-primary);
-}
-
-.blog-home-post-date {
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-}
-
-.blog-home-post-excerpt {
-    font-size: var(--text-base);
-    color: var(--color-text-secondary);
-    line-height: var(--leading-relaxed);
-    margin: 0;
-}
-
-.blog-home-post-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-top: auto;
-}
-
-.blog-home-post-link {
-    display: inline-block;
-    color: var(--color-primary);
-    text-decoration: none;
-    font-weight: var(--weight-medium);
-    font-size: var(--text-sm);
-    margin-top: var(--space-2);
-}
-
-.blog-home-post-link:hover {
-    text-decoration: underline;
-}
+/* Blog home uses article-card + blog-card-* via post_card (see above) */
 
 /* ============================================
    RECENT POSTS ON HOME PAGE (Generic home.html)
@@ -1134,9 +1296,9 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 .recent-posts .post-card-excerpt {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    line-height: var(--leading-relaxed);
+    line-height: 1.45;
     margin: 0;
 }
 
@@ -1157,15 +1319,21 @@ html:not([data-devtools-open]) .blog-post-list > * {
    RESPONSIVE: ULTRA-WIDE (Better Proportions)
    ============================================ */
 
-/* Ultra-wide screens - wider container with more breathing room */
+/* Ultra-wide screens - constrain layout like docs */
 @media (min-width: 1920px) {
-    .blog-container {
+    .blog-container:not(:has(.blog-post-layout)) {
         max-width: var(--container-3xl, 1920px);
         padding: var(--space-10) var(--space-8);
     }
 
+    .blog-container:has(.blog-post-layout) {
+        max-width: var(--container-3xl, 1920px);
+        margin-inline: auto;
+    }
+
     .blog-post-layout {
         max-width: var(--container-xl, 1280px);
+        margin-inline: auto;
         padding: var(--space-10) var(--space-8);
     }
 
@@ -1187,12 +1355,12 @@ html:not([data-devtools-open]) .blog-post-list > * {
         /* Reduce padding on mobile */
     }
 
-    .blog-post-header,
+    .page-hero--blog,
     .blog-post-footer {
         padding: var(--space-4) 0;
     }
 
-    .blog-post-header .lead {
+    .page-hero--blog .page-hero__description {
         font-size: var(--text-lg);
         /* Slightly smaller but still readable */
         padding-bottom: var(--space-4);

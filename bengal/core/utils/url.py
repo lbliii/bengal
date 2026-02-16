@@ -99,3 +99,39 @@ def get_baseurl(site_or_config: Any) -> str:
                 return str(baseurl)
 
     return ""
+
+
+def get_site_origin(site_or_config: Any) -> str:
+    """
+    Extract absolute site origin for share URLs and meta tags.
+
+    Uses url if set, else baseurl when it is absolute (starts with http).
+    Returns empty string when no absolute origin is configured.
+
+    Args:
+        site_or_config: Site object or config dict
+
+    Returns:
+        Absolute origin (e.g. "https://example.com") or ""
+    """
+    config = site_or_config.config if hasattr(site_or_config, "config") else site_or_config
+
+    # Prefer explicit url (Hugo-style)
+    url = None
+    if hasattr(config, "get"):
+        url = config.get("url")
+        if not url:
+            site_section = config.get("site")
+            if isinstance(site_section, dict):
+                url = site_section.get("url")
+            elif hasattr(site_section, "url"):
+                url = getattr(site_section, "url", None)
+    if url and isinstance(url, str) and url.strip().lower().startswith(("http://", "https://")):
+        return url.strip().rstrip("/")
+
+    # Fallback: baseurl when absolute
+    baseurl = get_baseurl(site_or_config)
+    if baseurl.strip().lower().startswith(("http://", "https://")):
+        return baseurl.strip().rstrip("/")
+
+    return ""

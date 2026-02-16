@@ -513,7 +513,7 @@ KIDA FEATURES:
 {% let display_title = section?.title ?? page?.title ?? 'Section' %}
 {% let section_desc = section?.metadata?.description %}
 {% let subsections = (section?.sorted_subsections ?? []) |> list %}
-{% let pages = (section?.sorted_pages ?? []) |> rejectattr('source_path', 'match', '.*_index.*') |> list %}
+{% let pages = section?.regular_pages ?? [] %}
 {% let sub_count = subsections | length %}
 {% let page_count = pages | length %}
 

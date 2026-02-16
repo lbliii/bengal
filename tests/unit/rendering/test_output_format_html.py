@@ -89,7 +89,7 @@ class TestFormatHtmlFastMode:
             },
         )
         page = Page(source_path=Path("/tmp/test/page.md"))
-        page.metadata["no_format"] = False  # Would normally format
+        page._raw_metadata["no_format"] = False  # Would normally format
 
         result = format_html(html, page, site)
 

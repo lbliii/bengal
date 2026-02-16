@@ -244,7 +244,8 @@ class TestTargetDirectiveIntegration:
 
 Content here.
         """
-        html, toc = parser.parse_with_toc(content, {})
+        result = parser.parse_with_toc(content, {})
+        html, toc = result[0], result[1]
 
         # Target should be in HTML
         assert 'id="important-section"' in html
@@ -265,7 +266,8 @@ Content here.
 
 More details about the introduction.
         """
-        html, toc = parser.parse_with_toc(content, {})
+        result = parser.parse_with_toc(content, {})
+        html, toc = result[0], result[1]
 
         # Both should be present
         assert 'id="intro"' in html  # Explicit heading anchor

@@ -1,0 +1,35 @@
+---
+description: Template filters must coerce numeric params from YAML/config to prevent int/str TypeError
+---
+
+# Filter Type Coercion
+
+Values from YAML, config, and cache can arrive as strings. Python 3 does not allow
+mixed-type comparisons (`int <= str` raises `TypeError`). Template filters that
+accept numeric params must coerce at entry.
+
+## Affected Filters / Functions
+
+- `truncatewords`, `truncatewords_html`, `card_excerpt_html`, `truncate_chars`
+- `get_pagination_items(current_page, total_pages, base_url, window)`
+- `Paginator(items, per_page=...)`
+- Any filter receiving `config.content.excerpt_words`, `config.content.excerpt_length`, etc.
+
+## Convention
+
+Use `coerce_int` from `bengal.config.utils` at the start of any filter that accepts
+a numeric param used in comparisons or arithmetic:
+
+```python
+from bengal.config.utils import coerce_int
+
+def my_filter(text: str, count: int = 30) -> str:
+    count = coerce_int(count, 30)
+    # ... use count in comparisons
+```
+
+## ConfigSnapshot
+
+`ConfigSnapshot.from_dict` uses `coerce_int` for all numeric content fields
+(excerpt_length, excerpt_words, reading_speed, etc.) so invalid YAML does not
+raise at load time.

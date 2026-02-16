@@ -212,9 +212,19 @@ no_format: true                        # Skip HTML formatting
   <article>
     <h2><a href="{{ page.href }}">{{ page.title }}</a></h2>
     <time>{{ page.date | date('%B %d, %Y') }}</time>
-    <p>{{ page.excerpt }}</p>
+    <p>{{ page.excerpt | card_excerpt(30, page.title, page.description) | safe }}</p>
   </article>
 {% end %}
+```
+
+### Card Preview (no title duplication)
+
+```kida
+{# Use card_excerpt so preview text does not repeat the title or description #}
+<p>{{ page.excerpt | card_excerpt(30, page.title, page.description) | safe }}</p>
+
+{# Tiles/docs: excerpt_for_card + excerpt for char truncation #}
+<p>{{ item.description | excerpt_for_card(item.title) | excerpt(120) }}</p>
 ```
 
 ### Render Tags

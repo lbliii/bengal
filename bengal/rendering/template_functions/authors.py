@@ -360,6 +360,22 @@ def authors_filter(pages: Any) -> list[AuthorView]:
     return result
 
 
+def _make_avatar_url_filter(site: SiteLike):
+    """Create avatar_url filter that resolves theme-relative paths via asset_url."""
+
+    def avatar_url_filter(avatar: str) -> str:
+        if not avatar:
+            return ""
+        s = str(avatar).strip()
+        if s.startswith(("http://", "https://", "//")):
+            return s
+        from bengal.rendering.assets import resolve_asset_url
+
+        return resolve_asset_url(s, site, None)
+
+    return avatar_url_filter
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register author view filters with template environment."""
     global _site_ref
@@ -369,5 +385,6 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         {
             "author_view": author_view_filter,
             "authors": authors_filter,
+            "avatar_url": _make_avatar_url_filter(site),
         }
     )

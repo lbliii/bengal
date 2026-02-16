@@ -34,7 +34,8 @@ class PostView:
 
     Attributes:
         title: Post title (defaults to 'Untitled')
-        href: URL to the post
+        href: URL to the post (includes baseurl when configured)
+        path: Site-relative path without baseurl (use for internal links)
         date: Publication date (None if not set)
         image: Featured image URL (from metadata.image or metadata.cover)
         description: Post description (from metadata.description or excerpt)
@@ -48,15 +49,18 @@ class PostView:
         featured: Whether post is featured
         draft: Whether post is a draft
         updated: Last updated date (None if not set)
+        excerpt_words: Max words for card excerpt (None = use config default)
 
     """
 
     title: str
     href: str
+    path: str
     date: datetime | None
     image: str
     description: str
     excerpt: str
+    excerpt_words: int | None
     author: str
     author_avatar: str
     author_title: str
@@ -96,6 +100,7 @@ class PostView:
         # Extract with fallbacks
         title = getattr(page, "title", None) or "Untitled"
         href = getattr(page, "href", None) or "#"
+        path = getattr(page, "_path", None) or href or "#"
         date = getattr(page, "date", None)
 
         # Image: try metadata.image, then metadata.cover, then params
@@ -107,18 +112,57 @@ class PostView:
             or ""
         )
 
-        # Description: try metadata.description, then page excerpt
+        # Description: try metadata.description, then page excerpt (strip HTML when using excerpt)
         excerpt = getattr(page, "excerpt", None) or ""
-        description = meta.get("description") or params.get("description") or excerpt or ""
+        raw_desc = meta.get("description") or params.get("description") or excerpt or ""
+        if raw_desc and raw_desc == excerpt:
+            from bengal.core.utils.text import strip_html
 
-        # Author info
-        author = meta.get("author") or params.get("author") or ""
-        author_avatar = meta.get("author_avatar") or params.get("author_avatar") or ""
-        author_title = meta.get("author_title") or params.get("author_title") or ""
+            description = strip_html(raw_desc)
+        else:
+            description = raw_desc
 
-        # Reading metrics (from page computed properties)
-        reading_time = getattr(page, "reading_time", None) or 0
-        word_count = getattr(page, "word_count", None) or 0
+        # Author info: resolve slug from site.data.authors when params.author is set
+        author_slug = params.get("author") or meta.get("params", {}).get("author") or ""
+        author_data: dict[str, Any] = {}
+        if author_slug and _site_ref:
+            try:
+                data = getattr(_site_ref, "data", None) or {}
+                authors_registry = data.get("authors") if hasattr(data, "get") else {}
+                author_data = authors_registry.get(author_slug, {}) if author_slug else {}
+            except (AttributeError, TypeError, KeyError):
+                pass
+        author = (
+            author_data.get("name")
+            or meta.get("author")
+            or params.get("author")
+            or ""
+        )
+        author_avatar = (
+            author_data.get("avatar")
+            or meta.get("author_avatar")
+            or params.get("author_avatar")
+            or ""
+        )
+        author_title = (
+            author_data.get("title")
+            or author_data.get("company")
+            or meta.get("author_title")
+            or params.get("author_title")
+            or ""
+        )
+
+        # Reading metrics (from page computed properties; coerce to int for template comparisons)
+        rt = getattr(page, "reading_time", None) or 0
+        wc = getattr(page, "word_count", None) or 0
+        try:
+            reading_time = int(rt)
+        except (TypeError, ValueError):
+            reading_time = 0
+        try:
+            word_count = int(wc)
+        except (TypeError, ValueError):
+            word_count = 0
 
         # Tags
         tags_raw = getattr(page, "tags", None) or []
@@ -131,9 +175,20 @@ class PostView:
         # Updated date
         updated = meta.get("updated") or params.get("updated")
 
+        # Excerpt words: per-article override (None = use config in template)
+        ew = meta.get("excerpt_words") or params.get("excerpt_words")
+        if ew is not None:
+            try:
+                excerpt_words = int(ew)
+            except (TypeError, ValueError):
+                excerpt_words = None
+        else:
+            excerpt_words = None
+
         return cls(
             title=title,
             href=href,
+            path=path,
             date=date,
             image=image,
             description=description,
@@ -147,6 +202,7 @@ class PostView:
             featured=featured,
             draft=draft,
             updated=updated,
+            excerpt_words=excerpt_words,
         )
 
 
@@ -226,8 +282,13 @@ def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
     return featured[:limit]
 
 
+_site_ref: SiteLike | None = None
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register blog view filters with template environment."""
+    global _site_ref
+    _site_ref = site
     env.filters.update(
         {
             "posts": posts_filter,

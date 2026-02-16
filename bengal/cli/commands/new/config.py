@@ -47,9 +47,12 @@ def create_config_directory(
     site_config = _create_site_config(site_title, baseurl)
     theme_config = _create_theme_config(theme)
     content_config = _create_content_config(template)
-    params_config: dict[str, Any] = {"params": {}}
+    params_config = _create_params_config(template)
     build_config = _create_build_config()
     features_config = _create_features_config()
+    menu_config = _create_menu_config(template)
+    search_config = _create_search_config(template)
+    fonts_config = _create_fonts_config()
 
     # Write default configs
     _write_yaml(defaults / "site.yaml", site_config)
@@ -58,6 +61,9 @@ def create_config_directory(
     _write_yaml(defaults / "params.yaml", params_config)
     _write_yaml(defaults / "build.yaml", build_config)
     _write_yaml(defaults / "features.yaml", features_config)
+    _write_yaml(defaults / "menu.yaml", menu_config)
+    _write_yaml(defaults / "search.yaml", search_config)
+    _write_yaml(defaults / "fonts.yaml", fonts_config)
 
     # Create environment configs
     local_config = _create_local_env_config()
@@ -73,6 +79,9 @@ def create_config_directory(
     cli.info("   │  ├─ _default/params.yaml")
     cli.info("   │  ├─ _default/build.yaml")
     cli.info("   │  ├─ _default/features.yaml")
+    cli.info("   │  ├─ _default/menu.yaml")
+    cli.info("   │  ├─ _default/search.yaml")
+    cli.info("   │  ├─ _default/fonts.yaml")
     cli.info("   │  ├─ environments/local.yaml")
     cli.info("   │  └─ environments/production.yaml")
 
@@ -130,6 +139,21 @@ def _create_theme_config(theme: str) -> dict[str, Any]:
     }
 
 
+def _create_params_config(template: str) -> dict[str, Any]:
+    """Create params configuration. Blog template gets contact placeholders."""
+    params: dict[str, Any] = {}
+    if template == "blog":
+        params = {
+            "email": "hello@example.com",
+            "social": [
+                {"name": "GitHub", "url": "https://github.com/yourusername"},
+                {"name": "Twitter", "url": "https://twitter.com/yourusername"},
+                {"name": "LinkedIn", "url": "https://linkedin.com/in/yourprofile"},
+            ],
+        }
+    return {"params": params}
+
+
 def _create_content_config(template: str) -> dict[str, Any]:
     """Create content configuration based on template type."""
     content_config: dict[str, Any] = {"content": {}}
@@ -137,16 +161,19 @@ def _create_content_config(template: str) -> dict[str, Any]:
     if template == "blog":
         content_config["content"] = {
             "default_type": "blog",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
+            "excerpt_words": 150,
             "reading_speed": 200,
             "related_count": 5,
             "sort_pages_by": "date",
             "sort_order": "desc",  # Newest first for blogs
+            "toc_depth": 3,
+            "toc_min_headings": 2,
         }
     elif template in ["docs", "documentation"]:
         content_config["content"] = {
             "default_type": "doc",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "reading_speed": 200,
             "toc_depth": 4,
             "toc_min_headings": 2,
@@ -163,14 +190,14 @@ def _create_content_config(template: str) -> dict[str, Any]:
     elif template == "portfolio":
         content_config["content"] = {
             "default_type": "page",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "sort_pages_by": "date",
             "sort_order": "desc",
         }
     else:  # default
         content_config["content"] = {
             "default_type": "page",
-            "excerpt_length": 200,
+            "excerpt_length": 750,
             "reading_speed": 200,
             "sort_pages_by": "weight",
             "sort_order": "asc",
@@ -208,15 +235,66 @@ def _create_features_config() -> dict[str, Any]:
             "search": True,
             "json": True,
             "llm_txt": True,
-        }
+        },
+        "social_cards": {
+            "enabled": False,
+            "template": "default",
+            "background_color": "#0f172a",
+            "text_color": "#f8fafc",
+            "accent_color": "#06b6d4",
+        },
+    }
+
+
+def _create_menu_config(template: str) -> dict[str, Any]:
+    """Create menu configuration. Extra items appended to auto-generated nav."""
+    return {
+        "menu": {
+            "extra": [],
+        },
+    }
+
+
+def _create_search_config(template: str) -> dict[str, Any]:
+    """Create search configuration."""
+    placeholder = "Search documentation..." if template in ["docs", "documentation"] else "Search..."
+    return {
+        "search": {
+            "enabled": True,
+            "lunr": {
+                "prebuilt": True,
+                "min_query_length": 2,
+                "max_results": 50,
+                "preload": "smart",
+            },
+            "ui": {
+                "modal": True,
+                "recent_searches": 5,
+                "placeholder": placeholder,
+            },
+        },
+    }
+
+
+def _create_fonts_config() -> dict[str, Any]:
+    """Create font configuration."""
+    return {
+        "fonts": {
+            "display": "Outfit:400,600,700",
+        },
     }
 
 
 def _create_local_env_config() -> dict[str, Any]:
-    """Create local development environment config."""
+    """Create local development environment config.
+
+    Empty baseurl keeps links relative (/posts/foo/) so they work on any port
+    (dev server default 5173, or user-configured). Avoids broken links when
+    baseurl pointed at wrong port.
+    """
     return {
         "site": {
-            "baseurl": "http://localhost:8000",
+            "baseurl": "",
         },
         "build": {
             "parallel": False,  # Easier debugging

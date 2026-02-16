@@ -160,10 +160,12 @@ class SectionNavigationMixin:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
         """
-        if not self._site or not self._site.config.get("url"):
+        from bengal.core.utils.url import get_site_origin
+
+        origin = get_site_origin(self._site) if self._site else ""
+        if not origin:
             return self.href
-        site_url = self._site.config["url"].rstrip("/")
-        return f"{site_url}{self._path}"
+        return f"{origin}{self._path}"
 
     # =========================================================================
     # NAVIGATION HELPERS

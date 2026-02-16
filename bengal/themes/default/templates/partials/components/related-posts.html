@@ -1,0 +1,27 @@
+{#
+================================================================================
+Related Posts Component
+================================================================================
+
+Displays related posts in a grid. Uses post_card with compact variant.
+
+Usage:
+  {{ related_posts(posts, heading='Related Posts') }}
+================================================================================
+#}
+
+{% from 'partials/components/post-card.html' import post_card %}
+
+{% def related_posts(posts, heading=none) %}
+{% let display_posts = (posts | default([]))[:3] %}
+{% if display_posts | length > 0 %}
+<aside class="related-posts">
+    <h2>{{ heading ?? t('blog.related_posts', default='Related Posts') }}</h2>
+    <div class="blog-featured-grid">
+        {% for post in display_posts %}
+        {{ post_card(post, variant='compact') }}
+        {% end %}
+    </div>
+</aside>
+{% end %}
+{% end %}

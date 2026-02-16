@@ -1,0 +1,10 @@
+# Author Registry
+# Reference authors by slug in frontmatter: params.author: kida
+# Access in templates: site.data.authors[params.author]
+
+kida:
+  name: Kida
+  title: Chief Napping Officer
+  bio: >
+    Just a Bengal cat living her life in NYC. By day, I'm a professional lap consultant; by night, I'm a gravity researcher testing the limits of objects and edges. Foodie at heart -- love snacks! 
+  avatar: images/kida-avatar.png

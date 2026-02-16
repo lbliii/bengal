@@ -1,7 +1,8 @@
 """
 Auto-navigation discovery functions.
 
-Provides get_auto_nav() for automatic navigation from site sections.
+Provides get_auto_nav() for automatic navigation from site sections and
+root-level pages.
 
 Performance:
     get_auto_nav() is memoized per-build since the result is identical
@@ -11,6 +12,7 @@ Performance:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.template_functions.memo import site_scoped_memoize
@@ -103,20 +105,67 @@ def _build_section_menu_item(
     }
 
 
+def _is_root_level_page(page: Any, content_dir: Path) -> bool:
+    """
+    Check if a page is at content root (e.g. content/about.md, not content/posts/foo.md).
+
+    Excludes index.md (homepage) and section indices (_index.md).
+    """
+    try:
+        src = Path(page.source_path)
+        if src.is_absolute():
+            rel = src.relative_to(content_dir)
+        else:
+            rel_str = to_posix(str(src))
+            rel = Path(rel_str[8:]) if rel_str.startswith("content/") else Path(rel_str)
+        parts = to_posix(str(rel)).split("/")
+        return len(parts) == 1 and parts[0] not in ("index.md", "_index.md")
+    except (ValueError, AttributeError):
+        return False
+
+
+def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
+    """
+    Build a menu item from a root-level page (opt-out: include unless menu: false).
+    """
+    metadata = getattr(page, "metadata", {})
+    menu_setting = metadata.get("menu", True)
+    if menu_setting is False or (
+        isinstance(menu_setting, dict) and menu_setting.get("main") is False
+    ):
+        return None
+    if hasattr(page, "visibility") and page.visibility and not page.visibility.get("menu", True):
+        return None
+    page_url = getattr(page, "_path", None) or "/"
+    page_title = get_nav_title(page, getattr(page, "title", "Untitled"))
+    page_weight = metadata.get("weight", 999)
+    slug = getattr(page, "slug", None) or Path(str(page.source_path)).stem
+    return {
+        "name": page_title,
+        "url": page_url,
+        "weight": page_weight,
+        "identifier": f"page-{slug}",
+        "parent": None,
+        "icon": None,
+    }
+
+
 @site_scoped_memoize("auto_nav")
 def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     """
-    Auto-discover hierarchical navigation from site sections.
+    Auto-discover hierarchical navigation from site sections and root-level pages.
 
     This function provides automatic navigation discovery similar to how
-    sidebars and TOC work. It discovers sections and creates nav items
-    automatically, respecting the section hierarchy.
+    sidebars and TOC work. It discovers sections and root-level pages,
+    creating nav items automatically.
 
     Features:
     - Auto-discovers all sections in content/ (not just top-level)
+    - Auto-discovers root-level pages (e.g. content/about.md) - opt-out via menu: false
     - Builds hierarchical menu based on section.parent relationships
     - Respects section weight for ordering
     - Respects 'menu: false' in section _index.md to hide from nav
+    - Root-level pages: include by default, exclude with menu: false
     - Returns empty list if manual [[menu.main]] config exists (hybrid mode)
     - **Memoized**: Result cached per-build (same for all pages)
 
@@ -206,6 +255,16 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     # Build menu from all top-level sections
     for section in top_level_sections:
         _add_section_recursive(section, None)
+
+    # Auto-discover root-level pages (opt-out: include unless menu: false)
+    root_path = getattr(site, "root_path", None)
+    if root_path:
+        content_dir = root_path / "content"
+        for page in site.pages:
+            if _is_root_level_page(page, content_dir):
+                item = _build_root_page_menu_item(page)
+                if item:
+                    nav_items.append(item)
 
     # Sort by weight (lower weights first)
     nav_items.sort(key=lambda x: (x["weight"], x["name"]))

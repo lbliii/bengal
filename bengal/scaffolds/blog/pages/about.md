@@ -1,18 +1,15 @@
 ---
 title: About
-description: Learn more about me
+date: {{date}}
+description: About this blog and its author
 ---
 
-# About Me
+# About
 
-Hi! I'm a blogger passionate about sharing knowledge and experiences.
-
-## What I Write About
-
-- Technology and programming
-- Personal development
-- Life lessons and reflections
+This is the about page for your blog. Edit `content/about.md` to tell your story.
 
 ## Get in Touch
 
-Feel free to reach out via email or social media.
+- Email: your@email.com
+- Twitter: @yourhandle
+- GitHub: yourusername

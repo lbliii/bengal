@@ -1,0 +1,32 @@
+{#
+================================================================================
+Related Post Card Component (Simple)
+================================================================================
+
+Simple card for related posts in post/page templates.
+Uses related-post-card styling (different from post_card compact).
+
+Usage:
+  {{ related_post_card(post) }}
+================================================================================
+#}
+
+{% def related_post_card(post) %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?._path ?? post?.path ?? post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_excerpt = post?.excerpt ?? post?.description ?? '' %}
+{% let post_content = post?.content ?? '' %}
+{% let post_desc = post?.description ?? '' %}
+{% let preview = post_excerpt or post_content %}
+
+<article class="related-post-card gradient-border fluid-combined">
+    <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
+    {% if post_date %}
+    <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+    {% end %}
+    {% if preview %}
+    <div class="blog-card-excerpt">{{ preview | card_excerpt_html(config.content.excerpt_words | default(150), post_title, post_desc) | safe }}</div>
+    {% end %}
+</article>
+{% end %}

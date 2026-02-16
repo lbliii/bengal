@@ -355,3 +355,28 @@ class TestConfigSnapshotEdgeCases:
 
         assert config.build.incremental is None
         assert config.build.max_workers is None
+
+
+class TestConfigSnapshotContentTypeCoercion:
+    """ContentSection must coerce string values from YAML to int."""
+
+    def test_excerpt_words_string_becomes_int(self):
+        """excerpt_words as string from YAML becomes int."""
+        config = ConfigSnapshot.from_dict(
+            {"content": {"excerpt_words": "150", "excerpt_length": "750"}}
+        )
+        assert config.content.excerpt_words == 150
+        assert isinstance(config.content.excerpt_words, int)
+        assert config.content.excerpt_length == 750
+        assert isinstance(config.content.excerpt_length, int)
+
+    def test_reading_speed_string_becomes_int(self):
+        """reading_speed as string becomes int."""
+        config = ConfigSnapshot.from_dict({"content": {"reading_speed": "200"}})
+        assert config.content.reading_speed == 200
+        assert isinstance(config.content.reading_speed, int)
+
+    def test_invalid_excerpt_words_falls_back_to_default(self):
+        """Invalid excerpt_words falls back to default (150)."""
+        config = ConfigSnapshot.from_dict({"content": {"excerpt_words": "bad"}})
+        assert config.content.excerpt_words == 150

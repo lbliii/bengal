@@ -197,11 +197,12 @@ class TestNavigationLinkGeneration:
         section._site = site
 
         # Create pages with output_path pre-set (as done by RenderOrchestrator)
+        # Use weight to ensure deterministic order (intro, basics, advanced)
         pages = []
-        for _i, name in enumerate(["intro", "basics", "advanced"]):
+        for i, name in enumerate(["intro", "basics", "advanced"]):
             page = Page(
                 source_path=Path(f"/content/guides/{name}.md"),
-                _raw_metadata={"title": name.title()},
+                _raw_metadata={"title": name.title(), "weight": i},
                 output_path=Path(f"/site/public/guides/{name}/index.html"),
             )
             page._site = site
