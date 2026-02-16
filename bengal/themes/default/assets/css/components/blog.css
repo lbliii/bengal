@@ -62,7 +62,86 @@
   margin-inline: auto;
 }
 
+/* ============================================
+   BLOG SHELL (about, contact, single layout wrapper)
+   Used with blog-container for layout.
+   ============================================ */
+
+.blog-shell {
+  /* Semantic wrapper - layout from blog-container when used together */
+}
+
+/* About page article structure */
+.blog-about {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
+.blog-about-header {
+  margin-bottom: var(--space-6);
+}
+
+.blog-about-content {
+  margin-bottom: var(--space-8);
+}
+
+.blog-about-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-block-start: 1px solid var(--color-border-light);
+}
+
+/* Contact page article structure */
+.blog-contact {
+  max-width: var(--prose-width);
+  margin-inline: auto;
+}
+
+.blog-contact-header {
+  margin-bottom: var(--space-6);
+}
+
+.blog-contact-content {
+  margin-bottom: var(--space-8);
+}
+
+.blog-contact-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-block-start: 1px solid var(--color-border-light);
+}
+
+.contact-email {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.contact-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.contact-social a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.contact-social a:hover {
+  text-decoration: underline;
+}
+
 .view-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.blog-updated-inline {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -660,6 +739,11 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Blog Post Hero: uses page-hero (like docs) without breadcrumbs */
 .page-hero--blog {
     margin-bottom: var(--space-10);
+}
+
+/* Base hero image wrapper (modifiers add layout) */
+.page-hero__image {
+    display: block;
 }
 
 /* Featured image (blog-specific) */
