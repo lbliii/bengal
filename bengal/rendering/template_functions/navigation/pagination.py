@@ -86,6 +86,17 @@ def get_pagination_items(
         </ul>
 
     """
+    # Coerce to int - template context may pass str from YAML/config (e.g. per_page)
+    try:
+        current_page = int(current_page) if current_page is not None else 1
+    except (ValueError, TypeError):
+        current_page = 1
+    try:
+        total_pages = int(total_pages) if total_pages is not None else 1
+    except (ValueError, TypeError):
+        total_pages = 1
+    window = int(window) if window is not None else 2
+
     if total_pages <= 0:
         total_pages = 1
 

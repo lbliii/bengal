@@ -610,6 +610,15 @@ class Renderer:
             snapshot = getattr(self.build_context, "snapshot", None)
         section_for_context = self._to_section_snapshot(section, snapshot)
 
+        # Coerce pagination values to int - YAML/config may pass strings
+        safe_pagination = dict(pagination)
+        for key in ("current_page", "total_pages"):
+            if key in safe_pagination and safe_pagination[key] is not None:
+                try:
+                    safe_pagination[key] = int(safe_pagination[key])
+                except (ValueError, TypeError):
+                    safe_pagination[key] = 1
+
         context.update(
             {
                 "section": section_for_context,
@@ -617,7 +626,7 @@ class Renderer:
                 "pages": posts,  # Alias
                 "subsections": subsections,
                 "total_posts": len(all_posts),
-                **pagination,
+                **safe_pagination,
             }
         )
 
@@ -731,13 +740,22 @@ class Renderer:
             page_num=page_num,
         )
 
+        # Coerce pagination values to int - YAML/config may pass strings
+        safe_pagination = dict(pagination)
+        for key in ("current_page", "total_pages"):
+            if key in safe_pagination and safe_pagination[key] is not None:
+                try:
+                    safe_pagination[key] = int(safe_pagination[key])
+                except (ValueError, TypeError):
+                    safe_pagination[key] = 1
+
         context.update(
             {
                 "tag": tag_name,
                 "tag_slug": tag_slug,
                 "posts": posts,
                 "total_posts": total_posts_count,
-                **pagination,
+                **safe_pagination,
             }
         )
 

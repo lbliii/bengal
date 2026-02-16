@@ -465,9 +465,7 @@ class RenderingPipeline:
             from bengal.config.utils import resolve_excerpt_length
 
             meta = page.metadata
-            metadata_with_source = (
-                meta.resolve_all() if hasattr(meta, "resolve_all") else dict(meta or {})
-            )
+            metadata_with_source = dict(meta or {})
             metadata_with_source["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(
@@ -496,9 +494,7 @@ class RenderingPipeline:
 
             # Build mutable metadata for parser (CascadeView is immutable)
             meta = page.metadata
-            metadata_for_parser = (
-                meta.resolve_all() if hasattr(meta, "resolve_all") else dict(meta or {})
-            )
+            metadata_for_parser = dict(meta or {})
             metadata_for_parser["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(

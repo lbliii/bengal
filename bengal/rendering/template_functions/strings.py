@@ -132,6 +132,10 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     if not html:
         return ""
+    try:
+        count = int(count)
+    except (TypeError, ValueError):
+        count = 30
 
     # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
@@ -740,6 +744,10 @@ def card_excerpt_html(
     """
     if not content:
         return ""
+    try:
+        words = int(words)
+    except (TypeError, ValueError):
+        words = 30
     # Same duplicate stripping as excerpt_for_card
     prepped = _prepare_html_for_excerpt(content) if "<" in content else content
     original_plain = text_utils.normalize_whitespace(strip_html(prepped), collapse=True).strip()
